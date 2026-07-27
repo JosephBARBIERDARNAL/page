@@ -110,7 +110,7 @@ pub struct RuleMapping {
     pub notes: &'static str,
 }
 
-pub const RULE_MAPPINGS: [RuleMapping; 18] = [
+pub const RULE_MAPPINGS: [RuleMapping; 19] = [
     RuleMapping {
         local_rule_id: "PDF-PARSE-001",
         verapdf_rule_id: None,
@@ -251,11 +251,19 @@ pub const RULE_MAPPINGS: [RuleMapping; 18] = [
         local_rule_id: "PDFA1B-OUTPUTINTENT-001",
         verapdf_rule_id: Some("ISO 19005-1:2005:6.2.2:1"),
         iso_clause: Some("ISO 19005-1:2005, 6.2.2"),
-        strength: MappingStrength::PartialProxy,
+        strength: MappingStrength::Exact,
         reference_test: Some(
             "(deviceClass == \"prtr\" || deviceClass == \"mntr\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\") && version < 3.0",
         ),
-        notes: "A nonempty OutputIntents array is only a local proxy; it does not validate S, DestOutputProfile, ICC class, colour space, version, or BToA data.",
+        notes: "For every safely decoded DestOutputProfile stream linked from a dictionary-based array entry, the local and reference test-1 predicates read only ICC bytes 8-9, 12-15, and 16-19. Neither test-1 predicate gates on S, profile signature, declared size, tag data, or BToA data.",
+    },
+    RuleMapping {
+        local_rule_id: "PDFA1B-OUTPUTINTENT-IDENTITY-001",
+        verapdf_rule_id: Some("ISO 19005-1:2005:6.2.2:2"),
+        iso_clause: Some("ISO 19005-1:2005, 6.2.2"),
+        strength: MappingStrength::Exact,
+        reference_test: Some("sameOutputProfileIndirect == true"),
+        notes: "Compares indirect DestOutputProfile object IDs across dictionary-based entries; missing and direct values are ignored, while indirect non-stream targets still participate.",
     },
 ];
 

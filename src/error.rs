@@ -22,6 +22,9 @@ pub enum PdfError {
 
     #[error("XMP metadata stream exceeds the decoded-size limit: {0}")]
     XmpDecodeLimit(String),
+
+    #[error("ICC output profile stream exceeds the decoded-size limit: {0}")]
+    IccDecodeLimit(String),
 }
 
 impl PdfError {
@@ -32,6 +35,7 @@ impl PdfError {
                 | Self::TooManyObjects { .. }
                 | Self::ReferenceDepth(_)
                 | Self::XmpDecodeLimit(_)
+                | Self::IccDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(
                     lopdf::DecompressError::MemoryLimitExceeded { .. }
                 ))

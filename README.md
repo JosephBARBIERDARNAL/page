@@ -54,7 +54,14 @@ bytes, object count, and reference-chain depth. Operational failures use
   Title and Subject use `rdf:Alt` `x-default`; Author uses an `rdf:Seq` with
   exactly one item. Common full dates are compared as instants, including
   equivalent timezone offsets.
-- `PDFA1B-OUTPUTINTENT-001`: the catalog has at least one output intent.
+- `PDFA1B-OUTPUTINTENT-001`: each safely decoded `DestOutputProfile` stream
+  linked from an output-intent dictionary has ICC class `prtr` or `mntr`,
+  colour space `RGB `, `CMYK`, or `GRAY`, and a major/minor version below 3.0.
+  This stable identifier previously represented a coarse presence proxy; it
+  now represents the pinned §6.2.2 test-1 predicate.
+- `PDFA1B-OUTPUTINTENT-IDENTITY-001`: every indirect
+  `DestOutputProfile` value in the array identifies the same indirect object.
+  Missing and direct values are ignored, matching the pinned predicate.
 
 These identifiers are stable project-local identifiers. The mappings below
 make clear which checks correspond to pinned veraPDF rules and which are only
@@ -132,7 +139,8 @@ veraPDF 1.28.2.
 | `PDFA1B-INFO-CREATOR-001` | `ISO 19005-1:2005:6.7.3:6` | §6.7.3 | partial/proxy | ASCII `xmp:CreatorTool` cases agree. |
 | `PDFA1B-INFO-PRODUCER-001` | `ISO 19005-1:2005:6.7.3:7` | §6.7.3 | partial/proxy | ASCII `pdf:Producer` cases agree. |
 | `PDFA1B-INFO-MODDATE-001` | `ISO 19005-1:2005:6.7.3:8` | §6.7.3 | partial/proxy | Common full dates are compared as instants; reduced-precision XMP forms are not implemented. |
-| `PDFA1B-OUTPUTINTENT-001` | `ISO 19005-1:2005:6.2.2:1` | §6.2.2 | partial/proxy | Merely finding an array entry does not validate `/S`, `DestOutputProfile`, ICC class, colour space, ICC version, or BToA data. |
+| `PDFA1B-OUTPUTINTENT-001` | `ISO 19005-1:2005:6.2.2:1` | §6.2.2 | exact | For safely decoded linked streams: `(deviceClass == "prtr" \|\| deviceClass == "mntr") && (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY") && version < 3.0`. |
+| `PDFA1B-OUTPUTINTENT-IDENTITY-001` | `ISO 19005-1:2005:6.2.2:2` | §6.2.2 | exact | `sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity. |
 
 The same mapping is available as typed Rust data in
 `pdf::differential::RULE_MAPPINGS`.
@@ -143,16 +151,17 @@ Normal tests and the three-OS GitHub workflow do not install or invoke
 veraPDF. To run the pinned real-reference cases locally:
 
 ```bash
-VERAPDF_BIN=/path/to/verapdf \
+VERAPDF_BIN=verapdf \
   cargo test --test verapdf_diff -- --nocapture
 ```
 
 The case manifest is `tests/fixtures/verapdf-diff-cases.json`. In addition to
 the structural, malformed, encrypted, and supplied real-world fixtures, it
-defines deterministic atomic metadata cases. The opt-in suite generates those
-PDFs at runtime and compares both local and veraPDF failed-rule-ID deltas
-against a common baseline. This prevents unrelated known PDF/A failures in the
-small generated documents from hiding metadata regressions.
+defines deterministic atomic metadata and output-intent cases. The opt-in
+suite generates those PDFs at runtime and compares both local and veraPDF
+failed-rule-ID deltas against a baseline for each group. This prevents
+unrelated known PDF/A failures in the small generated documents from hiding
+targeted regressions.
 
 The live comparison deliberately records two pinned-model distinctions:
 
@@ -160,6 +169,18 @@ The live comparison deliberately records two pinned-model distinctions:
   serialization/schema-presence rules rather than its part/conformance rules;
 - an invalid XMP date fails veraPDF's property-type rule §6.7.9 test 3 rather
   than the Info/date-equivalence rule.
+
+The output-intent cases also pin several veraPDF 1.28.2 model behaviors that
+are narrower than the prose description:
+
+- absent, non-array, empty, and dictionary-free `/OutputIntents` values make
+  both §6.2.2 rules inapplicable;
+- test 1 is instantiated for any destination profile stream and does not gate
+  on `/S`; its predicate reads only ICC version, device class, and data colour
+  space fields;
+- test 2 compares indirect object identity rather than profile bytes, ignores
+  missing and direct values, and includes indirect values whose targets are
+  not streams.
 
 Small sanitized veraPDF JSON files under `tests/reference-reports/` unit-test
 report parsing without an installed reference. Classification, exit-code,
@@ -185,7 +206,14 @@ behavior are also tested offline.
 ## Known limitations
 
 - This is not a complete PDF/A conformance checker.
-- Output intents are detected but their ICC profiles are not validated.
+- Output-intent validation intentionally covers only the two predicates in the
+  pinned §6.2.2 profile. It does not establish general ICC validity: declared
+  profile size, `acsp` signature, PCS, tag table, rendering transforms, and
+  BToA data are not inspected by these predicates. A 20-byte prefix can
+  therefore pass test 1 when its three exposed fields pass.
+- Missing `/OutputIntents`, missing `/S`, and missing `DestOutputProfile` are
+  not standalone failures in this milestone because veraPDF 1.28.2 creates no
+  failing §6.2.2 model predicate for those cases.
 - Fonts are summarized, but font programs and embedding requirements are not
   validated.
 - XMP extraction implements a bounded typed subset for identification,
@@ -212,3 +240,83 @@ behavior are also tested offline.
   document.
 - Differential agreement covers only the implemented checks and selected
   pinned reference. It does not establish full PDF/A-1b conformance.
+
+## Development commands
+
+The repository includes a `justfile` so the common commands have one stable
+interface. Run `just` to list them. The main workflows are:
+
+```bash
+just check
+just build
+just test-verapdf
+just validate tests/fixtures/structural.pdf
+just validate tests/fixtures/structural.pdf json
+just diff tests/fixtures/structural.pdf
+```
+
+`just check` runs formatting verification, strict Clippy, and the complete
+offline test suite. `just test-verapdf` resolves `verapdf` from `PATH` by
+default; set `VERAPDF_BIN` to override it.
+
+## Implementation status
+
+The validator currently exposes 19 checks. Five are exact mappings to the
+pinned veraPDF 1.28.2 PDF/A-1B profile, twelve are deliberately bounded
+partial/proxy implementations, and two are local parser/model gates.
+
+### Implemented exactly
+
+- `PDFA1B-ENCRYPTION-001` — rejects encrypted documents.
+- `PDFA1B-METADATA-STRUCTURE-001` — requires catalog metadata to resolve to a
+  `/Type /Metadata`, `/Subtype /XML` stream.
+- `PDFA1B-METADATA-FILTER-001` — rejects a filter on the catalog metadata
+  stream.
+- `PDFA1B-OUTPUTINTENT-001` — implements pinned §6.2.2 test 1 for ICC device
+  class, data colour space, and version.
+- `PDFA1B-OUTPUTINTENT-IDENTITY-001` — implements pinned §6.2.2 test 2 for
+  indirect destination-profile object identity.
+
+### Implemented as bounded partial/proxy checks
+
+- `PDFA1B-XMP-001` — bounded, DTD-disabled XML parsing, not the complete XMP
+  2004 serialization model.
+- `PDFA1B-ID-SCHEMA-001`, `PDFA1B-ID-PART-001`, and
+  `PDFA1B-ID-CONFORMANCE-001` — the common PDF/A identification schema,
+  part, and conformance cases.
+- `PDFA1B-INFO-CREATIONDATE-001`, `PDFA1B-INFO-TITLE-001`,
+  `PDFA1B-INFO-AUTHOR-001`, `PDFA1B-INFO-SUBJECT-001`,
+  `PDFA1B-INFO-KEYWORDS-001`, `PDFA1B-INFO-CREATOR-001`,
+  `PDFA1B-INFO-PRODUCER-001`, and `PDFA1B-INFO-MODDATE-001` — common
+  Info-to-XMP consistency cases.
+
+### Implemented as local gates
+
+- `PDF-PARSE-001` — the input must parse within configured resource limits.
+- `PDFA1B-CATALOG-001` — the trailer root must resolve to a catalog
+  dictionary.
+
+### Still required for full PDF/A-1B validation
+
+- Complete PDF file and object syntax validation, including all header,
+  trailer, cross-reference, stream, dictionary, and numeric constraints.
+- The remaining colour requirements: full ICC profile validation, calibrated
+  and device colour-space rules, rendering intents, and every output-intent
+  rule outside the two implemented §6.2.2 predicates.
+- Font conformance: mandatory embedding, font descriptors and programs,
+  encodings, glyph coverage, metrics, and Unicode mappings.
+- Graphics and content-stream rules, including operators, images, transparency,
+  patterns, shadings, and external graphics state.
+- Restrictions for annotations, actions, forms, optional content, multimedia,
+  embedded files, JavaScript, and other interactive features.
+- The complete XMP 2004 data model, extension-schema validation, value typing,
+  lexical-prefix rules, and complete PDFDocEncoding support.
+- Remaining document-structure requirements, including name trees, logical
+  structure when present, page-tree details, and other catalog-level
+  constraints.
+- Exhaustive veraPDF rule coverage and differential fixtures for every
+  implemented predicate and parser boundary.
+
+PDF/A-1A-specific requirements and the PDF/A-2, PDF/A-3, and PDF/A-4 families
+have not been implemented. Passing all current checks therefore means only
+that this documented subset passed; it is not proof of PDF/A conformance.

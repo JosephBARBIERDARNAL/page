@@ -29,7 +29,7 @@ pub struct ValidationRule {
     pub description: &'static str,
 }
 
-const RULES: [ValidationRule; 18] = [
+const RULES: [ValidationRule; 19] = [
     ValidationRule {
         id: "PDF-PARSE-001",
         description: "The input parses as a PDF",
@@ -100,7 +100,11 @@ const RULES: [ValidationRule; 18] = [
     },
     ValidationRule {
         id: "PDFA1B-OUTPUTINTENT-001",
-        description: "At least one output intent exists",
+        description: "ICC output profiles use an allowed class, colour space, and version",
+    },
+    ValidationRule {
+        id: "PDFA1B-OUTPUTINTENT-IDENTITY-001",
+        description: "Output intents use the same indirect destination profile object",
     },
 ];
 
@@ -255,16 +259,88 @@ fn validate_document(document: PdfDocument, profile: ValidationProfile) -> Valid
 
     validate_info_consistency(&document, &mut failures);
 
-    if document.output_intents.is_empty() {
+    validate_output_intents(&document, &mut failures);
+
+    finish_report(document, profile, failures, RULES.len())
+}
+
+fn validate_output_intents(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+    let entries = document
+        .output_intents_summary
+        .entries
+        .iter()
+        .filter(|entry| entry.is_dictionary_based);
+
+    let mut invalid_profiles = Vec::new();
+    for entry in entries
+        .clone()
+        .filter(|entry| entry.dest_output_profile_is_stream)
+    {
+        if !entry
+            .dest_output_profile_header
+            .as_ref()
+            .is_some_and(|header| header.conforms_to_pdfa_1_output_intent())
+        {
+            let detail = match (
+                &entry.dest_output_profile_header,
+                &entry.dest_output_profile_decode_error,
+            ) {
+                (Some(header), _) => format!(
+                    "ICC output profile has class {:?}, colour space {:?}, and version {}.{}",
+                    header.device_class,
+                    header.color_space,
+                    header.version_major,
+                    header.version_minor
+                ),
+                (None, Some(error)) => error.clone(),
+                (None, None) => {
+                    "ICC output profile is shorter than the 20-byte header prefix required by this check"
+                        .to_owned()
+                }
+            };
+            invalid_profiles.push((entry.dest_output_profile_id, detail));
+        }
+    }
+    if !invalid_profiles.is_empty() {
+        let object_id = (invalid_profiles.len() == 1)
+            .then(|| invalid_profiles[0].0)
+            .flatten();
+        let detail = invalid_profiles
+            .iter()
+            .map(|(object_id, detail)| match object_id {
+                Some(object_id) => format!(
+                    "{} {}: {detail}",
+                    object_id.object_number, object_id.generation
+                ),
+                None => format!("direct profile: {detail}"),
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
         failures.push(failure(
             "PDFA1B-OUTPUTINTENT-001",
-            "document catalog has no output intent",
-            document.catalog_reference,
+            detail,
+            object_id,
             FailureCategory::Conformance,
         ));
     }
 
-    finish_report(document, profile, failures, RULES.len())
+    let mut indirect_profiles = entries.filter_map(|entry| entry.dest_output_profile_id);
+    if let Some(expected) = indirect_profiles.next()
+        && let Some(actual) = indirect_profiles.find(|object_id| *object_id != expected)
+    {
+        failures.push(failure(
+            "PDFA1B-OUTPUTINTENT-IDENTITY-001",
+            format!(
+                "output intents reference different indirect destination profiles: {} {} and {} {}",
+                expected.object_number,
+                expected.generation,
+                actual.object_number,
+                actual.generation
+            ),
+            document.catalog_reference,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
@@ -645,13 +721,14 @@ mod tests {
     }
 
     #[test]
-    fn reports_missing_output_intent() {
+    fn missing_output_intent_is_outside_the_pinned_output_intent_predicates() {
         let report = validate_bytes(
             &fixture(Some(VALID_XMP), false),
             ValidationProfile::PdfA1b,
             &SafetyLimits::default(),
         );
-        assert_rule(&report, "PDFA1B-OUTPUTINTENT-001");
+        assert_no_rule(&report, "PDFA1B-OUTPUTINTENT-001");
+        assert_no_rule(&report, "PDFA1B-OUTPUTINTENT-IDENTITY-001");
     }
 
     #[test]

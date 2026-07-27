@@ -14,6 +14,8 @@ mod validation;
 pub use error::PdfError;
 pub use limits::SafetyLimits;
 pub use metadata::{DocumentMetadata, XmpMetadata};
-pub use model::{FontSummary, PdfDocument, PdfObjectId};
+pub use model::{
+    FontSummary, IccHeader, OutputIntentSummary, OutputIntentsSummary, PdfDocument, PdfObjectId,
+};
 pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
 pub use validation::{ValidationProfile, ValidationRule, validate_bytes, validate_file};

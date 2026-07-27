@@ -39,6 +39,56 @@ pub struct CatalogMetadataStream {
     pub has_filter: bool,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct IccHeader {
+    pub device_class: String,
+    pub color_space: String,
+    pub version_major: u8,
+    pub version_minor: u8,
+}
+
+impl IccHeader {
+    const REQUIRED_LENGTH: usize = 20;
+
+    fn parse(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() < Self::REQUIRED_LENGTH {
+            return None;
+        }
+        Some(Self {
+            device_class: signature(&bytes[12..16]),
+            color_space: signature(&bytes[16..20]),
+            version_major: bytes[8],
+            version_minor: bytes[9] >> 4,
+        })
+    }
+
+    pub fn conforms_to_pdfa_1_output_intent(&self) -> bool {
+        matches!(self.device_class.as_str(), "prtr" | "mntr")
+            && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY")
+            && self.version_major < 3
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct OutputIntentSummary {
+    pub object_id: Option<PdfObjectId>,
+    pub is_dictionary_based: bool,
+    pub subtype_present: bool,
+    pub subtype: Option<String>,
+    pub dest_output_profile_present: bool,
+    pub dest_output_profile_id: Option<PdfObjectId>,
+    pub dest_output_profile_is_stream: bool,
+    pub dest_output_profile_header: Option<IccHeader>,
+    pub dest_output_profile_decode_error: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct OutputIntentsSummary {
+    pub present: bool,
+    pub is_array: bool,
+    pub entries: Vec<OutputIntentSummary>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PdfDocument {
     pub version: String,
@@ -53,7 +103,9 @@ pub struct PdfDocument {
     pub xmp_object: Option<PdfObjectId>,
     pub xmp_parse_error: Option<String>,
     pub catalog_metadata: CatalogMetadataStream,
+    /// Legacy array-entry identities retained for report compatibility.
     pub output_intents: Vec<Option<PdfObjectId>>,
+    pub output_intents_summary: OutputIntentsSummary,
     pub fonts: FontSummary,
     pub object_count: usize,
 }
@@ -115,6 +167,7 @@ impl PdfDocument {
                 xmp_parse_error: None,
                 catalog_metadata: CatalogMetadataStream::default(),
                 output_intents: Vec::new(),
+                output_intents_summary: OutputIntentsSummary::default(),
                 fonts: FontSummary::default(),
                 object_count: document.objects.len(),
             });
@@ -135,7 +188,12 @@ impl PdfDocument {
         let (info, info_object) = extract_info(document, limits)?;
         let catalog_metadata = inspect_catalog_metadata(document, catalog, limits)?;
         let (xmp, xmp_object, xmp_parse_error) = extract_xmp(document, catalog, limits)?;
-        let output_intents = extract_output_intents(document, catalog, limits)?;
+        let output_intents_summary = extract_output_intents(document, catalog, limits)?;
+        let output_intents = output_intents_summary
+            .entries
+            .iter()
+            .map(|entry| entry.object_id)
+            .collect();
 
         Ok(Self {
             version: document.version.clone(),
@@ -153,6 +211,7 @@ impl PdfDocument {
             xmp_parse_error,
             catalog_metadata,
             output_intents,
+            output_intents_summary,
             fonts: summarize_fonts(document, limits),
             object_count: document.objects.len(),
         })
@@ -361,20 +420,101 @@ fn extract_output_intents(
     document: &Document,
     catalog: Option<&Dictionary>,
     limits: &SafetyLimits,
-) -> Result<Vec<Option<PdfObjectId>>, PdfError> {
+) -> Result<OutputIntentsSummary, PdfError> {
     let Some(catalog) = catalog else {
-        return Ok(Vec::new());
+        return Ok(OutputIntentsSummary::default());
     };
     let Ok(entry) = catalog.get(b"OutputIntents") else {
-        return Ok(Vec::new());
+        return Ok(OutputIntentsSummary::default());
     };
-    let array = resolve(document, entry, limits.max_reference_depth)?
-        .as_array()
-        .map_err(|_| PdfError::UnexpectedObject("OutputIntents is not an array"))?;
-    Ok(array
-        .iter()
-        .map(|item| item.as_reference().ok().map(Into::into))
-        .collect())
+    let mut summary = OutputIntentsSummary {
+        present: true,
+        ..OutputIntentsSummary::default()
+    };
+    let resolved = match resolve(document, entry, limits.max_reference_depth) {
+        Ok(resolved) => resolved,
+        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
+        Err(_) => return Ok(summary),
+    };
+    let Ok(array) = resolved.as_array() else {
+        return Ok(summary);
+    };
+    summary.is_array = true;
+    for item in array {
+        summary
+            .entries
+            .push(inspect_output_intent(document, item, limits)?);
+    }
+    Ok(summary)
+}
+
+fn inspect_output_intent(
+    document: &Document,
+    item: &Object,
+    limits: &SafetyLimits,
+) -> Result<OutputIntentSummary, PdfError> {
+    let mut summary = OutputIntentSummary {
+        object_id: item.as_reference().ok().map(Into::into),
+        ..OutputIntentSummary::default()
+    };
+    let resolved = match resolve(document, item, limits.max_reference_depth) {
+        Ok(resolved) => resolved,
+        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
+        Err(_) => return Ok(summary),
+    };
+    let Some(dictionary) = dictionary_based(resolved) else {
+        return Ok(summary);
+    };
+    summary.is_dictionary_based = true;
+
+    if let Ok(subtype) = dictionary.get(b"S") {
+        summary.subtype_present = true;
+        let resolved = match resolve(document, subtype, limits.max_reference_depth) {
+            Ok(resolved) => resolved,
+            Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
+            Err(_) => subtype,
+        };
+        summary.subtype = resolved.as_name().ok().map(signature);
+    }
+
+    let Ok(profile) = dictionary.get(b"DestOutputProfile") else {
+        return Ok(summary);
+    };
+    summary.dest_output_profile_present = true;
+    summary.dest_output_profile_id = profile.as_reference().ok().map(Into::into);
+    let resolved = match resolve(document, profile, limits.max_reference_depth) {
+        Ok(resolved) => resolved,
+        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
+        Err(_) => return Ok(summary),
+    };
+    let Ok(stream) = resolved.as_stream() else {
+        return Ok(summary);
+    };
+    summary.dest_output_profile_is_stream = true;
+    match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
+        Ok(bytes) => summary.dest_output_profile_header = IccHeader::parse(&bytes),
+        Err(
+            error @ lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }),
+        ) => return Err(PdfError::IccDecodeLimit(error.to_string())),
+        Err(error) => {
+            summary.dest_output_profile_decode_error = Some(format!(
+                "could not decode ICC output profile stream: {error}"
+            ));
+        }
+    }
+    Ok(summary)
+}
+
+fn dictionary_based(object: &Object) -> Option<&Dictionary> {
+    match object {
+        Object::Dictionary(dictionary) => Some(dictionary),
+        Object::Stream(stream) => Some(&stream.dict),
+        _ => None,
+    }
+}
+
+fn signature(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| char::from(*byte)).collect()
 }
 
 fn summarize_fonts(document: &Document, limits: &SafetyLimits) -> FontSummary {
