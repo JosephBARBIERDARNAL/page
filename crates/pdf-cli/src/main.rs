@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
+use pdf_cli::output::{ReportFormat, emit_json};
 use pdf_validation::{SafetyLimits, ValidationProfile, validate_file};
 
 #[derive(Debug, Parser)]
@@ -61,13 +62,6 @@ impl From<ProfileArg> for ValidationProfile {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
-enum ReportFormat {
-    #[default]
-    Text,
-    Json,
-}
-
 fn main() {
     let cli = Cli::parse();
     let status = match cli.command {
@@ -88,16 +82,15 @@ fn main() {
             };
             let report = validate_file(&file, profile.into(), &limits);
             match format {
-                ReportFormat::Text => print!("{report}"),
-                ReportFormat::Json => match serde_json::to_string_pretty(&report) {
-                    Ok(json) => println!("{json}"),
-                    Err(error) => {
-                        eprintln!("could not serialize validation report: {error}");
-                        std::process::exit(1);
-                    }
+                ReportFormat::Text => {
+                    print!("{report}");
+                    report.exit_code()
+                }
+                ReportFormat::Json => match emit_json(&report, "validation report") {
+                    0 => report.exit_code(),
+                    status => status,
                 },
             }
-            report.exit_code()
         }
     };
 

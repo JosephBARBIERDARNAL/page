@@ -1,9 +1,9 @@
-#[allow(dead_code)]
-mod common;
-
 use std::collections::BTreeSet;
 
 use pdf_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+
+#[allow(dead_code)]
+mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("no_output_intents", &[]),
@@ -47,14 +47,7 @@ fn output_intent_cases_have_the_complete_expected_failure_delta() {
     let baseline = failure_ids(&common::output_intent_fixture("baseline"));
     for (case, expected_added) in CASES {
         let actual = failure_ids(&common::output_intent_fixture(case));
-        let added = actual
-            .difference(&baseline)
-            .cloned()
-            .collect::<BTreeSet<_>>();
-        let removed = baseline
-            .difference(&actual)
-            .cloned()
-            .collect::<BTreeSet<_>>();
+        let (added, removed) = common::rule_delta(&baseline, &actual);
         let expected_added = expected_added
             .iter()
             .map(|rule_id| (*rule_id).to_owned())

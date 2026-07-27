@@ -127,46 +127,23 @@ fn assert_atomic_cases(
         let path = temporary.join(format!("{prefix}-{}.pdf", case.name));
         fs::write(&path, fixture(&case.name)).expect("write atomic PDF");
         let report = runner.compare_file(&path, &SafetyLimits::default());
+
         let local_ids = report
             .local_report
             .failures
             .iter()
-            .map(|failure| failure.rule_id)
-            .collect::<Vec<_>>();
-        let local_delta = local_ids
-            .iter()
-            .filter(|id| !baseline_local_ids.contains(**id))
-            .map(|id| (*id).to_owned())
+            .map(|failure| failure.rule_id.to_owned())
             .collect::<BTreeSet<_>>();
-        let expected = case
-            .expected_local_failed_rule_ids
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            local_delta, expected,
-            "{}: {}: unexpected local rule delta; full set {local_ids:?}",
-            case.name, case.rationale
+        assert_rule_id_delta(
+            "local",
+            &case.name,
+            &case.rationale,
+            &baseline_local_ids,
+            &local_ids,
+            &case.expected_local_failed_rule_ids,
+            &case.expected_local_passed_rule_ids,
         );
-        let removed_local = baseline_local_ids
-            .iter()
-            .filter(|id| !local_ids.contains(&id.as_str()))
-            .cloned()
-            .collect::<BTreeSet<_>>();
-        assert!(
-            removed_local.is_empty(),
-            "{}: {}: unexpectedly removed baseline local failures {removed_local:?}",
-            case.name,
-            case.rationale
-        );
-        for expected in &case.expected_local_passed_rule_ids {
-            assert!(
-                !local_ids.contains(&expected.as_str()),
-                "{}: {}: unexpected local failure {expected}; actual {local_ids:?}",
-                case.name,
-                case.rationale
-            );
-        }
+
         let reference = report
             .reference_result
             .as_ref()
@@ -175,40 +152,46 @@ fn assert_atomic_cases(
             .failed_rule_ids
             .iter()
             .map(ToString::to_string)
-            .collect::<Vec<_>>();
-        let reference_delta = reference_ids
-            .iter()
-            .filter(|id| !baseline_reference_ids.contains(*id))
-            .cloned()
             .collect::<BTreeSet<_>>();
-        let expected = case
-            .expected_verapdf_failed_rule_ids
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            reference_delta, expected,
-            "{}: {}: unexpected veraPDF rule delta; full set {reference_ids:?}",
-            case.name, case.rationale
+        assert_rule_id_delta(
+            "veraPDF",
+            &case.name,
+            &case.rationale,
+            &baseline_reference_ids,
+            &reference_ids,
+            &case.expected_verapdf_failed_rule_ids,
+            &case.expected_verapdf_passed_rule_ids,
         );
-        let removed_reference = baseline_reference_ids
-            .iter()
-            .filter(|id| !reference_ids.contains(id))
-            .cloned()
-            .collect::<BTreeSet<_>>();
+    }
+}
+
+/// Asserts that `actual_ids` differs from `baseline_ids` by exactly
+/// `expected_added` (no baseline failure disappears), and that none of
+/// `expected_passed` appear in `actual_ids`.
+#[allow(clippy::too_many_arguments)]
+fn assert_rule_id_delta(
+    label: &str,
+    case_name: &str,
+    rationale: &str,
+    baseline_ids: &BTreeSet<String>,
+    actual_ids: &BTreeSet<String>,
+    expected_added: &[String],
+    expected_passed: &[String],
+) {
+    let (added, removed) = common::rule_delta(baseline_ids, actual_ids);
+    let expected = expected_added.iter().cloned().collect::<BTreeSet<_>>();
+    assert_eq!(
+        added, expected,
+        "{case_name}: {rationale}: unexpected {label} rule delta; full set {actual_ids:?}"
+    );
+    assert!(
+        removed.is_empty(),
+        "{case_name}: {rationale}: unexpectedly removed baseline {label} failures {removed:?}"
+    );
+    for expected in expected_passed {
         assert!(
-            removed_reference.is_empty(),
-            "{}: {}: unexpectedly removed baseline veraPDF failures {removed_reference:?}",
-            case.name,
-            case.rationale
+            !actual_ids.contains(expected),
+            "{case_name}: {rationale}: unexpected {label} failure {expected}; actual {actual_ids:?}"
         );
-        for expected in &case.expected_verapdf_passed_rule_ids {
-            assert!(
-                !reference_ids.contains(expected),
-                "{}: {}: unexpected veraPDF failure {expected}; actual {reference_ids:?}",
-                case.name,
-                case.rationale
-            );
-        }
     }
 }

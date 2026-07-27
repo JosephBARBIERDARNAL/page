@@ -1,8 +1,9 @@
-#[allow(dead_code)]
-mod common;
+use std::collections::BTreeSet;
 
 use pdf_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-use std::collections::BTreeSet;
+
+#[allow(dead_code)]
+mod common;
 
 #[test]
 fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
@@ -81,14 +82,14 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
             ValidationProfile::PdfA1b,
             &SafetyLimits::default(),
         );
-        let delta = report
+        let case_ids = report
             .failures
             .iter()
             .map(|failure| failure.rule_id)
-            .filter(|id| !baseline_ids.contains(id))
             .collect::<BTreeSet<_>>();
+        let (added, _removed) = common::rule_delta(&baseline_ids, &case_ids);
         assert_eq!(
-            delta,
+            added,
             expected.iter().copied().collect(),
             "{case}: unexpected failure delta: {:#?}",
             report.failures

@@ -1,4 +1,17 @@
+use std::collections::BTreeSet;
+
 use lopdf::{Dictionary, Document, Object, Stream, dictionary};
+
+/// Splits `actual` against `baseline` into (added, removed) sets.
+pub fn rule_delta<T: Ord + Clone>(
+    baseline: &BTreeSet<T>,
+    actual: &BTreeSet<T>,
+) -> (BTreeSet<T>, BTreeSet<T>) {
+    (
+        actual.difference(baseline).cloned().collect(),
+        baseline.difference(actual).cloned().collect(),
+    )
+}
 
 pub fn metadata_fixture(case: &str) -> Vec<u8> {
     let mut xmp = BASE_XMP.to_owned();
@@ -378,24 +391,43 @@ fn complete_info() -> Dictionary {
     }
 }
 
+enum Occurrence {
+    All,
+    First,
+    Last,
+}
+
 fn replace(bytes: &mut Vec<u8>, from: &str, to: &str) {
-    let text = String::from_utf8(bytes.clone()).expect("XMP fixture is UTF-8");
-    assert!(text.contains(from), "fixture does not contain {from:?}");
-    *bytes = text.replace(from, to).into_bytes();
+    replace_occurrence(bytes, from, to, Occurrence::All);
 }
 
 fn replace_first(bytes: &mut Vec<u8>, from: &str, to: &str) {
-    let text = String::from_utf8(bytes.clone()).expect("XMP fixture is UTF-8");
-    assert!(text.contains(from), "fixture does not contain {from:?}");
-    *bytes = text.replacen(from, to, 1).into_bytes();
+    replace_occurrence(bytes, from, to, Occurrence::First);
 }
 
 fn replace_last(bytes: &mut Vec<u8>, from: &str, to: &str) {
+    replace_occurrence(bytes, from, to, Occurrence::Last);
+}
+
+fn replace_occurrence(bytes: &mut Vec<u8>, from: &str, to: &str, occurrence: Occurrence) {
     let text = String::from_utf8(bytes.clone()).expect("XMP fixture is UTF-8");
-    let index = text.rfind(from).expect("fixture occurrence");
-    let mut result = text;
-    result.replace_range(index..index + from.len(), to);
-    *bytes = result.into_bytes();
+    let replaced = match occurrence {
+        Occurrence::All => {
+            assert!(text.contains(from), "fixture does not contain {from:?}");
+            text.replace(from, to)
+        }
+        Occurrence::First => {
+            assert!(text.contains(from), "fixture does not contain {from:?}");
+            text.replacen(from, to, 1)
+        }
+        Occurrence::Last => {
+            let index = text.rfind(from).expect("fixture occurrence");
+            let mut result = text;
+            result.replace_range(index..index + from.len(), to);
+            result
+        }
+    };
+    *bytes = replaced.into_bytes();
 }
 
 const BASE_XMP: &[u8] = br#"<?xpacket begin=""?>

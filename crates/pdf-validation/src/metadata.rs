@@ -53,7 +53,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let creator_nodes = property_nodes(&document, DC_NAMESPACE, "creator");
     let creators = creator_nodes
         .iter()
-        .flat_map(|node| container_values(*node, "Seq"))
+        .flat_map(|node| container_values(*node, "Seq", None))
         .collect();
     let description_x_default = alt_values(&document, DC_NAMESPACE, "description", "x-default");
 
@@ -127,34 +127,14 @@ fn alt_values(
 ) -> Vec<String> {
     property_nodes(document, namespace, local_name)
         .into_iter()
-        .flat_map(|property| container_values_with_language(property, "Alt", language))
+        .flat_map(|property| container_values(property, "Alt", Some(language)))
         .collect()
 }
 
-fn container_values(property: Node<'_, '_>, container_name: &str) -> Vec<String> {
-    property
-        .children()
-        .filter(|node| {
-            node.is_element()
-                && node.tag_name().namespace() == Some(RDF_NAMESPACE)
-                && node.tag_name().name() == container_name
-        })
-        .flat_map(|container| {
-            container.children().filter_map(|item| {
-                (item.is_element()
-                    && item.tag_name().namespace() == Some(RDF_NAMESPACE)
-                    && item.tag_name().name() == "li")
-                    .then(|| direct_text(item))
-                    .flatten()
-            })
-        })
-        .collect()
-}
-
-fn container_values_with_language(
+fn container_values(
     property: Node<'_, '_>,
     container_name: &str,
-    language: &str,
+    language: Option<&str>,
 ) -> Vec<String> {
     property
         .children()
@@ -168,7 +148,9 @@ fn container_values_with_language(
                 if !item.is_element()
                     || item.tag_name().namespace() != Some(RDF_NAMESPACE)
                     || item.tag_name().name() != "li"
-                    || item.attribute((XML_NAMESPACE, "lang")) != Some(language)
+                    || language.is_some_and(|language| {
+                        item.attribute((XML_NAMESPACE, "lang")) != Some(language)
+                    })
                 {
                     return None;
                 }

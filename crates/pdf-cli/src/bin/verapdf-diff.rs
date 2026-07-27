@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
+use pdf_cli::output::{ReportFormat, emit_json};
 use pdf_validation::SafetyLimits;
 use pdf_validation::differential::{
     DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner, PINNED_VERAPDF_VERSION,
@@ -57,13 +58,6 @@ impl From<ProfileArg> for ReferenceProfile {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
-enum ReportFormat {
-    #[default]
-    Text,
-    Json,
-}
-
 fn main() {
     let cli = Cli::parse();
     let mut config = ReferenceConfig::pinned(cli.verapdf);
@@ -106,13 +100,12 @@ fn main() {
                 print!("{report}");
             }
         }
-        ReportFormat::Json => match serde_json::to_string_pretty(&reports) {
-            Ok(json) => println!("{json}"),
-            Err(error) => {
-                eprintln!("could not serialize differential reports: {error}");
-                std::process::exit(1);
+        ReportFormat::Json => {
+            let status = emit_json(&reports, "differential reports");
+            if status != 0 {
+                std::process::exit(status);
             }
-        },
+        }
     }
     std::process::exit(aggregate_exit_code(&reports));
 }

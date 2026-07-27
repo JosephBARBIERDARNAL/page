@@ -18,4 +18,4 @@ pub use model::{
     FontSummary, IccHeader, OutputIntentSummary, OutputIntentsSummary, PdfDocument, PdfObjectId,
 };
 pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
-pub use validation::{ValidationProfile, ValidationRule, validate_bytes, validate_file};
+pub use validation::{ValidationProfile, validate_bytes, validate_file};

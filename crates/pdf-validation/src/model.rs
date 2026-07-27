@@ -7,8 +7,6 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 
-type XmpExtraction = (Option<XmpMetadata>, Option<PdfObjectId>, Option<String>);
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct PdfObjectId {
     pub object_number: u32,
@@ -37,6 +35,14 @@ pub struct CatalogMetadataStream {
     pub type_is_metadata: bool,
     pub subtype_is_xml: bool,
     pub has_filter: bool,
+}
+
+impl CatalogMetadataStream {
+    /// Whether the catalog Metadata entry resolves to a stream with
+    /// `/Type /Metadata` and `/Subtype /XML`, as PDF/A-1b requires.
+    pub fn is_valid(&self) -> bool {
+        self.present && self.is_stream && self.type_is_metadata && self.subtype_is_xml
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
@@ -89,7 +95,7 @@ pub struct OutputIntentsSummary {
     pub entries: Vec<OutputIntentSummary>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct PdfDocument {
     pub version: String,
     pub encrypted: bool,
@@ -137,9 +143,7 @@ impl PdfDocument {
 
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {
         let root = document.trailer.get(b"Root").ok();
-        let catalog_reference = root
-            .and_then(|object| object.as_reference().ok())
-            .map(PdfObjectId::from);
+        let catalog_reference = root.and_then(reference_id);
         let encrypted = document.was_encrypted() || document.trailer.has(b"Encrypt");
         let mut trailer_keys = document
             .trailer
@@ -157,37 +161,26 @@ impl PdfDocument {
                 version: document.version.clone(),
                 encrypted: true,
                 catalog_reference,
-                catalog_present: false,
-                page_count: 0,
                 trailer_keys,
-                info: DocumentMetadata::default(),
-                info_object: None,
-                xmp: None,
-                xmp_object: None,
-                xmp_parse_error: None,
-                catalog_metadata: CatalogMetadataStream::default(),
-                output_intents: Vec::new(),
-                output_intents_summary: OutputIntentsSummary::default(),
-                fonts: FontSummary::default(),
                 object_count: document.objects.len(),
+                ..Self::default()
             });
         }
 
         let catalog = match root.filter(|_| catalog_reference.is_some()) {
-            Some(root) => match resolve(document, root, limits.max_reference_depth) {
-                Ok(object) => object
-                    .as_dict()
-                    .ok()
-                    .filter(|dictionary| dictionary.get_type().ok() == Some(b"Catalog".as_slice())),
-                Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
-                Err(_) => None,
-            },
+            Some(root) => resolve_lenient(document, root, limits.max_reference_depth)?
+                .and_then(|object| object.as_dict().ok())
+                .filter(|dictionary| dictionary.get_type().ok() == Some(b"Catalog".as_slice())),
             None => None,
         };
 
         let (info, info_object) = extract_info(document, limits)?;
         let catalog_metadata = inspect_catalog_metadata(document, catalog, limits)?;
-        let (xmp, xmp_object, xmp_parse_error) = extract_xmp(document, catalog, limits)?;
+        let XmpExtraction {
+            xmp,
+            object_id: xmp_object,
+            parse_error: xmp_parse_error,
+        } = extract_xmp(document, catalog, limits)?;
         let output_intents_summary = extract_output_intents(document, catalog, limits)?;
         let output_intents = output_intents_summary
             .entries
@@ -272,6 +265,24 @@ fn resolve<'a>(
     Err(PdfError::ReferenceDepth(maximum_depth))
 }
 
+/// Resolves an indirect reference, treating anything other than a
+/// reference-depth overflow as "not present" instead of a hard failure.
+fn resolve_lenient<'a>(
+    document: &'a Document,
+    object: &'a Object,
+    maximum_depth: usize,
+) -> Result<Option<&'a Object>, PdfError> {
+    match resolve(document, object, maximum_depth) {
+        Ok(resolved) => Ok(Some(resolved)),
+        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
+        Err(_) => Ok(None),
+    }
+}
+
+fn reference_id(object: &Object) -> Option<PdfObjectId> {
+    object.as_reference().ok().map(Into::into)
+}
+
 fn count_pages(document: &Document, catalog: &Dictionary, maximum_depth: usize) -> usize {
     let Ok(pages) = catalog.get(b"Pages") else {
         return 0;
@@ -325,7 +336,7 @@ fn extract_info(
     let Ok(info_entry) = document.trailer.get(b"Info") else {
         return Ok((DocumentMetadata::default(), None));
     };
-    let object_id = info_entry.as_reference().ok().map(Into::into);
+    let object_id = reference_id(info_entry);
     let info = resolve(document, info_entry, limits.max_reference_depth)?
         .as_dict()
         .map_err(|_| PdfError::UnexpectedObject("Info is not a dictionary"))?;
@@ -376,18 +387,29 @@ fn decode_pdf_string(bytes: &[u8]) -> String {
     }
 }
 
+struct XmpExtraction {
+    xmp: Option<XmpMetadata>,
+    object_id: Option<PdfObjectId>,
+    parse_error: Option<String>,
+}
+
 fn extract_xmp(
     document: &Document,
     catalog: Option<&Dictionary>,
     limits: &SafetyLimits,
 ) -> Result<XmpExtraction, PdfError> {
+    let none = || XmpExtraction {
+        xmp: None,
+        object_id: None,
+        parse_error: None,
+    };
     let Some(catalog) = catalog else {
-        return Ok((None, None, None));
+        return Ok(none());
     };
     let Ok(metadata_entry) = catalog.get(b"Metadata") else {
-        return Ok((None, None, None));
+        return Ok(none());
     };
-    let object_id = metadata_entry.as_reference().ok().map(Into::into);
+    let object_id = reference_id(metadata_entry);
     let stream =
         match resolve(document, metadata_entry, limits.max_reference_depth).and_then(|object| {
             object
@@ -395,7 +417,13 @@ fn extract_xmp(
                 .map_err(|_| PdfError::UnexpectedObject("Metadata is not a stream"))
         }) {
             Ok(stream) => stream,
-            Err(error) => return Ok((None, object_id, Some(error.to_string()))),
+            Err(error) => {
+                return Ok(XmpExtraction {
+                    xmp: None,
+                    object_id,
+                    parse_error: Some(error.to_string()),
+                });
+            }
         };
     let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
         Ok(bytes) => bytes,
@@ -403,16 +431,24 @@ fn extract_xmp(
             error @ lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }),
         ) => return Err(PdfError::XmpDecodeLimit(error.to_string())),
         Err(error) => {
-            return Ok((
-                None,
+            return Ok(XmpExtraction {
+                xmp: None,
                 object_id,
-                Some(format!("could not decode XMP stream: {error}")),
-            ));
+                parse_error: Some(format!("could not decode XMP stream: {error}")),
+            });
         }
     };
     Ok(match parse_xmp(&bytes) {
-        Ok(xmp) => (Some(xmp), object_id, None),
-        Err(error) => (None, object_id, Some(error)),
+        Ok(xmp) => XmpExtraction {
+            xmp: Some(xmp),
+            object_id,
+            parse_error: None,
+        },
+        Err(error) => XmpExtraction {
+            xmp: None,
+            object_id,
+            parse_error: Some(error),
+        },
     })
 }
 
@@ -431,10 +467,8 @@ fn extract_output_intents(
         present: true,
         ..OutputIntentsSummary::default()
     };
-    let resolved = match resolve(document, entry, limits.max_reference_depth) {
-        Ok(resolved) => resolved,
-        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
-        Err(_) => return Ok(summary),
+    let Some(resolved) = resolve_lenient(document, entry, limits.max_reference_depth)? else {
+        return Ok(summary);
     };
     let Ok(array) = resolved.as_array() else {
         return Ok(summary);
@@ -454,13 +488,11 @@ fn inspect_output_intent(
     limits: &SafetyLimits,
 ) -> Result<OutputIntentSummary, PdfError> {
     let mut summary = OutputIntentSummary {
-        object_id: item.as_reference().ok().map(Into::into),
+        object_id: reference_id(item),
         ..OutputIntentSummary::default()
     };
-    let resolved = match resolve(document, item, limits.max_reference_depth) {
-        Ok(resolved) => resolved,
-        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
-        Err(_) => return Ok(summary),
+    let Some(resolved) = resolve_lenient(document, item, limits.max_reference_depth)? else {
+        return Ok(summary);
     };
     let Some(dictionary) = dictionary_based(resolved) else {
         return Ok(summary);
@@ -469,11 +501,8 @@ fn inspect_output_intent(
 
     if let Ok(subtype) = dictionary.get(b"S") {
         summary.subtype_present = true;
-        let resolved = match resolve(document, subtype, limits.max_reference_depth) {
-            Ok(resolved) => resolved,
-            Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
-            Err(_) => subtype,
-        };
+        let resolved =
+            resolve_lenient(document, subtype, limits.max_reference_depth)?.unwrap_or(subtype);
         summary.subtype = resolved.as_name().ok().map(signature);
     }
 
@@ -481,11 +510,9 @@ fn inspect_output_intent(
         return Ok(summary);
     };
     summary.dest_output_profile_present = true;
-    summary.dest_output_profile_id = profile.as_reference().ok().map(Into::into);
-    let resolved = match resolve(document, profile, limits.max_reference_depth) {
-        Ok(resolved) => resolved,
-        Err(error @ PdfError::ReferenceDepth(_)) => return Err(error),
-        Err(_) => return Ok(summary),
+    summary.dest_output_profile_id = reference_id(profile);
+    let Some(resolved) = resolve_lenient(document, profile, limits.max_reference_depth)? else {
+        return Ok(summary);
     };
     let Ok(stream) = resolved.as_stream() else {
         return Ok(summary);

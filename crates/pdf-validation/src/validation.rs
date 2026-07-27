@@ -23,90 +23,8 @@ impl fmt::Display for ValidationProfile {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ValidationRule {
-    pub id: &'static str,
-    pub description: &'static str,
-}
-
-const RULES: [ValidationRule; 19] = [
-    ValidationRule {
-        id: "PDF-PARSE-001",
-        description: "The input parses as a PDF",
-    },
-    ValidationRule {
-        id: "PDFA1B-ENCRYPTION-001",
-        description: "The document is not encrypted",
-    },
-    ValidationRule {
-        id: "PDFA1B-CATALOG-001",
-        description: "The document catalog exists",
-    },
-    ValidationRule {
-        id: "PDFA1B-XMP-001",
-        description: "The metadata stream is parseable XML",
-    },
-    ValidationRule {
-        id: "PDFA1B-METADATA-STRUCTURE-001",
-        description: "Catalog Metadata resolves to a /Metadata /XML stream",
-    },
-    ValidationRule {
-        id: "PDFA1B-METADATA-FILTER-001",
-        description: "The catalog metadata stream has no Filter key",
-    },
-    ValidationRule {
-        id: "PDFA1B-ID-SCHEMA-001",
-        description: "XMP contains the PDF/A Identification schema",
-    },
-    ValidationRule {
-        id: "PDFA1B-ID-PART-001",
-        description: "XMP declares PDF/A part 1",
-    },
-    ValidationRule {
-        id: "PDFA1B-ID-CONFORMANCE-001",
-        description: "XMP declares PDF/A-1 conformance level A or B",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-CREATIONDATE-001",
-        description: "Info CreationDate is equivalent to xmp:CreateDate",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-TITLE-001",
-        description: "Info Title equals dc:title['x-default']",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-AUTHOR-001",
-        description: "Info Author equals the sole dc:creator entry",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-SUBJECT-001",
-        description: "Info Subject equals dc:description['x-default']",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-KEYWORDS-001",
-        description: "Info Keywords equals pdf:Keywords",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-CREATOR-001",
-        description: "Info Creator equals xmp:CreatorTool",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-PRODUCER-001",
-        description: "Info Producer equals pdf:Producer",
-    },
-    ValidationRule {
-        id: "PDFA1B-INFO-MODDATE-001",
-        description: "Info ModDate is equivalent to xmp:ModifyDate",
-    },
-    ValidationRule {
-        id: "PDFA1B-OUTPUTINTENT-001",
-        description: "ICC output profiles use an allowed class, colour space, and version",
-    },
-    ValidationRule {
-        id: "PDFA1B-OUTPUTINTENT-IDENTITY-001",
-        description: "Output intents use the same indirect destination profile object",
-    },
-];
+/// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
+const TOTAL_RULE_COUNT: usize = 19;
 
 pub fn validate_file(
     path: &Path,
@@ -183,11 +101,7 @@ fn validate_document(document: PdfDocument, profile: ValidationProfile) -> Valid
     }
 
     let metadata = &document.catalog_metadata;
-    if !(metadata.present
-        && metadata.is_stream
-        && metadata.type_is_metadata
-        && metadata.subtype_is_xml)
-    {
+    if !metadata.is_valid() {
         failures.push(failure(
             "PDFA1B-METADATA-STRUCTURE-001",
             "catalog Metadata must resolve to a stream with /Type /Metadata and /Subtype /XML",
@@ -223,48 +137,74 @@ fn validate_document(document: PdfDocument, profile: ValidationProfile) -> Valid
         ));
     }
 
-    match xmp.map(|xmp| xmp.pdfa_parts.as_slice()) {
-        Some([value]) if value == "1" => {}
-        Some(values) => failures.push(failure(
-            "PDFA1B-ID-PART-001",
-            format!("XMP declares PDF/A part values {values:?}, expected exactly one value 1"),
-            document.xmp_object,
-            FailureCategory::Metadata,
-        )),
-        None => failures.push(failure(
-            "PDFA1B-ID-PART-001",
-            "XMP has no pdfaid:part declaration",
-            document.xmp_object,
-            FailureCategory::Metadata,
-        )),
+    if let Some(failure) = require_single_declared_value(
+        xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
+        |value| value == "1",
+        "PDFA1B-ID-PART-001",
+        "PDF/A part",
+        "pdfaid:part",
+        "one value 1",
+        document.xmp_object,
+    ) {
+        failures.push(failure);
     }
 
-    match xmp.map(|xmp| xmp.pdfa_conformances.as_slice()) {
-        Some([value]) if matches!(value.as_str(), "A" | "B") => {}
-        Some(values) => failures.push(failure(
-            "PDFA1B-ID-CONFORMANCE-001",
-            format!(
-                "XMP declares PDF/A conformance values {values:?}, expected exactly one A or B"
-            ),
-            document.xmp_object,
-            FailureCategory::Metadata,
-        )),
-        None => failures.push(failure(
-            "PDFA1B-ID-CONFORMANCE-001",
-            "XMP has no pdfaid:conformance declaration",
-            document.xmp_object,
-            FailureCategory::Metadata,
-        )),
+    if let Some(failure) = require_single_declared_value(
+        xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
+        |value| matches!(value, "A" | "B"),
+        "PDFA1B-ID-CONFORMANCE-001",
+        "PDF/A conformance",
+        "pdfaid:conformance",
+        "one A or B",
+        document.xmp_object,
+    ) {
+        failures.push(failure);
     }
 
     validate_info_consistency(&document, &mut failures);
 
     validate_output_intents(&document, &mut failures);
 
-    finish_report(document, profile, failures, RULES.len())
+    finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+/// Requires exactly one declared value satisfying `accept`, producing a
+/// failure describing either the rejected set of values or the absence of
+/// any declaration.
+fn require_single_declared_value(
+    values: Option<&[String]>,
+    accept: impl Fn(&str) -> bool,
+    rule_id: &'static str,
+    noun: &str,
+    declaration_name: &str,
+    expected_description: &str,
+    object_id: Option<crate::PdfObjectId>,
+) -> Option<ValidationFailure> {
+    match values {
+        Some([value]) if accept(value) => None,
+        Some(values) => Some(failure(
+            rule_id,
+            format!(
+                "XMP declares {noun} values {values:?}, expected exactly {expected_description}"
+            ),
+            object_id,
+            FailureCategory::Metadata,
+        )),
+        None => Some(failure(
+            rule_id,
+            format!("XMP has no {declaration_name} declaration"),
+            object_id,
+            FailureCategory::Metadata,
+        )),
+    }
 }
 
 fn validate_output_intents(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+    validate_output_intent_profiles(document, failures);
+    validate_output_intent_identity(document, failures);
+}
+
+fn validate_output_intent_profiles(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
     let entries = document
         .output_intents_summary
         .entries
@@ -323,6 +263,14 @@ fn validate_output_intents(document: &PdfDocument, failures: &mut Vec<Validation
             FailureCategory::Conformance,
         ));
     }
+}
+
+fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+    let entries = document
+        .output_intents_summary
+        .entries
+        .iter()
+        .filter(|entry| entry.is_dictionary_based);
 
     let mut indirect_profiles = entries.filter_map(|entry| entry.dest_output_profile_id);
     if let Some(expected) = indirect_profiles.next()
@@ -347,7 +295,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
     let xmp = document.xmp.as_ref();
     let empty = &[];
     let object_id = document.info_object;
-    compare_single(
+    compare_field(
         document,
         "Title",
         xmp.map_or(empty, |xmp| &xmp.title_x_default),
@@ -355,6 +303,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         "dc:title['x-default']",
         object_id,
         failures,
+        |a, b| a == b,
     );
     if let Some(author) = document.info.values.get("Author")
         && (xmp.is_none_or(|xmp| xmp.creator_container_count != 1)
@@ -371,7 +320,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
             FailureCategory::Metadata,
         ));
     }
-    compare_single(
+    compare_field(
         document,
         "Subject",
         xmp.map_or(empty, |xmp| &xmp.description_x_default),
@@ -379,8 +328,9 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         "dc:description['x-default']",
         object_id,
         failures,
+        |a, b| a == b,
     );
-    compare_single(
+    compare_field(
         document,
         "Keywords",
         xmp.map_or(empty, |xmp| &xmp.keywords),
@@ -388,8 +338,9 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         "pdf:Keywords",
         object_id,
         failures,
+        |a, b| a == b,
     );
-    compare_single(
+    compare_field(
         document,
         "Creator",
         xmp.map_or(empty, |xmp| &xmp.creator_tools),
@@ -397,8 +348,9 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         "xmp:CreatorTool",
         object_id,
         failures,
+        |a, b| a == b,
     );
-    compare_single(
+    compare_field(
         document,
         "Producer",
         xmp.map_or(empty, |xmp| &xmp.producers),
@@ -406,9 +358,10 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         "pdf:Producer",
         object_id,
         failures,
+        |a, b| a == b,
     );
     if let Some(xmp) = xmp {
-        compare_date(
+        compare_field(
             document,
             "CreationDate",
             &xmp.create_dates,
@@ -416,8 +369,9 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
             "xmp:CreateDate",
             object_id,
             failures,
+            dates_equivalent,
         );
-        compare_date(
+        compare_field(
             document,
             "ModDate",
             &xmp.modify_dates,
@@ -425,12 +379,13 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
             "xmp:ModifyDate",
             object_id,
             failures,
+            dates_equivalent,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compare_single(
+fn compare_field(
     document: &PdfDocument,
     info_key: &str,
     xmp_values: &[String],
@@ -438,36 +393,13 @@ fn compare_single(
     xmp_name: &str,
     object_id: Option<crate::PdfObjectId>,
     failures: &mut Vec<ValidationFailure>,
-) {
-    if let Some(info_value) = document.info.values.get(info_key)
-        && (xmp_values.len() != 1 || xmp_values.first() != Some(info_value))
-    {
-        failures.push(failure(
-            rule_id,
-            format!(
-                "Info {info_key} {info_value:?} is not equivalent to {xmp_name} {xmp_values:?}"
-            ),
-            object_id,
-            FailureCategory::Metadata,
-        ));
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn compare_date(
-    document: &PdfDocument,
-    info_key: &str,
-    xmp_values: &[String],
-    rule_id: &'static str,
-    xmp_name: &str,
-    object_id: Option<crate::PdfObjectId>,
-    failures: &mut Vec<ValidationFailure>,
+    matches: impl Fn(&str, &str) -> bool,
 ) {
     if let Some(info_value) = document.info.values.get(info_key)
         && (xmp_values.len() != 1
             || !xmp_values
                 .first()
-                .is_some_and(|xmp| dates_equivalent(info_value, xmp)))
+                .is_some_and(|xmp_value| matches(info_value, xmp_value)))
     {
         failures.push(failure(
             rule_id,
@@ -558,7 +490,7 @@ mod tests {
         let bytes = fixture(Some(VALID_XMP), true);
         let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
         assert!(report.implemented_checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.passed, RULES.len());
+        assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
     }
 
     #[test]
