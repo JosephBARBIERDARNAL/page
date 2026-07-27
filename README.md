@@ -10,8 +10,8 @@ the checks listed below found no failure.
 ## Run
 
 ```bash
-cargo run -- validate --profile pdfa-1b path/to/file.pdf
-cargo run -- validate --profile pdfa-1b --format json path/to/file.pdf
+cargo run --bin pdf -- validate --profile pdfa-1b path/to/file.pdf
+cargo run --bin pdf -- validate --profile pdfa-1b --format json path/to/file.pdf
 ```
 
 The process exits with status `0` when all implemented checks pass, `2` for a
@@ -39,11 +39,21 @@ bytes, object count, and reference-chain depth. Operational failures use
 - `PDF-PARSE-001`: the file parses in strict mode.
 - `PDFA1B-ENCRYPTION-001`: the document is not encrypted.
 - `PDFA1B-CATALOG-001`: the trailer has an indirect Root catalog reference.
-- `PDFA1B-XMP-001`: a catalog metadata stream exists and parses as XML.
+- `PDFA1B-METADATA-STRUCTURE-001`: catalog `/Metadata` resolves to a stream
+  with `/Type /Metadata` and `/Subtype /XML`.
+- `PDFA1B-METADATA-FILTER-001`: the catalog metadata stream has no `/Filter`.
+- `PDFA1B-XMP-001`: the metadata bytes parse as bounded, DTD-disabled XML.
+- `PDFA1B-ID-SCHEMA-001`: XMP contains a property in the PDF/A identification
+  namespace.
 - `PDFA1B-ID-PART-001`: XMP declares `pdfaid:part` as `1`.
 - `PDFA1B-ID-CONFORMANCE-001`: XMP declares `pdfaid:conformance` as the
   case-sensitive value `A` or `B`. The pinned PDF/A-1B veraPDF profile accepts
   level A because it includes the level B requirements.
+- `PDFA1B-INFO-{CREATIONDATE,TITLE,AUTHOR,SUBJECT,KEYWORDS,CREATOR,PRODUCER,MODDATE}-001`:
+  the corresponding Info value, when present, agrees with its XMP analogue.
+  Title and Subject use `rdf:Alt` `x-default`; Author uses an `rdf:Seq` with
+  exactly one item. Common full dates are compared as instants, including
+  equivalent timezone offsets.
 - `PDFA1B-OUTPUTINTENT-001`: the catalog has at least one output intent.
 
 These identifiers are stable project-local identifiers. The mappings below
@@ -106,12 +116,23 @@ veraPDF 1.28.2.
 | Local rule | veraPDF rule | Clause | Strength | Pinned test and semantic note |
 |---|---|---|---|---|
 | `PDF-PARSE-001` | none | none | none | Operational parser gate, not an ISO conformance rule. |
-| `PDFA1B-ENCRYPTION-001` | `ISO_19005_1:6.1.3:2` | ISO 19005-1 §6.1.3 | exact | `isEncrypted != true` |
+| `PDFA1B-ENCRYPTION-001` | `ISO 19005-1:2005:6.1.3:2` | ISO 19005-1 §6.1.3 | exact | `isEncrypted != true` |
 | `PDFA1B-CATALOG-001` | none | none | none | Local object-model gate; the profile has no standalone catalog-exists rule. |
-| `PDFA1B-XMP-001` | `ISO_19005_1:6.7.2:1` | ISO 19005-1 §6.7.2 | partial/proxy | Reference test `containsMetadata == true` also requires stream Type/Subtype, which the local check does not yet verify. XMP serialization is separately covered by reference rule §6.7.9 test 1. |
-| `PDFA1B-ID-PART-001` | `ISO_19005_1:6.7.11:2` | ISO 19005-1 §6.7.11 | exact | `part == 1` |
-| `PDFA1B-ID-CONFORMANCE-001` | `ISO_19005_1:6.7.11:3` | ISO 19005-1 §6.7.11 | exact | `conformance == "B" \|\| conformance == "A"` |
-| `PDFA1B-OUTPUTINTENT-001` | `ISO_19005_1:6.2.2:1` | ISO 19005-1 §6.2.2 | partial/proxy | Merely finding an array entry does not validate `/S`, `DestOutputProfile`, ICC class, colour space, ICC version, or BToA data. |
+| `PDFA1B-METADATA-STRUCTURE-001` | `ISO 19005-1:2005:6.7.2:1` | §6.7.2 | exact | `containsMetadata == true` |
+| `PDFA1B-METADATA-FILTER-001` | `ISO 19005-1:2005:6.7.2:2` | §6.7.2 | exact | `isCatalogMetadata == false \|\| Filter == null` |
+| `PDFA1B-XMP-001` | `ISO 19005-1:2005:6.7.9:1` | §6.7.9 | partial/proxy | XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model. |
+| `PDFA1B-ID-SCHEMA-001` | `ISO 19005-1:2005:6.7.11:1` | §6.7.11 | partial/proxy | Common packages agree; veraPDF recovery differs for invalid duplicate packages. |
+| `PDFA1B-ID-PART-001` | `ISO 19005-1:2005:6.7.11:2` | §6.7.11 | partial/proxy | `part == 1`; common single-property packages agree. |
+| `PDFA1B-ID-CONFORMANCE-001` | `ISO 19005-1:2005:6.7.11:3` | §6.7.11 | partial/proxy | `conformance == "B" \|\| conformance == "A"`; common single-property packages agree. |
+| `PDFA1B-INFO-CREATIONDATE-001` | `ISO 19005-1:2005:6.7.3:1` | §6.7.3 | partial/proxy | Common full dates are compared as instants; reduced-precision XMP forms are not implemented. |
+| `PDFA1B-INFO-TITLE-001` | `ISO 19005-1:2005:6.7.3:2` | §6.7.3 | partial/proxy | ASCII `dc:title` `rdf:Alt` `x-default` cases agree. |
+| `PDFA1B-INFO-AUTHOR-001` | `ISO 19005-1:2005:6.7.3:3` | §6.7.3 | partial/proxy | ASCII `dc:creator` `rdf:Seq` equality and one-item multiplicity agree. |
+| `PDFA1B-INFO-SUBJECT-001` | `ISO 19005-1:2005:6.7.3:4` | §6.7.3 | partial/proxy | ASCII `dc:description` `rdf:Alt` `x-default` cases agree. |
+| `PDFA1B-INFO-KEYWORDS-001` | `ISO 19005-1:2005:6.7.3:5` | §6.7.3 | partial/proxy | ASCII `pdf:Keywords` cases agree. |
+| `PDFA1B-INFO-CREATOR-001` | `ISO 19005-1:2005:6.7.3:6` | §6.7.3 | partial/proxy | ASCII `xmp:CreatorTool` cases agree. |
+| `PDFA1B-INFO-PRODUCER-001` | `ISO 19005-1:2005:6.7.3:7` | §6.7.3 | partial/proxy | ASCII `pdf:Producer` cases agree. |
+| `PDFA1B-INFO-MODDATE-001` | `ISO 19005-1:2005:6.7.3:8` | §6.7.3 | partial/proxy | Common full dates are compared as instants; reduced-precision XMP forms are not implemented. |
+| `PDFA1B-OUTPUTINTENT-001` | `ISO 19005-1:2005:6.2.2:1` | §6.2.2 | partial/proxy | Merely finding an array entry does not validate `/S`, `DestOutputProfile`, ICC class, colour space, ICC version, or BToA data. |
 
 The same mapping is available as typed Rust data in
 `pdf::differential::RULE_MAPPINGS`.
@@ -126,10 +147,19 @@ VERAPDF_BIN=/path/to/verapdf \
   cargo test --test verapdf_diff -- --nocapture
 ```
 
-The case manifest is
-`tests/fixtures/verapdf-diff-cases.json`. It covers the structural, malformed,
-encrypted, and supplied real-world fixtures with an expected classification
-and rationale. The real-world files are not assumed to claim PDF/A.
+The case manifest is `tests/fixtures/verapdf-diff-cases.json`. In addition to
+the structural, malformed, encrypted, and supplied real-world fixtures, it
+defines deterministic atomic metadata cases. The opt-in suite generates those
+PDFs at runtime and compares both local and veraPDF failed-rule-ID deltas
+against a common baseline. This prevents unrelated known PDF/A failures in the
+small generated documents from hiding metadata regressions.
+
+The live comparison deliberately records two pinned-model distinctions:
+
+- conflicting duplicate identification descriptions fail veraPDF XMP
+  serialization/schema-presence rules rather than its part/conformance rules;
+- an invalid XMP date fails veraPDF's property-type rule §6.7.9 test 3 rather
+  than the Info/date-equivalence rule.
 
 Small sanitized veraPDF JSON files under `tests/reference-reports/` unit-test
 report parsing without an installed reference. Classification, exit-code,
@@ -158,8 +188,16 @@ behavior are also tested offline.
 - Output intents are detected but their ICC profiles are not validated.
 - Fonts are summarized, but font programs and embedding requirements are not
   validated.
-- XMP extraction covers the PDF/A identification namespace but not complete
-  RDF/XMP schema validation or Info/XMP consistency.
+- XMP extraction implements a bounded typed subset for identification,
+  standard Info analogues, `rdf:Alt`, and `rdf:Seq`; it is not a complete XMP
+  2004 data model or extension-schema validator.
+- PDF/A-1 §6.7.11 tests 4–6 (required lexical prefixes for `part`,
+  `conformance`, and `amd`) are not implemented. Namespace-aware XML parsing
+  intentionally does not retain the lexical prefix used by each property.
+- PDF/A-1 §6.7.9 tests 2–3 (schema definition and complete XMP value typing)
+  are not implemented.
+- `Trapped` has no Info/XMP consistency predicate in the pinned PDF/A-1B
+  profile's §6.7.3 rules, so this milestone does not invent one.
 - PDFDocEncoding is not fully decoded; non-Unicode Info strings fall back to
   UTF-8 loss replacement.
 - `lopdf` provides the normalized object graph, so syntax provenance such as

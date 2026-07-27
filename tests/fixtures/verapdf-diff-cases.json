@@ -34,5 +34,183 @@
       "expected_classification": "both_noncompliant",
       "rationale": "This real-world PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
     }
+  ],
+  "atomic_metadata_cases": [
+    {
+      "name": "missing_metadata",
+      "expected_local_failed_rule_ids": ["PDFA1B-METADATA-STRUCTURE-001", "PDFA1B-ID-SCHEMA-001", "PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001", "PDFA1B-INFO-TITLE-001", "PDFA1B-INFO-AUTHOR-001", "PDFA1B-INFO-SUBJECT-001", "PDFA1B-INFO-KEYWORDS-001", "PDFA1B-INFO-CREATOR-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.2:1", "ISO 19005-1:2005:6.7.3:2", "ISO 19005-1:2005:6.7.3:3", "ISO 19005-1:2005:6.7.3:4", "ISO 19005-1:2005:6.7.3:5", "ISO 19005-1:2005:6.7.3:6", "ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Catalog Metadata is absent."
+    },
+    {
+      "name": "missing_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-METADATA-STRUCTURE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Metadata stream has no Type."
+    },
+    {
+      "name": "missing_subtype",
+      "expected_local_failed_rule_ids": ["PDFA1B-METADATA-STRUCTURE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Metadata stream has no Subtype."
+    },
+    {
+      "name": "metadata_filter",
+      "expected_local_failed_rule_ids": ["PDFA1B-METADATA-FILTER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Catalog Metadata uses FlateDecode, forbidden by PDF/A-1."
+    },
+    {
+      "name": "malformed_xmp",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-ID-SCHEMA-001", "PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001", "PDFA1B-INFO-TITLE-001", "PDFA1B-INFO-AUTHOR-001", "PDFA1B-INFO-SUBJECT-001", "PDFA1B-INFO-KEYWORDS-001", "PDFA1B-INFO-CREATOR-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.9:1", "ISO 19005-1:2005:6.7.11:1", "ISO 19005-1:2005:6.7.3:2", "ISO 19005-1:2005:6.7.3:3", "ISO 19005-1:2005:6.7.3:4", "ISO 19005-1:2005:6.7.3:5", "ISO 19005-1:2005:6.7.3:6", "ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Metadata XML is malformed."
+    },
+    {
+      "name": "missing_identification",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-SCHEMA-001", "PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "No property uses the PDF/A identification namespace."
+    },
+    {
+      "name": "wrong_part",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-PART-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "pdfaid:part is 2."
+    },
+    {
+      "name": "lowercase_conformance",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-CONFORMANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The conformance value is case-sensitive."
+    },
+    {
+      "name": "duplicate_identification",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:1", "ISO 19005-1:2005:6.7.9:1", "ISO 19005-1:2005:6.7.3:2", "ISO 19005-1:2005:6.7.3:3", "ISO 19005-1:2005:6.7.3:4", "ISO 19005-1:2005:6.7.3:5", "ISO 19005-1:2005:6.7.3:6", "ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Conflicting duplicate identification declarations probe reference model behavior."
+    },
+    {
+      "name": "title_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Title differs from dc:title x-default."
+    },
+    {
+      "name": "author_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-AUTHOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Author differs from dc:creator."
+    },
+    {
+      "name": "subject_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-SUBJECT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Subject differs from dc:description x-default."
+    },
+    {
+      "name": "keywords_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-KEYWORDS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Keywords differs from pdf:Keywords."
+    },
+    {
+      "name": "creator_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:6"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Creator differs from xmp:CreatorTool."
+    },
+    {
+      "name": "producer_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Info Producer differs from pdf:Producer."
+    },
+    {
+      "name": "creation_date_equivalent_offset",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001", "PDFA1B-INFO-MODDATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:1", "ISO 19005-1:2005:6.7.3:8"],
+      "rationale": "Different offsets denote the same instants."
+    },
+    {
+      "name": "creation_date_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Creation dates denote different instants."
+    },
+    {
+      "name": "creation_date_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "XMP CreateDate is invalid."
+    },
+    {
+      "name": "mod_date_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-MODDATE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:8"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Modification dates denote different instants."
+    },
+    {
+      "name": "author_multiple",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-AUTHOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "dc:creator contains more than one entry."
+    },
+    {
+      "name": "baseline_b",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-CONFORMANCE-001", "PDFA1B-INFO-AUTHOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:3", "ISO 19005-1:2005:6.7.3:3"],
+      "rationale": "Canonical B declaration and RDF forms pass targeted rules."
+    },
+    {
+      "name": "accepted_a",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-CONFORMANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:3"],
+      "rationale": "The 1b profile accepts a level A declaration."
+    }
   ]
 }

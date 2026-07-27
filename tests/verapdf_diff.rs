@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -9,10 +10,14 @@ use pdf::differential::{
 };
 use serde::Deserialize;
 
+mod common;
+
 #[derive(Debug, Deserialize)]
 struct Manifest {
     reference: ManifestReference,
     cases: Vec<ManifestCase>,
+    #[serde(default)]
+    atomic_metadata_cases: Vec<AtomicMetadataCase>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,6 +30,16 @@ struct ManifestReference {
 struct ManifestCase {
     path: PathBuf,
     expected_classification: ComparisonClassification,
+    rationale: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AtomicMetadataCase {
+    name: String,
+    expected_local_failed_rule_ids: Vec<String>,
+    expected_local_passed_rule_ids: Vec<String>,
+    expected_verapdf_failed_rule_ids: Vec<String>,
+    expected_verapdf_passed_rule_ids: Vec<String>,
     rationale: String,
 }
 
@@ -56,4 +71,94 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
             case.rationale
         );
     }
+
+    let temporary = std::env::temp_dir().join(format!(
+        "pdf-verapdf-metadata-atomic-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&temporary).expect("create atomic fixture directory");
+    let baseline_path = temporary.join("baseline.pdf");
+    fs::write(&baseline_path, common::metadata_fixture("baseline_b")).expect("write baseline PDF");
+    let baseline = runner.compare_file(&baseline_path, &SafetyLimits::default());
+    let baseline_local_ids = baseline
+        .local_report
+        .failures
+        .iter()
+        .map(|failure| failure.rule_id.to_owned())
+        .collect::<BTreeSet<_>>();
+    let baseline_reference_ids = baseline
+        .reference_result
+        .as_ref()
+        .expect("baseline reference result")
+        .failed_rule_ids
+        .iter()
+        .map(ToString::to_string)
+        .collect::<BTreeSet<_>>();
+    for case in manifest.atomic_metadata_cases {
+        let path = temporary.join(format!("{}.pdf", case.name));
+        fs::write(&path, common::metadata_fixture(&case.name)).expect("write atomic PDF");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let local_ids = report
+            .local_report
+            .failures
+            .iter()
+            .map(|failure| failure.rule_id)
+            .collect::<Vec<_>>();
+        let local_delta = local_ids
+            .iter()
+            .filter(|id| !baseline_local_ids.contains(**id))
+            .map(|id| (*id).to_owned())
+            .collect::<BTreeSet<_>>();
+        let expected = case
+            .expected_local_failed_rule_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            local_delta, expected,
+            "{}: {}: unexpected local rule delta; full set {local_ids:?}",
+            case.name, case.rationale
+        );
+        for expected in &case.expected_local_passed_rule_ids {
+            assert!(
+                !local_ids.contains(&expected.as_str()),
+                "{}: {}: unexpected local failure {expected}; actual {local_ids:?}",
+                case.name,
+                case.rationale
+            );
+        }
+        let reference = report
+            .reference_result
+            .as_ref()
+            .unwrap_or_else(|| panic!("{}: reference failed: {report}", case.name));
+        let reference_ids = reference
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        let reference_delta = reference_ids
+            .iter()
+            .filter(|id| !baseline_reference_ids.contains(*id))
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let expected = case
+            .expected_verapdf_failed_rule_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            reference_delta, expected,
+            "{}: {}: unexpected veraPDF rule delta; full set {reference_ids:?}",
+            case.name, case.rationale
+        );
+        for expected in &case.expected_verapdf_passed_rule_ids {
+            assert!(
+                !reference_ids.contains(expected),
+                "{}: {}: unexpected veraPDF failure {expected}; actual {reference_ids:?}",
+                case.name,
+                case.rationale
+            );
+        }
+    }
+    fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
 }

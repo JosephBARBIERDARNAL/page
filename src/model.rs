@@ -30,6 +30,15 @@ pub struct FontSummary {
     pub embedded: usize,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct CatalogMetadataStream {
+    pub present: bool,
+    pub is_stream: bool,
+    pub type_is_metadata: bool,
+    pub subtype_is_xml: bool,
+    pub has_filter: bool,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PdfDocument {
     pub version: String,
@@ -43,6 +52,7 @@ pub struct PdfDocument {
     pub xmp: Option<XmpMetadata>,
     pub xmp_object: Option<PdfObjectId>,
     pub xmp_parse_error: Option<String>,
+    pub catalog_metadata: CatalogMetadataStream,
     pub output_intents: Vec<Option<PdfObjectId>>,
     pub fonts: FontSummary,
     pub object_count: usize,
@@ -103,6 +113,7 @@ impl PdfDocument {
                 xmp: None,
                 xmp_object: None,
                 xmp_parse_error: None,
+                catalog_metadata: CatalogMetadataStream::default(),
                 output_intents: Vec::new(),
                 fonts: FontSummary::default(),
                 object_count: document.objects.len(),
@@ -122,6 +133,7 @@ impl PdfDocument {
         };
 
         let (info, info_object) = extract_info(document, limits)?;
+        let catalog_metadata = inspect_catalog_metadata(document, catalog, limits)?;
         let (xmp, xmp_object, xmp_parse_error) = extract_xmp(document, catalog, limits)?;
         let output_intents = extract_output_intents(document, catalog, limits)?;
 
@@ -139,11 +151,45 @@ impl PdfDocument {
             xmp,
             xmp_object,
             xmp_parse_error,
+            catalog_metadata,
             output_intents,
             fonts: summarize_fonts(document, limits),
             object_count: document.objects.len(),
         })
     }
+}
+
+fn inspect_catalog_metadata(
+    document: &Document,
+    catalog: Option<&Dictionary>,
+    limits: &SafetyLimits,
+) -> Result<CatalogMetadataStream, PdfError> {
+    let Some(catalog) = catalog else {
+        return Ok(CatalogMetadataStream::default());
+    };
+    let Ok(entry) = catalog.get(b"Metadata") else {
+        return Ok(CatalogMetadataStream::default());
+    };
+    let mut result = CatalogMetadataStream {
+        present: true,
+        ..CatalogMetadataStream::default()
+    };
+    let Ok(object) = resolve(document, entry, limits.max_reference_depth) else {
+        return Ok(result);
+    };
+    let Ok(stream) = object.as_stream() else {
+        return Ok(result);
+    };
+    result.is_stream = true;
+    result.type_is_metadata = stream.dict.get_type().ok() == Some(b"Metadata".as_slice());
+    result.subtype_is_xml = stream
+        .dict
+        .get(b"Subtype")
+        .ok()
+        .and_then(|object| object.as_name().ok())
+        == Some(b"XML".as_slice());
+    result.has_filter = stream.dict.has(b"Filter");
+    Ok(result)
 }
 
 fn resolve<'a>(
