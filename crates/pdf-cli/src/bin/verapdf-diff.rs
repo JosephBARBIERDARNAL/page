@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
-use pdf::SafetyLimits;
-use pdf::differential::{
+use pdf_validation::SafetyLimits;
+use pdf_validation::differential::{
     DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner, PINNED_VERAPDF_VERSION,
     ReferenceConfig, ReferenceProfile, aggregate_exit_code,
 };

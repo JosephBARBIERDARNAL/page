@@ -3,8 +3,8 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use pdf::SafetyLimits;
-use pdf::differential::{
+use pdf_validation::SafetyLimits;
+use pdf_validation::differential::{
     ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
     ReferenceConfig,
 };

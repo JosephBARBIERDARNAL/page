@@ -3,7 +3,7 @@ mod common;
 
 use std::collections::BTreeSet;
 
-use pdf::{SafetyLimits, ValidationProfile, validate_bytes};
+use pdf_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 const CASES: &[(&str, &[&str])] = &[
     ("no_output_intents", &[]),

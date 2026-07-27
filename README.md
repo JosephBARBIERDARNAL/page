@@ -7,11 +7,19 @@ XMP parsing.
 It does **not** implement complete PDF/A-1b validation. Passing means only that
 the checks listed below found no failure.
 
+The repository is a Cargo workspace with two packages:
+
+- `pdf-validation` contains the reusable parser, normalized model, validation
+  rules, reports, safety limits, and veraPDF differential engine.
+- `pdf-cli` contains client-side argument parsing, output selection, process
+  exit behavior, and the `pdf` and `verapdf-diff` executables. It depends on
+  `pdf-validation` through a workspace path dependency.
+
 ## Run
 
 ```bash
-cargo run --bin pdf -- validate --profile pdfa-1b path/to/file.pdf
-cargo run --bin pdf -- validate --profile pdfa-1b --format json path/to/file.pdf
+cargo run -p pdf-cli --bin pdf -- validate --profile pdfa-1b path/to/file.pdf
+cargo run -p pdf-cli --bin pdf -- validate --profile pdfa-1b --format json path/to/file.pdf
 ```
 
 The process exits with status `0` when all implemented checks pass, `2` for a
@@ -21,18 +29,24 @@ such as unreadable input, a configured safety limit, or report serialization.
 ## Architecture
 
 ```text
-bounded file input
-    -> strict lopdf parser
-    -> normalized PdfDocument model
-       (metadata, XMP declaration, output intents, fonts)
-    -> preliminary rule evaluator
-    -> deterministic text or JSON ValidationReport
+pdf-cli
+    -> argument and output handling
+    -> pdf-validation
+       -> bounded file input
+       -> strict lopdf parser
+       -> normalized PdfDocument model
+          (metadata, XMP declaration, output intents, fonts)
+       -> preliminary rule evaluator
+       -> deterministic ValidationReport
 ```
 
 Operational and parser failures are kept separate from metadata and
 conformance failures. Limits are configurable for input bytes, decoded stream
 bytes, object count, and reference-chain depth. Operational failures use
 `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance.
+Library tests and fixtures live under `crates/pdf-validation/tests`; CLI
+contract tests live under `crates/pdf-cli/tests`. Each package declares only
+the dependencies it uses.
 
 ## Implemented checks
 
@@ -73,7 +87,7 @@ The `verapdf-diff` binary compares the local subset with an explicitly pinned
 veraPDF installation:
 
 ```bash
-cargo run --bin verapdf-diff -- \
+cargo run -p pdf-cli --bin verapdf-diff -- \
   --verapdf /path/to/verapdf \
   --expected-version 1.28.2 \
   --profile 1b \
@@ -143,7 +157,7 @@ veraPDF 1.28.2.
 | `PDFA1B-OUTPUTINTENT-IDENTITY-001` | `ISO 19005-1:2005:6.2.2:2` | §6.2.2 | exact | `sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity. |
 
 The same mapping is available as typed Rust data in
-`pdf::differential::RULE_MAPPINGS`.
+`pdf_validation::differential::RULE_MAPPINGS`.
 
 ### Opt-in reference suite
 
@@ -152,13 +166,14 @@ veraPDF. To run the pinned real-reference cases locally:
 
 ```bash
 VERAPDF_BIN=verapdf \
-  cargo test --test verapdf_diff -- --nocapture
+  cargo test -p pdf-validation --test verapdf_diff -- --nocapture
 ```
 
-The case manifest is `tests/fixtures/verapdf-diff-cases.json`. In addition to
-the structural, malformed, encrypted, and supplied real-world fixtures, it
-defines deterministic atomic metadata and output-intent cases. The opt-in
-suite generates those PDFs at runtime and compares both local and veraPDF
+The case manifest is
+`crates/pdf-validation/tests/fixtures/verapdf-diff-cases.json`. In addition
+to the structural, malformed, encrypted, and supplied real-world fixtures, it
+defines deterministic atomic metadata and output-intent cases. The opt-in suite
+generates those PDFs at runtime and compares both local and veraPDF
 failed-rule-ID deltas against a baseline for each group. This prevents
 unrelated known PDF/A failures in the small generated documents from hiding
 targeted regressions.
@@ -182,10 +197,11 @@ are narrower than the prose description:
   missing and direct values, and includes indirect values whose targets are
   not streams.
 
-Small sanitized veraPDF JSON files under `tests/reference-reports/` unit-test
-report parsing without an installed reference. Classification, exit-code,
-wrong-version, missing-executable, timeout, malformed-report, and spaced-path
-behavior are also tested offline.
+Small sanitized veraPDF JSON files under
+`crates/pdf-validation/tests/reference-reports/` unit-test report parsing
+without an installed reference. Classification, exit-code, wrong-version,
+missing-executable, timeout, malformed-report, and spaced-path behavior are
+also tested offline.
 
 ### Process and fixture safety
 
@@ -250,9 +266,9 @@ interface. Run `just` to list them. The main workflows are:
 just check
 just build
 just test-verapdf
-just validate tests/fixtures/structural.pdf
-just validate tests/fixtures/structural.pdf json
-just diff tests/fixtures/structural.pdf
+just validate crates/pdf-validation/tests/fixtures/structural.pdf
+just validate crates/pdf-validation/tests/fixtures/structural.pdf json
+just diff crates/pdf-validation/tests/fixtures/structural.pdf
 ```
 
 `just check` runs formatting verification, strict Clippy, and the complete
@@ -306,7 +322,7 @@ partial/proxy implementations, and two are local parser/model gates.
 - Font conformance: mandatory embedding, font descriptors and programs,
   encodings, glyph coverage, metrics, and Unicode mappings.
 - Graphics and content-stream rules, including operators, images, transparency,
-  patterns, shadings, and external graphics state.
+  patterns, shadings, and extended graphics state.
 - Restrictions for annotations, actions, forms, optional content, multimedia,
   embedded files, JavaScript, and other interactive features.
 - The complete XMP 2004 data model, extension-schema validation, value typing,

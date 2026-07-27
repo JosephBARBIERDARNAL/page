@@ -1,7 +1,7 @@
 #[allow(dead_code)]
 mod common;
 
-use pdf::{SafetyLimits, ValidationProfile, validate_bytes};
+use pdf_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 use std::collections::BTreeSet;
 
 #[test]
