@@ -1,0 +1,24 @@
+{
+  "report": {
+    "buildInformation": {
+      "releaseDetails": [
+        {
+          "id": "core",
+          "version": "1.28.2"
+        }
+      ]
+    },
+    "jobs": [
+      {
+        "taskException": {
+          "type": "PARSE",
+          "exceptionMessage": "Exception: Couldn't parse stream"
+        }
+      }
+    ],
+    "batchSummary": {
+      "failedEncryptedJobs": 0,
+      "failedParsingJobs": 1
+    }
+  }
+}

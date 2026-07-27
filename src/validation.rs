@@ -51,7 +51,7 @@ const RULES: [ValidationRule; 7] = [
     },
     ValidationRule {
         id: "PDFA1B-ID-CONFORMANCE-001",
-        description: "XMP declares conformance level B",
+        description: "XMP declares PDF/A-1 conformance level A or B",
     },
     ValidationRule {
         id: "PDFA1B-OUTPUTINTENT-001",
@@ -174,10 +174,10 @@ fn validate_document(document: PdfDocument, profile: ValidationProfile) -> Valid
         .as_ref()
         .and_then(|xmp| xmp.pdfa_conformance.as_deref())
     {
-        Some("B") => {}
+        Some("A" | "B") => {}
         Some(value) => failures.push(failure(
             "PDFA1B-ID-CONFORMANCE-001",
-            format!("XMP declares PDF/A conformance {value}, expected B"),
+            format!("XMP declares PDF/A conformance {value}, expected A or B"),
             document.xmp_object,
             FailureCategory::Metadata,
         )),
@@ -293,22 +293,35 @@ mod tests {
 
     #[test]
     fn reports_incorrect_pdfa_declarations() {
-        let xmp = VALID_XMP
-            .iter()
-            .copied()
-            .map(|byte| match byte {
-                b'1' => b'2',
-                b'B' => b'A',
-                other => other,
-            })
-            .collect::<Vec<_>>();
+        let xmp = String::from_utf8(VALID_XMP.to_vec())
+            .expect("fixture is UTF-8")
+            .replace("pdfaid:part=\"1\"", "pdfaid:part=\"2\"")
+            .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"U\"");
         let report = validate_bytes(
-            &fixture(Some(&xmp), true),
+            &fixture(Some(xmp.as_bytes()), true),
             ValidationProfile::PdfA1b,
             &SafetyLimits::default(),
         );
         assert_rule(&report, "PDFA1B-ID-PART-001");
         assert_rule(&report, "PDFA1B-ID-CONFORMANCE-001");
+    }
+
+    #[test]
+    fn accepts_pdfa_1a_declaration_for_pdfa_1b_validation() {
+        let xmp = String::from_utf8(VALID_XMP.to_vec())
+            .expect("fixture is UTF-8")
+            .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
+        let report = validate_bytes(
+            &fixture(Some(xmp.as_bytes()), true),
+            ValidationProfile::PdfA1b,
+            &SafetyLimits::default(),
+        );
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != "PDFA1B-ID-CONFORMANCE-001")
+        );
     }
 
     #[test]

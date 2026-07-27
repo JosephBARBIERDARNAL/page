@@ -3,6 +3,7 @@
 //! The crate currently implements only a preliminary PDF/A-1b rule set. A
 //! successful report is not proof of full PDF/A conformance.
 
+pub mod differential;
 mod error;
 mod limits;
 mod metadata;

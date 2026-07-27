@@ -1,0 +1,38 @@
+{
+  "reference": {
+    "version": "1.28.2",
+    "profile": "1b"
+  },
+  "cases": [
+    {
+      "path": "tests/fixtures/structural.pdf",
+      "expected_classification": "both_noncompliant",
+      "rationale": "The local subset fails missing XMP and output-intent checks; veraPDF processes the file and reports additional PDF/A-1b failures."
+    },
+    {
+      "path": "tests/fixtures/malformed.pdf",
+      "expected_classification": "both_noncompliant",
+      "rationale": "Both parsers reject the deliberately truncated input."
+    },
+    {
+      "path": "tests/fixtures/encrypted.pdf",
+      "expected_classification": "reference_parser_discrepancy",
+      "rationale": "The local parser preserves the trailer and reports its encryption check, while veraPDF 1.28.2 rejects this AES-256 fixture as an encrypted parse task."
+    },
+    {
+      "path": "tests/fixtures/poster.pdf",
+      "expected_classification": "both_noncompliant",
+      "rationale": "This real-world PDF makes no PDF/A claim; the local subset fails identification/output-intent checks and veraPDF reports PDF/A-1b failures."
+    },
+    {
+      "path": "tests/fixtures/proposal.pdf",
+      "expected_classification": "both_noncompliant",
+      "rationale": "This real-world PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+    },
+    {
+      "path": "tests/fixtures/resume.pdf",
+      "expected_classification": "both_noncompliant",
+      "rationale": "This real-world PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+    }
+  ]
+}
