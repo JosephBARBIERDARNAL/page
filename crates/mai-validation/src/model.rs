@@ -57,7 +57,7 @@ pub struct IccHeader {
 impl IccHeader {
     const REQUIRED_LENGTH: usize = 20;
 
-    fn parse(bytes: &[u8]) -> Option<Self> {
+    pub(crate) fn parse(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < Self::REQUIRED_LENGTH {
             return None;
         }
@@ -72,6 +72,14 @@ impl IccHeader {
     pub fn conforms_to_pdfa_1_output_intent(&self) -> bool {
         matches!(self.device_class.as_str(), "prtr" | "mntr")
             && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY")
+            && self.version_major < 3
+    }
+
+    pub(crate) fn conforms_to_pdfa_1_input_profile(&self) -> bool {
+        matches!(
+            self.device_class.as_str(),
+            "prtr" | "mntr" | "scnr" | "spac"
+        ) && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY" | "Lab ")
             && self.version_major < 3
     }
 }
@@ -123,18 +131,31 @@ impl PdfDocument {
         Self::normalize(&document, limits)
     }
 
-    pub(crate) fn from_bytes_with_font_embedding(
+    pub(crate) fn from_bytes_with_inspections(
         bytes: &[u8],
         limits: &SafetyLimits,
-    ) -> Result<(Self, FontEmbeddingSummary), PdfError> {
+    ) -> Result<
+        (
+            Self,
+            FontEmbeddingSummary,
+            crate::icc_based::IccBasedSummary,
+        ),
+        PdfError,
+    > {
         let document = load_document(bytes, limits)?;
         let normalized = Self::normalize(&document, limits)?;
-        let font_embedding = if normalized.encrypted {
-            FontEmbeddingSummary::default()
+        let (font_embedding, icc_based) = if normalized.encrypted {
+            (
+                FontEmbeddingSummary::default(),
+                crate::icc_based::IccBasedSummary::default(),
+            )
         } else {
-            font_embedding::inspect(&document, limits)?
+            (
+                font_embedding::inspect(&document, limits)?,
+                crate::icc_based::inspect(&document, limits)?,
+            )
         };
-        Ok((normalized, font_embedding))
+        Ok((normalized, font_embedding, icc_based))
     }
 
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {

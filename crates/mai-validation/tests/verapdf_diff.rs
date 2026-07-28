@@ -21,6 +21,8 @@ struct Manifest {
     #[serde(default)]
     atomic_output_intent_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
+    atomic_icc_based_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
     atomic_font_cases: Vec<AtomicRuleCase>,
 }
 
@@ -96,6 +98,14 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         "baseline",
         &manifest.atomic_output_intent_cases,
         common::output_intent_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "icc-based",
+        "baseline",
+        &manifest.atomic_icc_based_cases,
+        common::icc_based_fixture,
     );
     assert_atomic_cases(
         &runner,

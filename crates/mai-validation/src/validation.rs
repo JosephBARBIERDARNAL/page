@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 20;
+const TOTAL_RULE_COUNT: usize = 21;
 
 pub fn validate_file(
     path: &Path,
@@ -65,8 +65,8 @@ pub fn validate_bytes(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
-    let (document, font_embedding) =
-        match PdfDocument::from_bytes_with_font_embedding(bytes, limits) {
+    let (document, font_embedding, icc_based) =
+        match PdfDocument::from_bytes_with_inspections(bytes, limits) {
             Ok(document) => document,
             Err(error) if error.is_safety_limit() => {
                 return ValidationReport::operational_failure(
@@ -77,12 +77,13 @@ pub fn validate_bytes(
             }
             Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
         };
-    validate_document(document, font_embedding, profile)
+    validate_document(document, font_embedding, icc_based, profile)
 }
 
 fn validate_document(
     document: PdfDocument,
     font_embedding: crate::font_embedding::FontEmbeddingSummary,
+    icc_based: crate::icc_based::IccBasedSummary,
     profile: ValidationProfile,
 ) -> ValidationReport {
     let mut failures = Vec::new();
@@ -170,9 +171,41 @@ fn validate_document(
 
     validate_output_intents(&document, &mut failures);
 
+    validate_icc_based(&icc_based, &mut failures);
+
     validate_font_embedding(&font_embedding, &mut failures);
 
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+fn validate_icc_based(
+    icc_based: &crate::icc_based::IccBasedSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if icc_based.failures.is_empty() {
+        return;
+    }
+    let object_id = (icc_based.failures.len() == 1)
+        .then(|| icc_based.failures[0].object_id)
+        .flatten();
+    let detail = icc_based
+        .failures
+        .iter()
+        .map(|profile| match profile.object_id {
+            Some(object_id) => format!(
+                "{} {}: {}",
+                object_id.object_number, object_id.generation, profile.description
+            ),
+            None => format!("direct profile: {}", profile.description),
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    failures.push(failure(
+        "PDFA1B-ICCBASED-001",
+        detail,
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 fn validate_font_embedding(

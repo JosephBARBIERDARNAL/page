@@ -299,6 +299,472 @@ pub fn output_intent_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn icc_based_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::with_version("1.4");
+    let pages_id = document.new_object_id();
+    let valid = icc_header(*b"mntr", *b"RGB ", 2, 1);
+    let (class, color_space, version_major, version_minor) = match case {
+        "class_prtr" => (*b"prtr", *b"RGB ", 2, 1),
+        "class_mntr" => (*b"mntr", *b"RGB ", 2, 1),
+        "class_scnr" => (*b"scnr", *b"RGB ", 2, 1),
+        "class_spac" => (*b"spac", *b"RGB ", 2, 1),
+        "color_rgb" => (*b"mntr", *b"RGB ", 2, 1),
+        "color_cmyk" => (*b"mntr", *b"CMYK", 2, 1),
+        "color_gray" => (*b"mntr", *b"GRAY", 2, 1),
+        "color_lab" => (*b"mntr", *b"Lab ", 2, 1),
+        "version_2_15" => (*b"mntr", *b"RGB ", 2, 15),
+        "invalid_class"
+        | "direct_profile"
+        | "repeated_shared_invalid"
+        | "two_invalid_profiles"
+        | "form_used"
+        | "form_unused_resource"
+        | "form_unreferenced"
+        | "nested_form_used"
+        | "cyclic_form"
+        | "image_used"
+        | "image_unused_resource"
+        | "image_unreferenced"
+        | "image_mask_ignores_color_space"
+        | "image_smask_used"
+        | "image_mask_image_used"
+        | "image_alternate_used"
+        | "unused_resource"
+        | "default_gray"
+        | "default_rgb"
+        | "default_cmyk"
+        | "unused_default"
+        | "form_parent_fallback"
+        | "nested_form_page_fallback"
+        | "inline_image_used"
+        | "shading_used"
+        | "indexed_base_used" => (*b"link", *b"RGB ", 2, 1),
+        "invalid_color_space" => (*b"mntr", *b"XYZ ", 2, 1),
+        "version_3" => (*b"mntr", *b"RGB ", 3, 0),
+        _ => (*b"mntr", *b"RGB ", 2, 1),
+    };
+    let selected_bytes = if case == "truncated_profile" {
+        vec![0; 19]
+    } else {
+        icc_header(class, color_space, version_major, version_minor)
+    };
+    let selected_profile = if case == "undecodable_profile" {
+        let mut stream = Stream::new(dictionary! {"N" => 3}, b"not deflate data".to_vec());
+        stream.dict.set("Filter", "FlateDecode");
+        Object::Reference(document.add_object(stream))
+    } else if case == "large_compressed_profile" {
+        let mut bytes = valid.clone();
+        bytes.resize(4096, 0);
+        compressed_profile_reference(&mut document, bytes)
+    } else {
+        profile_reference(&mut document, selected_bytes)
+    };
+    let indirect_space = Object::Array(vec![
+        Object::Name(b"ICCBased".to_vec()),
+        selected_profile.clone(),
+    ]);
+    let direct_space = Object::Array(vec![
+        Object::Name(b"ICCBased".to_vec()),
+        Object::Stream(profile_stream(icc_header(*b"link", *b"RGB ", 2, 1))),
+    ]);
+
+    let mut page_resources = Dictionary::new();
+    let mut page_contents = b"/CS1 CS\n".to_vec();
+    match case {
+        "baseline"
+        | "class_prtr"
+        | "class_mntr"
+        | "class_scnr"
+        | "class_spac"
+        | "color_rgb"
+        | "color_cmyk"
+        | "color_gray"
+        | "color_lab"
+        | "version_2_15"
+        | "invalid_class"
+        | "invalid_color_space"
+        | "version_3"
+        | "truncated_profile"
+        | "undecodable_profile"
+        | "large_compressed_profile"
+        | "inherited_resources" => {
+            page_resources.set("ColorSpace", dictionary! {"CS1" => indirect_space});
+        }
+        "direct_profile" => {
+            page_resources.set("ColorSpace", dictionary! {"CS1" => direct_space});
+        }
+        "unused_resource" => {
+            page_resources.set("ColorSpace", dictionary! {"CS1" => indirect_space});
+            page_contents.clear();
+        }
+        "default_gray" | "default_rgb" | "default_cmyk" | "unused_default" => {
+            let (name, content) = match case {
+                "default_gray" => ("DefaultGray", b"0 g\n0 G\n".as_slice()),
+                "default_rgb" => ("DefaultRGB", b"0 0 0 rg\n0 0 0 RG\n".as_slice()),
+                "default_cmyk" => ("DefaultCMYK", b"0 0 0 0 k\n0 0 0 0 K\n".as_slice()),
+                _ => ("DefaultRGB", b"".as_slice()),
+            };
+            page_resources.set(
+                "ColorSpace",
+                Dictionary::from_iter([(name.as_bytes(), indirect_space)]),
+            );
+            page_contents = content.to_vec();
+        }
+        "missing_profile" => {
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![Object::Name(b"ICCBased".to_vec())]),
+                },
+            );
+        }
+        "wrong_profile_type" => {
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![
+                        Object::Name(b"ICCBased".to_vec()),
+                        Object::Integer(7),
+                    ]),
+                },
+            );
+        }
+        "repeated_shared_valid" | "repeated_shared_invalid" => {
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => indirect_space.clone(),
+                    "CS2" => indirect_space,
+                },
+            );
+            page_contents = b"/CS1 CS\n/CS2 cs\n".to_vec();
+        }
+        "two_invalid_profiles" => {
+            let second = profile_reference(&mut document, icc_header(*b"mntr", *b"XYZ ", 2, 1));
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => indirect_space,
+                    "CS2" => Object::Array(vec![
+                        Object::Name(b"ICCBased".to_vec()),
+                        second,
+                    ]),
+                },
+            );
+            page_contents = b"/CS1 CS\n/CS2 cs\n".to_vec();
+        }
+        "form_used" | "form_unused_resource" | "form_unreferenced" => {
+            let form_contents = if case == "form_unused_resource" {
+                Vec::new()
+            } else {
+                b"/CS1 CS\n".to_vec()
+            };
+            let form = Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => dictionary! {
+                        "ColorSpace" => dictionary! {"CS1" => indirect_space},
+                    },
+                },
+                form_contents,
+            );
+            let form_id = document.add_object(form);
+            if case != "form_unreferenced" {
+                page_resources.set("XObject", dictionary! {"Fm" => form_id});
+            }
+            page_contents = if case == "form_used" || case == "form_unused_resource" {
+                b"/Fm Do\n".to_vec()
+            } else {
+                Vec::new()
+            };
+        }
+        "nested_form_used" => {
+            let inner_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => dictionary! {
+                        "ColorSpace" => dictionary! {"CS1" => indirect_space},
+                    },
+                },
+                b"/CS1 CS\n".to_vec(),
+            ));
+            let outer_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => dictionary! {
+                        "XObject" => dictionary! {"Inner" => inner_id},
+                    },
+                },
+                b"/Inner Do\n".to_vec(),
+            ));
+            page_resources.set("XObject", dictionary! {"Outer" => outer_id});
+            page_contents = b"/Outer Do\n".to_vec();
+        }
+        "form_parent_fallback" => {
+            let form_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => dictionary! {
+                        "XObject" => Dictionary::new(),
+                    },
+                },
+                b"/CS1 CS\n".to_vec(),
+            ));
+            page_resources.set("ColorSpace", dictionary! {"CS1" => indirect_space});
+            page_resources.set("XObject", dictionary! {"Fm" => form_id});
+            page_contents = b"/Fm Do\n".to_vec();
+        }
+        "nested_form_page_fallback" => {
+            let inner_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => Dictionary::new(),
+                },
+                b"/CS1 CS\n".to_vec(),
+            ));
+            let outer_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => dictionary! {
+                        "XObject" => dictionary! {"Inner" => inner_id},
+                    },
+                },
+                b"/Inner Do\n".to_vec(),
+            ));
+            page_resources.set("ColorSpace", dictionary! {"CS1" => indirect_space});
+            page_resources.set("XObject", dictionary! {"Outer" => outer_id});
+            page_contents = b"/Outer Do\n".to_vec();
+        }
+        "cyclic_form" => {
+            let form_id = document.new_object_id();
+            document.objects.insert(
+                form_id,
+                Object::Stream(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                        "Resources" => dictionary! {
+                            "ColorSpace" => dictionary! {"CS1" => indirect_space},
+                            "XObject" => dictionary! {"Self" => form_id},
+                        },
+                    },
+                    b"/CS1 CS\n/Self Do\n".to_vec(),
+                )),
+            );
+            page_resources.set("XObject", dictionary! {"Fm" => form_id});
+            page_contents = b"/Fm Do\n".to_vec();
+        }
+        "image_used" | "image_unused_resource" | "image_unreferenced" => {
+            let image = Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => indirect_space,
+                },
+                vec![0, 0, 0],
+            );
+            let image_id = document.add_object(image);
+            if case != "image_unreferenced" {
+                page_resources.set("XObject", dictionary! {"Im" => image_id});
+            }
+            page_contents = if case == "image_used" {
+                b"/Im Do\n".to_vec()
+            } else {
+                Vec::new()
+            };
+        }
+        "image_mask_ignores_color_space" => {
+            let image_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 1,
+                    "ImageMask" => true,
+                    "ColorSpace" => indirect_space,
+                },
+                vec![0],
+            ));
+            page_resources.set("XObject", dictionary! {"Im" => image_id});
+            page_contents = b"/Im Do\n".to_vec();
+        }
+        "image_smask_used" | "image_mask_image_used" | "image_alternate_used" => {
+            let linked_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => indirect_space,
+                },
+                vec![0, 0, 0],
+            ));
+            let mut primary = dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 1,
+                "Height" => 1,
+                "BitsPerComponent" => 8,
+                "ColorSpace" => "DeviceRGB",
+            };
+            match case {
+                "image_smask_used" => primary.set("SMask", linked_id),
+                "image_mask_image_used" => primary.set("Mask", linked_id),
+                _ => primary.set(
+                    "Alternates",
+                    vec![Object::Dictionary(dictionary! {
+                        "Image" => linked_id,
+                        "DefaultForPrinting" => true,
+                    })],
+                ),
+            }
+            let primary_id = document.add_object(Stream::new(primary, vec![0, 0, 0]));
+            page_resources.set("XObject", dictionary! {"Im" => primary_id});
+            page_contents = b"/Im Do\n".to_vec();
+        }
+        "inline_image_used" => {
+            page_resources.set("ColorSpace", dictionary! {"CS1" => indirect_space});
+            page_contents = b"q\nBI /W 1 /H 1 /BPC 8 /CS /CS1 ID \x00\x00\x00 EI\nQ\n".to_vec();
+        }
+        "shading_used" => {
+            page_resources.set(
+                "Shading",
+                dictionary! {
+                    "Sh1" => dictionary! {
+                        "ShadingType" => 2,
+                        "ColorSpace" => indirect_space,
+                        "Coords" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                        "Function" => dictionary! {
+                            "FunctionType" => 2,
+                            "Domain" => vec![0.into(), 1.into()],
+                            "C0" => vec![0.into(), 0.into(), 0.into()],
+                            "C1" => vec![1.into(), 1.into(), 1.into()],
+                            "N" => 1,
+                        },
+                        "Extend" => vec![Object::Boolean(true), Object::Boolean(true)],
+                    },
+                },
+            );
+            page_contents = b"/Sh1 sh\n".to_vec();
+        }
+        "indexed_base_used" => {
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![
+                        Object::Name(b"Indexed".to_vec()),
+                        indirect_space,
+                        Object::Integer(1),
+                        Object::String(vec![0; 6], lopdf::StringFormat::Hexadecimal),
+                    ]),
+                },
+            );
+        }
+        "cyclic_indexed" => {
+            let first_id = document.new_object_id();
+            let second_id = document.new_object_id();
+            document.objects.insert(
+                first_id,
+                Object::Array(vec![
+                    Object::Name(b"Indexed".to_vec()),
+                    Object::Reference(second_id),
+                    Object::Integer(1),
+                    Object::String(vec![0; 6], lopdf::StringFormat::Hexadecimal),
+                ]),
+            );
+            document.objects.insert(
+                second_id,
+                Object::Array(vec![
+                    Object::Name(b"Indexed".to_vec()),
+                    Object::Reference(first_id),
+                    Object::Integer(1),
+                    Object::String(vec![0; 6], lopdf::StringFormat::Hexadecimal),
+                ]),
+            );
+            page_resources.set(
+                "ColorSpace",
+                dictionary! {"CS1" => Object::Reference(first_id)},
+            );
+        }
+        "deep_indexed" => {
+            let mut nested = indirect_space;
+            for _ in 0..8 {
+                nested = Object::Array(vec![
+                    Object::Name(b"Indexed".to_vec()),
+                    nested,
+                    Object::Integer(1),
+                    Object::String(vec![0; 6], lopdf::StringFormat::Hexadecimal),
+                ]);
+            }
+            page_resources.set("ColorSpace", dictionary! {"CS1" => nested});
+        }
+        _ => panic!("unknown ICCBased fixture case {case}"),
+    }
+
+    let content_id = document.add_object(Stream::new(Dictionary::new(), page_contents));
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Contents" => content_id,
+    };
+    if case != "inherited_resources" {
+        page.set("Resources", page_resources.clone());
+    }
+    let page_id = document.add_object(page);
+    let mut pages = dictionary! {
+        "Type" => "Pages",
+        "Kids" => vec![Object::Reference(page_id)],
+        "Count" => 1,
+    };
+    if case == "inherited_resources" {
+        pages.set("Resources", page_resources);
+    }
+    document.objects.insert(pages_id, Object::Dictionary(pages));
+    let metadata_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "Metadata",
+            "Subtype" => "XML",
+        },
+        BASE_XMP.to_vec(),
+    ));
+    let intent_profile = profile_reference(&mut document, valid);
+    let intent_id = document.add_object(output_intent_dictionary(
+        Some(intent_profile),
+        Some("GTS_PDFA1"),
+    ));
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => vec![Object::Reference(intent_id)],
+    });
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document.save_to(&mut bytes).expect("save ICCBased fixture");
+    bytes
+}
+
 pub fn font_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::with_version("1.4");
     let pages_id = document.new_object_id();

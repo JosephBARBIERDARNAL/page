@@ -6,6 +6,7 @@
 pub mod differential;
 mod error;
 mod font_embedding;
+mod icc_based;
 mod limits;
 mod metadata;
 mod model;

@@ -23,7 +23,7 @@ pub enum PdfError {
     #[error("XMP metadata stream exceeds the decoded-size limit: {0}")]
     XmpDecodeLimit(String),
 
-    #[error("ICC output profile stream exceeds the decoded-size limit: {0}")]
+    #[error("ICC profile stream exceeds the decoded-size limit: {0}")]
     IccDecodeLimit(String),
 
     #[error("page and Form content streams exceed the decoded-size limit of {0} bytes")]
