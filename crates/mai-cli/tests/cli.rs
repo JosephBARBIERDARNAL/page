@@ -2,23 +2,23 @@ use std::path::Path;
 use std::process::Command;
 
 #[test]
-fn pdf_help_exposes_the_validation_command() {
-    let output = Command::new(env!("CARGO_BIN_EXE_pdf"))
+fn mai_help_exposes_the_validation_command() {
+    let output = Command::new(env!("CARGO_BIN_EXE_mai"))
         .arg("--help")
         .output()
-        .expect("run pdf --help");
+        .expect("run mai --help");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("Usage: pdf <COMMAND>"));
+    assert!(stdout.contains("Usage: mai <COMMAND>"));
     assert!(stdout.contains("validate"));
 }
 
 #[test]
 fn validation_json_is_a_cli_owned_presentation_of_the_library_report() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../pdf-validation/tests/fixtures/structural.pdf");
-    let output = Command::new(env!("CARGO_BIN_EXE_pdf"))
+        .join("../mai-validation/tests/fixtures/structural.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_mai"))
         .args(["validate", "--profile", "pdfa-1b", "--format", "json"])
         .arg(fixture)
         .output()

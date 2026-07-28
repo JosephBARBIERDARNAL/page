@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
-use pdf_cli::output::{ReportFormat, emit_json};
-use pdf_validation::SafetyLimits;
-use pdf_validation::differential::{
+use mai_cli::output::{ReportFormat, emit_json};
+use mai_validation::SafetyLimits;
+use mai_validation::differential::{
     DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner, PINNED_VERAPDF_VERSION,
     ReferenceConfig, ReferenceProfile, aggregate_exit_code,
 };

@@ -3,8 +3,8 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use pdf_validation::SafetyLimits;
-use pdf_validation::differential::{
+use mai_validation::SafetyLimits;
+use mai_validation::differential::{
     ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
     ReferenceConfig,
 };
@@ -75,7 +75,7 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
     }
 
     let temporary = std::env::temp_dir().join(format!(
-        "pdf-verapdf-metadata-atomic-{}",
+        "mai-verapdf-metadata-atomic-{}",
         std::process::id()
     ));
     fs::create_dir_all(&temporary).expect("create atomic fixture directory");

@@ -41,31 +41,31 @@ doc:
 
 # Verify that committed PDF fixtures remain byte-exact.
 test-fixtures:
-    cargo test -p pdf-validation --test fixture_integrity
+    cargo test -p mai-validation --test fixture_integrity
 
 # Run only the metadata atomic tests.
 test-metadata:
-    cargo test -p pdf-validation --test metadata_atomic
+    cargo test -p mai-validation --test metadata_atomic
 
 # Run only the output-intent atomic tests.
 test-output-intents:
-    cargo test -p pdf-validation --test output_intent_atomic
+    cargo test -p mai-validation --test output_intent_atomic
 
 # Run only the CLI contract tests.
 test-cli:
-    cargo test -p pdf-cli --test cli
+    cargo test -p mai-cli --test cli
 
 # Compare all pinned cases with veraPDF from PATH.
 test-verapdf VERAPDF_BIN=verapdf_bin:
-    cargo test -p pdf-validation --test verapdf_diff -- --nocapture
+    cargo test -p mai-validation --test verapdf_diff -- --nocapture
 
 # Validate one PDF; format may be text or json.
 validate file format="text":
-    cargo run --quiet -p pdf-cli --bin pdf -- validate --profile pdfa-1b --format {{format}} "{{file}}"
+    cargo run --quiet -p mai-cli --bin mai -- validate --profile pdfa-1b --format {{format}} "{{file}}"
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:
-    cargo run --quiet -p pdf-cli --bin verapdf-diff -- --verapdf "{{verapdf}}" --format {{format}} "{{file}}"
+    cargo run --quiet -p mai-cli --bin verapdf-diff -- --verapdf "{{verapdf}}" --format {{format}} "{{file}}"
 
 # Remove Cargo build artifacts.
 clean:

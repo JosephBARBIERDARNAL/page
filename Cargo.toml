@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/pdf-cli",
-    "crates/pdf-validation",
+    "crates/mai-cli",
+    "crates/mai-validation",
 ]
 resolver = "3"
 

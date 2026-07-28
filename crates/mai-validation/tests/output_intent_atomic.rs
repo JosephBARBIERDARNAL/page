@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use pdf_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 #[allow(dead_code)]
 mod common;

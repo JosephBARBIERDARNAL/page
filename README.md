@@ -1,25 +1,32 @@
-# Preliminary Rust PDF/A validator
+# mai
 
-This project is the first, intentionally narrow milestone toward a PDF/A
-validator. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded
-XMP parsing.
+mai's goal is to provide a fully API-compatible veraPDF alternative written in
+Rust. veraPDF is the source of truth for the expected output of a given
+validation.
+
+The current implementation is an intentionally narrow milestone toward that
+goal. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded XMP
+parsing.
 
 It does **not** implement complete PDF/A-1b validation. Passing means only that
 the checks listed below found no failure.
 
 The repository is a Cargo workspace with two packages:
 
-- `pdf-validation` contains the reusable parser, normalized model, validation
+- `mai-validation` contains the reusable parser, normalized model, validation
   rules, reports, safety limits, and veraPDF differential engine.
-- `pdf-cli` contains client-side argument parsing, output selection, process
-  exit behavior, and the `pdf` and `verapdf-diff` executables. It depends on
-  `pdf-validation` through a workspace path dependency.
+- `mai-cli` contains client-side argument parsing, output selection, process
+  exit behavior, and the `mai` and `verapdf-diff` executables. It depends on
+  `mai-validation` through a workspace path dependency.
+
+Validation internals and the CLI are kept separate: `mai-validation` must not
+depend on `mai-cli` or CLI-only dependencies.
 
 ## Run
 
 ```bash
-cargo run -p pdf-cli --bin pdf -- validate --profile pdfa-1b path/to/file.pdf
-cargo run -p pdf-cli --bin pdf -- validate --profile pdfa-1b --format json path/to/file.pdf
+cargo run -p mai-cli --bin mai -- validate --profile pdfa-1b path/to/file.pdf
+cargo run -p mai-cli --bin mai -- validate --profile pdfa-1b --format json path/to/file.pdf
 ```
 
 The process exits with status `0` when all implemented checks pass, `2` for a
@@ -29,9 +36,9 @@ such as unreadable input, a configured safety limit, or report serialization.
 ## Architecture
 
 ```text
-pdf-cli
+mai-cli
     -> argument and output handling
-    -> pdf-validation
+    -> mai-validation
        -> bounded file input
        -> strict lopdf parser
        -> normalized PdfDocument model
@@ -44,8 +51,8 @@ Operational and parser failures are kept separate from metadata and
 conformance failures. Limits are configurable for input bytes, decoded stream
 bytes, object count, and reference-chain depth. Operational failures use
 `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance.
-Library tests and fixtures live under `crates/pdf-validation/tests`; CLI
-contract tests live under `crates/pdf-cli/tests`. Each package declares only
+Library tests and fixtures live under `crates/mai-validation/tests`; CLI
+contract tests live under `crates/mai-cli/tests`. Each package declares only
 the dependencies it uses.
 
 ## Implemented checks
@@ -87,7 +94,7 @@ The `verapdf-diff` binary compares the local subset with an explicitly pinned
 veraPDF installation:
 
 ```bash
-cargo run -p pdf-cli --bin verapdf-diff -- \
+cargo run -p mai-cli --bin verapdf-diff -- \
   --verapdf /path/to/verapdf \
   --expected-version 1.28.2 \
   --profile 1b \
@@ -157,7 +164,7 @@ veraPDF 1.28.2.
 | `PDFA1B-OUTPUTINTENT-IDENTITY-001` | `ISO 19005-1:2005:6.2.2:2` | §6.2.2 | exact | `sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity. |
 
 The same mapping is available as typed Rust data in
-`pdf_validation::differential::RULE_MAPPINGS`.
+`mai_validation::differential::RULE_MAPPINGS`.
 
 ### Opt-in reference suite
 
@@ -166,11 +173,11 @@ veraPDF. To run the pinned real-reference cases locally:
 
 ```bash
 VERAPDF_BIN=verapdf \
-  cargo test -p pdf-validation --test verapdf_diff -- --nocapture
+  cargo test -p mai-validation --test verapdf_diff -- --nocapture
 ```
 
 The case manifest is
-`crates/pdf-validation/tests/fixtures/verapdf-diff-cases.json`. In addition
+`crates/mai-validation/tests/fixtures/verapdf-diff-cases.json`. In addition
 to the structural, malformed, encrypted, and supplied real-world fixtures, it
 defines deterministic atomic metadata and output-intent cases. The opt-in suite
 generates those PDFs at runtime and compares both local and veraPDF
@@ -198,7 +205,7 @@ are narrower than the prose description:
   not streams.
 
 Small sanitized veraPDF JSON files under
-`crates/pdf-validation/tests/reference-reports/` unit-test report parsing
+`crates/mai-validation/tests/reference-reports/` unit-test report parsing
 without an installed reference. Classification, exit-code, wrong-version,
 missing-executable, timeout, malformed-report, and spaced-path behavior are
 also tested offline.
@@ -266,9 +273,9 @@ interface. Run `just` to list them. The main workflows are:
 just check
 just build
 just test-verapdf
-just validate crates/pdf-validation/tests/fixtures/structural.pdf
-just validate crates/pdf-validation/tests/fixtures/structural.pdf json
-just diff crates/pdf-validation/tests/fixtures/structural.pdf
+just validate crates/mai-validation/tests/fixtures/structural.pdf
+just validate crates/mai-validation/tests/fixtures/structural.pdf json
+just diff crates/mai-validation/tests/fixtures/structural.pdf
 ```
 
 `just check` runs formatting verification, strict Clippy, and the complete

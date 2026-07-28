@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use pdf_cli::output::{ReportFormat, emit_json};
-use pdf_validation::{SafetyLimits, ValidationProfile, validate_file};
+use mai_cli::output::{ReportFormat, emit_json};
+use mai_validation::{SafetyLimits, ValidationProfile, validate_file};
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "pdf",
-    bin_name = "pdf",
+    name = "mai",
+    bin_name = "mai",
     version,
     about = "Preliminary PDF/A validator (not a complete conformance checker)"
 )]
