@@ -422,5 +422,119 @@
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.2:1"],
       "rationale": "Different indirect IDs fail identity even when neither target is a stream."
     }
+  ],
+  "atomic_font_cases": [
+    {
+      "name": "unembedded_visible",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A visible TrueType font has no embedded font program."
+    },
+    {
+      "name": "mixed_rendering_modes",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "veraPDF 1.28.2 retains rendering mode 3 from the font's first text-show use."
+    },
+    {
+      "name": "mixed_visible_first",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF 1.28.2 retains visible mode 0 from the font's first text-show use."
+    },
+    {
+      "name": "direct_font",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A directly embedded Font resource dictionary still instantiates the rule."
+    },
+    {
+      "name": "form_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Visible text in a Form XObject uses an unembedded font."
+    },
+    {
+      "name": "inherited_resources",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The page inherits its unembedded font resource from the Pages node."
+    },
+    {
+      "name": "type0_unembedded_descendant",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Type0 is exempt directly, but its used unembedded CIDFont descendant is not."
+    },
+    {
+      "name": "type0_embedded_descendant",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "The CIDFont descendant is embedded; the synthetic font's unrelated glyph failure is recorded explicitly."
+    },
+    {
+      "name": "type3_visible",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1", "ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "Type3 is exempt from the embedding rule; incomplete synthetic glyph data triggers unrelated rules."
+    },
+    {
+      "name": "direct_descriptor",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "A direct descriptor resolving to an indirect valid font program is accepted."
+    },
+    {
+      "name": "direct_font_file",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "A direct descriptor and direct valid font-file stream are accepted."
+    },
+    {
+      "name": "malformed_font_program",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF does not expose containsFontFile for a stream whose bytes are not a recognized font program."
+    },
+    {
+      "name": "graphics_state_visible",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A visible text-show inside q/Q records visible rendering mode."
+    },
+    {
+      "name": "cyclic_form",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The used font is checked once while cyclic Form recursion is bounded."
+    }
   ]
 }

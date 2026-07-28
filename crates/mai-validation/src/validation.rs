@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 19;
+const TOTAL_RULE_COUNT: usize = 20;
 
 pub fn validate_file(
     path: &Path,
@@ -65,21 +65,26 @@ pub fn validate_bytes(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
-    let document = match PdfDocument::from_bytes(bytes, limits) {
-        Ok(document) => document,
-        Err(error) if error.is_safety_limit() => {
-            return ValidationReport::operational_failure(
-                profile,
-                "RESOURCE-LIMIT-001",
-                error.to_string(),
-            );
-        }
-        Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
-    };
-    validate_document(document, profile)
+    let (document, font_embedding) =
+        match PdfDocument::from_bytes_with_font_embedding(bytes, limits) {
+            Ok(document) => document,
+            Err(error) if error.is_safety_limit() => {
+                return ValidationReport::operational_failure(
+                    profile,
+                    "RESOURCE-LIMIT-001",
+                    error.to_string(),
+                );
+            }
+            Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
+        };
+    validate_document(document, font_embedding, profile)
 }
 
-fn validate_document(document: PdfDocument, profile: ValidationProfile) -> ValidationReport {
+fn validate_document(
+    document: PdfDocument,
+    font_embedding: crate::font_embedding::FontEmbeddingSummary,
+    profile: ValidationProfile,
+) -> ValidationReport {
     let mut failures = Vec::new();
 
     if document.encrypted {
@@ -165,7 +170,31 @@ fn validate_document(document: PdfDocument, profile: ValidationProfile) -> Valid
 
     validate_output_intents(&document, &mut failures);
 
+    validate_font_embedding(&font_embedding, &mut failures);
+
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+fn validate_font_embedding(
+    font_embedding: &crate::font_embedding::FontEmbeddingSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let invalid = &font_embedding.failures;
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let message = invalid
+        .iter()
+        .map(|font| font.description.as_str())
+        .collect::<Vec<_>>()
+        .join("; ");
+    failures.push(failure(
+        "PDFA1B-FONT-EMBEDDING-001",
+        format!("font program is not embedded for {message}"),
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 /// Requires exactly one declared value satisfying `accept`, producing a

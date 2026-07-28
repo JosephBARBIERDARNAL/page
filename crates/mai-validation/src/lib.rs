@@ -5,6 +5,7 @@
 
 pub mod differential;
 mod error;
+mod font_embedding;
 mod limits;
 mod metadata;
 mod model;

@@ -4,6 +4,7 @@ use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
 
 use crate::error::PdfError;
+use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 
@@ -118,27 +119,22 @@ pub struct PdfDocument {
 
 impl PdfDocument {
     pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
-        if bytes.len() as u64 > limits.max_input_size {
-            return Err(PdfError::InputTooLarge {
-                actual: bytes.len() as u64,
-                limit: limits.max_input_size,
-            });
-        }
-
-        let options = LoadOptions {
-            strict: true,
-            max_decompressed_size: Some(limits.max_decoded_stream_size),
-            ..LoadOptions::default()
-        };
-        let document = Document::load_mem_with_options(bytes, options)?;
-        if document.objects.len() > limits.max_object_count {
-            return Err(PdfError::TooManyObjects {
-                actual: document.objects.len(),
-                limit: limits.max_object_count,
-            });
-        }
-
+        let document = load_document(bytes, limits)?;
         Self::normalize(&document, limits)
+    }
+
+    pub(crate) fn from_bytes_with_font_embedding(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<(Self, FontEmbeddingSummary), PdfError> {
+        let document = load_document(bytes, limits)?;
+        let normalized = Self::normalize(&document, limits)?;
+        let font_embedding = if normalized.encrypted {
+            FontEmbeddingSummary::default()
+        } else {
+            font_embedding::inspect(&document, limits)?
+        };
+        Ok((normalized, font_embedding))
     }
 
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {
@@ -209,6 +205,29 @@ impl PdfDocument {
             object_count: document.objects.len(),
         })
     }
+}
+
+fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfError> {
+    if bytes.len() as u64 > limits.max_input_size {
+        return Err(PdfError::InputTooLarge {
+            actual: bytes.len() as u64,
+            limit: limits.max_input_size,
+        });
+    }
+
+    let options = LoadOptions {
+        strict: true,
+        max_decompressed_size: Some(limits.max_decoded_stream_size),
+        ..LoadOptions::default()
+    };
+    let document = Document::load_mem_with_options(bytes, options)?;
+    if document.objects.len() > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual: document.objects.len(),
+            limit: limits.max_object_count,
+        });
+    }
+    Ok(document)
 }
 
 fn inspect_catalog_metadata(

@@ -77,8 +77,8 @@ fn multiple_invalid_profiles_are_aggregated_as_one_check_failure() {
     );
     assert_eq!(report.failures.len(), 1, "{:#?}", report.failures);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 18);
-    assert_eq!(report.checks.total, 19);
+    assert_eq!(report.checks.passed, 19);
+    assert_eq!(report.checks.total, 20);
 }
 
 #[test]

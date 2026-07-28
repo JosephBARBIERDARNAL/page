@@ -20,6 +20,8 @@ struct Manifest {
     atomic_metadata_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
     atomic_output_intent_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_font_cases: Vec<AtomicRuleCase>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -94,6 +96,14 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         "baseline",
         &manifest.atomic_output_intent_cases,
         common::output_intent_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "font",
+        "baseline_embedded",
+        &manifest.atomic_font_cases,
+        common::font_fixture,
     );
     fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
 }

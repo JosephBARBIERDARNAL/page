@@ -25,6 +25,12 @@ pub enum PdfError {
 
     #[error("ICC output profile stream exceeds the decoded-size limit: {0}")]
     IccDecodeLimit(String),
+
+    #[error("page and Form content streams exceed the decoded-size limit of {0} bytes")]
+    ContentDecodeLimit(usize),
+
+    #[error("embedded font program exceeds the decoded-size limit of {0} bytes")]
+    FontDecodeLimit(usize),
 }
 
 impl PdfError {
@@ -36,6 +42,8 @@ impl PdfError {
                 | Self::ReferenceDepth(_)
                 | Self::XmpDecodeLimit(_)
                 | Self::IccDecodeLimit(_)
+                | Self::ContentDecodeLimit(_)
+                | Self::FontDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(
                     lopdf::DecompressError::MemoryLimitExceeded { .. }
                 ))
