@@ -7,6 +7,7 @@ use pdf_validation::{SafetyLimits, ValidationProfile, validate_file};
 #[derive(Debug, Parser)]
 #[command(
     name = "pdf",
+    bin_name = "pdf",
     version,
     about = "Preliminary PDF/A validator (not a complete conformance checker)"
 )]

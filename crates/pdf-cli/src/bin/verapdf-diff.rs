@@ -11,6 +11,7 @@ use pdf_validation::differential::{
 #[derive(Debug, Parser)]
 #[command(
     name = "verapdf-diff",
+    bin_name = "verapdf-diff",
     version,
     about = "Compare preliminary local PDF/A-1b checks with pinned veraPDF"
 )]
