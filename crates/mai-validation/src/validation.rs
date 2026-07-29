@@ -1056,6 +1056,10 @@ fn validate_font_dictionaries(
             "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
         ),
         (
+            fonts.missing_type1_glyphs.as_slice(),
+            "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        ),
+        (
             fonts.inconsistent_truetype_widths.as_slice(),
             "PDFA1B-TRUETYPE-GLYPH-WIDTH-001",
         ),

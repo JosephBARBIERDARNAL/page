@@ -1,3 +1,8 @@
+use std::{env, fs};
+
+use mai_validation::SafetyLimits;
+use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
+
 #[allow(dead_code)]
 mod common;
 
@@ -55,6 +60,11 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         ("id_conformance_default_element", &[]),
         ("id_amd_default_element", &[]),
         ("extension_valid", &[]),
+        ("extension_rational_value_type", &[]),
+        (
+            "gps_coordinate_invalid",
+            &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+        ),
         (
             "extension_undefined_field",
             &["PDFA1B-XMP-EXTENSION-FIELDS-001"],
@@ -231,4 +241,61 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
 fn custom_extension_type_shape_failure_is_reported() {
     let failures = common::failure_ids(&common::metadata_fixture("extension_custom_value_invalid"));
     assert!(failures.contains("PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"));
+}
+
+#[test]
+fn normalized_extension_value_types_match_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "mai-extension-rational-value-type-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(
+        &path,
+        common::metadata_fixture("extension_rational_value_type"),
+    )
+    .expect("write extension fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert_eq!(report.classification, ComparisonClassification::Agreement);
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .is_empty(),
+        "the schema must not fail either pinned value-type predicate"
+    );
+    fs::remove_file(path).expect("remove extension fixture");
+}
+
+#[test]
+fn invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "mai-invalid-gps-coordinate-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(&path, common::metadata_fixture("gps_coordinate_invalid"))
+        .expect("write GPS fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read GPS fixture"))
+            .contains("PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001")
+    );
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.7.9:3")
+    );
+    fs::remove_file(path).expect("remove GPS fixture");
 }

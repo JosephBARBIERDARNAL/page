@@ -441,6 +441,7 @@ fn scalar_xmp_value_matches(value: &str, value_type: &str) -> bool {
         "integer" => signed_decimal(value, false),
         "real" => signed_decimal(value, true),
         "date" => xmp_iso8601_date(value),
+        "gpscoordinate" => gps_coordinate(value),
         "mimetype" => value.split_once('/').is_some_and(|(left, right)| {
             !left.is_empty()
                 && !right.is_empty()
@@ -452,6 +453,17 @@ fn scalar_xmp_value_matches(value: &str, value_type: &str) -> bool {
         // extension-schema fidelity gap.
         _ => true,
     }
+}
+
+fn gps_coordinate(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 9
+        && bytes[0..2].iter().all(u8::is_ascii_digit)
+        && bytes[2] == b','
+        && bytes[3..5].iter().all(u8::is_ascii_digit)
+        && matches!(bytes[5], b',' | b'.')
+        && bytes[6..8].iter().all(u8::is_ascii_digit)
+        && matches!(bytes[8], b'N' | b'S' | b'E' | b'W')
 }
 
 fn xmp_iso8601_date(value: &str) -> bool {
@@ -945,7 +957,7 @@ fn inspect_schema_property(
         "pdfaProperty",
         xml,
     ) || !field_value(property, PDFA_PROPERTY_NAMESPACE, "valueType")
-        .is_some_and(|value| known_types.contains(value.trim()))
+        .is_some_and(|value| xmp_type_is_known(value, known_types))
     {
         failed.insert(9);
     }
@@ -1027,7 +1039,7 @@ fn inspect_schema_field(
     }
     if !required_simple_field_has_prefix(field, PDFA_FIELD_NAMESPACE, "valueType", "pdfaField", xml)
         || !field_value(field, PDFA_FIELD_NAMESPACE, "valueType")
-            .is_some_and(|value| known_types.contains(value.trim()))
+            .is_some_and(|value| xmp_type_is_known(value, known_types))
     {
         failed.insert(18);
     }
@@ -1145,24 +1157,32 @@ fn field_item_is_valid(field: Node<'_, '_>) -> bool {
 
 fn known_types(definition: Node<'_, '_>) -> BTreeSet<String> {
     let mut known = [
-        "AgentName",
-        "Boolean",
-        "Choice",
-        "Date",
-        "Integer",
-        "Lang Alt",
-        "Locale",
-        "MIMEType",
-        "ProperName",
-        "Real",
-        "RenditionClass",
-        "ResourceEvent",
-        "ResourceRef",
-        "Text",
-        "URI",
-        "URL",
-        "Version",
-        "XPath",
+        "agentname",
+        "boolean",
+        "cfapattern",
+        "date",
+        "devicesettings",
+        "dimensions",
+        "flash",
+        "gpscoordinate",
+        "integer",
+        "job",
+        "lang alt",
+        "locale",
+        "mimetype",
+        "oecf/sfr",
+        "propername",
+        "rational",
+        "real",
+        "renditionclass",
+        "resourceevent",
+        "resourceref",
+        "text",
+        "thumbnail",
+        "uri",
+        "url",
+        "version",
+        "xpath",
     ]
     .into_iter()
     .map(str::to_owned)
@@ -1170,11 +1190,27 @@ fn known_types(definition: Node<'_, '_>) -> BTreeSet<String> {
     for value_type in fields(definition, PDFA_SCHEMA_NAMESPACE, "valueType") {
         for item in value_type.array_items() {
             if let Some(value) = field_value(item, PDFA_TYPE_NAMESPACE, "type") {
-                known.insert(value.trim().to_owned());
+                known.insert(xmp_type_key(value));
             }
         }
     }
     known
+}
+
+fn xmp_type_is_known(value_type: &str, known_types: &BTreeSet<String>) -> bool {
+    let mut value_type = xmp_type_key(value_type);
+    loop {
+        if known_types.contains(&value_type) {
+            return true;
+        }
+        let Some((_, item_type)) = value_type.split_once(' ') else {
+            return false;
+        };
+        if !matches!(value_type.split_once(' '), Some(("bag" | "seq" | "alt", _))) {
+            return false;
+        }
+        value_type = item_type.to_owned();
+    }
 }
 
 fn xmp_packet_header<'a>(document: &'a Document<'a>) -> Option<&'a str> {
@@ -1745,6 +1781,25 @@ mod tests {
     fn rejects_malformed_xmp_and_dtd() {
         assert!(parse_xmp(b"<rdf:RDF>").is_err());
         assert!(parse_xmp(b"<!DOCTYPE x><x/>").is_err());
+    }
+
+    #[test]
+    fn normalizes_the_pinned_extension_schema_value_type_names() {
+        let known = BTreeSet::from([
+            "gpscoordinate".to_owned(),
+            "rational".to_owned(),
+            "text".to_owned(),
+        ]);
+        for value_type in [
+            "GPSCoordinate",
+            "rational",
+            "Choice Rational",
+            "Bag Rational",
+            "Open Choice of Bag Rational",
+        ] {
+            assert!(xmp_type_is_known(value_type, &known), "{value_type}");
+        }
+        assert!(!xmp_type_is_known("Undefined", &known));
     }
 
     #[test]

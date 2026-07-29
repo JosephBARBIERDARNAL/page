@@ -6,6 +6,7 @@ use mai_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_byte
 mod common;
 
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
+const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";
 
 const CASES: &[(&str, bool)] = &[
     ("unembedded_visible", true),
@@ -53,6 +54,18 @@ fn font_cases_have_the_complete_expected_failure_delta() {
             "{case}: removed baseline failures {removed:?}"
         );
     }
+}
+
+#[test]
+fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
+    assert!(
+        common::failure_ids(&common::font_fixture("type1_glyph_missing"))
+            .contains(TYPE1_GLYPH_PRESENCE)
+    );
+    assert!(
+        !common::failure_ids(&common::font_fixture("type1_glyph_present"))
+            .contains(TYPE1_GLYPH_PRESENCE)
+    );
 }
 
 #[test]

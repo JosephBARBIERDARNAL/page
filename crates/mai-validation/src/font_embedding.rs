@@ -31,6 +31,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
+    pub(crate) missing_type1_glyphs: Vec<RuleFailure>,
     pub(crate) inconsistent_truetype_widths: Vec<RuleFailure>,
     pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
@@ -84,6 +85,7 @@ struct Scanner<'a> {
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
+    missing_type1_glyphs: Vec<RuleFailure>,
     inconsistent_truetype_widths: Vec<RuleFailure>,
     excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
@@ -115,6 +117,7 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
+        missing_type1_glyphs: Vec::new(),
         inconsistent_truetype_widths: Vec::new(),
         excessive_graphics_state_nesting: Vec::new(),
     };
@@ -133,8 +136,10 @@ pub(crate) fn inspect(
         left.object_id == right.object_id && left.description == right.description
     });
     scanner.inspect_rendered_truetype_glyphs()?;
+    scanner.inspect_rendered_type1_glyphs()?;
+    scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
-    scanner.inspect_rendered_identity_cid_subset_sets()?;
+    scanner.inspect_rendered_cid_subset_sets()?;
 
     let failures = scanner
         .uses
@@ -169,6 +174,7 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
+        missing_type1_glyphs: scanner.missing_type1_glyphs,
         inconsistent_truetype_widths: scanner.inconsistent_truetype_widths,
         excessive_graphics_state_nesting: scanner.excessive_graphics_state_nesting,
     })
@@ -661,6 +667,106 @@ impl Scanner<'_> {
         Ok(())
     }
 
+    fn inspect_rendered_cidfont_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || usage.subtype.as_deref() != Some("Type0")
+                || usage.shown_bytes.is_empty()
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let Ok(encoding) = font.get(b"Encoding") else {
+                continue;
+            };
+            let Some(cids) =
+                cids_for_rendered_bytes(self.document, encoding, &usage.shown_bytes, self.limits)?
+            else {
+                continue;
+            };
+            let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            if descendant
+                .get(b"Subtype")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                != Some(b"CIDFontType2".as_slice())
+            {
+                continue;
+            }
+            let Ok(cid_to_gid) = descendant.get(b"CIDToGIDMap") else {
+                continue;
+            };
+            let Some(descriptor) =
+                font_descriptor_dictionary(self.document, descendant, self.limits)?
+            else {
+                continue;
+            };
+            let Some(stream) = descriptor
+                .get(b"FontFile2")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let bytes = decode_font_stream(stream, self.limits)?;
+            let Ok(face) = ttf_parser::Face::parse(&bytes, 0) else {
+                continue;
+            };
+            for cid in cids.into_iter().collect::<BTreeSet<_>>() {
+                if cid == 0 {
+                    continue;
+                }
+                let Some(glyph) = cid_to_gid_index(self.document, cid_to_gid, cid, self.limits)?
+                else {
+                    continue;
+                };
+                let Some(advance) = face.glyph_hor_advance(glyph) else {
+                    self.missing_truetype_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!("has no embedded CIDFontType2 glyph for rendered CID {cid}"),
+                    ));
+                    continue;
+                };
+                let Some(dictionary_width) =
+                    cid_dictionary_width(self.document, descendant, cid, self.limits)?
+                else {
+                    continue;
+                };
+                let program_width = f64::from(advance) * 1000.0 / f64::from(face.units_per_em());
+                if (program_width - dictionary_width).abs() > 1.0 {
+                    self.inconsistent_truetype_widths.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!(
+                            "has rendered CID {cid} width {program_width:.3} in its embedded CIDFontType2 program but {dictionary_width:.3} in /DW"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn inspect_rendered_type1_subset_charsets(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
@@ -736,7 +842,60 @@ impl Scanner<'_> {
         Ok(())
     }
 
-    fn inspect_rendered_identity_cid_subset_sets(&mut self) -> Result<(), PdfError> {
+    fn inspect_rendered_type1_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible || !usage.embedded || usage.subtype.as_deref() != Some("Type1") {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            let Some(stream) = descriptor
+                .get(b"FontFile")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let program_names = type1_program_char_names(&decode_font_stream(stream, self.limits)?);
+            if program_names.is_empty() {
+                continue;
+            }
+            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+                let Some(name) = type1_standard_glyph_name(byte) else {
+                    continue;
+                };
+                if !program_names.contains(name) {
+                    self.missing_type1_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!("has no embedded Type1 glyph for rendered byte {byte}"),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_cid_subset_sets(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
             if !usage.visible
@@ -756,14 +915,14 @@ impl Scanner<'_> {
             let Ok(font) = object.as_dict() else {
                 continue;
             };
-            if !font
-                .get(b"Encoding")
-                .ok()
-                .and_then(|value| value.as_name().ok())
-                .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
-            {
+            let Ok(encoding) = font.get(b"Encoding") else {
                 continue;
-            }
+            };
+            let Some(cids) =
+                cids_for_rendered_bytes(self.document, encoding, &usage.shown_bytes, self.limits)?
+            else {
+                continue;
+            };
             let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
             else {
                 continue;
@@ -820,22 +979,15 @@ impl Scanner<'_> {
                 continue;
             };
             let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
-            let cids = usage.shown_bytes.chunks_exact(2);
-            if !cids.remainder().is_empty()
-                || !cids
-                    .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
-                    .any(|cid| {
-                        cid != 0
-                            && face.number_of_glyphs() > cid
-                            && !cid_set_contains(&cid_set_bytes, cid)
-                    })
-            {
+            if !cids.into_iter().any(|cid| {
+                cid != 0 && face.number_of_glyphs() > cid && !cid_set_contains(&cid_set_bytes, cid)
+            }) {
                 continue;
             }
             self.invalid_cid_subset_cidsets.push(font_failure(
                 usage.object_id,
                 &usage.description,
-                "has a rendered Identity CMap CID absent from its descriptor /CIDSet",
+                "has a rendered CID absent from its descriptor /CIDSet",
             ));
         }
         Ok(())
@@ -1078,6 +1230,90 @@ impl Scanner<'_> {
     }
 }
 
+fn cid_to_gid_index(
+    document: &Document,
+    map: &Object,
+    cid: u16,
+    limits: &SafetyLimits,
+) -> Result<Option<ttf_parser::GlyphId>, PdfError> {
+    if map.as_name().ok() == Some(b"Identity".as_slice()) {
+        return Ok(Some(ttf_parser::GlyphId(cid)));
+    }
+    let Some(stream) = resolve_optional(document, map, limits.max_reference_depth)?
+        .and_then(|value| value.as_stream().ok())
+    else {
+        return Ok(None);
+    };
+    let bytes = decode_font_stream(stream, limits)?;
+    let offset = usize::from(cid).checked_mul(2);
+    let Some(offset) = offset else {
+        return Ok(None);
+    };
+    let Some(entry) = bytes.get(offset..offset.saturating_add(2)) else {
+        return Ok(None);
+    };
+    Ok(Some(ttf_parser::GlyphId(u16::from_be_bytes([
+        entry[0], entry[1],
+    ]))))
+}
+
+fn cid_dictionary_width(
+    document: &Document,
+    font: &Dictionary,
+    cid: u16,
+    limits: &SafetyLimits,
+) -> Result<Option<f64>, PdfError> {
+    if let Ok(value) = font.get(b"W")
+        && let Some(array) = resolve_optional(document, value, limits.max_reference_depth)?
+            .and_then(|value| value.as_array().ok())
+    {
+        let mut index = 0usize;
+        while index < array.len() {
+            let Some(first) = array
+                .get(index)
+                .and_then(as_integer)
+                .and_then(|value| u16::try_from(value).ok())
+            else {
+                return Ok(None);
+            };
+            let Some(next) = array.get(index + 1) else {
+                return Ok(None);
+            };
+            if let Ok(widths) = next.as_array() {
+                for (offset, width) in widths.iter().enumerate() {
+                    let Some(offset) = u16::try_from(offset).ok() else {
+                        return Ok(None);
+                    };
+                    if first.checked_add(offset) == Some(cid) {
+                        return Ok(width.as_float().ok().map(f64::from));
+                    }
+                }
+                index += 2;
+                continue;
+            }
+            let Some(last) = next
+                .as_i64()
+                .ok()
+                .and_then(|value| u16::try_from(value).ok())
+            else {
+                return Ok(None);
+            };
+            let Some(width) = array.get(index + 2).and_then(|value| value.as_float().ok()) else {
+                return Ok(None);
+            };
+            if (first..=last).contains(&cid) {
+                return Ok(Some(f64::from(width)));
+            }
+            index += 3;
+        }
+    }
+    Ok(font
+        .get(b"DW")
+        .ok()
+        .and_then(|value| value.as_float().ok())
+        .map(f64::from))
+}
+
 fn single_encoded_character(encoding: &lopdf::Encoding<'_>, byte: u8) -> Option<char> {
     let value = encoding.bytes_to_string(&[byte]).ok()?;
     let mut characters = value.chars();
@@ -1230,6 +1466,121 @@ fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
         }
     }
     maximum
+}
+
+fn cids_for_rendered_bytes(
+    document: &Document,
+    encoding: &Object,
+    shown_bytes: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<Vec<u16>>, PdfError> {
+    if encoding
+        .as_name()
+        .ok()
+        .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+    {
+        let mut chunks = shown_bytes.chunks_exact(2);
+        let cids = chunks
+            .by_ref()
+            .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
+            .collect();
+        return Ok(chunks.remainder().is_empty().then_some(cids));
+    }
+    let Some(cmap) = resolve_optional(document, encoding, limits.max_reference_depth)?
+        .and_then(|object| object.as_stream().ok())
+    else {
+        return Ok(None);
+    };
+    let bytes = decode_font_stream(cmap, limits)?;
+    Ok(cmap_single_byte_cids(&bytes, shown_bytes))
+}
+
+/// Resolves only complete, explicit one-byte CMaps. Other CMap forms can
+/// require variable-width parsing or `usecmap` inheritance and are left
+/// inapplicable until those semantics are modeled.
+fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
+    let tokens = bytes
+        .split(|byte| byte.is_ascii_whitespace())
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>();
+    let mut cursor = 0usize;
+    let mut accepts_all_bytes = false;
+    let mut cids = vec![None; 256];
+    while cursor + 1 < tokens.len() {
+        let Some(count) = tokens[cursor]
+            .iter()
+            .all(u8::is_ascii_digit)
+            .then(|| {
+                std::str::from_utf8(tokens[cursor])
+                    .ok()?
+                    .parse::<usize>()
+                    .ok()
+            })
+            .flatten()
+        else {
+            cursor += 1;
+            continue;
+        };
+        match tokens[cursor + 1] {
+            b"begincodespacerange" => {
+                for entry in 0..count {
+                    let base = cursor + 2 + entry * 2;
+                    let (Some(start), Some(end)) = (
+                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
+                        tokens.get(base + 1).and_then(|token| parse_cmap_hex(token)),
+                    ) else {
+                        continue;
+                    };
+                    accepts_all_bytes |= start == 0 && end == 255;
+                }
+                cursor += 2 + count * 2;
+            }
+            b"begincidchar" => {
+                for entry in 0..count {
+                    let base = cursor + 2 + entry * 2;
+                    let (Some(code), Some(cid)) = (
+                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
+                        tokens
+                            .get(base + 1)
+                            .and_then(|token| parse_cmap_integer(token)),
+                    ) else {
+                        continue;
+                    };
+                    if code <= 255 && cid <= 65_535 {
+                        cids[code as usize] = Some(cid as u16);
+                    }
+                }
+                cursor += 2 + count * 2;
+            }
+            b"begincidrange" => {
+                for entry in 0..count {
+                    let base = cursor + 2 + entry * 3;
+                    let (Some(start), Some(end), Some(cid)) = (
+                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
+                        tokens.get(base + 1).and_then(|token| parse_cmap_hex(token)),
+                        tokens
+                            .get(base + 2)
+                            .and_then(|token| parse_cmap_integer(token)),
+                    ) else {
+                        continue;
+                    };
+                    if start <= end && end <= 255 && cid.saturating_add(end - start) <= 65_535 {
+                        for code in start..=end {
+                            cids[code as usize] = Some((cid + code - start) as u16);
+                        }
+                    }
+                }
+                cursor += 2 + count * 3;
+            }
+            _ => cursor += 1,
+        }
+    }
+    accepts_all_bytes.then(|| {
+        shown_bytes
+            .iter()
+            .map(|byte| cids[usize::from(*byte)])
+            .collect()
+    })?
 }
 
 fn parse_cmap_integer(token: &[u8]) -> Option<u32> {

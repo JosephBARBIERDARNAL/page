@@ -86,6 +86,18 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline_b" => {}
+        "gps_coordinate_invalid" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">",
+            );
+            replace(
+                &mut xmp,
+                "pdf:Keywords=\"rust,pdf\"",
+                "pdf:Keywords=\"rust,pdf\" exif:GPSLatitude=\"invalid\"",
+            );
+        }
         "id_alias_declaration_only" => {}
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
         "id_conformance_alias" => replace(
@@ -125,6 +137,18 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "<amd xmlns=\"http://www.aiim.org/pdfa/ns/id/\">1:2005</amd><dc:title>",
         ),
         "extension_valid" => {}
+        "extension_rational_value_type" => {
+            replace(
+                &mut xmp,
+                "<pdfaProperty:valueType>Text</pdfaProperty:valueType>",
+                "<pdfaProperty:valueType>rational</pdfaProperty:valueType>",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaField:valueType>Text</pdfaField:valueType>",
+                "<pdfaField:valueType>GPSCoordinate</pdfaField:valueType>",
+            );
+        }
         "extension_undefined_field" => replace(
             &mut xmp,
             "<pdfaSchema:schema>Example schema</pdfaSchema:schema>",
@@ -2620,7 +2644,16 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 sfnt::minimal_truetype(),
             )),
         );
-    } else if case == "composite_cidset_real_program" {
+    } else if matches!(case, "type1_glyph_missing" | "type1_glyph_present") {
+        descriptor.remove(b"FontFile2");
+        descriptor.set(
+            "FontFile",
+            document.add_object(Stream::new(Dictionary::new(), type1_program(&["space"]))),
+        );
+    } else if matches!(
+        case,
+        "composite_cidset_real_program" | "composite_cidset_nonidentity_real_program"
+    ) {
         descriptor.set(
             "FontFile2",
             document.add_object(Stream::new(
@@ -2631,6 +2664,25 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         descriptor.set(
             "CIDSet",
             document.add_object(Stream::new(Dictionary::new(), vec![0; 5])),
+        );
+    } else if matches!(
+        case,
+        "composite_identity_width_mismatch" | "composite_identity_width_override_mismatch"
+    ) {
+        descriptor.set(
+            "FontFile2",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                sfnt::minimal_truetype_with_glyph_count(33),
+            )),
+        );
+    } else if case == "composite_stream_cidmap_missing_glyph" {
+        descriptor.set(
+            "FontFile2",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                sfnt::minimal_truetype_with_glyph_count(2),
+            )),
         );
     }
     let descriptor_object = if matches!(case, "direct_descriptor" | "direct_font_file") {
@@ -2655,6 +2707,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     } else if case == "type1_subset_missing_charset" {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
+    } else if matches!(case, "type1_glyph_missing" | "type1_glyph_present") {
+        font.set("Subtype", "Type1");
     }
     if case == "type3_visible" {
         font = dictionary! {
@@ -2681,7 +2735,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "Subtype" => "CIDFontType2",
             "BaseFont" => if matches!(
                 case,
-                "composite_cid_subset_missing_cidset" | "composite_cidset_real_program"
+                "composite_cid_subset_missing_cidset"
+                    | "composite_cidset_real_program"
+                    | "composite_cidset_nonidentity_real_program"
             ) {
                 Object::Name(b"ABCDEF+MaiTestFont".to_vec())
             } else {
@@ -2707,6 +2763,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 let map = document.add_object(Stream::new(Dictionary::new(), vec![0, 0]));
                 descendant_dictionary.set("CIDToGIDMap", map);
             }
+            "composite_stream_cidmap_missing_glyph" => {
+                let mut map = vec![0; 66];
+                map[65] = 2;
+                let map = document.add_object(Stream::new(Dictionary::new(), map));
+                descendant_dictionary.set("CIDToGIDMap", map);
+            }
+            "composite_identity_width_mismatch" => {
+                descendant_dictionary.set("DW", 400);
+            }
+            "composite_identity_width_override_mismatch" => {
+                descendant_dictionary.set(
+                    "W",
+                    Object::Array(vec![32.into(), Object::Array(vec![400.into()])]),
+                );
+            }
             _ => {}
         }
         let descendant = document.add_object(descendant_dictionary);
@@ -2717,7 +2788,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "composite_cmap_mismatch_system"
             | "composite_cmap_wmode_match"
             | "composite_cmap_wmode_mismatch"
-            | "composite_cmap_cid_too_large" => {
+            | "composite_cmap_cid_too_large"
+            | "composite_cidset_nonidentity_real_program"
+            | "composite_nonidentity_missing_glyph" => {
                 let cmap_ordering = if case == "composite_cmap_mismatch_system" {
                     "Japan1"
                 } else {
@@ -2868,6 +2941,36 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             ),
             operation("ET", vec![]),
         ]),
+        "composite_cidset_nonidentity_real_program" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "composite_nonidentity_missing_glyph" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "composite_identity_missing_glyph"
+        | "composite_identity_width_mismatch"
+        | "composite_identity_width_override_mismatch"
+        | "composite_stream_cidmap_missing_glyph" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
         "unused_resource" | "unused_invalid_font" => Vec::new(),
         "selected_not_shown" => content(vec![
             operation("BT", vec![]),
@@ -3009,6 +3112,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("Tj", vec![Object::string_literal("!")]),
             operation("ET", vec![]),
         ]),
+        "type1_glyph_missing" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal("!")]),
+            operation("ET", vec![]),
+        ]),
+        "type1_glyph_present" => text_content(0),
         "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
@@ -3078,6 +3188,32 @@ fn font_descriptor(document: &mut Document, embedded: bool) -> Dictionary {
         descriptor.set("FontFile2", font_file);
     }
     descriptor
+}
+
+fn type1_program(char_names: &[&str]) -> Vec<u8> {
+    let char_strings = char_names
+        .iter()
+        .map(|name| format!("/{name} 1 RD"))
+        .collect::<String>();
+    let plaintext = [
+        vec![0; 4],
+        format!("dup /Private 1 dict dup begin /CharStrings 1 dict dup begin {char_strings}")
+            .into_bytes(),
+    ]
+    .concat();
+    let mut state = 55_665_u16;
+    let encrypted = plaintext
+        .into_iter()
+        .map(|plaintext| {
+            let ciphertext = plaintext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            ciphertext
+        })
+        .collect::<Vec<_>>();
+    [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat()
 }
 
 fn text_content(rendering_mode: i64) -> Vec<u8> {
