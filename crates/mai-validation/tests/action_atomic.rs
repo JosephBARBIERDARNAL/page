@@ -102,9 +102,9 @@ fn indirect_action_failure_attaches_the_action_object() {
         .find(|failure| failure.rule_id == ACTION_TYPE)
         .expect("action type failure");
     assert!(failure.object_id.is_some());
-    assert_eq!(report.checks.total, 98);
+    assert_eq!(report.checks.total, 99);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 97);
+    assert_eq!(report.checks.passed, 98);
 }
 
 fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {

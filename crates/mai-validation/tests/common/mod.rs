@@ -2347,6 +2347,89 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "unreferenced_names_embedded_files" => {
             document.add_object(dictionary! {"EmbeddedFiles" => 42});
         }
+        "file_spec_without_ef" => {
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Dictionary(Dictionary::new()),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_with_ef" => {
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Dictionary(dictionary! {"EF" => Dictionary::new()}),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_indirect_with_ef" => {
+            let file_spec = document.add_object(dictionary! {"EF" => Dictionary::new()});
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Reference(file_spec),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_stream_with_ef" => {
+            let file_spec = document.add_object(Stream::new(
+                dictionary! {"EF" => Dictionary::new()},
+                Vec::new(),
+            ));
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Reference(file_spec),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_scalar" => {
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![Object::string_literal("file"), Object::Integer(42)],
+                    },
+                },
+            );
+        }
+        "embedded_files_kids_with_ef" => {
+            let child = document.add_object(dictionary! {
+                "Names" => vec![
+                    Object::string_literal("file"),
+                    Object::Dictionary(dictionary! {"EF" => Dictionary::new()}),
+                ],
+            });
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Kids" => vec![Object::Reference(child)],
+                    },
+                },
+            );
+        }
         "ocproperties_dictionary" => catalog.set("OCProperties", Dictionary::new()),
         "ocproperties_wrong_type" => catalog.set("OCProperties", 42),
         "ocproperties_null" => catalog.set("OCProperties", Object::Null),

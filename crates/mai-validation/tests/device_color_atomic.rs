@@ -62,9 +62,9 @@ fn device_color_failure_reports_the_selected_space_and_output_space() {
         .expect("DeviceRGB failure");
     assert!(failure.message.contains("DeviceRGB"));
     assert!(failure.message.contains("CMYK"));
-    assert_eq!(report.checks.total, 98);
+    assert_eq!(report.checks.total, 99);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 97);
+    assert_eq!(report.checks.passed, 98);
 }
 
 fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {

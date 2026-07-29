@@ -7,6 +7,7 @@ mod common;
 
 const EMBEDDED_FILES: &str = "PDFA1B-NAMES-EMBEDDED-FILES-001";
 const OPTIONAL_CONTENT: &str = "PDFA1B-OPTIONAL-CONTENT-001";
+const FILE_SPEC: &str = "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001";
 
 #[test]
 fn document_feature_cases_have_the_complete_expected_failure_delta() {
@@ -21,6 +22,12 @@ fn document_feature_cases_have_the_complete_expected_failure_delta() {
         ("names_wrong_type", &[]),
         ("names_indirect_dictionary", &[EMBEDDED_FILES]),
         ("unreferenced_names_embedded_files", &[]),
+        ("file_spec_without_ef", &[EMBEDDED_FILES]),
+        ("file_spec_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
+        ("file_spec_indirect_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
+        ("file_spec_stream_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
+        ("file_spec_scalar", &[EMBEDDED_FILES]),
+        ("embedded_files_kids_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
         ("ocproperties_dictionary", &[OPTIONAL_CONTENT]),
         ("ocproperties_wrong_type", &[OPTIONAL_CONTENT]),
         ("ocproperties_null", &[]),
@@ -52,6 +59,7 @@ fn document_feature_failures_attach_the_catalog_object() {
     for (case, rule_id) in [
         ("names_embedded_files_dictionary", EMBEDDED_FILES),
         ("ocproperties_dictionary", OPTIONAL_CONTENT),
+        ("file_spec_indirect_with_ef", FILE_SPEC),
     ] {
         let report = validate(&common::document_feature_fixture(case));
         let failure = report
@@ -63,9 +71,10 @@ fn document_feature_failures_attach_the_catalog_object() {
             failure.object_id.is_some(),
             "{case}: missing catalog object ID"
         );
-        assert_eq!(report.checks.total, 98);
-        assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.checks.passed, 97);
+        assert_eq!(report.checks.total, 99);
+        let expected_failed = if rule_id == FILE_SPEC { 2 } else { 1 };
+        assert_eq!(report.checks.failed, expected_failed);
+        assert_eq!(report.checks.passed, 99 - expected_failed);
     }
 }
 

@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 98;
+const TOTAL_RULE_COUNT: usize = 99;
 
 pub fn validate_file(
     path: &Path,
@@ -400,6 +400,17 @@ fn validate_document_features(
                 FailureCategory::Conformance,
             ));
         }
+    }
+    if !features.file_specs_with_embedded_files.is_empty() {
+        let object_id = (features.file_specs_with_embedded_files.len() == 1)
+            .then(|| features.file_specs_with_embedded_files[0].object_id)
+            .flatten();
+        failures.push(failure(
+            "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
+            "a file specification in the EmbeddedFiles name tree contains an EF entry",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
 }
 
