@@ -5,6 +5,7 @@ use lopdf::{Dictionary, Document, Object, ObjectId};
 
 use crate::content_support::{decode_content_stream, inherited_page_resources, resource_once};
 use crate::error::PdfError;
+use crate::graphics::is_standard_rendering_intent;
 use crate::limits::SafetyLimits;
 use crate::model::IccHeader;
 use crate::object_resolution::{ResourceKey, resolve_optional};
@@ -117,6 +118,20 @@ fn inspect_all_devicen_components(
     Ok(failures)
 }
 
+fn devicen_component_count(
+    document: &Document,
+    items: &[Object],
+    limits: &SafetyLimits,
+) -> Result<usize, PdfError> {
+    Ok(items
+        .get(1)
+        .map(|components| resolve_optional(document, components, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|components| components.as_array().ok())
+        .map_or(0, Vec::len))
+}
+
 fn inspect_devicen_object(
     document: &Document,
     object: &Object,
@@ -140,15 +155,7 @@ fn inspect_devicen_object(
         }
         Object::Array(items) => {
             if items.first().and_then(|item| item.as_name().ok()) == Some(b"DeviceN".as_slice()) {
-                let components = items
-                    .get(1)
-                    .map(|components| {
-                        resolve_optional(document, components, limits.max_reference_depth)
-                    })
-                    .transpose()?
-                    .flatten()
-                    .and_then(|components| components.as_array().ok())
-                    .map_or(0, Vec::len);
+                let components = devicen_component_count(document, items, limits)?;
                 if components > 8 {
                     failures.push(RuleFailure {
                         object_id: owner,
@@ -620,15 +627,7 @@ impl Scanner<'_> {
         };
         let kind = items.first().and_then(|item| item.as_name().ok());
         if kind == Some(b"DeviceN".as_slice()) {
-            let components = items
-                .get(1)
-                .map(|components| {
-                    resolve_optional(self.document, components, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|components| components.as_array().ok())
-                .map_or(0, Vec::len);
+            let components = devicen_component_count(self.document, items, self.limits)?;
             if components > 8 {
                 self.invalid_devicen_components.push(RuleFailure {
                     object_id: value.as_reference().ok().map(Into::into),
@@ -794,13 +793,6 @@ impl Scanner<'_> {
             description,
         });
     }
-}
-
-fn is_standard_rendering_intent(name: &str) -> bool {
-    matches!(
-        name,
-        "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
-    )
 }
 
 fn is_pdf_1_4_operator(operator: &str) -> bool {

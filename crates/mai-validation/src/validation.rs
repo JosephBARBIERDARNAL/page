@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::limits::SafetyLimits;
 use crate::metadata::dates_equivalent;
-use crate::model::PdfDocument;
+use crate::model::{PdfDocument, PdfObjectId};
 use crate::report::{
     FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
 };
@@ -27,6 +27,12 @@ impl fmt::Display for ValidationProfile {
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
 const TOTAL_RULE_COUNT: usize = 133;
+
+/// Returns the sole element of a slice known to hold at most one entry, or
+/// `None` for zero or multiple entries.
+fn only<T>(items: &[T]) -> Option<&T> {
+    (items.len() == 1).then(|| &items[0])
+}
 
 pub fn validate_file(
     path: &Path,
@@ -312,10 +318,11 @@ fn validate_document(
         Some("direct DeviceN space"),
         &mut failures,
     );
-    validate_device_color_spaces(&document, &inspections.icc_based, &mut failures);
+    let output_color_space = pdfa_output_color_space(&document);
+    validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
     validate_xobjects(&inspections.xobjects, &mut failures);
     validate_graphics(&inspections.graphics, &inspections.icc_based, &mut failures);
-    validate_annotations(&document, &inspections.annotations, &mut failures);
+    validate_annotations(output_color_space, &inspections.annotations, &mut failures);
     validate_actions(&inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
     validate_document_features(&inspections.document_features, &mut failures);
@@ -396,7 +403,7 @@ fn validate_object_limits(
             failures.push(failure(
                 rule_id,
                 description,
-                (objects.len() == 1).then(|| objects[0]),
+                only(objects).copied(),
                 FailureCategory::Conformance,
             ));
         }
@@ -577,9 +584,8 @@ fn validate_document_features(
         }
     }
     if !features.file_specs_with_embedded_files.is_empty() {
-        let object_id = (features.file_specs_with_embedded_files.len() == 1)
-            .then(|| features.file_specs_with_embedded_files[0].object_id)
-            .flatten();
+        let object_id =
+            only(&features.file_specs_with_embedded_files).and_then(|entry| entry.object_id);
         failures.push(failure(
             "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
             "a file specification in the EmbeddedFiles name tree contains an EF entry",
@@ -594,8 +600,7 @@ fn validate_stream_safety(
     failures: &mut Vec<ValidationFailure>,
 ) {
     if !streams.external_stream_entries.is_empty() {
-        let object_id = (streams.external_stream_entries.len() == 1)
-            .then(|| streams.external_stream_entries[0].object_id);
+        let object_id = only(&streams.external_stream_entries).map(|entry| entry.object_id);
         let description = streams
             .external_stream_entries
             .iter()
@@ -617,7 +622,7 @@ fn validate_stream_safety(
         ));
     }
     if !streams.lzw_filters.is_empty() {
-        let object_id = (streams.lzw_filters.len() == 1).then(|| streams.lzw_filters[0]);
+        let object_id = only(&streams.lzw_filters).copied();
         failures.push(failure(
             "PDFA1B-STREAM-LZW-001",
             "a parsed stream declares the forbidden LZWDecode filter",
@@ -626,7 +631,7 @@ fn validate_stream_safety(
         ));
     }
     if !streams.xref_streams.is_empty() {
-        let object_id = (streams.xref_streams.len() == 1).then(|| streams.xref_streams[0]);
+        let object_id = only(&streams.xref_streams).copied();
         failures.push(failure(
             "PDFA1B-XREF-STREAM-001",
             "the document contains an xref stream",
@@ -686,7 +691,7 @@ fn validate_stream_safety(
             failures.push(failure(
                 rule_id,
                 message,
-                (invalid.len() == 1).then(|| invalid[0]),
+                only(invalid).copied(),
                 FailureCategory::Conformance,
             ));
         }
@@ -695,8 +700,8 @@ fn validate_stream_safety(
 
 /// Computes the single object id (when exactly one entry is present) and the
 /// `"; "`-joined description used by every same-rule failure aggregator.
-fn joined_failure(invalid: &[RuleFailure]) -> (Option<crate::PdfObjectId>, String) {
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+fn joined_failure(invalid: &[RuleFailure]) -> (Option<PdfObjectId>, String) {
+    let object_id = only(invalid).and_then(|entry| entry.object_id);
     let description = invalid
         .iter()
         .map(|entry| entry.description.as_str())
@@ -735,7 +740,7 @@ fn aggregate_failures_with_location(
     if invalid.is_empty() {
         return;
     }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let object_id = only(invalid).and_then(|entry| entry.object_id);
     let detail = invalid
         .iter()
         .map(|entry| match entry.object_id {
@@ -759,11 +764,10 @@ fn aggregate_failures_with_location(
 }
 
 fn validate_device_color_spaces(
-    document: &PdfDocument,
+    output_color_space: Option<&str>,
     color_spaces: &crate::icc_based::IccBasedSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
-    let output_color_space = pdfa_output_color_space(document);
     if let Some(context) = &color_spaces.device_rgb_context
         && output_color_space != Some("RGB ")
     {
@@ -929,7 +933,7 @@ fn validate_graphics(
 }
 
 fn validate_annotations(
-    document: &PdfDocument,
+    output_color_space: Option<&str>,
     annotations: &crate::annotations::AnnotationSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
@@ -961,7 +965,7 @@ fn validate_annotations(
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
-    if pdfa_output_color_space(document) != Some("RGB ") {
+    if output_color_space != Some("RGB ") {
         aggregate_failures(
             &annotations.color_uses,
             "PDFA1B-ANNOTATION-COLOR-001",
@@ -1082,7 +1086,7 @@ fn require_single_declared_value(
     noun: &str,
     declaration_name: &str,
     expected_description: &str,
-    object_id: Option<crate::PdfObjectId>,
+    object_id: Option<PdfObjectId>,
 ) -> Option<ValidationFailure> {
     match values {
         Some([value]) if accept(value) => None,
@@ -1146,9 +1150,7 @@ fn validate_output_intent_profiles(document: &PdfDocument, failures: &mut Vec<Va
         }
     }
     if !invalid_profiles.is_empty() {
-        let object_id = (invalid_profiles.len() == 1)
-            .then(|| invalid_profiles[0].0)
-            .flatten();
+        let object_id = only(&invalid_profiles).and_then(|(object_id, _)| *object_id);
         let detail = invalid_profiles
             .iter()
             .map(|(object_id, detail)| match object_id {
@@ -1295,7 +1297,7 @@ fn compare_field(
     xmp_values: &[String],
     rule_id: &'static str,
     xmp_name: &str,
-    object_id: Option<crate::PdfObjectId>,
+    object_id: Option<PdfObjectId>,
     failures: &mut Vec<ValidationFailure>,
     matches: impl Fn(&str, &str) -> bool,
 ) {
@@ -1342,7 +1344,7 @@ fn finish_report(
 fn failure(
     rule_id: &'static str,
     message: impl Into<String>,
-    object_id: Option<crate::PdfObjectId>,
+    object_id: Option<PdfObjectId>,
     category: FailureCategory,
 ) -> ValidationFailure {
     ValidationFailure {

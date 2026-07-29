@@ -920,7 +920,11 @@ impl Scanner<'_> {
     fn inspect_rendered_type1_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible || !usage.embedded || usage.subtype.as_deref() != Some("Type1") {
+            if !usage.visible
+                || !usage.embedded
+                || usage.subtype.as_deref() != Some("Type1")
+                || usage.shown_bytes.is_empty()
+            {
                 continue;
             }
             let Some(object) = resolve_optional(
@@ -950,9 +954,9 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let program_names = type1_program_char_names(&decode_font_stream(stream, self.limits)?);
-            let program_widths =
-                type1_program_charstring_widths(&decode_font_stream(stream, self.limits)?);
+            let program_bytes = decode_font_stream(stream, self.limits)?;
+            let program_names = type1_program_char_names(&program_bytes);
+            let program_widths = type1_program_charstring_widths(&program_bytes);
             if program_names.is_empty() {
                 continue;
             }
@@ -1014,6 +1018,7 @@ impl Scanner<'_> {
             if !usage.visible
                 || !usage.embedded
                 || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
+                || usage.shown_bytes.is_empty()
             {
                 continue;
             }
@@ -1939,15 +1944,15 @@ fn type1_charset_names(bytes: &[u8]) -> BTreeSet<&str> {
         .collect()
 }
 
-fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
-    let bytes = type1_pfb_payload(bytes);
-    let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
-        return BTreeSet::new();
-    };
-    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
-    let mut state = 55_665_u16;
-    let plaintext: Vec<_> = ciphertext
-        .into_iter()
+/// Decrypts Adobe Type 1 eexec/charstring ciphertext (Type 1 Font Format
+/// spec §7): `initial_state` is 55665 for the outer eexec layer and 4330 for
+/// individual charstrings; `skip` discards the corresponding lenIV-controlled
+/// random leading bytes (conventionally 4 for eexec, `lenIV` for charstrings).
+fn type1_decrypt(bytes: &[u8], initial_state: u16, skip: usize) -> Vec<u8> {
+    let mut state = initial_state;
+    bytes
+        .iter()
+        .copied()
         .map(|ciphertext| {
             let plaintext = ciphertext ^ (state >> 8) as u8;
             state = state
@@ -1956,8 +1961,17 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
                 .wrapping_add(22_719);
             plaintext
         })
-        .skip(4)
-        .collect();
+        .skip(skip)
+        .collect()
+}
+
+fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
+    let bytes = type1_pfb_payload(bytes);
+    let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
+        return BTreeSet::new();
+    };
+    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
+    let plaintext = type1_decrypt(&ciphertext, 55_665, 4);
     let Some(start) = plaintext
         .windows(b"/CharStrings".len())
         .position(|window| window == b"/CharStrings")
@@ -1984,19 +1998,7 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
         return BTreeMap::new();
     };
     let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
-    let mut state = 55_665_u16;
-    let plaintext: Vec<_> = ciphertext
-        .into_iter()
-        .map(|ciphertext| {
-            let plaintext = ciphertext ^ (state >> 8) as u8;
-            state = state
-                .wrapping_add(u16::from(ciphertext))
-                .wrapping_mul(52_845)
-                .wrapping_add(22_719);
-            plaintext
-        })
-        .skip(4)
-        .collect();
+    let plaintext = type1_decrypt(&ciphertext, 55_665, 4);
     let len_iv = plaintext
         .windows(b"/lenIV".len())
         .position(|window| window == b"/lenIV")
@@ -2072,20 +2074,7 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
 }
 
 fn type1_charstring_width(bytes: &[u8], len_iv: usize) -> Option<f64> {
-    let mut state = 4_330_u16;
-    let decrypted: Vec<_> = bytes
-        .iter()
-        .copied()
-        .map(|ciphertext| {
-            let plaintext = ciphertext ^ (state >> 8) as u8;
-            state = state
-                .wrapping_add(u16::from(ciphertext))
-                .wrapping_mul(52_845)
-                .wrapping_add(22_719);
-            plaintext
-        })
-        .skip(len_iv)
-        .collect();
+    let decrypted = type1_decrypt(bytes, 4_330, len_iv);
     let mut operands = Vec::new();
     let mut position = 0;
     while position < decrypted.len() {
@@ -2538,12 +2527,7 @@ fn font_is_embedded(
     font: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    let Ok(descriptor) = font.get(b"FontDescriptor") else {
-        return Ok(false);
-    };
-    let Some(descriptor) = resolve_optional(document, descriptor, limits.max_reference_depth)?
-        .and_then(|object| object.as_dict().ok())
-    else {
+    let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(false);
     };
     // `containsFontFile` is a veraPDF model property, not mere key presence:
@@ -2566,12 +2550,7 @@ fn invalid_embedded_font_subtype(
     font: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<Option<String>, PdfError> {
-    let Ok(descriptor) = font.get(b"FontDescriptor") else {
-        return Ok(None);
-    };
-    let Some(descriptor) = resolve_optional(document, descriptor, limits.max_reference_depth)?
-        .and_then(|object| object.as_dict().ok())
-    else {
+    let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(None);
     };
     for key in [b"FontFile".as_slice(), b"FontFile2", b"FontFile3"] {

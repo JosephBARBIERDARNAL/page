@@ -2,16 +2,26 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 6] = [
+    let fixtures: [(&str, &[u8], &str); 8] = [
         (
             "encrypted.pdf",
             include_bytes!("fixtures/encrypted.pdf"),
             "59f52bf64091ea195ad0315510a724911ae74daa7a916c3c2d68d96a4150e819",
         ),
         (
+            "example-1.pdf",
+            include_bytes!("fixtures/example-1.pdf"),
+            "cdfc6f02b1d22e5074e8ddc42b2c4262015ae83a4ff5ded2c334090f02b4b355",
+        ),
+        (
             "malformed.pdf",
             include_bytes!("fixtures/malformed.pdf"),
             "df8088e6de6e266de2bcf72a2d1c9e8eee38b393c651184826be82da2877b65d",
+        ),
+        (
+            "not-compliant-1.pdf",
+            include_bytes!("fixtures/not-compliant-1.pdf"),
+            "d9d256bd545284685108fb3d1977b67bb76369d88b057576cb0cffe462bf1ce0",
         ),
         (
             "poster.pdf",

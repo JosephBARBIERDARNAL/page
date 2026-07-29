@@ -8,7 +8,6 @@ use std::fmt;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 
@@ -46,19 +45,6 @@ impl ReferenceProfile {
 impl fmt::Display for ReferenceProfile {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_verapdf_flavour())
-    }
-}
-
-impl FromStr for ReferenceProfile {
-    type Err = String;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value {
-            "1b" => Ok(Self::PdfA1b),
-            _ => Err(format!(
-                "unsupported reference profile {value:?}; only 1b is implemented"
-            )),
-        }
     }
 }
 

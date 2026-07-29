@@ -212,12 +212,16 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         let bytes = common::metadata_fixture(case);
         let report = common::validate(&bytes);
         let case_ids = common::failure_ids(&bytes);
-        let (added, _removed) = common::rule_delta(&baseline_ids, &case_ids);
+        let (added, removed) = common::rule_delta(&baseline_ids, &case_ids);
         assert_eq!(
             added,
             expected.iter().map(|rule| (*rule).to_owned()).collect(),
             "{case}: unexpected failure delta: {:#?}",
             report.failures
+        );
+        assert!(
+            removed.is_empty(),
+            "{case}: removed baseline failures {removed:?}"
         );
     }
 }

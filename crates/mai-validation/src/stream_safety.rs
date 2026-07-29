@@ -1,5 +1,6 @@
 use lopdf::{Document, Object};
 
+use crate::content_support::is_pdf_boundary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
@@ -194,8 +195,8 @@ fn locate_raw_stream_data_start(
         .enumerate()
         .find_map(|(offset, window)| {
             (window == b"stream"
-                && is_pdf_token_boundary(bytes.get(offset.wrapping_sub(1)).copied())
-                && is_pdf_token_boundary(bytes.get(offset + b"stream".len()).copied()))
+                && is_pdf_boundary(bytes.get(offset.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(offset + b"stream".len()).copied()))
             .then(|| stream_data_start_after_keyword(bytes, offset + b"stream".len()))?
             .filter(|start| !used_starts.contains(start))
             .filter(|start| bytes.get(*start..start.saturating_add(content.len())) == Some(content))
@@ -304,8 +305,8 @@ fn inspect_xref_syntax(
                 cursor += usize::from(cursor < bytes.len());
             }
             b'x' if bytes.get(cursor..cursor + 4) == Some(b"xref")
-                && is_pdf_token_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
-                && is_pdf_token_boundary(bytes.get(cursor + 4).copied()) =>
+                && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(cursor + 4).copied()) =>
             {
                 inspect_xref_table(bytes, cursor + 4, summary);
                 cursor += 4;
@@ -375,10 +376,6 @@ fn subsection_entry_count(line: &[u8]) -> Option<usize> {
         .ok()
 }
 
-fn is_pdf_token_boundary(byte: Option<u8>) -> bool {
-    byte.is_none_or(|byte| byte.is_ascii_whitespace() || b"()<>[]{}/%".contains(&byte))
-}
-
 fn inspect_indirect_object_syntax(
     bytes: &[u8],
     stream_data_ranges: &[std::ops::Range<usize>],
@@ -410,7 +407,7 @@ fn inspect_indirect_object_syntax(
                 cursor += usize::from(cursor < bytes.len());
             }
             byte if byte.is_ascii_digit()
-                && is_pdf_token_boundary(bytes.get(cursor.wrapping_sub(1)).copied()) =>
+                && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied()) =>
             {
                 if let Some((after_obj, valid)) = indirect_object_header_end(bytes, cursor) {
                     summary.has_invalid_indirect_object_syntax |= !valid;
@@ -420,8 +417,8 @@ fn inspect_indirect_object_syntax(
                 }
             }
             b'e' if bytes.get(cursor..cursor + b"endobj".len()) == Some(b"endobj")
-                && is_pdf_token_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
-                && is_pdf_token_boundary(bytes.get(cursor + b"endobj".len()).copied()) =>
+                && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(cursor + b"endobj".len()).copied()) =>
             {
                 summary.has_invalid_indirect_object_syntax |= !is_eol_before(bytes, cursor)
                     || single_eol_end(bytes, cursor + b"endobj".len()).is_none();
@@ -441,7 +438,7 @@ fn indirect_object_header_end(bytes: &[u8], start: usize) -> Option<(usize, bool
     let (obj_start, second_separator_length) = skip_whitespace(bytes, generation_end);
     (obj_start > generation_end).then_some(())?;
     (bytes.get(obj_start..obj_start + b"obj".len()) == Some(b"obj")
-        && is_pdf_token_boundary(bytes.get(obj_start + b"obj".len()).copied()))
+        && is_pdf_boundary(bytes.get(obj_start + b"obj".len()).copied()))
     .then_some(())?;
     let after_obj = obj_start + b"obj".len();
     Some((

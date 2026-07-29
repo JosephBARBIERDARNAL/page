@@ -211,6 +211,13 @@ fn inspect_group(
     Ok(())
 }
 
+pub(crate) fn is_standard_rendering_intent(name: &str) -> bool {
+    matches!(
+        name,
+        "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
+    )
+}
+
 fn inspect_rendering_intent(
     dictionary: &Dictionary,
     object_id: Option<PdfObjectId>,
@@ -226,10 +233,7 @@ fn inspect_rendering_intent(
         return;
     };
     let name = String::from_utf8_lossy(name);
-    if !matches!(
-        name.as_ref(),
-        "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
-    ) {
+    if !is_standard_rendering_intent(name.as_ref()) {
         summary.rendering_intents.push(RuleFailure {
             object_id,
             description: format!("{context} uses rendering intent /{name}"),

@@ -7,6 +7,16 @@ use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{resolve_optional, walk_inherited};
 
+/// A byte is a PDF token boundary when it is absent (end of buffer), one of
+/// the six PDF32000 whitespace characters (`NUL`, HT, LF, FF, CR, SP — a
+/// superset of `u8::is_ascii_whitespace`'s five, since the ASCII definition
+/// omits `NUL`), or one of the nine PDF delimiter characters.
+pub(crate) fn is_pdf_boundary(byte: Option<u8>) -> bool {
+    byte.is_none_or(|byte| {
+        matches!(byte, 0 | 9 | 10 | 12 | 13 | 32) || b"()<>[]{}/%".contains(&byte)
+    })
+}
+
 pub(crate) fn decode_content_stream(
     stream: &Stream,
     limits: &SafetyLimits,
@@ -114,4 +124,28 @@ pub(crate) fn resource_once<'a>(
         return Ok(None);
     };
     Ok(category.get(name).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_pdf_boundary;
+
+    #[test]
+    fn nul_byte_is_a_pdf_boundary() {
+        // PDF32000-1:2008 §7.2.2 lists NUL among the six whitespace
+        // characters, unlike `u8::is_ascii_whitespace`, which omits it — a
+        // keyword immediately preceded or followed by NUL must still be
+        // recognized as a standalone token.
+        assert!(is_pdf_boundary(Some(0)));
+    }
+
+    #[test]
+    fn end_of_buffer_is_a_pdf_boundary() {
+        assert!(is_pdf_boundary(None));
+    }
+
+    #[test]
+    fn an_ordinary_letter_is_not_a_pdf_boundary() {
+        assert!(!is_pdf_boundary(Some(b'a')));
+    }
 }

@@ -17,7 +17,6 @@ const PDFA_TYPE_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/type#";
 const PDFA_FIELD_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/field#";
 const EXIF_NAMESPACE: &str = "http://ns.adobe.com/exif/1.0/";
 const XMP_DIMENSIONS_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Dimensions#";
-const XMP_FLASH_NAMESPACE: &str = "http://ns.adobe.com/exif/1.0/";
 const XMP_JOB_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Job#";
 const XMP_RESOURCE_EVENT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#";
 const XMP_RESOURCE_REF_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
@@ -47,7 +46,6 @@ pub struct XmpMetadata {
     pub producers: Vec<String>,
     pub create_dates: Vec<String>,
     pub modify_dates: Vec<String>,
-    pub byte_length: usize,
     #[serde(skip)]
     pub packet_header_has_bytes: bool,
     #[serde(skip)]
@@ -79,8 +77,11 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let extension_schema_failed_tests = inspect_extension_schemas(&document, &xml);
     let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(&document);
     let invalid_predefined_xmp_value_types = inspect_predefined_xmp_value_types(&document);
-    let undefined_extension_xmp_properties = inspect_undefined_extension_xmp_properties(&document);
-    let invalid_extension_xmp_value_types = inspect_extension_xmp_value_types(&document);
+    let extension_schema_definitions = extension_schema_property_definitions(&document);
+    let undefined_extension_xmp_properties =
+        inspect_undefined_extension_xmp_properties(&document, &extension_schema_definitions);
+    let invalid_extension_xmp_value_types =
+        inspect_extension_xmp_value_types(&document, &extension_schema_definitions);
     let identification_prefix_failed_tests = inspect_identification_prefixes(&document, &xml);
 
     let pdfa_identification_present = contains_namespace_property(&document, PDFA_ID_NAMESPACE);
@@ -109,7 +110,6 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         producers: property_values(&document, PDF_NAMESPACE, "Producer"),
         create_dates: property_values(&document, XMP_NAMESPACE, "CreateDate"),
         modify_dates: property_values(&document, XMP_NAMESPACE, "ModifyDate"),
-        byte_length: bytes.len(),
         packet_header_has_bytes: packet_header
             .is_some_and(|header| has_quoted_assignment(header, b"bytes")),
         packet_header_has_encoding: packet_header
@@ -336,7 +336,7 @@ fn structured_xmp_type(
             &[("name", "text"), ("url", "url"), ("id", "text")],
         ),
         "flash" => (
-            XMP_FLASH_NAMESPACE,
+            EXIF_NAMESPACE,
             &[
                 ("Function", "boolean"),
                 ("Return", "text"),
@@ -600,14 +600,12 @@ fn mime_type_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'+' | b'.')
 }
 
-fn inspect_extension_xmp_value_types(document: &Document<'_>) -> BTreeSet<String> {
-    let definitions = extension_schema_property_definitions(document);
+fn inspect_extension_xmp_value_types(
+    document: &Document<'_>,
+    definitions: &ExtensionSchemaDefinitions,
+) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
-    for description in document.descendants().filter(|node| {
-        node.is_element()
-            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
-            && node.tag_name().name() == "Description"
-    }) {
+    for description in property_nodes(document, RDF_NAMESPACE, "Description") {
         for property in child_properties(description) {
             let Some(namespace) = property.namespace() else {
                 continue;
@@ -626,14 +624,12 @@ fn inspect_extension_xmp_value_types(document: &Document<'_>) -> BTreeSet<String
     invalid
 }
 
-fn inspect_undefined_extension_xmp_properties(document: &Document<'_>) -> BTreeSet<String> {
-    let definitions = extension_schema_property_definitions(document);
+fn inspect_undefined_extension_xmp_properties(
+    document: &Document<'_>,
+    definitions: &ExtensionSchemaDefinitions,
+) -> BTreeSet<String> {
     let mut undefined = BTreeSet::new();
-    for description in document.descendants().filter(|node| {
-        node.is_element()
-            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
-            && node.tag_name().name() == "Description"
-    }) {
+    for description in property_nodes(document, RDF_NAMESPACE, "Description") {
         for property in child_properties(description) {
             let Some(namespace) = property.namespace() else {
                 continue;
@@ -656,11 +652,7 @@ fn inspect_undefined_extension_xmp_properties(document: &Document<'_>) -> BTreeS
 
 fn extension_schema_property_definitions(document: &Document<'_>) -> ExtensionSchemaDefinitions {
     let mut definitions = ExtensionSchemaDefinitions::default();
-    for container in document.descendants().filter(|node| {
-        node.is_element()
-            && node.tag_name().namespace() == Some(PDFA_EXTENSION_NAMESPACE)
-            && node.tag_name().name() == "schemas"
-    }) {
+    for container in property_nodes(document, PDFA_EXTENSION_NAMESPACE, "schemas") {
         for schema in XmpProperty::Element(container).array_items() {
             let Some(namespace) = field_value(schema, PDFA_SCHEMA_NAMESPACE, "namespaceURI") else {
                 continue;
@@ -833,11 +825,7 @@ impl<'a> XmpProperty<'a> {
 
 fn inspect_extension_schemas(document: &Document<'_>, xml: &str) -> BTreeSet<u8> {
     let mut failed = BTreeSet::new();
-    for container in document.descendants().filter(|node| {
-        node.is_element()
-            && node.tag_name().namespace() == Some(PDFA_EXTENSION_NAMESPACE)
-            && node.tag_name().name() == "schemas"
-    }) {
+    for container in property_nodes(document, PDFA_EXTENSION_NAMESPACE, "schemas") {
         let container = XmpProperty::Element(container);
         if container.array_kind() != Some(ArrayKind::Bag)
             || container.prefix(xml) != Some("pdfaExtension")
@@ -909,9 +897,7 @@ fn inspect_schema_definition(definition: Node<'_, '_>, xml: &str, failed: &mut B
         failed.insert(6);
     }
     let value_type = first_field(definition, PDFA_SCHEMA_NAMESPACE, "valueType");
-    if !optional_sequence_is_valid(value_type, "pdfaSchema", xml, |item| {
-        value_type_item_is_valid(item)
-    }) {
+    if !optional_sequence_is_valid(value_type, "pdfaSchema", xml, value_type_item_is_valid) {
         failed.insert(7);
     }
 

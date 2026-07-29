@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
 
+use crate::content_support::is_pdf_boundary;
 use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
@@ -491,10 +492,6 @@ fn hex_value(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
-}
-
-fn is_pdf_boundary(byte: Option<u8>) -> bool {
-    byte.is_none_or(|byte| byte.is_ascii_whitespace() || b"()<>[]{}/%".contains(&byte))
 }
 
 fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfError> {
