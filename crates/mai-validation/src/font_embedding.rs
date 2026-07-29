@@ -1109,21 +1109,22 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            if descendant
+            let descendant_subtype = descendant
                 .get(b"Subtype")
                 .ok()
-                .and_then(|value| value.as_name().ok())
-                != Some(b"CIDFontType2".as_slice())
+                .and_then(|value| value.as_name().ok());
+            if !matches!(descendant_subtype, Some(b"CIDFontType2" | b"CIDFontType0"))
                 || !descendant
                     .get(b"BaseFont")
                     .ok()
                     .and_then(|value| value.as_name().ok())
                     .is_some_and(is_subset_font_name)
-                || descendant
-                    .get(b"CIDToGIDMap")
-                    .ok()
-                    .and_then(|value| value.as_name().ok())
-                    != Some(b"Identity".as_slice())
+                || descendant_subtype == Some(b"CIDFontType2".as_slice())
+                    && descendant
+                        .get(b"CIDToGIDMap")
+                        .ok()
+                        .and_then(|value| value.as_name().ok())
+                        != Some(b"Identity".as_slice())
             {
                 continue;
             }
@@ -1144,26 +1145,11 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(font_file) = descriptor
-                .get(b"FontFile2")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
-            else {
-                continue;
-            };
-            let font_bytes = decode_font_stream(font_file, self.limits)?;
-            let Ok(face) = ttf_parser::Face::parse(&font_bytes, 0) else {
-                continue;
-            };
             let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
-            if !cids.into_iter().any(|cid| {
-                cid != 0 && face.number_of_glyphs() > cid && !cid_set_contains(&cid_set_bytes, cid)
-            }) {
+            if !cids
+                .into_iter()
+                .any(|cid| cid != 0 && !cid_set_contains(&cid_set_bytes, cid))
+            {
                 continue;
             }
             self.invalid_cid_subset_cidsets.push(font_failure(

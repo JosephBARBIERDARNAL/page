@@ -55,6 +55,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_cff_present_glyph", &[]),
     ("composite_cff_width_mismatch", &[GLYPH_WIDTH]),
+    ("composite_cff_cidset_missing", &[CID_SUBSET_CIDSET]),
 ];
 
 #[test]
@@ -199,6 +200,11 @@ fn rendered_identity_cidfont_program_checks_match_pinned_verapdf_when_opted_in()
             "composite_cff_width_mismatch",
             GLYPH_WIDTH,
             "ISO 19005-1:2005:6.3.6:1",
+        ),
+        (
+            "composite_cff_cidset_missing",
+            CID_SUBSET_CIDSET,
+            "ISO 19005-1:2005:6.3.5:3",
         ),
         (
             "composite_cmap_matching",

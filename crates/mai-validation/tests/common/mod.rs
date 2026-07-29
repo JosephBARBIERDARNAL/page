@@ -2699,6 +2699,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         "composite_cff_missing_glyph"
             | "composite_cff_present_glyph"
             | "composite_cff_width_mismatch"
+            | "composite_cff_cidset_missing"
     ) {
         descriptor.set(
             "FontFile3",
@@ -2708,6 +2709,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 },
                 minimal_cidfonttype0c(case != "composite_cff_missing_glyph"),
             )),
+        );
+        let cid_set = if case == "composite_cff_cidset_missing" {
+            vec![0; 5]
+        } else {
+            vec![0, 0, 0, 0, 0x80]
+        };
+        descriptor.set(
+            "CIDSet",
+            document.add_object(Stream::new(Dictionary::new(), cid_set)),
         );
     } else if matches!(
         case,
@@ -2834,6 +2844,10 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "composite_cid_subset_missing_cidset"
                     | "composite_cidset_real_program"
                     | "composite_cidset_nonidentity_real_program"
+                    | "composite_cff_missing_glyph"
+                    | "composite_cff_present_glyph"
+                    | "composite_cff_width_mismatch"
+                    | "composite_cff_cidset_missing"
             ) {
                 Object::Name(b"ABCDEF+MaiTestFont".to_vec())
             } else {
@@ -2853,6 +2867,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "composite_cff_missing_glyph"
                 | "composite_cff_present_glyph"
                 | "composite_cff_width_mismatch"
+                | "composite_cff_cidset_missing"
         ) {
             descendant_dictionary.set("Subtype", "CIDFontType0");
             descendant_dictionary.remove(b"CIDToGIDMap");
@@ -3101,7 +3116,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         | "composite_stream_cidmap_missing_glyph"
         | "composite_cff_missing_glyph"
         | "composite_cff_present_glyph"
-        | "composite_cff_width_mismatch" => content(vec![
+        | "composite_cff_width_mismatch"
+        | "composite_cff_cidset_missing" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation(
