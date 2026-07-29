@@ -1,11 +1,10 @@
-use std::collections::BTreeSet;
-
-use lopdf::{Dictionary, Document, Object, ObjectId};
+use lopdf::{Dictionary, Document, ObjectId};
 
 use crate::error::PdfError;
 use crate::icc_based::IccBasedSummary;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
+use crate::object_resolution::{dictionary_based, resolve_optional};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct GraphicsSummary {
@@ -201,7 +200,7 @@ fn inspect_group(
     let Ok(group) = owner.get(b"Group") else {
         return Ok(());
     };
-    let Some(group) = resolve_object(document, group, limits.max_reference_depth)?
+    let Some(group) = resolve_optional(document, group, limits.max_reference_depth)?
         .and_then(|object| object.as_dict().ok())
     else {
         return Ok(());
@@ -251,34 +250,5 @@ fn resolve_dictionary<'a>(
     let Some(object) = document.objects.get(&object_id) else {
         return Ok(None);
     };
-    Ok(
-        resolve_object(document, object, limits.max_reference_depth)?.and_then(
-            |object| match object {
-                Object::Dictionary(dictionary) => Some(dictionary),
-                Object::Stream(stream) => Some(&stream.dict),
-                _ => None,
-            },
-        ),
-    )
-}
-
-fn resolve_object<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(object_id) = object else {
-            return Ok(Some(object));
-        };
-        if !visited.insert(*object_id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        let Some(next) = document.objects.get(object_id) else {
-            return Ok(None);
-        };
-        object = next;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
+    Ok(resolve_optional(document, object, limits.max_reference_depth)?.and_then(dictionary_based))
 }

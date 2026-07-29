@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
 
-use lopdf::{Document, Object};
+use lopdf::{Document, Object, ObjectId};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
+use crate::object_resolution::{dictionary_based, resolve_optional};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DocumentFeatureSummary {
@@ -64,11 +65,14 @@ pub(crate) fn inspect(
             resolve_optional(document, embedded_files, limits.max_reference_depth)?
                 .and_then(dictionary_based)
     {
+        let mut visited = BTreeSet::new();
         inspect_name_tree(
             document,
             embedded_files,
             limits,
             &mut file_specs_with_embedded_files,
+            &mut visited,
+            0,
         )?;
     }
     let contains_optional_content = catalog
@@ -88,7 +92,12 @@ fn inspect_name_tree(
     node: &lopdf::Dictionary,
     limits: &SafetyLimits,
     failures: &mut Vec<FileSpecFailure>,
+    visited: &mut BTreeSet<ObjectId>,
+    depth: usize,
 ) -> Result<(), PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
     if let Ok(names) = node.get(b"Names")
         && let Some(names) = resolve_optional(document, names, limits.max_reference_depth)?
             .and_then(|object| object.as_array().ok())
@@ -112,53 +121,55 @@ fn inspect_name_tree(
             .and_then(|object| object.as_array().ok())
     {
         for value in kids {
+            if let Ok(object_id) = value.as_reference()
+                && !visited.insert(object_id)
+            {
+                return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+            }
             if let Some(child) = resolve_optional(document, value, limits.max_reference_depth)?
                 .and_then(dictionary_based)
             {
-                inspect_name_tree(document, child, limits, failures)?;
+                inspect_name_tree(document, child, limits, failures, visited, depth + 1)?;
             }
         }
     }
     Ok(())
 }
 
-fn dictionary_based(object: &Object) -> Option<&lopdf::Dictionary> {
-    match object {
-        Object::Dictionary(dictionary) => Some(dictionary),
-        Object::Stream(stream) => Some(&stream.dict),
-        _ => None,
-    }
-}
+#[cfg(test)]
+mod tests {
+    use lopdf::{Document, Object, dictionary};
 
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(object_id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*object_id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(object_id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
+    use super::inspect;
+    use crate::{PdfError, SafetyLimits};
 
-fn resolve_optional<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(object) => Ok(Some(object)),
-        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
-        Err(_) => Ok(None),
+    #[test]
+    fn rejects_cyclic_embedded_files_name_tree() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Names" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "EmbeddedFiles" => Object::Reference((3, 0)) }),
+        );
+        document.objects.insert(
+            (3, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((4, 0))] }),
+        );
+        document.objects.insert(
+            (4, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((3, 0))] }),
+        );
+
+        assert!(matches!(
+            inspect(&document, &SafetyLimits::default()),
+            Err(PdfError::ReferenceDepth(_))
+        ));
     }
 }

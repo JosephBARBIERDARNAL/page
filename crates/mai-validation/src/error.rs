@@ -2,9 +2,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PdfError {
-    #[error("could not read input: {0}")]
-    Io(#[from] std::io::Error),
-
     #[error("input is {actual} bytes, exceeding the {limit}-byte limit")]
     InputTooLarge { actual: u64, limit: u64 },
 

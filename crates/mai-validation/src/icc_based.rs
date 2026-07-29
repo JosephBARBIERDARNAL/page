@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::content::Content;
-use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
+use lopdf::{Dictionary, Document, Object, ObjectId};
 
+use crate::content_support::{decode_content_stream, inherited_page_resources, resource_once};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::{IccHeader, PdfObjectId};
+use crate::object_resolution::resolve_optional;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct IccBasedSummary {
@@ -149,7 +151,7 @@ impl Scanner<'_> {
         let Ok(stream) = contents.as_stream() else {
             return Ok(());
         };
-        let bytes = self.decode_content_stream(stream, decoded_bytes)?;
+        let bytes = decode_content_stream(stream, self.limits, decoded_bytes)?;
         for name in inline_image_color_space_names(&bytes) {
             self.inspect_selected_color_space(
                 &Object::Name(name),
@@ -688,40 +690,6 @@ impl Scanner<'_> {
                 description,
             });
     }
-
-    fn decode_content_stream(
-        &self,
-        stream: &Stream,
-        decoded_bytes: &mut usize,
-    ) -> Result<Vec<u8>, PdfError> {
-        let remaining = self
-            .limits
-            .max_decoded_stream_size
-            .saturating_sub(*decoded_bytes);
-        let bytes = match stream.decompressed_content_with_limit(remaining) {
-            Ok(bytes) => bytes,
-            Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded {
-                ..
-            })) => {
-                return Err(PdfError::ContentDecodeLimit(
-                    self.limits.max_decoded_stream_size,
-                ));
-            }
-            Err(_) if stream.content.len() <= remaining => stream.content.clone(),
-            Err(_) => {
-                return Err(PdfError::ContentDecodeLimit(
-                    self.limits.max_decoded_stream_size,
-                ));
-            }
-        };
-        if bytes.len() > remaining {
-            return Err(PdfError::ContentDecodeLimit(
-                self.limits.max_decoded_stream_size,
-            ));
-        }
-        *decoded_bytes = decoded_bytes.saturating_add(bytes.len());
-        Ok(bytes)
-    }
 }
 
 fn is_standard_rendering_intent(name: &str) -> bool {
@@ -962,38 +930,6 @@ fn is_pdf_whitespace(byte: u8) -> bool {
     matches!(byte, 0 | 9 | 10 | 12 | 13 | 32)
 }
 
-fn inherited_page_resources<'a>(
-    document: &'a Document,
-    mut node: &'a Dictionary,
-    limits: &SafetyLimits,
-) -> Result<Option<&'a Dictionary>, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=limits.max_reference_depth {
-        if let Ok(resources) = node.get(b"Resources") {
-            return Ok(
-                resolve_optional(document, resources, limits.max_reference_depth)?
-                    .and_then(|object| object.as_dict().ok()),
-            );
-        }
-        let Ok(parent) = node.get(b"Parent") else {
-            return Ok(None);
-        };
-        if let Object::Reference(id) = parent
-            && !visited.insert(*id)
-        {
-            return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
-        }
-        let Some(parent) = resolve_optional(document, parent, limits.max_reference_depth)? else {
-            return Ok(None);
-        };
-        let Ok(parent) = parent.as_dict() else {
-            return Ok(None);
-        };
-        node = parent;
-    }
-    Err(PdfError::ReferenceDepth(limits.max_reference_depth))
-}
-
 fn resource<'a>(
     document: &'a Document,
     limits: &SafetyLimits,
@@ -1006,61 +942,6 @@ fn resource<'a>(
         return Ok(Some(object));
     }
     resource_once(document, limits, page_resources, category, name)
-}
-
-fn resource_once<'a>(
-    document: &'a Document,
-    limits: &SafetyLimits,
-    resources: Option<&'a Dictionary>,
-    category: &[u8],
-    name: &[u8],
-) -> Result<Option<&'a Object>, PdfError> {
-    let Some(resources) = resources else {
-        return Ok(None);
-    };
-    let Ok(category) = resources.get(category) else {
-        return Ok(None);
-    };
-    let Some(category) = resolve_optional(document, category, limits.max_reference_depth)? else {
-        return Ok(None);
-    };
-    let Ok(category) = category.as_dict() else {
-        return Ok(None);
-    };
-    Ok(category.get(name).ok())
-}
-
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
-
-fn resolve_optional<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(object) => Ok(Some(object)),
-        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
-        Err(_) => Ok(None),
-    }
 }
 
 #[cfg(test)]

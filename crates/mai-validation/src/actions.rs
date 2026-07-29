@@ -5,6 +5,7 @@ use lopdf::{Document, Object, ObjectId};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
+use crate::object_resolution::resolve_optional;
 
 const CATALOG_ACTION_KEYS: &[&[u8]] = &[b"WC", b"WS", b"DS", b"WP", b"DP"];
 const PAGE_ACTION_KEYS: &[&[u8]] = &[b"O", b"C"];
@@ -383,38 +384,5 @@ impl Inspector<'_> {
         } else {
             Ok(())
         }
-    }
-}
-
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(object_id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*object_id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(object_id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
-
-fn resolve_optional<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(object) => Ok(Some(object)),
-        Err(PdfError::UnexpectedObject(_)) => Ok(None),
-        Err(error) => Err(error),
     }
 }

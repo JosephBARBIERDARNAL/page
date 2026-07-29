@@ -5,6 +5,7 @@
 
 mod actions;
 mod annotations;
+mod content_support;
 pub mod differential;
 mod document_features;
 mod error;
@@ -16,6 +17,7 @@ mod limits;
 mod metadata;
 mod model;
 mod object_limits;
+mod object_resolution;
 mod report;
 mod stream_safety;
 mod validation;

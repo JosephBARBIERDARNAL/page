@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
 
-use lopdf::{Dictionary, Document, Object};
+use lopdf::{Document, Object};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
+use crate::object_resolution::{dictionary_based, resolve_optional};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FormSummary {
@@ -127,45 +128,4 @@ fn inspect_page_widgets(
         }
     }
     Ok(())
-}
-
-fn dictionary_based(object: &Object) -> Option<&Dictionary> {
-    match object {
-        Object::Dictionary(dictionary) => Some(dictionary),
-        Object::Stream(stream) => Some(&stream.dict),
-        _ => None,
-    }
-}
-
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(object_id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*object_id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(object_id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
-
-fn resolve_optional<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(object) => Ok(Some(object)),
-        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
-        Err(_) => Ok(None),
-    }
 }

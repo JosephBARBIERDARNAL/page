@@ -5,6 +5,7 @@ use lopdf::{Dictionary, Document, Object};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
+use crate::object_resolution::resolve_optional;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct AnnotationSummary {
@@ -214,39 +215,6 @@ fn inherited_field_type<'a>(
         dictionary = parent;
     }
     Err(PdfError::ReferenceDepth(limits.max_reference_depth))
-}
-
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(object_id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*object_id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(object_id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
-
-fn resolve_optional<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(object) => Ok(Some(object)),
-        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
-        Err(_) => Ok(None),
-    }
 }
 
 fn annotation_failure(

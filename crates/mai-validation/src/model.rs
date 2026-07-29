@@ -7,6 +7,7 @@ use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
+use crate::object_resolution::{dictionary_based, resolve, resolve_optional};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct PdfObjectId {
@@ -216,7 +217,7 @@ impl PdfDocument {
         }
 
         let catalog = match root.filter(|_| catalog_reference.is_some()) {
-            Some(root) => resolve_lenient(document, root, limits.max_reference_depth)?
+            Some(root) => resolve_optional(document, root, limits.max_reference_depth)?
                 .and_then(|object| object.as_dict().ok())
                 .filter(|dictionary| dictionary.get_type().ok() == Some(b"Catalog".as_slice())),
             None => None,
@@ -313,41 +314,6 @@ fn inspect_catalog_metadata(
         == Some(b"XML".as_slice());
     result.has_filter = stream.dict.has(b"Filter");
     Ok(result)
-}
-
-fn resolve<'a>(
-    document: &'a Document,
-    mut object: &'a Object,
-    maximum_depth: usize,
-) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=maximum_depth {
-        let Object::Reference(id) = object else {
-            return Ok(object);
-        };
-        if !visited.insert(*id) {
-            return Err(PdfError::ReferenceDepth(maximum_depth));
-        }
-        object = document
-            .objects
-            .get(id)
-            .ok_or(PdfError::UnexpectedObject("missing indirect object"))?;
-    }
-    Err(PdfError::ReferenceDepth(maximum_depth))
-}
-
-/// Resolves an indirect reference, treating anything other than a
-/// reference-depth overflow as "not present" instead of a hard failure.
-fn resolve_lenient<'a>(
-    document: &'a Document,
-    object: &'a Object,
-    maximum_depth: usize,
-) -> Result<Option<&'a Object>, PdfError> {
-    match resolve(document, object, maximum_depth) {
-        Ok(resolved) => Ok(Some(resolved)),
-        Err(error @ PdfError::ReferenceDepth(_)) => Err(error),
-        Err(_) => Ok(None),
-    }
 }
 
 fn reference_id(object: &Object) -> Option<PdfObjectId> {
@@ -538,7 +504,7 @@ fn extract_output_intents(
         present: true,
         ..OutputIntentsSummary::default()
     };
-    let Some(resolved) = resolve_lenient(document, entry, limits.max_reference_depth)? else {
+    let Some(resolved) = resolve_optional(document, entry, limits.max_reference_depth)? else {
         return Ok(summary);
     };
     let Ok(array) = resolved.as_array() else {
@@ -562,7 +528,7 @@ fn inspect_output_intent(
         object_id: reference_id(item),
         ..OutputIntentSummary::default()
     };
-    let Some(resolved) = resolve_lenient(document, item, limits.max_reference_depth)? else {
+    let Some(resolved) = resolve_optional(document, item, limits.max_reference_depth)? else {
         return Ok(summary);
     };
     let Some(dictionary) = dictionary_based(resolved) else {
@@ -573,7 +539,7 @@ fn inspect_output_intent(
     if let Ok(subtype) = dictionary.get(b"S") {
         summary.subtype_present = true;
         let resolved =
-            resolve_lenient(document, subtype, limits.max_reference_depth)?.unwrap_or(subtype);
+            resolve_optional(document, subtype, limits.max_reference_depth)?.unwrap_or(subtype);
         summary.subtype = resolved.as_name().ok().map(signature);
     }
 
@@ -582,7 +548,7 @@ fn inspect_output_intent(
     };
     summary.dest_output_profile_present = true;
     summary.dest_output_profile_id = reference_id(profile);
-    let Some(resolved) = resolve_lenient(document, profile, limits.max_reference_depth)? else {
+    let Some(resolved) = resolve_optional(document, profile, limits.max_reference_depth)? else {
         return Ok(summary);
     };
     let Ok(stream) = resolved.as_stream() else {
@@ -601,14 +567,6 @@ fn inspect_output_intent(
         }
     }
     Ok(summary)
-}
-
-fn dictionary_based(object: &Object) -> Option<&Dictionary> {
-    match object {
-        Object::Dictionary(dictionary) => Some(dictionary),
-        Object::Stream(stream) => Some(&stream.dict),
-        _ => None,
-    }
 }
 
 fn signature(bytes: &[u8]) -> String {
