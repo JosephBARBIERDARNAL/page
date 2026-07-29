@@ -125,6 +125,17 @@ pub struct PdfDocument {
     pub object_count: usize,
 }
 
+pub(crate) struct InspectionSummary {
+    pub(crate) font_embedding: FontEmbeddingSummary,
+    pub(crate) icc_based: crate::icc_based::IccBasedSummary,
+    pub(crate) xobjects: crate::xobject::XObjectSummary,
+    pub(crate) graphics: crate::graphics::GraphicsSummary,
+    pub(crate) annotations: crate::annotations::AnnotationSummary,
+    pub(crate) actions: crate::actions::ActionSummary,
+    pub(crate) forms: crate::forms::FormSummary,
+    pub(crate) document_features: crate::document_features::DocumentFeatureSummary,
+}
+
 impl PdfDocument {
     pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
         let document = load_document(bytes, limits)?;
@@ -134,28 +145,40 @@ impl PdfDocument {
     pub(crate) fn from_bytes_with_inspections(
         bytes: &[u8],
         limits: &SafetyLimits,
-    ) -> Result<
-        (
-            Self,
-            FontEmbeddingSummary,
-            crate::icc_based::IccBasedSummary,
-        ),
-        PdfError,
-    > {
+    ) -> Result<(Self, InspectionSummary), PdfError> {
         let document = load_document(bytes, limits)?;
         let normalized = Self::normalize(&document, limits)?;
-        let (font_embedding, icc_based) = if normalized.encrypted {
-            (
-                FontEmbeddingSummary::default(),
-                crate::icc_based::IccBasedSummary::default(),
-            )
+        let inspections = if normalized.encrypted {
+            InspectionSummary {
+                font_embedding: FontEmbeddingSummary::default(),
+                icc_based: crate::icc_based::IccBasedSummary::default(),
+                xobjects: crate::xobject::XObjectSummary::default(),
+                graphics: crate::graphics::GraphicsSummary::default(),
+                annotations: crate::annotations::AnnotationSummary::default(),
+                actions: crate::actions::ActionSummary::default(),
+                forms: crate::forms::FormSummary::default(),
+                document_features: crate::document_features::DocumentFeatureSummary::default(),
+            }
         } else {
-            (
-                font_embedding::inspect(&document, limits)?,
-                crate::icc_based::inspect(&document, limits)?,
-            )
+            let icc_based = crate::icc_based::inspect(&document, limits)?;
+            let xobjects = crate::xobject::inspect(&document, &icc_based.used_xobject_ids);
+            let graphics = crate::graphics::inspect(&document, &icc_based, limits)?;
+            let annotations = crate::annotations::inspect(&document, limits)?;
+            let actions = crate::actions::inspect(&document, limits)?;
+            let forms = crate::forms::inspect(&document, limits)?;
+            let document_features = crate::document_features::inspect(&document, limits)?;
+            InspectionSummary {
+                font_embedding: font_embedding::inspect(&document, limits)?,
+                icc_based,
+                xobjects,
+                graphics,
+                annotations,
+                actions,
+                forms,
+                document_features,
+            }
         };
-        Ok((normalized, font_embedding, icc_based))
+        Ok((normalized, inspections))
     }
 
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {

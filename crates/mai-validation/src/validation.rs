@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 21;
+const TOTAL_RULE_COUNT: usize = 98;
 
 pub fn validate_file(
     path: &Path,
@@ -65,25 +65,23 @@ pub fn validate_bytes(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
-    let (document, font_embedding, icc_based) =
-        match PdfDocument::from_bytes_with_inspections(bytes, limits) {
-            Ok(document) => document,
-            Err(error) if error.is_safety_limit() => {
-                return ValidationReport::operational_failure(
-                    profile,
-                    "RESOURCE-LIMIT-001",
-                    error.to_string(),
-                );
-            }
-            Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
-        };
-    validate_document(document, font_embedding, icc_based, profile)
+    let (document, inspections) = match PdfDocument::from_bytes_with_inspections(bytes, limits) {
+        Ok(document) => document,
+        Err(error) if error.is_safety_limit() => {
+            return ValidationReport::operational_failure(
+                profile,
+                "RESOURCE-LIMIT-001",
+                error.to_string(),
+            );
+        }
+        Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
+    };
+    validate_document(document, inspections, profile)
 }
 
 fn validate_document(
     document: PdfDocument,
-    font_embedding: crate::font_embedding::FontEmbeddingSummary,
-    icc_based: crate::icc_based::IccBasedSummary,
+    inspections: crate::model::InspectionSummary,
     profile: ValidationProfile,
 ) -> ValidationReport {
     let mut failures = Vec::new();
@@ -134,6 +132,44 @@ fn validate_document(
     }
 
     let xmp = document.xmp.as_ref();
+    if xmp.is_some_and(|xmp| xmp.packet_header_has_bytes) {
+        failures.push(failure(
+            "PDFA1B-XMP-PACKET-BYTES-001",
+            "the XMP packet header contains the forbidden bytes attribute",
+            document.xmp_object,
+            FailureCategory::Metadata,
+        ));
+    }
+    if xmp.is_some_and(|xmp| xmp.packet_header_has_encoding) {
+        failures.push(failure(
+            "PDFA1B-XMP-PACKET-ENCODING-001",
+            "the XMP packet header contains the forbidden encoding attribute",
+            document.xmp_object,
+            FailureCategory::Metadata,
+        ));
+    }
+    if let Some(xmp) = xmp {
+        for test in &xmp.extension_schema_failed_tests {
+            let (rule_id, message) = extension_schema_rule(*test);
+            failures.push(failure(
+                rule_id,
+                message,
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        for test in &xmp.identification_prefix_failed_tests {
+            let (rule_id, property) = identification_prefix_rule(*test);
+            failures.push(failure(
+                rule_id,
+                format!(
+                    "the PDF/A identification {property} property uses a lexical prefix other than pdfaid"
+                ),
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+    }
     if !xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
         failures.push(failure(
             "PDFA1B-ID-SCHEMA-001",
@@ -171,11 +207,221 @@ fn validate_document(
 
     validate_output_intents(&document, &mut failures);
 
-    validate_icc_based(&icc_based, &mut failures);
+    validate_icc_based(&inspections.icc_based, &mut failures);
+    validate_icc_based_components(&inspections.icc_based, &mut failures);
+    validate_device_color_spaces(&document, &inspections.icc_based, &mut failures);
+    validate_xobjects(&inspections.xobjects, &mut failures);
+    validate_graphics(&inspections.graphics, &inspections.icc_based, &mut failures);
+    validate_annotations(&document, &inspections.annotations, &mut failures);
+    validate_actions(&inspections.actions, &mut failures);
+    validate_forms(&inspections.forms, &mut failures);
+    validate_document_features(&inspections.document_features, &mut failures);
 
-    validate_font_embedding(&font_embedding, &mut failures);
+    validate_font_dictionaries(&inspections.font_embedding, &mut failures);
+    validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
+    match test {
+        1 => (
+            "PDFA1B-XMP-EXTENSION-FIELDS-001",
+            "an XMP extension-schema object contains a field not defined by PDF/A-1",
+        ),
+        2 => (
+            "PDFA1B-XMP-EXTENSION-CONTAINER-001",
+            "pdfaExtension:schemas must use the pdfaExtension prefix and an rdf:Bag",
+        ),
+        3 => (
+            "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001",
+            "an extension schema definition has an invalid pdfaSchema:schema field",
+        ),
+        4 => (
+            "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001",
+            "an extension schema definition has an invalid pdfaSchema:namespaceURI field",
+        ),
+        5 => (
+            "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001",
+            "an extension schema definition has an invalid pdfaSchema:prefix field",
+        ),
+        6 => (
+            "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001",
+            "an extension schema definition has an invalid property sequence",
+        ),
+        7 => (
+            "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001",
+            "an extension schema definition has an invalid value-type sequence",
+        ),
+        8 => (
+            "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001",
+            "an extension-schema property has an invalid pdfaProperty:name field",
+        ),
+        9 => (
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
+            "an extension-schema property has an invalid or undefined value type",
+        ),
+        10 => (
+            "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001",
+            "an extension-schema property has an invalid category",
+        ),
+        11 => (
+            "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001",
+            "an extension-schema property has an invalid description",
+        ),
+        12 => (
+            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001",
+            "an extension-schema value type has an invalid pdfaType:type field",
+        ),
+        13 => (
+            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001",
+            "an extension-schema value type has an invalid namespace URI",
+        ),
+        14 => (
+            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001",
+            "an extension-schema value type has an invalid prefix field",
+        ),
+        15 => (
+            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001",
+            "an extension-schema value type has an invalid description",
+        ),
+        16 => (
+            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001",
+            "an extension-schema value type has an invalid field sequence",
+        ),
+        17 => (
+            "PDFA1B-XMP-EXTENSION-FIELD-NAME-001",
+            "an extension-schema field has an invalid name",
+        ),
+        18 => (
+            "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001",
+            "an extension-schema field has an invalid or undefined value type",
+        ),
+        19 => (
+            "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
+            "an extension-schema field has an invalid description",
+        ),
+        _ => unreachable!("unsupported PDF/A-1 extension-schema test {test}"),
+    }
+}
+
+fn identification_prefix_rule(test: u8) -> (&'static str, &'static str) {
+    match test {
+        4 => ("PDFA1B-ID-PART-PREFIX-001", "part"),
+        5 => ("PDFA1B-ID-CONFORMANCE-PREFIX-001", "conformance"),
+        6 => ("PDFA1B-ID-AMD-PREFIX-001", "amd"),
+        _ => unreachable!("unsupported PDF/A-1 identification-prefix test {test}"),
+    }
+}
+
+fn validate_actions(
+    actions: &crate::actions::ActionSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    for (invalid, rule_id) in [
+        (
+            actions.invalid_action_types.as_slice(),
+            "PDFA1B-ACTION-TYPE-001",
+        ),
+        (
+            actions.invalid_named_actions.as_slice(),
+            "PDFA1B-NAMED-ACTION-001",
+        ),
+        (
+            actions.widgets_with_actions.as_slice(),
+            "PDFA1B-WIDGET-ACTION-001",
+        ),
+        (
+            actions.widgets_with_additional_actions.as_slice(),
+            "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
+        ),
+        (
+            actions.fields_with_additional_actions.as_slice(),
+            "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001",
+        ),
+        (
+            actions.catalog_with_additional_actions.as_slice(),
+            "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
+        ),
+    ] {
+        aggregate_action_failures(invalid, rule_id, failures);
+    }
+}
+
+fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut Vec<ValidationFailure>) {
+    for (invalid, rule_id) in [
+        (
+            forms.invalid_need_appearances.as_slice(),
+            "PDFA1B-ACROFORM-NEED-APPEARANCES-001",
+        ),
+        (
+            forms.widgets_without_appearances.as_slice(),
+            "PDFA1B-WIDGET-APPEARANCE-001",
+        ),
+    ] {
+        if invalid.is_empty() {
+            continue;
+        }
+        let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+        failures.push(failure(
+            rule_id,
+            invalid
+                .iter()
+                .map(|form| form.description.as_str())
+                .collect::<Vec<_>>()
+                .join("; "),
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_document_features(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    for (invalid, rule_id, description) in [
+        (
+            features.contains_embedded_files_name,
+            "PDFA1B-NAMES-EMBEDDED-FILES-001",
+            "the catalog Names dictionary contains an EmbeddedFiles entry",
+        ),
+        (
+            features.contains_optional_content,
+            "PDFA1B-OPTIONAL-CONTENT-001",
+            "the document catalog contains an OCProperties entry",
+        ),
+    ] {
+        if invalid {
+            failures.push(failure(
+                rule_id,
+                description,
+                features.catalog_id,
+                FailureCategory::Conformance,
+            ));
+        }
+    }
+}
+
+fn aggregate_action_failures(
+    invalid: &[crate::actions::ActionFailure],
+    rule_id: &'static str,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    failures.push(failure(
+        rule_id,
+        invalid
+            .iter()
+            .map(|action| action.description.as_str())
+            .collect::<Vec<_>>()
+            .join("; "),
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 fn validate_icc_based(
@@ -208,6 +454,322 @@ fn validate_icc_based(
     ));
 }
 
+fn validate_icc_based_components(
+    icc_based: &crate::icc_based::IccBasedSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let invalid = &icc_based.component_failures;
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let detail = invalid
+        .iter()
+        .map(|profile| match profile.object_id {
+            Some(object_id) => format!(
+                "{} {}: {}",
+                object_id.object_number, object_id.generation, profile.description
+            ),
+            None => format!("direct profile: {}", profile.description),
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    failures.push(failure(
+        "PDFA1B-ICCBASED-COMPONENTS-001",
+        detail,
+        object_id,
+        FailureCategory::Conformance,
+    ));
+}
+
+fn validate_device_color_spaces(
+    document: &PdfDocument,
+    color_spaces: &crate::icc_based::IccBasedSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let output_color_space = pdfa_output_color_space(document);
+    if let Some(context) = &color_spaces.device_rgb_context
+        && output_color_space != Some("RGB ")
+    {
+        failures.push(failure(
+            "PDFA1B-DEVICE-RGB-001",
+            format!(
+                "DeviceRGB is selected in {context}, but the PDF/A-1 output colour space is {output_color_space:?}"
+            ),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if let Some(context) = &color_spaces.device_cmyk_context
+        && output_color_space != Some("CMYK")
+    {
+        failures.push(failure(
+            "PDFA1B-DEVICE-CMYK-001",
+            format!(
+                "DeviceCMYK is selected in {context}, but the PDF/A-1 output colour space is {output_color_space:?}"
+            ),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if let Some(context) = &color_spaces.device_gray_context
+        && output_color_space.is_none()
+    {
+        failures.push(failure(
+            "PDFA1B-DEVICE-GRAY-001",
+            format!(
+                "DeviceGray is selected in {context}, but no PDF/A-1 output colour space is defined"
+            ),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn pdfa_output_color_space(document: &PdfDocument) -> Option<&str> {
+    let mut output_color_space = None;
+    for entry in document
+        .output_intents_summary
+        .entries
+        .iter()
+        .filter(|entry| entry.is_dictionary_based && entry.dest_output_profile_is_stream)
+    {
+        if entry.subtype.as_deref() == Some("GTS_PDFA1") {
+            output_color_space = entry
+                .dest_output_profile_header
+                .as_ref()
+                .map(|header| header.color_space.as_str());
+        }
+    }
+    output_color_space
+}
+
+fn validate_xobjects(
+    xobjects: &crate::xobject::XObjectSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    aggregate_xobject_failures(
+        &xobjects.image_alternates,
+        "PDFA1B-IMAGE-ALTERNATES-001",
+        failures,
+    );
+    aggregate_xobject_failures(&xobjects.xobject_opi, "PDFA1B-XOBJECT-OPI-001", failures);
+    aggregate_xobject_failures(
+        &xobjects.image_interpolate,
+        "PDFA1B-IMAGE-INTERPOLATE-001",
+        failures,
+    );
+    aggregate_xobject_failures(
+        &xobjects.image_bits_per_component,
+        "PDFA1B-IMAGE-BPC-001",
+        failures,
+    );
+    aggregate_xobject_failures(
+        &xobjects.mask_bits_per_component,
+        "PDFA1B-IMAGE-MASK-BPC-001",
+        failures,
+    );
+    aggregate_xobject_failures(
+        &xobjects.form_postscript,
+        "PDFA1B-FORM-POSTSCRIPT-001",
+        failures,
+    );
+    aggregate_xobject_failures(
+        &xobjects.form_reference,
+        "PDFA1B-FORM-REFERENCE-001",
+        failures,
+    );
+    aggregate_xobject_failures(
+        &xobjects.postscript_xobject,
+        "PDFA1B-XOBJECT-POSTSCRIPT-001",
+        failures,
+    );
+}
+
+fn aggregate_xobject_failures(
+    invalid: &[crate::xobject::XObjectFailure],
+    rule_id: &'static str,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id);
+    let detail = invalid
+        .iter()
+        .map(|xobject| {
+            format!(
+                "{} {}: {}",
+                xobject.object_id.object_number, xobject.object_id.generation, xobject.description
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    failures.push(failure(
+        rule_id,
+        detail,
+        object_id,
+        FailureCategory::Conformance,
+    ));
+}
+
+fn validate_graphics(
+    graphics: &crate::graphics::GraphicsSummary,
+    content: &crate::icc_based::IccBasedSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    aggregate_graphics_failures(
+        &graphics.transfer_functions,
+        "PDFA1B-EXTGSTATE-TR-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.transfer_functions_2,
+        "PDFA1B-EXTGSTATE-TR2-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.rendering_intents,
+        "PDFA1B-RENDERING-INTENT-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.extgstate_soft_masks,
+        "PDFA1B-EXTGSTATE-SMASK-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.xobject_soft_masks,
+        "PDFA1B-XOBJECT-SMASK-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.transparency_groups,
+        "PDFA1B-TRANSPARENCY-GROUP-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.blend_modes,
+        "PDFA1B-EXTGSTATE-BLEND-MODE-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.stroke_alpha,
+        "PDFA1B-EXTGSTATE-STROKE-ALPHA-001",
+        failures,
+    );
+    aggregate_graphics_failures(
+        &graphics.fill_alpha,
+        "PDFA1B-EXTGSTATE-FILL-ALPHA-001",
+        failures,
+    );
+    if !content.undefined_operators.is_empty() {
+        let detail = content
+            .undefined_operators
+            .iter()
+            .map(|(operator, context)| format!("{context}: {operator}"))
+            .collect::<Vec<_>>()
+            .join("; ");
+        failures.push(failure(
+            "PDFA1B-CONTENT-OPERATOR-001",
+            format!("content uses operators not defined by PDF 1.4: {detail}"),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn aggregate_graphics_failures(
+    invalid: &[crate::graphics::GraphicsFailure],
+    rule_id: &'static str,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let detail = invalid
+        .iter()
+        .map(|failure| match failure.object_id {
+            Some(object_id) => format!(
+                "{} {}: {}",
+                object_id.object_number, object_id.generation, failure.description
+            ),
+            None => failure.description.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    failures.push(failure(
+        rule_id,
+        detail,
+        object_id,
+        FailureCategory::Conformance,
+    ));
+}
+
+fn validate_annotations(
+    document: &PdfDocument,
+    annotations: &crate::annotations::AnnotationSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    for (invalid, rule_id) in [
+        (
+            annotations.invalid_subtypes.as_slice(),
+            "PDFA1B-ANNOTATION-SUBTYPE-001",
+        ),
+        (
+            annotations.invalid_opacities.as_slice(),
+            "PDFA1B-ANNOTATION-OPACITY-001",
+        ),
+        (
+            annotations.invalid_flags.as_slice(),
+            "PDFA1B-ANNOTATION-FLAGS-001",
+        ),
+        (
+            annotations.invalid_appearance_entries.as_slice(),
+            "PDFA1B-ANNOTATION-AP-ENTRIES-001",
+        ),
+        (
+            annotations.invalid_button_appearances.as_slice(),
+            "PDFA1B-WIDGET-BUTTON-APPEARANCE-001",
+        ),
+        (
+            annotations.invalid_other_appearances.as_slice(),
+            "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001",
+        ),
+    ] {
+        aggregate_annotation_failures(invalid, rule_id, failures);
+    }
+    if pdfa_output_color_space(document) != Some("RGB ") {
+        aggregate_annotation_failures(
+            &annotations.color_uses,
+            "PDFA1B-ANNOTATION-COLOR-001",
+            failures,
+        );
+    }
+}
+
+fn aggregate_annotation_failures(
+    invalid: &[crate::annotations::AnnotationFailure],
+    rule_id: &'static str,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    failures.push(failure(
+        rule_id,
+        invalid
+            .iter()
+            .map(|annotation| annotation.description.as_str())
+            .collect::<Vec<_>>()
+            .join("; "),
+        object_id,
+        FailureCategory::Conformance,
+    ));
+}
+
 fn validate_font_embedding(
     font_embedding: &crate::font_embedding::FontEmbeddingSummary,
     failures: &mut Vec<ValidationFailure>,
@@ -225,6 +787,84 @@ fn validate_font_embedding(
     failures.push(failure(
         "PDFA1B-FONT-EMBEDDING-001",
         format!("font program is not embedded for {message}"),
+        object_id,
+        FailureCategory::Conformance,
+    ));
+}
+
+fn validate_font_dictionaries(
+    fonts: &crate::font_embedding::FontEmbeddingSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    for (invalid, rule_id) in [
+        (fonts.invalid_types.as_slice(), "PDFA1B-FONT-TYPE-001"),
+        (fonts.invalid_subtypes.as_slice(), "PDFA1B-FONT-SUBTYPE-001"),
+        (
+            fonts.invalid_base_fonts.as_slice(),
+            "PDFA1B-FONT-BASEFONT-001",
+        ),
+        (
+            fonts.invalid_first_chars.as_slice(),
+            "PDFA1B-FONT-FIRSTCHAR-001",
+        ),
+        (
+            fonts.invalid_last_chars.as_slice(),
+            "PDFA1B-FONT-LASTCHAR-001",
+        ),
+        (fonts.invalid_widths.as_slice(), "PDFA1B-FONT-WIDTHS-001"),
+        (
+            fonts.invalid_font_file_subtypes.as_slice(),
+            "PDFA1B-FONT-FILE-SUBTYPE-001",
+        ),
+        (
+            fonts.incompatible_type0_system_info.as_slice(),
+            "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
+        ),
+        (
+            fonts.invalid_cid_to_gid_maps.as_slice(),
+            "PDFA1B-CIDTOGIDMAP-001",
+        ),
+        (
+            fonts.unembedded_cmaps.as_slice(),
+            "PDFA1B-CMAP-EMBEDDING-001",
+        ),
+        (
+            fonts.invalid_cmap_wmodes.as_slice(),
+            "PDFA1B-CMAP-WMODE-001",
+        ),
+        (
+            fonts.invalid_nonsymbolic_truetype_encodings.as_slice(),
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+        ),
+        (
+            fonts.invalid_symbolic_truetype_encodings.as_slice(),
+            "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001",
+        ),
+        (
+            fonts.invalid_symbolic_truetype_cmaps.as_slice(),
+            "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
+        ),
+    ] {
+        aggregate_font_failures(invalid, rule_id, failures);
+    }
+}
+
+fn aggregate_font_failures(
+    invalid: &[crate::font_embedding::FontEmbeddingFailure],
+    rule_id: &'static str,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if invalid.is_empty() {
+        return;
+    }
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    failures.push(failure(
+        rule_id,
+        invalid
+            .iter()
+            .map(|font| font.description.as_str())
+            .collect::<Vec<_>>()
+            .join("; "),
         object_id,
         FailureCategory::Conformance,
     ));

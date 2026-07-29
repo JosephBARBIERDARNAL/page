@@ -10,6 +10,20 @@ use crate::model::PdfObjectId;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FontEmbeddingSummary {
     pub(crate) failures: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_types: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_subtypes: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_base_fonts: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_first_chars: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_last_chars: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_widths: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_font_file_subtypes: Vec<FontEmbeddingFailure>,
+    pub(crate) incompatible_type0_system_info: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_cid_to_gid_maps: Vec<FontEmbeddingFailure>,
+    pub(crate) unembedded_cmaps: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_cmap_wmodes: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
+    pub(crate) invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
 }
 
 #[derive(Clone, Debug)]
@@ -23,6 +37,8 @@ enum FontKey {
     Indirect(ObjectId),
     Direct(String),
 }
+
+type CidSystemInfo = (Vec<u8>, Vec<u8>);
 
 #[derive(Clone)]
 struct SelectedFont {
@@ -51,6 +67,20 @@ struct Scanner<'a> {
     limits: &'a SafetyLimits,
     uses: BTreeMap<FontKey, FontUse>,
     active_descendant_fonts: BTreeSet<FontKey>,
+    invalid_types: Vec<FontEmbeddingFailure>,
+    invalid_subtypes: Vec<FontEmbeddingFailure>,
+    invalid_base_fonts: Vec<FontEmbeddingFailure>,
+    invalid_first_chars: Vec<FontEmbeddingFailure>,
+    invalid_last_chars: Vec<FontEmbeddingFailure>,
+    invalid_widths: Vec<FontEmbeddingFailure>,
+    invalid_font_file_subtypes: Vec<FontEmbeddingFailure>,
+    incompatible_type0_system_info: Vec<FontEmbeddingFailure>,
+    invalid_cid_to_gid_maps: Vec<FontEmbeddingFailure>,
+    unembedded_cmaps: Vec<FontEmbeddingFailure>,
+    invalid_cmap_wmodes: Vec<FontEmbeddingFailure>,
+    invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
+    invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
+    invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
 }
 
 pub(crate) fn inspect(
@@ -62,6 +92,20 @@ pub(crate) fn inspect(
         limits,
         uses: BTreeMap::new(),
         active_descendant_fonts: BTreeSet::new(),
+        invalid_types: Vec::new(),
+        invalid_subtypes: Vec::new(),
+        invalid_base_fonts: Vec::new(),
+        invalid_first_chars: Vec::new(),
+        invalid_last_chars: Vec::new(),
+        invalid_widths: Vec::new(),
+        invalid_font_file_subtypes: Vec::new(),
+        incompatible_type0_system_info: Vec::new(),
+        invalid_cid_to_gid_maps: Vec::new(),
+        unembedded_cmaps: Vec::new(),
+        invalid_cmap_wmodes: Vec::new(),
+        invalid_nonsymbolic_truetype_encodings: Vec::new(),
+        invalid_symbolic_truetype_encodings: Vec::new(),
+        invalid_symbolic_truetype_cmaps: Vec::new(),
     };
     for (page_number, page_id) in document.get_pages() {
         scanner.scan_page(page_number, page_id)?;
@@ -80,7 +124,23 @@ pub(crate) fn inspect(
             description: usage.description,
         })
         .collect();
-    Ok(FontEmbeddingSummary { failures })
+    Ok(FontEmbeddingSummary {
+        failures,
+        invalid_types: scanner.invalid_types,
+        invalid_subtypes: scanner.invalid_subtypes,
+        invalid_base_fonts: scanner.invalid_base_fonts,
+        invalid_first_chars: scanner.invalid_first_chars,
+        invalid_last_chars: scanner.invalid_last_chars,
+        invalid_widths: scanner.invalid_widths,
+        invalid_font_file_subtypes: scanner.invalid_font_file_subtypes,
+        incompatible_type0_system_info: scanner.incompatible_type0_system_info,
+        invalid_cid_to_gid_maps: scanner.invalid_cid_to_gid_maps,
+        unembedded_cmaps: scanner.unembedded_cmaps,
+        invalid_cmap_wmodes: scanner.invalid_cmap_wmodes,
+        invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
+        invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
+        invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
+    })
 }
 
 impl Scanner<'_> {
@@ -306,6 +366,33 @@ impl Scanner<'_> {
             .ok()
             .and_then(|value| value.as_name().ok())
             .map(|value| String::from_utf8_lossy(value).into_owned());
+        // veraPDF 1.28.2 does not create a PDFont model object for a missing
+        // or unsupported subtype, so none of the PDFont predicates are
+        // instantiated for such a resource.
+        if !matches!(
+            subtype.as_deref(),
+            Some(
+                "Type1"
+                    | "MMType1"
+                    | "TrueType"
+                    | "Type3"
+                    | "Type0"
+                    | "CIDFontType0"
+                    | "CIDFontType2"
+            )
+        ) {
+            return Ok(());
+        }
+        let object_id = match selected.key {
+            FontKey::Indirect(id) => Some(id.into()),
+            FontKey::Direct(_) => None,
+        };
+        self.inspect_font_dictionary(font, object_id, &selected.description, subtype.as_deref())?;
+        if subtype.as_deref() == Some("Type0") {
+            self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
+        } else if subtype.as_deref() == Some("TrueType") {
+            self.inspect_truetype_font(font, object_id, &selected.description)?;
+        }
         let embedded =
             if rendering_mode == 3 || matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
                 false
@@ -313,10 +400,7 @@ impl Scanner<'_> {
                 font_is_embedded(self.document, font, self.limits)?
             };
         self.uses.entry(selected.key.clone()).or_insert(FontUse {
-            object_id: match selected.key {
-                FontKey::Indirect(id) => Some(id.into()),
-                FontKey::Direct(_) => None,
-            },
+            object_id,
             description: selected.description.clone(),
             subtype: subtype.clone(),
             embedded,
@@ -344,6 +428,222 @@ impl Scanner<'_> {
                 }
             }
             self.active_descendant_fonts.remove(&selected.key);
+        }
+        Ok(())
+    }
+
+    fn inspect_truetype_font(
+        &mut self,
+        font: &Dictionary,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+    ) -> Result<(), PdfError> {
+        let descriptor = font_descriptor_dictionary(self.document, font, self.limits)?;
+        let symbolic = descriptor
+            .and_then(|descriptor| descriptor.get(b"Flags").ok())
+            .and_then(as_integer)
+            .is_some_and(|flags| flags & 4 != 0);
+        let (encoding, contains_differences) = truetype_encoding(self.document, font, self.limits)?;
+
+        if symbolic {
+            if encoding.is_some() {
+                self.invalid_symbolic_truetype_encodings.push(font_failure(
+                    object_id,
+                    description,
+                    "is symbolic but specifies an /Encoding",
+                ));
+            }
+            if let Some(cmap_count) = truetype_cmap_count(self.document, descriptor, self.limits)?
+                && cmap_count != 1
+            {
+                self.invalid_symbolic_truetype_cmaps.push(font_failure(
+                    object_id,
+                    description,
+                    &format!(
+                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables"
+                    ),
+                ));
+            }
+        } else if !matches!(
+            encoding.as_deref(),
+            Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
+        ) || contains_differences
+        {
+            self.invalid_nonsymbolic_truetype_encodings
+                .push(font_failure(
+                    object_id,
+                    description,
+                    "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
+                ));
+        }
+        Ok(())
+    }
+
+    fn inspect_composite_font(
+        &mut self,
+        font: &Dictionary,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+        rendering_mode: i64,
+    ) -> Result<(), PdfError> {
+        let descendant = first_descendant_dictionary(self.document, font, self.limits)?;
+        if let Some(descendant) = descendant
+            && descendant
+                .get(b"Subtype")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                == Some(b"CIDFontType2".as_slice())
+            && rendering_mode != 3
+        {
+            let valid_map = match descendant.get(b"CIDToGIDMap") {
+                Ok(value) => valid_cid_to_gid_map(self.document, value, self.limits)?,
+                Err(_) => false,
+            };
+            if !valid_map {
+                self.invalid_cid_to_gid_maps.push(font_failure(
+                    object_id,
+                    description,
+                    "has a used Type 2 CIDFont descendant without a valid /CIDToGIDMap",
+                ));
+            }
+        }
+
+        let Ok(encoding) = font.get(b"Encoding") else {
+            return Ok(());
+        };
+        if encoding
+            .as_name()
+            .ok()
+            .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+        {
+            return Ok(());
+        }
+        let resolved = resolve_optional(self.document, encoding, self.limits.max_reference_depth)?;
+        let Some(cmap) = resolved.and_then(|object| object.as_stream().ok()) else {
+            self.unembedded_cmaps.push(font_failure(
+                object_id,
+                description,
+                "uses a non-Identity CMap that is not embedded",
+            ));
+            return Ok(());
+        };
+
+        let cmap_name = cmap
+            .dict
+            .get(b"CMapName")
+            .ok()
+            .and_then(|value| value.as_name().ok());
+        if cmap_name.is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V")) {
+            return Ok(());
+        }
+
+        if let Some(descendant) = descendant
+            && cid_system_info(self.document, descendant, self.limits)?
+                != cid_system_info(self.document, &cmap.dict, self.limits)?
+        {
+            self.incompatible_type0_system_info.push(font_failure(
+                object_id,
+                description,
+                "has incompatible CIDSystemInfo Registry or Ordering values in its CIDFont and CMap",
+            ));
+        }
+
+        let dictionary_wmode = cmap
+            .dict
+            .get(b"WMode")
+            .ok()
+            .and_then(as_integer)
+            .unwrap_or(0);
+        let bytes = decode_font_stream(cmap, self.limits)?;
+        let content_wmode = cmap_content_wmode(&bytes).unwrap_or(0);
+        if dictionary_wmode != content_wmode {
+            self.invalid_cmap_wmodes.push(font_failure(
+                object_id,
+                description,
+                &format!(
+                    "has embedded CMap WMode {content_wmode} but dictionary /WMode {dictionary_wmode}"
+                ),
+            ));
+        }
+        Ok(())
+    }
+
+    fn inspect_font_dictionary(
+        &mut self,
+        font: &Dictionary,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+        subtype: Option<&str>,
+    ) -> Result<(), PdfError> {
+        if font
+            .get(b"Type")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            != Some(b"Font".as_slice())
+        {
+            self.invalid_types.push(font_failure(
+                object_id,
+                description,
+                "has a missing or invalid /Type instead of /Font",
+            ));
+        }
+
+        let base_font = font
+            .get(b"BaseFont")
+            .ok()
+            .and_then(|value| value.as_name().ok());
+        if subtype != Some("Type3") && base_font.is_none() {
+            self.invalid_base_fonts.push(font_failure(
+                object_id,
+                description,
+                "has a missing or invalid /BaseFont",
+            ));
+        }
+
+        if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3"))
+            && !base_font.is_some_and(is_standard_14_font)
+        {
+            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let last_char = font.get(b"LastChar").ok().and_then(as_integer);
+            if first_char.is_none() {
+                self.invalid_first_chars.push(font_failure(
+                    object_id,
+                    description,
+                    "has a missing or invalid /FirstChar",
+                ));
+            }
+            if last_char.is_none() {
+                self.invalid_last_chars.push(font_failure(
+                    object_id,
+                    description,
+                    "has a missing or invalid /LastChar",
+                ));
+            }
+            let widths_size = font
+                .get(b"Widths")
+                .ok()
+                .and_then(|value| value.as_array().ok())
+                .and_then(|widths| i64::try_from(widths.len()).ok());
+            let expected_size = first_char
+                .and_then(|first| last_char.and_then(|last| last.checked_sub(first)))
+                .and_then(|difference| difference.checked_add(1));
+            if widths_size.is_none() || widths_size != expected_size {
+                self.invalid_widths.push(font_failure(
+                    object_id,
+                    description,
+                    "has a missing /Widths array or a size different from /LastChar - /FirstChar + 1",
+                ));
+            }
+        }
+
+        if let Some(invalid_subtype) =
+            invalid_embedded_font_subtype(self.document, font, self.limits)?
+        {
+            self.invalid_font_file_subtypes.push(font_failure(
+                object_id,
+                description,
+                &format!("uses unsupported embedded font subtype /{invalid_subtype}"),
+            ));
         }
         Ok(())
     }
@@ -470,6 +770,176 @@ fn resolve_optional<'a>(
     }
 }
 
+fn first_descendant_dictionary<'a>(
+    document: &'a Document,
+    font: &'a Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<&'a Dictionary>, PdfError> {
+    let Ok(descendants) = font.get(b"DescendantFonts") else {
+        return Ok(None);
+    };
+    let Some(descendants) = resolve_optional(document, descendants, limits.max_reference_depth)?
+        .and_then(|object| object.as_array().ok())
+    else {
+        return Ok(None);
+    };
+    let Some(descendant) = descendants.first() else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, descendant, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok()),
+    )
+}
+
+fn valid_cid_to_gid_map(
+    document: &Document,
+    value: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    if value.as_name().ok().is_some_and(|name| name == b"Identity") {
+        return Ok(true);
+    }
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .is_some_and(|object| object.as_stream().is_ok()),
+    )
+}
+
+fn cid_system_info(
+    document: &Document,
+    dictionary: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<CidSystemInfo>, PdfError> {
+    let Ok(info) = dictionary.get(b"CIDSystemInfo") else {
+        return Ok(None);
+    };
+    let Some(info) = resolve_optional(document, info, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(None);
+    };
+    let registry = match info.get(b"Registry") {
+        Ok(Object::String(value, _)) => value.clone(),
+        _ => return Ok(None),
+    };
+    let ordering = match info.get(b"Ordering") {
+        Ok(Object::String(value, _)) => value.clone(),
+        _ => return Ok(None),
+    };
+    Ok(Some((registry, ordering)))
+}
+
+fn decode_font_stream(stream: &Stream, limits: &SafetyLimits) -> Result<Vec<u8>, PdfError> {
+    match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
+        Ok(bytes) => Ok(bytes),
+        Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
+            Err(PdfError::FontDecodeLimit(limits.max_decoded_stream_size))
+        }
+        Err(_) => Ok(stream.content.clone()),
+    }
+}
+
+fn cmap_content_wmode(bytes: &[u8]) -> Option<i64> {
+    let mut tokens = bytes
+        .split(|byte| byte.is_ascii_whitespace())
+        .filter(|token| !token.is_empty());
+    while let Some(token) = tokens.next() {
+        if token == b"/WMode" {
+            return std::str::from_utf8(tokens.next()?).ok()?.parse().ok();
+        }
+    }
+    None
+}
+
+fn font_descriptor_dictionary<'a>(
+    document: &'a Document,
+    font: &'a Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<&'a Dictionary>, PdfError> {
+    let Ok(descriptor) = font.get(b"FontDescriptor") else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, descriptor, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok()),
+    )
+}
+
+fn truetype_encoding(
+    document: &Document,
+    font: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<(Option<Vec<u8>>, bool), PdfError> {
+    let Ok(encoding) = font.get(b"Encoding") else {
+        return Ok((None, false));
+    };
+    let Some(encoding) = resolve_optional(document, encoding, limits.max_reference_depth)? else {
+        return Ok((None, false));
+    };
+    if let Ok(name) = encoding.as_name() {
+        return Ok((Some(name.to_vec()), false));
+    }
+    let Ok(dictionary) = encoding.as_dict() else {
+        return Ok((None, false));
+    };
+    let base = dictionary
+        .get(b"BaseEncoding")
+        .ok()
+        .and_then(|value| value.as_name().ok())
+        .map(ToOwned::to_owned);
+    Ok((base, dictionary.has(b"Differences")))
+}
+
+fn truetype_cmap_count(
+    document: &Document,
+    descriptor: Option<&Dictionary>,
+    limits: &SafetyLimits,
+) -> Result<Option<usize>, PdfError> {
+    let Some(descriptor) = descriptor else {
+        return Ok(None);
+    };
+    let Ok(file) = descriptor.get(b"FontFile2") else {
+        return Ok(None);
+    };
+    let Some(stream) = resolve_optional(document, file, limits.max_reference_depth)?
+        .and_then(|object| object.as_stream().ok())
+    else {
+        return Ok(None);
+    };
+    let bytes = decode_font_stream(stream, limits)?;
+    if !valid_sfnt(&bytes) || bytes.len() < 12 {
+        return Ok(None);
+    }
+    let table_count = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));
+    let Some(directory_end) = table_count
+        .checked_mul(16)
+        .and_then(|length| 12usize.checked_add(length))
+    else {
+        return Ok(None);
+    };
+    if directory_end > bytes.len() {
+        return Ok(None);
+    }
+    for record in bytes[12..directory_end].chunks_exact(16) {
+        if &record[..4] != b"cmap" {
+            continue;
+        }
+        let offset =
+            u32::from_be_bytes(record[8..12].try_into().expect("four-byte table offset")) as usize;
+        let length =
+            u32::from_be_bytes(record[12..16].try_into().expect("four-byte table length")) as usize;
+        let Some(table) = bytes.get(offset..offset.saturating_add(length)) else {
+            return Ok(None);
+        };
+        if table.len() < 4 {
+            return Ok(None);
+        }
+        return Ok(Some(usize::from(u16::from_be_bytes([table[2], table[3]]))));
+    }
+    Ok(None)
+}
+
 fn font_is_embedded(
     document: &Document,
     font: &Dictionary,
@@ -496,6 +966,43 @@ fn font_is_embedded(
         }
     }
     Ok(false)
+}
+
+fn invalid_embedded_font_subtype(
+    document: &Document,
+    font: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<String>, PdfError> {
+    let Ok(descriptor) = font.get(b"FontDescriptor") else {
+        return Ok(None);
+    };
+    let Some(descriptor) = resolve_optional(document, descriptor, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(None);
+    };
+    for key in [b"FontFile".as_slice(), b"FontFile2", b"FontFile3"] {
+        let Ok(file) = descriptor.get(key) else {
+            continue;
+        };
+        let Some(stream) = resolve_optional(document, file, limits.max_reference_depth)?
+            .and_then(|object| object.as_stream().ok())
+        else {
+            continue;
+        };
+        let Some(subtype) = stream
+            .dict
+            .get(b"Subtype")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+        else {
+            continue;
+        };
+        if !matches!(subtype, b"Type1C" | b"CIDFontType0C") {
+            return Ok(Some(String::from_utf8_lossy(subtype).into_owned()));
+        }
+    }
+    Ok(None)
 }
 
 fn valid_font_program(
@@ -603,4 +1110,39 @@ fn shows_text(operands: &[Object]) -> bool {
         Object::Array(items) => shows_text(items),
         _ => false,
     })
+}
+
+fn as_integer(object: &Object) -> Option<i64> {
+    object.as_i64().ok()
+}
+
+fn is_standard_14_font(name: &[u8]) -> bool {
+    matches!(
+        name,
+        b"Courier"
+            | b"Courier-Bold"
+            | b"Courier-Oblique"
+            | b"Courier-BoldOblique"
+            | b"Helvetica"
+            | b"Helvetica-Bold"
+            | b"Helvetica-Oblique"
+            | b"Helvetica-BoldOblique"
+            | b"Times-Roman"
+            | b"Times-Bold"
+            | b"Times-Italic"
+            | b"Times-BoldItalic"
+            | b"Symbol"
+            | b"ZapfDingbats"
+    )
+}
+
+fn font_failure(
+    object_id: Option<PdfObjectId>,
+    description: &str,
+    detail: &str,
+) -> FontEmbeddingFailure {
+    FontEmbeddingFailure {
+        object_id,
+        description: format!("{description} {detail}"),
+    }
 }

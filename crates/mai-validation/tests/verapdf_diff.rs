@@ -23,7 +23,27 @@ struct Manifest {
     #[serde(default)]
     atomic_icc_based_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
+    atomic_device_color_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_xobject_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_graphics_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
     atomic_font_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_composite_font_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_truetype_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_transparency_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_annotation_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_action_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_form_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_document_feature_cases: Vec<AtomicRuleCase>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -110,10 +130,90 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
     assert_atomic_cases(
         &runner,
         &temporary,
+        "device-color",
+        "baseline",
+        &manifest.atomic_device_color_cases,
+        common::device_color_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "xobject",
+        "baseline",
+        &manifest.atomic_xobject_cases,
+        common::xobject_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "graphics",
+        "baseline",
+        &manifest.atomic_graphics_cases,
+        common::graphics_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
         "font",
         "baseline_embedded",
         &manifest.atomic_font_cases,
         common::font_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "composite-font",
+        "composite_baseline",
+        &manifest.atomic_composite_font_cases,
+        common::font_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "truetype",
+        "baseline_embedded",
+        &manifest.atomic_truetype_cases,
+        common::font_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "transparency",
+        "baseline",
+        &manifest.atomic_transparency_cases,
+        common::graphics_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "annotation",
+        "baseline",
+        &manifest.atomic_annotation_cases,
+        common::annotation_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "action",
+        "baseline",
+        &manifest.atomic_action_cases,
+        common::action_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "form",
+        "baseline",
+        &manifest.atomic_form_cases,
+        common::form_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "document-feature",
+        "baseline",
+        &manifest.atomic_document_feature_cases,
+        common::document_feature_fixture,
     );
     fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
 }
@@ -126,6 +226,14 @@ fn assert_atomic_cases(
     cases: &[AtomicRuleCase],
     fixture: fn(&str) -> Vec<u8>,
 ) {
+    let filter = std::env::var("MAI_ATOMIC_FILTER").ok();
+    if filter
+        .as_deref()
+        .and_then(|filter| filter.split_once(':'))
+        .is_some_and(|(selected_prefix, _)| selected_prefix != prefix)
+    {
+        return;
+    }
     let baseline_path = temporary.join(format!("{prefix}-baseline.pdf"));
     fs::write(&baseline_path, fixture(baseline_name)).expect("write baseline PDF");
     let baseline = runner.compare_file(&baseline_path, &SafetyLimits::default());
@@ -144,6 +252,13 @@ fn assert_atomic_cases(
         .map(ToString::to_string)
         .collect::<BTreeSet<_>>();
     for case in cases {
+        if filter
+            .as_deref()
+            .and_then(|filter| filter.split_once(':'))
+            .is_some_and(|(_, selected_case)| selected_case != "*" && selected_case != case.name)
+        {
+            continue;
+        }
         let path = temporary.join(format!("{prefix}-{}.pdf", case.name));
         fs::write(&path, fixture(&case.name)).expect("write atomic PDF");
         let report = runner.compare_file(&path, &SafetyLimits::default());

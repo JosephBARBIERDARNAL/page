@@ -197,6 +197,358 @@
       "rationale": "dc:creator contains more than one entry."
     },
     {
+      "name": "packet_bytes_double",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The selected xpacket header contains a double-quoted bytes assignment."
+    },
+    {
+      "name": "packet_bytes_single",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The selected xpacket header contains a single-quoted bytes assignment."
+    },
+    {
+      "name": "packet_bytes_spaced",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Whitespace around the bytes equals sign is accepted by the pinned matcher."
+    },
+    {
+      "name": "packet_encoding",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The selected xpacket header contains a forbidden encoding assignment."
+    },
+    {
+      "name": "packet_bytes_and_encoding",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001", "PDFA1B-XMP-PACKET-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1", "ISO 19005-1:2005:6.7.5:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Both deprecated packet-header assignments fail independently."
+    },
+    {
+      "name": "packet_uppercase_bytes",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "rationale": "The pinned bytes matcher is case-sensitive."
+    },
+    {
+      "name": "packet_unquoted_bytes",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "rationale": "The pinned matcher recognizes only single- or double-quoted assignments."
+    },
+    {
+      "name": "packet_substring_bytes",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF's unanchored regex also finds bytes inside the token mybytes."
+    },
+    {
+      "name": "packet_body_bytes",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:1", "ISO 19005-1:2005:6.7.3:2", "ISO 19005-1:2005:6.7.3:3", "ISO 19005-1:2005:6.7.3:4", "ISO 19005-1:2005:6.7.3:5", "ISO 19005-1:2005:6.7.3:6", "ISO 19005-1:2005:6.7.3:7", "ISO 19005-1:2005:6.7.9:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "rationale": "A bytes XML attribute in the RDF body is not part of the packet header."
+    },
+    {
+      "name": "packet_end_bytes",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "rationale": "The closing xpacket processing instruction is not the selected header."
+    },
+    {
+      "name": "packet_first_forbidden_then_clean",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "rationale": "The last xpacket processing instruction before RDF replaces an earlier header."
+    },
+    {
+      "name": "packet_clean_then_forbidden",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PACKET-BYTES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The last xpacket processing instruction before RDF is the selected header."
+    },
+    {
+      "name": "id_alias_declaration_only",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-PART-PREFIX-001", "PDFA1B-ID-CONFORMANCE-PREFIX-001", "PDFA1B-ID-AMD-PREFIX-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:4", "ISO 19005-1:2005:6.7.11:5", "ISO 19005-1:2005:6.7.11:6"],
+      "rationale": "Declaring an unused namespace alias does not change the selected identification-property prefixes."
+    },
+    {
+      "name": "id_part_alias",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-PART-PREFIX-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The part attribute uses the correct namespace through a non-pdfaid lexical prefix."
+    },
+    {
+      "name": "id_conformance_alias",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The conformance attribute uses the correct namespace through a non-pdfaid lexical prefix."
+    },
+    {
+      "name": "id_amd_canonical",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-AMD-PREFIX-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:6"],
+      "rationale": "A pdfaid-prefixed amd attribute satisfies the pinned prefix predicate."
+    },
+    {
+      "name": "id_amd_alias",
+      "expected_local_failed_rule_ids": ["PDFA1B-ID-AMD-PREFIX-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.11:6"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The amd attribute uses the correct namespace through a non-pdfaid lexical prefix."
+    },
+    {
+      "name": "id_part_default_element",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-PART-PREFIX-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:4"],
+      "rationale": "The pinned predicate explicitly accepts a null lexical prefix for an element in the default identification namespace."
+    },
+    {
+      "name": "id_conformance_default_element",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:5"],
+      "rationale": "The pinned predicate explicitly accepts a null conformance-property prefix."
+    },
+    {
+      "name": "id_amd_default_element",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-AMD-PREFIX-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:6"],
+      "rationale": "The pinned predicate explicitly accepts a null amd-property prefix."
+    },
+    {
+      "name": "extension_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELDS-001", "PDFA1B-XMP-EXTENSION-CONTAINER-001", "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001", "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001", "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001", "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001", "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001", "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001", "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001", "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001", "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001", "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001", "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001", "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001", "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001", "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001", "PDFA1B-XMP-EXTENSION-FIELD-NAME-001", "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001", "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.8:1", "ISO 19005-1:2005:6.7.8:2", "ISO 19005-1:2005:6.7.8:3", "ISO 19005-1:2005:6.7.8:4", "ISO 19005-1:2005:6.7.8:5", "ISO 19005-1:2005:6.7.8:6", "ISO 19005-1:2005:6.7.8:7", "ISO 19005-1:2005:6.7.8:8", "ISO 19005-1:2005:6.7.8:9", "ISO 19005-1:2005:6.7.8:10", "ISO 19005-1:2005:6.7.8:11", "ISO 19005-1:2005:6.7.8:12", "ISO 19005-1:2005:6.7.8:13", "ISO 19005-1:2005:6.7.8:14", "ISO 19005-1:2005:6.7.8:15", "ISO 19005-1:2005:6.7.8:16", "ISO 19005-1:2005:6.7.8:17", "ISO 19005-1:2005:6.7.8:18", "ISO 19005-1:2005:6.7.8:19"],
+      "rationale": "A complete extension schema with one property and one structured value type satisfies every pinned predicate."
+    },
+    {
+      "name": "extension_undefined_field",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELDS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The schema definition contains an undefined field."
+    },
+    {
+      "name": "extension_container_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The extension container uses the correct namespace through the wrong lexical prefix."
+    },
+    {
+      "name": "extension_container_seq",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The extension container uses rdf:Seq instead of rdf:Bag."
+    },
+    {
+      "name": "extension_schema_name_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The schema name field uses a namespace alias instead of pdfaSchema."
+    },
+    {
+      "name": "extension_schema_namespace_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The schema namespaceURI field uses a namespace alias."
+    },
+    {
+      "name": "extension_schema_prefix_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The schema prefix field uses a namespace alias."
+    },
+    {
+      "name": "extension_property_bag",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:6"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The property collection uses rdf:Bag instead of rdf:Seq."
+    },
+    {
+      "name": "extension_value_type_bag",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The value-type collection uses rdf:Bag instead of rdf:Seq."
+    },
+    {
+      "name": "extension_property_name_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:8"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A property name uses a namespace alias."
+    },
+    {
+      "name": "extension_property_value_type_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:9"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A property valueType uses a namespace alias."
+    },
+    {
+      "name": "extension_property_unknown_value_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:9"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An undefined property value type fails its dedicated predicate without invalidating the structurally valid parent sequence."
+    },
+    {
+      "name": "extension_property_category_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:10"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A property category uses a namespace alias."
+    },
+    {
+      "name": "extension_property_bad_category",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:10"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A category outside internal/external fails its dedicated predicate."
+    },
+    {
+      "name": "extension_property_description_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:11"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A property description uses a namespace alias."
+    },
+    {
+      "name": "extension_value_type_name_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:12"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A value-type name uses a namespace alias."
+    },
+    {
+      "name": "extension_value_type_namespace_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:13"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A value-type namespaceURI uses a namespace alias."
+    },
+    {
+      "name": "extension_value_type_prefix_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:14"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A value-type prefix field uses a namespace alias."
+    },
+    {
+      "name": "extension_value_type_description_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:15"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A value-type description uses a namespace alias."
+    },
+    {
+      "name": "extension_field_bag",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:16"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A field collection with the wrong array kind fails the value-type field-sequence predicate."
+    },
+    {
+      "name": "extension_field_name_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELD-NAME-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:17"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A field name uses a namespace alias."
+    },
+    {
+      "name": "extension_field_value_type_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:18"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A field valueType uses a namespace alias."
+    },
+    {
+      "name": "extension_field_unknown_value_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:18"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An undefined field value type fails its dedicated predicate without invalidating structurally valid parent sequences."
+    },
+    {
+      "name": "extension_field_description_prefix",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:19"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A field description uses a namespace alias."
+    },
+    {
       "name": "baseline_b",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": ["PDFA1B-ID-CONFORMANCE-001", "PDFA1B-INFO-AUTHOR-001"],
@@ -427,10 +779,10 @@
     {
       "name": "baseline",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
       "expected_verapdf_failed_rule_ids": [],
-      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
-      "rationale": "Selecting a valid indirect ICCBased resource instantiates the pinned ICCInputProfile rule and satisfies its predicate."
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "Selecting a valid indirect RGB ICCBased resource with N = 3 instantiates and satisfies both pinned ICC profile predicates."
     },
     {
       "name": "class_prtr",
@@ -514,7 +866,7 @@
     },
     {
       "name": "invalid_color_space",
-      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
       "expected_verapdf_passed_rule_ids": [],
@@ -530,7 +882,7 @@
     },
     {
       "name": "truncated_profile",
-      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
       "expected_verapdf_passed_rule_ids": [],
@@ -538,11 +890,35 @@
     },
     {
       "name": "undecodable_profile",
-      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "A selected ICCBased stream whose declared filter cannot be decoded fails the pinned predicate and leaves no readable profile colour space for adjacent test 2."
+    },
+    {
+      "name": "missing_n",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "A valid RGB ICC profile stream without N fails the pinned component-count predicate."
+    },
+    {
+      "name": "wrong_n",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "N = 4 does not match an RGB ICC profile, which requires three components."
+    },
+    {
+      "name": "non_integer_n",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "A name-valued N entry is not a valid component count."
     },
     {
       "name": "unused_resource",
@@ -698,7 +1074,7 @@
     },
     {
       "name": "image_smask_used",
-      "expected_local_failed_rule_ids": [],
+      "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-SMASK-001"],
       "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:2"],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
@@ -706,7 +1082,7 @@
     },
     {
       "name": "image_mask_image_used",
-      "expected_local_failed_rule_ids": [],
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-MASK-BPC-001"],
       "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:5"],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
@@ -714,7 +1090,7 @@
     },
     {
       "name": "image_alternate_used",
-      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-IMAGE-ALTERNATES-001"],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.4:1"],
       "expected_verapdf_passed_rule_ids": [],
@@ -762,11 +1138,457 @@
     },
     {
       "name": "two_invalid_profiles",
-      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Two distinct selected invalid profiles aggregate into one local failure; the XYZ profile also fails adjacent test 2."
+    }
+  ],
+  "atomic_device_color_cases": [
+    {
+      "name": "rgb_operator",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "The rg and RG operators use DeviceRGB, which matches the RGB PDF/A-1 output intent."
+    },
+    {
+      "name": "cmyk_operator",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-CMYK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The k and K operators use DeviceCMYK while the PDF/A-1 output intent is RGB."
+    },
+    {
+      "name": "gray_operator",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-GRAY-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:3"],
+      "rationale": "DeviceGray requires an applicable PDF/A-1 output intent but does not require a matching data colour space."
+    },
+    {
+      "name": "rgb_with_cmyk_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceRGB does not match a CMYK PDF/A-1 output intent."
+    },
+    {
+      "name": "cmyk_with_cmyk_output",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-CMYK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:2"],
+      "rationale": "DeviceCMYK matches the CMYK PDF/A-1 output intent."
+    },
+    {
+      "name": "gray_with_cmyk_output",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-GRAY-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:3"],
+      "rationale": "A CMYK PDF/A-1 output intent is sufficient for DeviceGray."
+    },
+    {
+      "name": "rgb_without_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceRGB is used without an output intent."
+    },
+    {
+      "name": "cmyk_without_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-CMYK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceCMYK is used without an output intent."
+    },
+    {
+      "name": "gray_without_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-GRAY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceGray is used without an output intent."
+    },
+    {
+      "name": "rgb_wrong_s",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An RGB destination profile whose output-intent subtype is not GTS_PDFA1 does not define the global PDF/A-1 output colour space."
+    },
+    {
+      "name": "explicit_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Direct CS and cs selections of DeviceRGB instantiate the rule and conflict with the CMYK output intent."
+    },
+    {
+      "name": "resource_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected named resource resolving to DeviceRGB instantiates the rule and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "unused_resource_rgb",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "An unselected DeviceRGB resource remains inapplicable even with a conflicting CMYK output intent."
+    },
+    {
+      "name": "default_rgb_override",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "A valid ICCBased DefaultRGB override prevents rg and RG from instantiating DeviceRGB even with a conflicting CMYK output intent."
+    },
+    {
+      "name": "form_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceRGB operators in an invoked Form participate and conflict with the CMYK output intent."
+    },
+    {
+      "name": "image_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked image with DeviceRGB ColorSpace participates and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "inline_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The RGB abbreviation in an inline image selects DeviceRGB and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "shading_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used shading with DeviceRGB ColorSpace participates and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "indexed_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The DeviceRGB base of a selected Indexed colour space participates and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "separation_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The DeviceRGB alternate of a selected Separation colour space participates and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "devicen_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The DeviceRGB alternate of a selected DeviceN colour space participates and conflicts with the CMYK output intent."
+    },
+    {
+      "name": "pattern_rgb",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "veraPDF 1.28.2 does not expose a PDDeviceRGB object from the underlying space of a painted uncoloured Pattern."
+    }
+  ],
+  "atomic_xobject_cases": [
+    {
+      "name": "image_alternates",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-ALTERNATES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image dictionary contains the forbidden Alternates key."
+    },
+    {
+      "name": "image_opi",
+      "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-OPI-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image XObject dictionary contains the forbidden OPI key."
+    },
+    {
+      "name": "form_opi",
+      "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-OPI-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form XObject dictionary contains the forbidden OPI key."
+    },
+    {
+      "name": "image_interpolate_true",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-INTERPOLATE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image dictionary explicitly enables interpolation."
+    },
+    {
+      "name": "image_interpolate_false",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-INTERPOLATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:3"],
+      "rationale": "An explicit false Interpolate value is permitted."
+    },
+    {
+      "name": "image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-mask image uses a BitsPerComponent value outside 1, 2, 4, and 8."
+    },
+    {
+      "name": "image_bpc_missing",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "rationale": "The pinned predicate accepts a null or missing BitsPerComponent value."
+    },
+    {
+      "name": "mask_bpc_8",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-MASK-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:5"],
+      "rationale": "An ImageMask stencil is exempt from the normal image rule but does not instantiate veraPDF's PDMaskImage model object."
+    },
+    {
+      "name": "mask_bpc_missing",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-MASK-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:5"],
+      "rationale": "The pinned image-mask predicate accepts a null or missing BitsPerComponent value."
+    },
+    {
+      "name": "explicit_mask_bpc_8",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-MASK-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An image referenced through another Image dictionary's Mask key is modeled as a mask and must use one bit per component."
+    },
+    {
+      "name": "form_ps_key",
+      "expected_local_failed_rule_ids": ["PDFA1B-FORM-POSTSCRIPT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form XObject dictionary contains the forbidden PS key."
+    },
+    {
+      "name": "form_ps_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FORM-POSTSCRIPT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.5:1"],
+      "rationale": "veraPDF does not expose containsPS for a null-valued PS entry."
+    },
+    {
+      "name": "form_subtype2_ps",
+      "expected_local_failed_rule_ids": ["PDFA1B-FORM-POSTSCRIPT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.5:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form XObject dictionary declares Subtype2 as PS."
+    },
+    {
+      "name": "form_ref",
+      "expected_local_failed_rule_ids": ["PDFA1B-FORM-REFERENCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form XObject dictionary contains the forbidden Ref key."
+    },
+    {
+      "name": "postscript_xobject",
+      "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-POSTSCRIPT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked XObject has Subtype PS."
+    },
+    {
+      "name": "unused_resource_invalid_image",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "rationale": "An invalid Image XObject present in page resources is inapplicable until a Do operator invokes it."
+    },
+    {
+      "name": "unreferenced_invalid_image",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "rationale": "An otherwise unreferenced indirect Image XObject is outside veraPDF's modeled XObject graph."
+    },
+    {
+      "name": "two_invalid_images",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Two invalid Image XObjects aggregate into one local rule failure while veraPDF reports the same failed rule identifier."
+    }
+  ],
+  "atomic_graphics_cases": [
+    {
+      "name": "extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used ExtGState dictionary contains the forbidden TR entry."
+    },
+    {
+      "name": "extgstate_tr2_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR2-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:2"],
+      "rationale": "TR2 is permitted when its value is the name Default."
+    },
+    {
+      "name": "extgstate_tr2_other",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR2-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used ExtGState dictionary has a TR2 value other than Default."
+    },
+    {
+      "name": "unused_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "An ExtGState resource is inapplicable until selected by the gs operator."
+    },
+    {
+      "name": "unreferenced_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "An unreferenced ExtGState dictionary is outside veraPDF's modeled graphics-state graph."
+    },
+    {
+      "name": "ri_standard",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "All four standard rendering-intent names are accepted by the ri operator."
+    },
+    {
+      "name": "ri_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The ri operator selects a non-standard rendering-intent name."
+    },
+    {
+      "name": "extgstate_ri_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used ExtGState dictionary contains a non-standard RI name."
+    },
+    {
+      "name": "image_intent_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "An invoked image uses the standard Perceptual Intent."
+    },
+    {
+      "name": "image_intent_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked image contains a non-standard Intent name."
+    },
+    {
+      "name": "undefined_operator",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Page content contains an operator not defined by PDF 1.4."
+    },
+    {
+      "name": "undefined_in_bx",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "PDF/A-1 rejects an undefined operator even inside BX and EX compatibility sections."
+    },
+    {
+      "name": "known_operators",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "Standard PDF 1.4 graphics operators remain accepted."
+    },
+    {
+      "name": "undefined_form",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Content in an invoked Form contains an undefined operator."
+    },
+    {
+      "name": "unused_form_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "Content in an uninvoked Form is outside veraPDF's modeled content graph."
     }
   ],
   "atomic_font_cases": [
@@ -881,6 +1703,1116 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "The used font is checked once while cyclic Form recursion is bounded."
+    },
+    {
+      "name": "font_type_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used Font dictionary has no required Type entry."
+    },
+    {
+      "name": "font_type_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used Font dictionary has a Type name other than Font."
+    },
+    {
+      "name": "font_subtype_missing",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-SUBTYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.2:2"],
+      "rationale": "veraPDF creates no PDFont model object when the Subtype entry is missing, so the predicate is inapplicable."
+    },
+    {
+      "name": "font_subtype_invalid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-SUBTYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.2:2"],
+      "rationale": "veraPDF creates no PDFont model object for an unsupported Subtype name, so the predicate is inapplicable."
+    },
+    {
+      "name": "font_basefont_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-BASEFONT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-Type3 Font dictionary has no BaseFont name."
+    },
+    {
+      "name": "font_basefont_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-BASEFONT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-Type3 Font dictionary has a non-name BaseFont value."
+    },
+    {
+      "name": "font_firstchar_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-FIRSTCHAR-001", "PDFA1B-FONT-WIDTHS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:4", "ISO 19005-1:2005:6.3.2:6", "ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-standard simple font has no FirstChar; its Widths-size expression consequently also fails."
+    },
+    {
+      "name": "font_lastchar_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-LASTCHAR-001", "PDFA1B-FONT-WIDTHS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:5", "ISO 19005-1:2005:6.3.2:6", "ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-standard simple font has no LastChar; its Widths-size expression consequently also fails."
+    },
+    {
+      "name": "font_widths_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-WIDTHS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:6", "ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-standard simple font has no Widths array."
+    },
+    {
+      "name": "font_widths_wrong_size",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-WIDTHS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:6", "ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used non-standard simple font's Widths array length differs from LastChar minus FirstChar plus one."
+    },
+    {
+      "name": "standard14_missing_metrics",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-FIRSTCHAR-001", "PDFA1B-FONT-LASTCHAR-001", "PDFA1B-FONT-WIDTHS-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.2:4", "ISO 19005-1:2005:6.3.2:5", "ISO 19005-1:2005:6.3.2:6"],
+      "rationale": "The standard Helvetica font is exempt from FirstChar, LastChar, and Widths."
+    },
+    {
+      "name": "font_file_subtype_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-FILE-SUBTYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.2:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used font's embedded font stream declares a Subtype other than Type1C or CIDFontType0C."
+    }
+  ],
+  "atomic_composite_font_cases": [
+    {
+      "name": "composite_identity_v",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE0-CID-SYSTEM-INFO-001", "PDFA1B-CIDTOGIDMAP-001", "PDFA1B-CMAP-EMBEDDING-001", "PDFA1B-CMAP-WMODE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.3.1:1", "ISO 19005-1:2005:6.3.3.2:1", "ISO 19005-1:2005:6.3.3.3:1", "ISO 19005-1:2005:6.3.3.3:2"],
+      "rationale": "Identity-V is exempt from CIDSystemInfo compatibility and CMap embedding, while the CIDToGIDMap is Identity."
+    },
+    {
+      "name": "composite_cidmap_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-CIDTOGIDMAP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A visible Type 2 CIDFont descendant has no CIDToGIDMap."
+    },
+    {
+      "name": "composite_cidmap_invalid_name",
+      "expected_local_failed_rule_ids": ["PDFA1B-CIDTOGIDMAP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A visible Type 2 CIDFont descendant uses a CIDToGIDMap name other than Identity."
+    },
+    {
+      "name": "composite_cidmap_stream",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CIDTOGIDMAP-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.3.2:1"],
+      "rationale": "An embedded stream is a valid modeled CIDToGIDMap."
+    },
+    {
+      "name": "composite_named_cmap",
+      "expected_local_failed_rule_ids": ["PDFA1B-CMAP-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.1:1", "ISO 19005-1:2005:6.3.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-Identity named CMap is not embedded and its Adobe/Japan1 system information conflicts with the Adobe/Identity CIDFont."
+    },
+    {
+      "name": "composite_cmap_matching",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE0-CID-SYSTEM-INFO-001", "PDFA1B-CMAP-EMBEDDING-001", "PDFA1B-CMAP-WMODE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.3.1:1", "ISO 19005-1:2005:6.3.3.3:1", "ISO 19005-1:2005:6.3.3.3:2"],
+      "rationale": "An embedded CMap has matching CIDSystemInfo and matching default WMode values."
+    },
+    {
+      "name": "composite_cmap_mismatch_system",
+      "expected_local_failed_rule_ids": ["PDFA1B-TYPE0-CID-SYSTEM-INFO-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The embedded CMap's Ordering differs from its CIDFont descendant's Ordering."
+    },
+    {
+      "name": "composite_cmap_wmode_match",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CMAP-WMODE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.3.3:2"],
+      "rationale": "The embedded CMap stream and dictionary both declare WMode 1."
+    },
+    {
+      "name": "composite_cmap_wmode_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-CMAP-WMODE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The embedded CMap stream declares WMode 0 while its dictionary declares WMode 1."
+    }
+  ],
+  "atomic_truetype_cases": [
+    {
+      "name": "tt_nonsymbolic_macroman",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
+      "rationale": "MacRomanEncoding is valid for a non-symbolic TrueType font."
+    },
+    {
+      "name": "tt_nonsymbolic_missing_encoding",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1", "ISO 19005-1:2005:6.3.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-symbolic TrueType font has no Encoding."
+    },
+    {
+      "name": "tt_nonsymbolic_invalid_encoding",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1", "ISO 19005-1:2005:6.3.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "StandardEncoding is not permitted for a non-symbolic TrueType font."
+    },
+    {
+      "name": "tt_nonsymbolic_dictionary_winansi",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
+      "rationale": "An Encoding dictionary with WinAnsiEncoding BaseEncoding and no Differences is valid."
+    },
+    {
+      "name": "tt_nonsymbolic_dictionary_macroman",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
+      "rationale": "An Encoding dictionary with MacRomanEncoding BaseEncoding and no Differences is valid."
+    },
+    {
+      "name": "tt_nonsymbolic_differences",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-symbolic TrueType Encoding dictionary contains a forbidden Differences entry."
+    },
+    {
+      "name": "tt_symbolic_no_encoding",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001", "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001", "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1", "ISO 19005-1:2005:6.3.7:2", "ISO 19005-1:2005:6.3.7:3"],
+      "rationale": "A symbolic TrueType font has no Encoding and its embedded program contains one cmap subtable."
+    },
+    {
+      "name": "tt_symbolic_with_encoding",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1", "ISO 19005-1:2005:6.3.7:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A symbolic TrueType font specifies WinAnsiEncoding."
+    },
+    {
+      "name": "tt_symbolic_one_cmap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:3"],
+      "rationale": "A symbolic embedded TrueType program contains exactly one cmap subtable."
+    },
+    {
+      "name": "tt_symbolic_two_cmaps",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1", "ISO 19005-1:2005:6.3.7:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A symbolic embedded TrueType program contains two cmap subtables."
+    }
+  ],
+  "atomic_transparency_cases": [
+    {
+      "name": "extgstate_smask_none",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "rationale": "A used ExtGState may declare SMask None."
+    },
+    {
+      "name": "extgstate_smask_other",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used ExtGState declares an SMask name other than None."
+    },
+    {
+      "name": "extgstate_smask_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A used ExtGState declares a soft-mask dictionary rather than SMask None."
+    },
+    {
+      "name": "extgstate_bm_normal",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-BLEND-MODE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:4"],
+      "rationale": "Normal is an allowed blend mode."
+    },
+    {
+      "name": "extgstate_bm_compatible",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-BLEND-MODE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:4"],
+      "rationale": "Compatible is an allowed blend mode."
+    },
+    {
+      "name": "extgstate_stroke_alpha_one",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-STROKE-ALPHA-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:5"],
+      "rationale": "Stroke alpha CA equal to one is allowed."
+    },
+    {
+      "name": "extgstate_stroke_alpha_zero",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-STROKE-ALPHA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Stroke alpha CA equal to zero is forbidden."
+    },
+    {
+      "name": "extgstate_fill_alpha_one",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-FILL-ALPHA-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:6"],
+      "rationale": "Fill alpha ca equal to one is allowed."
+    },
+    {
+      "name": "extgstate_fill_alpha_zero",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-FILL-ALPHA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:6"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Fill alpha ca equal to zero is forbidden."
+    },
+    {
+      "name": "unused_extgstate_transparency",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "rationale": "An unused ExtGState resource creates no PDExtGState model object."
+    },
+    {
+      "name": "xobject_smask",
+      "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-SMASK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Image XObject contains an SMask key."
+    },
+    {
+      "name": "unused_xobject_smask",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XOBJECT-SMASK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:2"],
+      "rationale": "An unused XObject resource creates no PDXObject model object."
+    },
+    {
+      "name": "page_transparency_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page dictionary contains a transparency Group."
+    },
+    {
+      "name": "page_nontransparency_group",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "rationale": "A page Group whose S value is not Transparency passes the predicate."
+    },
+    {
+      "name": "form_transparency_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Form XObject contains a transparency Group."
+    },
+    {
+      "name": "unused_form_transparency_group",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "rationale": "A Form resource that is never invoked creates no PDGroup model object."
+    }
+  ],
+  "atomic_annotation_cases": [
+    {
+      "name": "subtype_file_attachment",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-SUBTYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "FileAttachment is forbidden in PDF/A-1."
+    },
+    {
+      "name": "subtype_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-SUBTYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page annotation dictionary has no Subtype."
+    },
+    {
+      "name": "direct_invalid_annotation",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-SUBTYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A direct dictionary in the page Annots array still instantiates PDAnnot."
+    },
+    {
+      "name": "unreferenced_invalid_annotation",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-SUBTYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.2:1"],
+      "rationale": "An annotation-like object absent from page Annots is inapplicable."
+    },
+    {
+      "name": "opacity_zero",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-OPACITY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Annotation opacity CA is zero rather than one."
+    },
+    {
+      "name": "opacity_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-OPACITY-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:1"],
+      "rationale": "A nonnumeric CA is exposed as null by the pinned annotation model."
+    },
+    {
+      "name": "flags_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-FLAGS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation has no required flags."
+    },
+    {
+      "name": "flags_invisible",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-FLAGS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The Invisible flag is set despite the Print flag."
+    },
+    {
+      "name": "color_c_rgb",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-COLOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
+      "rationale": "Annotation colour is permitted with an RGB PDF/A-1 output profile."
+    },
+    {
+      "name": "color_c_cmyk",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-COLOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Annotation colour is used with a CMYK output profile."
+    },
+    {
+      "name": "color_ic_without_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-COLOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Annotation interior colour is used without a PDF/A-1 output profile."
+    },
+    {
+      "name": "no_color_cmyk",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-COLOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
+      "rationale": "A non-RGB output profile is harmless when C and IC are absent."
+    },
+    {
+      "name": "appearance_n_stream",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001", "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:4", "ISO 19005-1:2005:6.5.3:6"],
+      "rationale": "A non-button annotation has an AP dictionary containing only a stream-valued N."
+    },
+    {
+      "name": "appearance_n_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:6"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-button annotation has a subdictionary-valued normal appearance."
+    },
+    {
+      "name": "appearance_n_and_r",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The appearance dictionary contains R in addition to N."
+    },
+    {
+      "name": "appearance_empty",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A present but empty appearance dictionary does not contain only N."
+    },
+    {
+      "name": "appearance_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:4"],
+      "rationale": "A non-dictionary AP is exposed as null by the pinned annotation model."
+    },
+    {
+      "name": "widget_button_dictionary",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-BUTTON-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:5"],
+      "rationale": "A button Widget has a nonempty normal appearance subdictionary."
+    },
+    {
+      "name": "widget_button_empty_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-BUTTON-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A button Widget has an empty normal appearance subdictionary."
+    },
+    {
+      "name": "widget_button_stream",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-BUTTON-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:5"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A button Widget uses a stream rather than an appearance subdictionary for N."
+    },
+    {
+      "name": "widget_text_stream",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:6"],
+      "rationale": "A non-button Widget has a stream-valued normal appearance."
+    },
+    {
+      "name": "widget_inherited_button_dictionary",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-BUTTON-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:5"],
+      "rationale": "A Widget inherits FT Btn from its parent field and has an appearance subdictionary."
+    }
+  ],
+  "atomic_action_cases": [
+    {
+      "name": "allowed_named",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001", "PDFA1B-NAMED-ACTION-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1", "ISO 19005-1:2005:6.6.1:2"],
+      "rationale": "Named NextPage is one of the permitted action and name combinations."
+    },
+    {
+      "name": "open_javascript",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A catalog OpenAction uses the forbidden JavaScript action type."
+    },
+    {
+      "name": "open_missing_subtype",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A dictionary-valued OpenAction has no S name."
+    },
+    {
+      "name": "open_destination_array",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "An array-valued OpenAction is a destination and does not instantiate PDAction."
+    },
+    {
+      "name": "unreferenced_javascript",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "An unreferenced action-looking dictionary is outside the action model."
+    },
+    {
+      "name": "page_additional_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The O trigger in page AA reaches a JavaScript action."
+    },
+    {
+      "name": "page_unknown_additional_action",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "An unknown page AA key is not exposed as an action trigger."
+    },
+    {
+      "name": "annotation_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page annotation A entry reaches a JavaScript action."
+    },
+    {
+      "name": "annotation_additional_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The E trigger in annotation AA reaches a JavaScript action."
+    },
+    {
+      "name": "annotation_unknown_additional_action",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "A form-field trigger name in ordinary annotation AA is not exposed."
+    },
+    {
+      "name": "outline_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An outline item A entry reaches a JavaScript action."
+    },
+    {
+      "name": "next_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A forbidden action is reached through a dictionary-valued Next entry."
+    },
+    {
+      "name": "next_action_array",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A forbidden action is reached among dictionary entries in a Next array."
+    },
+    {
+      "name": "named_forbidden",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMED-ACTION-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "Named is an allowed action type but Print is a forbidden named action."
+    },
+    {
+      "name": "named_missing",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMED-ACTION-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "A Named action has no N value."
+    },
+    {
+      "name": "named_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMED-ACTION-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "A string-valued N is exposed as null rather than as a named action."
+    },
+    {
+      "name": "non_named_with_forbidden_n",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMED-ACTION-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:2"],
+      "rationale": "The named-action predicate is inapplicable to a URI action."
+    },
+    {
+      "name": "widget_action_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-ACTION-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "Widget containsA is raw key presence even when A is not a dictionary."
+    },
+    {
+      "name": "widget_additional_actions",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Widget contains an empty AA dictionary."
+    },
+    {
+      "name": "widget_additional_javascript",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001", "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1", "ISO 19005-1:2005:6.6.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Widget AA is forbidden and its E trigger reaches JavaScript."
+    },
+    {
+      "name": "text_additional_actions",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.2:1"],
+      "rationale": "An AA key on a Text annotation is not a Widget violation."
+    },
+    {
+      "name": "field_additional_actions",
+      "expected_local_failed_rule_ids": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An AcroForm field contains an empty AA dictionary."
+    },
+    {
+      "name": "field_additional_javascript",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001", "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1", "ISO 19005-1:2005:6.6.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Field AA is forbidden and its K trigger reaches JavaScript."
+    },
+    {
+      "name": "child_field_additional_actions",
+      "expected_local_failed_rule_ids": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A named child in a form-field Kids array is itself a field."
+    },
+    {
+      "name": "child_without_t",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.2:2"],
+      "rationale": "A child dictionary without T is not instantiated as a PDFormField."
+    },
+    {
+      "name": "top_field_without_t",
+      "expected_local_failed_rule_ids": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Every dictionary directly in AcroForm Fields instantiates a top-level field."
+    },
+    {
+      "name": "unreferenced_field_additional_actions",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.2:2"],
+      "rationale": "An unreferenced field-looking dictionary is outside the AcroForm model."
+    },
+    {
+      "name": "combined_widget_field_actions",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-ACTION-001", "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001", "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:3", "ISO 19005-1:2005:6.6.2:1", "ISO 19005-1:2005:6.6.2:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "One dictionary reached from both page Annots and AcroForm Fields instantiates both Widget and field predicates."
+    },
+    {
+      "name": "catalog_additional_actions",
+      "expected_local_failed_rule_ids": ["PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The document catalog contains an empty AA dictionary."
+    },
+    {
+      "name": "catalog_additional_javascript",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACTION-TYPE-001", "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.1:1", "ISO 19005-1:2005:6.6.2:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Catalog AA is forbidden and its WC trigger reaches JavaScript."
+    },
+    {
+      "name": "catalog_unknown_additional_action",
+      "expected_local_failed_rule_ids": ["PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "Catalog AA key presence fails while an unknown trigger does not expose its value as an action."
+    },
+    {
+      "name": "catalog_additional_actions_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACTION-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.6.2:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.1:1"],
+      "rationale": "Catalog containsAA is raw key presence even when AA is not a dictionary."
+    }
+  ],
+  "atomic_form_cases": [
+    {
+      "name": "baseline",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001", "PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1", "ISO 19005-1:2005:6.9:2"],
+      "rationale": "An AcroForm with NeedAppearances false and a page Widget with an AP dictionary satisfy both pinned predicates."
+    },
+    {
+      "name": "no_acroform",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "rationale": "Without a catalog AcroForm, the NeedAppearances predicate is inapplicable."
+    },
+    {
+      "name": "need_appearances_absent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "rationale": "An absent NeedAppearances key is exposed as null and passes."
+    },
+    {
+      "name": "need_appearances_false_indirect",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "rationale": "An indirectly stored false boolean passes."
+    },
+    {
+      "name": "need_appearances_true",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "NeedAppearances true is forbidden."
+    },
+    {
+      "name": "need_appearances_true_indirect",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirectly stored true boolean remains forbidden."
+    },
+    {
+      "name": "need_appearances_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF exposes a present non-boolean NeedAppearances value as true."
+    },
+    {
+      "name": "need_appearances_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "rationale": "An explicit null is treated as an empty value and passes."
+    },
+    {
+      "name": "acroform_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "rationale": "A non-dictionary-based AcroForm value creates no PDAcroForm model object."
+    },
+    {
+      "name": "acroform_stream_true",
+      "expected_local_failed_rule_ids": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A stream is dictionary-based in the pinned catalog model, so its true NeedAppearances value is evaluated."
+    },
+    {
+      "name": "widget_missing_ap",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page Widget without AP fails the appearance-presence predicate."
+    },
+    {
+      "name": "widget_empty_ap",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:4"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "rationale": "An empty AP dictionary exists for §6.9 test 2 but separately fails the allowed-entry predicate."
+    },
+    {
+      "name": "widget_wrong_type_ap",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A scalar AP value is exposed as null."
+    },
+    {
+      "name": "widget_stream_ap",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "AP must resolve specifically to a dictionary; a stream is exposed as null."
+    },
+    {
+      "name": "widget_indirect_ap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "rationale": "An indirect AP dictionary is resolved and passes."
+    },
+    {
+      "name": "non_widget_missing_ap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "rationale": "The §6.9 appearance-presence rule is instantiated only for Widget annotations."
+    },
+    {
+      "name": "field_only_widget_missing_ap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "rationale": "A Widget-looking AcroForm field not reached from page Annots does not instantiate PDWidgetAnnot."
+    },
+    {
+      "name": "direct_widget_missing_ap",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A direct Widget dictionary in page Annots is evaluated."
+    },
+    {
+      "name": "widget_parent_ap_only",
+      "expected_local_failed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "AP is not inherited from a Widget parent."
+    },
+    {
+      "name": "unreferenced_widget_missing_ap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-WIDGET-APPEARANCE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.9:2"],
+      "rationale": "An unreferenced Widget-looking dictionary is outside the page annotation model."
+    }
+  ],
+  "atomic_document_feature_cases": [
+    {
+      "name": "baseline",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001", "PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2", "ISO 19005-1:2005:6.1.13:1"],
+      "rationale": "A catalog with neither an EmbeddedFiles name-tree entry nor OCProperties passes both document-level prohibitions."
+    },
+    {
+      "name": "names_empty",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "rationale": "An empty Names dictionary has no EmbeddedFiles entry."
+    },
+    {
+      "name": "names_embedded_files_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A dictionary-based Names value containing EmbeddedFiles fails the name-tree prohibition."
+    },
+    {
+      "name": "names_embedded_files_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The pinned CosDocument predicate tests EmbeddedFiles key presence without validating its value type."
+    },
+    {
+      "name": "names_embedded_files_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "rationale": "A direct null value is normalized as an absent dictionary entry by the pinned COS model."
+    },
+    {
+      "name": "names_embedded_files_indirect_null",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect value keeps the EmbeddedFiles key present even when its target is null."
+    },
+    {
+      "name": "names_stream_embedded_files",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "rationale": "Names must resolve specifically to a dictionary; a stream does not instantiate the predicate."
+    },
+    {
+      "name": "names_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "rationale": "A scalar Names value is not a dictionary-based name tree."
+    },
+    {
+      "name": "names_indirect_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect dictionary Names value is resolved before checking EmbeddedFiles."
+    },
+    {
+      "name": "unreferenced_names_embedded_files",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.11:2"],
+      "rationale": "An unreferenced name-tree-looking object is outside the catalog model."
+    },
+    {
+      "name": "ocproperties_dictionary",
+      "expected_local_failed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Any non-empty OCProperties catalog entry instantiates the optional-content prohibition."
+    },
+    {
+      "name": "ocproperties_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The pinned presence test does not require OCProperties to be a dictionary."
+    },
+    {
+      "name": "ocproperties_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "rationale": "A direct null catalog entry is empty in the pinned COS model."
+    },
+    {
+      "name": "ocproperties_indirect_null",
+      "expected_local_failed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect null remains a non-empty catalog reference for the pinned presence test."
+    },
+    {
+      "name": "ocproperties_stream",
+      "expected_local_failed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A stream-valued OCProperties entry is still present."
+    },
+    {
+      "name": "unreferenced_catalog_ocproperties",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.13:1"],
+      "rationale": "An unreferenced catalog-like dictionary does not affect the document catalog model."
     }
   ]
 }

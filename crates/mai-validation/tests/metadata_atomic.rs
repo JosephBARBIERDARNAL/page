@@ -26,6 +26,131 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         ("missing_type", &["PDFA1B-METADATA-STRUCTURE-001"]),
         ("missing_subtype", &["PDFA1B-METADATA-STRUCTURE-001"]),
         ("metadata_filter", &["PDFA1B-METADATA-FILTER-001"]),
+        ("packet_bytes_double", &["PDFA1B-XMP-PACKET-BYTES-001"]),
+        ("packet_bytes_single", &["PDFA1B-XMP-PACKET-BYTES-001"]),
+        ("packet_bytes_spaced", &["PDFA1B-XMP-PACKET-BYTES-001"]),
+        ("packet_encoding", &["PDFA1B-XMP-PACKET-ENCODING-001"]),
+        (
+            "packet_bytes_and_encoding",
+            &[
+                "PDFA1B-XMP-PACKET-BYTES-001",
+                "PDFA1B-XMP-PACKET-ENCODING-001",
+            ],
+        ),
+        ("packet_uppercase_bytes", &[]),
+        ("packet_unquoted_bytes", &[]),
+        ("packet_substring_bytes", &["PDFA1B-XMP-PACKET-BYTES-001"]),
+        ("packet_body_bytes", &[]),
+        ("packet_end_bytes", &[]),
+        ("packet_first_forbidden_then_clean", &[]),
+        (
+            "packet_clean_then_forbidden",
+            &["PDFA1B-XMP-PACKET-BYTES-001"],
+        ),
+        ("id_alias_declaration_only", &[]),
+        ("id_part_alias", &["PDFA1B-ID-PART-PREFIX-001"]),
+        (
+            "id_conformance_alias",
+            &["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
+        ),
+        ("id_amd_canonical", &[]),
+        ("id_amd_alias", &["PDFA1B-ID-AMD-PREFIX-001"]),
+        ("id_part_default_element", &[]),
+        ("id_conformance_default_element", &[]),
+        ("id_amd_default_element", &[]),
+        ("extension_valid", &[]),
+        (
+            "extension_undefined_field",
+            &["PDFA1B-XMP-EXTENSION-FIELDS-001"],
+        ),
+        (
+            "extension_container_prefix",
+            &["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+        ),
+        (
+            "extension_container_seq",
+            &["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+        ),
+        (
+            "extension_schema_name_prefix",
+            &["PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001"],
+        ),
+        (
+            "extension_schema_namespace_prefix",
+            &["PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001"],
+        ),
+        (
+            "extension_schema_prefix_prefix",
+            &["PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001"],
+        ),
+        (
+            "extension_property_bag",
+            &["PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001"],
+        ),
+        (
+            "extension_value_type_bag",
+            &["PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001"],
+        ),
+        (
+            "extension_property_name_prefix",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001"],
+        ),
+        (
+            "extension_property_value_type_prefix",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
+        ),
+        (
+            "extension_property_unknown_value_type",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
+        ),
+        (
+            "extension_property_category_prefix",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
+        ),
+        (
+            "extension_property_bad_category",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
+        ),
+        (
+            "extension_property_description_prefix",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001"],
+        ),
+        (
+            "extension_value_type_name_prefix",
+            &["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001"],
+        ),
+        (
+            "extension_value_type_namespace_prefix",
+            &["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001"],
+        ),
+        (
+            "extension_value_type_prefix_prefix",
+            &["PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001"],
+        ),
+        (
+            "extension_value_type_description_prefix",
+            &["PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001"],
+        ),
+        (
+            "extension_field_bag",
+            &["PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"],
+        ),
+        (
+            "extension_field_name_prefix",
+            &["PDFA1B-XMP-EXTENSION-FIELD-NAME-001"],
+        ),
+        (
+            "extension_field_value_type_prefix",
+            &["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
+        ),
+        (
+            "extension_field_unknown_value_type",
+            &["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
+        ),
+        (
+            "extension_field_description_prefix",
+            &["PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"],
+        ),
         (
             "malformed_xmp",
             &[

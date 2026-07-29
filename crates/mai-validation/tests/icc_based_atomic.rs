@@ -16,10 +16,22 @@ const CASES: &[(&str, &[&str])] = &[
     ("color_lab", &[]),
     ("version_2_15", &[]),
     ("invalid_class", &["PDFA1B-ICCBASED-001"]),
-    ("invalid_color_space", &["PDFA1B-ICCBASED-001"]),
+    (
+        "invalid_color_space",
+        &["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+    ),
     ("version_3", &["PDFA1B-ICCBASED-001"]),
-    ("truncated_profile", &["PDFA1B-ICCBASED-001"]),
-    ("undecodable_profile", &["PDFA1B-ICCBASED-001"]),
+    (
+        "truncated_profile",
+        &["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+    ),
+    (
+        "undecodable_profile",
+        &["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+    ),
+    ("missing_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
+    ("wrong_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
+    ("non_integer_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
     ("unused_resource", &[]),
     ("default_gray", &["PDFA1B-ICCBASED-001"]),
     ("default_rgb", &["PDFA1B-ICCBASED-001"]),
@@ -39,15 +51,21 @@ const CASES: &[(&str, &[&str])] = &[
     ("image_unused_resource", &[]),
     ("image_unreferenced", &[]),
     ("image_mask_ignores_color_space", &[]),
-    ("image_smask_used", &[]),
-    ("image_mask_image_used", &[]),
-    ("image_alternate_used", &["PDFA1B-ICCBASED-001"]),
+    ("image_smask_used", &["PDFA1B-XOBJECT-SMASK-001"]),
+    ("image_mask_image_used", &["PDFA1B-IMAGE-MASK-BPC-001"]),
+    (
+        "image_alternate_used",
+        &["PDFA1B-ICCBASED-001", "PDFA1B-IMAGE-ALTERNATES-001"],
+    ),
     ("inline_image_used", &["PDFA1B-ICCBASED-001"]),
     ("shading_used", &["PDFA1B-ICCBASED-001"]),
     ("indexed_base_used", &["PDFA1B-ICCBASED-001"]),
     ("repeated_shared_valid", &[]),
     ("repeated_shared_invalid", &["PDFA1B-ICCBASED-001"]),
-    ("two_invalid_profiles", &["PDFA1B-ICCBASED-001"]),
+    (
+        "two_invalid_profiles",
+        &["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+    ),
 ];
 
 #[test]
@@ -82,9 +100,27 @@ fn shared_invalid_profile_is_reported_once_with_its_object_id() {
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].object_id.is_some());
-    assert_eq!(report.checks.total, 21);
+    assert_eq!(report.checks.total, 98);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 20);
+    assert_eq!(report.checks.passed, 97);
+}
+
+#[test]
+fn component_mismatch_is_reported_with_its_profile_object_id() {
+    let report = validate_bytes(
+        &common::icc_based_fixture("wrong_n"),
+        ValidationProfile::PdfA1b,
+        &SafetyLimits::default(),
+    );
+    let failures = report
+        .failures
+        .iter()
+        .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-COMPONENTS-001")
+        .collect::<Vec<_>>();
+    assert_eq!(failures.len(), 1);
+    assert!(failures[0].object_id.is_some());
+    assert!(failures[0].message.contains("/N Some(4)"));
+    assert!(failures[0].message.contains("\"RGB \""));
 }
 
 #[test]

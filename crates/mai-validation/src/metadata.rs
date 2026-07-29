@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use roxmltree::{Document, Node, ParsingOptions};
+use roxmltree::{Attribute, Document, Node, ParsingOptions};
 use serde::Serialize;
 
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
@@ -9,6 +9,11 @@ const PDFA_ID_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/id/";
 const DC_NAMESPACE: &str = "http://purl.org/dc/elements/1.1/";
 const PDF_NAMESPACE: &str = "http://ns.adobe.com/pdf/1.3/";
 const XMP_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/";
+const PDFA_EXTENSION_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/extension/";
+const PDFA_SCHEMA_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/schema#";
+const PDFA_PROPERTY_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/property#";
+const PDFA_TYPE_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/type#";
+const PDFA_FIELD_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/field#";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DocumentMetadata {
@@ -34,6 +39,14 @@ pub struct XmpMetadata {
     pub create_dates: Vec<String>,
     pub modify_dates: Vec<String>,
     pub byte_length: usize,
+    #[serde(skip)]
+    pub packet_header_has_bytes: bool,
+    #[serde(skip)]
+    pub packet_header_has_encoding: bool,
+    #[serde(skip)]
+    pub extension_schema_failed_tests: BTreeSet<u8>,
+    #[serde(skip)]
+    pub identification_prefix_failed_tests: BTreeSet<u8>,
 }
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
@@ -45,6 +58,9 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     };
     let document =
         Document::parse_with_options(&xml, options).map_err(|error| error.to_string())?;
+    let packet_header = xmp_packet_header(&document);
+    let extension_schema_failed_tests = inspect_extension_schemas(&document, &xml);
+    let identification_prefix_failed_tests = inspect_identification_prefixes(&document, &xml);
 
     let pdfa_identification_present = contains_namespace_property(&document, PDFA_ID_NAMESPACE);
     let pdfa_parts = property_values(&document, PDFA_ID_NAMESPACE, "part");
@@ -73,7 +89,524 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         create_dates: property_values(&document, XMP_NAMESPACE, "CreateDate"),
         modify_dates: property_values(&document, XMP_NAMESPACE, "ModifyDate"),
         byte_length: bytes.len(),
+        packet_header_has_bytes: packet_header
+            .is_some_and(|header| has_quoted_assignment(header, b"bytes")),
+        packet_header_has_encoding: packet_header
+            .is_some_and(|header| has_quoted_assignment(header, b"encoding")),
+        extension_schema_failed_tests,
+        identification_prefix_failed_tests,
     })
+}
+
+#[derive(Clone, Copy)]
+enum XmpProperty<'a> {
+    Element(Node<'a, 'a>),
+    Attribute(Attribute<'a, 'a>),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ArrayKind {
+    Bag,
+    Seq,
+    Alt,
+}
+
+impl<'a> XmpProperty<'a> {
+    fn namespace(self) -> Option<&'a str> {
+        match self {
+            Self::Element(node) => node.tag_name().namespace(),
+            Self::Attribute(attribute) => attribute.namespace(),
+        }
+    }
+
+    fn name(self) -> &'a str {
+        match self {
+            Self::Element(node) => node.tag_name().name(),
+            Self::Attribute(attribute) => attribute.name(),
+        }
+    }
+
+    fn prefix(self, xml: &str) -> Option<&str> {
+        let qualified_name = match self {
+            Self::Element(node) => {
+                let range = node.range();
+                let source = xml.get(range)?;
+                source
+                    .strip_prefix('<')?
+                    .split(|character: char| {
+                        character.is_ascii_whitespace() || matches!(character, '/' | '>')
+                    })
+                    .next()?
+            }
+            Self::Attribute(attribute) => xml.get(attribute.range_qname())?,
+        };
+        qualified_name.split_once(':').map(|(prefix, _)| prefix)
+    }
+
+    fn is_simple(self) -> bool {
+        match self {
+            Self::Attribute(_) => true,
+            Self::Element(node) => {
+                node.attribute((RDF_NAMESPACE, "parseType")) != Some("Resource")
+                    && !node.children().any(|child| child.is_element())
+            }
+        }
+    }
+
+    fn value(self) -> Option<&'a str> {
+        match self {
+            Self::Attribute(attribute) => Some(attribute.value()),
+            Self::Element(node) => node.text(),
+        }
+    }
+
+    fn array_kind(self) -> Option<ArrayKind> {
+        let Self::Element(node) = self else {
+            return None;
+        };
+        node.children().find_map(|child| {
+            if !child.is_element() || child.tag_name().namespace() != Some(RDF_NAMESPACE) {
+                return None;
+            }
+            match child.tag_name().name() {
+                "Bag" => Some(ArrayKind::Bag),
+                "Seq" => Some(ArrayKind::Seq),
+                "Alt" => Some(ArrayKind::Alt),
+                _ => None,
+            }
+        })
+    }
+
+    fn array_items(self) -> Vec<Node<'a, 'a>> {
+        let Self::Element(node) = self else {
+            return Vec::new();
+        };
+        node.children()
+            .find(|child| {
+                child.is_element()
+                    && child.tag_name().namespace() == Some(RDF_NAMESPACE)
+                    && matches!(child.tag_name().name(), "Bag" | "Seq" | "Alt")
+            })
+            .into_iter()
+            .flat_map(|container| container.children())
+            .filter(|child| {
+                child.is_element()
+                    && child.tag_name().namespace() == Some(RDF_NAMESPACE)
+                    && child.tag_name().name() == "li"
+            })
+            .collect()
+    }
+}
+
+fn inspect_extension_schemas(document: &Document<'_>, xml: &str) -> BTreeSet<u8> {
+    let mut failed = BTreeSet::new();
+    for container in document.descendants().filter(|node| {
+        node.is_element()
+            && node.tag_name().namespace() == Some(PDFA_EXTENSION_NAMESPACE)
+            && node.tag_name().name() == "schemas"
+    }) {
+        let container = XmpProperty::Element(container);
+        if container.array_kind() != Some(ArrayKind::Bag)
+            || container.prefix(xml) != Some("pdfaExtension")
+        {
+            failed.insert(2);
+        }
+
+        for definition in container.array_items() {
+            inspect_schema_definition(definition, xml, &mut failed);
+        }
+    }
+    failed
+}
+
+fn inspect_identification_prefixes(document: &Document<'_>, xml: &str) -> BTreeSet<u8> {
+    [("part", 4), ("conformance", 5), ("amd", 6)]
+        .into_iter()
+        .filter_map(|(name, test)| {
+            first_document_property(document, PDFA_ID_NAMESPACE, name)
+                .and_then(|property| property.prefix(xml))
+                .is_some_and(|prefix| prefix != "pdfaid")
+                .then_some(test)
+        })
+        .collect()
+}
+
+fn first_document_property<'a>(
+    document: &'a Document<'a>,
+    namespace: &str,
+    name: &str,
+) -> Option<XmpProperty<'a>> {
+    for node in document.descendants().filter(|node| node.is_element()) {
+        if node.tag_name().namespace() == Some(namespace) && node.tag_name().name() == name {
+            return Some(XmpProperty::Element(node));
+        }
+        if let Some(attribute) = node
+            .attributes()
+            .find(|attribute| attribute.namespace() == Some(namespace) && attribute.name() == name)
+        {
+            return Some(XmpProperty::Attribute(attribute));
+        }
+    }
+    None
+}
+
+fn inspect_schema_definition(definition: Node<'_, '_>, xml: &str, failed: &mut BTreeSet<u8>) {
+    if has_undefined_fields(
+        definition,
+        PDFA_SCHEMA_NAMESPACE,
+        &["schema", "namespaceURI", "prefix", "property", "valueType"],
+    ) {
+        failed.insert(1);
+    }
+    for (test, name) in [(3, "schema"), (4, "namespaceURI"), (5, "prefix")] {
+        if !required_simple_field_has_prefix(
+            definition,
+            PDFA_SCHEMA_NAMESPACE,
+            name,
+            "pdfaSchema",
+            xml,
+        ) {
+            failed.insert(test);
+        }
+    }
+
+    let known_types = known_types(definition);
+    let property = first_field(definition, PDFA_SCHEMA_NAMESPACE, "property");
+    if !optional_sequence_is_valid(property, "pdfaSchema", xml, property_item_is_valid) {
+        failed.insert(6);
+    }
+    let value_type = first_field(definition, PDFA_SCHEMA_NAMESPACE, "valueType");
+    if !optional_sequence_is_valid(value_type, "pdfaSchema", xml, |item| {
+        value_type_item_is_valid(item)
+    }) {
+        failed.insert(7);
+    }
+
+    for property in fields(definition, PDFA_SCHEMA_NAMESPACE, "property") {
+        if property.array_kind().is_some() {
+            for item in property.array_items() {
+                inspect_schema_property(item, xml, &known_types, failed);
+            }
+        }
+    }
+    for value_type in fields(definition, PDFA_SCHEMA_NAMESPACE, "valueType") {
+        if value_type.array_kind().is_some() {
+            for item in value_type.array_items() {
+                inspect_schema_value_type(item, xml, &known_types, failed);
+            }
+        }
+    }
+}
+
+fn inspect_schema_property(
+    property: Node<'_, '_>,
+    xml: &str,
+    known_types: &BTreeSet<String>,
+    failed: &mut BTreeSet<u8>,
+) {
+    if has_undefined_fields(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        &["name", "valueType", "category", "description"],
+    ) {
+        failed.insert(1);
+    }
+    if !required_simple_field_has_prefix(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        "name",
+        "pdfaProperty",
+        xml,
+    ) {
+        failed.insert(8);
+    }
+    if !required_simple_field_has_prefix(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        "valueType",
+        "pdfaProperty",
+        xml,
+    ) || !field_value(property, PDFA_PROPERTY_NAMESPACE, "valueType")
+        .is_some_and(|value| known_types.contains(value.trim()))
+    {
+        failed.insert(9);
+    }
+    if !required_simple_field_has_prefix(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        "category",
+        "pdfaProperty",
+        xml,
+    ) || !matches!(
+        field_value(property, PDFA_PROPERTY_NAMESPACE, "category"),
+        Some("external" | "internal")
+    ) {
+        failed.insert(10);
+    }
+    if !required_simple_field_has_prefix(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        "description",
+        "pdfaProperty",
+        xml,
+    ) {
+        failed.insert(11);
+    }
+}
+
+fn inspect_schema_value_type(
+    value_type: Node<'_, '_>,
+    xml: &str,
+    known_types: &BTreeSet<String>,
+    failed: &mut BTreeSet<u8>,
+) {
+    if has_undefined_fields(
+        value_type,
+        PDFA_TYPE_NAMESPACE,
+        &["type", "namespaceURI", "prefix", "description", "field"],
+    ) {
+        failed.insert(1);
+    }
+    for (test, name) in [
+        (12, "type"),
+        (13, "namespaceURI"),
+        (14, "prefix"),
+        (15, "description"),
+    ] {
+        if !required_simple_field_has_prefix(value_type, PDFA_TYPE_NAMESPACE, name, "pdfaType", xml)
+        {
+            failed.insert(test);
+        }
+    }
+    let field = first_field(value_type, PDFA_TYPE_NAMESPACE, "field");
+    if !optional_sequence_is_valid(field, "pdfaType", xml, field_item_is_valid) {
+        failed.insert(16);
+    }
+    for field in fields(value_type, PDFA_TYPE_NAMESPACE, "field") {
+        if field.array_kind().is_some() {
+            for item in field.array_items() {
+                inspect_schema_field(item, xml, known_types, failed);
+            }
+        }
+    }
+}
+
+fn inspect_schema_field(
+    field: Node<'_, '_>,
+    xml: &str,
+    known_types: &BTreeSet<String>,
+    failed: &mut BTreeSet<u8>,
+) {
+    if has_undefined_fields(
+        field,
+        PDFA_FIELD_NAMESPACE,
+        &["name", "valueType", "description"],
+    ) {
+        failed.insert(1);
+    }
+    if !required_simple_field_has_prefix(field, PDFA_FIELD_NAMESPACE, "name", "pdfaField", xml) {
+        failed.insert(17);
+    }
+    if !required_simple_field_has_prefix(field, PDFA_FIELD_NAMESPACE, "valueType", "pdfaField", xml)
+        || !field_value(field, PDFA_FIELD_NAMESPACE, "valueType")
+            .is_some_and(|value| known_types.contains(value.trim()))
+    {
+        failed.insert(18);
+    }
+    if !required_simple_field_has_prefix(
+        field,
+        PDFA_FIELD_NAMESPACE,
+        "description",
+        "pdfaField",
+        xml,
+    ) {
+        failed.insert(19);
+    }
+}
+
+fn child_properties<'a>(node: Node<'a, 'a>) -> Vec<XmpProperty<'a>> {
+    node.attributes()
+        .filter(|attribute| !matches!(attribute.namespace(), Some(RDF_NAMESPACE | XML_NAMESPACE)))
+        .map(XmpProperty::Attribute)
+        .chain(
+            node.children()
+                .filter(|child| child.is_element())
+                .map(XmpProperty::Element),
+        )
+        .collect()
+}
+
+fn fields<'a>(node: Node<'a, 'a>, namespace: &str, name: &str) -> Vec<XmpProperty<'a>> {
+    child_properties(node)
+        .into_iter()
+        .filter(|property| property.namespace() == Some(namespace) && property.name() == name)
+        .collect()
+}
+
+fn first_field<'a>(node: Node<'a, 'a>, namespace: &str, name: &str) -> Option<XmpProperty<'a>> {
+    fields(node, namespace, name).into_iter().next()
+}
+
+fn field_value<'a>(node: Node<'a, 'a>, namespace: &str, name: &str) -> Option<&'a str> {
+    first_field(node, namespace, name).and_then(XmpProperty::value)
+}
+
+fn has_undefined_fields(node: Node<'_, '_>, namespace: &str, valid_names: &[&str]) -> bool {
+    child_properties(node).into_iter().any(|property| {
+        property.namespace() != Some(namespace) || !valid_names.contains(&property.name())
+    })
+}
+
+fn required_simple_field_has_prefix(
+    node: Node<'_, '_>,
+    namespace: &str,
+    name: &str,
+    prefix: &str,
+    xml: &str,
+) -> bool {
+    first_field(node, namespace, name)
+        .is_some_and(|property| property.is_simple() && property.prefix(xml) == Some(prefix))
+}
+
+fn optional_sequence_is_valid(
+    property: Option<XmpProperty<'_>>,
+    prefix: &str,
+    xml: &str,
+    item_is_valid: impl Fn(Node<'_, '_>) -> bool,
+) -> bool {
+    let Some(property) = property else {
+        return true;
+    };
+    sequence_items_are_valid(property, item_is_valid)
+        && property.prefix(xml).is_none_or(|actual| actual == prefix)
+}
+
+fn sequence_items_are_valid(
+    property: XmpProperty<'_>,
+    item_is_valid: impl Fn(Node<'_, '_>) -> bool,
+) -> bool {
+    property.array_kind() == Some(ArrayKind::Seq)
+        && property.array_items().into_iter().all(item_is_valid)
+}
+
+fn property_item_is_valid(property: Node<'_, '_>) -> bool {
+    !has_undefined_fields(
+        property,
+        PDFA_PROPERTY_NAMESPACE,
+        &["name", "valueType", "category", "description"],
+    ) && ["name", "valueType", "category", "description"]
+        .into_iter()
+        .all(|name| {
+            first_field(property, PDFA_PROPERTY_NAMESPACE, name).is_some_and(XmpProperty::is_simple)
+        })
+}
+
+fn value_type_item_is_valid(value_type: Node<'_, '_>) -> bool {
+    !has_undefined_fields(
+        value_type,
+        PDFA_TYPE_NAMESPACE,
+        &["type", "namespaceURI", "prefix", "description", "field"],
+    ) && ["type", "namespaceURI", "prefix", "description"]
+        .into_iter()
+        .all(|name| {
+            first_field(value_type, PDFA_TYPE_NAMESPACE, name).is_some_and(XmpProperty::is_simple)
+        })
+}
+
+fn field_item_is_valid(field: Node<'_, '_>) -> bool {
+    !has_undefined_fields(
+        field,
+        PDFA_FIELD_NAMESPACE,
+        &["name", "valueType", "description"],
+    ) && ["name", "valueType", "description"]
+        .into_iter()
+        .all(|name| {
+            first_field(field, PDFA_FIELD_NAMESPACE, name).is_some_and(XmpProperty::is_simple)
+        })
+}
+
+fn known_types(definition: Node<'_, '_>) -> BTreeSet<String> {
+    let mut known = [
+        "AgentName",
+        "Boolean",
+        "Choice",
+        "Date",
+        "Integer",
+        "Lang Alt",
+        "Locale",
+        "MIMEType",
+        "ProperName",
+        "Real",
+        "RenditionClass",
+        "ResourceEvent",
+        "ResourceRef",
+        "Text",
+        "URI",
+        "URL",
+        "Version",
+        "XPath",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<BTreeSet<_>>();
+    for value_type in fields(definition, PDFA_SCHEMA_NAMESPACE, "valueType") {
+        for item in value_type.array_items() {
+            if let Some(value) = field_value(item, PDFA_TYPE_NAMESPACE, "type") {
+                known.insert(value.trim().to_owned());
+            }
+        }
+    }
+    known
+}
+
+fn xmp_packet_header<'a>(document: &'a Document<'a>) -> Option<&'a str> {
+    let mut packet_header = None;
+    for node in document.descendants() {
+        if node.is_element()
+            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && node.tag_name().name() == "RDF"
+        {
+            break;
+        }
+        if let Some(instruction) = node.pi()
+            && instruction.target == "xpacket"
+        {
+            packet_header = instruction.value;
+        }
+    }
+    packet_header
+}
+
+fn has_quoted_assignment(header: &str, name: &[u8]) -> bool {
+    let bytes = header.as_bytes();
+    bytes
+        .windows(name.len())
+        .enumerate()
+        .any(|(index, candidate)| {
+            if candidate != name {
+                return false;
+            }
+            let mut remainder = &bytes[index + name.len()..];
+            remainder = trim_ascii_regex_whitespace(remainder);
+            let Some(after_equals) = remainder.strip_prefix(b"=") else {
+                return false;
+            };
+            remainder = trim_ascii_regex_whitespace(after_equals);
+            let Some((&quote, value)) = remainder.split_first() else {
+                return false;
+            };
+            matches!(quote, b'\'' | b'"') && value.contains(&quote)
+        })
+}
+
+fn trim_ascii_regex_whitespace(mut bytes: &[u8]) -> &[u8] {
+    while bytes
+        .first()
+        .is_some_and(|byte| matches!(byte, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r'))
+    {
+        bytes = &bytes[1..];
+    }
+    bytes
 }
 
 fn contains_namespace_property(document: &Document<'_>, namespace: &str) -> bool {
@@ -446,6 +979,31 @@ mod tests {
     fn rejects_malformed_xmp_and_dtd() {
         assert!(parse_xmp(b"<rdf:RDF>").is_err());
         assert!(parse_xmp(b"<!DOCTYPE x><x/>").is_err());
+    }
+
+    #[test]
+    fn packet_header_attributes_follow_the_pinned_matching_model() {
+        let parse = |header: &str| {
+            parse_xmp(
+                format!(
+                    "<?xpacket {header}?><rdf:RDF xmlns:rdf=\"{RDF_NAMESPACE}\"/>\
+                     <?xpacket end=\"w\"?>"
+                )
+                .as_bytes(),
+            )
+            .expect("valid packet")
+        };
+        let bytes = parse("begin=\"\" bytes = '123'");
+        assert!(bytes.packet_header_has_bytes);
+        assert!(!bytes.packet_header_has_encoding);
+
+        let both = parse("begin=\"\" mybytes=\"123\" encoding=\"UTF-8\"");
+        assert!(both.packet_header_has_bytes);
+        assert!(both.packet_header_has_encoding);
+
+        let ignored = parse("begin=\"\" Bytes=\"123\" bytes=123");
+        assert!(!ignored.packet_header_has_bytes);
+        assert!(!ignored.packet_header_has_encoding);
     }
 
     #[test]

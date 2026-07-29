@@ -22,6 +22,7 @@ depend on `mai-cli` or CLI-only dependencies.
 ## Roadmap
 
 - [ ] PDF/A-1b (1.4)
+    - https://github.com/veraPDF/veraPDF-validation-profiles/wiki/PDFA-Part-1-rules/
 - [ ] PDF/A-1a (1.4)
 - [ ] PDF/A-2 (1.7)
 - [ ] PDF/A-3 (1.7)
