@@ -1288,7 +1288,7 @@ fn property_values(document: &Document<'_>, namespace: &str, local_name: &str) -
         }
         for attribute in node.attributes() {
             if attribute.namespace() == Some(namespace) && attribute.name() == local_name {
-                values.push(attribute.value().trim().to_owned());
+                values.push(attribute.value().to_owned());
             }
         }
     }
@@ -1342,7 +1342,7 @@ fn direct_text(node: Node<'_, '_>) -> Option<String> {
         .filter(|child| child.is_text())
         .filter_map(|child| child.text())
         .collect::<String>();
-    (!value.is_empty()).then(|| value.trim().to_owned())
+    (!value.is_empty()).then_some(value)
 }
 
 fn decode_xml(bytes: &[u8]) -> Result<String, String> {

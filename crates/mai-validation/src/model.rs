@@ -638,25 +638,9 @@ fn extract_info(
 
 fn object_text(object: &Object) -> Option<String> {
     match object {
-        Object::String(bytes, _) => Some(decode_pdf_string(bytes)),
+        Object::String(_, _) => lopdf::decode_text_string(object).ok(),
         Object::Name(bytes) => Some(String::from_utf8_lossy(bytes).into_owned()),
         _ => None,
-    }
-}
-
-fn decode_pdf_string(bytes: &[u8]) -> String {
-    if let Some(bytes) = bytes.strip_prefix(&[0xFE, 0xFF]) {
-        let units = bytes
-            .chunks_exact(2)
-            .map(|pair| u16::from_be_bytes([pair[0], pair[1]]));
-        String::from_utf16_lossy(&units.collect::<Vec<_>>())
-    } else if let Some(bytes) = bytes.strip_prefix(&[0xFF, 0xFE]) {
-        let units = bytes
-            .chunks_exact(2)
-            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]));
-        String::from_utf16_lossy(&units.collect::<Vec<_>>())
-    } else {
-        String::from_utf8_lossy(bytes).into_owned()
     }
 }
 
@@ -873,6 +857,19 @@ mod tests {
         assert_eq!(id, Some(info_id.into()));
         assert_eq!(metadata.values["Title"], "Example");
         assert_eq!(metadata.values["Author"], "Ferris");
+    }
+
+    #[test]
+    fn decodes_info_strings_using_pdfdoc_encoding() {
+        let mut document = Document::with_version("1.4");
+        let info_id = document.add_object(dictionary! {
+            "Title" => Object::String(vec![b't', b'e', b'x', b't', 0x8B], StringFormat::Literal),
+        });
+        document.trailer.set("Info", info_id);
+
+        let (metadata, _) = extract_info(&document, &SafetyLimits::default()).expect("metadata");
+
+        assert_eq!(metadata.values["Title"], "text‰");
     }
 
     #[test]

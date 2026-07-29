@@ -26,7 +26,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 133;
+const TOTAL_RULE_COUNT: usize = 134;
 
 /// Returns the sole element of a slice known to hold at most one entry, or
 /// `None` for zero or multiple entries.
@@ -1034,6 +1034,10 @@ fn validate_font_dictionaries(
         (
             fonts.invalid_cmap_cids.as_slice(),
             "PDFA1B-CMAP-CID-RANGE-001",
+        ),
+        (
+            fonts.oversized_cmap_cids.as_slice(),
+            "PDFA1B-CMAP-MAX-CID-001",
         ),
         (
             fonts.invalid_type1_subset_charsets.as_slice(),

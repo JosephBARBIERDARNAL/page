@@ -3,6 +3,7 @@ mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("extgstate_tr", &["PDFA1B-EXTGSTATE-TR-001"]),
+    ("direct_extgstate_tr", &["PDFA1B-EXTGSTATE-TR-001"]),
     ("extgstate_tr2_default", &[]),
     ("extgstate_tr2_other", &["PDFA1B-EXTGSTATE-TR2-001"]),
     ("unused_extgstate_tr", &[]),

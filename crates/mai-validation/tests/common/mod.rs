@@ -46,15 +46,15 @@ pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
 }
 
 /// Asserts that `report` has exactly one failure, that it is `rule_id`, and
-/// that the remaining 132 of the 133 implemented checks passed. Returns the
+/// that the remaining 133 of the 134 implemented checks passed. Returns the
 /// matching failure so callers can assert further on it (e.g. `object_id`).
 pub fn assert_single_failure<'a>(
     report: &'a ValidationReport,
     rule_id: &str,
 ) -> &'a ValidationFailure {
-    assert_eq!(report.checks.total, 133);
+    assert_eq!(report.checks.total, 134);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 132);
+    assert_eq!(report.checks.passed, 133);
     report
         .failures
         .iter()
@@ -463,9 +463,36 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "<rdf:Description pdfaid:part=\"2\" pdfaid:conformance=\"A\"/></rdf:RDF>",
         ),
         "title_mismatch" => info.set("Title", Object::string_literal("different")),
+        "title_whitespace_equivalent" => {
+            info.set("Title", Object::string_literal(" Title "));
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"x-default\"> Title </rdf:li>",
+            );
+        }
+        "title_pdfdoc_equivalent" => {
+            info.set(
+                "Title",
+                Object::String(
+                    vec![b't', b'e', b'x', b't', 0x8B],
+                    lopdf::StringFormat::Literal,
+                ),
+            );
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"x-default\">text‰</rdf:li>",
+            );
+        }
         "author_mismatch" => info.set("Author", Object::string_literal("different")),
         "subject_mismatch" => info.set("Subject", Object::string_literal("different")),
         "keywords_mismatch" => info.set("Keywords", Object::string_literal("different")),
+        "keywords_xmp_whitespace" => replace(
+            &mut xmp,
+            "pdf:Keywords=\"rust,pdf\"",
+            "pdf:Keywords=\" rust,pdf \"",
+        ),
         "creator_mismatch" => info.set("Creator", Object::string_literal("different")),
         "producer_mismatch" => info.set("Producer", Object::string_literal("different")),
         "creation_date_equivalent_offset" => replace(
@@ -1501,9 +1528,9 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
         ),
         _ => panic!("unknown XObject fixture case {case}"),
     };
-    let xobject_id = document.add_object(xobject);
+    let xobject = Object::Reference(document.add_object(xobject));
     if include_resource {
-        let mut xobjects = dictionary! {"XO" => xobject_id};
+        let mut xobjects = dictionary! {"XO" => xobject};
         if case == "two_invalid_images" {
             let second_id = document.add_object(Stream::new(
                 dictionary! {
@@ -1561,6 +1588,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
     match case {
         "baseline" => {}
         "extgstate_tr"
+        | "direct_extgstate_tr"
         | "extgstate_tr2_default"
         | "extgstate_tr2_other"
         | "extgstate_ri_invalid"
@@ -1579,7 +1607,10 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         | "unused_extgstate_transparency" => {
             let mut state = Dictionary::new();
             match case {
-                "extgstate_tr" | "unused_extgstate_tr" | "unreferenced_extgstate_tr" => {
+                "extgstate_tr"
+                | "direct_extgstate_tr"
+                | "unused_extgstate_tr"
+                | "unreferenced_extgstate_tr" => {
                     state.set("TR", "Identity");
                 }
                 "extgstate_tr2_default" => state.set("TR2", "Default"),
@@ -1599,9 +1630,13 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 "extgstate_fill_alpha_zero" => state.set("ca", 0),
                 _ => unreachable!(),
             }
-            let state_id = document.add_object(state);
+            let state = if case == "direct_extgstate_tr" {
+                Object::Dictionary(state)
+            } else {
+                Object::Reference(document.add_object(state))
+            };
             if case != "unreferenced_extgstate_tr" {
-                resources.set("ExtGState", dictionary! {"GS1" => state_id});
+                resources.set("ExtGState", dictionary! {"GS1" => state});
             }
             if !matches!(
                 case,

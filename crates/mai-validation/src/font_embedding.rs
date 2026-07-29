@@ -25,6 +25,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) unembedded_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_cmap_wmodes: Vec<RuleFailure>,
     pub(crate) invalid_cmap_cids: Vec<RuleFailure>,
+    pub(crate) oversized_cmap_cids: Vec<RuleFailure>,
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -79,6 +80,7 @@ struct Scanner<'a> {
     unembedded_cmaps: Vec<RuleFailure>,
     invalid_cmap_wmodes: Vec<RuleFailure>,
     invalid_cmap_cids: Vec<RuleFailure>,
+    oversized_cmap_cids: Vec<RuleFailure>,
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -111,6 +113,7 @@ pub(crate) fn inspect(
         unembedded_cmaps: Vec::new(),
         invalid_cmap_wmodes: Vec::new(),
         invalid_cmap_cids: Vec::new(),
+        oversized_cmap_cids: Vec::new(),
         invalid_type1_subset_charsets: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
@@ -124,9 +127,7 @@ pub(crate) fn inspect(
     for (page_number, page_id) in document.get_pages() {
         scanner.scan_page(page_number, page_id)?;
     }
-    scanner
-        .invalid_cmap_cids
-        .extend(inspect_all_embedded_cmap_cids(document, limits)?);
+    scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
         left.object_id
             .cmp(&right.object_id)
@@ -169,6 +170,7 @@ pub(crate) fn inspect(
         unembedded_cmaps: scanner.unembedded_cmaps,
         invalid_cmap_wmodes: scanner.invalid_cmap_wmodes,
         invalid_cmap_cids: scanner.invalid_cmap_cids,
+        oversized_cmap_cids: scanner.oversized_cmap_cids,
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,

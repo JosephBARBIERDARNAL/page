@@ -38,66 +38,11 @@ pub(crate) fn inspect(
             continue;
         };
         let reported_id = Some((*object_id).into());
-        if dictionary.has(b"TR") {
-            summary.transfer_functions.push(RuleFailure {
-                object_id: reported_id,
-                description: "used ExtGState dictionary contains /TR".to_owned(),
-            });
-        }
-        if dictionary.has(b"TR2")
-            && dictionary
-                .get(b"TR2")
-                .ok()
-                .and_then(|value| value.as_name().ok())
-                != Some(b"Default".as_slice())
-        {
-            summary.transfer_functions_2.push(RuleFailure {
-                object_id: reported_id,
-                description: "used ExtGState dictionary has /TR2 other than /Default".to_owned(),
-            });
-        }
-        if dictionary.has(b"SMask")
-            && dictionary
-                .get(b"SMask")
-                .ok()
-                .and_then(|value| value.as_name().ok())
-                != Some(b"None".as_slice())
-        {
-            summary.extgstate_soft_masks.push(RuleFailure {
-                object_id: reported_id,
-                description: "used ExtGState dictionary has /SMask other than /None".to_owned(),
-            });
-        }
-        if dictionary.has(b"BM")
-            && !matches!(
-                dictionary
-                    .get(b"BM")
-                    .ok()
-                    .and_then(|value| value.as_name().ok()),
-                Some(b"Normal" | b"Compatible")
-            )
-        {
-            summary.blend_modes.push(RuleFailure {
-                object_id: reported_id,
-                description: "used ExtGState dictionary has /BM other than /Normal or /Compatible"
-                    .to_owned(),
-            });
-        }
-        inspect_alpha(
-            dictionary,
-            b"CA",
-            reported_id,
-            "stroke",
-            &mut summary.stroke_alpha,
-        );
-        inspect_alpha(
-            dictionary,
-            b"ca",
-            reported_id,
-            "fill",
-            &mut summary.fill_alpha,
-        );
-        inspect_rendering_intent(dictionary, reported_id, "used ExtGState", &mut summary);
+        inspect_extgstate(dictionary, reported_id, &mut summary);
+    }
+
+    for dictionary in &content.used_direct_extgstates {
+        inspect_extgstate(dictionary, None, &mut summary);
     }
 
     for object_id in &content.used_xobject_ids {
@@ -239,6 +184,73 @@ fn inspect_rendering_intent(
             description: format!("{context} uses rendering intent /{name}"),
         });
     }
+}
+
+fn inspect_extgstate(
+    dictionary: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    summary: &mut GraphicsSummary,
+) {
+    if dictionary.has(b"TR") {
+        summary.transfer_functions.push(RuleFailure {
+            object_id,
+            description: "used ExtGState dictionary contains /TR".to_owned(),
+        });
+    }
+    if dictionary.has(b"TR2")
+        && dictionary
+            .get(b"TR2")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            != Some(b"Default".as_slice())
+    {
+        summary.transfer_functions_2.push(RuleFailure {
+            object_id,
+            description: "used ExtGState dictionary has /TR2 other than /Default".to_owned(),
+        });
+    }
+    if dictionary.has(b"SMask")
+        && dictionary
+            .get(b"SMask")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            != Some(b"None".as_slice())
+    {
+        summary.extgstate_soft_masks.push(RuleFailure {
+            object_id,
+            description: "used ExtGState dictionary has /SMask other than /None".to_owned(),
+        });
+    }
+    if dictionary.has(b"BM")
+        && !matches!(
+            dictionary
+                .get(b"BM")
+                .ok()
+                .and_then(|value| value.as_name().ok()),
+            Some(b"Normal" | b"Compatible")
+        )
+    {
+        summary.blend_modes.push(RuleFailure {
+            object_id,
+            description: "used ExtGState dictionary has /BM other than /Normal or /Compatible"
+                .to_owned(),
+        });
+    }
+    inspect_alpha(
+        dictionary,
+        b"CA",
+        object_id,
+        "stroke",
+        &mut summary.stroke_alpha,
+    );
+    inspect_alpha(
+        dictionary,
+        b"ca",
+        object_id,
+        "fill",
+        &mut summary.fill_alpha,
+    );
+    inspect_rendering_intent(dictionary, object_id, "used ExtGState", summary);
 }
 
 fn resolve_dictionary<'a>(

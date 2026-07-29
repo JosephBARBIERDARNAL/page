@@ -189,9 +189,12 @@ const CASES: &[(&str, &[&str])] = &[
         &["PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001"],
     ),
     ("title_mismatch", &["PDFA1B-INFO-TITLE-001"]),
+    ("title_whitespace_equivalent", &[]),
+    ("title_pdfdoc_equivalent", &[]),
     ("author_mismatch", &["PDFA1B-INFO-AUTHOR-001"]),
     ("subject_mismatch", &["PDFA1B-INFO-SUBJECT-001"]),
     ("keywords_mismatch", &["PDFA1B-INFO-KEYWORDS-001"]),
+    ("keywords_xmp_whitespace", &["PDFA1B-INFO-KEYWORDS-001"]),
     ("creator_mismatch", &["PDFA1B-INFO-CREATOR-001"]),
     ("producer_mismatch", &["PDFA1B-INFO-PRODUCER-001"]),
     ("creation_date_mismatch", &["PDFA1B-INFO-CREATIONDATE-001"]),
@@ -234,6 +237,64 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
 fn custom_extension_type_shape_failure_is_reported() {
     let failures = common::failure_ids(&common::metadata_fixture("extension_custom_value_invalid"));
     assert!(failures.contains("PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"));
+}
+
+#[test]
+fn xmp_literal_whitespace_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("mai-xmp-whitespace-{}.pdf", std::process::id()));
+    fs::write(
+        &path,
+        common::metadata_fixture("title_whitespace_equivalent"),
+    )
+    .expect("write whitespace fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert!(
+        !common::failure_ids(&fs::read(&path).expect("read whitespace fixture"))
+            .contains("PDFA1B-INFO-TITLE-001")
+    );
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .all(|rule| rule != "ISO 19005-1:2005:6.7.3:2")
+    );
+    fs::remove_file(path).expect("remove whitespace fixture");
+}
+
+#[test]
+fn xmp_attribute_whitespace_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "mai-xmp-attribute-whitespace-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(&path, common::metadata_fixture("keywords_xmp_whitespace"))
+        .expect("write whitespace fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read whitespace fixture"))
+            .contains("PDFA1B-INFO-KEYWORDS-001")
+    );
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.7.3:5")
+    );
+    fs::remove_file(path).expect("remove whitespace fixture");
 }
 
 #[test]

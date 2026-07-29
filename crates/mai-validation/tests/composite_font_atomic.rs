@@ -11,6 +11,7 @@ const CID_TO_GID: &str = "PDFA1B-CIDTOGIDMAP-001";
 const CMAP_EMBEDDING: &str = "PDFA1B-CMAP-EMBEDDING-001";
 const CMAP_WMODE: &str = "PDFA1B-CMAP-WMODE-001";
 const CMAP_CID_RANGE: &str = "PDFA1B-CMAP-CID-RANGE-001";
+const CMAP_MAX_CID: &str = "PDFA1B-CMAP-MAX-CID-001";
 const CID_SUBSET_CIDSET: &str = "PDFA1B-CID-SUBSET-CIDSET-001";
 const GLYPH_PRESENCE: &str = "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001";
 const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
@@ -31,7 +32,10 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_cmap_wmode_mismatch",
         &[CMAP_WMODE, GLYPH_PRESENCE],
     ),
-    ("composite_cmap_cid_too_large", &[CMAP_CID_RANGE]),
+    (
+        "composite_cmap_cid_too_large",
+        &[CMAP_CID_RANGE, CMAP_MAX_CID],
+    ),
     ("composite_cid_subset_missing_cidset", &[CID_SUBSET_CIDSET]),
     ("composite_cidset_real_program", &[CID_SUBSET_CIDSET]),
     (
@@ -80,6 +84,7 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
         CMAP_EMBEDDING,
         CMAP_WMODE,
         CMAP_CID_RANGE,
+        CMAP_MAX_CID,
         CID_SUBSET_CIDSET,
         GLYPH_PRESENCE,
         GLYPH_WIDTH,
@@ -189,6 +194,11 @@ fn rendered_identity_cidfont_program_checks_match_pinned_verapdf_when_opted_in()
             "composite_cff_cidset_missing",
             CID_SUBSET_CIDSET,
             "ISO 19005-1:2005:6.3.5:3",
+        ),
+        (
+            "composite_cmap_cid_too_large",
+            CMAP_MAX_CID,
+            "ISO 19005-1:2005:6.1.12:10",
         ),
         (
             "composite_cmap_matching",

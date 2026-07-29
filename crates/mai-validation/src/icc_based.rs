@@ -20,6 +20,7 @@ pub(crate) struct IccBasedSummary {
     pub(crate) device_cmyk_context: Option<String>,
     pub(crate) used_xobject_ids: BTreeSet<ObjectId>,
     pub(crate) used_extgstate_ids: BTreeSet<ObjectId>,
+    pub(crate) used_direct_extgstates: Vec<Dictionary>,
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
     pub(crate) inline_image_lzw_context: Option<String>,
@@ -44,6 +45,7 @@ struct Scanner<'a> {
     device_cmyk_context: Option<String>,
     used_xobject_ids: BTreeSet<ObjectId>,
     used_extgstate_ids: BTreeSet<ObjectId>,
+    used_direct_extgstates: Vec<Dictionary>,
     invalid_rendering_intents: BTreeMap<String, String>,
     undefined_operators: BTreeMap<String, String>,
     inline_image_lzw_context: Option<String>,
@@ -65,6 +67,7 @@ pub(crate) fn inspect(
         device_cmyk_context: None,
         used_xobject_ids: BTreeSet::new(),
         used_extgstate_ids: BTreeSet::new(),
+        used_direct_extgstates: Vec::new(),
         invalid_rendering_intents: BTreeMap::new(),
         undefined_operators: BTreeMap::new(),
         inline_image_lzw_context: None,
@@ -92,6 +95,7 @@ pub(crate) fn inspect(
         device_cmyk_context: scanner.device_cmyk_context,
         used_xobject_ids: scanner.used_xobject_ids,
         used_extgstate_ids: scanner.used_extgstate_ids,
+        used_direct_extgstates: scanner.used_direct_extgstates,
         invalid_rendering_intents: scanner.invalid_rendering_intents,
         undefined_operators: scanner.undefined_operators,
         inline_image_lzw_context: scanner.inline_image_lzw_context,
@@ -328,7 +332,7 @@ impl Scanner<'_> {
                     else {
                         continue;
                     };
-                    if let Some(Object::Reference(id)) = resource(
+                    match resource(
                         self.document,
                         self.limits,
                         resources,
@@ -336,7 +340,13 @@ impl Scanner<'_> {
                         b"ExtGState",
                         name,
                     )? {
-                        self.used_extgstate_ids.insert(*id);
+                        Some(Object::Reference(id)) => {
+                            self.used_extgstate_ids.insert(*id);
+                        }
+                        Some(Object::Dictionary(dictionary)) => {
+                            self.used_direct_extgstates.push(dictionary.clone());
+                        }
+                        _ => {}
                     }
                 }
                 "Do" => {
