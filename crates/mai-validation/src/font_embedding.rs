@@ -137,6 +137,7 @@ pub(crate) fn inspect(
     });
     scanner.inspect_rendered_truetype_glyphs()?;
     scanner.inspect_rendered_type1_glyphs()?;
+    scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
@@ -826,12 +827,14 @@ impl Scanner<'_> {
             if program_names.is_empty() {
                 continue;
             }
-            if usage
-                .shown_bytes
-                .into_iter()
-                .filter_map(type1_standard_glyph_name)
-                .any(|name| program_names.contains(name) && !char_set.contains(name))
-            {
+            let differences = type1_encoding_differences(self.document, font, self.limits)?;
+            if usage.shown_bytes.into_iter().any(|byte| {
+                let name = differences
+                    .get(&byte)
+                    .map(String::as_str)
+                    .or_else(|| type1_standard_glyph_name(byte));
+                name.is_some_and(|name| program_names.contains(name) && !char_set.contains(name))
+            }) {
                 self.invalid_type1_subset_charsets.push(font_failure(
                     usage.object_id,
                     &usage.description,
@@ -893,6 +896,109 @@ impl Scanner<'_> {
                         usage.object_id,
                         &usage.description,
                         &format!("has no embedded Type1 glyph for rendered byte {byte}"),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_cff_type1_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || !usage.embedded
+                || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            let Some(stream) = descriptor
+                .get(b"FontFile3")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            if stream
+                .dict
+                .get(b"Subtype")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                != Some(b"Type1C".as_slice())
+            {
+                continue;
+            }
+            let bytes = decode_font_stream(stream, self.limits)?;
+            let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+                continue;
+            };
+            let differences = type1_encoding_differences(self.document, font, self.limits)?;
+            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let widths = font
+                .get(b"Widths")
+                .ok()
+                .and_then(|value| value.as_array().ok());
+            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+                let Some(name) = differences
+                    .get(&byte)
+                    .map(String::as_str)
+                    .or_else(|| type1_standard_glyph_name(byte))
+                else {
+                    continue;
+                };
+                let Some(glyph) = cff.glyph_index_by_name(name) else {
+                    self.missing_type1_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!("has no embedded Type1C glyph for rendered byte {byte}"),
+                    ));
+                    continue;
+                };
+                let (Some(first_char), Some(widths), Some(width)) =
+                    (first_char, widths, cff.glyph_width(glyph))
+                else {
+                    continue;
+                };
+                let Some(index) = i64::from(byte).checked_sub(first_char) else {
+                    continue;
+                };
+                let Ok(index) = usize::try_from(index) else {
+                    continue;
+                };
+                let Some(dictionary_width) =
+                    widths.get(index).and_then(|value| value.as_float().ok())
+                else {
+                    continue;
+                };
+                let program_width =
+                    f64::from(width) * f64::from(cff.matrix().sx) * 1000.0;
+                if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
+                    self.inconsistent_truetype_widths.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!(
+                            "has rendered byte {byte} width {program_width:.3} in its embedded Type1C program but {dictionary_width:.3} in /Widths"
+                        ),
                     ));
                 }
             }
@@ -1534,20 +1640,48 @@ fn cids_for_rendered_bytes(
         return Ok(None);
     };
     let bytes = decode_font_stream(cmap, limits)?;
-    Ok(cmap_single_byte_cids(&bytes, shown_bytes))
+    if cmap_uses_identity_base(&bytes) {
+        let mut chunks = shown_bytes.chunks_exact(2);
+        let cids = chunks
+            .by_ref()
+            .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
+            .collect();
+        return Ok(chunks.remainder().is_empty().then_some(cids));
+    }
+    Ok(cmap_cids(&bytes, shown_bytes))
 }
 
-/// Resolves only complete, explicit one-byte CMaps. Other CMap forms can
-/// require variable-width parsing or `usecmap` inheritance and are left
-/// inapplicable until those semantics are modeled.
-fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
-    let tokens = bytes
-        .split(|byte| byte.is_ascii_whitespace())
-        .filter(|token| !token.is_empty())
-        .collect::<Vec<_>>();
+#[derive(Clone, Copy)]
+struct CmapCodeSpace {
+    bytes: usize,
+    start: u32,
+    end: u32,
+}
+
+#[derive(Clone, Copy)]
+struct CmapCidRange {
+    bytes: usize,
+    start: u32,
+    end: u32,
+    first_cid: u16,
+}
+
+fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
+    let tokens = cmap_tokens(bytes);
+    tokens
+        .windows(2)
+        .any(|pair| matches!(pair[0], b"/Identity-H" | b"/Identity-V") && pair[1] == b"usecmap")
+}
+
+/// Resolves explicit CID CMaps with one- through four-byte code spaces. Other
+/// inherited maps remain inapplicable until the predefined CMap collection is
+/// modeled.
+fn cmap_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
+    let tokens = cmap_tokens(bytes);
     let mut cursor = 0usize;
-    let mut accepts_all_bytes = false;
-    let mut cids = vec![None; 256];
+    let mut code_spaces = Vec::new();
+    let mut chars = BTreeMap::new();
+    let mut ranges = Vec::new();
     while cursor + 1 < tokens.len() {
         let Some(count) = tokens[cursor]
             .iter()
@@ -1568,12 +1702,20 @@ fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 2;
                     let (Some(start), Some(end)) = (
-                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
-                        tokens.get(base + 1).and_then(|token| parse_cmap_hex(token)),
+                        tokens.get(base).and_then(|token| parse_cmap_code(token)),
+                        tokens
+                            .get(base + 1)
+                            .and_then(|token| parse_cmap_code(token)),
                     ) else {
                         continue;
                     };
-                    accepts_all_bytes |= start == 0 && end == 255;
+                    if start.0 == end.0 && start.1 <= end.1 {
+                        code_spaces.push(CmapCodeSpace {
+                            bytes: start.0,
+                            start: start.1,
+                            end: end.1,
+                        });
+                    }
                 }
                 cursor += 2 + count * 2;
             }
@@ -1581,15 +1723,15 @@ fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 2;
                     let (Some(code), Some(cid)) = (
-                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
+                        tokens.get(base).and_then(|token| parse_cmap_code(token)),
                         tokens
                             .get(base + 1)
                             .and_then(|token| parse_cmap_integer(token)),
                     ) else {
                         continue;
                     };
-                    if code <= 255 && cid <= 65_535 {
-                        cids[code as usize] = Some(cid as u16);
+                    if cid <= 65_535 {
+                        chars.insert(code, cid as u16);
                     }
                 }
                 cursor += 2 + count * 2;
@@ -1598,18 +1740,26 @@ fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 3;
                     let (Some(start), Some(end), Some(cid)) = (
-                        tokens.get(base).and_then(|token| parse_cmap_hex(token)),
-                        tokens.get(base + 1).and_then(|token| parse_cmap_hex(token)),
+                        tokens.get(base).and_then(|token| parse_cmap_code(token)),
+                        tokens
+                            .get(base + 1)
+                            .and_then(|token| parse_cmap_code(token)),
                         tokens
                             .get(base + 2)
                             .and_then(|token| parse_cmap_integer(token)),
                     ) else {
                         continue;
                     };
-                    if start <= end && end <= 255 && cid.saturating_add(end - start) <= 65_535 {
-                        for code in start..=end {
-                            cids[code as usize] = Some((cid + code - start) as u16);
-                        }
+                    if start.0 == end.0
+                        && start.1 <= end.1
+                        && cid.saturating_add(end.1 - start.1) <= 65_535
+                    {
+                        ranges.push(CmapCidRange {
+                            bytes: start.0,
+                            start: start.1,
+                            end: end.1,
+                            first_cid: cid as u16,
+                        });
                     }
                 }
                 cursor += 2 + count * 3;
@@ -1617,23 +1767,73 @@ fn cmap_single_byte_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
             _ => cursor += 1,
         }
     }
-    accepts_all_bytes.then(|| {
-        shown_bytes
-            .iter()
-            .map(|byte| cids[usize::from(*byte)])
-            .collect()
-    })?
+    if code_spaces.is_empty() {
+        return None;
+    }
+    code_spaces.sort_by_key(|space| space.bytes);
+    let mut cids = Vec::new();
+    let mut position = 0usize;
+    while position < shown_bytes.len() {
+        let mut decoded = None;
+        for space in &code_spaces {
+            let Some(end) = position.checked_add(space.bytes) else {
+                continue;
+            };
+            let Some(code_bytes) = shown_bytes.get(position..end) else {
+                continue;
+            };
+            let code = code_bytes
+                .iter()
+                .fold(0_u32, |value, byte| value << 8 | u32::from(*byte));
+            if code < space.start || code > space.end {
+                continue;
+            }
+            let cid = chars.get(&(space.bytes, code)).copied().or_else(|| {
+                ranges
+                    .iter()
+                    .find(|range| {
+                        range.bytes == space.bytes && range.start <= code && code <= range.end
+                    })
+                    .map(|range| range.first_cid + (code - range.start) as u16)
+            });
+            decoded = Some((space.bytes, cid));
+            break;
+        }
+        let Some((width, Some(cid))) = decoded else {
+            return None;
+        };
+        position += width;
+        cids.push(cid);
+    }
+    Some(cids)
+}
+
+fn cmap_tokens(bytes: &[u8]) -> Vec<&[u8]> {
+    bytes
+        .split(|byte| matches!(*byte, b'\r' | b'\n'))
+        .flat_map(|line| line.split(|byte| *byte == b'%').next())
+        .flat_map(|line| line.split(|byte| byte.is_ascii_whitespace()))
+        .filter(|token| !token.is_empty())
+        .collect()
 }
 
 fn parse_cmap_integer(token: &[u8]) -> Option<u32> {
     std::str::from_utf8(token).ok()?.parse().ok()
 }
 
-fn parse_cmap_hex(token: &[u8]) -> Option<u32> {
+fn parse_cmap_code(token: &[u8]) -> Option<(usize, u32)> {
     let token = token.strip_prefix(b"<")?.strip_suffix(b">")?;
-    std::str::from_utf8(token)
+    if token.is_empty() || token.len() % 2 != 0 || token.len() > 8 {
+        return None;
+    }
+    let value = std::str::from_utf8(token)
         .ok()
-        .and_then(|token| u32::from_str_radix(token, 16).ok())
+        .and_then(|token| u32::from_str_radix(token, 16).ok())?;
+    Some((token.len() / 2, value))
+}
+
+fn parse_cmap_hex(token: &[u8]) -> Option<u32> {
+    parse_cmap_code(token).map(|(_, value)| value)
 }
 
 fn is_subset_font_name(name: &[u8]) -> bool {
@@ -2113,7 +2313,10 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
-    use super::{cmap_maximal_cid, inspect_all_embedded_cmap_cids, shown_text_bytes};
+    use super::{
+        cmap_cids, cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids,
+        shown_text_bytes,
+    };
     use crate::SafetyLimits;
 
     #[test]
@@ -2130,6 +2333,21 @@ mod tests {
             cmap_maximal_cid(b"1 begincidrange <00> <FF> 0 endcidrange"),
             Some(255)
         );
+    }
+
+    #[test]
+    fn decodes_explicit_variable_width_cid_cmaps() {
+        let cmap = b"% 1 begincidchar <41> 99 endcidchar\n2 begincodespacerange\n<00> <7F>\n<8000> <80FF>\nendcodespacerange\n1 begincidchar\n<41> 12\nendcidchar\n1 begincidrange\n<8000> <8002> 20\nendcidrange";
+        assert_eq!(cmap_cids(cmap, &[0x41, 0x80, 0x01]), Some(vec![12, 21]));
+        assert_eq!(cmap_cids(cmap, &[0x80]), None);
+        assert_eq!(cmap_cids(cmap, &[0x42]), None);
+    }
+
+    #[test]
+    fn recognizes_identity_usecmap_bases() {
+        assert!(cmap_uses_identity_base(b"/Identity-H usecmap"));
+        assert!(cmap_uses_identity_base(b"/Identity-V\nusecmap"));
+        assert!(!cmap_uses_identity_base(b"/NotIdentity usecmap"));
     }
 
     #[test]

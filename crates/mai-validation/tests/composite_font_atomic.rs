@@ -44,6 +44,14 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_identity_width_override_mismatch", &[GLYPH_WIDTH]),
     ("composite_stream_cidmap_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_nonidentity_missing_glyph", &[GLYPH_PRESENCE]),
+    (
+        "composite_nonidentity_multibyte_missing_glyph",
+        &[GLYPH_PRESENCE],
+    ),
+    (
+        "composite_identity_usecmap_missing_glyph",
+        &[GLYPH_PRESENCE],
+    ),
 ];
 
 #[test]
@@ -152,6 +160,16 @@ fn rendered_identity_cidfont_program_checks_match_pinned_verapdf_when_opted_in()
         ),
         (
             "composite_nonidentity_missing_glyph",
+            GLYPH_PRESENCE,
+            "ISO 19005-1:2005:6.3.5:1",
+        ),
+        (
+            "composite_nonidentity_multibyte_missing_glyph",
+            GLYPH_PRESENCE,
+            "ISO 19005-1:2005:6.3.5:1",
+        ),
+        (
+            "composite_identity_usecmap_missing_glyph",
             GLYPH_PRESENCE,
             "ISO 19005-1:2005:6.3.5:1",
         ),

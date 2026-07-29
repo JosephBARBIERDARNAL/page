@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
+use std::{env, fs};
 
+use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
 use mai_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes};
 
 #[allow(dead_code)]
@@ -59,6 +61,12 @@ fn font_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
+    let missing_cff_bytes = common::minimal_type1c(false);
+    let missing_cff = ttf_parser::cff::Table::parse(&missing_cff_bytes).expect("parse missing CFF");
+    assert!(missing_cff.glyph_index_by_name("space").is_none());
+    let present_cff_bytes = common::minimal_type1c(true);
+    let present_cff = ttf_parser::cff::Table::parse(&present_cff_bytes).expect("parse present CFF");
+    assert!(present_cff.glyph_index_by_name("space").is_some());
     assert!(
         common::failure_ids(&common::font_fixture("type1_glyph_missing"))
             .contains(TYPE1_GLYPH_PRESENCE)
@@ -71,6 +79,15 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
         !common::failure_ids(&common::font_fixture("type1_difference_glyph"))
             .contains(TYPE1_GLYPH_PRESENCE)
     );
+    let missing_type1c = common::failure_ids(&common::font_fixture("type1c_glyph_missing"));
+    assert!(
+        missing_type1c.contains(TYPE1_GLYPH_PRESENCE),
+        "{missing_type1c:?}"
+    );
+    assert!(
+        !common::failure_ids(&common::font_fixture("type1c_glyph_present"))
+            .contains(TYPE1_GLYPH_PRESENCE)
+    );
 }
 
 #[test]
@@ -79,6 +96,45 @@ fn type1_subset_charset_covers_rendered_embedded_glyphs() {
         common::failure_ids(&common::font_fixture("type1_subset_charset_incomplete"))
             .contains(TYPE1_SUBSET_CHARSET)
     );
+    assert!(
+        common::failure_ids(&common::font_fixture(
+            "type1_subset_charset_difference_incomplete"
+        ))
+        .contains(TYPE1_SUBSET_CHARSET)
+    );
+}
+
+#[test]
+fn type1c_glyph_presence_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "mai-type1c-missing-glyph-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(&path, common::font_fixture("type1c_glyph_missing")).expect("write CFF fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert_eq!(
+        report.classification,
+        ComparisonClassification::BothNoncompliant,
+        "{report:#?}"
+    );
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read CFF fixture"))
+            .contains(TYPE1_GLYPH_PRESENCE)
+    );
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.3.5:1")
+    );
+    fs::remove_file(path).expect("remove CFF fixture");
 }
 
 #[test]

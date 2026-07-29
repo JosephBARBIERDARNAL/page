@@ -2,58 +2,21 @@
 site_name = "mai"
 repo_url = "https://github.com/JosephBARBIERDARNAL/mai"
 site_url = "https://JosephBARBIERDARNAL.github.io/mai/"
-site_description = "Bringing interactivity to plotnine"
+site_description = "Experimental veraPDF-compliant PDF/A validation, written in Rust"
 site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]
-extra_javascript = ["javascripts/llms.js"]
 nav = [
   { "Home" = "index.md" },
-  { "Gallery" = [
-    "gallery/index.md",
-    "gallery/coal-production.md",
-    "gallery/mondrian.md",
-    "gallery/europe-co2.md",
-    "gallery/area-hover-to-show.md",
-    "gallery/south-france-restaurants.md",
-    "gallery/climate-vulnerability-co2.md",
-    "gallery/household-wealth.md",
-    "gallery/mtcars-linked-panels.md"
-  ] },
-  { "Guides" = [
-    "guide/tooltip.md",
-    "guide/onclick.md",
-    "guide/css.md",
-    "guide/javascript.md",
-    "guide/zoom.md",
-    "guide/effects.md",
-    "guide/animation.md",
-    "guide/quarto.md",
-    "guide/marimo.md",
-    "guide/shiny.md",
-    "guide/streamlit.md",
-    "guide/positron.md",
-    "guide/matplotlib.md",
-    "guide/troubleshooting.md",
-  ] },
   { "API Reference" = [
-    "reference/interactive.md",
-    "reference/css.md",
-    "reference/javascript.md",
-    "reference/effects.md",
+    "reference/cli.md",
+    "reference/rust-crate.md",
+    "reference/python-package.md",
   ] },
-  { "Contributing" = [
-    "contributing.md",
-    "how-it-works.md",
-    "how-to-add-an-example.md",
-    "javascript-reference.md"
-  ] },
+  { "Contributing" = ["contributing.md"] },
 ]
 
 [project.theme]
 language = "en"
-custom_dir = "overrides"
-favicon = "images/favicon.png"
-logo = "https://github.com/JosephBARBIERDARNAL/static/blob/main/python-libs/mai/image.png?raw=true"
 features = [
   "announce.dismiss",
   "content.code.annotate",

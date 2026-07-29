@@ -1,7 +1,9 @@
 # Export recipe parameters so the opt-in veraPDF test can receive its binary.
+
 set export := true
 
 # veraPDF is resolved from PATH unless the caller supplies VERAPDF_BIN.
+
 verapdf_bin := env_var_or_default("VERAPDF_BIN", "verapdf")
 
 # Show the available project commands.
@@ -61,12 +63,16 @@ test-verapdf VERAPDF_BIN=verapdf_bin:
 
 # Validate one PDF; format may be text or json.
 validate file format="text":
-    cargo run --quiet -p mai-cli --bin mai -- validate --profile pdfa-1b --format {{format}} "{{file}}"
+    cargo run --quiet -p mai-cli --bin mai -- validate --profile pdfa-1b --format {{ format }} "{{ file }}"
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:
-    cargo run --quiet -p mai-cli --bin verapdf-diff -- --verapdf "{{verapdf}}" --format {{format}} "{{file}}"
+    cargo run --quiet -p mai-cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
 
 # Remove Cargo build artifacts.
 clean:
     cargo clean
+
+# Serve documentation
+preview:
+    uv run zensical serve

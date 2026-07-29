@@ -2667,15 +2667,33 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "type1_glyph_present"
             | "type1_difference_glyph"
             | "type1_subset_charset_incomplete"
+            | "type1_subset_charset_difference_incomplete"
     ) {
         descriptor.remove(b"FontFile2");
         descriptor.set(
             "FontFile",
             document.add_object(Stream::new(Dictionary::new(), type1_program(&["space"]))),
         );
-        if case == "type1_subset_charset_incomplete" {
+        if matches!(
+            case,
+            "type1_subset_charset_incomplete" | "type1_subset_charset_difference_incomplete"
+        ) {
             descriptor.set("CharSet", Object::string_literal("/.notdef"));
         }
+    } else if matches!(
+        case,
+        "type1c_glyph_missing" | "type1c_glyph_present" | "type1c_width_mismatch"
+    ) {
+        descriptor.remove(b"FontFile2");
+        descriptor.set(
+            "FontFile3",
+            document.add_object(Stream::new(
+                dictionary! {
+                    "Subtype" => "Type1C",
+                },
+                minimal_type1c(case != "type1c_glyph_missing"),
+            )),
+        );
     } else if matches!(
         case,
         "composite_cidset_real_program" | "composite_cidset_nonidentity_real_program"
@@ -2702,7 +2720,12 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 sfnt::minimal_truetype_with_glyph_count(33),
             )),
         );
-    } else if case == "composite_stream_cidmap_missing_glyph" {
+    } else if matches!(
+        case,
+        "composite_stream_cidmap_missing_glyph"
+            | "composite_nonidentity_multibyte_missing_glyph"
+            | "composite_identity_usecmap_missing_glyph"
+    ) {
         descriptor.set(
             "FontFile2",
             document.add_object(Stream::new(
@@ -2735,10 +2758,25 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         font.set("BaseFont", "ABCDEF+MaiTestFont");
     } else if matches!(
         case,
-        "type1_glyph_missing" | "type1_glyph_present" | "type1_difference_glyph"
+        "type1_glyph_missing"
+            | "type1_glyph_present"
+            | "type1_difference_glyph"
+            | "type1_subset_charset_difference_incomplete"
+            | "type1c_glyph_missing"
+            | "type1c_glyph_present"
+            | "type1c_width_mismatch"
     ) {
         font.set("Subtype", "Type1");
-        if case == "type1_difference_glyph" {
+        if case == "type1_subset_charset_difference_incomplete" {
+            font.set("BaseFont", "ABCDEF+MaiTestFont");
+        }
+        if matches!(case, "type1c_glyph_missing" | "type1c_glyph_present") {
+            font.set("Widths", vec![0.into()]);
+        }
+        if matches!(
+            case,
+            "type1_difference_glyph" | "type1_subset_charset_difference_incomplete"
+        ) {
             font.set(
                 "Encoding",
                 dictionary! {
@@ -2746,7 +2784,10 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
-    } else if case == "type1_subset_charset_incomplete" {
+    } else if matches!(
+        case,
+        "type1_subset_charset_incomplete" | "type1_subset_charset_difference_incomplete"
+    ) {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
     }
@@ -2830,7 +2871,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "composite_cmap_wmode_mismatch"
             | "composite_cmap_cid_too_large"
             | "composite_cidset_nonidentity_real_program"
-            | "composite_nonidentity_missing_glyph" => {
+            | "composite_nonidentity_missing_glyph"
+            | "composite_nonidentity_multibyte_missing_glyph"
+            | "composite_identity_usecmap_missing_glyph" => {
                 let cmap_ordering = if case == "composite_cmap_mismatch_system" {
                     "Japan1"
                 } else {
@@ -2851,7 +2894,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                         },
                         "WMode" => dictionary_wmode,
                     },
-                    embedded_cmap(cmap_ordering, content_wmode, cid_start),
+                    if case == "composite_nonidentity_multibyte_missing_glyph" {
+                        embedded_two_byte_cmap(cmap_ordering, content_wmode, cid_start)
+                    } else if case == "composite_identity_usecmap_missing_glyph" {
+                        embedded_identity_usecmap(cmap_ordering, content_wmode)
+                    } else {
+                        embedded_cmap(cmap_ordering, content_wmode, cid_start)
+                    },
                 )))
             }
             _ => Object::Name(b"Identity-H".to_vec()),
@@ -2996,6 +3045,24 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation(
                 "Tj",
                 vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "composite_nonidentity_multibyte_missing_glyph" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "composite_identity_usecmap_missing_glyph" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
             ),
             operation("ET", vec![]),
         ]),
@@ -3164,6 +3231,12 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("Tj", vec![Object::string_literal("!")]),
             operation("ET", vec![]),
         ]),
+        "type1_subset_charset_difference_incomplete" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal("!")]),
+            operation("ET", vec![]),
+        ]),
         "type1_glyph_present" => text_content(0),
         "type1_subset_charset_incomplete" => text_content(0),
         "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch" => content(vec![
@@ -3288,6 +3361,81 @@ fn embedded_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
          1 begincidrange\n\
          <00> <FF> {cid_start}\n\
          endcidrange\n\
+         endcmap\n\
+         CMapName currentdict /CMap defineresource pop\n\
+         end\n\
+         end\n"
+    )
+    .into_bytes()
+}
+
+/// A raw CFF1 program with `.notdef` and, optionally, the standard `space`
+/// glyph. Both charstrings are intentionally minimal but valid endchar-only
+/// programs; the standard charset maps glyph ID one to `space`.
+pub fn minimal_type1c(with_space: bool) -> Vec<u8> {
+    let glyphs = usize::from(with_space) + 1;
+    let mut bytes = vec![1, 0, 4, 0]; // header
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Name INDEX
+    bytes.extend_from_slice(&1_u16.to_be_bytes()); // Top DICT INDEX count
+    bytes.extend_from_slice(&[1, 1, 5]); // offset size, offsets
+    let charstrings_offset = 19usize;
+    let charset_offset = charstrings_offset + 4 + glyphs * 3;
+    bytes.extend_from_slice(&[
+        (charstrings_offset + 139) as u8,
+        17, // CharStrings operator
+        (charset_offset + 139) as u8,
+        15, // charset operator
+    ]);
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // String INDEX
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Global Subrs INDEX
+    bytes.extend_from_slice(&(glyphs as u16).to_be_bytes());
+    bytes.push(1); // CharStrings INDEX offset size
+    for offset in 0..=glyphs {
+        bytes.push((offset * 2 + 1) as u8);
+    }
+    for _ in 0..glyphs {
+        bytes.extend_from_slice(&[139, 14]); // zero width then endchar
+    }
+    bytes.push(0); // charset format 0
+    if with_space {
+        bytes.extend_from_slice(&1_u16.to_be_bytes()); // SID 1 = space
+    }
+    bytes
+}
+
+fn embedded_two_byte_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
+    format!(
+        "/CIDInit /ProcSet findresource begin\n\
+         12 dict begin\n\
+         begincmap\n\
+         /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
+         /CMapName /Mai-CMap def\n\
+         /CMapType 1 def\n\
+         /WMode {wmode} def\n\
+         1 begincodespacerange\n\
+         <0000> <FFFF>\n\
+         endcodespacerange\n\
+         1 begincidrange\n\
+         <0000> <FFFF> {cid_start}\n\
+         endcidrange\n\
+         endcmap\n\
+         CMapName currentdict /CMap defineresource pop\n\
+         end\n\
+         end\n"
+    )
+    .into_bytes()
+}
+
+fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+    format!(
+        "/CIDInit /ProcSet findresource begin\n\
+         12 dict begin\n\
+         begincmap\n\
+         /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
+         /CMapName /Mai-CMap def\n\
+         /CMapType 1 def\n\
+         /WMode {wmode} def\n\
+         /Identity-H usecmap\n\
          endcmap\n\
          CMapName currentdict /CMap defineresource pop\n\
          end\n\
