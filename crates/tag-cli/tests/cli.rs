@@ -16,11 +16,11 @@ fn tag_help_exposes_the_flat_validation_interface() {
 }
 
 #[test]
-fn validation_json_is_a_cli_owned_presentation_of_the_library_report() {
+fn validation_json_uses_the_stable_public_schema() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../tag-validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_tag"))
-        .arg(fixture)
+        .arg(&fixture)
         .args(["--profile", "a-1b", "--json"])
         .output()
         .expect("run PDF validation");
@@ -28,9 +28,44 @@ fn validation_json_is_a_cli_owned_presentation_of_the_library_report() {
     assert_eq!(output.status.code(), Some(2));
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
-    assert_eq!(report["profile"], "pdfa-1b");
-    assert_eq!(report["checks"]["total"], 134);
-    assert_eq!(report["implemented_checks_passed"], false);
+    assert_eq!(report["file"], fixture.display().to_string());
+    assert_eq!(report["profile"], "a-1b");
+    assert_eq!(report["valid"], false);
+    assert!(report["error"].is_null());
+    assert!(
+        report["failures"]
+            .as_array()
+            .is_some_and(|failures| !failures.is_empty())
+    );
+    assert!(report["failures"][0]["rule"].is_string());
+    assert!(report["failures"][0]["message"].is_string());
+}
+
+#[test]
+fn validation_json_reports_parser_and_operational_errors_separately() {
+    let validation = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tag-validation");
+    let malformed = validation.join("tests/fixtures/malformed.pdf");
+    let parser = Command::new(env!("CARGO_BIN_EXE_tag"))
+        .arg(malformed)
+        .args(["--profile", "a-1b", "--json"])
+        .output()
+        .expect("run malformed PDF validation");
+    assert_eq!(parser.status.code(), Some(2));
+    let parser: serde_json::Value = serde_json::from_slice(&parser.stdout).expect("parser JSON");
+    assert_eq!(parser["valid"], false);
+    assert_eq!(parser["failures"], serde_json::json!([]));
+    assert_eq!(parser["error"]["kind"], "parser");
+
+    let missing = Command::new(env!("CARGO_BIN_EXE_tag"))
+        .arg(validation.join("tests/fixtures/missing.pdf"))
+        .args(["--profile", "a-1b", "--json"])
+        .output()
+        .expect("run missing PDF validation");
+    assert_eq!(missing.status.code(), Some(1));
+    let missing: serde_json::Value = serde_json::from_slice(&missing.stdout).expect("missing JSON");
+    assert_eq!(missing["valid"], false);
+    assert_eq!(missing["failures"], serde_json::json!([]));
+    assert_eq!(missing["error"]["kind"], "operational");
 }
 
 #[test]

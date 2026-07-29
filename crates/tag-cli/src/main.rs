@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
-use tag_cli::output::emit_json;
+use tag_cli::output::{JsonValidationReport, emit_json};
 use tag_validation::{SafetyLimits, ValidationProfile, validate_file};
 
 #[derive(Debug, Parser)]
@@ -54,6 +54,14 @@ impl From<ProfileArg> for ValidationProfile {
     }
 }
 
+impl ProfileArg {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::PdfA1b => "a-1b",
+        }
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
     let limits = SafetyLimits {
@@ -62,9 +70,15 @@ fn main() {
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
     };
-    let report = validate_file(&cli.file, cli.profile.into(), &limits);
+    let profile = cli.profile;
+    let report = validate_file(&cli.file, profile.into(), &limits);
     let status = if cli.json {
-        match emit_json(&report, "validation report") {
+        let json = JsonValidationReport::from_report(
+            cli.file.display().to_string(),
+            profile.as_str(),
+            &report,
+        );
+        match emit_json(&json, "validation report") {
             0 => report.exit_code(),
             status => status,
         }

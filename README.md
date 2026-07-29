@@ -37,6 +37,10 @@ Add `--json` to emit the validation report as JSON:
 tag document.pdf --profile a-1b --json
 ```
 
+The JSON API is intentionally small and stable. It contains `file`, `profile`,
+`valid`, and `failures`; parser and operational failures use an `error` object
+instead of a conformance-failure list. It is not veraPDF's report format.
+
 <br>
 
 ## Roadmap
@@ -54,4 +58,3 @@ tag document.pdf --profile a-1b --json
 - [ ] PDF/A-4f
 - [ ] PDF/UA-1
 - [ ] PDF/UA-2
-
