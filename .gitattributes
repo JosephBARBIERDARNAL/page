@@ -1,1 +1,2 @@
 *.pdf binary
+justfile linguist-detectable=false
