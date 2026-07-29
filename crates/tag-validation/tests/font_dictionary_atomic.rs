@@ -10,6 +10,8 @@ const WIDTHS: &str = "PDFA1B-FONT-WIDTHS-001";
 const FILE_SUBTYPE: &str = "PDFA1B-FONT-FILE-SUBTYPE-001";
 const EMBEDDING: &str = "PDFA1B-FONT-EMBEDDING-001";
 const TYPE1_SUBSET_CHARSET: &str = "PDFA1B-TYPE1-SUBSET-CHARSET-001";
+const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";
+const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
 
 const CASES: &[(&str, &[&str])] = &[
     ("font_type_missing", &[TYPE]),
@@ -26,7 +28,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("font_file_subtype_invalid", &[FILE_SUBTYPE]),
     ("type1_subset_missing_charset", &[TYPE1_SUBSET_CHARSET]),
     ("unused_invalid_font", &[]),
-    ("type3_visible", &[]),
+    ("type3_visible", &[TYPE1_GLYPH_PRESENCE, GLYPH_WIDTH]),
 ];
 
 #[test]
