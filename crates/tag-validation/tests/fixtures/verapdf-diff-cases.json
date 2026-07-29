@@ -5,6 +5,11 @@
   },
   "cases": [
     {
+      "path": "tests/fixtures/typst-pdfa-1b.pdf",
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.0 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
+    },
+    {
       "path": "tests/fixtures/structural.pdf",
       "expected_classification": "both_noncompliant",
       "rationale": "The local subset fails missing XMP checks; veraPDF processes the file and reports additional PDF/A-1b failures."

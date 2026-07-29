@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 8] = [
+    let fixtures: [(&str, &[u8], &str); 9] = [
         (
             "encrypted.pdf",
             include_bytes!("fixtures/encrypted.pdf"),
@@ -42,6 +42,11 @@ fn pdf_fixtures_remain_byte_exact() {
             "structural.pdf",
             include_bytes!("fixtures/structural.pdf"),
             "7f57e0bb0d6777c8d9f018e9627f18de8064fc0d717914c6f03b200e2d2b2b50",
+        ),
+        (
+            "typst-pdfa-1b.pdf",
+            include_bytes!("fixtures/typst-pdfa-1b.pdf"),
+            "edb537fa821e49eadb76e64be659b9d42b206b3d3d2d72051b69b497d471068e",
         ),
     ];
 
