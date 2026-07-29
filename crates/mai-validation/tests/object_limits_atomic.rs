@@ -61,9 +61,9 @@ fn object_limit_failures_attach_the_offending_indirect_object() {
             .find(|failure| failure.rule_id == rule_id)
             .expect("targeted object-limit failure");
         assert!(failure.object_id.is_some(), "{case}: missing object ID");
-        assert_eq!(report.checks.total, 108);
+        assert_eq!(report.checks.total, 109);
         assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.checks.passed, 107);
+        assert_eq!(report.checks.passed, 108);
     }
 }
 

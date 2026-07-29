@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 108;
+const TOTAL_RULE_COUNT: usize = 109;
 
 pub fn validate_file(
     path: &Path,
@@ -950,6 +950,10 @@ fn validate_font_dictionaries(
         (
             fonts.invalid_symbolic_truetype_cmaps.as_slice(),
             "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
+        ),
+        (
+            fonts.excessive_graphics_state_nesting.as_slice(),
+            "PDFA1B-GRAPHICS-STATE-NESTING-001",
         ),
     ] {
         aggregate_font_failures(invalid, rule_id, failures);

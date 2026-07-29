@@ -1562,6 +1562,12 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "undefined_operator" => contents = b"1 2 MaiUnknown\n".to_vec(),
         "undefined_in_bx" => contents = b"BX\nMaiUnknown\nEX\n".to_vec(),
         "known_operators" => contents = b"q\n0 0 m\n1 1 l\nS\nQ\n".to_vec(),
+        "graphics_state_nesting_28" => {
+            contents = [vec![b'q'; 0], b"q\n".repeat(28), b"Q\n".repeat(28)].concat()
+        }
+        "graphics_state_nesting_29" => {
+            contents = [vec![b'q'; 0], b"q\n".repeat(29), b"Q\n".repeat(29)].concat()
+        }
         "undefined_form" | "unused_form_undefined" => {
             let form_id = document.add_object(Stream::new(
                 dictionary! {

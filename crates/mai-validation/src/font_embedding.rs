@@ -24,6 +24,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
+    pub(crate) excessive_graphics_state_nesting: Vec<FontEmbeddingFailure>,
 }
 
 #[derive(Clone, Debug)]
@@ -81,6 +82,7 @@ struct Scanner<'a> {
     invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
     invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
     invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
+    excessive_graphics_state_nesting: Vec<FontEmbeddingFailure>,
 }
 
 pub(crate) fn inspect(
@@ -106,6 +108,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
+        excessive_graphics_state_nesting: Vec::new(),
     };
     for (page_number, page_id) in document.get_pages() {
         scanner.scan_page(page_number, page_id)?;
@@ -140,6 +143,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
+        excessive_graphics_state_nesting: scanner.excessive_graphics_state_nesting,
     })
 }
 
@@ -220,6 +224,16 @@ impl Scanner<'_> {
                         return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
                     }
                     stack.push(state.clone());
+                    if stack.len() > 28 {
+                        self.excessive_graphics_state_nesting
+                            .push(FontEmbeddingFailure {
+                                object_id: None,
+                                description: format!(
+                                    "{context} reaches graphics-state nesting depth {}",
+                                    stack.len()
+                                ),
+                            });
+                    }
                 }
                 "Q" => {
                     if let Some(saved) = stack.pop() {

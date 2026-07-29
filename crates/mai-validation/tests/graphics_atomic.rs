@@ -19,6 +19,11 @@ const CASES: &[(&str, &[&str])] = &[
     ("undefined_operator", &["PDFA1B-CONTENT-OPERATOR-001"]),
     ("undefined_in_bx", &["PDFA1B-CONTENT-OPERATOR-001"]),
     ("known_operators", &[]),
+    ("graphics_state_nesting_28", &[]),
+    (
+        "graphics_state_nesting_29",
+        &["PDFA1B-GRAPHICS-STATE-NESTING-001"],
+    ),
     ("undefined_form", &["PDFA1B-CONTENT-OPERATOR-001"]),
     ("unused_form_undefined", &[]),
 ];
@@ -54,9 +59,9 @@ fn undefined_operator_failure_names_the_operator() {
         .find(|failure| failure.rule_id == "PDFA1B-CONTENT-OPERATOR-001")
         .expect("undefined-operator failure");
     assert!(failure.message.contains("MaiUnknown"));
-    assert_eq!(report.checks.total, 108);
+    assert_eq!(report.checks.total, 109);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 107);
+    assert_eq!(report.checks.passed, 108);
 }
 
 fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {

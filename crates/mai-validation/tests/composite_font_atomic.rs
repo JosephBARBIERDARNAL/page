@@ -56,9 +56,9 @@ fn a_single_composite_failure_attaches_the_type0_font() {
         .find(|failure| failure.rule_id == CID_TO_GID)
         .expect("CIDToGIDMap failure");
     assert!(failure.object_id.is_some());
-    assert_eq!(report.checks.total, 108);
+    assert_eq!(report.checks.total, 109);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 107);
+    assert_eq!(report.checks.passed, 108);
 }
 
 fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
