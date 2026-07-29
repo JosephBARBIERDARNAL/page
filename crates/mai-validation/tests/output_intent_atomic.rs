@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 #[allow(dead_code)]
@@ -44,20 +42,7 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn output_intent_cases_have_the_complete_expected_failure_delta() {
-    let baseline = common::failure_ids(&common::output_intent_fixture("baseline"));
-    for (case, expected_added) in CASES {
-        let actual = common::failure_ids(&common::output_intent_fixture(case));
-        let (added, removed) = common::rule_delta(&baseline, &actual);
-        let expected_added = expected_added
-            .iter()
-            .map(|rule_id| (*rule_id).to_owned())
-            .collect::<BTreeSet<_>>();
-        assert_eq!(added, expected_added, "{case}: unexpected added failures");
-        assert!(
-            removed.is_empty(),
-            "{case}: removed baseline failures {removed:?}"
-        );
-    }
+    common::assert_case_deltas(common::output_intent_fixture, "baseline", CASES);
 }
 
 #[test]

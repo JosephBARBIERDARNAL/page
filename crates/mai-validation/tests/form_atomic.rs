@@ -1,59 +1,47 @@
 #[allow(dead_code)]
 mod common;
 
+const CASES: &[(&str, &[&str])] = &[
+    ("baseline", &[]),
+    ("no_acroform", &[]),
+    ("need_appearances_absent", &[]),
+    ("need_appearances_false_indirect", &[]),
+    (
+        "need_appearances_true",
+        &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+    ),
+    (
+        "need_appearances_true_indirect",
+        &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+    ),
+    (
+        "need_appearances_wrong_type",
+        &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+    ),
+    ("need_appearances_null", &[]),
+    ("acroform_wrong_type", &[]),
+    (
+        "acroform_stream_true",
+        &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
+    ),
+    ("widget_missing_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
+    ("widget_empty_ap", &["PDFA1B-ANNOTATION-AP-ENTRIES-001"]),
+    ("widget_wrong_type_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
+    ("widget_stream_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
+    ("widget_indirect_ap", &[]),
+    ("non_widget_missing_ap", &[]),
+    ("field_only_widget_missing_ap", &[]),
+    (
+        "direct_widget_missing_ap",
+        &["PDFA1B-WIDGET-APPEARANCE-001"],
+    ),
+    ("widget_parent_ap_only", &["PDFA1B-WIDGET-APPEARANCE-001"]),
+    ("unreferenced_widget_missing_ap", &[]),
+];
+
 #[test]
 fn form_cases_have_the_complete_expected_failure_delta() {
-    let cases = [
-        ("baseline", &[][..]),
-        ("no_acroform", &[]),
-        ("need_appearances_absent", &[]),
-        ("need_appearances_false_indirect", &[]),
-        (
-            "need_appearances_true",
-            &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
-        ),
-        (
-            "need_appearances_true_indirect",
-            &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
-        ),
-        (
-            "need_appearances_wrong_type",
-            &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
-        ),
-        ("need_appearances_null", &[]),
-        ("acroform_wrong_type", &[]),
-        (
-            "acroform_stream_true",
-            &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
-        ),
-        ("widget_missing_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
-        ("widget_empty_ap", &["PDFA1B-ANNOTATION-AP-ENTRIES-001"]),
-        ("widget_wrong_type_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
-        ("widget_stream_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
-        ("widget_indirect_ap", &[]),
-        ("non_widget_missing_ap", &[]),
-        ("field_only_widget_missing_ap", &[]),
-        (
-            "direct_widget_missing_ap",
-            &["PDFA1B-WIDGET-APPEARANCE-001"],
-        ),
-        ("widget_parent_ap_only", &["PDFA1B-WIDGET-APPEARANCE-001"]),
-        ("unreferenced_widget_missing_ap", &[]),
-    ];
-    let baseline_ids = common::failure_ids(&common::form_fixture("baseline"));
-    for (case, expected) in cases {
-        let bytes = common::form_fixture(case);
-        let report = common::validate(&bytes);
-        let case_ids = common::failure_ids(&bytes);
-        let (added, removed) = common::rule_delta(&baseline_ids, &case_ids);
-        assert_eq!(
-            added,
-            expected.iter().map(|rule| (*rule).to_owned()).collect(),
-            "{case}: unexpected failure delta: {:#?}",
-            report.failures
-        );
-        assert!(removed.is_empty(), "{case}: removed baseline failures");
-    }
+    common::assert_case_deltas(common::form_fixture, "baseline", CASES);
 }
 
 #[test]

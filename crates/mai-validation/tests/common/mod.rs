@@ -62,6 +62,30 @@ pub fn assert_single_failure<'a>(
         .unwrap_or_else(|| panic!("expected failure {rule_id} not found"))
 }
 
+/// Asserts that, relative to `fixture(baseline_case)`'s failures, each
+/// `(case, expected_added_rule_ids)` in `cases` adds exactly those rule IDs
+/// and removes none of the baseline's failures.
+pub fn assert_case_deltas(
+    fixture: fn(&str) -> Vec<u8>,
+    baseline_case: &str,
+    cases: &[(&str, &[&str])],
+) {
+    let baseline = failure_ids(&fixture(baseline_case));
+    for (case, expected_added) in cases {
+        let actual = failure_ids(&fixture(case));
+        let (added, removed) = rule_delta(&baseline, &actual);
+        let expected_added = expected_added
+            .iter()
+            .map(|rule_id| (*rule_id).to_owned())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(added, expected_added, "{case}: unexpected added failures");
+        assert!(
+            removed.is_empty(),
+            "{case}: removed baseline failures {removed:?}"
+        );
+    }
+}
+
 pub fn metadata_fixture(case: &str) -> Vec<u8> {
     let mut xmp = BASE_XMP.to_owned();
     let mut metadata_dictionary = dictionary! {

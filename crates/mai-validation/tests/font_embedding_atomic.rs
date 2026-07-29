@@ -41,7 +41,7 @@ const CASES: &[(&str, bool)] = &[
 ];
 
 #[test]
-fn font_cases_have_the_complete_expected_failure_delta() {
+fn font_embedding_cases_have_the_complete_expected_failure_delta() {
     let baseline = common::failure_ids(&common::font_fixture("baseline_embedded"));
     assert!(!baseline.contains(RULE));
     for (case, should_fail) in CASES {

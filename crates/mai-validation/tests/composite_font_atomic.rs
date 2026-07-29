@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::{env, fs};
 
 use mai_validation::SafetyLimits;
@@ -88,22 +87,7 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
         assert!(!baseline.contains(rule));
     }
 
-    for (case, expected) in CASES {
-        let actual = common::failure_ids(&common::font_fixture(case));
-        let (added, removed) = common::rule_delta(&baseline, &actual);
-        assert_eq!(
-            added,
-            expected
-                .iter()
-                .map(|rule| (*rule).to_owned())
-                .collect::<BTreeSet<_>>(),
-            "{case}: unexpected added failures"
-        );
-        assert!(
-            removed.is_empty(),
-            "{case}: removed baseline failures {removed:?}"
-        );
-    }
+    common::assert_case_deltas(common::font_fixture, "composite_baseline", CASES);
 }
 
 #[test]

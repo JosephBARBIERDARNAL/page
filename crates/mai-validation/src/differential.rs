@@ -185,6 +185,16 @@ pub struct OperationalFailure {
     pub diagnostics: Option<ReferenceDiagnostics>,
 }
 
+impl fmt::Display for OperationalFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "Operational failure ({:?}): {}",
+            self.kind, self.message
+        )
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct DifferentialReport {
     pub file: PathBuf,
@@ -237,11 +247,7 @@ impl fmt::Display for DifferentialReport {
             }
         }
         if let Some(failure) = &self.operational_failure {
-            writeln!(
-                formatter,
-                "Operational failure ({:?}): {}",
-                failure.kind, failure.message
-            )?;
+            writeln!(formatter, "{failure}")?;
         }
         writeln!(
             formatter,
@@ -315,11 +321,7 @@ impl DifferentialRunner {
 
     pub fn compare_file(&self, path: &Path, limits: &SafetyLimits) -> DifferentialReport {
         let local_report = validate_file(path, ValidationProfile::PdfA1b, limits);
-        if local_report
-            .failures
-            .iter()
-            .any(|failure| failure.category == FailureCategory::Operational)
-        {
+        if local_report.has_operational_failure() {
             return self.operational_report(
                 path,
                 local_report,

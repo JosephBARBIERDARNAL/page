@@ -8,36 +8,24 @@ const NAME: &str = "PDFA1B-NAME-LENGTH-001";
 const ARRAY: &str = "PDFA1B-ARRAY-LENGTH-001";
 const DICTIONARY: &str = "PDFA1B-DICTIONARY-LENGTH-001";
 
+const CASES: &[(&str, &[&str])] = &[
+    ("baseline", &[]),
+    ("object_limits_at_boundary", &[]),
+    ("object_integer_high", &[INTEGER]),
+    ("object_integer_low", &[INTEGER]),
+    ("object_real_high", &[REAL]),
+    ("object_real_low", &[REAL]),
+    ("object_string_long", &[STRING]),
+    ("object_name_long", &[NAME]),
+    ("object_dictionary_key_long", &[]),
+    ("object_array_long", &[ARRAY]),
+    ("object_dictionary_long", &[DICTIONARY]),
+    ("object_dictionary_long_nulls", &[]),
+];
+
 #[test]
 fn object_limit_cases_have_the_complete_expected_failure_delta() {
-    let cases = [
-        ("baseline", &[][..]),
-        ("object_limits_at_boundary", &[]),
-        ("object_integer_high", &[INTEGER]),
-        ("object_integer_low", &[INTEGER]),
-        ("object_real_high", &[REAL]),
-        ("object_real_low", &[REAL]),
-        ("object_string_long", &[STRING]),
-        ("object_name_long", &[NAME]),
-        ("object_dictionary_key_long", &[]),
-        ("object_array_long", &[ARRAY]),
-        ("object_dictionary_long", &[DICTIONARY]),
-        ("object_dictionary_long_nulls", &[]),
-    ];
-    let baseline = common::failure_ids(&common::object_limit_fixture("baseline"));
-    for (case, expected) in cases {
-        let actual = common::failure_ids(&common::object_limit_fixture(case));
-        let (added, removed) = common::rule_delta(&baseline, &actual);
-        assert_eq!(
-            added,
-            expected.iter().map(|rule| (*rule).to_owned()).collect(),
-            "{case}: unexpected added failures"
-        );
-        assert!(
-            removed.is_empty(),
-            "{case}: removed baseline failures {removed:?}"
-        );
-    }
+    common::assert_case_deltas(common::object_limit_fixture, "baseline", CASES);
 }
 
 #[test]

@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 #[allow(dead_code)]
 mod common;
 
@@ -73,22 +71,7 @@ fn action_cases_have_the_complete_expected_failure_delta() {
     ] {
         assert!(!baseline.contains(rule));
     }
-    for (case, expected) in CASES {
-        let actual = common::failure_ids(&common::action_fixture(case));
-        let (added, removed) = common::rule_delta(&baseline, &actual);
-        assert_eq!(
-            added,
-            expected
-                .iter()
-                .map(|rule| (*rule).to_owned())
-                .collect::<BTreeSet<_>>(),
-            "{case}: unexpected added failures"
-        );
-        assert!(
-            removed.is_empty(),
-            "{case}: removed baseline failures {removed:?}"
-        );
-    }
+    common::assert_case_deltas(common::action_fixture, "baseline", CASES);
 }
 
 #[test]

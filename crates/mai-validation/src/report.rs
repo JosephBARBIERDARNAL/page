@@ -91,12 +91,17 @@ impl ValidationReport {
         }
     }
 
-    pub fn exit_code(&self) -> i32 {
-        if self
-            .failures
+    /// Whether this report's failures include one recorded as operational
+    /// (unreadable input, a configured safety limit, or report serialization)
+    /// rather than a PDF/A conformance or parser finding.
+    pub fn has_operational_failure(&self) -> bool {
+        self.failures
             .iter()
             .any(|failure| failure.category == FailureCategory::Operational)
-        {
+    }
+
+    pub fn exit_code(&self) -> i32 {
+        if self.has_operational_failure() {
             1
         } else if self.implemented_checks_passed {
             0

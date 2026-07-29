@@ -72,10 +72,7 @@ fn main() {
         Err(failure) => {
             match cli.format {
                 ReportFormat::Text => {
-                    eprintln!(
-                        "Operational reference failure ({:?}): {}",
-                        failure.kind, failure.message
-                    );
+                    eprintln!("{failure}");
                 }
                 ReportFormat::Json => match serde_json::to_string_pretty(&failure) {
                     Ok(json) => eprintln!("{json}"),
