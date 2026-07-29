@@ -1,8 +1,10 @@
 # tag
 
-tag's goal is to provide a fully API-compatible veraPDF alternative written in Rust.
+`tag`'s goal is to provide a fully API-compatible veraPDF alternative written in Rust.
 
-The current implementation is an intentionally narrow milestone toward that goal. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded XMP parsing.
+The current implementation is an intentionally narrow milestone toward that goal. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded XMP parsing. It is not yet a complete PDF/A-1b validator and must not be represented as a veraPDF-compliant replacement.
+
+<br>
 
 ## Install
 
@@ -25,11 +27,25 @@ The repository is a Cargo workspace with two packages:
 
 - [ ] PDF/A-1b (current WIP)
 - [ ] PDF/A-1a 
-- [ ] PDF/A-2 
-- [ ] PDF/A-3 
-- [ ] PDF/A-4 
+- [ ] PDF/A-2a
+- [ ] PDF/A-2b
+- [ ] PDF/A-2u
+- [ ] PDF/A-3a
+- [ ] PDF/A-3b
+- [ ] PDF/A-3u
+- [ ] PDF/A-4
+- [ ] PDF/A-4e
+- [ ] PDF/A-4f
+- [ ] PDF/UA-1
+- [ ] PDF/UA-2
 
 ## PDF/A-1b rules
+
+The list below records project-local checks. A checked item means that `tag`
+evaluates that condition; it does not claim byte-for-byte or object-model
+equivalence with veraPDF. In particular, the XMP 2004 property and value-type
+checks remain bounded approximations and therefore do not provide complete
+coverage of ISO 19005-1 §6.7.9.
 
 - [x] PDF-PARSE-001
 - [x] PDFA1B-ACROFORM-NEED-APPEARANCES-001
@@ -164,9 +180,9 @@ The repository is a Cargo workspace with two packages:
 - [x] ISO 19005-1:2005:6.1.7:1
 - [x] ISO 19005-1:2005:6.1.7:2
 - [x] ISO 19005-1:2005:6.1.8:1
-- [ ] ISO 19005-1:2005:6.3.5:1
-- [ ] ISO 19005-1:2005:6.3.5:2
-- [ ] ISO 19005-1:2005:6.3.5:3
-- [ ] ISO 19005-1:2005:6.3.6:1
-- [ ] ISO 19005-1:2005:6.7.9:2
-- [ ] ISO 19005-1:2005:6.7.9:3
+- [x] ISO 19005-1:2005:6.3.5:1
+- [x] ISO 19005-1:2005:6.3.5:2
+- [x] ISO 19005-1:2005:6.3.5:3
+- [x] ISO 19005-1:2005:6.3.6:1
+- [ ] ISO 19005-1:2005:6.7.9:2 (bounded approximation only)
+- [ ] ISO 19005-1:2005:6.7.9:3 (bounded approximation only)
