@@ -1,12 +1,26 @@
 use std::collections::BTreeSet;
 
 use lopdf::content::{Content, Operation};
+use lopdf::xref::XrefType;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
 use mai_validation::{
     SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_bytes,
 };
 
 mod sfnt;
+
+fn pdf_document() -> Document {
+    let mut document = Document::with_version("1.4");
+    document.reference_table.cross_reference_type = XrefType::CrossReferenceTable;
+    document.trailer.set(
+        "ID",
+        vec![
+            Object::string_literal("0123456789abcdef"),
+            Object::string_literal("0123456789abcdef"),
+        ],
+    );
+    document
+}
 
 /// Splits `actual` against `baseline` into (added, removed) sets.
 pub fn rule_delta<T: Ord + Clone>(
@@ -32,15 +46,15 @@ pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
 }
 
 /// Asserts that `report` has exactly one failure, that it is `rule_id`, and
-/// that the remaining 108 of the 109 implemented checks passed. Returns the
+/// that the remaining 126 of the 127 implemented checks passed. Returns the
 /// matching failure so callers can assert further on it (e.g. `object_id`).
 pub fn assert_single_failure<'a>(
     report: &'a ValidationReport,
     rule_id: &str,
 ) -> &'a ValidationFailure {
-    assert_eq!(report.checks.total, 109);
+    assert_eq!(report.checks.total, 127);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
+    assert_eq!(report.checks.passed, 126);
     report
         .failures
         .iter()
@@ -402,7 +416,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown metadata fixture case {case}"),
     }
 
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let page_id = document.add_object(dictionary! {
         "Type" => "Page",
@@ -434,7 +448,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn output_intent_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let page_id = document.add_object(dictionary! {
         "Type" => "Page",
@@ -588,7 +602,7 @@ pub fn output_intent_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn icc_based_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let valid = icc_header(*b"mntr", *b"RGB ", 2, 1);
     let (class, color_space, version_major, version_minor) = match case {
@@ -1055,7 +1069,7 @@ pub fn icc_based_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn device_color_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let rgb_profile = icc_header(*b"mntr", *b"RGB ", 2, 1);
     let cmyk_profile = icc_header(*b"mntr", *b"CMYK", 2, 1);
@@ -1157,7 +1171,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
             );
             contents = b"/CS1 cs\n".to_vec();
         }
-        "separation_rgb" | "devicen_rgb" => {
+        "separation_rgb" | "devicen_rgb" | "devicen_nine_components" => {
             let tint_transform = dictionary! {
                 "FunctionType" => 2,
                 "Domain" => vec![0.into(), 1.into()],
@@ -1175,7 +1189,15 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
             } else {
                 Object::Array(vec![
                     Object::Name(b"DeviceN".to_vec()),
-                    Object::Array(vec![Object::Name(b"Spot".to_vec())]),
+                    Object::Array(
+                        (0..if case == "devicen_nine_components" {
+                            9
+                        } else {
+                            1
+                        })
+                            .map(|index| Object::Name(format!("Spot{index}").into_bytes()))
+                            .collect(),
+                    ),
                     Object::Name(b"DeviceRGB".to_vec()),
                     Object::Dictionary(tint_transform),
                 ])
@@ -1248,6 +1270,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 | "indexed_rgb"
                 | "separation_rgb"
                 | "devicen_rgb"
+                | "devicen_nine_components"
                 | "pattern_rgb"
         ) {
             cmyk_profile
@@ -1274,7 +1297,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn xobject_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let mut resources = Dictionary::new();
     let mut contents = b"/XO Do\n".to_vec();
@@ -1447,7 +1470,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn graphics_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let mut resources = Dictionary::new();
     let mut contents = Vec::new();
@@ -1534,6 +1557,10 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         }
         "undefined_operator" => contents = b"1 2 MaiUnknown\n".to_vec(),
         "undefined_in_bx" => contents = b"BX\nMaiUnknown\nEX\n".to_vec(),
+        "inline_image_lzw" => contents = b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x EI\n".to_vec(),
+        "inline_image_lzw_array" => {
+            contents = b"BI /W 1 /H 1 /BPC 8 /Filter [/AHx /LZWDecode] ID x EI\n".to_vec()
+        }
         "known_operators" => contents = b"q\n0 0 m\n1 1 l\nS\nQ\n".to_vec(),
         "graphics_state_nesting_28" => {
             contents = [vec![b'q'; 0], b"q\n".repeat(28), b"Q\n".repeat(28)].concat()
@@ -1649,7 +1676,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn annotation_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let appearance_stream = document.add_object(Stream::new(
         dictionary! {
@@ -1810,7 +1837,7 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn action_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let widget_appearance = document.add_object(Stream::new(
         dictionary! {
@@ -2076,7 +2103,7 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn form_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let appearance_stream = document.add_object(Stream::new(
         dictionary! {
@@ -2219,7 +2246,7 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn document_feature_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let contents_id = document.add_object(Stream::new(Dictionary::new(), Vec::new()));
     let page_id = document.add_object(dictionary! {
@@ -2503,7 +2530,7 @@ fn valid_annotation(subtype: &str) -> Dictionary {
 }
 
 pub fn font_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::with_version("1.4");
+    let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let embedded = !matches!(
         case,
@@ -2584,6 +2611,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         font.remove(b"FontDescriptor");
     } else if case == "malformed_descriptor" {
         font.set("FontDescriptor", 42);
+    } else if case == "type1_subset_missing_charset" {
+        font.set("Subtype", "Type1");
+        font.set("BaseFont", "ABCDEF+MaiTestFont");
     }
     if case == "type3_visible" {
         font = dictionary! {
@@ -2608,7 +2638,11 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         let mut descendant_dictionary = dictionary! {
             "Type" => "Font",
             "Subtype" => "CIDFontType2",
-            "BaseFont" => "MaiTestFont",
+            "BaseFont" => if case == "composite_cid_subset_missing_cidset" {
+                Object::Name(b"ABCDEF+MaiTestFont".to_vec())
+            } else {
+                Object::Name(b"MaiTestFont".to_vec())
+            },
             "CIDSystemInfo" => dictionary! {
                 "Registry" => Object::string_literal("Adobe"),
                 "Ordering" => Object::string_literal("Identity"),
@@ -2638,7 +2672,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "composite_cmap_matching"
             | "composite_cmap_mismatch_system"
             | "composite_cmap_wmode_match"
-            | "composite_cmap_wmode_mismatch" => {
+            | "composite_cmap_wmode_mismatch"
+            | "composite_cmap_cid_too_large" => {
                 let cmap_ordering = if case == "composite_cmap_mismatch_system" {
                     "Japan1"
                 } else {
@@ -2647,6 +2682,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 let dictionary_wmode = i64::from(case == "composite_cmap_wmode_match")
                     + i64::from(case == "composite_cmap_wmode_mismatch");
                 let content_wmode = i64::from(case == "composite_cmap_wmode_match");
+                let cid_start = u32::from(case == "composite_cmap_cid_too_large") * 65_536;
                 Object::Reference(document.add_object(Stream::new(
                     dictionary! {
                         "Type" => "CMap",
@@ -2658,7 +2694,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                         },
                         "WMode" => dictionary_wmode,
                     },
-                    embedded_cmap(cmap_ordering, content_wmode),
+                    embedded_cmap(cmap_ordering, content_wmode, cid_start),
                 )))
             }
             _ => Object::Name(b"Identity-H".to_vec()),
@@ -2973,7 +3009,7 @@ fn text_content(rendering_mode: i64) -> Vec<u8> {
     ])
 }
 
-fn embedded_cmap(ordering: &str, wmode: i64) -> Vec<u8> {
+fn embedded_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n\
          12 dict begin\n\
@@ -2986,7 +3022,7 @@ fn embedded_cmap(ordering: &str, wmode: i64) -> Vec<u8> {
          <00> <FF>\n\
          endcodespacerange\n\
          1 begincidrange\n\
-         <00> <FF> 0\n\
+         <00> <FF> {cid_start}\n\
          endcidrange\n\
          endcmap\n\
          CMapName currentdict /CMap defineresource pop\n\

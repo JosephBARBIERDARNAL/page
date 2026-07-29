@@ -26,7 +26,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 109;
+const TOTAL_RULE_COUNT: usize = 127;
 
 pub fn validate_file(
     path: &Path,
@@ -96,6 +96,31 @@ fn validate_document(
             FailureCategory::Conformance,
         ));
         return finish_report(document, profile, failures, 2);
+    }
+    validate_header(&inspections.header, &mut failures);
+    let has_trailer_id = if inspections.header.is_linearized {
+        inspections.header.has_first_linearized_trailer_id
+    } else {
+        document.trailer_id.is_some()
+    };
+    if !has_trailer_id {
+        failures.push(failure(
+            "PDFA1B-TRAILER-ID-001",
+            "the applicable document trailer does not contain an ID entry",
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if inspections.header.is_linearized
+        && document.trailer_id.is_some()
+        && inspections.header.first_linearized_trailer_id != document.trailer_id
+    {
+        failures.push(failure(
+            "PDFA1B-LINEARIZED-TRAILER-ID-001",
+            "the first-page and last trailer ID values differ in a linearized PDF",
+            None,
+            FailureCategory::Conformance,
+        ));
     }
     if !document.catalog_present {
         failures.push(failure(
@@ -221,6 +246,12 @@ fn validate_document(
         Some("direct profile"),
         &mut failures,
     );
+    aggregate_failures_with_location(
+        &inspections.icc_based.invalid_devicen_components,
+        "PDFA1B-DEVICEN-COMPONENTS-001",
+        Some("direct DeviceN space"),
+        &mut failures,
+    );
     validate_device_color_spaces(&document, &inspections.icc_based, &mut failures);
     validate_xobjects(&inspections.xobjects, &mut failures);
     validate_graphics(&inspections.graphics, &inspections.icc_based, &mut failures);
@@ -235,6 +266,33 @@ fn validate_document(
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+fn validate_header(header: &crate::model::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
+    if !header.has_valid_header {
+        failures.push(failure(
+            "PDFA1B-HEADER-001",
+            "the file must start with a PDF header in the form %PDF-n.m",
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if !header.has_binary_comment {
+        failures.push(failure(
+            "PDFA1B-HEADER-BINARY-COMMENT-001",
+            "the PDF header must be immediately followed by a comment with four bytes above 127",
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if header.has_post_eof_data {
+        failures.push(failure(
+            "PDFA1B-POST-EOF-DATA-001",
+            "data follows the last %%EOF marker",
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_object_limits(
@@ -507,6 +565,72 @@ fn validate_stream_safety(
             FailureCategory::Conformance,
         ));
     }
+    if !streams.xref_streams.is_empty() {
+        let object_id = (streams.xref_streams.len() == 1).then(|| streams.xref_streams[0]);
+        failures.push(failure(
+            "PDFA1B-XREF-STREAM-001",
+            "the document contains an xref stream",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    for (invalid, rule_id, message) in [
+        (
+            streams.has_odd_hex_string,
+            "PDFA1B-HEX-STRING-LENGTH-001",
+            "a hexadecimal string contains an odd number of non-whitespace characters",
+        ),
+        (
+            streams.has_non_hex_character,
+            "PDFA1B-HEX-STRING-CHARACTERS-001",
+            "a hexadecimal string contains a non-hexadecimal character",
+        ),
+        (
+            streams.has_invalid_xref_subsection_spacing,
+            "PDFA1B-XREF-SUBSECTION-SPACING-001",
+            "an xref subsection header does not separate its numbers with one SPACE character",
+        ),
+        (
+            streams.has_invalid_xref_eol,
+            "PDFA1B-XREF-EOL-001",
+            "the xref keyword is not followed by exactly one EOL marker",
+        ),
+        (
+            streams.has_invalid_indirect_object_syntax,
+            "PDFA1B-INDIRECT-OBJECT-SYNTAX-001",
+            "an indirect object header or endobj keyword has invalid PDF/A-1 spacing",
+        ),
+    ] {
+        if invalid {
+            failures.push(failure(
+                rule_id,
+                message,
+                None,
+                FailureCategory::Conformance,
+            ));
+        }
+    }
+    for (invalid, rule_id, message) in [
+        (
+            streams.invalid_lengths.as_slice(),
+            "PDFA1B-STREAM-LENGTH-001",
+            "a stream /Length does not match its raw content length",
+        ),
+        (
+            streams.invalid_eol_markers.as_slice(),
+            "PDFA1B-STREAM-EOL-001",
+            "a stream has invalid EOL markers around stream data",
+        ),
+    ] {
+        if !invalid.is_empty() {
+            failures.push(failure(
+                rule_id,
+                message,
+                (invalid.len() == 1).then(|| invalid[0]),
+                FailureCategory::Conformance,
+            ));
+        }
+    }
 }
 
 /// Computes the single object id (when exactly one entry is present) and the
@@ -734,6 +858,14 @@ fn validate_graphics(
             FailureCategory::Conformance,
         ));
     }
+    if let Some(context) = &content.inline_image_lzw_context {
+        failures.push(failure(
+            "PDFA1B-INLINE-IMAGE-LZW-001",
+            format!("{context} declares the forbidden LZW inline-image filter"),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_annotations(
@@ -834,6 +966,18 @@ fn validate_font_dictionaries(
         (
             fonts.invalid_cmap_wmodes.as_slice(),
             "PDFA1B-CMAP-WMODE-001",
+        ),
+        (
+            fonts.invalid_cmap_cids.as_slice(),
+            "PDFA1B-CMAP-CID-RANGE-001",
+        ),
+        (
+            fonts.invalid_type1_subset_charsets.as_slice(),
+            "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        ),
+        (
+            fonts.invalid_cid_subset_cidsets.as_slice(),
+            "PDFA1B-CID-SUBSET-CIDSET-001",
         ),
         (
             fonts.invalid_nonsymbolic_truetype_encodings.as_slice(),
@@ -1139,6 +1283,7 @@ fn failure(
 
 #[cfg(test)]
 mod tests {
+    use lopdf::xref::XrefType;
     use lopdf::{Dictionary, Document, Object, Stream, StringFormat, dictionary};
 
     use super::*;
@@ -1173,12 +1318,95 @@ mod tests {
       </x:xmpmeta>
       <?xpacket end="w"?>"#;
 
+    fn pdf_document() -> Document {
+        let mut document = Document::with_version("1.4");
+        document.reference_table.cross_reference_type = XrefType::CrossReferenceTable;
+        document.trailer.set(
+            "ID",
+            vec![
+                Object::string_literal("0123456789abcdef"),
+                Object::string_literal("0123456789abcdef"),
+            ],
+        );
+        document
+    }
+
     #[test]
     fn accepts_all_implemented_checks() {
         let bytes = fixture(Some(VALID_XMP), true);
         let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
         assert!(report.implemented_checks_passed, "{:#?}", report.failures);
         assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
+    }
+
+    #[test]
+    fn rejects_a_missing_binary_header_comment() {
+        let mut bytes = fixture(Some(VALID_XMP), true);
+        let line_end = bytes
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .expect("PDF header line ending");
+        let comment_start = if bytes[line_end] == b'\r' && bytes.get(line_end + 1) == Some(&b'\n') {
+            line_end + 2
+        } else {
+            line_end + 1
+        };
+        bytes[comment_start + 1..comment_start + 5].copy_from_slice(b"abcd");
+
+        let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+        assert_rule(&report, "PDFA1B-HEADER-BINARY-COMMENT-001");
+        assert_no_rule(&report, "PDFA1B-HEADER-001");
+    }
+
+    #[test]
+    fn rejects_mismatched_linearized_trailer_ids() {
+        let bytes = fixture(Some(VALID_XMP), true);
+        let (mut document, mut inspections) =
+            PdfDocument::from_bytes_with_inspections(&bytes, &SafetyLimits::default())
+                .expect("parse fixture");
+        document.trailer_id = Some(vec![b"last-one".to_vec(), b"last-two".to_vec()]);
+        inspections.header.is_linearized = true;
+        inspections.header.first_linearized_trailer_id =
+            Some(vec![b"first-one".to_vec(), b"first-two".to_vec()]);
+        let report = validate_document(document, inspections, ValidationProfile::PdfA1b);
+        assert_rule(&report, "PDFA1B-LINEARIZED-TRAILER-ID-001");
+    }
+
+    #[test]
+    fn rejects_data_after_the_last_eof_marker() {
+        let mut bytes = fixture(Some(VALID_XMP), true);
+        bytes.extend_from_slice(b"unexpected");
+
+        let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+        assert_rule(&report, "PDFA1B-POST-EOF-DATA-001");
+    }
+
+    #[test]
+    fn rejects_xref_streams() {
+        let bytes = fixture(Some(VALID_XMP), true);
+        let mut document = Document::load_mem(&bytes).expect("load fixture");
+        document.reference_table.cross_reference_type = XrefType::CrossReferenceStream;
+        let mut bytes = Vec::new();
+        document
+            .save_to(&mut bytes)
+            .expect("save fixture with xref stream");
+
+        let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+        assert_rule(&report, "PDFA1B-XREF-STREAM-001");
+    }
+
+    #[test]
+    fn rejects_a_missing_trailer_id() {
+        let bytes = fixture(Some(VALID_XMP), true);
+        let mut document = Document::load_mem(&bytes).expect("load fixture");
+        document.trailer.remove(b"ID");
+        let mut bytes = Vec::new();
+        document
+            .save_to(&mut bytes)
+            .expect("save fixture without ID");
+
+        let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+        assert_rule(&report, "PDFA1B-TRAILER-ID-001");
     }
 
     #[test]
@@ -1538,7 +1766,7 @@ mod tests {
     }
 
     fn fixture_with_root(xmp: Option<&[u8]>, output_intent: bool, indirect_root: bool) -> Vec<u8> {
-        let mut document = Document::with_version("1.4");
+        let mut document = pdf_document();
         let pages_id = document.add_object(dictionary! {
             "Type" => "Pages",
             "Kids" => Vec::<Object>::new(),
@@ -1582,7 +1810,7 @@ mod tests {
         metadata_dictionary: Dictionary,
         info: Option<Dictionary>,
     ) -> Vec<u8> {
-        let mut document = Document::with_version("1.4");
+        let mut document = pdf_document();
         let pages_id = document.add_object(dictionary! {
             "Type" => "Pages",
             "Kids" => Vec::<Object>::new(),

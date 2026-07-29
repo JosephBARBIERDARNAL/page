@@ -21,6 +21,8 @@ pub(crate) struct IccBasedSummary {
     pub(crate) used_extgstate_ids: BTreeSet<ObjectId>,
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
+    pub(crate) inline_image_lzw_context: Option<String>,
+    pub(crate) invalid_devicen_components: Vec<RuleFailure>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -43,6 +45,8 @@ struct Scanner<'a> {
     used_extgstate_ids: BTreeSet<ObjectId>,
     invalid_rendering_intents: BTreeMap<String, String>,
     undefined_operators: BTreeMap<String, String>,
+    inline_image_lzw_context: Option<String>,
+    invalid_devicen_components: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -62,10 +66,23 @@ pub(crate) fn inspect(
         used_extgstate_ids: BTreeSet::new(),
         invalid_rendering_intents: BTreeMap::new(),
         undefined_operators: BTreeMap::new(),
+        inline_image_lzw_context: None,
+        invalid_devicen_components: Vec::new(),
     };
     for (page_number, page_id) in document.get_pages() {
         scanner.scan_page(page_number, page_id)?;
     }
+    scanner
+        .invalid_devicen_components
+        .extend(inspect_all_devicen_components(document, limits)?);
+    scanner.invalid_devicen_components.sort_by(|left, right| {
+        left.object_id
+            .cmp(&right.object_id)
+            .then_with(|| left.description.cmp(&right.description))
+    });
+    scanner.invalid_devicen_components.dedup_by(|left, right| {
+        left.object_id == right.object_id && left.description == right.description
+    });
     Ok(IccBasedSummary {
         failures: scanner.failures.into_values().collect(),
         component_failures: scanner.component_failures.into_values().collect(),
@@ -76,7 +93,88 @@ pub(crate) fn inspect(
         used_extgstate_ids: scanner.used_extgstate_ids,
         invalid_rendering_intents: scanner.invalid_rendering_intents,
         undefined_operators: scanner.undefined_operators,
+        inline_image_lzw_context: scanner.inline_image_lzw_context,
+        invalid_devicen_components: scanner.invalid_devicen_components,
     })
+}
+
+fn inspect_all_devicen_components(
+    document: &Document,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let mut failures = Vec::new();
+    let mut visited = BTreeSet::new();
+    for (object_id, object) in &document.objects {
+        inspect_devicen_object(
+            document,
+            object,
+            Some((*object_id).into()),
+            limits,
+            &mut visited,
+            &mut failures,
+        )?;
+    }
+    Ok(failures)
+}
+
+fn inspect_devicen_object(
+    document: &Document,
+    object: &Object,
+    owner: Option<crate::PdfObjectId>,
+    limits: &SafetyLimits,
+    visited: &mut BTreeSet<ObjectId>,
+    failures: &mut Vec<RuleFailure>,
+) -> Result<(), PdfError> {
+    match object {
+        Object::Reference(object_id) if visited.insert(*object_id) => {
+            if let Ok(referenced) = document.get_object(*object_id) {
+                inspect_devicen_object(
+                    document,
+                    referenced,
+                    Some((*object_id).into()),
+                    limits,
+                    visited,
+                    failures,
+                )?;
+            }
+        }
+        Object::Array(items) => {
+            if items.first().and_then(|item| item.as_name().ok()) == Some(b"DeviceN".as_slice()) {
+                let components = items
+                    .get(1)
+                    .map(|components| {
+                        resolve_optional(document, components, limits.max_reference_depth)
+                    })
+                    .transpose()?
+                    .flatten()
+                    .and_then(|components| components.as_array().ok())
+                    .map_or(0, Vec::len);
+                if components > 8 {
+                    failures.push(RuleFailure {
+                        object_id: owner,
+                        description: format!(
+                            "an object uses a DeviceN colour space with {components} components"
+                        ),
+                    });
+                }
+            }
+            for item in items {
+                inspect_devicen_object(document, item, owner, limits, visited, failures)?;
+            }
+        }
+        Object::Dictionary(dictionary) => {
+            for (_, value) in dictionary.iter() {
+                inspect_devicen_object(document, value, owner, limits, visited, failures)?;
+            }
+        }
+        Object::Stream(stream) => {
+            for (_, value) in stream.dict.iter() {
+                inspect_devicen_object(document, value, owner, limits, visited, failures)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 impl Scanner<'_> {
@@ -149,7 +247,12 @@ impl Scanner<'_> {
                 &format!("{context}/inline image"),
             )?;
         }
-        let Ok(content) = Content::decode(&bytes) else {
+        if inline_image_has_lzw_filter(&bytes) {
+            self.inline_image_lzw_context
+                .get_or_insert_with(|| format!("{context}/inline image"));
+        }
+        let content_bytes = content_without_inline_images(&bytes);
+        let Ok(content) = Content::decode(&content_bytes) else {
             return Ok(());
         };
         for operation in content.operations {
@@ -515,7 +618,27 @@ impl Scanner<'_> {
         let Ok(items) = value.as_array() else {
             return Ok(());
         };
-        let nested = match items.first().and_then(|item| item.as_name().ok()) {
+        let kind = items.first().and_then(|item| item.as_name().ok());
+        if kind == Some(b"DeviceN".as_slice()) {
+            let components = items
+                .get(1)
+                .map(|components| {
+                    resolve_optional(self.document, components, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|components| components.as_array().ok())
+                .map_or(0, Vec::len);
+            if components > 8 {
+                self.invalid_devicen_components.push(RuleFailure {
+                    object_id: value.as_reference().ok().map(Into::into),
+                    description: format!(
+                        "{context} uses a DeviceN colour space with {components} components"
+                    ),
+                });
+            }
+        }
+        let nested = match kind {
             Some(b"Indexed") => items.get(1),
             Some(b"Separation") | Some(b"DeviceN") => items.get(2),
             _ => None,
@@ -802,6 +925,99 @@ fn inline_image_color_space_names(bytes: &[u8]) -> Vec<Vec<u8>> {
     names
 }
 
+fn inline_image_has_lzw_filter(bytes: &[u8]) -> bool {
+    let mut cursor = 0usize;
+    let mut array_depth = 0usize;
+    while let Some((token, next)) = next_content_token(bytes, cursor) {
+        cursor = next;
+        match token {
+            ContentToken::OpenArray => array_depth = array_depth.saturating_add(1),
+            ContentToken::CloseArray => array_depth = array_depth.saturating_sub(1),
+            ContentToken::Bare(token) if array_depth == 0 && token == b"BI" => {
+                let mut filter_value = false;
+                let mut filter_array_depth = None;
+                while let Some((token, next)) = next_content_token(bytes, cursor) {
+                    cursor = next;
+                    match token {
+                        ContentToken::Bare(token) if token == b"ID" => {
+                            cursor = find_inline_image_end(bytes, cursor).unwrap_or(bytes.len());
+                            break;
+                        }
+                        ContentToken::Name(name) if filter_value => {
+                            if is_lzw_filter(&name) {
+                                return true;
+                            }
+                            filter_value = false;
+                        }
+                        ContentToken::OpenArray if filter_value => {
+                            filter_array_depth = Some(1usize);
+                            filter_value = false;
+                        }
+                        ContentToken::OpenArray if filter_array_depth.is_some() => {
+                            filter_array_depth = filter_array_depth.map(|depth| depth + 1);
+                        }
+                        ContentToken::CloseArray if filter_array_depth.is_some() => {
+                            filter_array_depth =
+                                filter_array_depth.and_then(|depth| depth.checked_sub(1));
+                        }
+                        ContentToken::Name(name) if filter_array_depth.is_some() => {
+                            if is_lzw_filter(&name) {
+                                return true;
+                            }
+                        }
+                        ContentToken::Name(name) => {
+                            filter_value = matches!(name.as_slice(), b"F" | b"Filter");
+                        }
+                        _ => filter_value = false,
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Removes inline-image dictionaries and data before using lopdf's content
+/// decoder. Inline images are handled above with the bounded tokenizer because
+/// `Content::decode` does not safely decode every valid inline-image form.
+pub(crate) fn content_without_inline_images(bytes: &[u8]) -> Vec<u8> {
+    let mut result = Vec::with_capacity(bytes.len());
+    let mut cursor = 0usize;
+    let mut retained = 0usize;
+    let mut array_depth = 0usize;
+    while cursor < bytes.len() {
+        let token_start = cursor;
+        let Some((token, next)) = next_content_token(bytes, cursor) else {
+            break;
+        };
+        cursor = next;
+        match token {
+            ContentToken::OpenArray => array_depth = array_depth.saturating_add(1),
+            ContentToken::CloseArray => array_depth = array_depth.saturating_sub(1),
+            ContentToken::Bare(token) if array_depth == 0 && token == b"BI" => {
+                while let Some((token, next)) = next_content_token(bytes, cursor) {
+                    cursor = next;
+                    if matches!(token, ContentToken::Bare(token) if token == b"ID") {
+                        cursor = find_inline_image_end(bytes, cursor).unwrap_or(bytes.len());
+                        result.extend_from_slice(&bytes[retained..token_start]);
+                        result.push(b' ');
+                        retained = cursor;
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    result.extend_from_slice(&bytes[retained..]);
+    result
+}
+
+fn is_lzw_filter(name: &[u8]) -> bool {
+    matches!(name, b"LZW" | b"LZWDecode")
+}
+
 fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, usize)> {
     loop {
         while cursor < bytes.len() && is_pdf_whitespace(bytes[cursor]) {
@@ -927,7 +1143,13 @@ fn resource<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::inline_image_color_space_names;
+    use lopdf::{Document, Object, dictionary};
+
+    use super::{
+        content_without_inline_images, inline_image_color_space_names, inline_image_has_lzw_filter,
+        inspect_all_devicen_components,
+    };
+    use crate::SafetyLimits;
 
     #[test]
     fn extracts_inline_image_resource_names_without_reading_strings_as_operators() {
@@ -946,5 +1168,48 @@ mod tests {
             inline_image_color_space_names(b"BI /CS /C#53#31 /W 1 /H 1 /BPC 8 ID x EI\n"),
             vec![b"CS1".to_vec()]
         );
+    }
+
+    #[test]
+    fn recognizes_forbidden_inline_image_lzw_filter_names_and_arrays() {
+        assert!(inline_image_has_lzw_filter(
+            b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x EI\n"
+        ));
+        assert!(inline_image_has_lzw_filter(
+            b"BI /W 1 /H 1 /BPC 8 /Filter [/AHx /LZWDecode] ID x EI\n"
+        ));
+        assert!(!inline_image_has_lzw_filter(
+            b"BI /W 1 /H 1 /BPC 8 /F /FlateDecode ID x EI\n"
+        ));
+        assert!(!inline_image_has_lzw_filter(
+            b"BI /W 1 /H 1 /BPC 8 /CS /LZW ID x EI\n"
+        ));
+    }
+
+    #[test]
+    fn removes_inline_images_before_lopdf_content_decoding() {
+        assert_eq!(
+            content_without_inline_images(b"q BI /W 1 /H 1 ID x EI Q"),
+            b"q  Q"
+        );
+    }
+
+    #[test]
+    fn finds_oversized_devicen_arrays_outside_executed_content() {
+        let mut document = Document::with_version("1.4");
+        let components = (0..9)
+            .map(|index| Object::Name(format!("Spot{index}").into_bytes()))
+            .collect::<Vec<_>>();
+        document.add_object(dictionary! {
+            "UnusedColorSpace" => vec![
+                Object::Name(b"DeviceN".to_vec()),
+                Object::Array(components),
+                Object::Name(b"DeviceCMYK".to_vec()),
+                Object::Null,
+            ],
+        });
+        let failures = inspect_all_devicen_components(&document, &SafetyLimits::default())
+            .expect("inspect DeviceN");
+        assert_eq!(failures.len(), 1);
     }
 }

@@ -11,6 +11,7 @@ const LAST_CHAR: &str = "PDFA1B-FONT-LASTCHAR-001";
 const WIDTHS: &str = "PDFA1B-FONT-WIDTHS-001";
 const FILE_SUBTYPE: &str = "PDFA1B-FONT-FILE-SUBTYPE-001";
 const EMBEDDING: &str = "PDFA1B-FONT-EMBEDDING-001";
+const TYPE1_SUBSET_CHARSET: &str = "PDFA1B-TYPE1-SUBSET-CHARSET-001";
 
 const CASES: &[(&str, &[&str])] = &[
     ("font_type_missing", &[TYPE]),
@@ -25,6 +26,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("font_widths_wrong_size", &[WIDTHS]),
     ("standard14_missing_metrics", &[EMBEDDING]),
     ("font_file_subtype_invalid", &[FILE_SUBTYPE]),
+    ("type1_subset_missing_charset", &[TYPE1_SUBSET_CHARSET]),
     ("unused_invalid_font", &[]),
     ("type3_visible", &[]),
 ];
@@ -40,6 +42,7 @@ fn font_dictionary_cases_have_the_complete_expected_failure_delta() {
         LAST_CHAR,
         WIDTHS,
         FILE_SUBTYPE,
+        TYPE1_SUBSET_CHARSET,
     ] {
         assert!(!baseline.contains(rule));
     }

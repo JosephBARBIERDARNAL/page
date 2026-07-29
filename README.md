@@ -4,20 +4,12 @@ mai's goal is to provide a fully API-compatible veraPDF alternative written in R
 
 The current implementation is an intentionally narrow milestone toward that goal. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded XMP parsing.
 
-It does **not** implement complete PDF/A-1b validation. Passing means only that the checks listed below found no failure.
-
 The repository is a Cargo workspace with two packages:
 
-- `mai-validation` contains the reusable parser, normalized model, validation
-  rules, reports, safety limits, and veraPDF differential engine.
-- `mai-cli` contains client-side argument parsing, output selection, process
-  exit behavior, and the `mai` and `verapdf-diff` executables. It depends on
-  `mai-validation` through a workspace path dependency.
+- `mai-validation` contains the reusable parser, normalized model, validation rules, reports, safety limits, and veraPDF differential engine.
+- `mai-cli` contains client-side argument parsing, output selection, process exit behavior, and the `mai` and `verapdf-diff` executables. It depends on `mai-validation` through a workspace path dependency.
 
-Validation internals and the CLI are kept separate: `mai-validation` must not
-depend on `mai-cli` or CLI-only dependencies.
-
-
+<br>
 
 ## Roadmap
 
@@ -27,9 +19,7 @@ depend on `mai-cli` or CLI-only dependencies.
 - [ ] PDF/A-3 
 - [ ] PDF/A-4 
 
-### PDF/A-1b rules
-
-#### Implemented
+## PDF/A-1b rules
 
 - [x] PDF-PARSE-001
 - [x] PDFA1B-ACROFORM-NEED-APPEARANCES-001
@@ -140,22 +130,22 @@ depend on `mai-cli` or CLI-only dependencies.
 - [x] PDFA1B-XOBJECT-OPI-001
 - [x] PDFA1B-XOBJECT-POSTSCRIPT-001
 - [x] PDFA1B-XOBJECT-SMASK-001
-- [ ] ISO 19005-1:2005:6.1.10:2
-- [ ] ISO 19005-1:2005:6.1.12:9
-- [ ] ISO 19005-1:2005:6.1.12:10
-- [ ] ISO 19005-1:2005:6.1.2:1
-- [ ] ISO 19005-1:2005:6.1.2:2
-- [ ] ISO 19005-1:2005:6.1.3:1
-- [ ] ISO 19005-1:2005:6.1.3:3
-- [ ] ISO 19005-1:2005:6.1.3:4
-- [ ] ISO 19005-1:2005:6.1.4:1
-- [ ] ISO 19005-1:2005:6.1.4:2
-- [ ] ISO 19005-1:2005:6.1.4:3
-- [ ] ISO 19005-1:2005:6.1.6:1
-- [ ] ISO 19005-1:2005:6.1.6:2
-- [ ] ISO 19005-1:2005:6.1.7:1
-- [ ] ISO 19005-1:2005:6.1.7:2
-- [ ] ISO 19005-1:2005:6.1.8:1
+- [x] ISO 19005-1:2005:6.1.10:2
+- [x] ISO 19005-1:2005:6.1.12:9
+- [x] ISO 19005-1:2005:6.1.12:10
+- [x] ISO 19005-1:2005:6.1.2:1
+- [x] ISO 19005-1:2005:6.1.2:2
+- [x] ISO 19005-1:2005:6.1.3:1
+- [x] ISO 19005-1:2005:6.1.3:3
+- [x] ISO 19005-1:2005:6.1.3:4
+- [x] ISO 19005-1:2005:6.1.4:1
+- [x] ISO 19005-1:2005:6.1.4:2
+- [x] ISO 19005-1:2005:6.1.4:3
+- [x] ISO 19005-1:2005:6.1.6:1
+- [x] ISO 19005-1:2005:6.1.6:2
+- [x] ISO 19005-1:2005:6.1.7:1
+- [x] ISO 19005-1:2005:6.1.7:2
+- [x] ISO 19005-1:2005:6.1.8:1
 - [ ] ISO 19005-1:2005:6.3.5:1
 - [ ] ISO 19005-1:2005:6.3.5:2
 - [ ] ISO 19005-1:2005:6.3.5:3

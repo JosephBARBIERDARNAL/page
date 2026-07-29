@@ -7,6 +7,8 @@ const SYSTEM_INFO: &str = "PDFA1B-TYPE0-CID-SYSTEM-INFO-001";
 const CID_TO_GID: &str = "PDFA1B-CIDTOGIDMAP-001";
 const CMAP_EMBEDDING: &str = "PDFA1B-CMAP-EMBEDDING-001";
 const CMAP_WMODE: &str = "PDFA1B-CMAP-WMODE-001";
+const CMAP_CID_RANGE: &str = "PDFA1B-CMAP-CID-RANGE-001";
+const CID_SUBSET_CIDSET: &str = "PDFA1B-CID-SUBSET-CIDSET-001";
 
 const CASES: &[(&str, &[&str])] = &[
     ("composite_identity_v", &[]),
@@ -18,12 +20,21 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_cmap_mismatch_system", &[SYSTEM_INFO]),
     ("composite_cmap_wmode_match", &[]),
     ("composite_cmap_wmode_mismatch", &[CMAP_WMODE]),
+    ("composite_cmap_cid_too_large", &[CMAP_CID_RANGE]),
+    ("composite_cid_subset_missing_cidset", &[CID_SUBSET_CIDSET]),
 ];
 
 #[test]
 fn composite_font_cases_have_the_complete_expected_failure_delta() {
     let baseline = common::failure_ids(&common::font_fixture("composite_baseline"));
-    for rule in [SYSTEM_INFO, CID_TO_GID, CMAP_EMBEDDING, CMAP_WMODE] {
+    for rule in [
+        SYSTEM_INFO,
+        CID_TO_GID,
+        CMAP_EMBEDDING,
+        CMAP_WMODE,
+        CMAP_CID_RANGE,
+        CID_SUBSET_CIDSET,
+    ] {
         assert!(!baseline.contains(rule));
     }
 

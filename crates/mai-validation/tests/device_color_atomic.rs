@@ -25,6 +25,10 @@ const CASES: &[(&str, &[&str])] = &[
     ("indexed_rgb", &["PDFA1B-DEVICE-RGB-001"]),
     ("separation_rgb", &["PDFA1B-DEVICE-RGB-001"]),
     ("devicen_rgb", &["PDFA1B-DEVICE-RGB-001"]),
+    (
+        "devicen_nine_components",
+        &["PDFA1B-DEVICE-RGB-001", "PDFA1B-DEVICEN-COMPONENTS-001"],
+    ),
     ("pattern_rgb", &[]),
 ];
 

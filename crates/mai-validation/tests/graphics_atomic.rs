@@ -16,6 +16,8 @@ const CASES: &[(&str, &[&str])] = &[
     ("image_intent_invalid", &["PDFA1B-RENDERING-INTENT-001"]),
     ("undefined_operator", &["PDFA1B-CONTENT-OPERATOR-001"]),
     ("undefined_in_bx", &["PDFA1B-CONTENT-OPERATOR-001"]),
+    ("inline_image_lzw", &["PDFA1B-INLINE-IMAGE-LZW-001"]),
+    ("inline_image_lzw_array", &["PDFA1B-INLINE-IMAGE-LZW-001"]),
     ("known_operators", &[]),
     ("graphics_state_nesting_28", &[]),
     (

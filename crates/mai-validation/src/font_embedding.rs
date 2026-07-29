@@ -24,6 +24,9 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_cid_to_gid_maps: Vec<RuleFailure>,
     pub(crate) unembedded_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_cmap_wmodes: Vec<RuleFailure>,
+    pub(crate) invalid_cmap_cids: Vec<RuleFailure>,
+    pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
+    pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
@@ -70,6 +73,9 @@ struct Scanner<'a> {
     invalid_cid_to_gid_maps: Vec<RuleFailure>,
     unembedded_cmaps: Vec<RuleFailure>,
     invalid_cmap_wmodes: Vec<RuleFailure>,
+    invalid_cmap_cids: Vec<RuleFailure>,
+    invalid_type1_subset_charsets: Vec<RuleFailure>,
+    invalid_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
@@ -96,6 +102,9 @@ pub(crate) fn inspect(
         invalid_cid_to_gid_maps: Vec::new(),
         unembedded_cmaps: Vec::new(),
         invalid_cmap_wmodes: Vec::new(),
+        invalid_cmap_cids: Vec::new(),
+        invalid_type1_subset_charsets: Vec::new(),
+        invalid_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
@@ -104,6 +113,17 @@ pub(crate) fn inspect(
     for (page_number, page_id) in document.get_pages() {
         scanner.scan_page(page_number, page_id)?;
     }
+    scanner
+        .invalid_cmap_cids
+        .extend(inspect_all_embedded_cmap_cids(document, limits)?);
+    scanner.invalid_cmap_cids.sort_by(|left, right| {
+        left.object_id
+            .cmp(&right.object_id)
+            .then_with(|| left.description.cmp(&right.description))
+    });
+    scanner.invalid_cmap_cids.dedup_by(|left, right| {
+        left.object_id == right.object_id && left.description == right.description
+    });
 
     let failures = scanner
         .uses
@@ -131,11 +151,38 @@ pub(crate) fn inspect(
         invalid_cid_to_gid_maps: scanner.invalid_cid_to_gid_maps,
         unembedded_cmaps: scanner.unembedded_cmaps,
         invalid_cmap_wmodes: scanner.invalid_cmap_wmodes,
+        invalid_cmap_cids: scanner.invalid_cmap_cids,
+        invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
+        invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
         excessive_graphics_state_nesting: scanner.excessive_graphics_state_nesting,
     })
+}
+
+fn inspect_all_embedded_cmap_cids(
+    document: &Document,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let mut failures = Vec::new();
+    for (object_id, object) in &document.objects {
+        let Ok(stream) = object.as_stream() else {
+            continue;
+        };
+        if !stream.dict.has(b"CMapName") {
+            continue;
+        }
+        let bytes = decode_font_stream(stream, limits)?;
+        if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
+            failures.push(font_failure(
+                Some((*object_id).into()),
+                &format!("embedded CMap stream {} {}", object_id.0, object_id.1),
+                "contains a CID greater than 65,535",
+            ));
+        }
+    }
+    Ok(failures)
 }
 
 impl Scanner<'_> {
@@ -205,7 +252,8 @@ impl Scanner<'_> {
             return Ok(());
         };
         let bytes = decode_content_stream(stream, self.limits, decoded_bytes)?;
-        let Ok(content) = Content::decode(&bytes) else {
+        let content_bytes = crate::icc_based::content_without_inline_images(&bytes);
+        let Ok(content) = Content::decode(&content_bytes) else {
             return Ok(());
         };
         for operation in content.operations {
@@ -393,6 +441,8 @@ impl Scanner<'_> {
             self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
         } else if subtype.as_deref() == Some("TrueType") {
             self.inspect_truetype_font(font, object_id, &selected.description)?;
+        } else if subtype.as_deref() == Some("Type1") {
+            self.inspect_type1_subset_font(font, object_id, &selected.description)?;
         }
         let embedded =
             if rendering_mode == 3 || matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
@@ -480,6 +530,33 @@ impl Scanner<'_> {
         Ok(())
     }
 
+    fn inspect_type1_subset_font(
+        &mut self,
+        font: &Dictionary,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+    ) -> Result<(), PdfError> {
+        let is_subset = font
+            .get(b"BaseFont")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            .is_some_and(is_subset_font_name);
+        if !is_subset {
+            return Ok(());
+        }
+        let has_charset = font_descriptor_dictionary(self.document, font, self.limits)?
+            .and_then(|descriptor| descriptor.get(b"CharSet").ok())
+            .is_some_and(|value| matches!(value, Object::String(_, _)));
+        if !has_charset {
+            self.invalid_type1_subset_charsets.push(font_failure(
+                object_id,
+                description,
+                "is a Type1 subset without a descriptor /CharSet string",
+            ));
+        }
+        Ok(())
+    }
+
     fn inspect_composite_font(
         &mut self,
         font: &Dictionary,
@@ -488,6 +565,9 @@ impl Scanner<'_> {
         rendering_mode: i64,
     ) -> Result<(), PdfError> {
         let descendant = first_descendant_dictionary(self.document, font, self.limits)?;
+        if let Some(descendant) = descendant {
+            self.inspect_cid_subset_font(descendant, object_id, description)?;
+        }
         if let Some(descendant) = descendant
             && descendant
                 .get(b"Subtype")
@@ -556,6 +636,13 @@ impl Scanner<'_> {
             .and_then(as_integer)
             .unwrap_or(0);
         let bytes = decode_font_stream(cmap, self.limits)?;
+        if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
+            self.invalid_cmap_cids.push(font_failure(
+                object_id,
+                description,
+                "uses an embedded CMap with a CID greater than 65,535",
+            ));
+        }
         let content_wmode = cmap_content_wmode(&bytes).unwrap_or(0);
         if dictionary_wmode != content_wmode {
             self.invalid_cmap_wmodes.push(font_failure(
@@ -564,6 +651,36 @@ impl Scanner<'_> {
                 &format!(
                     "has embedded CMap WMode {content_wmode} but dictionary /WMode {dictionary_wmode}"
                 ),
+            ));
+        }
+        Ok(())
+    }
+
+    fn inspect_cid_subset_font(
+        &mut self,
+        font: &Dictionary,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+    ) -> Result<(), PdfError> {
+        let is_subset = font
+            .get(b"BaseFont")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            .is_some_and(is_subset_font_name);
+        if !is_subset {
+            return Ok(());
+        }
+        let has_cid_set = font_descriptor_dictionary(self.document, font, self.limits)?
+            .and_then(|descriptor| descriptor.get(b"CIDSet").ok())
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .is_some_and(|value| value.as_stream().is_ok());
+        if !has_cid_set {
+            self.invalid_cid_subset_cidsets.push(font_failure(
+                object_id,
+                description,
+                "has a CIDFont subset without a descriptor /CIDSet stream",
             ));
         }
         Ok(())
@@ -732,6 +849,86 @@ fn cmap_content_wmode(bytes: &[u8]) -> Option<i64> {
     None
 }
 
+fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
+    let tokens = bytes
+        .split(|byte| byte.is_ascii_whitespace())
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>();
+    let mut maximum = None;
+    let mut cursor = 0usize;
+    while cursor < tokens.len() {
+        let Some(count) = tokens[cursor]
+            .iter()
+            .all(u8::is_ascii_digit)
+            .then(|| {
+                std::str::from_utf8(tokens[cursor])
+                    .ok()?
+                    .parse::<usize>()
+                    .ok()
+            })
+            .flatten()
+        else {
+            cursor += 1;
+            continue;
+        };
+        match tokens.get(cursor + 1).copied() {
+            Some(b"begincidchar") => {
+                for entry in 0..count {
+                    if let Some(cid) = tokens
+                        .get(cursor + 3 + entry * 2)
+                        .and_then(|token| parse_cmap_integer(token))
+                    {
+                        maximum = Some(maximum.unwrap_or(cid).max(cid));
+                    }
+                }
+                cursor += 2 + count * 2;
+            }
+            Some(b"begincidrange") => {
+                for entry in 0..count {
+                    let base = cursor + 2 + entry * 3;
+                    let Some(start) = tokens.get(base).and_then(|token| parse_cmap_hex(token))
+                    else {
+                        continue;
+                    };
+                    let Some(end) = tokens.get(base + 1).and_then(|token| parse_cmap_hex(token))
+                    else {
+                        continue;
+                    };
+                    let Some(cid) = tokens
+                        .get(base + 2)
+                        .and_then(|token| parse_cmap_integer(token))
+                    else {
+                        continue;
+                    };
+                    maximum = Some(
+                        maximum
+                            .unwrap_or(cid)
+                            .max(cid.saturating_add(end.saturating_sub(start))),
+                    );
+                }
+                cursor += 2 + count * 3;
+            }
+            _ => cursor += 1,
+        }
+    }
+    maximum
+}
+
+fn parse_cmap_integer(token: &[u8]) -> Option<u32> {
+    std::str::from_utf8(token).ok()?.parse().ok()
+}
+
+fn parse_cmap_hex(token: &[u8]) -> Option<u32> {
+    let token = token.strip_prefix(b"<")?.strip_suffix(b">")?;
+    std::str::from_utf8(token)
+        .ok()
+        .and_then(|token| u32::from_str_radix(token, 16).ok())
+}
+
+fn is_subset_font_name(name: &[u8]) -> bool {
+    name.len() >= 7 && name[..6].iter().all(u8::is_ascii_uppercase) && name[6] == b'+'
+}
+
 fn font_descriptor_dictionary<'a>(
     document: &'a Document,
     font: &'a Dictionary,
@@ -788,36 +985,10 @@ fn truetype_cmap_count(
         return Ok(None);
     };
     let bytes = decode_font_stream(stream, limits)?;
-    if !valid_sfnt(&bytes) || bytes.len() < 12 {
-        return Ok(None);
-    }
-    let table_count = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));
-    let Some(directory_end) = table_count
-        .checked_mul(16)
-        .and_then(|length| 12usize.checked_add(length))
-    else {
-        return Ok(None);
-    };
-    if directory_end > bytes.len() {
-        return Ok(None);
-    }
-    for record in bytes[12..directory_end].chunks_exact(16) {
-        if &record[..4] != b"cmap" {
-            continue;
-        }
-        let offset =
-            u32::from_be_bytes(record[8..12].try_into().expect("four-byte table offset")) as usize;
-        let length =
-            u32::from_be_bytes(record[12..16].try_into().expect("four-byte table length")) as usize;
-        let Some(table) = bytes.get(offset..offset.saturating_add(length)) else {
-            return Ok(None);
-        };
-        if table.len() < 4 {
-            return Ok(None);
-        }
-        return Ok(Some(usize::from(u16::from_be_bytes([table[2], table[3]]))));
-    }
-    Ok(None)
+    Ok(ttf_parser::Face::parse(&bytes, 0)
+        .ok()
+        .and_then(|face| face.tables().cmap)
+        .map(|cmap| usize::from(cmap.subtables.len())))
 }
 
 fn font_is_embedded(
@@ -1020,5 +1191,43 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
     RuleFailure {
         object_id,
         description: format!("{description} {detail}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lopdf::{Dictionary, Document, Stream};
+
+    use super::{cmap_maximal_cid, inspect_all_embedded_cmap_cids};
+    use crate::SafetyLimits;
+
+    #[test]
+    fn finds_maximum_cid_in_char_and_range_mappings() {
+        assert_eq!(
+            cmap_maximal_cid(b"2 begincidchar <00> 10 <01> 65536 endcidchar"),
+            Some(65_536)
+        );
+        assert_eq!(
+            cmap_maximal_cid(b"1 begincidrange <00> <FF> 65500 endcidrange"),
+            Some(65_755)
+        );
+        assert_eq!(
+            cmap_maximal_cid(b"1 begincidrange <00> <FF> 0 endcidrange"),
+            Some(255)
+        );
+    }
+
+    #[test]
+    fn finds_oversized_cids_in_unused_embedded_cmaps() {
+        let mut document = Document::with_version("1.4");
+        let mut dictionary = Dictionary::new();
+        dictionary.set("CMapName", "Unused-CMap");
+        document.add_object(Stream::new(
+            dictionary,
+            b"1 begincidchar <00> 65536 endcidchar".to_vec(),
+        ));
+        let failures = inspect_all_embedded_cmap_cids(&document, &SafetyLimits::default())
+            .expect("inspect CMaps");
+        assert_eq!(failures.len(), 1);
     }
 }

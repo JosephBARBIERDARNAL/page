@@ -116,6 +116,7 @@ pub struct PdfDocument {
     pub catalog_present: bool,
     pub page_count: usize,
     pub trailer_keys: Vec<String>,
+    pub trailer_id: Option<Vec<Vec<u8>>>,
     pub info: DocumentMetadata,
     pub info_object: Option<PdfObjectId>,
     pub xmp: Option<XmpMetadata>,
@@ -130,6 +131,7 @@ pub struct PdfDocument {
 }
 
 pub(crate) struct InspectionSummary {
+    pub(crate) header: HeaderSummary,
     pub(crate) font_embedding: FontEmbeddingSummary,
     pub(crate) icc_based: crate::icc_based::IccBasedSummary,
     pub(crate) xobjects: crate::xobject::XObjectSummary,
@@ -140,6 +142,16 @@ pub(crate) struct InspectionSummary {
     pub(crate) document_features: crate::document_features::DocumentFeatureSummary,
     pub(crate) object_limits: crate::object_limits::ObjectLimitsSummary,
     pub(crate) stream_safety: crate::stream_safety::StreamSafetySummary,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct HeaderSummary {
+    pub(crate) has_valid_header: bool,
+    pub(crate) has_binary_comment: bool,
+    pub(crate) has_post_eof_data: bool,
+    pub(crate) is_linearized: bool,
+    pub(crate) has_first_linearized_trailer_id: bool,
+    pub(crate) first_linearized_trailer_id: Option<Vec<Vec<u8>>>,
 }
 
 impl PdfDocument {
@@ -154,8 +166,10 @@ impl PdfDocument {
     ) -> Result<(Self, InspectionSummary), PdfError> {
         let document = load_document(bytes, limits)?;
         let normalized = Self::normalize(&document, limits)?;
+        let header = inspect_header(bytes);
         let inspections = if normalized.encrypted {
             InspectionSummary {
+                header,
                 font_embedding: FontEmbeddingSummary::default(),
                 icc_based: crate::icc_based::IccBasedSummary::default(),
                 xobjects: crate::xobject::XObjectSummary::default(),
@@ -176,8 +190,9 @@ impl PdfDocument {
             let forms = crate::forms::inspect(&document, limits)?;
             let document_features = crate::document_features::inspect(&document, limits)?;
             let object_limits = crate::object_limits::inspect(&document);
-            let stream_safety = crate::stream_safety::inspect(&document, limits)?;
+            let stream_safety = crate::stream_safety::inspect(&document, limits, bytes)?;
             InspectionSummary {
+                header,
                 font_embedding: font_embedding::inspect(&document, limits)?,
                 icc_based,
                 xobjects,
@@ -203,6 +218,7 @@ impl PdfDocument {
             .map(|(key, _)| String::from_utf8_lossy(key).into_owned())
             .collect::<Vec<_>>();
         trailer_keys.sort();
+        let trailer_id = extract_trailer_id(document);
 
         // A password-protected document may expose its trailer while keeping
         // referenced objects inaccessible. Encryption alone is enough to fail
@@ -214,6 +230,7 @@ impl PdfDocument {
                 encrypted: true,
                 catalog_reference,
                 trailer_keys,
+                trailer_id,
                 object_count: document.objects.len(),
                 ..Self::default()
             });
@@ -251,6 +268,7 @@ impl PdfDocument {
             catalog_present: catalog.is_some(),
             page_count,
             trailer_keys,
+            trailer_id,
             info,
             info_object,
             xmp,
@@ -263,6 +281,220 @@ impl PdfDocument {
             object_count: document.objects.len(),
         })
     }
+}
+
+fn inspect_header(bytes: &[u8]) -> HeaderSummary {
+    let Some(line_end) = bytes.iter().position(|byte| matches!(byte, b'\r' | b'\n')) else {
+        return HeaderSummary::default();
+    };
+    let header = &bytes[..line_end];
+    let has_valid_header = header.starts_with(b"%PDF-")
+        && header.get(5).is_some_and(u8::is_ascii_digit)
+        && header.get(6) == Some(&b'.')
+        && header.get(7).is_some_and(u8::is_ascii_digit);
+    let comment_start = match bytes.get(line_end) {
+        Some(b'\r') if bytes.get(line_end + 1) == Some(&b'\n') => line_end + 2,
+        Some(_) => line_end + 1,
+        None => return HeaderSummary::default(),
+    };
+    let has_binary_comment = bytes.get(comment_start) == Some(&b'%')
+        && bytes
+            .get(comment_start + 1..comment_start + 5)
+            .is_some_and(|comment| comment.iter().all(|byte| *byte > 127));
+    let has_post_eof_data = bytes
+        .windows(b"%%EOF".len())
+        .rposition(|window| window == b"%%EOF")
+        .is_none_or(|eof_offset| {
+            !matches!(
+                &bytes[eof_offset + b"%%EOF".len()..],
+                b"" | b"\n" | b"\r" | b"\r\n"
+            )
+        });
+    let first_object_end = bytes
+        .windows(b"endobj".len())
+        .position(|window| window == b"endobj")
+        .unwrap_or(bytes.len());
+    let is_linearized = bytes[..first_object_end]
+        .windows(b"/Linearized".len())
+        .any(|window| window == b"/Linearized");
+    let first_linearized_trailer_id = is_linearized
+        .then(|| extract_first_linearized_trailer_id(bytes))
+        .flatten();
+    let has_first_linearized_trailer_id = first_linearized_trailer_id.is_some();
+    HeaderSummary {
+        has_valid_header,
+        has_binary_comment,
+        has_post_eof_data,
+        is_linearized,
+        has_first_linearized_trailer_id,
+        first_linearized_trailer_id,
+    }
+}
+
+fn extract_trailer_id(document: &Document) -> Option<Vec<Vec<u8>>> {
+    let Object::Array(values) = document.trailer.get(b"ID").ok()? else {
+        return None;
+    };
+    (values.len() == 2).then_some(())?;
+    values
+        .iter()
+        .map(|value| match value {
+            Object::String(bytes, _) => Some(bytes.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn extract_first_linearized_trailer_id(bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
+    let xref = find_keyword(bytes, b"xref", 0)?;
+    let trailer = find_keyword(bytes, b"trailer", xref + b"xref".len())?;
+    let end = find_keyword(bytes, b"startxref", trailer + b"trailer".len())?;
+    let trailer = &bytes[trailer + b"trailer".len()..end];
+    let id = find_name(trailer, b"ID")?;
+    parse_id_array(&trailer[id + b"/ID".len()..])
+}
+
+fn find_keyword(bytes: &[u8], keyword: &[u8], start: usize) -> Option<usize> {
+    bytes
+        .get(start..)?
+        .windows(keyword.len())
+        .enumerate()
+        .find_map(|(offset, window)| {
+            let position = start + offset;
+            (window == keyword
+                && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(position + keyword.len()).copied()))
+            .then_some(position)
+        })
+}
+
+fn find_name(bytes: &[u8], name: &[u8]) -> Option<usize> {
+    let mut needle = Vec::with_capacity(name.len() + 1);
+    needle.push(b'/');
+    needle.extend_from_slice(name);
+    bytes
+        .windows(needle.len())
+        .enumerate()
+        .find_map(|(offset, window)| {
+            (window == needle && is_pdf_boundary(bytes.get(offset + needle.len()).copied()))
+                .then_some(offset)
+        })
+}
+
+fn parse_id_array(bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
+    let mut cursor = skip_pdf_whitespace(bytes, 0);
+    (bytes.get(cursor) == Some(&b'[')).then_some(())?;
+    cursor += 1;
+    let first = parse_pdf_string(bytes, &mut cursor)?;
+    let second = parse_pdf_string(bytes, &mut cursor)?;
+    cursor = skip_pdf_whitespace(bytes, cursor);
+    (bytes.get(cursor) == Some(&b']')).then_some(vec![first, second])
+}
+
+fn parse_pdf_string(bytes: &[u8], cursor: &mut usize) -> Option<Vec<u8>> {
+    *cursor = skip_pdf_whitespace(bytes, *cursor);
+    match bytes.get(*cursor)? {
+        b'<' => parse_hex_string(bytes, cursor),
+        b'(' => parse_literal_string(bytes, cursor),
+        _ => None,
+    }
+}
+
+fn parse_hex_string(bytes: &[u8], cursor: &mut usize) -> Option<Vec<u8>> {
+    *cursor += 1;
+    let mut digits = Vec::new();
+    while let Some(byte) = bytes.get(*cursor) {
+        *cursor += 1;
+        if *byte == b'>' {
+            return (digits.len() % 2 == 0).then(|| {
+                digits
+                    .chunks_exact(2)
+                    .map(|pair| Some((hex_value(pair[0])? << 4) | hex_value(pair[1])?))
+                    .collect()
+            })?;
+        }
+        if !byte.is_ascii_whitespace() {
+            hex_value(*byte)?;
+            digits.push(*byte);
+        }
+    }
+    None
+}
+
+fn parse_literal_string(bytes: &[u8], cursor: &mut usize) -> Option<Vec<u8>> {
+    *cursor += 1;
+    let mut nesting = 1;
+    let mut result = Vec::new();
+    while let Some(byte) = bytes.get(*cursor) {
+        *cursor += 1;
+        match *byte {
+            b'(' => {
+                nesting += 1;
+                result.push(*byte);
+            }
+            b')' => {
+                nesting -= 1;
+                if nesting == 0 {
+                    return Some(result);
+                }
+                result.push(*byte);
+            }
+            b'\\' => result.push(parse_literal_escape(bytes, cursor)?),
+            _ => result.push(*byte),
+        }
+    }
+    None
+}
+
+fn parse_literal_escape(bytes: &[u8], cursor: &mut usize) -> Option<u8> {
+    let byte = *bytes.get(*cursor)?;
+    *cursor += 1;
+    Some(match byte {
+        b'n' => b'\n',
+        b'r' => b'\r',
+        b't' => b'\t',
+        b'b' => 8,
+        b'f' => 12,
+        b'\r' => {
+            if bytes.get(*cursor) == Some(&b'\n') {
+                *cursor += 1;
+            }
+            return parse_literal_escape(bytes, cursor);
+        }
+        b'\n' => return parse_literal_escape(bytes, cursor),
+        b'0'..=b'7' => {
+            let mut value = byte - b'0';
+            for _ in 0..2 {
+                let Some(next @ b'0'..=b'7') = bytes.get(*cursor).copied() else {
+                    break;
+                };
+                *cursor += 1;
+                value = value.saturating_mul(8).saturating_add(next - b'0');
+            }
+            value
+        }
+        _ => byte,
+    })
+}
+
+fn skip_pdf_whitespace(bytes: &[u8], mut cursor: usize) -> usize {
+    while bytes.get(cursor).is_some_and(u8::is_ascii_whitespace) {
+        cursor += 1;
+    }
+    cursor
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn is_pdf_boundary(byte: Option<u8>) -> bool {
+    byte.is_none_or(|byte| byte.is_ascii_whitespace() || b"()<>[]{}/%".contains(&byte))
 }
 
 fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfError> {
@@ -644,5 +876,59 @@ mod tests {
         assert_eq!(id, Some(info_id.into()));
         assert_eq!(metadata.values["Title"], "Example");
         assert_eq!(metadata.values["Author"], "Ferris");
+    }
+
+    #[test]
+    fn inspects_pdf_header_and_binary_comment_from_original_bytes() {
+        let valid = inspect_header(b"%PDF-1.4\r\n%\x80\x81\x82\x83\r\n");
+        assert!(valid.has_valid_header);
+        assert!(valid.has_binary_comment);
+
+        let invalid = inspect_header(b"prefix%PDF-1.4\n%\x80\x81\x82\x83\n");
+        assert!(!invalid.has_valid_header);
+        assert!(invalid.has_binary_comment);
+
+        let no_binary_comment = inspect_header(b"%PDF-1.4\n%abcde\n");
+        assert!(no_binary_comment.has_valid_header);
+        assert!(!no_binary_comment.has_binary_comment);
+
+        assert!(!inspect_header(b"%PDF-1.4\n%\x80\x81\x82\x83\n%%EOF\r\n").has_post_eof_data);
+        assert!(inspect_header(b"%PDF-1.4\n%\x80\x81\x82\x83\n%%EOF\nextra").has_post_eof_data);
+
+        let linearized = inspect_header(
+            b"%PDF-1.4\n%\x80\x81\x82\x83\n1 0 obj <</Linearized 1>> endobj\nxref\ntrailer <</ID [(one) (two)]>>\nstartxref\n0\n%%EOF",
+        );
+        assert!(linearized.is_linearized);
+        assert!(linearized.has_first_linearized_trailer_id);
+        assert_eq!(
+            linearized.first_linearized_trailer_id,
+            Some(vec![b"one".to_vec(), b"two".to_vec()])
+        );
+    }
+
+    #[test]
+    fn parses_first_linearized_trailer_hex_and_literal_ids() {
+        let bytes = b"%PDF-1.4\n1 0 obj <</Linearized 1>> endobj\nxref\n0 1\n0000000000 65535 f \ntrailer\n<</ID [<6162> (c\\053)]>>\nstartxref\n0\n%%EOF";
+        assert_eq!(
+            extract_first_linearized_trailer_id(bytes),
+            Some(vec![b"ab".to_vec(), b"c+".to_vec()])
+        );
+    }
+
+    #[test]
+    fn accepts_only_two_string_trailer_ids() {
+        let mut document = Document::with_version("1.4");
+        document
+            .trailer
+            .set("ID", vec![Object::string_literal("one")]);
+        assert_eq!(extract_trailer_id(&document), None);
+        document.trailer.set(
+            "ID",
+            vec![Object::string_literal("one"), Object::string_literal("two")],
+        );
+        assert_eq!(
+            extract_trailer_id(&document),
+            Some(vec![b"one".to_vec(), b"two".to_vec()])
+        );
     }
 }

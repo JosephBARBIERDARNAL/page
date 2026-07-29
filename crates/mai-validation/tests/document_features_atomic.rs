@@ -78,9 +78,9 @@ fn document_feature_failures_attach_the_catalog_object() {
             failure.object_id.is_some(),
             "{case}: missing catalog object ID"
         );
-        assert_eq!(report.checks.total, 109);
+        assert_eq!(report.checks.total, 127);
         let expected_failed = if rule_id == FILE_SPEC { 2 } else { 1 };
         assert_eq!(report.checks.failed, expected_failed);
-        assert_eq!(report.checks.passed, 109 - expected_failed);
+        assert_eq!(report.checks.passed, 127 - expected_failed);
     }
 }
