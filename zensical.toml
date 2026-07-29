@@ -12,7 +12,6 @@ nav = [
     "reference/rust-crate.md",
     "reference/python-package.md",
   ] },
-  { "Contributing" = ["contributing.md"] },
 ]
 
 [project.theme]
