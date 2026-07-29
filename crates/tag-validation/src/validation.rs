@@ -272,28 +272,30 @@ fn validate_document(
         ));
     }
 
-    if let Some(failure) = require_single_declared_value(
-        xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
-        |value| value == "1",
-        "PDFA1B-ID-PART-001",
-        "PDF/A part",
-        "pdfaid:part",
-        "one value 1",
-        document.xmp_object,
-    ) {
-        failures.push(failure);
-    }
+    if xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
+        if let Some(failure) = require_single_declared_value(
+            xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
+            |value| value == "1",
+            "PDFA1B-ID-PART-001",
+            "PDF/A part",
+            "pdfaid:part",
+            "one value 1",
+            document.xmp_object,
+        ) {
+            failures.push(failure);
+        }
 
-    if let Some(failure) = require_single_declared_value(
-        xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
-        |value| matches!(value, "A" | "B"),
-        "PDFA1B-ID-CONFORMANCE-001",
-        "PDF/A conformance",
-        "pdfaid:conformance",
-        "one A or B",
-        document.xmp_object,
-    ) {
-        failures.push(failure);
+        if let Some(failure) = require_single_declared_value(
+            xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
+            |value| matches!(value, "A" | "B"),
+            "PDFA1B-ID-CONFORMANCE-001",
+            "PDF/A conformance",
+            "pdfaid:conformance",
+            "one A or B",
+            document.xmp_object,
+        ) {
+            failures.push(failure);
+        }
     }
 
     validate_info_consistency(&document, &mut failures);
@@ -1271,26 +1273,36 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         |a, b| a == b,
     );
     if let Some(xmp) = xmp {
-        compare_field(
-            document,
-            "CreationDate",
-            &xmp.create_dates,
-            "PDFA1B-INFO-CREATIONDATE-001",
-            "xmp:CreateDate",
-            object_id,
-            failures,
-            dates_equivalent,
-        );
-        compare_field(
-            document,
-            "ModDate",
-            &xmp.modify_dates,
-            "PDFA1B-INFO-MODDATE-001",
-            "xmp:ModifyDate",
-            object_id,
-            failures,
-            dates_equivalent,
-        );
+        if !xmp
+            .invalid_predefined_xmp_value_types
+            .contains("{http://ns.adobe.com/xap/1.0/}CreateDate (date)")
+        {
+            compare_field(
+                document,
+                "CreationDate",
+                &xmp.create_dates,
+                "PDFA1B-INFO-CREATIONDATE-001",
+                "xmp:CreateDate",
+                object_id,
+                failures,
+                dates_equivalent,
+            );
+        }
+        if !xmp
+            .invalid_predefined_xmp_value_types
+            .contains("{http://ns.adobe.com/xap/1.0/}ModifyDate (date)")
+        {
+            compare_field(
+                document,
+                "ModDate",
+                &xmp.modify_dates,
+                "PDFA1B-INFO-MODDATE-001",
+                "xmp:ModifyDate",
+                object_id,
+                failures,
+                dates_equivalent,
+            );
+        }
     }
 }
 
@@ -1565,8 +1577,8 @@ mod tests {
             ValidationProfile::PdfA1b,
             &SafetyLimits::default(),
         );
-        assert_rule(&report, "PDFA1B-ID-PART-001");
-        assert_rule(&report, "PDFA1B-ID-CONFORMANCE-001");
+        assert_rule(&report, "PDFA1B-XMP-001");
+        assert_rule(&report, "PDFA1B-ID-SCHEMA-001");
     }
 
     #[test]

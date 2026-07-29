@@ -12,8 +12,6 @@ const CASES: &[(&str, &[&str])] = &[
         &[
             "PDFA1B-METADATA-STRUCTURE-001",
             "PDFA1B-ID-SCHEMA-001",
-            "PDFA1B-ID-PART-001",
-            "PDFA1B-ID-CONFORMANCE-001",
             "PDFA1B-INFO-TITLE-001",
             "PDFA1B-INFO-AUTHOR-001",
             "PDFA1B-INFO-SUBJECT-001",
@@ -39,7 +37,19 @@ const CASES: &[(&str, &[&str])] = &[
     ("packet_uppercase_bytes", &[]),
     ("packet_unquoted_bytes", &[]),
     ("packet_substring_bytes", &["PDFA1B-XMP-PACKET-BYTES-001"]),
-    ("packet_body_bytes", &[]),
+    (
+        "packet_body_bytes",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
     ("packet_end_bytes", &[]),
     ("packet_first_forbidden_then_clean", &[]),
     (
@@ -164,8 +174,6 @@ const CASES: &[(&str, &[&str])] = &[
         &[
             "PDFA1B-XMP-001",
             "PDFA1B-ID-SCHEMA-001",
-            "PDFA1B-ID-PART-001",
-            "PDFA1B-ID-CONFORMANCE-001",
             "PDFA1B-INFO-TITLE-001",
             "PDFA1B-INFO-AUTHOR-001",
             "PDFA1B-INFO-SUBJECT-001",
@@ -174,19 +182,21 @@ const CASES: &[(&str, &[&str])] = &[
             "PDFA1B-INFO-PRODUCER-001",
         ],
     ),
-    (
-        "missing_identification",
-        &[
-            "PDFA1B-ID-SCHEMA-001",
-            "PDFA1B-ID-PART-001",
-            "PDFA1B-ID-CONFORMANCE-001",
-        ],
-    ),
+    ("missing_identification", &["PDFA1B-ID-SCHEMA-001"]),
     ("wrong_part", &["PDFA1B-ID-PART-001"]),
     ("lowercase_conformance", &["PDFA1B-ID-CONFORMANCE-001"]),
     (
         "duplicate_identification",
-        &["PDFA1B-ID-PART-001", "PDFA1B-ID-CONFORMANCE-001"],
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
     ),
     ("title_mismatch", &["PDFA1B-INFO-TITLE-001"]),
     ("title_whitespace_equivalent", &[]),
@@ -200,10 +210,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("creation_date_mismatch", &["PDFA1B-INFO-CREATIONDATE-001"]),
     (
         "creation_date_invalid",
-        &[
-            "PDFA1B-INFO-CREATIONDATE-001",
-            "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
-        ],
+        &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
     ),
     ("mod_date_mismatch", &["PDFA1B-INFO-MODDATE-001"]),
     ("author_multiple", &["PDFA1B-INFO-AUTHOR-001"]),

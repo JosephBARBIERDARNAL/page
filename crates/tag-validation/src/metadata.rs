@@ -73,6 +73,8 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     };
     let document =
         Document::parse_with_options(&xml, options).map_err(|error| error.to_string())?;
+    validate_rdf_description_attributes(&document)?;
+    validate_pdfa_identification_properties(&document)?;
     let packet_header = xmp_packet_header(&document);
     let extension_schema_failed_tests = inspect_extension_schemas(&document, &xml);
     let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(&document);
@@ -121,6 +123,52 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         invalid_extension_xmp_value_types,
         identification_prefix_failed_tests,
     })
+}
+
+/// RDF/XML property attributes must be namespace-qualified.  `roxmltree`
+/// accepts a bare attribute syntactically, but veraPDF's XMP model rejects it
+/// rather than treating it as an undeclared XMP property.
+fn validate_rdf_description_attributes(document: &Document<'_>) -> Result<(), String> {
+    for description in document.descendants().filter(|node| {
+        node.is_element()
+            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && node.tag_name().name() == "Description"
+    }) {
+        if let Some(attribute) = description
+            .attributes()
+            .find(|attribute| attribute.namespace().is_none())
+        {
+            return Err(format!(
+                "rdf:Description contains unqualified attribute {:?}",
+                attribute.name()
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// The XMP parser used by veraPDF rejects repeated PDF/A identification
+/// properties rather than choosing one declaration.  Keep that failure at the
+/// XMP layer so later PDF/A identification predicates remain inapplicable.
+fn validate_pdfa_identification_properties(document: &Document<'_>) -> Result<(), String> {
+    let mut seen = BTreeSet::new();
+    for node in document.descendants().filter(|node| node.is_element()) {
+        let mut properties = Vec::new();
+        if node.tag_name().namespace() == Some(PDFA_ID_NAMESPACE) {
+            properties.push(node.tag_name().name());
+        }
+        properties.extend(node.attributes().filter_map(|attribute| {
+            (attribute.namespace() == Some(PDFA_ID_NAMESPACE)).then_some(attribute.name())
+        }));
+        for property in properties {
+            if matches!(property, "part" | "conformance" | "amd") && !seen.insert(property) {
+                return Err(format!(
+                    "PDF/A identification property {property:?} is declared more than once"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn inspect_predefined_xmp_properties(document: &Document<'_>) -> BTreeSet<String> {
@@ -1743,15 +1791,14 @@ mod tests {
     }
 
     #[test]
-    fn retains_duplicate_identification_values() {
+    fn rejects_duplicate_identification_values() {
         let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
           <rdf:Description pdfaid:part="1" pdfaid:conformance="B"/>
           <rdf:Description pdfaid:part="2" pdfaid:conformance="A"/>
         </rdf:RDF>"#;
-        let parsed = parse_xmp(xmp).expect("valid XMP");
-        assert_eq!(parsed.pdfa_parts, ["1", "2"]);
-        assert_eq!(parsed.pdfa_conformances, ["B", "A"]);
+        let error = parse_xmp(xmp).expect_err("duplicate identification must be rejected");
+        assert!(error.contains("declared more than once"), "{error}");
     }
 
     #[test]
@@ -1770,6 +1817,16 @@ mod tests {
     fn rejects_malformed_xmp_and_dtd() {
         assert!(parse_xmp(b"<rdf:RDF>").is_err());
         assert!(parse_xmp(b"<!DOCTYPE x><x/>").is_err());
+    }
+
+    #[test]
+    fn rejects_unqualified_rdf_description_attributes() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+          <rdf:Description bytes="123" pdfaid:part="1"/>
+        </rdf:RDF>"#;
+        let error = parse_xmp(xmp).expect_err("bare RDF/XML attribute must be rejected");
+        assert!(error.contains("unqualified attribute \"bytes\""), "{error}");
     }
 
     #[test]

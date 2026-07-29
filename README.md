@@ -1,8 +1,8 @@
 # tag
 
-`tag`'s goal is to provide a fully API-compatible veraPDF alternative written in Rust.
+`tag` is an experimental PDF/A and PDF/UA validator, written in Rust.
 
-The current implementation is an intentionally narrow milestone toward that goal. It uses `lopdf` for strict PDF parsing and `roxmltree` for bounded XMP parsing. It is not yet a complete PDF/A-1b validator and must not be represented as a veraPDF-compliant replacement.
+The current implementation is an intentionally narrow milestone toward that goal.
 
 <br>
 
@@ -186,3 +186,21 @@ coverage of ISO 19005-1 §6.7.9.
 - [x] ISO 19005-1:2005:6.3.6:1
 - [ ] ISO 19005-1:2005:6.7.9:2 (bounded approximation only)
 - [ ] ISO 19005-1:2005:6.7.9:3 (bounded approximation only)
+
+## Verification
+
+Run the offline workspace checks with:
+
+```sh
+just check
+```
+
+The regression corpus can also be compared with the pinned veraPDF 1.28.2
+reference implementation:
+
+```sh
+VERAPDF_BIN=/path/to/verapdf just test-verapdf
+```
+
+This differential suite verifies its listed fixtures and atomic cases; it is
+not, by itself, evidence of complete PDF/A-1b conformance.
