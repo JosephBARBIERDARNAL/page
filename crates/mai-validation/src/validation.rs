@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 99;
+const TOTAL_RULE_COUNT: usize = 101;
 
 pub fn validate_file(
     path: &Path,
@@ -216,6 +216,7 @@ fn validate_document(
     validate_actions(&inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
     validate_document_features(&inspections.document_features, &mut failures);
+    validate_stream_safety(&inspections.stream_safety, &mut failures);
 
     validate_font_dictionaries(&inspections.font_embedding, &mut failures);
     validate_font_embedding(&inspections.font_embedding, &mut failures);
@@ -408,6 +409,44 @@ fn validate_document_features(
         failures.push(failure(
             "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
             "a file specification in the EmbeddedFiles name tree contains an EF entry",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_stream_safety(
+    streams: &crate::stream_safety::StreamSafetySummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if !streams.external_stream_entries.is_empty() {
+        let object_id = (streams.external_stream_entries.len() == 1)
+            .then(|| streams.external_stream_entries[0].object_id);
+        let description = streams
+            .external_stream_entries
+            .iter()
+            .map(|stream| {
+                format!(
+                    "stream object {} {} contains {}",
+                    stream.object_id.object_number,
+                    stream.object_id.generation,
+                    stream.keys.join(", ")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        failures.push(failure(
+            "PDFA1B-STREAM-EXTERNAL-DATA-001",
+            description,
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if !streams.lzw_filters.is_empty() {
+        let object_id = (streams.lzw_filters.len() == 1).then(|| streams.lzw_filters[0]);
+        failures.push(failure(
+            "PDFA1B-STREAM-LZW-001",
+            "a parsed stream declares the forbidden LZWDecode filter",
             object_id,
             FailureCategory::Conformance,
         ));

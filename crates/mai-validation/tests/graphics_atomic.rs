@@ -54,9 +54,9 @@ fn undefined_operator_failure_names_the_operator() {
         .find(|failure| failure.rule_id == "PDFA1B-CONTENT-OPERATOR-001")
         .expect("undefined-operator failure");
     assert!(failure.message.contains("MaiUnknown"));
-    assert_eq!(report.checks.total, 99);
+    assert_eq!(report.checks.total, 101);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 98);
+    assert_eq!(report.checks.passed, 100);
 }
 
 fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {

@@ -16,6 +16,7 @@ mod limits;
 mod metadata;
 mod model;
 mod report;
+mod stream_safety;
 mod validation;
 mod xobject;
 

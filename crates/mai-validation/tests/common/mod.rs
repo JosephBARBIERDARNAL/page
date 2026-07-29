@@ -2430,6 +2430,40 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "stream_f" => {
+            document.add_object(Stream::new(dictionary! {"F" => "external"}, Vec::new()));
+        }
+        "stream_ffilter" => {
+            document.add_object(Stream::new(
+                dictionary! {"FFilter" => "FlateDecode"},
+                Vec::new(),
+            ));
+        }
+        "stream_fdecodeparms" => {
+            document.add_object(Stream::new(dictionary! {"FDecodeParms" => 42}, Vec::new()));
+        }
+        "stream_external_null" => {
+            document.add_object(Stream::new(dictionary! {"F" => Object::Null}, Vec::new()));
+        }
+        "stream_lzwdecode" => {
+            document.add_object(Stream::new(
+                dictionary! {"Filter" => "LZWDecode"},
+                Vec::new(),
+            ));
+        }
+        "stream_lzwdecode_array" => {
+            document.add_object(Stream::new(
+                dictionary! {"Filter" => vec!["FlateDecode".into(), "LZWDecode".into()]},
+                Vec::new(),
+            ));
+        }
+        "stream_lzwdecode_indirect" => {
+            let filter = document.add_object("LZWDecode");
+            document.add_object(Stream::new(dictionary! {"Filter" => filter}, Vec::new()));
+        }
+        "stream_lzw_short_name" => {
+            document.add_object(Stream::new(dictionary! {"Filter" => "LZW"}, Vec::new()));
+        }
         "ocproperties_dictionary" => catalog.set("OCProperties", Dictionary::new()),
         "ocproperties_wrong_type" => catalog.set("OCProperties", 42),
         "ocproperties_null" => catalog.set("OCProperties", Object::Null),

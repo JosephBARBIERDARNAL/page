@@ -2815,6 +2815,70 @@
       "rationale": "File specifications in child name-tree nodes are recursively reached."
     },
     {
+      "name": "stream_f",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A stream dictionary's F entry is forbidden even when the stream is otherwise unreferenced."
+    },
+    {
+      "name": "stream_ffilter",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A stream dictionary's FFilter entry is forbidden regardless of value type."
+    },
+    {
+      "name": "stream_fdecodeparms",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A stream dictionary's FDecodeParms entry is forbidden regardless of value type."
+    },
+    {
+      "name": "stream_external_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "rationale": "A direct null stream entry is empty in the pinned COS model."
+    },
+    {
+      "name": "stream_lzwdecode",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A direct LZWDecode stream filter is forbidden."
+    },
+    {
+      "name": "stream_lzwdecode_array",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Every filter in a stream Filter array participates in the pinned predicate."
+    },
+    {
+      "name": "stream_lzwdecode_indirect",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirectly stored LZWDecode name is resolved by the stream filter model."
+    },
+    {
+      "name": "stream_lzw_short_name",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-LZW-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
+      "rationale": "The ordinary stream rule tests only LZWDecode, not the inline-image LZW alias."
+    },
+    {
       "name": "ocproperties_dictionary",
       "expected_local_failed_rule_ids": ["PDFA1B-OPTIONAL-CONTENT-001"],
       "expected_local_passed_rule_ids": [],

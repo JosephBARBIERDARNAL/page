@@ -96,8 +96,8 @@ fn a_single_indirect_form_failure_attaches_its_owner() {
             .find(|failure| failure.rule_id == rule_id)
             .expect("targeted form failure");
         assert!(failure.object_id.is_some(), "{case}: missing object ID");
-        assert_eq!(report.checks.total, 99);
+        assert_eq!(report.checks.total, 101);
         assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.checks.passed, 98);
+        assert_eq!(report.checks.passed, 100);
     }
 }

@@ -73,9 +73,9 @@ fn a_single_transparency_failure_attaches_its_owner() {
         .find(|failure| failure.rule_id == BLEND_MODE)
         .expect("blend-mode failure");
     assert!(failure.object_id.is_some());
-    assert_eq!(report.checks.total, 99);
+    assert_eq!(report.checks.total, 101);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 98);
+    assert_eq!(report.checks.passed, 100);
 }
 
 fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
