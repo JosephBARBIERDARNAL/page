@@ -2668,11 +2668,19 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "type1_difference_glyph"
             | "type1_subset_charset_incomplete"
             | "type1_subset_charset_difference_incomplete"
+            | "type1_width_mismatch"
     ) {
         descriptor.remove(b"FontFile2");
         descriptor.set(
             "FontFile",
-            document.add_object(Stream::new(Dictionary::new(), type1_program(&["space"]))),
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                if case == "type1_width_mismatch" {
+                    type1_program_with_width(500)
+                } else {
+                    type1_program(&["space"])
+                },
+            )),
         );
         if matches!(
             case,
@@ -2787,6 +2795,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "type1_glyph_present"
             | "type1_difference_glyph"
             | "type1_subset_charset_difference_incomplete"
+            | "type1_width_mismatch"
             | "type1c_glyph_missing"
             | "type1c_glyph_present"
             | "type1c_width_mismatch"
@@ -2808,6 +2817,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                     "Differences" => Object::Array(vec![33.into(), Object::Name(b"space".to_vec())]),
                 },
             );
+        }
+        if case == "type1_width_mismatch" {
+            font.set("Widths", vec![400.into()]);
         }
     } else if matches!(
         case,
@@ -3369,6 +3381,56 @@ fn type1_program(char_names: &[&str]) -> Vec<u8> {
             .into_bytes(),
     ]
     .concat();
+    let mut state = 55_665_u16;
+    let encrypted = plaintext
+        .into_iter()
+        .map(|plaintext| {
+            let ciphertext = plaintext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            ciphertext
+        })
+        .collect::<Vec<_>>();
+    [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat()
+}
+
+fn type1_program_with_width(width: u16) -> Vec<u8> {
+    let encode_number = |value: u16| -> Vec<u8> {
+        if value <= 107 {
+            vec![(value + 139) as u8]
+        } else {
+            let value = value - 108;
+            vec![(247 + value / 256) as u8, (value % 256) as u8]
+        }
+    };
+    let mut charstring = vec![0, 0, 0, 0];
+    charstring.extend(encode_number(0));
+    charstring.extend(encode_number(width));
+    charstring.extend([13, 14]); // hsbw, endchar
+    let mut state = 4_330_u16;
+    let encrypted_charstring = charstring
+        .into_iter()
+        .map(|plaintext| {
+            let ciphertext = plaintext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            ciphertext
+        })
+        .collect::<Vec<_>>();
+    let mut plaintext = vec![0, 0, 0, 0];
+    plaintext.extend_from_slice(
+        format!(
+            "dup /Private 2 dict dup begin /lenIV 4 def /CharStrings 1 dict dup begin /space {} RD ",
+            encrypted_charstring.len()
+        )
+        .as_bytes(),
+    );
+    plaintext.extend_from_slice(&encrypted_charstring);
+    plaintext.extend_from_slice(b" ND end end");
     let mut state = 55_665_u16;
     let encrypted = plaintext
         .into_iter()

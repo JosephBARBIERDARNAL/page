@@ -827,7 +827,7 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
+            if (program_width - dictionary_width).abs() > 1.0 {
                 self.inconsistent_truetype_widths.push(font_failure(
                     usage.object_id,
                     &usage.description,
@@ -951,10 +951,17 @@ impl Scanner<'_> {
                 continue;
             };
             let program_names = type1_program_char_names(&decode_font_stream(stream, self.limits)?);
+            let program_widths =
+                type1_program_charstring_widths(&decode_font_stream(stream, self.limits)?);
             if program_names.is_empty() {
                 continue;
             }
             let differences = type1_encoding_differences(self.document, font, self.limits)?;
+            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let widths = font
+                .get(b"Widths")
+                .ok()
+                .and_then(|value| value.as_array().ok());
             for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
                 let Some(name) = differences
                     .get(&byte)
@@ -968,6 +975,32 @@ impl Scanner<'_> {
                         usage.object_id,
                         &usage.description,
                         &format!("has no embedded Type1 glyph for rendered byte {byte}"),
+                    ));
+                    continue;
+                }
+                let (Some(program_width), Some(first_char), Some(widths)) =
+                    (program_widths.get(name), first_char, widths)
+                else {
+                    continue;
+                };
+                let Some(index) = i64::from(byte).checked_sub(first_char) else {
+                    continue;
+                };
+                let Ok(index) = usize::try_from(index) else {
+                    continue;
+                };
+                let Some(dictionary_width) =
+                    widths.get(index).and_then(|value| value.as_float().ok())
+                else {
+                    continue;
+                };
+                if (*program_width - f64::from(dictionary_width)).abs() > 1.0 {
+                    self.inconsistent_truetype_widths.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!(
+                            "has rendered byte {byte} width {program_width:.3} in its embedded Type1 program but {dictionary_width:.3} in /Widths"
+                        ),
                     ));
                 }
             }
@@ -1119,12 +1152,6 @@ impl Scanner<'_> {
                     .ok()
                     .and_then(|value| value.as_name().ok())
                     .is_some_and(is_subset_font_name)
-                || descendant_subtype == Some(b"CIDFontType2".as_slice())
-                    && descendant
-                        .get(b"CIDToGIDMap")
-                        .ok()
-                        .and_then(|value| value.as_name().ok())
-                        != Some(b"Identity".as_slice())
             {
                 continue;
             }
@@ -1951,6 +1978,145 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
         .collect()
 }
 
+fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
+    let bytes = type1_pfb_payload(bytes);
+    let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
+        return BTreeMap::new();
+    };
+    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
+    let mut state = 55_665_u16;
+    let plaintext: Vec<_> = ciphertext
+        .into_iter()
+        .map(|ciphertext| {
+            let plaintext = ciphertext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            plaintext
+        })
+        .skip(4)
+        .collect();
+    let len_iv = plaintext
+        .windows(b"/lenIV".len())
+        .position(|window| window == b"/lenIV")
+        .and_then(|position| parse_ascii_integer(&plaintext[position + 6..]))
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(4);
+    let Some(charstrings) = plaintext
+        .windows(b"/CharStrings".len())
+        .position(|window| window == b"/CharStrings")
+    else {
+        return BTreeMap::new();
+    };
+    let mut result = BTreeMap::new();
+    let mut position = charstrings + b"/CharStrings".len();
+    while let Some(relative) = plaintext[position..].iter().position(|byte| *byte == b'/') {
+        position += relative + 1;
+        let name_start = position;
+        while plaintext
+            .get(position)
+            .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'.')
+        {
+            position += 1;
+        }
+        if position == name_start {
+            continue;
+        }
+        let name = String::from_utf8_lossy(&plaintext[name_start..position]).into_owned();
+        while plaintext
+            .get(position)
+            .is_some_and(|byte| byte.is_ascii_whitespace())
+        {
+            position += 1;
+        }
+        let Some(length) = parse_ascii_integer(&plaintext[position..])
+            .and_then(|value| usize::try_from(value).ok())
+        else {
+            break;
+        };
+        while plaintext
+            .get(position)
+            .is_some_and(|byte| !byte.is_ascii_whitespace())
+        {
+            position += 1;
+        }
+        while plaintext
+            .get(position)
+            .is_some_and(|byte| byte.is_ascii_whitespace())
+        {
+            position += 1;
+        }
+        if plaintext.get(position..position + 2) != Some(b"RD") {
+            continue;
+        }
+        position += 2;
+        while plaintext
+            .get(position)
+            .is_some_and(|byte| byte.is_ascii_whitespace())
+        {
+            position += 1;
+        }
+        let Some(end) = position.checked_add(length) else {
+            break;
+        };
+        let Some(charstring) = plaintext.get(position..end) else {
+            break;
+        };
+        if let Some(width) = type1_charstring_width(charstring, len_iv) {
+            result.insert(name, width);
+        }
+        position = end;
+    }
+    result
+}
+
+fn type1_charstring_width(bytes: &[u8], len_iv: usize) -> Option<f64> {
+    let mut state = 4_330_u16;
+    let decrypted: Vec<_> = bytes
+        .iter()
+        .copied()
+        .map(|ciphertext| {
+            let plaintext = ciphertext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            plaintext
+        })
+        .skip(len_iv)
+        .collect();
+    let mut operands = Vec::new();
+    let mut position = 0;
+    while position < decrypted.len() {
+        if let Some((value, consumed)) = cff_number(&decrypted[position..]) {
+            operands.push(value);
+            position += consumed;
+            continue;
+        }
+        let byte = decrypted[position];
+        if byte == 13 && operands.len() >= 2 {
+            return operands.get(1).copied();
+        }
+        if byte == 12 && decrypted.get(position + 1) == Some(&7) && operands.len() >= 3 {
+            return operands.get(2).copied();
+        }
+        return None;
+    }
+    None
+}
+
+fn parse_ascii_integer(bytes: &[u8]) -> Option<i64> {
+    let mut end = 0;
+    while bytes
+        .get(end)
+        .is_some_and(|byte| byte.is_ascii_whitespace() || byte.is_ascii_digit() || *byte == b'-')
+    {
+        end += 1;
+    }
+    std::str::from_utf8(&bytes[..end]).ok()?.trim().parse().ok()
+}
+
 fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
     let bytes = bytes
         .iter()
@@ -1991,7 +2157,7 @@ fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16) -> Option<f64> {
     let fd_select_offset = cff_dict_offset(&top_dict, 1237)?;
     let fd_index = cff_fd_select(bytes, fd_select_offset, glyph_id)?;
     let (fd_array, _) = cff_index(bytes, fd_array_offset)?;
-    let fd_dict = cff_dict(*fd_array.get(usize::from(fd_index))?);
+    let fd_dict = cff_dict(fd_array.get(usize::from(fd_index))?);
     let private_values = fd_dict.get(&18)?;
     let private_size = usize::try_from(private_values.first().copied()? as i64).ok()?;
     let private_offset = usize::try_from(private_values.get(1).copied()? as i64).ok()?;

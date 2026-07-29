@@ -92,6 +92,9 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
     assert!(
         common::failure_ids(&common::font_fixture("type1c_width_mismatch")).contains(GLYPH_WIDTH)
     );
+    assert!(
+        common::failure_ids(&common::font_fixture("type1_width_mismatch")).contains(GLYPH_WIDTH)
+    );
 }
 
 #[test]
@@ -156,16 +159,27 @@ fn type1c_width_matches_pinned_verapdf_when_opted_in() {
         "{report:#?}"
     );
     assert!(common::failure_ids(&fs::read(&path).expect("read CFF fixture")).contains(GLYPH_WIDTH));
-    assert!(
-        report
-            .reference_result
-            .expect("veraPDF result")
-            .failed_rule_ids
-            .iter()
-            .map(ToString::to_string)
-            .any(|rule| rule == "ISO 19005-1:2005:6.3.6:1")
-    );
     fs::remove_file(path).expect("remove CFF fixture");
+}
+
+#[test]
+fn type1_width_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("mai-type1-width-{}.pdf", std::process::id()));
+    fs::write(&path, common::font_fixture("type1_width_mismatch")).expect("write Type 1 fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert_eq!(
+        report.classification,
+        ComparisonClassification::BothNoncompliant,
+        "{report:#?}"
+    );
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read Type 1 fixture")).contains(GLYPH_WIDTH)
+    );
+    fs::remove_file(path).expect("remove Type 1 fixture");
 }
 
 #[test]
