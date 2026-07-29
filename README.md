@@ -9,7 +9,7 @@ The current implementation is an intentionally narrow milestone toward that goal
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/JosephBARBIERDARNAL/pdf.git tag-cli --bin tag
+cargo install --git https://github.com/josephbarbierdarnal/tag.git tag-cli --bin tag
 ```
 
 `tag` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
