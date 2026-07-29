@@ -808,14 +808,32 @@ impl Scanner<'_> {
             if cid == 0 {
                 continue;
             }
-            let present = (0..cff.number_of_glyphs())
+            let Some(glyph) = (0..cff.number_of_glyphs())
                 .map(ttf_parser::GlyphId)
-                .any(|glyph| cff.glyph_cid(glyph) == Some(cid));
-            if !present {
+                .find(|glyph| cff.glyph_cid(*glyph) == Some(cid))
+            else {
                 self.missing_truetype_glyphs.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     &format!("has no embedded CIDFontType0C glyph for rendered CID {cid}"),
+                ));
+                continue;
+            };
+            let Some(program_width) = cff_cid_glyph_width(&bytes, glyph.0) else {
+                continue;
+            };
+            let Some(dictionary_width) =
+                cid_dictionary_width(self.document, descendant, cid, self.limits)?
+            else {
+                continue;
+            };
+            if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
+                self.inconsistent_truetype_widths.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    &format!(
+                        "has rendered CID {cid} width {program_width:.3} in its embedded CIDFontType0C program but {dictionary_width:.3} in /W or /DW"
+                    ),
                 ));
             }
         }
@@ -1973,6 +1991,197 @@ fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
             .collect();
     }
     bytes
+}
+
+fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16) -> Option<f64> {
+    let (_, top_offset) = cff_index(bytes, 4)?;
+    let (top_items, _) = cff_index(bytes, top_offset)?;
+    let top = top_items.first().copied()?;
+    let top_dict = cff_dict(top);
+    let charstrings_offset = cff_dict_offset(&top_dict, 17)?;
+    let (charstrings, _) = cff_index(bytes, charstrings_offset)?;
+    let charstring = charstrings.get(usize::from(glyph_id))?;
+    let fd_array_offset = cff_dict_offset(&top_dict, 1236)?;
+    let fd_select_offset = cff_dict_offset(&top_dict, 1237)?;
+    let fd_index = cff_fd_select(bytes, fd_select_offset, glyph_id)?;
+    let (fd_array, _) = cff_index(bytes, fd_array_offset)?;
+    let fd_dict = cff_dict(*fd_array.get(usize::from(fd_index))?);
+    let private_values = fd_dict.get(&18)?;
+    let private_size = usize::try_from(private_values.first().copied()? as i64).ok()?;
+    let private_offset = usize::try_from(private_values.get(1).copied()? as i64).ok()?;
+    let private_end = private_offset.checked_add(private_size)?;
+    let private = cff_dict(bytes.get(private_offset..private_end)?);
+    let default_width = private
+        .get(&20)
+        .and_then(|values| values.first().copied())
+        .unwrap_or(0.0);
+    let nominal_width = private
+        .get(&21)
+        .and_then(|values| values.first().copied())
+        .unwrap_or(0.0);
+    let width = cff_charstring_width(charstring, nominal_width, default_width)?;
+    let matrix = top_dict
+        .get(&1207)
+        .and_then(|values| values.first().copied())
+        .unwrap_or(0.001);
+    Some(width * matrix * 1000.0)
+}
+
+fn cff_charstring_width(bytes: &[u8], nominal: f64, default: f64) -> Option<f64> {
+    let mut operands = Vec::new();
+    let mut position = 0usize;
+    while position < bytes.len() {
+        let byte = *bytes.get(position)?;
+        if let Some((value, consumed)) = cff_number(bytes.get(position..)?) {
+            operands.push(value);
+            position = position.checked_add(consumed)?;
+            continue;
+        }
+        let operator = if byte == 12 {
+            let second = *bytes.get(position)?;
+            1200 + u16::from(second)
+        } else {
+            u16::from(byte)
+        };
+        if operator == 14 {
+            return Some(if operands.len() == 1 {
+                nominal + operands[0]
+            } else {
+                default
+            });
+        }
+        return Some(if operands.len() % 2 == 1 {
+            nominal + operands[0]
+        } else {
+            default
+        });
+    }
+    None
+}
+
+fn cff_fd_select(bytes: &[u8], offset: usize, glyph_id: u16) -> Option<u8> {
+    let format = *bytes.get(offset)?;
+    match format {
+        0 => bytes
+            .get(offset.checked_add(1 + usize::from(glyph_id))?)
+            .copied(),
+        3 => {
+            let count = u16::from_be_bytes([*bytes.get(offset + 1)?, *bytes.get(offset + 2)?]);
+            let mut position = offset + 3;
+            let mut previous = 0_u16;
+            for _ in 0..count {
+                let first = u16::from_be_bytes([*bytes.get(position)?, *bytes.get(position + 1)?]);
+                let fd = *bytes.get(position + 2)?;
+                if previous <= glyph_id && glyph_id < first {
+                    return Some(fd);
+                }
+                previous = first;
+                position += 3;
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+fn cff_dict_offset(dict: &BTreeMap<u16, Vec<f64>>, operator: u16) -> Option<usize> {
+    usize::try_from(dict.get(&operator)?.first().copied()? as i64).ok()
+}
+
+fn cff_dict(bytes: &[u8]) -> BTreeMap<u16, Vec<f64>> {
+    let mut result = BTreeMap::new();
+    let mut operands = Vec::new();
+    let mut position = 0usize;
+    while position < bytes.len() {
+        if let Some((value, consumed)) = cff_number(&bytes[position..]) {
+            operands.push(value);
+            position += consumed;
+            continue;
+        }
+        let byte = bytes[position];
+        position += 1;
+        let operator = if byte == 12 {
+            let Some(second) = bytes.get(position).copied() else {
+                break;
+            };
+            position += 1;
+            1200 + u16::from(second)
+        } else {
+            u16::from(byte)
+        };
+        result.insert(operator, std::mem::take(&mut operands));
+    }
+    result
+}
+
+fn cff_number(bytes: &[u8]) -> Option<(f64, usize)> {
+    let first = *bytes.first()?;
+    match first {
+        32..=246 => Some((f64::from(first) - 139.0, 1)),
+        247..=250 => Some((
+            f64::from(first - 247) * 256.0 + f64::from(*bytes.get(1)?) + 108.0,
+            2,
+        )),
+        251..=254 => Some((
+            -(f64::from(first - 251) * 256.0 + f64::from(*bytes.get(1)?) + 108.0),
+            2,
+        )),
+        28 => Some((
+            f64::from(i16::from_be_bytes([*bytes.get(1)?, *bytes.get(2)?])),
+            3,
+        )),
+        29 => Some((
+            f64::from(i32::from_be_bytes([
+                *bytes.get(1)?,
+                *bytes.get(2)?,
+                *bytes.get(3)?,
+                *bytes.get(4)?,
+            ])),
+            5,
+        )),
+        255 => Some((
+            f64::from(i32::from_be_bytes([
+                *bytes.get(1)?,
+                *bytes.get(2)?,
+                *bytes.get(3)?,
+                *bytes.get(4)?,
+            ])) / 65_536.0,
+            5,
+        )),
+        _ => None,
+    }
+}
+
+fn cff_index(bytes: &[u8], offset: usize) -> Option<(Vec<&[u8]>, usize)> {
+    let count = usize::from(u16::from_be_bytes([
+        *bytes.get(offset)?,
+        *bytes.get(offset + 1)?,
+    ]));
+    if count == 0 {
+        return Some((Vec::new(), offset + 2));
+    }
+    let offsize = usize::from(*bytes.get(offset + 2)?);
+    if !(1..=4).contains(&offsize) {
+        return None;
+    }
+    let offsets_start = offset + 3;
+    let data_start = offsets_start.checked_add((count + 1).checked_mul(offsize)?)?;
+    let read_offset = |index: usize| -> Option<usize> {
+        let start = offsets_start.checked_add(index.checked_mul(offsize)?)?;
+        let mut value = 0usize;
+        for byte in bytes.get(start..start + offsize)? {
+            value = value.checked_mul(256)?.checked_add(usize::from(*byte))?;
+        }
+        (value > 0).then_some(value - 1)
+    };
+    let mut items = Vec::with_capacity(count);
+    for index in 0..count {
+        let start = data_start.checked_add(read_offset(index)?)?;
+        let end = data_start.checked_add(read_offset(index + 1)?)?;
+        items.push(bytes.get(start..end)?);
+    }
+    let end = data_start.checked_add(read_offset(count)?)?;
+    Some((items, end))
 }
 
 fn type1_pfb_payload(bytes: &[u8]) -> Vec<u8> {

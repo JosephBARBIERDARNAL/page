@@ -2696,7 +2696,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         );
     } else if matches!(
         case,
-        "composite_cff_missing_glyph" | "composite_cff_present_glyph"
+        "composite_cff_missing_glyph"
+            | "composite_cff_present_glyph"
+            | "composite_cff_width_mismatch"
     ) {
         descriptor.set(
             "FontFile3",
@@ -2704,7 +2706,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 dictionary! {
                     "Subtype" => "CIDFontType0C",
                 },
-                minimal_cidfonttype0c(case == "composite_cff_present_glyph"),
+                minimal_cidfonttype0c(case != "composite_cff_missing_glyph"),
             )),
         );
     } else if matches!(
@@ -2848,10 +2850,17 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         };
         if matches!(
             case,
-            "composite_cff_missing_glyph" | "composite_cff_present_glyph"
+            "composite_cff_missing_glyph"
+                | "composite_cff_present_glyph"
+                | "composite_cff_width_mismatch"
         ) {
             descendant_dictionary.set("Subtype", "CIDFontType0");
             descendant_dictionary.remove(b"CIDToGIDMap");
+            if case == "composite_cff_width_mismatch" {
+                descendant_dictionary.set("DW", 500);
+            } else {
+                descendant_dictionary.set("DW", 0);
+            }
         }
         match case {
             "composite_cidmap_missing" => {
@@ -3091,7 +3100,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         | "composite_identity_width_override_mismatch"
         | "composite_stream_cidmap_missing_glyph"
         | "composite_cff_missing_glyph"
-        | "composite_cff_present_glyph" => content(vec![
+        | "composite_cff_present_glyph"
+        | "composite_cff_width_mismatch" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation(
@@ -3435,7 +3445,9 @@ pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
     let charset_offset = charstrings_offset + charstrings_len;
     let charset_len = 1 + (glyphs - 1) * 2;
     let fd_array_offset = charset_offset + charset_len;
-    let fd_select_offset = fd_array_offset + 5;
+    let fd_array_len = 8usize;
+    let fd_select_offset = fd_array_offset + fd_array_len;
+    let private_offset = fd_select_offset + 1 + glyphs;
 
     let mut bytes = vec![1, 0, 4, 0]; // header
     bytes.extend_from_slice(&0_u16.to_be_bytes()); // Name INDEX
@@ -3472,9 +3484,19 @@ pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
     if with_cid_32 {
         bytes.extend_from_slice(&32_u16.to_be_bytes());
     }
-    bytes.extend_from_slice(&[0, 1, 1, 1, 1]); // one empty FD dict
+    bytes.extend_from_slice(&[
+        0,
+        1,
+        1,
+        1,
+        4, // one FD dict, offset range 1..4
+        141,
+        (private_offset + 139) as u8,
+        18, // Private size/offset
+    ]);
     bytes.push(0); // FDSelect format 0
     bytes.extend(std::iter::repeat_n(0, glyphs));
+    bytes.extend_from_slice(&[139, 20, 139, 21]); // defaultWidth and nominalWidth
     bytes
 }
 
