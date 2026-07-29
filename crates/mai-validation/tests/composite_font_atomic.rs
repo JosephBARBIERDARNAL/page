@@ -52,10 +52,26 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_identity_usecmap_missing_glyph",
         &[GLYPH_PRESENCE],
     ),
+    ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
+    ("composite_cff_present_glyph", &[]),
 ];
 
 #[test]
 fn composite_font_cases_have_the_complete_expected_failure_delta() {
+    let missing_cff_bytes = common::minimal_cidfonttype0c(false);
+    let missing_cff = ttf_parser::cff::Table::parse(&missing_cff_bytes).expect("parse CID CFF");
+    assert!(
+        !(0..missing_cff.number_of_glyphs())
+            .map(ttf_parser::GlyphId)
+            .any(|glyph| missing_cff.glyph_cid(glyph) == Some(32))
+    );
+    let present_cff_bytes = common::minimal_cidfonttype0c(true);
+    let present_cff = ttf_parser::cff::Table::parse(&present_cff_bytes).expect("parse CID CFF");
+    assert!(
+        (0..present_cff.number_of_glyphs())
+            .map(ttf_parser::GlyphId)
+            .any(|glyph| present_cff.glyph_cid(glyph) == Some(32))
+    );
     let baseline = common::failure_ids(&common::font_fixture("composite_baseline"));
     for rule in [
         SYSTEM_INFO,
@@ -170,6 +186,11 @@ fn rendered_identity_cidfont_program_checks_match_pinned_verapdf_when_opted_in()
         ),
         (
             "composite_identity_usecmap_missing_glyph",
+            GLYPH_PRESENCE,
+            "ISO 19005-1:2005:6.3.5:1",
+        ),
+        (
+            "composite_cff_missing_glyph",
             GLYPH_PRESENCE,
             "ISO 19005-1:2005:6.3.5:1",
         ),

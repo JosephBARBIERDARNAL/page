@@ -700,12 +700,15 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            if descendant
+            let descendant_subtype = descendant
                 .get(b"Subtype")
                 .ok()
-                .and_then(|value| value.as_name().ok())
-                != Some(b"CIDFontType2".as_slice())
-            {
+                .and_then(|value| value.as_name().ok());
+            if descendant_subtype == Some(b"CIDFontType0".as_slice()) {
+                self.inspect_rendered_cff_cidfont_glyphs(&usage, descendant, &cids)?;
+                continue;
+            }
+            if descendant_subtype != Some(b"CIDFontType2".as_slice()) {
                 continue;
             }
             let Ok(cid_to_gid) = descendant.get(b"CIDToGIDMap") else {
@@ -763,6 +766,57 @@ impl Scanner<'_> {
                         ),
                     ));
                 }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_cff_cidfont_glyphs(
+        &mut self,
+        usage: &FontUse,
+        descendant: &Dictionary,
+        cids: &[u16],
+    ) -> Result<(), PdfError> {
+        let Some(descriptor) = font_descriptor_dictionary(self.document, descendant, self.limits)?
+        else {
+            return Ok(());
+        };
+        let Some(stream) = descriptor
+            .get(b"FontFile3")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_stream().ok())
+        else {
+            return Ok(());
+        };
+        if stream
+            .dict
+            .get(b"Subtype")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+            != Some(b"CIDFontType0C".as_slice())
+        {
+            return Ok(());
+        }
+        let bytes = decode_font_stream(stream, self.limits)?;
+        let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+            return Ok(());
+        };
+        for cid in cids.iter().copied().collect::<BTreeSet<_>>() {
+            if cid == 0 {
+                continue;
+            }
+            let present = (0..cff.number_of_glyphs())
+                .map(ttf_parser::GlyphId)
+                .any(|glyph| cff.glyph_cid(glyph) == Some(cid));
+            if !present {
+                self.missing_truetype_glyphs.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    &format!("has no embedded CIDFontType0C glyph for rendered CID {cid}"),
+                ));
             }
         }
         Ok(())
@@ -990,8 +1044,7 @@ impl Scanner<'_> {
                 else {
                     continue;
                 };
-                let program_width =
-                    f64::from(width) * f64::from(cff.matrix().sx) * 1000.0;
+                let program_width = f64::from(width) * f64::from(cff.matrix().sx) * 1000.0;
                 if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
                     self.inconsistent_truetype_widths.push(font_failure(
                         usage.object_id,

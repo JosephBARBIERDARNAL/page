@@ -2696,6 +2696,19 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         );
     } else if matches!(
         case,
+        "composite_cff_missing_glyph" | "composite_cff_present_glyph"
+    ) {
+        descriptor.set(
+            "FontFile3",
+            document.add_object(Stream::new(
+                dictionary! {
+                    "Subtype" => "CIDFontType0C",
+                },
+                minimal_cidfonttype0c(case == "composite_cff_present_glyph"),
+            )),
+        );
+    } else if matches!(
+        case,
         "composite_cidset_real_program" | "composite_cidset_nonidentity_real_program"
     ) {
         descriptor.set(
@@ -2833,6 +2846,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "DW" => 500,
             "CIDToGIDMap" => "Identity",
         };
+        if matches!(
+            case,
+            "composite_cff_missing_glyph" | "composite_cff_present_glyph"
+        ) {
+            descendant_dictionary.set("Subtype", "CIDFontType0");
+            descendant_dictionary.remove(b"CIDToGIDMap");
+        }
         match case {
             "composite_cidmap_missing" => {
                 descendant_dictionary.remove(b"CIDToGIDMap");
@@ -3069,7 +3089,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         "composite_identity_missing_glyph"
         | "composite_identity_width_mismatch"
         | "composite_identity_width_override_mismatch"
-        | "composite_stream_cidmap_missing_glyph" => content(vec![
+        | "composite_stream_cidmap_missing_glyph"
+        | "composite_cff_missing_glyph"
+        | "composite_cff_present_glyph" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation(
@@ -3400,6 +3422,59 @@ pub fn minimal_type1c(with_space: bool) -> Vec<u8> {
     if with_space {
         bytes.extend_from_slice(&1_u16.to_be_bytes()); // SID 1 = space
     }
+    bytes
+}
+
+/// A CID-keyed raw CFF1 program with `.notdef` and, optionally, CID 32.
+/// CID CFF requires ROS, an explicit charset, FDArray, and FDSelect even when
+/// the fixture only needs glyph-to-CID lookup.
+pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
+    let glyphs = usize::from(with_cid_32) + 1;
+    let charstrings_offset = 30usize;
+    let charstrings_len = 4 + glyphs * 3;
+    let charset_offset = charstrings_offset + charstrings_len;
+    let charset_len = 1 + (glyphs - 1) * 2;
+    let fd_array_offset = charset_offset + charset_len;
+    let fd_select_offset = fd_array_offset + 5;
+
+    let mut bytes = vec![1, 0, 4, 0]; // header
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Name INDEX
+    bytes.extend_from_slice(&1_u16.to_be_bytes()); // Top DICT INDEX count
+    bytes.extend_from_slice(&[1, 1, 16]); // offset size, offsets
+    bytes.extend_from_slice(&[
+        (charset_offset + 139) as u8,
+        15, // charset
+        (charstrings_offset + 139) as u8,
+        17, // CharStrings
+        139,
+        139,
+        139,
+        12,
+        30, // ROS
+        (fd_array_offset + 139) as u8,
+        12,
+        36, // FDArray
+        (fd_select_offset + 139) as u8,
+        12,
+        37, // FDSelect
+    ]);
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // String INDEX
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Global Subrs INDEX
+    bytes.extend_from_slice(&(glyphs as u16).to_be_bytes());
+    bytes.push(1); // CharStrings INDEX offset size
+    for offset in 0..=glyphs {
+        bytes.push((offset * 2 + 1) as u8);
+    }
+    for _ in 0..glyphs {
+        bytes.extend_from_slice(&[139, 14]);
+    }
+    bytes.push(0); // charset format 0
+    if with_cid_32 {
+        bytes.extend_from_slice(&32_u16.to_be_bytes());
+    }
+    bytes.extend_from_slice(&[0, 1, 1, 1, 1]); // one empty FD dict
+    bytes.push(0); // FDSelect format 0
+    bytes.extend(std::iter::repeat_n(0, glyphs));
     bytes
 }
 

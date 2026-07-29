@@ -10,6 +10,7 @@ mod common;
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
 const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";
 const TYPE1_SUBSET_CHARSET: &str = "PDFA1B-TYPE1-SUBSET-CHARSET-001";
+const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
 
 const CASES: &[(&str, bool)] = &[
     ("unembedded_visible", true),
@@ -88,6 +89,9 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
         !common::failure_ids(&common::font_fixture("type1c_glyph_present"))
             .contains(TYPE1_GLYPH_PRESENCE)
     );
+    assert!(
+        common::failure_ids(&common::font_fixture("type1c_width_mismatch")).contains(GLYPH_WIDTH)
+    );
 }
 
 #[test]
@@ -133,6 +137,33 @@ fn type1c_glyph_presence_matches_pinned_verapdf_when_opted_in() {
             .iter()
             .map(ToString::to_string)
             .any(|rule| rule == "ISO 19005-1:2005:6.3.5:1")
+    );
+    fs::remove_file(path).expect("remove CFF fixture");
+}
+
+#[test]
+fn type1c_width_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("mai-type1c-width-{}.pdf", std::process::id()));
+    fs::write(&path, common::font_fixture("type1c_width_mismatch")).expect("write CFF fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert_eq!(
+        report.classification,
+        ComparisonClassification::BothNoncompliant,
+        "{report:#?}"
+    );
+    assert!(common::failure_ids(&fs::read(&path).expect("read CFF fixture")).contains(GLYPH_WIDTH));
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.3.6:1")
     );
     fs::remove_file(path).expect("remove CFF fixture");
 }
