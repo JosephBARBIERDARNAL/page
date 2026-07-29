@@ -2507,9 +2507,16 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "object_dictionary_long" => {
             let mut dictionary = Dictionary::new();
             for index in 0..4_096 {
+                dictionary.set(format!("K{index}"), Object::Integer(1));
+            }
+            catalog.set("ObjectLimitProbe", dictionary);
+        }
+        "object_dictionary_long_nulls" => {
+            let mut dictionary = Dictionary::new();
+            for index in 0..4_096 {
                 dictionary.set(format!("K{index}"), Object::Null);
             }
-            document.add_object(dictionary);
+            catalog.set("ObjectLimitProbe", dictionary);
         }
         "ocproperties_dictionary" => catalog.set("OCProperties", Dictionary::new()),
         "ocproperties_wrong_type" => catalog.set("OCProperties", 42),

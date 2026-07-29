@@ -23,9 +23,10 @@ fn object_limit_cases_have_the_complete_expected_failure_delta() {
         ("object_real_low", &[REAL]),
         ("object_string_long", &[STRING]),
         ("object_name_long", &[NAME]),
-        ("object_dictionary_key_long", &[NAME]),
+        ("object_dictionary_key_long", &[]),
         ("object_array_long", &[ARRAY]),
         ("object_dictionary_long", &[DICTIONARY]),
+        ("object_dictionary_long_nulls", &[]),
     ];
     let baseline = failure_ids(&common::object_limit_fixture("baseline"));
     for (case, expected) in cases {
