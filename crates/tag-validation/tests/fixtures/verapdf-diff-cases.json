@@ -1724,7 +1724,7 @@
     },
     {
       "name": "type3_visible",
-      "expected_local_failed_rule_ids": [],
+      "expected_local_failed_rule_ids": ["PDFA1B-TYPE1-GLYPH-PRESENCE-001", "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
       "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1", "ISO 19005-1:2005:6.3.6:1"],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],

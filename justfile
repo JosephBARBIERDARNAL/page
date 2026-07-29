@@ -63,7 +63,7 @@ test-verapdf VERAPDF_BIN=verapdf_bin:
 
 # Validate one PDF; format may be text or json.
 validate file format="text":
-    cargo run --quiet -p tag-cli --bin tag -- validate --profile pdfa-1b --format {{ format }} "{{ file }}"
+    cargo run --quiet -p tag-cli --bin tag -- "{{ file }}" --profile a-1b {{ if format == "json" { "--json" } else { "" } }}
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:

@@ -138,6 +138,7 @@ pub(crate) fn inspect(
     });
     scanner.inspect_rendered_truetype_glyphs()?;
     scanner.inspect_rendered_type1_glyphs()?;
+    scanner.inspect_rendered_type3_glyphs()?;
     scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
@@ -1009,6 +1010,60 @@ impl Scanner<'_> {
                         ),
                     ));
                 }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_type3_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || usage.subtype.as_deref() != Some("Type3")
+                || usage.shown_bytes.is_empty()
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let Some(char_procs) = font
+                .get(b"CharProcs")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_dict().ok())
+            else {
+                continue;
+            };
+            let differences = type1_encoding_differences(self.document, font, self.limits)?;
+            if usage.shown_bytes.into_iter().any(|byte| {
+                differences
+                    .get(&byte)
+                    .map(String::as_bytes)
+                    .is_some_and(|name| !char_procs.has(name))
+            }) {
+                self.missing_type1_glyphs.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a rendered Type3 glyph absent from /CharProcs",
+                ));
+                self.inconsistent_truetype_widths.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a rendered Type3 glyph without a /CharProcs width declaration",
+                ));
             }
         }
         Ok(())

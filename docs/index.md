@@ -1,6 +1,8 @@
 # tag
 
-`tag`'s goal is to provide a fully API-compatible [veraPDF](https://verapdf.org/) alternative, written in Rust.
+`tag` is an experimental PDF/A and PDF/UA validator, written in Rust.
+
+This project is very early stage, and current focus is on the PDF/A-1b validation.
 
 !!! warning
 

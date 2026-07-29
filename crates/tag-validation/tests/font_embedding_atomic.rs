@@ -23,7 +23,6 @@ const CASES: &[(&str, bool)] = &[
     ("form_unembedded", true),
     ("nested_form_unembedded", true),
     ("inherited_resources", true),
-    ("type3_visible", false),
     ("type0_unembedded_descendant", true),
     ("type0_embedded_descendant", false),
     ("missing_descriptor", true),
@@ -95,6 +94,13 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
     assert!(
         common::failure_ids(&common::font_fixture("type1_width_mismatch")).contains(GLYPH_WIDTH)
     );
+}
+
+#[test]
+fn type3_rendered_glyphs_must_have_charprocs() {
+    let failures = common::failure_ids(&common::font_fixture("type3_visible"));
+    assert!(failures.contains(TYPE1_GLYPH_PRESENCE));
+    assert!(failures.contains(GLYPH_WIDTH));
 }
 
 #[test]
