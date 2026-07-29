@@ -10,6 +10,7 @@ use mai_validation::differential::{
 };
 use serde::Deserialize;
 
+#[allow(dead_code)]
 mod common;
 
 #[derive(Debug, Deserialize)]

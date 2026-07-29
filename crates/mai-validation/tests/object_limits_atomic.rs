@@ -1,7 +1,3 @@
-use std::collections::BTreeSet;
-
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -28,9 +24,9 @@ fn object_limit_cases_have_the_complete_expected_failure_delta() {
         ("object_dictionary_long", &[DICTIONARY]),
         ("object_dictionary_long_nulls", &[]),
     ];
-    let baseline = failure_ids(&common::object_limit_fixture("baseline"));
+    let baseline = common::failure_ids(&common::object_limit_fixture("baseline"));
     for (case, expected) in cases {
-        let actual = failure_ids(&common::object_limit_fixture(case));
+        let actual = common::failure_ids(&common::object_limit_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         assert_eq!(
             added,
@@ -54,27 +50,8 @@ fn object_limit_failures_attach_the_offending_indirect_object() {
         ("object_array_long", ARRAY),
         ("object_dictionary_long", DICTIONARY),
     ] {
-        let report = validate(&common::object_limit_fixture(case));
-        let failure = report
-            .failures
-            .iter()
-            .find(|failure| failure.rule_id == rule_id)
-            .expect("targeted object-limit failure");
+        let report = common::validate(&common::object_limit_fixture(case));
+        let failure = common::assert_single_failure(&report, rule_id);
         assert!(failure.object_id.is_some(), "{case}: missing object ID");
-        assert_eq!(report.checks.total, 109);
-        assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.checks.passed, 108);
     }
-}
-
-fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate(bytes)
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

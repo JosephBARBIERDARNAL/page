@@ -128,7 +128,6 @@ pub struct ReferenceDiagnostics {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ReferenceResult {
-    pub identity: ReferenceIdentity,
     pub compliant: Option<bool>,
     pub parse_state: ReferenceParseState,
     pub profile_name: Option<String>,
@@ -643,7 +642,6 @@ fn parse_reference_report(
             failed_rule_ids.sort();
             failed_rule_ids.dedup();
             Ok(ReferenceResult {
-                identity: expected_identity.clone(),
                 compliant: Some(result.compliant),
                 parse_state: ReferenceParseState::Processed,
                 profile_name: Some(result.profile_name),
@@ -671,7 +669,6 @@ fn parse_reference_report(
                 );
             };
             Ok(ReferenceResult {
-                identity: expected_identity.clone(),
                 compliant: None,
                 parse_state,
                 profile_name: None,
@@ -905,7 +902,6 @@ mod tests {
         parse_state: ReferenceParseState,
     ) -> ReferenceResult {
         ReferenceResult {
-            identity: identity(),
             compliant,
             parse_state,
             profile_name: (parse_state == ReferenceParseState::Processed)

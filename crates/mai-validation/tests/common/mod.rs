@@ -1,7 +1,12 @@
 use std::collections::BTreeSet;
 
 use lopdf::content::{Content, Operation};
-use lopdf::{Dictionary, Document, Object, Stream, StringFormat, dictionary};
+use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
+use mai_validation::{
+    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_bytes,
+};
+
+mod sfnt;
 
 /// Splits `actual` against `baseline` into (added, removed) sets.
 pub fn rule_delta<T: Ord + Clone>(
@@ -12,6 +17,35 @@ pub fn rule_delta<T: Ord + Clone>(
         actual.difference(baseline).cloned().collect(),
         baseline.difference(actual).cloned().collect(),
     )
+}
+
+pub fn validate(bytes: &[u8]) -> ValidationReport {
+    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
+}
+
+pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
+    validate(bytes)
+        .failures
+        .into_iter()
+        .map(|failure| failure.rule_id.to_owned())
+        .collect()
+}
+
+/// Asserts that `report` has exactly one failure, that it is `rule_id`, and
+/// that the remaining 108 of the 109 implemented checks passed. Returns the
+/// matching failure so callers can assert further on it (e.g. `object_id`).
+pub fn assert_single_failure<'a>(
+    report: &'a ValidationReport,
+    rule_id: &str,
+) -> &'a ValidationFailure {
+    assert_eq!(report.checks.total, 109);
+    assert_eq!(report.checks.failed, 1);
+    assert_eq!(report.checks.passed, 108);
+    report
+        .failures
+        .iter()
+        .find(|failure| failure.rule_id == rule_id)
+        .unwrap_or_else(|| panic!("expected failure {rule_id} not found"))
 }
 
 pub fn metadata_fixture(case: &str) -> Vec<u8> {
@@ -375,14 +409,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         "Parent" => pages_id,
         "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
     });
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
+    wrap_pages(&mut document, pages_id, page_id);
     let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
@@ -395,12 +422,8 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         let metadata_id = document.add_object(stream);
         catalog.set("Metadata", metadata_id);
     }
-    let intent_id = document.add_object(dictionary! {
-        "Type" => "OutputIntent",
-        "S" => "GTS_PDFA1",
-        "OutputConditionIdentifier" => Object::string_literal("Test"),
-    });
-    catalog.set("OutputIntents", vec![Object::Reference(intent_id)]);
+    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
+    catalog.set("OutputIntents", output_intents.expect("output intent"));
     let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(info);
     document.trailer.set("Root", catalog_id);
@@ -418,21 +441,8 @@ pub fn output_intent_fixture(case: &str) -> Vec<u8> {
         "Parent" => pages_id,
         "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
     });
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
     let info_id = document.add_object(complete_info());
 
     let rgb = icc_header(*b"mntr", *b"RGB ", 2, 1);
@@ -1028,23 +1038,13 @@ pub fn icc_based_fixture(case: &str) -> Vec<u8> {
         pages.set("Resources", page_resources);
     }
     document.objects.insert(pages_id, Object::Dictionary(pages));
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let intent_profile = profile_reference(&mut document, valid);
-    let intent_id = document.add_object(output_intent_dictionary(
-        Some(intent_profile),
-        Some("GTS_PDFA1"),
-    ));
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(&mut document, valid, Some("GTS_PDFA1"));
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent_id)],
+        "OutputIntents" => output_intents.expect("output intent"),
     });
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
@@ -1220,22 +1220,9 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
         "Resources" => resources,
         "Contents" => contents_id,
     });
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
+    wrap_pages(&mut document, pages_id, page_id);
 
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
+    let metadata_id = standard_metadata_stream(&mut document);
     let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
@@ -1267,14 +1254,13 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
         } else {
             rgb_profile
         };
-        let profile = profile_reference(&mut document, output_bytes);
         let subtype = if case == "rgb_wrong_s" {
             "GTS_PDFX"
         } else {
             "GTS_PDFA1"
         };
-        let intent_id = document.add_object(output_intent_dictionary(Some(profile), Some(subtype)));
-        catalog.set("OutputIntents", vec![Object::Reference(intent_id)]);
+        let output_intents = single_profile_intent(&mut document, output_bytes, Some(subtype));
+        catalog.set("OutputIntents", output_intents.expect("output intent"));
     }
     let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(complete_info());
@@ -1439,31 +1425,18 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
         "Resources" => resources,
         "Contents" => contents_id,
     });
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let output_profile = profile_reference(&mut document, icc_header(*b"mntr", *b"RGB ", 2, 1));
-    let intent_id = document.add_object(output_intent_dictionary(
-        Some(output_profile),
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
         Some("GTS_PDFA1"),
-    ));
+    );
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent_id)],
+        "OutputIntents" => output_intents.expect("output intent"),
     });
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
@@ -1654,31 +1627,18 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         page.set("Group", group);
     }
     let page_id = document.add_object(page);
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let output_profile = profile_reference(&mut document, icc_header(*b"mntr", *b"RGB ", 2, 1));
-    let intent_id = document.add_object(output_intent_dictionary(
-        Some(output_profile),
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
         Some("GTS_PDFA1"),
-    ));
+    );
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent_id)],
+        "OutputIntents" => output_intents.expect("output intent"),
     });
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
@@ -1823,31 +1783,20 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         page.set("Annots", vec![annotation_object]);
     }
     let page_id = document.add_object(page);
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
     let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
     };
     if let Some(color_space) = output_color_space {
-        let profile = profile_reference(&mut document, icc_header(*b"mntr", color_space, 2, 1));
-        let intent =
-            document.add_object(output_intent_dictionary(Some(profile), Some("GTS_PDFA1")));
-        catalog.set("OutputIntents", vec![Object::Reference(intent)]);
+        let output_intents = single_profile_intent(
+            &mut document,
+            icc_header(*b"mntr", color_space, 2, 1),
+            Some("GTS_PDFA1"),
+        );
+        catalog.set("OutputIntents", output_intents.expect("output intent"));
     }
     let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(complete_info());
@@ -2108,25 +2057,15 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
     let contents_id = document.add_object(Stream::new(Dictionary::new(), Vec::new()));
     page.set("Contents", contents_id);
     let page_id = document.add_object(page);
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
     catalog.set("Metadata", metadata_id);
-    let profile = profile_reference(&mut document, icc_header(*b"mntr", *b"RGB ", 2, 1));
-    let intent = document.add_object(output_intent_dictionary(Some(profile), Some("GTS_PDFA1")));
-    catalog.set("OutputIntents", vec![Object::Reference(intent)]);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    catalog.set("OutputIntents", output_intents.expect("output intent"));
     let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
@@ -2252,29 +2191,19 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
         page.set("Annots", vec![widget_value]);
     }
     let page_id = document.add_object(page);
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
-    );
+    wrap_pages(&mut document, pages_id, page_id);
 
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let profile = profile_reference(&mut document, icc_header(*b"mntr", *b"RGB ", 2, 1));
-    let intent = document.add_object(output_intent_dictionary(Some(profile), Some("GTS_PDFA1")));
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
+    );
     let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent)],
+        "OutputIntents" => output_intents.expect("output intent"),
     };
     if include_acro_form {
         let acro_form = acro_form_override.unwrap_or_else(|| Object::Dictionary(acro_form));
@@ -2300,28 +2229,18 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "Resources" => Dictionary::new(),
         "Contents" => contents_id,
     });
-    document.objects.insert(
-        pages_id,
-        Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page_id)],
-            "Count" => 1,
-        }),
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
     );
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let profile = profile_reference(&mut document, icc_header(*b"mntr", *b"RGB ", 2, 1));
-    let intent = document.add_object(output_intent_dictionary(Some(profile), Some("GTS_PDFA1")));
     let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent)],
+        "OutputIntents" => output_intents.expect("output intent"),
     };
 
     match case {
@@ -2555,6 +2474,10 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+/// The object-limit cases (`object_integer_high`, `object_array_long`, ...)
+/// are generated as extra `document_feature_fixture` match arms rather than
+/// their own builder, since both share the same minimal catalog/page
+/// scaffolding. This alias just names the fixture for its own test file.
 pub fn object_limit_fixture(case: &str) -> Vec<u8> {
     document_feature_fixture(case)
 }
@@ -2613,14 +2536,14 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "FontFile2",
             document.add_object(Stream::new(
                 Dictionary::new(),
-                minimal_truetype_with_cmap_count(2),
+                sfnt::minimal_truetype_with_cmap_count(2),
             )),
         );
     }
     if case == "direct_font_file" {
         descriptor.set(
             "FontFile2",
-            Object::Stream(Stream::new(Dictionary::new(), minimal_truetype())),
+            Object::Stream(Stream::new(Dictionary::new(), sfnt::minimal_truetype())),
         );
     } else if case == "malformed_font_program" {
         descriptor.set(
@@ -2638,7 +2561,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 dictionary! {
                     "Subtype" => "OpenType",
                 },
-                minimal_truetype(),
+                sfnt::minimal_truetype(),
             )),
         );
     }
@@ -3004,23 +2927,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         pages.set("Resources", resources);
     }
     document.objects.insert(pages_id, Object::Dictionary(pages));
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        BASE_XMP.to_vec(),
-    ));
-    let intent_id = document.add_object(dictionary! {
-        "Type" => "OutputIntent",
-        "S" => "GTS_PDFA1",
-        "OutputConditionIdentifier" => Object::string_literal("Test"),
-    });
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => vec![Object::Reference(intent_id)],
+        "OutputIntents" => output_intents.expect("output intent"),
     });
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
@@ -3043,7 +2956,8 @@ fn font_descriptor(document: &mut Document, embedded: bool) -> Dictionary {
         "StemV" => 80,
     };
     if embedded {
-        let font_file = document.add_object(Stream::new(Dictionary::new(), minimal_truetype()));
+        let font_file =
+            document.add_object(Stream::new(Dictionary::new(), sfnt::minimal_truetype()));
         descriptor.set("FontFile2", font_file);
     }
     descriptor
@@ -3090,163 +3004,32 @@ fn operation(operator: &str, operands: Vec<Object>) -> Operation {
     Operation::new(operator, operands)
 }
 
-fn minimal_truetype() -> Vec<u8> {
-    minimal_truetype_with_cmap_count(1)
+/// Adds the standard `/Type /Metadata /Subtype /XML` stream carrying
+/// `BASE_XMP`. `metadata_fixture`, whose whole point is exercising variant
+/// metadata shapes, builds its own instead of calling this.
+fn standard_metadata_stream(document: &mut Document) -> ObjectId {
+    document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "Metadata",
+            "Subtype" => "XML",
+        },
+        BASE_XMP.to_vec(),
+    ))
 }
 
-fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
-    let mut head = vec![0; 54];
-    put_u32(&mut head, 0, 0x0001_0000);
-    put_u32(&mut head, 4, 0x0001_0000);
-    put_u32(&mut head, 12, 0x5F0F_3CF5);
-    put_u16(&mut head, 18, 1000);
-    put_i16(&mut head, 40, 500);
-    put_i16(&mut head, 42, 700);
-    put_u16(&mut head, 46, 8);
-    put_i16(&mut head, 48, 2);
-
-    let mut hhea = vec![0; 36];
-    put_u32(&mut hhea, 0, 0x0001_0000);
-    put_i16(&mut hhea, 4, 800);
-    put_i16(&mut hhea, 6, -200);
-    put_u16(&mut hhea, 10, 500);
-    put_i16(&mut hhea, 18, 1);
-    put_u16(&mut hhea, 34, 2);
-
-    let mut maxp = vec![0; 32];
-    put_u32(&mut maxp, 0, 0x0001_0000);
-    put_u16(&mut maxp, 4, 2);
-
-    let cmap_header_length = 4 + usize::from(cmap_count) * 8;
-    let mut cmap = vec![0; cmap_header_length + 262];
-    put_u16(&mut cmap, 2, cmap_count);
-    for index in 0..usize::from(cmap_count) {
-        let record = 4 + index * 8;
-        put_u16(&mut cmap, record, 3);
-        put_u16(
-            &mut cmap,
-            record + 2,
-            u16::try_from(index + 1).expect("small cmap count"),
-        );
-        put_u32(
-            &mut cmap,
-            record + 4,
-            u32::try_from(cmap_header_length).expect("small cmap header"),
-        );
-    }
-    put_u16(&mut cmap, cmap_header_length, 0);
-    put_u16(&mut cmap, cmap_header_length + 2, 262);
-    cmap[cmap_header_length + 6 + 32] = 1;
-
-    let family = utf16be("Mai Test");
-    let postscript = utf16be("MaiTestFont");
-    let mut name = vec![0; 30 + family.len() + postscript.len()];
-    put_u16(&mut name, 2, 2);
-    put_u16(&mut name, 4, 30);
-    put_u16(&mut name, 6, 3);
-    put_u16(&mut name, 8, 1);
-    put_u16(&mut name, 10, 0x0409);
-    put_u16(&mut name, 12, 1);
-    put_u16(&mut name, 14, family.len() as u16);
-    put_u16(&mut name, 18, 3);
-    put_u16(&mut name, 20, 1);
-    put_u16(&mut name, 22, 0x0409);
-    put_u16(&mut name, 24, 6);
-    put_u16(&mut name, 26, postscript.len() as u16);
-    put_u16(&mut name, 28, family.len() as u16);
-    name[30..30 + family.len()].copy_from_slice(&family);
-    name[30 + family.len()..].copy_from_slice(&postscript);
-
-    let mut os2 = vec![0; 78];
-    put_u16(&mut os2, 2, 500);
-    put_u16(&mut os2, 4, 400);
-    put_u16(&mut os2, 6, 5);
-    put_u16(&mut os2, 8, 0);
-    put_i16(&mut os2, 68, 800);
-    put_i16(&mut os2, 70, -200);
-    put_u16(&mut os2, 74, 800);
-    put_u16(&mut os2, 76, 200);
-
-    let mut post = vec![0; 32];
-    put_u32(&mut post, 0, 0x0003_0000);
-
-    let mut hmtx = vec![0; 8];
-    put_u16(&mut hmtx, 0, 500);
-    put_u16(&mut hmtx, 4, 500);
-
-    let tables = vec![
-        (*b"OS/2", os2),
-        (*b"cmap", cmap),
-        (*b"glyf", vec![0; 4]),
-        (*b"head", head),
-        (*b"hhea", hhea),
-        (*b"hmtx", hmtx),
-        (*b"loca", vec![0; 6]),
-        (*b"maxp", maxp),
-        (*b"name", name),
-        (*b"post", post),
-    ];
-    build_sfnt(tables)
-}
-
-fn build_sfnt(tables: Vec<([u8; 4], Vec<u8>)>) -> Vec<u8> {
-    let table_count = tables.len();
-    let mut font = vec![0; 12 + 16 * table_count];
-    put_u32(&mut font, 0, 0x0001_0000);
-    put_u16(&mut font, 4, table_count as u16);
-    put_u16(&mut font, 6, 128);
-    put_u16(&mut font, 8, 3);
-    put_u16(&mut font, 10, (table_count * 16 - 128) as u16);
-
-    let mut head_offset = None;
-    for (index, (tag, data)) in tables.iter().enumerate() {
-        while !font.len().is_multiple_of(4) {
-            font.push(0);
-        }
-        let offset = font.len();
-        let directory = 12 + index * 16;
-        font[directory..directory + 4].copy_from_slice(tag);
-        put_u32(&mut font, directory + 4, table_checksum(data));
-        put_u32(&mut font, directory + 8, offset as u32);
-        put_u32(&mut font, directory + 12, data.len() as u32);
-        font.extend_from_slice(data);
-        if tag == b"head" {
-            head_offset = Some(offset);
-        }
-    }
-    while !font.len().is_multiple_of(4) {
-        font.push(0);
-    }
-    let adjustment = 0xB1B0_AFBAu32.wrapping_sub(table_checksum(&font));
-    put_u32(&mut font, head_offset.expect("head table") + 8, adjustment);
-    font
-}
-
-fn table_checksum(bytes: &[u8]) -> u32 {
-    bytes
-        .chunks(4)
-        .map(|chunk| {
-            let mut word = [0; 4];
-            word[..chunk.len()].copy_from_slice(chunk);
-            u32::from_be_bytes(word)
-        })
-        .fold(0u32, u32::wrapping_add)
-}
-
-fn utf16be(value: &str) -> Vec<u8> {
-    value.encode_utf16().flat_map(u16::to_be_bytes).collect()
-}
-
-fn put_u16(bytes: &mut [u8], offset: usize, value: u16) {
-    bytes[offset..offset + 2].copy_from_slice(&value.to_be_bytes());
-}
-
-fn put_i16(bytes: &mut [u8], offset: usize, value: i16) {
-    bytes[offset..offset + 2].copy_from_slice(&value.to_be_bytes());
-}
-
-fn put_u32(bytes: &mut [u8], offset: usize, value: u32) {
-    bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+/// Inserts the reserved `pages_id` object as a `/Pages` dictionary with a
+/// single `/Kids` entry. Fixtures whose page tree needs anything more (e.g.
+/// an inherited `/Resources` entry) build their own `/Pages` dictionary
+/// instead of calling this.
+fn wrap_pages(document: &mut Document, pages_id: ObjectId, page_id: ObjectId) {
+    document.objects.insert(
+        pages_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(page_id)],
+            "Count" => 1,
+        }),
+    );
 }
 
 fn single_intent(

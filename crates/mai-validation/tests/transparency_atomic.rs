@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -34,7 +32,7 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn transparency_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::graphics_fixture("baseline"));
+    let baseline = common::failure_ids(&common::graphics_fixture("baseline"));
     for rule in [
         EXTGSTATE_SMASK,
         XOBJECT_SMASK,
@@ -47,7 +45,7 @@ fn transparency_cases_have_the_complete_expected_failure_delta() {
     }
 
     for (case, expected) in CASES {
-        let actual = failure_ids(&common::graphics_fixture(case));
+        let actual = common::failure_ids(&common::graphics_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         assert_eq!(
             added,
@@ -66,26 +64,7 @@ fn transparency_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn a_single_transparency_failure_attaches_its_owner() {
-    let report = validate(&common::graphics_fixture("extgstate_bm_multiply"));
-    let failure = report
-        .failures
-        .iter()
-        .find(|failure| failure.rule_id == BLEND_MODE)
-        .expect("blend-mode failure");
+    let report = common::validate(&common::graphics_fixture("extgstate_bm_multiply"));
+    let failure = common::assert_single_failure(&report, BLEND_MODE);
     assert!(failure.object_id.is_some());
-    assert_eq!(report.checks.total, 109);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
-}
-
-fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate(bytes)
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

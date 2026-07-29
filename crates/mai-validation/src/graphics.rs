@@ -5,24 +5,19 @@ use crate::icc_based::IccBasedSummary;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct GraphicsSummary {
-    pub(crate) transfer_functions: Vec<GraphicsFailure>,
-    pub(crate) transfer_functions_2: Vec<GraphicsFailure>,
-    pub(crate) rendering_intents: Vec<GraphicsFailure>,
-    pub(crate) extgstate_soft_masks: Vec<GraphicsFailure>,
-    pub(crate) xobject_soft_masks: Vec<GraphicsFailure>,
-    pub(crate) transparency_groups: Vec<GraphicsFailure>,
-    pub(crate) blend_modes: Vec<GraphicsFailure>,
-    pub(crate) stroke_alpha: Vec<GraphicsFailure>,
-    pub(crate) fill_alpha: Vec<GraphicsFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct GraphicsFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
-    pub(crate) description: String,
+    pub(crate) transfer_functions: Vec<RuleFailure>,
+    pub(crate) transfer_functions_2: Vec<RuleFailure>,
+    pub(crate) rendering_intents: Vec<RuleFailure>,
+    pub(crate) extgstate_soft_masks: Vec<RuleFailure>,
+    pub(crate) xobject_soft_masks: Vec<RuleFailure>,
+    pub(crate) transparency_groups: Vec<RuleFailure>,
+    pub(crate) blend_modes: Vec<RuleFailure>,
+    pub(crate) stroke_alpha: Vec<RuleFailure>,
+    pub(crate) fill_alpha: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -32,7 +27,7 @@ pub(crate) fn inspect(
 ) -> Result<GraphicsSummary, PdfError> {
     let mut summary = GraphicsSummary::default();
     for (name, context) in &content.invalid_rendering_intents {
-        summary.rendering_intents.push(GraphicsFailure {
+        summary.rendering_intents.push(RuleFailure {
             object_id: None,
             description: format!("content in {context} uses rendering intent /{name}"),
         });
@@ -44,7 +39,7 @@ pub(crate) fn inspect(
         };
         let reported_id = Some((*object_id).into());
         if dictionary.has(b"TR") {
-            summary.transfer_functions.push(GraphicsFailure {
+            summary.transfer_functions.push(RuleFailure {
                 object_id: reported_id,
                 description: "used ExtGState dictionary contains /TR".to_owned(),
             });
@@ -56,7 +51,7 @@ pub(crate) fn inspect(
                 .and_then(|value| value.as_name().ok())
                 != Some(b"Default".as_slice())
         {
-            summary.transfer_functions_2.push(GraphicsFailure {
+            summary.transfer_functions_2.push(RuleFailure {
                 object_id: reported_id,
                 description: "used ExtGState dictionary has /TR2 other than /Default".to_owned(),
             });
@@ -68,7 +63,7 @@ pub(crate) fn inspect(
                 .and_then(|value| value.as_name().ok())
                 != Some(b"None".as_slice())
         {
-            summary.extgstate_soft_masks.push(GraphicsFailure {
+            summary.extgstate_soft_masks.push(RuleFailure {
                 object_id: reported_id,
                 description: "used ExtGState dictionary has /SMask other than /None".to_owned(),
             });
@@ -82,7 +77,7 @@ pub(crate) fn inspect(
                 Some(b"Normal" | b"Compatible")
             )
         {
-            summary.blend_modes.push(GraphicsFailure {
+            summary.blend_modes.push(RuleFailure {
                 object_id: reported_id,
                 description: "used ExtGState dictionary has /BM other than /Normal or /Compatible"
                     .to_owned(),
@@ -115,7 +110,7 @@ pub(crate) fn inspect(
         };
         let reported_id = Some((*object_id).into());
         if stream.dict.has(b"SMask") {
-            summary.xobject_soft_masks.push(GraphicsFailure {
+            summary.xobject_soft_masks.push(RuleFailure {
                 object_id: reported_id,
                 description: "invoked XObject dictionary contains /SMask".to_owned(),
             });
@@ -172,7 +167,7 @@ fn inspect_alpha(
     key: &[u8],
     object_id: Option<PdfObjectId>,
     kind: &str,
-    failures: &mut Vec<GraphicsFailure>,
+    failures: &mut Vec<RuleFailure>,
 ) {
     let Some(value) = dictionary
         .get(key)
@@ -182,7 +177,7 @@ fn inspect_alpha(
         return;
     };
     if (value - 1.0).abs() >= 0.000_001 {
-        failures.push(GraphicsFailure {
+        failures.push(RuleFailure {
             object_id,
             description: format!("used ExtGState dictionary has {kind} alpha {value} instead of 1"),
         });
@@ -208,7 +203,7 @@ fn inspect_group(
     if group.get(b"S").ok().and_then(|value| value.as_name().ok())
         == Some(b"Transparency".as_slice())
     {
-        summary.transparency_groups.push(GraphicsFailure {
+        summary.transparency_groups.push(RuleFailure {
             object_id,
             description: format!("{context} contains a transparency group"),
         });
@@ -235,7 +230,7 @@ fn inspect_rendering_intent(
         name.as_ref(),
         "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
     ) {
-        summary.rendering_intents.push(GraphicsFailure {
+        summary.rendering_intents.push(RuleFailure {
             object_id,
             description: format!("{context} uses rendering intent /{name}"),
         });

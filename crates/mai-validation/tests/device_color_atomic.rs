@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -32,9 +30,9 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn device_color_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::device_color_fixture("baseline"));
+    let baseline = common::failure_ids(&common::device_color_fixture("baseline"));
     for (case, expected_added) in CASES {
-        let actual = failure_ids(&common::device_color_fixture(case));
+        let actual = common::failure_ids(&common::device_color_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         let expected_added = expected_added
             .iter()
@@ -50,27 +48,8 @@ fn device_color_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn device_color_failure_reports_the_selected_space_and_output_space() {
-    let report = validate_bytes(
-        &common::device_color_fixture("rgb_with_cmyk_output"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    let failure = report
-        .failures
-        .iter()
-        .find(|failure| failure.rule_id == "PDFA1B-DEVICE-RGB-001")
-        .expect("DeviceRGB failure");
+    let report = common::validate(&common::device_color_fixture("rgb_with_cmyk_output"));
+    let failure = common::assert_single_failure(&report, "PDFA1B-DEVICE-RGB-001");
     assert!(failure.message.contains("DeviceRGB"));
     assert!(failure.message.contains("CMYK"));
-    assert_eq!(report.checks.total, 109);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

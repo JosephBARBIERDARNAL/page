@@ -6,13 +6,14 @@ use lopdf::{Dictionary, Document, Object, ObjectId};
 use crate::content_support::{decode_content_stream, inherited_page_resources, resource_once};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::{IccHeader, PdfObjectId};
-use crate::object_resolution::resolve_optional;
+use crate::model::IccHeader;
+use crate::object_resolution::{ResourceKey, resolve_optional};
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct IccBasedSummary {
-    pub(crate) failures: Vec<IccBasedFailure>,
-    pub(crate) component_failures: Vec<IccBasedFailure>,
+    pub(crate) failures: Vec<RuleFailure>,
+    pub(crate) component_failures: Vec<RuleFailure>,
     pub(crate) device_gray_context: Option<String>,
     pub(crate) device_rgb_context: Option<String>,
     pub(crate) device_cmyk_context: Option<String>,
@@ -20,18 +21,6 @@ pub(crate) struct IccBasedSummary {
     pub(crate) used_extgstate_ids: BTreeSet<ObjectId>,
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct IccBasedFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
-    pub(crate) description: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum ProfileKey {
-    Indirect(ObjectId),
-    Direct(String),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -44,9 +33,9 @@ enum DeviceColorSpace {
 struct Scanner<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
-    inspected_profiles: BTreeSet<ProfileKey>,
-    failures: BTreeMap<ProfileKey, IccBasedFailure>,
-    component_failures: BTreeMap<ProfileKey, IccBasedFailure>,
+    inspected_profiles: BTreeSet<ResourceKey>,
+    failures: BTreeMap<ResourceKey, RuleFailure>,
+    component_failures: BTreeMap<ResourceKey, RuleFailure>,
     device_gray_context: Option<String>,
     device_rgb_context: Option<String>,
     device_cmyk_context: Option<String>,
@@ -575,8 +564,8 @@ impl Scanner<'_> {
             return Ok(());
         };
         let key = match profile {
-            Object::Reference(id) => ProfileKey::Indirect(*id),
-            _ => ProfileKey::Direct(context.to_owned()),
+            Object::Reference(id) => ResourceKey::Indirect(*id),
+            _ => ResourceKey::Direct(context.to_owned()),
         };
         if !self.inspected_profiles.insert(key.clone()) {
             return Ok(());
@@ -667,28 +656,20 @@ impl Scanner<'_> {
         }
     }
 
-    fn record_failure(&mut self, key: ProfileKey, description: String) {
-        let object_id = match &key {
-            ProfileKey::Indirect(id) => Some((*id).into()),
-            ProfileKey::Direct(_) => None,
-        };
-        self.failures.entry(key).or_insert(IccBasedFailure {
+    fn record_failure(&mut self, key: ResourceKey, description: String) {
+        let object_id = key.object_id();
+        self.failures.entry(key).or_insert(RuleFailure {
             object_id,
             description,
         });
     }
 
-    fn record_component_failure(&mut self, key: ProfileKey, description: String) {
-        let object_id = match &key {
-            ProfileKey::Indirect(id) => Some((*id).into()),
-            ProfileKey::Direct(_) => None,
-        };
-        self.component_failures
-            .entry(key)
-            .or_insert(IccBasedFailure {
-                object_id,
-                description,
-            });
+    fn record_component_failure(&mut self, key: ResourceKey, description: String) {
+        let object_id = key.object_id();
+        self.component_failures.entry(key).or_insert(RuleFailure {
+            object_id,
+            description,
+        });
     }
 }
 

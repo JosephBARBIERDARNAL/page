@@ -7,7 +7,9 @@ use serde::Serialize;
 use crate::limits::SafetyLimits;
 use crate::metadata::dates_equivalent;
 use crate::model::PdfDocument;
-use crate::report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
+use crate::report::{
+    FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum ValidationProfile {
@@ -207,8 +209,18 @@ fn validate_document(
 
     validate_output_intents(&document, &mut failures);
 
-    validate_icc_based(&inspections.icc_based, &mut failures);
-    validate_icc_based_components(&inspections.icc_based, &mut failures);
+    aggregate_failures_with_location(
+        &inspections.icc_based.failures,
+        "PDFA1B-ICCBASED-001",
+        Some("direct profile"),
+        &mut failures,
+    );
+    aggregate_failures_with_location(
+        &inspections.icc_based.component_failures,
+        "PDFA1B-ICCBASED-COMPONENTS-001",
+        Some("direct profile"),
+        &mut failures,
+    );
     validate_device_color_spaces(&document, &inspections.icc_based, &mut failures);
     validate_xobjects(&inspections.xobjects, &mut failures);
     validate_graphics(&inspections.graphics, &inspections.icc_based, &mut failures);
@@ -402,7 +414,7 @@ fn validate_actions(
             "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
         ),
     ] {
-        aggregate_action_failures(invalid, rule_id, failures);
+        aggregate_failures(invalid, rule_id, failures);
     }
 }
 
@@ -417,20 +429,7 @@ fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut Vec<Validati
             "PDFA1B-WIDGET-APPEARANCE-001",
         ),
     ] {
-        if invalid.is_empty() {
-            continue;
-        }
-        let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
-        failures.push(failure(
-            rule_id,
-            invalid
-                .iter()
-                .map(|form| form.description.as_str())
-                .collect::<Vec<_>>()
-                .join("; "),
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        aggregate_failures(invalid, rule_id, failures);
     }
 }
 
@@ -510,79 +509,65 @@ fn validate_stream_safety(
     }
 }
 
-fn aggregate_action_failures(
-    invalid: &[crate::actions::ActionFailure],
+/// Computes the single object id (when exactly one entry is present) and the
+/// `"; "`-joined description used by every same-rule failure aggregator.
+fn joined_failure(invalid: &[RuleFailure]) -> (Option<crate::PdfObjectId>, String) {
+    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let description = invalid
+        .iter()
+        .map(|entry| entry.description.as_str())
+        .collect::<Vec<_>>()
+        .join("; ");
+    (object_id, description)
+}
+
+/// Aggregates same-rule failures into one [`ValidationFailure`], attaching
+/// the single object id only when exactly one entry is present.
+fn aggregate_failures(
+    invalid: &[RuleFailure],
     rule_id: &'static str,
     failures: &mut Vec<ValidationFailure>,
 ) {
     if invalid.is_empty() {
         return;
     }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
+    let (object_id, description) = joined_failure(invalid);
     failures.push(failure(
         rule_id,
-        invalid
-            .iter()
-            .map(|action| action.description.as_str())
-            .collect::<Vec<_>>()
-            .join("; "),
+        description,
         object_id,
         FailureCategory::Conformance,
     ));
 }
 
-fn validate_icc_based(
-    icc_based: &crate::icc_based::IccBasedSummary,
+/// Like [`aggregate_failures`], but prefixes each entry with its indirect
+/// object identity when known, or with `no_id_label` (if given) otherwise.
+fn aggregate_failures_with_location(
+    invalid: &[RuleFailure],
+    rule_id: &'static str,
+    no_id_label: Option<&str>,
     failures: &mut Vec<ValidationFailure>,
 ) {
-    if icc_based.failures.is_empty() {
-        return;
-    }
-    let object_id = (icc_based.failures.len() == 1)
-        .then(|| icc_based.failures[0].object_id)
-        .flatten();
-    let detail = icc_based
-        .failures
-        .iter()
-        .map(|profile| match profile.object_id {
-            Some(object_id) => format!(
-                "{} {}: {}",
-                object_id.object_number, object_id.generation, profile.description
-            ),
-            None => format!("direct profile: {}", profile.description),
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
-    failures.push(failure(
-        "PDFA1B-ICCBASED-001",
-        detail,
-        object_id,
-        FailureCategory::Conformance,
-    ));
-}
-
-fn validate_icc_based_components(
-    icc_based: &crate::icc_based::IccBasedSummary,
-    failures: &mut Vec<ValidationFailure>,
-) {
-    let invalid = &icc_based.component_failures;
     if invalid.is_empty() {
         return;
     }
     let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
     let detail = invalid
         .iter()
-        .map(|profile| match profile.object_id {
+        .map(|entry| match entry.object_id {
             Some(object_id) => format!(
                 "{} {}: {}",
-                object_id.object_number, object_id.generation, profile.description
+                object_id.object_number, object_id.generation, entry.description
             ),
-            None => format!("direct profile: {}", profile.description),
+            None => match no_id_label {
+                Some(label) => format!("{label}: {}", entry.description),
+                None => entry.description.clone(),
+            },
         })
         .collect::<Vec<_>>()
         .join("; ");
     failures.push(failure(
-        "PDFA1B-ICCBASED-COMPONENTS-001",
+        rule_id,
         detail,
         object_id,
         FailureCategory::Conformance,
@@ -655,69 +640,39 @@ fn validate_xobjects(
     xobjects: &crate::xobject::XObjectSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
-    aggregate_xobject_failures(
-        &xobjects.image_alternates,
-        "PDFA1B-IMAGE-ALTERNATES-001",
-        failures,
-    );
-    aggregate_xobject_failures(&xobjects.xobject_opi, "PDFA1B-XOBJECT-OPI-001", failures);
-    aggregate_xobject_failures(
-        &xobjects.image_interpolate,
-        "PDFA1B-IMAGE-INTERPOLATE-001",
-        failures,
-    );
-    aggregate_xobject_failures(
-        &xobjects.image_bits_per_component,
-        "PDFA1B-IMAGE-BPC-001",
-        failures,
-    );
-    aggregate_xobject_failures(
-        &xobjects.mask_bits_per_component,
-        "PDFA1B-IMAGE-MASK-BPC-001",
-        failures,
-    );
-    aggregate_xobject_failures(
-        &xobjects.form_postscript,
-        "PDFA1B-FORM-POSTSCRIPT-001",
-        failures,
-    );
-    aggregate_xobject_failures(
-        &xobjects.form_reference,
-        "PDFA1B-FORM-REFERENCE-001",
-        failures,
-    );
-    aggregate_xobject_failures(
-        &xobjects.postscript_xobject,
-        "PDFA1B-XOBJECT-POSTSCRIPT-001",
-        failures,
-    );
-}
-
-fn aggregate_xobject_failures(
-    invalid: &[crate::xobject::XObjectFailure],
-    rule_id: &'static str,
-    failures: &mut Vec<ValidationFailure>,
-) {
-    if invalid.is_empty() {
-        return;
+    for (invalid, rule_id) in [
+        (
+            xobjects.image_alternates.as_slice(),
+            "PDFA1B-IMAGE-ALTERNATES-001",
+        ),
+        (xobjects.xobject_opi.as_slice(), "PDFA1B-XOBJECT-OPI-001"),
+        (
+            xobjects.image_interpolate.as_slice(),
+            "PDFA1B-IMAGE-INTERPOLATE-001",
+        ),
+        (
+            xobjects.image_bits_per_component.as_slice(),
+            "PDFA1B-IMAGE-BPC-001",
+        ),
+        (
+            xobjects.mask_bits_per_component.as_slice(),
+            "PDFA1B-IMAGE-MASK-BPC-001",
+        ),
+        (
+            xobjects.form_postscript.as_slice(),
+            "PDFA1B-FORM-POSTSCRIPT-001",
+        ),
+        (
+            xobjects.form_reference.as_slice(),
+            "PDFA1B-FORM-REFERENCE-001",
+        ),
+        (
+            xobjects.postscript_xobject.as_slice(),
+            "PDFA1B-XOBJECT-POSTSCRIPT-001",
+        ),
+    ] {
+        aggregate_failures_with_location(invalid, rule_id, None, failures);
     }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id);
-    let detail = invalid
-        .iter()
-        .map(|xobject| {
-            format!(
-                "{} {}: {}",
-                xobject.object_id.object_number, xobject.object_id.generation, xobject.description
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
-    failures.push(failure(
-        rule_id,
-        detail,
-        object_id,
-        FailureCategory::Conformance,
-    ));
 }
 
 fn validate_graphics(
@@ -725,51 +680,46 @@ fn validate_graphics(
     content: &crate::icc_based::IccBasedSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
-    aggregate_graphics_failures(
-        &graphics.transfer_functions,
-        "PDFA1B-EXTGSTATE-TR-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.transfer_functions_2,
-        "PDFA1B-EXTGSTATE-TR2-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.rendering_intents,
-        "PDFA1B-RENDERING-INTENT-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.extgstate_soft_masks,
-        "PDFA1B-EXTGSTATE-SMASK-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.xobject_soft_masks,
-        "PDFA1B-XOBJECT-SMASK-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.transparency_groups,
-        "PDFA1B-TRANSPARENCY-GROUP-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.blend_modes,
-        "PDFA1B-EXTGSTATE-BLEND-MODE-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.stroke_alpha,
-        "PDFA1B-EXTGSTATE-STROKE-ALPHA-001",
-        failures,
-    );
-    aggregate_graphics_failures(
-        &graphics.fill_alpha,
-        "PDFA1B-EXTGSTATE-FILL-ALPHA-001",
-        failures,
-    );
+    for (invalid, rule_id) in [
+        (
+            graphics.transfer_functions.as_slice(),
+            "PDFA1B-EXTGSTATE-TR-001",
+        ),
+        (
+            graphics.transfer_functions_2.as_slice(),
+            "PDFA1B-EXTGSTATE-TR2-001",
+        ),
+        (
+            graphics.rendering_intents.as_slice(),
+            "PDFA1B-RENDERING-INTENT-001",
+        ),
+        (
+            graphics.extgstate_soft_masks.as_slice(),
+            "PDFA1B-EXTGSTATE-SMASK-001",
+        ),
+        (
+            graphics.xobject_soft_masks.as_slice(),
+            "PDFA1B-XOBJECT-SMASK-001",
+        ),
+        (
+            graphics.transparency_groups.as_slice(),
+            "PDFA1B-TRANSPARENCY-GROUP-001",
+        ),
+        (
+            graphics.blend_modes.as_slice(),
+            "PDFA1B-EXTGSTATE-BLEND-MODE-001",
+        ),
+        (
+            graphics.stroke_alpha.as_slice(),
+            "PDFA1B-EXTGSTATE-STROKE-ALPHA-001",
+        ),
+        (
+            graphics.fill_alpha.as_slice(),
+            "PDFA1B-EXTGSTATE-FILL-ALPHA-001",
+        ),
+    ] {
+        aggregate_failures_with_location(invalid, rule_id, None, failures);
+    }
     if !content.undefined_operators.is_empty() {
         let detail = content
             .undefined_operators
@@ -784,34 +734,6 @@ fn validate_graphics(
             FailureCategory::Conformance,
         ));
     }
-}
-
-fn aggregate_graphics_failures(
-    invalid: &[crate::graphics::GraphicsFailure],
-    rule_id: &'static str,
-    failures: &mut Vec<ValidationFailure>,
-) {
-    if invalid.is_empty() {
-        return;
-    }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
-    let detail = invalid
-        .iter()
-        .map(|failure| match failure.object_id {
-            Some(object_id) => format!(
-                "{} {}: {}",
-                object_id.object_number, object_id.generation, failure.description
-            ),
-            None => failure.description.clone(),
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
-    failures.push(failure(
-        rule_id,
-        detail,
-        object_id,
-        FailureCategory::Conformance,
-    ));
 }
 
 fn validate_annotations(
@@ -845,36 +767,15 @@ fn validate_annotations(
             "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001",
         ),
     ] {
-        aggregate_annotation_failures(invalid, rule_id, failures);
+        aggregate_failures(invalid, rule_id, failures);
     }
     if pdfa_output_color_space(document) != Some("RGB ") {
-        aggregate_annotation_failures(
+        aggregate_failures(
             &annotations.color_uses,
             "PDFA1B-ANNOTATION-COLOR-001",
             failures,
         );
     }
-}
-
-fn aggregate_annotation_failures(
-    invalid: &[crate::annotations::AnnotationFailure],
-    rule_id: &'static str,
-    failures: &mut Vec<ValidationFailure>,
-) {
-    if invalid.is_empty() {
-        return;
-    }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
-    failures.push(failure(
-        rule_id,
-        invalid
-            .iter()
-            .map(|annotation| annotation.description.as_str())
-            .collect::<Vec<_>>()
-            .join("; "),
-        object_id,
-        FailureCategory::Conformance,
-    ));
 }
 
 fn validate_font_embedding(
@@ -885,12 +786,7 @@ fn validate_font_embedding(
     if invalid.is_empty() {
         return;
     }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
-    let message = invalid
-        .iter()
-        .map(|font| font.description.as_str())
-        .collect::<Vec<_>>()
-        .join("; ");
+    let (object_id, message) = joined_failure(invalid);
     failures.push(failure(
         "PDFA1B-FONT-EMBEDDING-001",
         format!("font program is not embedded for {message}"),
@@ -956,29 +852,8 @@ fn validate_font_dictionaries(
             "PDFA1B-GRAPHICS-STATE-NESTING-001",
         ),
     ] {
-        aggregate_font_failures(invalid, rule_id, failures);
+        aggregate_failures(invalid, rule_id, failures);
     }
-}
-
-fn aggregate_font_failures(
-    invalid: &[crate::font_embedding::FontEmbeddingFailure],
-    rule_id: &'static str,
-    failures: &mut Vec<ValidationFailure>,
-) {
-    if invalid.is_empty() {
-        return;
-    }
-    let object_id = (invalid.len() == 1).then(|| invalid[0].object_id).flatten();
-    failures.push(failure(
-        rule_id,
-        invalid
-            .iter()
-            .map(|font| font.description.as_str())
-            .collect::<Vec<_>>()
-            .join("; "),
-        object_id,
-        FailureCategory::Conformance,
-    ));
 }
 
 /// Requires exactly one declared value satisfying `accept`, producing a

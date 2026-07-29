@@ -1,7 +1,3 @@
-use std::collections::BTreeSet;
-
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -45,12 +41,12 @@ fn document_feature_cases_have_the_complete_expected_failure_delta() {
         ("ocproperties_stream", &[OPTIONAL_CONTENT]),
         ("unreferenced_catalog_ocproperties", &[]),
     ];
-    let baseline = failure_ids(&common::document_feature_fixture("baseline"));
+    let baseline = common::failure_ids(&common::document_feature_fixture("baseline"));
     for rule in [EMBEDDED_FILES, OPTIONAL_CONTENT] {
         assert!(!baseline.contains(rule));
     }
     for (case, expected) in cases {
-        let actual = failure_ids(&common::document_feature_fixture(case));
+        let actual = common::failure_ids(&common::document_feature_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         assert_eq!(
             added,
@@ -72,7 +68,7 @@ fn document_feature_failures_attach_the_catalog_object() {
         ("file_spec_indirect_with_ef", FILE_SPEC),
         ("stream_f", STREAM_EXTERNAL),
     ] {
-        let report = validate(&common::document_feature_fixture(case));
+        let report = common::validate(&common::document_feature_fixture(case));
         let failure = report
             .failures
             .iter()
@@ -87,16 +83,4 @@ fn document_feature_failures_attach_the_catalog_object() {
         assert_eq!(report.checks.failed, expected_failed);
         assert_eq!(report.checks.passed, 109 - expected_failed);
     }
-}
-
-fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate(bytes)
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

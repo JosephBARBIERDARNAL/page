@@ -1,7 +1,3 @@
-use std::collections::BTreeSet;
-
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -44,31 +40,15 @@ fn form_cases_have_the_complete_expected_failure_delta() {
         ("widget_parent_ap_only", &["PDFA1B-WIDGET-APPEARANCE-001"]),
         ("unreferenced_widget_missing_ap", &[]),
     ];
-    let baseline = validate_bytes(
-        &common::form_fixture("baseline"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    let baseline_ids = baseline
-        .failures
-        .iter()
-        .map(|failure| failure.rule_id)
-        .collect::<BTreeSet<_>>();
+    let baseline_ids = common::failure_ids(&common::form_fixture("baseline"));
     for (case, expected) in cases {
-        let report = validate_bytes(
-            &common::form_fixture(case),
-            ValidationProfile::PdfA1b,
-            &SafetyLimits::default(),
-        );
-        let case_ids = report
-            .failures
-            .iter()
-            .map(|failure| failure.rule_id)
-            .collect::<BTreeSet<_>>();
+        let bytes = common::form_fixture(case);
+        let report = common::validate(&bytes);
+        let case_ids = common::failure_ids(&bytes);
         let (added, removed) = common::rule_delta(&baseline_ids, &case_ids);
         assert_eq!(
             added,
-            expected.iter().copied().collect(),
+            expected.iter().map(|rule| (*rule).to_owned()).collect(),
             "{case}: unexpected failure delta: {:#?}",
             report.failures
         );
@@ -85,19 +65,8 @@ fn a_single_indirect_form_failure_attaches_its_owner() {
         ),
         ("widget_missing_ap", "PDFA1B-WIDGET-APPEARANCE-001"),
     ] {
-        let report = validate_bytes(
-            &common::form_fixture(case),
-            ValidationProfile::PdfA1b,
-            &SafetyLimits::default(),
-        );
-        let failure = report
-            .failures
-            .iter()
-            .find(|failure| failure.rule_id == rule_id)
-            .expect("targeted form failure");
+        let report = common::validate(&common::form_fixture(case));
+        let failure = common::assert_single_failure(&report, rule_id);
         assert!(failure.object_id.is_some(), "{case}: missing object ID");
-        assert_eq!(report.checks.total, 109);
-        assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.checks.passed, 108);
     }
 }

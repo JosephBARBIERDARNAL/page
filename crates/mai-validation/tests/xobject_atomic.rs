@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -28,9 +26,9 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn xobject_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::xobject_fixture("baseline"));
+    let baseline = common::failure_ids(&common::xobject_fixture("baseline"));
     for (case, expected_added) in CASES {
-        let actual = failure_ids(&common::xobject_fixture(case));
+        let actual = common::failure_ids(&common::xobject_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         let expected_added = expected_added
             .iter()
@@ -46,27 +44,8 @@ fn xobject_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn multiple_invalid_xobjects_are_one_deterministic_unattached_failure() {
-    let report = validate_bytes(
-        &common::xobject_fixture("two_invalid_images"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    let failure = report
-        .failures
-        .iter()
-        .find(|failure| failure.rule_id == "PDFA1B-IMAGE-BPC-001")
-        .expect("image bit-depth failure");
+    let report = common::validate(&common::xobject_fixture("two_invalid_images"));
+    let failure = common::assert_single_failure(&report, "PDFA1B-IMAGE-BPC-001");
     assert!(failure.object_id.is_none());
     assert!(failure.message.contains("; "));
-    assert_eq!(report.checks.total, 109);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

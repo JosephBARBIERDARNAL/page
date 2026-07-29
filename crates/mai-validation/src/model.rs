@@ -24,6 +24,9 @@ impl From<ObjectId> for PdfObjectId {
     }
 }
 
+/// A coarse, whole-document informational font count — not a conformance
+/// predicate. See `font_is_embedded` in this module for why this is
+/// intentionally distinct from the pinned `PDFA1B-FONT-EMBEDDING-001` rule.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct FontSummary {
     pub total: usize,
@@ -236,15 +239,17 @@ impl PdfDocument {
             .iter()
             .map(|entry| entry.object_id)
             .collect();
+        let page_count = match catalog {
+            Some(catalog) => count_pages(document, catalog, limits.max_reference_depth)?,
+            None => 0,
+        };
 
         Ok(Self {
             version: document.version.clone(),
             encrypted: false,
             catalog_reference,
             catalog_present: catalog.is_some(),
-            page_count: catalog
-                .map(|catalog| count_pages(document, catalog, limits.max_reference_depth))
-                .unwrap_or(0),
+            page_count,
             trailer_keys,
             info,
             info_object,
@@ -254,7 +259,7 @@ impl PdfDocument {
             catalog_metadata,
             output_intents,
             output_intents_summary,
-            fonts: summarize_fonts(document, limits),
+            fonts: summarize_fonts(document, limits)?,
             object_count: document.objects.len(),
         })
     }
@@ -298,7 +303,7 @@ fn inspect_catalog_metadata(
         present: true,
         ..CatalogMetadataStream::default()
     };
-    let Ok(object) = resolve(document, entry, limits.max_reference_depth) else {
+    let Some(object) = resolve_optional(document, entry, limits.max_reference_depth)? else {
         return Ok(result);
     };
     let Ok(stream) = object.as_stream() else {
@@ -320,9 +325,13 @@ fn reference_id(object: &Object) -> Option<PdfObjectId> {
     object.as_reference().ok().map(Into::into)
 }
 
-fn count_pages(document: &Document, catalog: &Dictionary, maximum_depth: usize) -> usize {
+fn count_pages(
+    document: &Document,
+    catalog: &Dictionary,
+    maximum_depth: usize,
+) -> Result<usize, PdfError> {
     let Ok(pages) = catalog.get(b"Pages") else {
-        return 0;
+        return Ok(0);
     };
     let mut count = 0usize;
     let mut visited = BTreeSet::new();
@@ -337,7 +346,8 @@ fn count_pages(document: &Document, catalog: &Dictionary, maximum_depth: usize) 
         {
             continue;
         }
-        let Ok(object) = resolve(document, object, maximum_depth.saturating_sub(depth)) else {
+        let Some(object) = resolve_optional(document, object, maximum_depth.saturating_sub(depth))?
+        else {
             continue;
         };
         let Ok(dictionary) = object.as_dict() else {
@@ -349,12 +359,9 @@ fn count_pages(document: &Document, catalog: &Dictionary, maximum_depth: usize) 
                 let Ok(kids) = dictionary.get(b"Kids") else {
                     continue;
                 };
-                let Ok(kids) = resolve(document, kids, maximum_depth.saturating_sub(depth))
-                    .and_then(|object| {
-                        object
-                            .as_array()
-                            .map_err(|_| PdfError::UnexpectedObject("Kids is not an array"))
-                    })
+                let Some(kids) =
+                    resolve_optional(document, kids, maximum_depth.saturating_sub(depth))?
+                        .and_then(|object| object.as_array().ok())
                 else {
                     continue;
                 };
@@ -363,7 +370,7 @@ fn count_pages(document: &Document, catalog: &Dictionary, maximum_depth: usize) 
             _ => {}
         }
     }
-    count
+    Ok(count)
 }
 
 fn extract_info(
@@ -447,21 +454,23 @@ fn extract_xmp(
         return Ok(none());
     };
     let object_id = reference_id(metadata_entry);
-    let stream =
-        match resolve(document, metadata_entry, limits.max_reference_depth).and_then(|object| {
-            object
-                .as_stream()
-                .map_err(|_| PdfError::UnexpectedObject("Metadata is not a stream"))
-        }) {
-            Ok(stream) => stream,
-            Err(error) => {
-                return Ok(XmpExtraction {
-                    xmp: None,
-                    object_id,
-                    parse_error: Some(error.to_string()),
-                });
-            }
-        };
+    let resolved = resolve_optional(document, metadata_entry, limits.max_reference_depth)?.ok_or(
+        PdfError::UnexpectedObject("Metadata reference does not resolve to an object"),
+    );
+    let stream = match resolved.and_then(|object| {
+        object
+            .as_stream()
+            .map_err(|_| PdfError::UnexpectedObject("Metadata is not a stream"))
+    }) {
+        Ok(stream) => stream,
+        Err(error) => {
+            return Ok(XmpExtraction {
+                xmp: None,
+                object_id,
+                parse_error: Some(error.to_string()),
+            });
+        }
+    };
     let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
         Ok(bytes) => bytes,
         Err(
@@ -573,7 +582,7 @@ fn signature(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| char::from(*byte)).collect()
 }
 
-fn summarize_fonts(document: &Document, limits: &SafetyLimits) -> FontSummary {
+fn summarize_fonts(document: &Document, limits: &SafetyLimits) -> Result<FontSummary, PdfError> {
     let mut summary = FontSummary::default();
     for object in document.objects.values() {
         let dictionary = match object {
@@ -585,27 +594,36 @@ fn summarize_fonts(document: &Document, limits: &SafetyLimits) -> FontSummary {
             continue;
         }
         summary.total += 1;
-        if font_is_embedded(document, dictionary, limits) {
+        if font_is_embedded(document, dictionary, limits)? {
             summary.embedded += 1;
         }
     }
-    summary
+    Ok(summary)
 }
 
-fn font_is_embedded(document: &Document, font: &Dictionary, limits: &SafetyLimits) -> bool {
+/// A coarse, whole-document proxy: counts every `/Type /Font` object
+/// regardless of use, and treats a present `/FontFile*` key as "embedded"
+/// without validating the program bytes. This intentionally differs from
+/// the pinned `PDFA1B-FONT-EMBEDDING-001` predicate in `font_embedding.rs`,
+/// which is bounded to fonts reached via text-show content paths and
+/// requires a recognized font program (`valid_font_program`). The two must
+/// not be unified: they cover different populations (every font object vs.
+/// only used/reached ones).
+fn font_is_embedded(
+    document: &Document,
+    font: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
     let Ok(descriptor_entry) = font.get(b"FontDescriptor") else {
-        return false;
+        return Ok(false);
     };
-    let Ok(descriptor) =
-        resolve(document, descriptor_entry, limits.max_reference_depth).and_then(|object| {
-            object
-                .as_dict()
-                .map_err(|_| PdfError::UnexpectedObject("FontDescriptor is not a dictionary"))
-        })
+    let Some(descriptor) =
+        resolve_optional(document, descriptor_entry, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok())
     else {
-        return false;
+        return Ok(false);
     };
-    descriptor.has(b"FontFile") || descriptor.has(b"FontFile2") || descriptor.has(b"FontFile3")
+    Ok(descriptor.has(b"FontFile") || descriptor.has(b"FontFile2") || descriptor.has(b"FontFile3"))
 }
 
 #[cfg(test)]

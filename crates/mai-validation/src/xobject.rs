@@ -3,23 +3,18 @@ use std::collections::BTreeSet;
 use lopdf::{Document, Object, ObjectId};
 
 use crate::model::PdfObjectId;
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct XObjectSummary {
-    pub(crate) image_alternates: Vec<XObjectFailure>,
-    pub(crate) xobject_opi: Vec<XObjectFailure>,
-    pub(crate) image_interpolate: Vec<XObjectFailure>,
-    pub(crate) image_bits_per_component: Vec<XObjectFailure>,
-    pub(crate) mask_bits_per_component: Vec<XObjectFailure>,
-    pub(crate) form_postscript: Vec<XObjectFailure>,
-    pub(crate) form_reference: Vec<XObjectFailure>,
-    pub(crate) postscript_xobject: Vec<XObjectFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct XObjectFailure {
-    pub(crate) object_id: PdfObjectId,
-    pub(crate) description: String,
+    pub(crate) image_alternates: Vec<RuleFailure>,
+    pub(crate) xobject_opi: Vec<RuleFailure>,
+    pub(crate) image_interpolate: Vec<RuleFailure>,
+    pub(crate) image_bits_per_component: Vec<RuleFailure>,
+    pub(crate) mask_bits_per_component: Vec<RuleFailure>,
+    pub(crate) form_postscript: Vec<RuleFailure>,
+    pub(crate) form_reference: Vec<RuleFailure>,
+    pub(crate) postscript_xobject: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -61,8 +56,8 @@ pub(crate) fn inspect(
                     "PostScript XObject",
                     &mut summary,
                 );
-                summary.postscript_xobject.push(XObjectFailure {
-                    object_id: (*object_id).into(),
+                summary.postscript_xobject.push(RuleFailure {
+                    object_id: Some((*object_id).into()),
                     description: "XObject has /Subtype /PS".to_owned(),
                 });
             }
@@ -102,8 +97,8 @@ fn inspect_common_xobject(
     summary: &mut XObjectSummary,
 ) {
     if dictionary.has(b"OPI") {
-        summary.xobject_opi.push(XObjectFailure {
-            object_id,
+        summary.xobject_opi.push(RuleFailure {
+            object_id: Some(object_id),
             description: format!("{kind} dictionary contains /OPI"),
         });
     }
@@ -116,8 +111,8 @@ fn inspect_image(
     summary: &mut XObjectSummary,
 ) {
     if dictionary.has(b"Alternates") {
-        summary.image_alternates.push(XObjectFailure {
-            object_id,
+        summary.image_alternates.push(RuleFailure {
+            object_id: Some(object_id),
             description: "image dictionary contains /Alternates".to_owned(),
         });
     }
@@ -128,8 +123,8 @@ fn inspect_image(
             .and_then(|value| value.as_bool().ok())
             != Some(false)
     {
-        summary.image_interpolate.push(XObjectFailure {
-            object_id,
+        summary.image_interpolate.push(RuleFailure {
+            object_id: Some(object_id),
             description: "image dictionary /Interpolate is not false".to_owned(),
         });
     }
@@ -145,8 +140,8 @@ fn inspect_image(
         == Some(true);
     if is_explicit_mask {
         if bits_per_component.is_some_and(|value| value != 1) {
-            summary.mask_bits_per_component.push(XObjectFailure {
-                object_id,
+            summary.mask_bits_per_component.push(RuleFailure {
+                object_id: Some(object_id),
                 description: format!(
                     "image mask dictionary has /BitsPerComponent {bits_per_component:?}"
                 ),
@@ -155,8 +150,8 @@ fn inspect_image(
     } else if !is_stencil_mask
         && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8))
     {
-        summary.image_bits_per_component.push(XObjectFailure {
-            object_id,
+        summary.image_bits_per_component.push(RuleFailure {
+            object_id: Some(object_id),
             description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
         });
     }
@@ -182,14 +177,14 @@ fn inspect_form(
         _ => false,
     });
     if subtype2_is_ps || contains_modeled_ps {
-        summary.form_postscript.push(XObjectFailure {
-            object_id,
+        summary.form_postscript.push(RuleFailure {
+            object_id: Some(object_id),
             description: "Form dictionary contains /PS or /Subtype2 /PS".to_owned(),
         });
     }
     if dictionary.has(b"Ref") {
-        summary.form_reference.push(XObjectFailure {
-            object_id,
+        summary.form_reference.push(RuleFailure {
+            object_id: Some(object_id),
             description: "Form dictionary contains /Ref".to_owned(),
         });
     }

@@ -70,9 +70,9 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn icc_based_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::icc_based_fixture("baseline"));
+    let baseline = common::failure_ids(&common::icc_based_fixture("baseline"));
     for (case, expected_added) in CASES {
-        let actual = failure_ids(&common::icc_based_fixture(case));
+        let actual = common::failure_ids(&common::icc_based_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         let expected_added = expected_added
             .iter()
@@ -88,30 +88,14 @@ fn icc_based_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn shared_invalid_profile_is_reported_once_with_its_object_id() {
-    let report = validate_bytes(
-        &common::icc_based_fixture("repeated_shared_invalid"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    let failures = report
-        .failures
-        .iter()
-        .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-001")
-        .collect::<Vec<_>>();
-    assert_eq!(failures.len(), 1);
-    assert!(failures[0].object_id.is_some());
-    assert_eq!(report.checks.total, 109);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
+    let report = common::validate(&common::icc_based_fixture("repeated_shared_invalid"));
+    let failure = common::assert_single_failure(&report, "PDFA1B-ICCBASED-001");
+    assert!(failure.object_id.is_some());
 }
 
 #[test]
 fn component_mismatch_is_reported_with_its_profile_object_id() {
-    let report = validate_bytes(
-        &common::icc_based_fixture("wrong_n"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
+    let report = common::validate(&common::icc_based_fixture("wrong_n"));
     let failures = report
         .failures
         .iter()
@@ -125,11 +109,7 @@ fn component_mismatch_is_reported_with_its_profile_object_id() {
 
 #[test]
 fn multiple_invalid_profiles_are_aggregated_without_an_object_id() {
-    let report = validate_bytes(
-        &common::icc_based_fixture("two_invalid_profiles"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
+    let report = common::validate(&common::icc_based_fixture("two_invalid_profiles"));
     let failures = report
         .failures
         .iter()
@@ -172,12 +152,4 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         assert_eq!(report.failures.len(), 1, "{case}: {report:#?}");
         assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001", "{case}");
     }
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

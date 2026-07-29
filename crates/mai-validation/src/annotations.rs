@@ -1,27 +1,23 @@
 use std::collections::BTreeSet;
 
-use lopdf::{Dictionary, Document, Object};
+use lopdf::{Dictionary, Document};
 
+use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::resolve_optional;
+use crate::object_resolution::{resolve_optional, walk_inherited};
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct AnnotationSummary {
-    pub(crate) invalid_subtypes: Vec<AnnotationFailure>,
-    pub(crate) invalid_opacities: Vec<AnnotationFailure>,
-    pub(crate) invalid_flags: Vec<AnnotationFailure>,
-    pub(crate) color_uses: Vec<AnnotationFailure>,
-    pub(crate) invalid_appearance_entries: Vec<AnnotationFailure>,
-    pub(crate) invalid_button_appearances: Vec<AnnotationFailure>,
-    pub(crate) invalid_other_appearances: Vec<AnnotationFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AnnotationFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
-    pub(crate) description: String,
+    pub(crate) invalid_subtypes: Vec<RuleFailure>,
+    pub(crate) invalid_opacities: Vec<RuleFailure>,
+    pub(crate) invalid_flags: Vec<RuleFailure>,
+    pub(crate) color_uses: Vec<RuleFailure>,
+    pub(crate) invalid_appearance_entries: Vec<RuleFailure>,
+    pub(crate) invalid_button_appearances: Vec<RuleFailure>,
+    pub(crate) invalid_other_appearances: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -30,44 +26,24 @@ pub(crate) fn inspect(
 ) -> Result<AnnotationSummary, PdfError> {
     let mut summary = AnnotationSummary::default();
     let mut inspected = BTreeSet::new();
-    for (page_number, page_id) in document.get_pages() {
-        let Some(page) = document
-            .objects
-            .get(&page_id)
-            .and_then(|object| object.as_dict().ok())
-        else {
-            continue;
-        };
-        let Ok(annotations) = page.get(b"Annots") else {
-            continue;
-        };
-        let Some(annotations) =
-            resolve_optional(document, annotations, limits.max_reference_depth)?
-                .and_then(|object| object.as_array().ok())
-        else {
-            continue;
-        };
-        for (index, annotation) in annotations.iter().enumerate() {
-            let object_id = annotation.as_reference().ok();
-            if object_id.is_some_and(|id| !inspected.insert(id)) {
-                continue;
-            }
-            let Some(dictionary) =
-                resolve_optional(document, annotation, limits.max_reference_depth)?
-                    .and_then(|object| object.as_dict().ok())
-            else {
-                continue;
+    for_each_page_annotation(
+        document,
+        limits,
+        &mut inspected,
+        |page_number, index, object_id, annotation| {
+            let Some(dictionary) = annotation.as_dict().ok() else {
+                return Ok(());
             };
             inspect_annotation(
                 document,
                 dictionary,
-                object_id.map(Into::into),
+                object_id,
                 &format!("annotation {index} on page {page_number}"),
                 limits,
                 &mut summary,
-            )?;
-        }
-    }
+            )
+        },
+    )?;
     Ok(summary)
 }
 
@@ -191,38 +167,16 @@ fn inspect_annotation(
 
 fn inherited_field_type<'a>(
     document: &'a Document,
-    mut dictionary: &'a Dictionary,
+    dictionary: &'a Dictionary,
     limits: &SafetyLimits,
 ) -> Result<Option<&'a [u8]>, PdfError> {
-    let mut visited = BTreeSet::new();
-    for _ in 0..=limits.max_reference_depth {
-        if let Ok(field_type) = dictionary.get(b"FT") {
-            return Ok(field_type.as_name().ok());
-        }
-        let Ok(parent) = dictionary.get(b"Parent") else {
-            return Ok(None);
-        };
-        if let Object::Reference(object_id) = parent
-            && !visited.insert(*object_id)
-        {
-            return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
-        }
-        let Some(parent) = resolve_optional(document, parent, limits.max_reference_depth)?
-            .and_then(|object| object.as_dict().ok())
-        else {
-            return Ok(None);
-        };
-        dictionary = parent;
-    }
-    Err(PdfError::ReferenceDepth(limits.max_reference_depth))
+    walk_inherited(document, dictionary, limits, b"FT", |_, value, _| {
+        Ok(value.as_name().ok())
+    })
 }
 
-fn annotation_failure(
-    object_id: Option<PdfObjectId>,
-    context: &str,
-    detail: &str,
-) -> AnnotationFailure {
-    AnnotationFailure {
+fn annotation_failure(object_id: Option<PdfObjectId>, context: &str, detail: &str) -> RuleFailure {
+    RuleFailure {
         object_id,
         description: format!("{context} {detail}"),
     }

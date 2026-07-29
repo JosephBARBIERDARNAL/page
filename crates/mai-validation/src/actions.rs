@@ -4,8 +4,8 @@ use lopdf::{Document, Object, ObjectId};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
 use crate::object_resolution::resolve_optional;
+use crate::report::RuleFailure;
 
 const CATALOG_ACTION_KEYS: &[&[u8]] = &[b"WC", b"WS", b"DS", b"WP", b"DP"];
 const PAGE_ACTION_KEYS: &[&[u8]] = &[b"O", b"C"];
@@ -16,18 +16,12 @@ const FIELD_ACTION_KEYS: &[&[u8]] = &[b"K", b"F", b"V", b"C"];
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ActionSummary {
-    pub(crate) invalid_action_types: Vec<ActionFailure>,
-    pub(crate) invalid_named_actions: Vec<ActionFailure>,
-    pub(crate) widgets_with_actions: Vec<ActionFailure>,
-    pub(crate) widgets_with_additional_actions: Vec<ActionFailure>,
-    pub(crate) fields_with_additional_actions: Vec<ActionFailure>,
-    pub(crate) catalog_with_additional_actions: Vec<ActionFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct ActionFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
-    pub(crate) description: String,
+    pub(crate) invalid_action_types: Vec<RuleFailure>,
+    pub(crate) invalid_named_actions: Vec<RuleFailure>,
+    pub(crate) widgets_with_actions: Vec<RuleFailure>,
+    pub(crate) widgets_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) fields_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -57,7 +51,7 @@ pub(crate) fn inspect(
         inspector
             .summary
             .catalog_with_additional_actions
-            .push(ActionFailure {
+            .push(RuleFailure {
                 object_id: catalog_id,
                 description: "document catalog contains /AA".to_owned(),
             });
@@ -88,6 +82,11 @@ struct Inspector<'a> {
 }
 
 impl Inspector<'_> {
+    // Not routed through `content_support::for_each_page_annotation`: that
+    // helper's visit callback would need `&mut self` for the recursive
+    // `inspect_action_value`/`inspect_additional_actions` calls below, which
+    // conflicts with also passing `&mut self.seen_annotations` as a separate
+    // argument.
     fn inspect_pages(&mut self) -> Result<(), PdfError> {
         for (page_number, page_id) in self.document.get_pages() {
             let Some(page) = self
@@ -144,7 +143,7 @@ impl Inspector<'_> {
             .and_then(|value| value.as_name().ok())
             == Some(b"Widget".as_slice());
         if is_widget && annotation.has(b"A") {
-            self.summary.widgets_with_actions.push(ActionFailure {
+            self.summary.widgets_with_actions.push(RuleFailure {
                 object_id: failure_id,
                 description: format!("{context} is a Widget containing /A"),
             });
@@ -152,7 +151,7 @@ impl Inspector<'_> {
         if is_widget && annotation.has(b"AA") {
             self.summary
                 .widgets_with_additional_actions
-                .push(ActionFailure {
+                .push(RuleFailure {
                     object_id: failure_id,
                     description: format!("{context} is a Widget containing /AA"),
                 });
@@ -219,7 +218,7 @@ impl Inspector<'_> {
         if field.has(b"AA") {
             self.summary
                 .fields_with_additional_actions
-                .push(ActionFailure {
+                .push(RuleFailure {
                     object_id: object_id.map(Into::into),
                     description: format!("{context} contains /AA"),
                 });
@@ -339,7 +338,7 @@ impl Inspector<'_> {
             subtype,
             Some(b"GoTo" | b"GoToR" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
         ) {
-            self.summary.invalid_action_types.push(ActionFailure {
+            self.summary.invalid_action_types.push(RuleFailure {
                 object_id: failure_id,
                 description: format!("{context} has a missing or forbidden /S"),
             });
@@ -350,7 +349,7 @@ impl Inspector<'_> {
                 Some(b"NextPage" | b"PrevPage" | b"FirstPage" | b"LastPage")
             )
         {
-            self.summary.invalid_named_actions.push(ActionFailure {
+            self.summary.invalid_named_actions.push(RuleFailure {
                 object_id: failure_id,
                 description: format!("{context} has a missing or forbidden named action /N"),
             });

@@ -44,9 +44,9 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn output_intent_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::output_intent_fixture("baseline"));
+    let baseline = common::failure_ids(&common::output_intent_fixture("baseline"));
     for (case, expected_added) in CASES {
-        let actual = failure_ids(&common::output_intent_fixture(case));
+        let actual = common::failure_ids(&common::output_intent_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         let expected_added = expected_added
             .iter()
@@ -62,32 +62,15 @@ fn output_intent_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn multiple_invalid_profiles_are_aggregated_as_one_check_failure() {
-    let report = validate_bytes(
-        &common::output_intent_fixture("two_shared_invalid_profiles"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    assert_eq!(
-        report
-            .failures
-            .iter()
-            .filter(|failure| failure.rule_id == "PDFA1B-OUTPUTINTENT-001")
-            .count(),
-        1
-    );
-    assert_eq!(report.failures.len(), 1, "{:#?}", report.failures);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
-    assert_eq!(report.checks.total, 109);
+    let report = common::validate(&common::output_intent_fixture(
+        "two_shared_invalid_profiles",
+    ));
+    common::assert_single_failure(&report, "PDFA1B-OUTPUTINTENT-001");
 }
 
 #[test]
 fn normalization_retains_output_intent_diagnostics() {
-    let report = validate_bytes(
-        &common::output_intent_fixture("baseline"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
+    let report = common::validate(&common::output_intent_fixture("baseline"));
     let document = report.document.expect("normalized document");
     let output_intents = document.output_intents_summary;
     assert!(output_intents.present);
@@ -127,12 +110,4 @@ fn oversized_decoded_icc_profile_is_an_operational_failure() {
     assert_eq!(report.exit_code(), 1);
     assert_eq!(report.failures.len(), 1);
     assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

@@ -1,7 +1,3 @@
-use std::collections::BTreeSet;
-
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -191,31 +187,15 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         ("mod_date_mismatch", &["PDFA1B-INFO-MODDATE-001"]),
         ("author_multiple", &["PDFA1B-INFO-AUTHOR-001"]),
     ];
-    let baseline = validate_bytes(
-        &common::metadata_fixture("baseline_b"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
-    let baseline_ids = baseline
-        .failures
-        .iter()
-        .map(|failure| failure.rule_id)
-        .collect::<BTreeSet<_>>();
+    let baseline_ids = common::failure_ids(&common::metadata_fixture("baseline_b"));
     for (case, expected) in cases {
-        let report = validate_bytes(
-            &common::metadata_fixture(case),
-            ValidationProfile::PdfA1b,
-            &SafetyLimits::default(),
-        );
-        let case_ids = report
-            .failures
-            .iter()
-            .map(|failure| failure.rule_id)
-            .collect::<BTreeSet<_>>();
+        let bytes = common::metadata_fixture(case);
+        let report = common::validate(&bytes);
+        let case_ids = common::failure_ids(&bytes);
         let (added, _removed) = common::rule_delta(&baseline_ids, &case_ids);
         assert_eq!(
             added,
-            expected.iter().copied().collect(),
+            expected.iter().map(|rule| (*rule).to_owned()).collect(),
             "{case}: unexpected failure delta: {:#?}",
             report.failures
         );
@@ -229,11 +209,7 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
         "accepted_a",
         "creation_date_equivalent_offset",
     ] {
-        let report = validate_bytes(
-            &common::metadata_fixture(case),
-            ValidationProfile::PdfA1b,
-            &SafetyLimits::default(),
-        );
+        let report = common::validate(&common::metadata_fixture(case));
         assert!(
             report.failures.iter().all(|failure| {
                 !failure.rule_id.starts_with("PDFA1B-INFO-")

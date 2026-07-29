@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
-
 #[allow(dead_code)]
 mod common;
 
@@ -64,7 +62,7 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn action_cases_have_the_complete_expected_failure_delta() {
-    let baseline = failure_ids(&common::action_fixture("baseline"));
+    let baseline = common::failure_ids(&common::action_fixture("baseline"));
     for rule in [
         ACTION_TYPE,
         NAMED_ACTION,
@@ -76,7 +74,7 @@ fn action_cases_have_the_complete_expected_failure_delta() {
         assert!(!baseline.contains(rule));
     }
     for (case, expected) in CASES {
-        let actual = failure_ids(&common::action_fixture(case));
+        let actual = common::failure_ids(&common::action_fixture(case));
         let (added, removed) = common::rule_delta(&baseline, &actual);
         assert_eq!(
             added,
@@ -95,26 +93,7 @@ fn action_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn indirect_action_failure_attaches_the_action_object() {
-    let report = validate(&common::action_fixture("open_javascript_indirect"));
-    let failure = report
-        .failures
-        .iter()
-        .find(|failure| failure.rule_id == ACTION_TYPE)
-        .expect("action type failure");
+    let report = common::validate(&common::action_fixture("open_javascript_indirect"));
+    let failure = common::assert_single_failure(&report, ACTION_TYPE);
     assert!(failure.object_id.is_some());
-    assert_eq!(report.checks.total, 109);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 108);
-}
-
-fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
-}
-
-fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
-    validate(bytes)
-        .failures
-        .into_iter()
-        .map(|failure| failure.rule_id.to_owned())
-        .collect()
 }

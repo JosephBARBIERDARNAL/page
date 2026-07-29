@@ -7,45 +7,34 @@ use crate::content_support::{decode_content_stream, inherited_page_resources, re
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::resolve_optional;
+use crate::object_resolution::{ResourceKey, resolve_optional};
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FontEmbeddingSummary {
-    pub(crate) failures: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_types: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_subtypes: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_base_fonts: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_first_chars: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_last_chars: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_widths: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_font_file_subtypes: Vec<FontEmbeddingFailure>,
-    pub(crate) incompatible_type0_system_info: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_cid_to_gid_maps: Vec<FontEmbeddingFailure>,
-    pub(crate) unembedded_cmaps: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_cmap_wmodes: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
-    pub(crate) invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
-    pub(crate) excessive_graphics_state_nesting: Vec<FontEmbeddingFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct FontEmbeddingFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
-    pub(crate) description: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum FontKey {
-    Indirect(ObjectId),
-    Direct(String),
+    pub(crate) failures: Vec<RuleFailure>,
+    pub(crate) invalid_types: Vec<RuleFailure>,
+    pub(crate) invalid_subtypes: Vec<RuleFailure>,
+    pub(crate) invalid_base_fonts: Vec<RuleFailure>,
+    pub(crate) invalid_first_chars: Vec<RuleFailure>,
+    pub(crate) invalid_last_chars: Vec<RuleFailure>,
+    pub(crate) invalid_widths: Vec<RuleFailure>,
+    pub(crate) invalid_font_file_subtypes: Vec<RuleFailure>,
+    pub(crate) incompatible_type0_system_info: Vec<RuleFailure>,
+    pub(crate) invalid_cid_to_gid_maps: Vec<RuleFailure>,
+    pub(crate) unembedded_cmaps: Vec<RuleFailure>,
+    pub(crate) invalid_cmap_wmodes: Vec<RuleFailure>,
+    pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
+    pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
+    pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
 
 type CidSystemInfo = (Vec<u8>, Vec<u8>);
 
 #[derive(Clone)]
 struct SelectedFont {
-    key: FontKey,
+    key: ResourceKey,
     object: Object,
     description: String,
 }
@@ -68,23 +57,23 @@ struct FontUse {
 struct Scanner<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
-    uses: BTreeMap<FontKey, FontUse>,
-    active_descendant_fonts: BTreeSet<FontKey>,
-    invalid_types: Vec<FontEmbeddingFailure>,
-    invalid_subtypes: Vec<FontEmbeddingFailure>,
-    invalid_base_fonts: Vec<FontEmbeddingFailure>,
-    invalid_first_chars: Vec<FontEmbeddingFailure>,
-    invalid_last_chars: Vec<FontEmbeddingFailure>,
-    invalid_widths: Vec<FontEmbeddingFailure>,
-    invalid_font_file_subtypes: Vec<FontEmbeddingFailure>,
-    incompatible_type0_system_info: Vec<FontEmbeddingFailure>,
-    invalid_cid_to_gid_maps: Vec<FontEmbeddingFailure>,
-    unembedded_cmaps: Vec<FontEmbeddingFailure>,
-    invalid_cmap_wmodes: Vec<FontEmbeddingFailure>,
-    invalid_nonsymbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
-    invalid_symbolic_truetype_encodings: Vec<FontEmbeddingFailure>,
-    invalid_symbolic_truetype_cmaps: Vec<FontEmbeddingFailure>,
-    excessive_graphics_state_nesting: Vec<FontEmbeddingFailure>,
+    uses: BTreeMap<ResourceKey, FontUse>,
+    active_descendant_fonts: BTreeSet<ResourceKey>,
+    invalid_types: Vec<RuleFailure>,
+    invalid_subtypes: Vec<RuleFailure>,
+    invalid_base_fonts: Vec<RuleFailure>,
+    invalid_first_chars: Vec<RuleFailure>,
+    invalid_last_chars: Vec<RuleFailure>,
+    invalid_widths: Vec<RuleFailure>,
+    invalid_font_file_subtypes: Vec<RuleFailure>,
+    incompatible_type0_system_info: Vec<RuleFailure>,
+    invalid_cid_to_gid_maps: Vec<RuleFailure>,
+    unembedded_cmaps: Vec<RuleFailure>,
+    invalid_cmap_wmodes: Vec<RuleFailure>,
+    invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
+    invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
+    invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -124,7 +113,7 @@ pub(crate) fn inspect(
                 && !usage.embedded
                 && !matches!(usage.subtype.as_deref(), Some("Type3" | "Type0"))
         })
-        .map(|usage| FontEmbeddingFailure {
+        .map(|usage| RuleFailure {
             object_id: usage.object_id,
             description: usage.description,
         })
@@ -227,14 +216,13 @@ impl Scanner<'_> {
                     }
                     stack.push(state.clone());
                     if stack.len() > 28 {
-                        self.excessive_graphics_state_nesting
-                            .push(FontEmbeddingFailure {
-                                object_id: None,
-                                description: format!(
-                                    "{context} reaches graphics-state nesting depth {}",
-                                    stack.len()
-                                ),
-                            });
+                        self.excessive_graphics_state_nesting.push(RuleFailure {
+                            object_id: None,
+                            description: format!(
+                                "{context} reaches graphics-state nesting depth {}",
+                                stack.len()
+                            ),
+                        });
                     }
                 }
                 "Q" => {
@@ -399,10 +387,7 @@ impl Scanner<'_> {
         ) {
             return Ok(());
         }
-        let object_id = match selected.key {
-            FontKey::Indirect(id) => Some(id.into()),
-            FontKey::Direct(_) => None,
-        };
+        let object_id = selected.key.object_id();
         self.inspect_font_dictionary(font, object_id, &selected.description, subtype.as_deref())?;
         if subtype.as_deref() == Some("Type0") {
             self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
@@ -964,10 +949,10 @@ fn valid_sfnt(bytes: &[u8]) -> bool {
         .all(|tag| tags.contains(tag.as_slice()))
 }
 
-fn object_key(object: &Object, context: &str, name: Option<&Object>) -> FontKey {
+fn object_key(object: &Object, context: &str, name: Option<&Object>) -> ResourceKey {
     match object {
-        Object::Reference(id) => FontKey::Indirect(*id),
-        _ => FontKey::Direct(format!(
+        Object::Reference(id) => ResourceKey::Indirect(*id),
+        _ => ResourceKey::Direct(format!(
             "{context}/{}",
             name.and_then(|value| value.as_name().ok())
                 .map(|value| String::from_utf8_lossy(value).into_owned())
@@ -1031,12 +1016,8 @@ fn is_standard_14_font(name: &[u8]) -> bool {
     )
 }
 
-fn font_failure(
-    object_id: Option<PdfObjectId>,
-    description: &str,
-    detail: &str,
-) -> FontEmbeddingFailure {
-    FontEmbeddingFailure {
+fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str) -> RuleFailure {
+    RuleFailure {
         object_id,
         description: format!("{description} {detail}"),
     }

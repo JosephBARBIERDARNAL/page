@@ -23,6 +23,14 @@ pub struct ValidationFailure {
     pub category: FailureCategory,
 }
 
+/// A single check's raw failure, recorded by an inspection module before
+/// `validation.rs` aggregates same-rule failures into one [`ValidationFailure`].
+#[derive(Clone, Debug)]
+pub(crate) struct RuleFailure {
+    pub(crate) object_id: Option<PdfObjectId>,
+    pub(crate) description: String,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct ValidationCounts {
     pub total: usize,
