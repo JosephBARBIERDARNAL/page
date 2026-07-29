@@ -15,6 +15,7 @@ mod icc_based;
 mod limits;
 mod metadata;
 mod model;
+mod object_limits;
 mod report;
 mod stream_safety;
 mod validation;

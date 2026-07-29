@@ -21,9 +21,9 @@ depend on `mai-cli` or CLI-only dependencies.
 
 ## Roadmap
 
-- [ ] PDF/A-1b (1.4)
-- [ ] PDF/A-1a (1.4)
-- [ ] PDF/A-2 (1.7)
-- [ ] PDF/A-3 (1.7)
-- [ ] PDF/A-4 (2.0)
+- [ ] PDF/A-1b (current WIP)
+- [ ] PDF/A-1a 
+- [ ] PDF/A-2 
+- [ ] PDF/A-3 
+- [ ] PDF/A-4 
 

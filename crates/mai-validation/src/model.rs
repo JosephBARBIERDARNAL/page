@@ -134,6 +134,7 @@ pub(crate) struct InspectionSummary {
     pub(crate) actions: crate::actions::ActionSummary,
     pub(crate) forms: crate::forms::FormSummary,
     pub(crate) document_features: crate::document_features::DocumentFeatureSummary,
+    pub(crate) object_limits: crate::object_limits::ObjectLimitsSummary,
     pub(crate) stream_safety: crate::stream_safety::StreamSafetySummary,
 }
 
@@ -159,6 +160,7 @@ impl PdfDocument {
                 actions: crate::actions::ActionSummary::default(),
                 forms: crate::forms::FormSummary::default(),
                 document_features: crate::document_features::DocumentFeatureSummary::default(),
+                object_limits: crate::object_limits::ObjectLimitsSummary::default(),
                 stream_safety: crate::stream_safety::StreamSafetySummary::default(),
             }
         } else {
@@ -169,6 +171,7 @@ impl PdfDocument {
             let actions = crate::actions::inspect(&document, limits)?;
             let forms = crate::forms::inspect(&document, limits)?;
             let document_features = crate::document_features::inspect(&document, limits)?;
+            let object_limits = crate::object_limits::inspect(&document);
             let stream_safety = crate::stream_safety::inspect(&document, limits)?;
             InspectionSummary {
                 font_embedding: font_embedding::inspect(&document, limits)?,
@@ -179,6 +182,7 @@ impl PdfDocument {
                 actions,
                 forms,
                 document_features,
+                object_limits,
                 stream_safety,
             }
         };

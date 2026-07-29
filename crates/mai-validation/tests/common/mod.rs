@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use lopdf::content::{Content, Operation};
-use lopdf::{Dictionary, Document, Object, Stream, dictionary};
+use lopdf::{Dictionary, Document, Object, Stream, StringFormat, dictionary};
 
 /// Splits `actual` against `baseline` into (added, removed) sets.
 pub fn rule_delta<T: Ord + Clone>(
@@ -2464,6 +2464,53 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "stream_lzw_short_name" => {
             document.add_object(Stream::new(dictionary! {"Filter" => "LZW"}, Vec::new()));
         }
+        "object_limits_at_boundary" => {
+            document.add_object(Object::Integer(2_147_483_647));
+            document.add_object(Object::Integer(-2_147_483_648));
+            document.add_object(Object::Real(32_766.5));
+            document.add_object(Object::Real(-32_766.5));
+            document.add_object(Object::String(vec![b'x'; 65_535], StringFormat::Literal));
+            document.add_object(Object::Name(vec![b'n'; 127]));
+            document.add_object(Object::Array(vec![Object::Null; 8_191]));
+            let mut dictionary = Dictionary::new();
+            for index in 0..4_095 {
+                dictionary.set(format!("K{index}"), Object::Null);
+            }
+            document.add_object(dictionary);
+        }
+        "object_integer_high" => {
+            document.add_object(Object::Integer(2_147_483_648));
+        }
+        "object_integer_low" => {
+            document.add_object(Object::Integer(-2_147_483_649));
+        }
+        "object_real_high" => {
+            document.add_object(Object::Real(32_767.5));
+        }
+        "object_real_low" => {
+            document.add_object(Object::Real(-32_767.5));
+        }
+        "object_string_long" => {
+            document.add_object(Object::String(vec![b'x'; 65_536], StringFormat::Literal));
+        }
+        "object_name_long" => {
+            document.add_object(Object::Name(vec![b'n'; 128]));
+        }
+        "object_dictionary_key_long" => {
+            let mut dictionary = Dictionary::new();
+            dictionary.set(vec![b'k'; 128], Object::Null);
+            document.add_object(dictionary);
+        }
+        "object_array_long" => {
+            document.add_object(Object::Array(vec![Object::Null; 8_192]));
+        }
+        "object_dictionary_long" => {
+            let mut dictionary = Dictionary::new();
+            for index in 0..4_096 {
+                dictionary.set(format!("K{index}"), Object::Null);
+            }
+            document.add_object(dictionary);
+        }
         "ocproperties_dictionary" => catalog.set("OCProperties", Dictionary::new()),
         "ocproperties_wrong_type" => catalog.set("OCProperties", 42),
         "ocproperties_null" => catalog.set("OCProperties", Object::Null),
@@ -2493,6 +2540,10 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         .save_to(&mut bytes)
         .expect("save document-feature fixture");
     bytes
+}
+
+pub fn object_limit_fixture(case: &str) -> Vec<u8> {
+    document_feature_fixture(case)
 }
 
 fn action(subtype: &str) -> Object {

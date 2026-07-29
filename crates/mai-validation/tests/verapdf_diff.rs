@@ -44,6 +44,8 @@ struct Manifest {
     atomic_form_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
     atomic_document_feature_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_object_limit_cases: Vec<AtomicRuleCase>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -214,6 +216,14 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         "baseline",
         &manifest.atomic_document_feature_cases,
         common::document_feature_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "object-limit",
+        "baseline",
+        &manifest.atomic_object_limit_cases,
+        common::object_limit_fixture,
     );
     fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
 }

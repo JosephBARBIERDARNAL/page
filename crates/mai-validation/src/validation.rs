@@ -24,7 +24,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 101;
+const TOTAL_RULE_COUNT: usize = 108;
 
 pub fn validate_file(
     path: &Path,
@@ -216,12 +216,69 @@ fn validate_document(
     validate_actions(&inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
     validate_document_features(&inspections.document_features, &mut failures);
+    validate_object_limits(&inspections.object_limits, &mut failures);
     validate_stream_safety(&inspections.stream_safety, &mut failures);
 
     validate_font_dictionaries(&inspections.font_embedding, &mut failures);
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+}
+
+fn validate_object_limits(
+    limits: &crate::object_limits::ObjectLimitsSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let checks = [
+        (
+            "PDFA1B-INTEGER-RANGE-001",
+            "an integer is outside the inclusive PDF/A-1 range",
+            &limits.out_of_range_integers,
+        ),
+        (
+            "PDFA1B-REAL-RANGE-001",
+            "a real number is outside the inclusive PDF/A-1 range",
+            &limits.out_of_range_reals,
+        ),
+        (
+            "PDFA1B-STRING-LENGTH-001",
+            "a string exceeds the 65,535-byte PDF/A-1 limit",
+            &limits.overlong_strings,
+        ),
+        (
+            "PDFA1B-NAME-LENGTH-001",
+            "a name exceeds the 127-byte PDF/A-1 limit",
+            &limits.overlong_names,
+        ),
+        (
+            "PDFA1B-ARRAY-LENGTH-001",
+            "an array exceeds the 8,191-entry PDF/A-1 limit",
+            &limits.oversized_arrays,
+        ),
+        (
+            "PDFA1B-DICTIONARY-LENGTH-001",
+            "a dictionary exceeds the 4,095-entry PDF/A-1 limit",
+            &limits.oversized_dictionaries,
+        ),
+    ];
+    for (rule_id, description, objects) in checks {
+        if !objects.is_empty() {
+            failures.push(failure(
+                rule_id,
+                description,
+                (objects.len() == 1).then(|| objects[0]),
+                FailureCategory::Conformance,
+            ));
+        }
+    }
+    if limits.too_many_indirect_objects {
+        failures.push(failure(
+            "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+            "the document exceeds the 8,388,607 indirect-object PDF/A-1 limit",
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
