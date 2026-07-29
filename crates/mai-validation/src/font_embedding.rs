@@ -879,8 +879,13 @@ impl Scanner<'_> {
             if program_names.is_empty() {
                 continue;
             }
+            let differences = type1_encoding_differences(self.document, font, self.limits)?;
             for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
-                let Some(name) = type1_standard_glyph_name(byte) else {
+                let Some(name) = differences
+                    .get(&byte)
+                    .map(String::as_str)
+                    .or_else(|| type1_standard_glyph_name(byte))
+                else {
                     continue;
                 };
                 if !program_names.contains(name) {
@@ -1228,6 +1233,43 @@ impl Scanner<'_> {
         }
         Ok(())
     }
+}
+
+fn type1_encoding_differences(
+    document: &Document,
+    font: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<BTreeMap<u8, String>, PdfError> {
+    let Ok(encoding) = font.get(b"Encoding") else {
+        return Ok(BTreeMap::new());
+    };
+    let Some(encoding) = resolve_optional(document, encoding, limits.max_reference_depth)? else {
+        return Ok(BTreeMap::new());
+    };
+    let Ok(encoding) = encoding.as_dict() else {
+        return Ok(BTreeMap::new());
+    };
+    let Some(differences) = encoding
+        .get(b"Differences")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_array().ok())
+    else {
+        return Ok(BTreeMap::new());
+    };
+    let mut names = BTreeMap::new();
+    let mut code = None;
+    for entry in differences {
+        if let Some(value) = as_integer(entry).and_then(|value| u8::try_from(value).ok()) {
+            code = Some(value);
+        } else if let (Some(current), Ok(name)) = (code, entry.as_name()) {
+            names.insert(current, String::from_utf8_lossy(name).into_owned());
+            code = current.checked_add(1);
+        }
+    }
+    Ok(names)
 }
 
 fn cid_to_gid_index(
@@ -1618,12 +1660,10 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
     let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
         return BTreeSet::new();
     };
-    let ciphertext = bytes[eexec + 5..]
-        .iter()
-        .skip_while(|byte| byte.is_ascii_whitespace())
-        .copied();
+    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
     let mut state = 55_665_u16;
     let plaintext: Vec<_> = ciphertext
+        .into_iter()
         .map(|ciphertext| {
             let plaintext = ciphertext ^ (state >> 8) as u8;
             state = state
@@ -1652,6 +1692,34 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
             (!name.is_empty()).then(|| String::from_utf8_lossy(&name).into_owned())
         })
         .collect()
+}
+
+fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
+    let bytes = bytes
+        .iter()
+        .skip_while(|byte| byte.is_ascii_whitespace())
+        .copied()
+        .collect::<Vec<_>>();
+    let hex = bytes
+        .iter()
+        .copied()
+        .filter(|byte| !byte.is_ascii_whitespace())
+        .collect::<Vec<_>>();
+    if hex.len() % 2 == 0 && !hex.is_empty() && hex.iter().all(u8::is_ascii_hexdigit) {
+        return hex
+            .chunks_exact(2)
+            .map(|pair| {
+                let digit = |byte| match byte {
+                    b'0'..=b'9' => byte - b'0',
+                    b'a'..=b'f' => byte - b'a' + 10,
+                    b'A'..=b'F' => byte - b'A' + 10,
+                    _ => unreachable!("checked ASCII hexadecimal byte"),
+                };
+                digit(pair[0]) << 4 | digit(pair[1])
+            })
+            .collect();
+    }
+    bytes
 }
 
 fn type1_pfb_payload(bytes: &[u8]) -> Vec<u8> {
@@ -2085,6 +2153,13 @@ mod tests {
             .collect();
         let bytes = [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat();
         assert!(super::type1_program_char_names(&bytes).contains("space"));
+
+        let hex = encrypted
+            .iter()
+            .map(|byte| format!("{byte:02X}"))
+            .collect::<String>();
+        let hex_bytes = [b"%!PS-AdobeFont\neexec\n".as_slice(), hex.as_bytes()].concat();
+        assert!(super::type1_program_char_names(&hex_bytes).contains("space"));
     }
 
     #[test]

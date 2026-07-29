@@ -7,6 +7,7 @@ mod common;
 
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
 const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";
+const TYPE1_SUBSET_CHARSET: &str = "PDFA1B-TYPE1-SUBSET-CHARSET-001";
 
 const CASES: &[(&str, bool)] = &[
     ("unembedded_visible", true),
@@ -65,6 +66,18 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
     assert!(
         !common::failure_ids(&common::font_fixture("type1_glyph_present"))
             .contains(TYPE1_GLYPH_PRESENCE)
+    );
+    assert!(
+        !common::failure_ids(&common::font_fixture("type1_difference_glyph"))
+            .contains(TYPE1_GLYPH_PRESENCE)
+    );
+}
+
+#[test]
+fn type1_subset_charset_covers_rendered_embedded_glyphs() {
+    assert!(
+        common::failure_ids(&common::font_fixture("type1_subset_charset_incomplete"))
+            .contains(TYPE1_SUBSET_CHARSET)
     );
 }
 

@@ -2644,12 +2644,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 sfnt::minimal_truetype(),
             )),
         );
-    } else if matches!(case, "type1_glyph_missing" | "type1_glyph_present") {
+    } else if matches!(
+        case,
+        "type1_glyph_missing"
+            | "type1_glyph_present"
+            | "type1_difference_glyph"
+            | "type1_subset_charset_incomplete"
+    ) {
         descriptor.remove(b"FontFile2");
         descriptor.set(
             "FontFile",
             document.add_object(Stream::new(Dictionary::new(), type1_program(&["space"]))),
         );
+        if case == "type1_subset_charset_incomplete" {
+            descriptor.set("CharSet", Object::string_literal("/.notdef"));
+        }
     } else if matches!(
         case,
         "composite_cidset_real_program" | "composite_cidset_nonidentity_real_program"
@@ -2707,8 +2716,22 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     } else if case == "type1_subset_missing_charset" {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
-    } else if matches!(case, "type1_glyph_missing" | "type1_glyph_present") {
+    } else if matches!(
+        case,
+        "type1_glyph_missing" | "type1_glyph_present" | "type1_difference_glyph"
+    ) {
         font.set("Subtype", "Type1");
+        if case == "type1_difference_glyph" {
+            font.set(
+                "Encoding",
+                dictionary! {
+                    "Differences" => Object::Array(vec![33.into(), Object::Name(b"space".to_vec())]),
+                },
+            );
+        }
+    } else if case == "type1_subset_charset_incomplete" {
+        font.set("Subtype", "Type1");
+        font.set("BaseFont", "ABCDEF+MaiTestFont");
     }
     if case == "type3_visible" {
         font = dictionary! {
@@ -3118,7 +3141,14 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("Tj", vec![Object::string_literal("!")]),
             operation("ET", vec![]),
         ]),
+        "type1_difference_glyph" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal("!")]),
+            operation("ET", vec![]),
+        ]),
         "type1_glyph_present" => text_content(0),
+        "type1_subset_charset_incomplete" => text_content(0),
         "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
