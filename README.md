@@ -16,11 +16,6 @@ cargo install --git https://github.com/josephbarbierdarnal/tag.git tag-cli --bin
 
 `tag` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
 
-The repository is a Cargo workspace with two packages:
-
-- `tag-validation` contains the reusable parser, normalized model, validation rules, reports, safety limits, and veraPDF differential engine.
-- `tag-cli` contains client-side argument parsing, output selection, process exit behavior, and the `tag` and `verapdf-diff` executables. It depends on `tag-validation` through a workspace path dependency.
-
 <br>
 
 ## Usage
