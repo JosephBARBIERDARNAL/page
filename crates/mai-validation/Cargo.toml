@@ -8,6 +8,7 @@ lopdf = "0.44"
 roxmltree = "0.21"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sxd-xpath = "0.4.2"
 thiserror = "2"
 ttf-parser = "0.25.1"
 wait-timeout = "0.2"

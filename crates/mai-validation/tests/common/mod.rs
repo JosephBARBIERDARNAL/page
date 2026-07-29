@@ -149,6 +149,23 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "<pdfaField:valueType>GPSCoordinate</pdfaField:valueType>",
             );
         }
+        "extension_xpath_invalid" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaProperty:valueType>Text</pdfaProperty:valueType>",
+                "<pdfaProperty:valueType>XPath</pdfaProperty:valueType>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:example>/*[</ex:example></rdf:Description></rdf:RDF>",
+            );
+        }
         "extension_undefined_field" => replace(
             &mut xmp,
             "<pdfaSchema:schema>Example schema</pdfaSchema:schema>",

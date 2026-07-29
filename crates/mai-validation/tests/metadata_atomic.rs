@@ -62,6 +62,10 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         ("extension_valid", &[]),
         ("extension_rational_value_type", &[]),
         (
+            "extension_xpath_invalid",
+            &["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"],
+        ),
+        (
             "gps_coordinate_invalid",
             &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
         ),
@@ -298,4 +302,30 @@ fn invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in() {
             .any(|rule| rule == "ISO 19005-1:2005:6.7.9:3")
     );
     fs::remove_file(path).expect("remove GPS fixture");
+}
+
+#[test]
+fn invalid_extension_xpath_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("mai-invalid-xpath-{}.pdf", std::process::id()));
+    fs::write(&path, common::metadata_fixture("extension_xpath_invalid"))
+        .expect("write XPath fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read XPath fixture"))
+            .contains("PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001")
+    );
+    assert!(
+        report
+            .reference_result
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.7.9:3")
+    );
+    fs::remove_file(path).expect("remove XPath fixture");
 }

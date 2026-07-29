@@ -90,7 +90,19 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
 
     let runner =
         DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("pinned veraPDF");
-    for case in manifest.cases {
+    let case_limit = env::var("MAI_DIFF_CASE_LIMIT")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok());
+    let case_offset = env::var("MAI_DIFF_CASE_OFFSET")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0);
+    for case in manifest
+        .cases
+        .into_iter()
+        .skip(case_offset)
+        .take(case_limit.unwrap_or(usize::MAX))
+    {
         let report = runner.compare_file(&case.path, &SafetyLimits::default());
         assert_eq!(
             report.classification,

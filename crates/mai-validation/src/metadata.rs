@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use roxmltree::{Attribute, Document, Node, ParsingOptions};
 use serde::Serialize;
+use sxd_xpath::Factory as XPathFactory;
 
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -442,15 +443,17 @@ fn scalar_xmp_value_matches(value: &str, value_type: &str) -> bool {
         "real" => signed_decimal(value, true),
         "date" => xmp_iso8601_date(value),
         "gpscoordinate" => gps_coordinate(value),
+        "xpath" => XPathFactory::new()
+            .build(value)
+            .is_ok_and(|expression| expression.is_some()),
         "mimetype" => value.split_once('/').is_some_and(|(left, right)| {
             !left.is_empty()
                 && !right.is_empty()
                 && left.bytes().all(mime_type_byte)
                 && right.bytes().all(mime_type_byte)
         }),
-        // Pinned URI and URL validators only require an XMP simple node. XPath
-        // syntax is handled by Java's XPath compiler and remains a narrow
-        // extension-schema fidelity gap.
+        // Pinned URI and URL validators only require an XMP simple node.
+        // XPath syntax is compiled above with an XPath 1.0 parser.
         _ => true,
     }
 }
@@ -1800,6 +1803,15 @@ mod tests {
             assert!(xmp_type_is_known(value_type, &known), "{value_type}");
         }
         assert!(!xmp_type_is_known("Undefined", &known));
+    }
+
+    #[test]
+    fn validates_xpath_syntax_with_an_xpath_1_compiler() {
+        assert!(scalar_xmp_value_matches(
+            "/rdf:RDF/rdf:Description",
+            "xpath"
+        ));
+        assert!(!scalar_xmp_value_matches("//*[", "xpath"));
     }
 
     #[test]
