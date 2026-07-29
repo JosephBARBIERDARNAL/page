@@ -69,8 +69,8 @@ fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
     put_u16(&mut cmap, cmap_header_length + 2, 262);
     cmap[cmap_header_length + 6 + usize::from(code)] = 1;
 
-    let family = utf16be("Mai Test");
-    let postscript = utf16be("MaiTestFont");
+    let family = utf16be("Tag Test");
+    let postscript = utf16be("TagTestFont");
     let mut name = vec![0; 30 + family.len() + postscript.len()];
     put_u16(&mut name, 2, 2);
     put_u16(&mut name, 4, 30);

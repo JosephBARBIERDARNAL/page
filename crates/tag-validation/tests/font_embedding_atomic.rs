@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 use std::{env, fs};
 
-use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
-use mai_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes};
+use tag_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
+use tag_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes};
 
 #[allow(dead_code)]
 mod common;
@@ -117,7 +117,7 @@ fn type1c_glyph_presence_matches_pinned_verapdf_when_opted_in() {
         return;
     };
     let path = env::temp_dir().join(format!(
-        "mai-type1c-missing-glyph-{}.pdf",
+        "tag-type1c-missing-glyph-{}.pdf",
         std::process::id()
     ));
     fs::write(&path, common::font_fixture("type1c_glyph_missing")).expect("write CFF fixture");
@@ -149,7 +149,7 @@ fn type1c_width_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
-    let path = env::temp_dir().join(format!("mai-type1c-width-{}.pdf", std::process::id()));
+    let path = env::temp_dir().join(format!("tag-type1c-width-{}.pdf", std::process::id()));
     fs::write(&path, common::font_fixture("type1c_width_mismatch")).expect("write CFF fixture");
     let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
     let report = runner.compare_file(&path, &SafetyLimits::default());
@@ -167,7 +167,7 @@ fn type1_width_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
-    let path = env::temp_dir().join(format!("mai-type1-width-{}.pdf", std::process::id()));
+    let path = env::temp_dir().join(format!("tag-type1-width-{}.pdf", std::process::id()));
     fs::write(&path, common::font_fixture("type1_width_mismatch")).expect("write Type 1 fixture");
     let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
     let report = runner.compare_file(&path, &SafetyLimits::default());
@@ -250,8 +250,8 @@ fn graphics_state_stack_is_bounded() {
 }
 
 fn font_failures(
-    report: &mai_validation::ValidationReport,
-) -> Vec<&mai_validation::ValidationFailure> {
+    report: &tag_validation::ValidationReport,
+) -> Vec<&tag_validation::ValidationFailure> {
     report
         .failures
         .iter()

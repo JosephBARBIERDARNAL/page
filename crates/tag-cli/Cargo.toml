@@ -1,10 +1,10 @@
 [package]
-name = "mai-cli"
+name = "tag-cli"
 version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "mai"
+name = "tag"
 path = "src/main.rs"
 
 [[bin]]
@@ -13,6 +13,6 @@ path = "src/bin/verapdf-diff.rs"
 
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
-mai-validation = { path = "../mai-validation" }
 serde = "1"
 serde_json = "1"
+tag-validation = { path = "../tag-validation" }

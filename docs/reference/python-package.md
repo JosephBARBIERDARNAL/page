@@ -2,4 +2,4 @@
 title: "Python package"
 ---
 
-`mai` validation is available as a Python package.
+`tag` validation is available as a Python package.

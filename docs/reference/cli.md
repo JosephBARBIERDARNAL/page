@@ -2,4 +2,4 @@
 title: "CLI"
 ---
 
-`mai` is a CLI (command line interface).
+`tag` is a CLI (command line interface).

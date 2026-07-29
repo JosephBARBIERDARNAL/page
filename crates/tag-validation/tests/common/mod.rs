@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use lopdf::content::{Content, Operation};
 use lopdf::xref::XrefType;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
-use mai_validation::{
+use tag_validation::{
     SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_bytes,
 };
 
@@ -2037,7 +2037,7 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
         "outline_action" => {
             let outlines_id = document.new_object_id();
             let outline_id = document.add_object(dictionary! {
-                "Title" => Object::string_literal("Mai outline"),
+                "Title" => Object::string_literal("Tag outline"),
                 "Parent" => outlines_id,
                 "A" => action("JavaScript"),
             });
@@ -3001,7 +3001,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 Object::Reference(document.add_object(Stream::new(
                     dictionary! {
                         "Type" => "CMap",
-                        "CMapName" => "Mai-CMap",
+                        "CMapName" => "Tag-CMap",
                         "CIDSystemInfo" => dictionary! {
                             "Registry" => Object::string_literal("Adobe"),
                             "Ordering" => Object::string_literal(cmap_ordering),
@@ -3521,7 +3521,7 @@ fn embedded_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
          12 dict begin\n\
          begincmap\n\
          /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
-         /CMapName /Mai-CMap def\n\
+         /CMapName /Tag-CMap def\n\
          /CMapType 1 def\n\
          /WMode {wmode} def\n\
          1 begincodespacerange\n\
@@ -3643,7 +3643,7 @@ fn embedded_two_byte_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8>
          12 dict begin\n\
          begincmap\n\
          /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
-         /CMapName /Mai-CMap def\n\
+         /CMapName /Tag-CMap def\n\
          /CMapType 1 def\n\
          /WMode {wmode} def\n\
          1 begincodespacerange\n\
@@ -3666,7 +3666,7 @@ fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
          12 dict begin\n\
          begincmap\n\
          /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
-         /CMapName /Mai-CMap def\n\
+         /CMapName /Tag-CMap def\n\
          /CMapType 1 def\n\
          /WMode {wmode} def\n\
          /Identity-H usecmap\n\

@@ -1,9 +1,9 @@
 [workspace]
-members = [
-    "crates/mai-cli",
-    "crates/mai-validation",
-]
 resolver = "3"
+members = [
+  "crates/tag-cli",
+  "crates/tag-validation",
+]
 
 [workspace.package]
 version = "0.1.0"

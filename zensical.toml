@@ -1,7 +1,7 @@
 [project]
-site_name = "mai"
-repo_url = "https://github.com/JosephBARBIERDARNAL/mai"
-site_url = "https://JosephBARBIERDARNAL.github.io/mai/"
+site_name = "tag"
+repo_url = "https://github.com/JosephBARBIERDARNAL/tag"
+site_url = "https://JosephBARBIERDARNAL.github.io/tag/"
 site_description = "Experimental veraPDF-compliant PDF/A validation, written in Rust"
 site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]

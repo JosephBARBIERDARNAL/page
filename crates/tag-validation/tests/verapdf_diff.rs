@@ -3,12 +3,12 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mai_validation::SafetyLimits;
-use mai_validation::differential::{
+use serde::Deserialize;
+use tag_validation::SafetyLimits;
+use tag_validation::differential::{
     ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
     ReferenceConfig,
 };
-use serde::Deserialize;
 
 #[allow(dead_code)]
 mod common;
@@ -90,10 +90,10 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
 
     let runner =
         DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("pinned veraPDF");
-    let case_limit = env::var("MAI_DIFF_CASE_LIMIT")
+    let case_limit = env::var("TAG_DIFF_CASE_LIMIT")
         .ok()
         .and_then(|value| value.parse::<usize>().ok());
-    let case_offset = env::var("MAI_DIFF_CASE_OFFSET")
+    let case_offset = env::var("TAG_DIFF_CASE_OFFSET")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(0);
@@ -114,7 +114,7 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
     }
 
     let temporary = std::env::temp_dir().join(format!(
-        "mai-verapdf-metadata-atomic-{}",
+        "tag-verapdf-metadata-atomic-{}",
         std::process::id()
     ));
     fs::create_dir_all(&temporary).expect("create atomic fixture directory");
@@ -249,7 +249,7 @@ fn assert_atomic_cases(
     cases: &[AtomicRuleCase],
     fixture: fn(&str) -> Vec<u8>,
 ) {
-    let filter = std::env::var("MAI_ATOMIC_FILTER").ok();
+    let filter = std::env::var("TAG_ATOMIC_FILTER").ok();
     if filter
         .as_deref()
         .and_then(|filter| filter.split_once(':'))

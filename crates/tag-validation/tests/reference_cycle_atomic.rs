@@ -5,7 +5,7 @@
 //! than through `tests/common`'s case-table fixture builders.
 
 use lopdf::{Document, Object, dictionary};
-use mai_validation::{
+use tag_validation::{
     FailureCategory, PdfDocument, SafetyLimits, ValidationProfile, validate_bytes,
 };
 

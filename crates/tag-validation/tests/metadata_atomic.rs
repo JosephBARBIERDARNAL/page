@@ -1,7 +1,7 @@
 use std::{env, fs};
 
-use mai_validation::SafetyLimits;
-use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
+use tag_validation::SafetyLimits;
+use tag_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
 
 #[allow(dead_code)]
 mod common;
@@ -244,7 +244,7 @@ fn xmp_literal_whitespace_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
-    let path = env::temp_dir().join(format!("mai-xmp-whitespace-{}.pdf", std::process::id()));
+    let path = env::temp_dir().join(format!("tag-xmp-whitespace-{}.pdf", std::process::id()));
     fs::write(
         &path,
         common::metadata_fixture("title_whitespace_equivalent"),
@@ -274,7 +274,7 @@ fn xmp_attribute_whitespace_matches_pinned_verapdf_when_opted_in() {
         return;
     };
     let path = env::temp_dir().join(format!(
-        "mai-xmp-attribute-whitespace-{}.pdf",
+        "tag-xmp-attribute-whitespace-{}.pdf",
         std::process::id()
     ));
     fs::write(&path, common::metadata_fixture("keywords_xmp_whitespace"))
@@ -303,7 +303,7 @@ fn normalized_extension_value_types_match_pinned_verapdf_when_opted_in() {
         return;
     };
     let path = env::temp_dir().join(format!(
-        "mai-extension-rational-value-type-{}.pdf",
+        "tag-extension-rational-value-type-{}.pdf",
         std::process::id()
     ));
     fs::write(
@@ -331,7 +331,7 @@ fn invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in() {
         return;
     };
     let path = env::temp_dir().join(format!(
-        "mai-invalid-gps-coordinate-{}.pdf",
+        "tag-invalid-gps-coordinate-{}.pdf",
         std::process::id()
     ));
     fs::write(&path, common::metadata_fixture("gps_coordinate_invalid"))
@@ -359,7 +359,7 @@ fn invalid_extension_xpath_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
-    let path = env::temp_dir().join(format!("mai-invalid-xpath-{}.pdf", std::process::id()));
+    let path = env::temp_dir().join(format!("tag-invalid-xpath-{}.pdf", std::process::id()));
     fs::write(&path, common::metadata_fixture("extension_xpath_invalid"))
         .expect("write XPath fixture");
     let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");

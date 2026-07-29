@@ -1,4 +1,4 @@
-use mai_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use tag_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 #[allow(dead_code)]
 mod common;

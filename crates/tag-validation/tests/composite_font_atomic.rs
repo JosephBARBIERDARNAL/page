@@ -1,7 +1,7 @@
 use std::{env, fs};
 
-use mai_validation::SafetyLimits;
-use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
+use tag_validation::SafetyLimits;
+use tag_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
 
 #[allow(dead_code)]
 mod common;
@@ -112,7 +112,7 @@ fn rendered_cidset_coverage_matches_pinned_verapdf_when_opted_in() {
         "composite_cidset_real_program",
         "composite_cidset_nonidentity_real_program",
     ] {
-        let path = env::temp_dir().join(format!("mai-{case}-{}.pdf", std::process::id()));
+        let path = env::temp_dir().join(format!("tag-{case}-{}.pdf", std::process::id()));
         fs::write(&path, common::font_fixture(case)).expect("write CIDSet fixture");
         let report = runner.compare_file(&path, &SafetyLimits::default());
         assert_eq!(
@@ -211,7 +211,7 @@ fn rendered_identity_cidfont_program_checks_match_pinned_verapdf_when_opted_in()
             "ISO 19005-1:2005:6.3.5:1",
         ),
     ] {
-        let path = env::temp_dir().join(format!("mai-{case}-{}.pdf", std::process::id()));
+        let path = env::temp_dir().join(format!("tag-{case}-{}.pdf", std::process::id()));
         fs::write(&path, common::font_fixture(case)).expect("write CIDFont fixture");
         let report = runner.compare_file(&path, &SafetyLimits::default());
         assert_eq!(

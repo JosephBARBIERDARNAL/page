@@ -2,4 +2,4 @@
 title: "Rust crate"
 ---
 
-`mai` validation is available as a Rust crate.
+`tag` validation is available as a Rust crate.

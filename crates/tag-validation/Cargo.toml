@@ -1,5 +1,5 @@
 [package]
-name = "mai-validation"
+name = "tag-validation"
 version.workspace = true
 edition.workspace = true
 
