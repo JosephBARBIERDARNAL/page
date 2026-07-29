@@ -183,7 +183,13 @@ fn atomic_metadata_cases_trigger_only_the_targeted_local_metadata_rule() {
         ("creator_mismatch", &["PDFA1B-INFO-CREATOR-001"]),
         ("producer_mismatch", &["PDFA1B-INFO-PRODUCER-001"]),
         ("creation_date_mismatch", &["PDFA1B-INFO-CREATIONDATE-001"]),
-        ("creation_date_invalid", &["PDFA1B-INFO-CREATIONDATE-001"]),
+        (
+            "creation_date_invalid",
+            &[
+                "PDFA1B-INFO-CREATIONDATE-001",
+                "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+            ],
+        ),
         ("mod_date_mismatch", &["PDFA1B-INFO-MODDATE-001"]),
         ("author_multiple", &["PDFA1B-INFO-AUTHOR-001"]),
     ];
@@ -219,4 +225,10 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
             report.failures
         );
     }
+}
+
+#[test]
+fn custom_extension_type_shape_failure_is_reported() {
+    let failures = common::failure_ids(&common::metadata_fixture("extension_custom_value_invalid"));
+    assert!(failures.contains("PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"));
 }

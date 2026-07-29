@@ -28,7 +28,7 @@ fn validation_json_is_a_cli_owned_presentation_of_the_library_report() {
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
     assert_eq!(report["profile"], "pdfa-1b");
-    assert_eq!(report["checks"]["total"], 127);
+    assert_eq!(report["checks"]["total"], 133);
     assert_eq!(report["implemented_checks_passed"], false);
 }
 

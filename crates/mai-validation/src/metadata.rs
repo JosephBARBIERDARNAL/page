@@ -14,6 +14,14 @@ const PDFA_SCHEMA_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/schema#";
 const PDFA_PROPERTY_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/property#";
 const PDFA_TYPE_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/type#";
 const PDFA_FIELD_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/field#";
+const EXIF_NAMESPACE: &str = "http://ns.adobe.com/exif/1.0/";
+const XMP_DIMENSIONS_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Dimensions#";
+const XMP_FLASH_NAMESPACE: &str = "http://ns.adobe.com/exif/1.0/";
+const XMP_JOB_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Job#";
+const XMP_RESOURCE_EVENT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#";
+const XMP_RESOURCE_REF_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
+const XMP_THUMBNAIL_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/g/img/";
+const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DocumentMetadata {
@@ -46,6 +54,14 @@ pub struct XmpMetadata {
     #[serde(skip)]
     pub extension_schema_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
+    pub invalid_predefined_xmp_properties: BTreeSet<String>,
+    #[serde(skip)]
+    pub invalid_predefined_xmp_value_types: BTreeSet<String>,
+    #[serde(skip)]
+    pub undefined_extension_xmp_properties: BTreeSet<String>,
+    #[serde(skip)]
+    pub invalid_extension_xmp_value_types: BTreeSet<String>,
+    #[serde(skip)]
     pub identification_prefix_failed_tests: BTreeSet<u8>,
 }
 
@@ -60,6 +76,10 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         Document::parse_with_options(&xml, options).map_err(|error| error.to_string())?;
     let packet_header = xmp_packet_header(&document);
     let extension_schema_failed_tests = inspect_extension_schemas(&document, &xml);
+    let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(&document);
+    let invalid_predefined_xmp_value_types = inspect_predefined_xmp_value_types(&document);
+    let undefined_extension_xmp_properties = inspect_undefined_extension_xmp_properties(&document);
+    let invalid_extension_xmp_value_types = inspect_extension_xmp_value_types(&document);
     let identification_prefix_failed_tests = inspect_identification_prefixes(&document, &xml);
 
     let pdfa_identification_present = contains_namespace_property(&document, PDFA_ID_NAMESPACE);
@@ -94,8 +114,606 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         packet_header_has_encoding: packet_header
             .is_some_and(|header| has_quoted_assignment(header, b"encoding")),
         extension_schema_failed_tests,
+        invalid_predefined_xmp_properties,
+        invalid_predefined_xmp_value_types,
+        undefined_extension_xmp_properties,
+        invalid_extension_xmp_value_types,
         identification_prefix_failed_tests,
     })
+}
+
+fn inspect_predefined_xmp_properties(document: &Document<'_>) -> BTreeSet<String> {
+    let mut invalid = BTreeSet::new();
+    for node in document.descendants().filter(|node| node.is_element()) {
+        if let Some(namespace) = node.tag_name().namespace() {
+            insert_invalid_predefined_property(&mut invalid, namespace, node.tag_name().name());
+        }
+        for attribute in node.attributes() {
+            if let Some(namespace) = attribute.namespace() {
+                insert_invalid_predefined_property(&mut invalid, namespace, attribute.name());
+            }
+        }
+    }
+    invalid
+}
+
+fn insert_invalid_predefined_property(
+    properties: &mut BTreeSet<String>,
+    namespace: &str,
+    name: &str,
+) {
+    if predefined_xmp2004_namespace(namespace) && predefined_xmp2004_type(namespace, name).is_none()
+    {
+        properties.insert(format!("{{{namespace}}}{name}"));
+    }
+}
+
+fn predefined_xmp2004_namespace(namespace: &str) -> bool {
+    include_str!("xmp2004_properties.txt")
+        .lines()
+        .any(|line| line.starts_with(&format!("{{{namespace}}}")))
+}
+
+fn predefined_xmp2004_type(namespace: &str, name: &str) -> Option<&'static str> {
+    include_str!("xmp2004_properties.txt")
+        .lines()
+        .find_map(|line| {
+            let (property, value_type) = line.split_once('=')?;
+            (property == format!("{{{namespace}}}{name}")).then_some(value_type)
+        })
+}
+
+fn inspect_predefined_xmp_value_types(document: &Document<'_>) -> BTreeSet<String> {
+    let mut invalid = BTreeSet::new();
+    for node in document.descendants().filter(|node| node.is_element()) {
+        let property = XmpProperty::Element(node);
+        inspect_predefined_xmp_value_type(&mut invalid, property);
+        for attribute in node.attributes() {
+            inspect_predefined_xmp_value_type(&mut invalid, XmpProperty::Attribute(attribute));
+        }
+    }
+    invalid
+}
+
+fn inspect_predefined_xmp_value_type(properties: &mut BTreeSet<String>, property: XmpProperty<'_>) {
+    let Some(namespace) = property.namespace() else {
+        return;
+    };
+    let Some(value_type) = predefined_xmp2004_type(namespace, property.name()) else {
+        return;
+    };
+    if !predefined_value_type_matches(property, value_type) {
+        properties.insert(format!("{{{namespace}}}{} ({value_type})", property.name()));
+    }
+}
+
+fn predefined_value_type_matches(property: XmpProperty<'_>, value_type: &str) -> bool {
+    value_type_matches(property, value_type, None)
+}
+
+fn value_type_matches(
+    property: XmpProperty<'_>,
+    value_type: &str,
+    extension_types: Option<&BTreeMap<String, ExtensionTypeDefinition>>,
+) -> bool {
+    let value_type = xmp_type_key(value_type);
+    let value_type = value_type.as_str();
+    let (expected_array, item_type) = if let Some(item_type) = value_type.strip_prefix("bag ") {
+        (Some(ArrayKind::Bag), item_type)
+    } else if let Some(item_type) = value_type.strip_prefix("seq ") {
+        (Some(ArrayKind::Seq), item_type)
+    } else if let Some(item_type) = value_type.strip_prefix("alt ") {
+        (Some(ArrayKind::Alt), item_type)
+    } else if value_type == "lang alt" {
+        (Some(ArrayKind::Alt), "lang alt")
+    } else {
+        (None, value_type)
+    };
+    if let Some(expected_array) = expected_array {
+        if property.array_kind() != Some(expected_array) {
+            return false;
+        }
+        if item_type == "lang alt" {
+            return property.array_items().into_iter().all(|item| {
+                item.attribute((XML_NAMESPACE, "lang")).is_some()
+                    && XmpProperty::Element(item).is_simple()
+            });
+        }
+        return property.array_items().into_iter().all(|item| {
+            value_type_matches(XmpProperty::Element(item), item_type, extension_types)
+        });
+    }
+    if let Some((namespace, fields)) = structured_xmp_type(item_type) {
+        return structured_xmp_value_matches(property, namespace, fields, extension_types);
+    }
+    if let Some(definition) = extension_types.and_then(|types| types.get(item_type)) {
+        return extension_structured_xmp_value_matches(property, definition, extension_types);
+    }
+    property.is_simple()
+        && matches!(
+            item_type,
+            "any"
+                | "agentname"
+                | "boolean"
+                | "date"
+                | "gpscoordinate"
+                | "integer"
+                | "locale"
+                | "mimetype"
+                | "propername"
+                | "rational"
+                | "real"
+                | "renditionclass"
+                | "text"
+                | "uri"
+                | "url"
+                | "xpath"
+        )
+        && scalar_xmp_value_matches(property.value().unwrap_or(""), item_type)
+}
+
+fn xmp_type_key(value_type: &str) -> String {
+    let mut value_type = value_type.trim().to_ascii_lowercase();
+    if let Some(rest) = value_type
+        .strip_prefix("open ")
+        .or_else(|| value_type.strip_prefix("closed "))
+    {
+        value_type = rest.to_owned();
+    }
+    if let Some(rest) = value_type.strip_prefix("choice ") {
+        value_type = rest.to_owned();
+    } else if value_type == "choice" {
+        value_type.clear();
+    }
+    if let Some(rest) = value_type.strip_prefix("of ") {
+        value_type = rest.to_owned();
+    }
+    value_type = value_type.trim().to_owned();
+    if value_type.is_empty() {
+        return "text".to_owned();
+    }
+    if value_type.ends_with("lang alt") {
+        return value_type;
+    }
+    for array_kind in ["bag", "seq", "alt"] {
+        if value_type.ends_with(array_kind) {
+            return format!("{value_type} text");
+        }
+    }
+    value_type
+}
+
+fn structured_xmp_type(
+    value_type: &str,
+) -> Option<(&'static str, &'static [(&'static str, &'static str)])> {
+    Some(match value_type {
+        "thumbnail" => (
+            XMP_THUMBNAIL_NAMESPACE,
+            &[
+                ("width", "integer"),
+                ("format", "text"),
+                ("image", "text"),
+                ("height", "integer"),
+            ],
+        ),
+        "resourceevent" => (
+            XMP_RESOURCE_EVENT_NAMESPACE,
+            &[
+                ("softwareAgent", "agentname"),
+                ("action", "text"),
+                ("instanceID", "uri"),
+                ("parameters", "text"),
+                ("when", "date"),
+            ],
+        ),
+        "resourceref" => (
+            XMP_RESOURCE_REF_NAMESPACE,
+            &[
+                ("managerVariant", "text"),
+                ("manageUI", "uri"),
+                ("versionID", "text"),
+                ("instanceID", "uri"),
+                ("manager", "agentname"),
+                ("renditionParams", "text"),
+                ("manageTo", "uri"),
+                ("documentID", "uri"),
+                ("renditionClass", "renditionclass"),
+            ],
+        ),
+        "version" => (
+            XMP_VERSION_NAMESPACE,
+            &[
+                ("comments", "text"),
+                ("modifyDate", "date"),
+                ("event", "resourceevent"),
+                ("version", "text"),
+                ("modifier", "propername"),
+            ],
+        ),
+        "job" => (
+            XMP_JOB_NAMESPACE,
+            &[("name", "text"), ("url", "url"), ("id", "text")],
+        ),
+        "flash" => (
+            XMP_FLASH_NAMESPACE,
+            &[
+                ("Function", "boolean"),
+                ("Return", "text"),
+                ("RedEyeMode", "boolean"),
+                ("Fired", "boolean"),
+                ("Mode", "text"),
+            ],
+        ),
+        "oecf/sfr" => (
+            EXIF_NAMESPACE,
+            &[
+                ("Names", "seq text"),
+                ("Values", "seq rational"),
+                ("Columns", "integer"),
+                ("Rows", "integer"),
+            ],
+        ),
+        "cfapattern" => (
+            EXIF_NAMESPACE,
+            &[
+                ("Values", "seq integer"),
+                ("Columns", "integer"),
+                ("Rows", "integer"),
+            ],
+        ),
+        "devicesettings" => (
+            EXIF_NAMESPACE,
+            &[
+                ("Columns", "integer"),
+                ("Settings", "seq text"),
+                ("Rows", "integer"),
+            ],
+        ),
+        "dimensions" => (
+            XMP_DIMENSIONS_NAMESPACE,
+            &[("h", "real"), ("unit", "text"), ("w", "real")],
+        ),
+        _ => return None,
+    })
+}
+
+fn structured_xmp_value_matches(
+    property: XmpProperty<'_>,
+    namespace: &str,
+    fields: &[(&str, &str)],
+    extension_types: Option<&BTreeMap<String, ExtensionTypeDefinition>>,
+) -> bool {
+    let Some(children) = structured_xmp_children(property) else {
+        return false;
+    };
+    children.into_iter().all(|child| {
+        let Some((_, value_type)) = fields.iter().find(|(name, _)| {
+            child.tag_name().namespace() == Some(namespace) && child.tag_name().name() == *name
+        }) else {
+            return false;
+        };
+        value_type_matches(XmpProperty::Element(child), value_type, extension_types)
+    })
+}
+
+fn extension_structured_xmp_value_matches(
+    property: XmpProperty<'_>,
+    definition: &ExtensionTypeDefinition,
+    extension_types: Option<&BTreeMap<String, ExtensionTypeDefinition>>,
+) -> bool {
+    let Some(children) = structured_xmp_children(property) else {
+        return false;
+    };
+    children.into_iter().all(|child| {
+        let Some(value_type) = definition.fields.get(&(
+            child.tag_name().namespace().unwrap_or_default().to_owned(),
+            child.tag_name().name().to_owned(),
+        )) else {
+            return false;
+        };
+        value_type_matches(XmpProperty::Element(child), value_type, extension_types)
+    })
+}
+
+fn structured_xmp_children(property: XmpProperty<'_>) -> Option<Vec<Node<'_, '_>>> {
+    let XmpProperty::Element(node) = property else {
+        return None;
+    };
+    if node.attribute((RDF_NAMESPACE, "parseType")) == Some("Resource") {
+        return Some(node.children().filter(|child| child.is_element()).collect());
+    }
+    let mut children = node.children().filter(|child| child.is_element());
+    let description = children.next().filter(|child| {
+        child.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && child.tag_name().name() == "Description"
+    })?;
+    children.next().is_none().then(|| {
+        description
+            .children()
+            .filter(|child| child.is_element())
+            .collect()
+    })
+}
+
+fn scalar_xmp_value_matches(value: &str, value_type: &str) -> bool {
+    match value_type {
+        "boolean" => matches!(value, "True" | "False"),
+        "integer" => signed_decimal(value, false),
+        "real" => signed_decimal(value, true),
+        "date" => xmp_iso8601_date(value),
+        "mimetype" => value.split_once('/').is_some_and(|(left, right)| {
+            !left.is_empty()
+                && !right.is_empty()
+                && left.bytes().all(mime_type_byte)
+                && right.bytes().all(mime_type_byte)
+        }),
+        // Pinned URI and URL validators only require an XMP simple node. XPath
+        // syntax is handled by Java's XPath compiler and remains a narrow
+        // extension-schema fidelity gap.
+        _ => true,
+    }
+}
+
+fn xmp_iso8601_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.is_empty() {
+        return true;
+    }
+    let mut position = usize::from(bytes.first() == Some(&b'-'));
+    let Some(year_end) = take_digits(bytes, position, 1) else {
+        return false;
+    };
+    position = year_end;
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) != Some(&b'-') {
+        return false;
+    }
+    position += 1;
+    let Some(month_end) = take_digits(bytes, position, 1) else {
+        return false;
+    };
+    position = month_end;
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) != Some(&b'-') {
+        return false;
+    }
+    position += 1;
+    let Some(day_end) = take_digits(bytes, position, 1) else {
+        return false;
+    };
+    position = day_end;
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) != Some(&b'T') {
+        return false;
+    }
+    position += 1;
+    let Some(hour_end) = take_digits(bytes, position, 1) else {
+        return false;
+    };
+    position = hour_end;
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) == Some(&b':') {
+        position += 1;
+        let Some(minute_end) = take_digits(bytes, position, 1) else {
+            return false;
+        };
+        position = minute_end;
+        if position == bytes.len() {
+            return true;
+        }
+        if !matches!(bytes.get(position), Some(b':' | b'Z' | b'+' | b'-')) {
+            return false;
+        }
+        if bytes.get(position) == Some(&b':') {
+            position += 1;
+            let Some(second_end) = take_digits(bytes, position, 1) else {
+                return false;
+            };
+            position = second_end;
+            if !matches!(bytes.get(position), None | Some(b'.' | b'Z' | b'+' | b'-')) {
+                return false;
+            }
+            if bytes.get(position) == Some(&b'.') {
+                position += 1;
+                let Some(fraction_end) = take_digits(bytes, position, 1) else {
+                    return false;
+                };
+                position = fraction_end;
+                if !matches!(bytes.get(position), None | Some(b'Z' | b'+' | b'-')) {
+                    return false;
+                }
+            }
+        }
+    }
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) == Some(&b'Z') {
+        return position + 1 == bytes.len();
+    }
+    if !matches!(bytes.get(position), Some(b'+' | b'-')) {
+        return false;
+    }
+    position += 1;
+    let Some(zone_hour_end) = take_digits(bytes, position, 1) else {
+        return false;
+    };
+    position = zone_hour_end;
+    if position == bytes.len() {
+        return true;
+    }
+    if bytes.get(position) != Some(&b':') {
+        return false;
+    }
+    position += 1;
+    take_digits(bytes, position, 1).is_some_and(|end| end == bytes.len())
+}
+
+fn take_digits(bytes: &[u8], start: usize, minimum: usize) -> Option<usize> {
+    let end = bytes[start..]
+        .iter()
+        .take_while(|byte| byte.is_ascii_digit())
+        .count()
+        + start;
+    (end - start >= minimum).then_some(end)
+}
+
+fn signed_decimal(value: &str, allow_decimal_point: bool) -> bool {
+    let value = value.strip_prefix(['+', '-']).unwrap_or(value);
+    let mut parts = value.split('.');
+    let whole = parts.next().unwrap_or_default();
+    let fraction = parts.next();
+    if parts.next().is_some() || (!allow_decimal_point && fraction.is_some()) {
+        return false;
+    }
+    let whole_valid = !whole.is_empty() && whole.bytes().all(|byte| byte.is_ascii_digit());
+    let fraction_valid = fraction.is_some_and(|fraction| {
+        !fraction.is_empty() && fraction.bytes().all(|byte| byte.is_ascii_digit())
+    });
+    whole_valid || (allow_decimal_point && fraction_valid)
+}
+
+fn mime_type_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'+' | b'.')
+}
+
+fn inspect_extension_xmp_value_types(document: &Document<'_>) -> BTreeSet<String> {
+    let definitions = extension_schema_property_definitions(document);
+    let mut invalid = BTreeSet::new();
+    for description in document.descendants().filter(|node| {
+        node.is_element()
+            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && node.tag_name().name() == "Description"
+    }) {
+        for property in child_properties(description) {
+            let Some(namespace) = property.namespace() else {
+                continue;
+            };
+            let Some(value_type) = definitions
+                .properties
+                .get(&(namespace.to_owned(), property.name().to_owned()))
+            else {
+                continue;
+            };
+            if !value_type_matches(property, value_type, definitions.types.get(namespace)) {
+                invalid.insert(format!("{{{namespace}}}{} ({value_type})", property.name()));
+            }
+        }
+    }
+    invalid
+}
+
+fn inspect_undefined_extension_xmp_properties(document: &Document<'_>) -> BTreeSet<String> {
+    let definitions = extension_schema_property_definitions(document);
+    let mut undefined = BTreeSet::new();
+    for description in document.descendants().filter(|node| {
+        node.is_element()
+            && node.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && node.tag_name().name() == "Description"
+    }) {
+        for property in child_properties(description) {
+            let Some(namespace) = property.namespace() else {
+                continue;
+            };
+            if !predefined_xmp2004_namespace(namespace)
+                && !matches!(
+                    namespace,
+                    RDF_NAMESPACE | XML_NAMESPACE | PDFA_EXTENSION_NAMESPACE
+                )
+                && !definitions
+                    .properties
+                    .contains_key(&(namespace.to_owned(), property.name().to_owned()))
+            {
+                undefined.insert(format!("{{{namespace}}}{}", property.name()));
+            }
+        }
+    }
+    undefined
+}
+
+fn extension_schema_property_definitions(document: &Document<'_>) -> ExtensionSchemaDefinitions {
+    let mut definitions = ExtensionSchemaDefinitions::default();
+    for container in document.descendants().filter(|node| {
+        node.is_element()
+            && node.tag_name().namespace() == Some(PDFA_EXTENSION_NAMESPACE)
+            && node.tag_name().name() == "schemas"
+    }) {
+        for schema in XmpProperty::Element(container).array_items() {
+            let Some(namespace) = field_value(schema, PDFA_SCHEMA_NAMESPACE, "namespaceURI") else {
+                continue;
+            };
+            for property in fields(schema, PDFA_SCHEMA_NAMESPACE, "property") {
+                for property in property.array_items() {
+                    let (Some(name), Some(value_type)) = (
+                        field_value(property, PDFA_PROPERTY_NAMESPACE, "name"),
+                        field_value(property, PDFA_PROPERTY_NAMESPACE, "valueType"),
+                    ) else {
+                        continue;
+                    };
+                    definitions.properties.insert(
+                        (namespace.trim().to_owned(), name.trim().to_owned()),
+                        value_type.trim().to_owned(),
+                    );
+                }
+            }
+            let extension_types = definitions
+                .types
+                .entry(namespace.trim().to_owned())
+                .or_default();
+            for value_type in fields(schema, PDFA_SCHEMA_NAMESPACE, "valueType") {
+                for definition in value_type.array_items() {
+                    let (Some(name), Some(type_namespace)) = (
+                        field_value(definition, PDFA_TYPE_NAMESPACE, "type"),
+                        field_value(definition, PDFA_TYPE_NAMESPACE, "namespaceURI"),
+                    ) else {
+                        continue;
+                    };
+                    let mut field_definitions = BTreeMap::new();
+                    for field in fields(definition, PDFA_TYPE_NAMESPACE, "field") {
+                        for field in field.array_items() {
+                            let (Some(name), Some(value_type)) = (
+                                field_value(field, PDFA_FIELD_NAMESPACE, "name"),
+                                field_value(field, PDFA_FIELD_NAMESPACE, "valueType"),
+                            ) else {
+                                continue;
+                            };
+                            field_definitions.insert(
+                                (type_namespace.trim().to_owned(), name.trim().to_owned()),
+                                value_type.trim().to_owned(),
+                            );
+                        }
+                    }
+                    if !field_definitions.is_empty() {
+                        extension_types.insert(
+                            xmp_type_key(name),
+                            ExtensionTypeDefinition {
+                                fields: field_definitions,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+    definitions
+}
+
+#[derive(Default)]
+struct ExtensionSchemaDefinitions {
+    properties: BTreeMap<(String, String), String>,
+    types: BTreeMap<String, BTreeMap<String, ExtensionTypeDefinition>>,
+}
+
+struct ExtensionTypeDefinition {
+    fields: BTreeMap<(String, String), String>,
 }
 
 #[derive(Clone, Copy)]
@@ -949,6 +1567,154 @@ mod tests {
         assert_eq!(parsed.keywords, ["rust,pdf"]);
         assert_eq!(parsed.creator_tools, ["tool"]);
         assert_eq!(parsed.producers, ["producer"]);
+    }
+
+    #[test]
+    fn detects_undefined_properties_in_predefined_xmp2004_schemas() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:xmp="http://ns.adobe.com/xap/1.0/"><rdf:Description xmp:Unknown="x"/>
+          </rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_predefined_xmp_properties,
+            BTreeSet::from(["{http://ns.adobe.com/xap/1.0/}Unknown".to_owned()])
+        );
+    }
+
+    #[test]
+    fn detects_incompatible_predefined_xmp2004_value_shapes() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description>
+          <dc:title>not a language alternative</dc:title></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_predefined_xmp_value_types,
+            BTreeSet::from(["{http://purl.org/dc/elements/1.1/}title (lang alt)".to_owned()])
+        );
+    }
+
+    #[test]
+    fn applies_verapdf_scalar_boolean_and_integer_lexical_forms() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/">
+          <rdf:Description pdfaid:part="1.2" xmpRights:Marked="true"/></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_predefined_xmp_value_types,
+            BTreeSet::from([
+                "{http://www.aiim.org/pdfa/ns/id/}part (integer)".to_owned(),
+                "{http://ns.adobe.com/xap/1.0/rights/}Marked (boolean)".to_owned(),
+            ])
+        );
+    }
+
+    #[test]
+    fn validates_each_predefined_array_item_against_its_declared_type() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:exif="http://ns.adobe.com/exif/1.0/"><rdf:Description><exif:ISOSpeedRatings>
+          <rdf:Seq><rdf:li>not-an-integer</rdf:li></rdf:Seq></exif:ISOSpeedRatings>
+          </rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_predefined_xmp_value_types,
+            BTreeSet::from([
+                "{http://ns.adobe.com/exif/1.0/}ISOSpeedRatings (seq integer)".to_owned()
+            ])
+        );
+    }
+
+    #[test]
+    fn validates_predefined_structured_fields_against_the_pinned_definitions() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:exif="http://ns.adobe.com/exif/1.0/"><rdf:Description><exif:Flash rdf:parseType="Resource">
+          <exif:Fired>not-a-boolean</exif:Fired></exif:Flash></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_predefined_xmp_value_types,
+            BTreeSet::from(["{http://ns.adobe.com/exif/1.0/}Flash (flash)".to_owned()])
+        );
+    }
+
+    #[test]
+    fn accepts_verapdf_reduced_precision_iso8601_dates() {
+        for date in [
+            "",
+            "2026",
+            "2026-07",
+            "2026-07-29",
+            "2026-07-29T12",
+            "2026-07-29T12Z",
+            "2026-07-29T12:30",
+            "2026-07-29T12:30:45.12+02:00",
+            "2026-13",
+            "2026-07-29T12:30+02",
+            "2026-07-29T12:30+0200",
+        ] {
+            assert!(xmp_iso8601_date(date), "{date}");
+        }
+        for date in [
+            "2026-07-29T12:30:45.",
+            "2026-07Z",
+            "2026-07-29T12:30:45.1Zx",
+        ] {
+            assert!(!xmp_iso8601_date(date), "{date}");
+        }
+    }
+
+    #[test]
+    fn requires_custom_description_properties_to_be_declared_by_an_extension_schema() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
+          xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+          xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#" xmlns:custom="urn:custom">
+          <rdf:Description><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource">
+          <pdfaSchema:namespaceURI>urn:custom</pdfaSchema:namespaceURI><pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType="Resource">
+          <pdfaProperty:name>defined</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType>
+          </rdf:li></rdf:Seq></pdfaSchema:property></rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description>
+          <rdf:Description custom:defined="yes" custom:missing="no"/></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.undefined_extension_xmp_properties,
+            BTreeSet::from(["{urn:custom}missing".to_owned()])
+        );
+        assert!(parsed.invalid_extension_xmp_value_types.is_empty());
+        let mismatched_xml = std::str::from_utf8(xmp)
+            .expect("test XML is UTF-8")
+            .replace("Text", "Lang Alt");
+        let mismatched = parse_xmp(mismatched_xml.as_bytes()).expect("valid XMP");
+        assert_eq!(
+            mismatched.invalid_extension_xmp_value_types,
+            BTreeSet::from(["{urn:custom}defined (Lang Alt)".to_owned()])
+        );
+    }
+
+    #[test]
+    fn validates_custom_extension_type_fields_recursively() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
+          xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+          xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#"
+          xmlns:pdfaType="http://www.aiim.org/pdfa/ns/type#"
+          xmlns:pdfaField="http://www.aiim.org/pdfa/ns/field#" xmlns:custom="urn:custom">
+          <rdf:Description><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource">
+          <pdfaSchema:namespaceURI>urn:custom</pdfaSchema:namespaceURI>
+          <pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType="Resource">
+          <pdfaProperty:name>rating</pdfaProperty:name><pdfaProperty:valueType>Rating</pdfaProperty:valueType>
+          </rdf:li></rdf:Seq></pdfaSchema:property>
+          <pdfaSchema:valueType><rdf:Seq><rdf:li rdf:parseType="Resource">
+          <pdfaType:type>Rating</pdfaType:type><pdfaType:namespaceURI>urn:custom</pdfaType:namespaceURI>
+          <pdfaType:field><rdf:Seq><rdf:li rdf:parseType="Resource">
+          <pdfaField:name>score</pdfaField:name><pdfaField:valueType>Integer</pdfaField:valueType>
+          </rdf:li></rdf:Seq></pdfaType:field>
+          </rdf:li></rdf:Seq></pdfaSchema:valueType>
+          </rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description>
+          <rdf:Description><custom:rating rdf:parseType="Resource"><custom:score>invalid</custom:score>
+          </custom:rating></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(
+            parsed.invalid_extension_xmp_value_types,
+            BTreeSet::from(["{urn:custom}rating (Rating)".to_owned()])
+        );
     }
 
     #[test]

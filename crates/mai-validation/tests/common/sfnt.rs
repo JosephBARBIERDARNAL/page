@@ -6,6 +6,26 @@ pub fn minimal_truetype() -> Vec<u8> {
 }
 
 pub fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping(cmap_count, 32)
+}
+
+pub fn minimal_truetype_with_cmap_mapping(code: u8) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping(1, code)
+}
+
+pub fn minimal_truetype_with_glyph_count(glyph_count: u16) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(1, 32, glyph_count)
+}
+
+fn minimal_truetype_with_cmap_count_and_mapping(cmap_count: u16, code: u8) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(cmap_count, code, 2)
+}
+
+fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
+    cmap_count: u16,
+    code: u8,
+    glyph_count: u16,
+) -> Vec<u8> {
     let mut head = vec![0; 54];
     put_u32(&mut head, 0, 0x0001_0000);
     put_u32(&mut head, 4, 0x0001_0000);
@@ -26,7 +46,7 @@ pub fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
 
     let mut maxp = vec![0; 32];
     put_u32(&mut maxp, 0, 0x0001_0000);
-    put_u16(&mut maxp, 4, 2);
+    put_u16(&mut maxp, 4, glyph_count);
 
     let cmap_header_length = 4 + usize::from(cmap_count) * 8;
     let mut cmap = vec![0; cmap_header_length + 262];
@@ -47,7 +67,7 @@ pub fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
     }
     put_u16(&mut cmap, cmap_header_length, 0);
     put_u16(&mut cmap, cmap_header_length + 2, 262);
-    cmap[cmap_header_length + 6 + 32] = 1;
+    cmap[cmap_header_length + 6 + usize::from(code)] = 1;
 
     let family = utf16be("Mai Test");
     let postscript = utf16be("MaiTestFont");
@@ -92,7 +112,7 @@ pub fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
         (*b"head", head),
         (*b"hhea", hhea),
         (*b"hmtx", hmtx),
-        (*b"loca", vec![0; 6]),
+        (*b"loca", vec![0; 2 * (usize::from(glyph_count) + 1)]),
         (*b"maxp", maxp),
         (*b"name", name),
         (*b"post", post),

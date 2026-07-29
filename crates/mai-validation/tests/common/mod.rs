@@ -46,15 +46,15 @@ pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
 }
 
 /// Asserts that `report` has exactly one failure, that it is `rule_id`, and
-/// that the remaining 126 of the 127 implemented checks passed. Returns the
+/// that the remaining 132 of the 133 implemented checks passed. Returns the
 /// matching failure so callers can assert further on it (e.g. `object_id`).
 pub fn assert_single_failure<'a>(
     report: &'a ValidationReport,
     rule_id: &str,
 ) -> &'a ValidationFailure {
-    assert_eq!(report.checks.total, 127);
+    assert_eq!(report.checks.total, 133);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 126);
+    assert_eq!(report.checks.passed, 132);
     report
         .failures
         .iter()
@@ -130,6 +130,23 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "<pdfaSchema:schema>Example schema</pdfaSchema:schema>",
             "<pdfaSchema:schema>Example schema</pdfaSchema:schema><pdfaSchema:unknown>bad</pdfaSchema:unknown>",
         ),
+        "extension_custom_value_invalid" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\" xmlns:extype=\"http://example.com/type/\">",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaProperty:name>example</pdfaProperty:name>\n<pdfaProperty:valueType>Text</pdfaProperty:valueType>",
+                "<pdfaProperty:name>custom</pdfaProperty:name>\n<pdfaProperty:valueType>CustomType</pdfaProperty:valueType>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:custom rdf:parseType=\"Resource\"><extype:member rdf:parseType=\"Resource\"/></ex:custom></rdf:Description></rdf:RDF>",
+            );
+        }
         "extension_container_prefix" => {
             replace(
                 &mut xmp,
@@ -2567,6 +2584,18 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             )),
         );
     }
+    if matches!(
+        case,
+        "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch"
+    ) {
+        descriptor.set(
+            "FontFile2",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                sfnt::minimal_truetype_with_cmap_mapping(0xe9),
+            )),
+        );
+    }
     if case == "direct_font_file" {
         descriptor.set(
             "FontFile2",
@@ -2590,6 +2619,18 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 },
                 sfnt::minimal_truetype(),
             )),
+        );
+    } else if case == "composite_cidset_real_program" {
+        descriptor.set(
+            "FontFile2",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                sfnt::minimal_truetype_with_glyph_count(33),
+            )),
+        );
+        descriptor.set(
+            "CIDSet",
+            document.add_object(Stream::new(Dictionary::new(), vec![0; 5])),
         );
     }
     let descriptor_object = if matches!(case, "direct_descriptor" | "direct_font_file") {
@@ -2638,7 +2679,10 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         let mut descendant_dictionary = dictionary! {
             "Type" => "Font",
             "Subtype" => "CIDFontType2",
-            "BaseFont" => if case == "composite_cid_subset_missing_cidset" {
+            "BaseFont" => if matches!(
+                case,
+                "composite_cid_subset_missing_cidset" | "composite_cidset_real_program"
+            ) {
                 Object::Name(b"ABCDEF+MaiTestFont".to_vec())
             } else {
                 Object::Name(b"MaiTestFont".to_vec())
@@ -2765,6 +2809,17 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
             },
         ),
+        "tt_glyph_width_mismatch" => font.set("Widths", vec![497.into()]),
+        "tt_nonascii_winansi" => {
+            font.set("FirstChar", 233);
+            font.set("LastChar", 233);
+            font.set("Widths", vec![500.into()]);
+        }
+        "tt_nonascii_winansi_width_mismatch" => {
+            font.set("FirstChar", 233);
+            font.set("LastChar", 233);
+            font.set("Widths", vec![497.into()]);
+        }
         "tt_symbolic_no_encoding" | "tt_symbolic_one_cmap" | "tt_symbolic_two_cmaps" => {
             font.remove(b"Encoding");
         }
@@ -2804,6 +2859,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     };
     resources.set("Font", font_resources.clone());
     let page_content = match case {
+        "composite_cidset_real_program" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
         "unused_resource" | "unused_invalid_font" => Vec::new(),
         "selected_not_shown" => content(vec![
             operation("BT", vec![]),
@@ -2938,6 +3002,23 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operations.extend((0..5).map(|_| operation("Q", vec![])));
             content(operations)
         }
+        "tt_glyph_missing" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tr", vec![0.into()]),
+            operation("Tj", vec![Object::string_literal("!")]),
+            operation("ET", vec![]),
+        ]),
+        "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tr", vec![0.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0xe9], StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
         _ => text_content(0),
     };
     let contents_id = document.add_object(Stream::new(Dictionary::new(), page_content));

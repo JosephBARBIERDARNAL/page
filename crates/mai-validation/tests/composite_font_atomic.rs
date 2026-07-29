@@ -1,4 +1,8 @@
 use std::collections::BTreeSet;
+use std::{env, fs};
+
+use mai_validation::SafetyLimits;
+use mai_validation::differential::{ComparisonClassification, DifferentialRunner, ReferenceConfig};
 
 #[allow(dead_code)]
 mod common;
@@ -22,6 +26,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_cmap_wmode_mismatch", &[CMAP_WMODE]),
     ("composite_cmap_cid_too_large", &[CMAP_CID_RANGE]),
     ("composite_cid_subset_missing_cidset", &[CID_SUBSET_CIDSET]),
+    ("composite_cidset_real_program", &[CID_SUBSET_CIDSET]),
 ];
 
 #[test]
@@ -61,4 +66,33 @@ fn a_single_composite_failure_attaches_the_type0_font() {
     let report = common::validate(&common::font_fixture("composite_cidmap_missing"));
     let failure = common::assert_single_failure(&report, CID_TO_GID);
     assert!(failure.object_id.is_some());
+}
+
+#[test]
+fn identity_cidset_coverage_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("mai-cidset-diagnostic-{}.pdf", std::process::id()));
+    fs::write(&path, common::font_fixture("composite_cidset_real_program"))
+        .expect("write CIDSet fixture");
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert_eq!(
+        report.classification,
+        ComparisonClassification::BothNoncompliant
+    );
+    assert!(
+        common::failure_ids(&fs::read(&path).expect("read CIDSet fixture"))
+            .contains(CID_SUBSET_CIDSET)
+    );
+    let reference = report.reference_result.expect("veraPDF result");
+    assert!(
+        reference
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .any(|rule| rule == "ISO 19005-1:2005:6.3.5:3")
+    );
+    fs::remove_file(path).expect("remove CIDSet fixture");
 }

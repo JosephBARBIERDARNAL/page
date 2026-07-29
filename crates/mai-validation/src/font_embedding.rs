@@ -30,6 +30,8 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
+    pub(crate) inconsistent_truetype_widths: Vec<RuleFailure>,
     pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
 
@@ -48,13 +50,15 @@ struct GraphicsState {
     rendering_mode: i64,
 }
 
-#[derive(Default)]
+#[derive(Clone)]
 struct FontUse {
+    object: Object,
     object_id: Option<PdfObjectId>,
     description: String,
     subtype: Option<String>,
     embedded: bool,
     visible: bool,
+    shown_bytes: Vec<u8>,
 }
 
 struct Scanner<'a> {
@@ -79,6 +83,8 @@ struct Scanner<'a> {
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    missing_truetype_glyphs: Vec<RuleFailure>,
+    inconsistent_truetype_widths: Vec<RuleFailure>,
     excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
 
@@ -108,6 +114,8 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
+        missing_truetype_glyphs: Vec::new(),
+        inconsistent_truetype_widths: Vec::new(),
         excessive_graphics_state_nesting: Vec::new(),
     };
     for (page_number, page_id) in document.get_pages() {
@@ -124,6 +132,9 @@ pub(crate) fn inspect(
     scanner.invalid_cmap_cids.dedup_by(|left, right| {
         left.object_id == right.object_id && left.description == right.description
     });
+    scanner.inspect_rendered_truetype_glyphs()?;
+    scanner.inspect_rendered_type1_subset_charsets()?;
+    scanner.inspect_rendered_identity_cid_subset_sets()?;
 
     let failures = scanner
         .uses
@@ -157,6 +168,8 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
+        missing_truetype_glyphs: scanner.missing_truetype_glyphs,
+        inconsistent_truetype_widths: scanner.inconsistent_truetype_widths,
         excessive_graphics_state_nesting: scanner.excessive_graphics_state_nesting,
     })
 }
@@ -310,7 +323,11 @@ impl Scanner<'_> {
                 }
                 "Tj" | "TJ" | "'" | "\"" if shows_text(&operation.operands) => {
                     if let Some(font) = state.font.clone() {
-                        self.record_font(&font, state.rendering_mode)?;
+                        self.record_font(
+                            &font,
+                            state.rendering_mode,
+                            &shown_text_bytes(&operation.operands),
+                        )?;
                     }
                 }
                 "Do" => {
@@ -398,8 +415,12 @@ impl Scanner<'_> {
         &mut self,
         selected: &SelectedFont,
         rendering_mode: i64,
+        shown_bytes: &[u8],
     ) -> Result<(), PdfError> {
-        if self.uses.contains_key(&selected.key) {
+        if let Some(font_use) = self.uses.get_mut(&selected.key) {
+            if rendering_mode != 3 {
+                font_use.shown_bytes.extend_from_slice(shown_bytes);
+            }
             return Ok(());
         }
         let Some(object) = resolve_optional(
@@ -451,6 +472,7 @@ impl Scanner<'_> {
                 font_is_embedded(self.document, font, self.limits)?
             };
         self.uses.entry(selected.key.clone()).or_insert(FontUse {
+            object: selected.object.clone(),
             object_id,
             description: selected.description.clone(),
             subtype: subtype.clone(),
@@ -458,6 +480,11 @@ impl Scanner<'_> {
             // veraPDF 1.28.2 associates the first observed rendering mode
             // with a font model object and does not revise it on later uses.
             visible: rendering_mode != 3,
+            shown_bytes: if rendering_mode == 3 {
+                Vec::new()
+            } else {
+                shown_bytes.to_vec()
+            },
         });
 
         if subtype.as_deref() == Some("Type0")
@@ -475,7 +502,7 @@ impl Scanner<'_> {
                         object: descendant.clone(),
                         description: describe_descendant(descendant, &selected.description, index),
                     };
-                    self.record_font(&descendant, rendering_mode)?;
+                    self.record_font(&descendant, rendering_mode, &[])?;
                 }
             }
             self.active_descendant_fonts.remove(&selected.key);
@@ -526,6 +553,290 @@ impl Scanner<'_> {
                     description,
                     "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
                 ));
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_truetype_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || !usage.embedded
+                || usage.subtype.as_deref() != Some("TrueType")
+                || usage.shown_bytes.is_empty()
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let (encoding, contains_differences) =
+                truetype_encoding(self.document, font, self.limits)?;
+            if !matches!(
+                encoding.as_deref(),
+                Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
+            ) || contains_differences
+            {
+                continue;
+            }
+            let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            let Ok(file) = descriptor.get(b"FontFile2") else {
+                continue;
+            };
+            let Some(stream) =
+                resolve_optional(self.document, file, self.limits.max_reference_depth)?
+                    .and_then(|object| object.as_stream().ok())
+            else {
+                continue;
+            };
+            let bytes = decode_font_stream(stream, self.limits)?;
+            let Ok(face) = ttf_parser::Face::parse(&bytes, 0) else {
+                continue;
+            };
+            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let widths = font
+                .get(b"Widths")
+                .ok()
+                .and_then(|value| value.as_array().ok());
+            let Some(encoding) = encoding.as_deref() else {
+                continue;
+            };
+            let mut encoding_dictionary = Dictionary::new();
+            encoding_dictionary.set("Type", "Font");
+            encoding_dictionary.set("Encoding", Object::Name(encoding.to_vec()));
+            let Ok(pdf_encoding) = encoding_dictionary.get_font_encoding(self.document) else {
+                continue;
+            };
+            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+                let Some(character) = single_encoded_character(&pdf_encoding, byte) else {
+                    continue;
+                };
+                let Some(glyph) = face.glyph_index(character) else {
+                    self.missing_truetype_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!("has no embedded TrueType glyph for rendered byte {byte}"),
+                    ));
+                    continue;
+                };
+                let (Some(first_char), Some(widths), Some(advance)) =
+                    (first_char, widths, face.glyph_hor_advance(glyph))
+                else {
+                    continue;
+                };
+                let Some(index) = i64::from(byte).checked_sub(first_char) else {
+                    continue;
+                };
+                let Ok(index) = usize::try_from(index) else {
+                    continue;
+                };
+                let Some(dictionary_width) =
+                    widths.get(index).and_then(|value| value.as_float().ok())
+                else {
+                    continue;
+                };
+                let program_width = f64::from(advance) * 1000.0 / f64::from(face.units_per_em());
+                if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
+                    self.inconsistent_truetype_widths.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        &format!(
+                            "has rendered byte {byte} width {program_width:.3} in its embedded TrueType program but {dictionary_width:.3} in /Widths"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_type1_subset_charsets(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || !usage.embedded
+                || usage.subtype.as_deref() != Some("Type1")
+                || usage.shown_bytes.is_empty()
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            if !font
+                .get(b"BaseFont")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                .is_some_and(is_subset_font_name)
+            {
+                continue;
+            }
+            let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            let Some(char_set) = descriptor
+                .get(b"CharSet")
+                .ok()
+                .and_then(|value| match value {
+                    Object::String(bytes, _) => Some(type1_charset_names(bytes)),
+                    _ => None,
+                })
+            else {
+                continue;
+            };
+            let Some(stream) = descriptor
+                .get(b"FontFile")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let program_names = type1_program_char_names(&decode_font_stream(stream, self.limits)?);
+            if program_names.is_empty() {
+                continue;
+            }
+            if usage
+                .shown_bytes
+                .into_iter()
+                .filter_map(type1_standard_glyph_name)
+                .any(|name| program_names.contains(name) && !char_set.contains(name))
+            {
+                self.invalid_type1_subset_charsets.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a rendered Type1 glyph absent from its descriptor /CharSet",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_identity_cid_subset_sets(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible
+                || usage.subtype.as_deref() != Some("Type0")
+                || usage.shown_bytes.is_empty()
+            {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            if !font
+                .get(b"Encoding")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+            {
+                continue;
+            }
+            let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            if descendant
+                .get(b"Subtype")
+                .ok()
+                .and_then(|value| value.as_name().ok())
+                != Some(b"CIDFontType2".as_slice())
+                || !descendant
+                    .get(b"BaseFont")
+                    .ok()
+                    .and_then(|value| value.as_name().ok())
+                    .is_some_and(is_subset_font_name)
+                || descendant
+                    .get(b"CIDToGIDMap")
+                    .ok()
+                    .and_then(|value| value.as_name().ok())
+                    != Some(b"Identity".as_slice())
+            {
+                continue;
+            }
+            let Some(descriptor) =
+                font_descriptor_dictionary(self.document, descendant, self.limits)?
+            else {
+                continue;
+            };
+            let Some(cid_set) = descriptor
+                .get(b"CIDSet")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let Some(font_file) = descriptor
+                .get(b"FontFile2")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let font_bytes = decode_font_stream(font_file, self.limits)?;
+            let Ok(face) = ttf_parser::Face::parse(&font_bytes, 0) else {
+                continue;
+            };
+            let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
+            let cids = usage.shown_bytes.chunks_exact(2);
+            if !cids.remainder().is_empty()
+                || !cids
+                    .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
+                    .any(|cid| {
+                        cid != 0
+                            && face.number_of_glyphs() > cid
+                            && !cid_set_contains(&cid_set_bytes, cid)
+                    })
+            {
+                continue;
+            }
+            self.invalid_cid_subset_cidsets.push(font_failure(
+                usage.object_id,
+                &usage.description,
+                "has a rendered Identity CMap CID absent from its descriptor /CIDSet",
+            ));
         }
         Ok(())
     }
@@ -767,6 +1078,13 @@ impl Scanner<'_> {
     }
 }
 
+fn single_encoded_character(encoding: &lopdf::Encoding<'_>, byte: u8) -> Option<char> {
+    let value = encoding.bytes_to_string(&[byte]).ok()?;
+    let mut characters = value.chars();
+    let character = characters.next()?;
+    characters.next().is_none().then_some(character)
+}
+
 fn first_descendant_dictionary<'a>(
     document: &'a Document,
     font: &'a Dictionary,
@@ -929,6 +1247,197 @@ fn is_subset_font_name(name: &[u8]) -> bool {
     name.len() >= 7 && name[..6].iter().all(u8::is_ascii_uppercase) && name[6] == b'+'
 }
 
+fn cid_set_contains(bytes: &[u8], cid: u16) -> bool {
+    bytes
+        .get(usize::from(cid) / 8)
+        .is_some_and(|byte| byte & (1 << (7 - cid % 8)) != 0)
+}
+
+fn type1_charset_names(bytes: &[u8]) -> BTreeSet<&str> {
+    std::str::from_utf8(bytes)
+        .ok()
+        .into_iter()
+        .flat_map(|value| value.split('/').skip(1))
+        .filter_map(|value| value.split_ascii_whitespace().next())
+        .collect()
+}
+
+fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
+    let bytes = type1_pfb_payload(bytes);
+    let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
+        return BTreeSet::new();
+    };
+    let ciphertext = bytes[eexec + 5..]
+        .iter()
+        .skip_while(|byte| byte.is_ascii_whitespace())
+        .copied();
+    let mut state = 55_665_u16;
+    let plaintext: Vec<_> = ciphertext
+        .map(|ciphertext| {
+            let plaintext = ciphertext ^ (state >> 8) as u8;
+            state = state
+                .wrapping_add(u16::from(ciphertext))
+                .wrapping_mul(52_845)
+                .wrapping_add(22_719);
+            plaintext
+        })
+        .skip(4)
+        .collect();
+    let Some(start) = plaintext
+        .windows(b"/CharStrings".len())
+        .position(|window| window == b"/CharStrings")
+    else {
+        return BTreeSet::new();
+    };
+    plaintext[start..]
+        .split(|byte| *byte == b'/')
+        .skip(1)
+        .filter_map(|entry| {
+            let name = entry
+                .iter()
+                .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'.')
+                .copied()
+                .collect::<Vec<_>>();
+            (!name.is_empty()).then(|| String::from_utf8_lossy(&name).into_owned())
+        })
+        .collect()
+}
+
+fn type1_pfb_payload(bytes: &[u8]) -> Vec<u8> {
+    if !bytes.starts_with(&[0x80, 0x01]) {
+        return bytes.to_vec();
+    }
+    let mut payload = Vec::new();
+    let mut position = 0;
+    while bytes.get(position) == Some(&0x80) {
+        let Some(kind) = bytes.get(position + 1) else {
+            break;
+        };
+        if *kind == 3 {
+            break;
+        }
+        let Some(length) = bytes
+            .get(position + 2..position + 6)
+            .and_then(|length| length.try_into().ok())
+            .map(u32::from_le_bytes)
+            .and_then(|length| usize::try_from(length).ok())
+        else {
+            break;
+        };
+        let start = position + 6;
+        let Some(end) = start.checked_add(length) else {
+            break;
+        };
+        let Some(segment) = bytes.get(start..end) else {
+            break;
+        };
+        payload.extend_from_slice(segment);
+        position = end;
+    }
+    payload
+}
+
+fn type1_standard_glyph_name(byte: u8) -> Option<&'static str> {
+    const NAMES: [&str; 95] = [
+        "space",
+        "exclam",
+        "quotedbl",
+        "numbersign",
+        "dollar",
+        "percent",
+        "ampersand",
+        "quoteright",
+        "parenleft",
+        "parenright",
+        "asterisk",
+        "plus",
+        "comma",
+        "hyphen",
+        "period",
+        "slash",
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "colon",
+        "semicolon",
+        "less",
+        "equal",
+        "greater",
+        "question",
+        "at",
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "U",
+        "V",
+        "W",
+        "X",
+        "Y",
+        "Z",
+        "bracketleft",
+        "backslash",
+        "bracketright",
+        "asciicircum",
+        "underscore",
+        "quoteleft",
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z",
+        "braceleft",
+        "bar",
+        "braceright",
+        "asciitilde",
+    ];
+    NAMES.get(usize::from(byte.checked_sub(b' ')?)).copied()
+}
+
 fn font_descriptor_dictionary<'a>(
     document: &'a Document,
     font: &'a Dictionary,
@@ -1088,36 +1597,7 @@ fn valid_font_program(
 }
 
 fn valid_sfnt(bytes: &[u8]) -> bool {
-    if bytes.len() < 12 || !matches!(&bytes[..4], b"\0\x01\0\0" | b"true" | b"typ1" | b"OTTO") {
-        return false;
-    }
-    let table_count = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));
-    let Some(directory_end) = table_count
-        .checked_mul(16)
-        .and_then(|length| 12usize.checked_add(length))
-    else {
-        return false;
-    };
-    if directory_end > bytes.len() {
-        return false;
-    }
-    let mut tags = BTreeSet::new();
-    for record in bytes[12..directory_end].chunks_exact(16) {
-        let offset =
-            u32::from_be_bytes(record[8..12].try_into().expect("four-byte table offset")) as usize;
-        let length =
-            u32::from_be_bytes(record[12..16].try_into().expect("four-byte table length")) as usize;
-        if offset
-            .checked_add(length)
-            .is_none_or(|end| end > bytes.len())
-        {
-            return false;
-        }
-        tags.insert(&record[..4]);
-    }
-    [b"cmap", b"head", b"hhea", b"hmtx", b"maxp", b"name"]
-        .iter()
-        .all(|tag| tags.contains(tag.as_slice()))
+    ttf_parser::Face::parse(bytes, 0).is_ok()
 }
 
 fn object_key(object: &Object, context: &str, name: Option<&Object>) -> ResourceKey {
@@ -1163,6 +1643,22 @@ fn shows_text(operands: &[Object]) -> bool {
     })
 }
 
+fn shown_text_bytes(operands: &[Object]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    collect_shown_text_bytes(operands, &mut bytes);
+    bytes
+}
+
+fn collect_shown_text_bytes(operands: &[Object], bytes: &mut Vec<u8>) {
+    for operand in operands {
+        match operand {
+            Object::String(value, _) => bytes.extend_from_slice(value),
+            Object::Array(items) => collect_shown_text_bytes(items, bytes),
+            _ => {}
+        }
+    }
+}
+
 fn as_integer(object: &Object) -> Option<i64> {
     object.as_i64().ok()
 }
@@ -1196,9 +1692,9 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Dictionary, Document, Stream};
+    use lopdf::{Dictionary, Document, Object, Stream};
 
-    use super::{cmap_maximal_cid, inspect_all_embedded_cmap_cids};
+    use super::{cmap_maximal_cid, inspect_all_embedded_cmap_cids, shown_text_bytes};
     use crate::SafetyLimits;
 
     #[test]
@@ -1218,6 +1714,37 @@ mod tests {
     }
 
     #[test]
+    fn extracts_names_from_an_encrypted_type1_private_dictionary() {
+        let plaintext = [
+            vec![0; 4],
+            b"dup /Private 1 dict dup begin /CharStrings 1 dict dup begin /space 1 RD".to_vec(),
+        ]
+        .concat();
+        let mut state = 55_665_u16;
+        let encrypted: Vec<_> = plaintext
+            .into_iter()
+            .map(|plaintext| {
+                let ciphertext = plaintext ^ (state >> 8) as u8;
+                state = state
+                    .wrapping_add(u16::from(ciphertext))
+                    .wrapping_mul(52_845)
+                    .wrapping_add(22_719);
+                ciphertext
+            })
+            .collect();
+        let bytes = [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat();
+        assert!(super::type1_program_char_names(&bytes).contains("space"));
+    }
+
+    #[test]
+    fn maps_printable_type1_encoding_bytes_to_adobe_glyph_names() {
+        assert_eq!(super::type1_standard_glyph_name(b' '), Some("space"));
+        assert_eq!(super::type1_standard_glyph_name(b'A'), Some("A"));
+        assert_eq!(super::type1_standard_glyph_name(b'z'), Some("z"));
+        assert_eq!(super::type1_standard_glyph_name(0x80), None);
+    }
+
+    #[test]
     fn finds_oversized_cids_in_unused_embedded_cmaps() {
         let mut document = Document::with_version("1.4");
         let mut dictionary = Dictionary::new();
@@ -1229,5 +1756,20 @@ mod tests {
         let failures = inspect_all_embedded_cmap_cids(&document, &SafetyLimits::default())
             .expect("inspect CMaps");
         assert_eq!(failures.len(), 1);
+    }
+
+    #[test]
+    fn retains_only_string_bytes_from_text_show_operands() {
+        assert_eq!(
+            shown_text_bytes(&[
+                Object::String(b"A".to_vec(), lopdf::StringFormat::Literal),
+                Object::Array(vec![
+                    Object::String(b"B".to_vec(), lopdf::StringFormat::Literal),
+                    Object::Integer(-120),
+                    Object::String(b"C".to_vec(), lopdf::StringFormat::Literal),
+                ]),
+            ]),
+            b"ABC"
+        );
     }
 }

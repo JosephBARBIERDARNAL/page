@@ -26,7 +26,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 127;
+const TOTAL_RULE_COUNT: usize = 133;
 
 pub fn validate_file(
     path: &Path,
@@ -176,6 +176,66 @@ fn validate_document(
         ));
     }
     if let Some(xmp) = xmp {
+        if !xmp.invalid_predefined_xmp_properties.is_empty() {
+            failures.push(failure(
+                "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+                format!(
+                    "XMP uses undefined predefined-schema properties: {}",
+                    xmp.invalid_predefined_xmp_properties
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !xmp.invalid_predefined_xmp_value_types.is_empty() {
+            failures.push(failure(
+                "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+                format!(
+                    "XMP predefined-schema properties use incompatible value shapes: {}",
+                    xmp.invalid_predefined_xmp_value_types
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !xmp.undefined_extension_xmp_properties.is_empty() {
+            failures.push(failure(
+                "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+                format!(
+                    "XMP extension properties are absent from the current extension schemas: {}",
+                    xmp.undefined_extension_xmp_properties
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !xmp.invalid_extension_xmp_value_types.is_empty() {
+            failures.push(failure(
+                "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+                format!(
+                    "XMP extension properties use incompatible declared value shapes: {}",
+                    xmp.invalid_extension_xmp_value_types
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
         for test in &xmp.extension_schema_failed_tests {
             let (rule_id, message) = extension_schema_rule(*test);
             failures.push(failure(
@@ -990,6 +1050,14 @@ fn validate_font_dictionaries(
         (
             fonts.invalid_symbolic_truetype_cmaps.as_slice(),
             "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
+        ),
+        (
+            fonts.missing_truetype_glyphs.as_slice(),
+            "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
+        ),
+        (
+            fonts.inconsistent_truetype_widths.as_slice(),
+            "PDFA1B-TRUETYPE-GLYPH-WIDTH-001",
         ),
         (
             fonts.excessive_graphics_state_nesting.as_slice(),
