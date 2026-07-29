@@ -861,7 +861,6 @@ mod tests {
             profile: ValidationProfile::PdfA1b,
             implemented_checks_passed: passed,
             preliminary: true,
-            disclaimer: "This report covers only preliminary checks and does not establish full PDF/A compliance.",
             checks: ValidationCounts {
                 total: 1,
                 passed: usize::from(passed),

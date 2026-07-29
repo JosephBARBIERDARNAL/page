@@ -1334,7 +1334,6 @@ fn finish_report(
         profile,
         implemented_checks_passed: failures.is_empty(),
         preliminary: true,
-        disclaimer: ValidationReport::DISCLAIMER,
         checks: ValidationCounts {
             total: total_checks,
             passed: total_checks.saturating_sub(failed),

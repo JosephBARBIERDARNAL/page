@@ -43,16 +43,12 @@ pub struct ValidationReport {
     pub profile: ValidationProfile,
     pub implemented_checks_passed: bool,
     pub preliminary: bool,
-    pub disclaimer: &'static str,
     pub checks: ValidationCounts,
     pub document: Option<PdfDocument>,
     pub failures: Vec<ValidationFailure>,
 }
 
 impl ValidationReport {
-    pub(crate) const DISCLAIMER: &'static str =
-        "This report covers only preliminary checks and does not establish full PDF/A compliance.";
-
     pub(crate) fn parse_failure(profile: ValidationProfile, message: impl Into<String>) -> Self {
         Self::single_failure(profile, "PDF-PARSE-001", message, FailureCategory::Parser)
     }
@@ -75,7 +71,6 @@ impl ValidationReport {
             profile,
             implemented_checks_passed: false,
             preliminary: true,
-            disclaimer: Self::DISCLAIMER,
             checks: ValidationCounts {
                 total: 1,
                 passed: 0,
@@ -148,7 +143,6 @@ impl fmt::Display for ValidationReport {
             }
             writeln!(output)?;
         }
-        writeln!(output, "Note: {}", self.disclaimer)?;
         formatter.write_str(&output)
     }
 }

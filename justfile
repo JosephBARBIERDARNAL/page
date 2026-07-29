@@ -75,4 +75,4 @@ clean:
 
 # Serve documentation
 preview:
-    uv run zensical serve
+    uvx zensical serve

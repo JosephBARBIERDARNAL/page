@@ -9,7 +9,7 @@ use tag_validation::{SafetyLimits, ValidationProfile, validate_file};
     name = "tag",
     bin_name = "tag",
     version,
-    about = "Preliminary PDF/A validator (not a complete conformance checker)"
+    about = "Experimental PDF/A validator"
 )]
 struct Cli {
     #[command(subcommand)]
