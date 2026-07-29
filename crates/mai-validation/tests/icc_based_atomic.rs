@@ -100,9 +100,9 @@ fn shared_invalid_profile_is_reported_once_with_its_object_id() {
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].object_id.is_some());
-    assert_eq!(report.checks.total, 101);
+    assert_eq!(report.checks.total, 108);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 100);
+    assert_eq!(report.checks.passed, 107);
 }
 
 #[test]

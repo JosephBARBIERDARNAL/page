@@ -58,9 +58,9 @@ fn multiple_invalid_xobjects_are_one_deterministic_unattached_failure() {
         .expect("image bit-depth failure");
     assert!(failure.object_id.is_none());
     assert!(failure.message.contains("; "));
-    assert_eq!(report.checks.total, 101);
+    assert_eq!(report.checks.total, 108);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 100);
+    assert_eq!(report.checks.passed, 107);
 }
 
 fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {

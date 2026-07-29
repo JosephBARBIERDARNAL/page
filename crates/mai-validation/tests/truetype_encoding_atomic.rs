@@ -56,9 +56,9 @@ fn symbolic_cmap_failure_reports_the_table_count() {
         .find(|failure| failure.rule_id == SYMBOLIC_CMAP)
         .expect("symbolic cmap failure");
     assert!(failure.message.contains("2 cmap subtables"));
-    assert_eq!(report.checks.total, 101);
+    assert_eq!(report.checks.total, 108);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 100);
+    assert_eq!(report.checks.passed, 107);
 }
 
 fn validate(bytes: &[u8]) -> mai_validation::ValidationReport {

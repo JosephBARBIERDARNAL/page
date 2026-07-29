@@ -39,11 +39,7 @@ pub(crate) fn inspect(document: &Document) -> ObjectLimitsSummary {
     summary
 }
 
-fn inspect_object(
-    object: &Object,
-    object_id: PdfObjectId,
-    summary: &mut ObjectLimitsSummary,
-) {
+fn inspect_object(object: &Object, object_id: PdfObjectId, summary: &mut ObjectLimitsSummary) {
     match object {
         Object::Integer(value) if !(*value >= MIN_INTEGER && *value <= MAX_INTEGER) => {
             summary.out_of_range_integers.push(object_id);
@@ -85,10 +81,9 @@ fn inspect_dictionary(
         .filter(|(_, value)| !matches!(value, Object::Null))
         .count()
         > MAX_DICTIONARY_ENTRIES
+        && let Some(object_id) = object_id
     {
-        if let Some(object_id) = object_id {
-            summary.oversized_dictionaries.push(object_id);
-        }
+        summary.oversized_dictionaries.push(object_id);
     }
     for (_, value) in dictionary.iter() {
         if let Some(object_id) = object_id {
