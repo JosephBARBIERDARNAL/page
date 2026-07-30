@@ -370,12 +370,8 @@
         }
       },
       "description": "The LZWDecode filter shall not be permitted",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-STREAM-LZW-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-STREAM-LZW-001"],
       "mapping_notes": [
         "For every parsed indirect stream filter: `internalRepresentation != \"LZWDecode\"`; direct, array, and indirect filter declarations are resolved."
       ],
@@ -419,12 +415,8 @@
         }
       },
       "description": "The LZWDecode filter shall not be permitted",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INLINE-IMAGE-LZW-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INLINE-IMAGE-LZW-001"],
       "mapping_notes": [
         "No inline image in bounded executed page/Form content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
       ],
@@ -480,12 +472,8 @@
         }
       },
       "description": "A file specification dictionary, as defined in PDF 3.10.2, shall not contain the EF key",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"],
       "mapping_notes": [
         "For dictionary-based values in the catalog's `EmbeddedFiles` name tree: `containsEF == false`; `Names` arrays and recursive `Kids` are traversed with configured reference-depth bounds."
       ],
@@ -575,12 +563,8 @@
         }
       },
       "description": "A file's name dictionary, as defined in PDF Reference 3.6.3, shall not contain the EmbeddedFiles key",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-NAMES-EMBEDDED-FILES-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-NAMES-EMBEDDED-FILES-001"],
       "mapping_notes": [
         "For the catalog's dictionary-based `/Names`: `EmbeddedFiles` is absent; direct null is empty, while an indirect null remains a present key."
       ],
@@ -628,12 +612,8 @@
         }
       },
       "description": "Largest Integer value is 2,147,483,647. Smallest integer value is -2,147,483,648",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-INTEGER-RANGE-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-INTEGER-RANGE-001"],
       "mapping_notes": [
         "Every parsed integer satisfies `-2147483648 <= intValue <= 2147483647`."
       ],
@@ -673,15 +653,9 @@
         }
       },
       "description": "Maximum value of a CID (character identifier) is 65,535",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-CMAP-MAX-CID-001"
-      ],
-      "mapping_notes": [
-        "Every embedded CMap's maximum CID is at most 65,535."
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-CMAP-MAX-CID-001"],
+      "mapping_notes": ["Every embedded CMap's maximum CID is at most 65,535."],
       "object": "CMapFile",
       "predicate": "maximalCID <= 65535",
       "verapdf_rule_id": "ISO 19005-1:2005:6.1.12:10"
@@ -726,12 +700,8 @@
         }
       },
       "description": "Absolute real value must be less than or equal to 32767.0",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-REAL-RANGE-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-REAL-RANGE-001"],
       "mapping_notes": [
         "Every parsed real satisfies `-32767 <= realValue <= 32767`."
       ],
@@ -775,12 +745,8 @@
         }
       },
       "description": "Maximum length of a string (in bytes) is 65535",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-STRING-LENGTH-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-STRING-LENGTH-001"],
       "mapping_notes": [
         "Every parsed string value has fewer than 65,536 bytes."
       ],
@@ -828,12 +794,8 @@
         }
       },
       "description": "Maximum length of a name (in bytes) is 127",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-NAME-LENGTH-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-NAME-LENGTH-001"],
       "mapping_notes": [
         "Every parsed name value has at most 127 bytes; dictionary keys are outside the pinned `CosName` model."
       ],
@@ -877,15 +839,9 @@
         }
       },
       "description": "Maximum capacity of an array (in elements) is 8191",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-ARRAY-LENGTH-001"
-      ],
-      "mapping_notes": [
-        "Every parsed array has at most 8,191 entries."
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-ARRAY-LENGTH-001"],
+      "mapping_notes": ["Every parsed array has at most 8,191 entries."],
       "object": "CosArray",
       "predicate": "size <= 8191",
       "verapdf_rule_id": "ISO 19005-1:2005:6.1.12:5"
@@ -930,12 +886,8 @@
         }
       },
       "description": "Maximum capacity of a dictionary (in entries) is 4095",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-DICTIONARY-LENGTH-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-DICTIONARY-LENGTH-001"],
       "mapping_notes": [
         "Every parsed dictionary has at most 4,095 non-null entries; direct null entries are absent in the pinned COS model."
       ],
@@ -964,12 +916,8 @@
         }
       },
       "description": "Maximum number of indirect objects in a PDF file is 8,388,607",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-INDIRECT-OBJECT-COUNT-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-INDIRECT-OBJECT-COUNT-001"],
       "mapping_notes": [
         "`nrIndirects <= 8388607`; configured parser safety limits may reject a larger input before conformance evaluation."
       ],
@@ -1009,12 +957,8 @@
         }
       },
       "description": "Maximum depth of graphics state nesting by q and Q operators is 28",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-GRAPHICS-STATE-NESTING-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-GRAPHICS-STATE-NESTING-001"],
       "mapping_notes": [
         "Bounded invoked page/Form content maintains at most 28 saved graphics states; Form invocation starts a separate graphics-state stack."
       ],
@@ -1054,12 +998,8 @@
         }
       },
       "description": "Maximum number of DeviceN components is 8",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-DEVICEN-COMPONENTS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-DEVICEN-COMPONENTS-001"],
       "mapping_notes": [
         "Every DeviceN colour space array reached anywhere in the parsed object graph, or through the bounded content-execution paths, declares at most 8 components."
       ],
@@ -1113,12 +1053,8 @@
         }
       },
       "description": "The document catalog dictionary shall not contain a key with the name OCProperties",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-OPTIONAL-CONTENT-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-OPTIONAL-CONTENT-001"],
       "mapping_notes": [
         "On the document catalog: `OCProperties` is empty or absent; direct null is empty, while any non-empty value, including an indirect null, is present."
       ],
@@ -1152,12 +1088,8 @@
         }
       },
       "description": "The % character of the file header shall occur at byte offset 0 of the file. The first line of a PDF file is a header identifying the version of the PDF specification to which the file conforms",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-HEADER-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-HEADER-001"],
       "mapping_notes": [
         "The `%` marker of the file header occurs at byte offset 0 and is immediately followed by a `PDF-`major`.`minor version declaration."
       ],
@@ -1191,12 +1123,8 @@
         }
       },
       "description": "The file header line shall be immediately followed by a comment consisting of a % character followed by at least four characters, each of whose encoded byte values shall have a decimal value greater than 127",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-HEADER-BINARY-COMMENT-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-HEADER-BINARY-COMMENT-001"],
       "mapping_notes": [
         "The header line is immediately followed by a comment whose first four bytes each have a decimal value above 127."
       ],
@@ -1230,12 +1158,8 @@
         }
       },
       "description": "The file trailer dictionary shall contain the ID keyword. The file trailer referred to is either the last trailer dictionary in a PDF file, as described in PDF Reference 3.4.4 and 3.4.5, or the first page trailer in a linearized PDF file, as described in PDF Reference F.2",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-TRAILER-ID-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-TRAILER-ID-001"],
       "mapping_notes": [
         "The applicable trailer dictionary (the first-page trailer for a linearized file, otherwise the last trailer) contains an `ID` entry."
       ],
@@ -1264,15 +1188,9 @@
         }
       },
       "description": "The keyword Encrypt shall not be used in the trailer dictionary",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-ENCRYPTION-001"
-      ],
-      "mapping_notes": [
-        "`isEncrypted != true`"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-ENCRYPTION-001"],
+      "mapping_notes": ["`isEncrypted != true`"],
       "object": "CosTrailer",
       "predicate": "isEncrypted != true",
       "verapdf_rule_id": "ISO 19005-1:2005:6.1.3:2"
@@ -1303,12 +1221,8 @@
         }
       },
       "description": "No data shall follow the last end-of-file marker except a single optional end-of-line marker",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-POST-EOF-DATA-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-POST-EOF-DATA-001"],
       "mapping_notes": [
         "No bytes follow the last `%%EOF` marker except a single optional end-of-line marker."
       ],
@@ -1342,12 +1256,8 @@
         }
       },
       "description": "In a linearized PDF, if the ID keyword is present in both the first page trailer dictionary and the last trailer dictionary, the value to both instances of the ID keyword shall be identical",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-LINEARIZED-TRAILER-ID-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-LINEARIZED-TRAILER-ID-001"],
       "mapping_notes": [
         "In a linearized file, if `ID` is present in both the first-page and last trailer, the two values are identical."
       ],
@@ -1381,12 +1291,8 @@
         }
       },
       "description": "In a cross reference subsection header the starting object number and the range shall be separated by a single SPACE character (20h)",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-XREF-SUBSECTION-SPACING-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-XREF-SUBSECTION-SPACING-001"],
       "mapping_notes": [
         "Each cross-reference subsection header separates its starting object number and range with a single SPACE character."
       ],
@@ -1420,12 +1326,8 @@
         }
       },
       "description": "The xref keyword and the cross reference subsection header shall be separated by a single EOL marker",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-XREF-EOL-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-XREF-EOL-001"],
       "mapping_notes": [
         "The `xref` keyword and each subsection header are separated by a single end-of-line marker."
       ],
@@ -1465,15 +1367,9 @@
         }
       },
       "description": "Xref streams shall not be used",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-XREF-STREAM-001"
-      ],
-      "mapping_notes": [
-        "The document contains no cross-reference stream."
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-XREF-STREAM-001"],
+      "mapping_notes": ["The document contains no cross-reference stream."],
       "object": "PDDocument",
       "predicate": "containsXRefStream == false",
       "verapdf_rule_id": "ISO 19005-1:2005:6.1.4:3"
@@ -1510,12 +1406,8 @@
         }
       },
       "description": "Hexadecimal strings shall contain an even number of non-white-space characters",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-HEX-STRING-LENGTH-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-HEX-STRING-LENGTH-001"],
       "mapping_notes": [
         "Every hexadecimal string contains an even count of non-whitespace characters."
       ],
@@ -1555,12 +1447,8 @@
         }
       },
       "description": "All non-white-space characters in hexadecimal strings shall be in the range 0 to 9, A to F or a to f",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-HEX-STRING-CHARACTERS-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-HEX-STRING-CHARACTERS-001"],
       "mapping_notes": [
         "Every non-whitespace character in a hexadecimal string is `0`-`9`, `A`-`F`, or `a`-`f`."
       ],
@@ -1600,12 +1488,8 @@
         }
       },
       "description": "The value of the Length key specified in the stream dictionary shall match the number of bytes in the file following the LINE FEED character after the stream keyword and preceding the EOL marker before the endstream keyword",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-STREAM-LENGTH-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-STREAM-LENGTH-001"],
       "mapping_notes": [
         "A stream's declared `/Length` matches its raw byte length between the line feed after the `stream` keyword and the end-of-line marker preceding `endstream`."
       ],
@@ -1645,12 +1529,8 @@
         }
       },
       "description": "The stream keyword shall be followed either by a CARRIAGE RETURN (0Dh) and LINE FEED (0Ah) character sequence or by a single LINE FEED character. The endstream keyword shall be preceded by an EOL marker",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-STREAM-EOL-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-STREAM-EOL-001"],
       "mapping_notes": [
         "The `stream` keyword is followed by CRLF or a single LF, and `endstream` is preceded by an end-of-line marker."
       ],
@@ -1698,12 +1578,8 @@
         }
       },
       "description": "A stream object dictionary shall not contain the F, FFilter, or FDecodeParms keys",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-STREAM-EXTERNAL-DATA-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
       "mapping_notes": [
         "For every parsed indirect stream dictionary: `F == null && FFilter == null && FDecodeParms == null`; direct null entries are empty in the pinned COS model."
       ],
@@ -1737,12 +1613,8 @@
         }
       },
       "description": "The object number and generation number shall be separated by a single white-space character. The generation number and obj keyword shall be separated by a single white-space character. The object number and endobj keyword shall each be preceded by an EOL marker. The obj and endobj keywords shall each be followed by an EOL marker",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-INDIRECT-OBJECT-SYNTAX-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-INDIRECT-OBJECT-SYNTAX-001"],
       "mapping_notes": [
         "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by single whitespace, bounded by end-of-line markers."
       ],
@@ -1794,12 +1666,8 @@
         }
       },
       "description": "A content stream shall not contain any operators not defined in PDF Reference even if such operators are bracketed by the BX/EX compatibility operators",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-CONTENT-OPERATOR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-CONTENT-OPERATOR-001"],
       "mapping_notes": [
         "No undefined operator occurs in bounded executed page or Form content, including compatibility sections delimited by `BX` and `EX`."
       ],
@@ -1935,12 +1803,8 @@
         }
       },
       "description": "A PDF/A-1 OutputIntent is an OutputIntent dictionary, as defined by PDF Reference 9.10.4, that is included in the file's OutputIntents array and has GTS_PDFA1 as the value of its S key and a valid ICC profile stream as the value its DestOutputProfile key",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-OUTPUTINTENT-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-OUTPUTINTENT-001"],
       "mapping_notes": [
         "For safely decoded linked streams: `(deviceClass == \"prtr\" || deviceClass == \"mntr\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\") && version < 3.0`."
       ],
@@ -2076,12 +1940,8 @@
         }
       },
       "description": "If a file's OutputIntents array contains more than one entry, then all entries that contain a DestOutputProfile key shall have as the value of that key the same indirect object, which shall be a valid ICC profile stream",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-OUTPUTINTENT-IDENTITY-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
       "mapping_notes": [
         "`sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity."
       ],
@@ -2297,12 +2157,8 @@
         }
       },
       "description": "All ICCBased colour spaces shall be embedded as ICC profile streams as described in PDF Reference 4.5",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ICCBASED-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ICCBASED-001"],
       "mapping_notes": [
         "For safely decoded profiles reached by the documented bounded content paths: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`."
       ],
@@ -2370,12 +2226,8 @@
         }
       },
       "description": "All ICCBased colour spaces shall be embedded as ICC profile streams as described in PDF Reference 4.5. The number of color components in the color space described by the ICC profile data must match the number of components actually in the ICC profile. As of PDF 1.4, N must be 1, 3, or 4",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ICCBASED-COMPONENTS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ICCBASED-COMPONENTS-001"],
       "mapping_notes": [
         "For safely decoded profiles reached by the documented bounded content paths: `N != null && ((N == 1 && colorSpace == \"GRAY\") || (N == 3 && (colorSpace == \"RGB \" || colorSpace == \"Lab \")) || (N == 4 && colorSpace == \"CMYK\"))`."
       ],
@@ -2475,12 +2327,8 @@
         }
       },
       "description": "DeviceRGB may be used only if the file has a PDF/A-1 OutputIntent that uses an RGB colour space",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-DEVICE-RGB-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-DEVICE-RGB-001"],
       "mapping_notes": [
         "For DeviceRGB uses reached by the documented bounded content paths: `gOutputCS != null && gOutputCS == \"RGB \"`."
       ],
@@ -2524,12 +2372,8 @@
         }
       },
       "description": "DeviceCMYK may be used only if the file has a PDF/A-1 OutputIntent that uses a CMYK colour space",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-DEVICE-CMYK-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-DEVICE-CMYK-001"],
       "mapping_notes": [
         "For DeviceCMYK uses reached by the documented bounded content paths: `gOutputCS != null && gOutputCS == \"CMYK\"`."
       ],
@@ -2573,12 +2417,8 @@
         }
       },
       "description": "If an uncalibrated colour space is used in a file then that file shall contain a PDF/A-1 OutputIntent, as defined in 6.2.2",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-DEVICE-GRAY-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-DEVICE-GRAY-001"],
       "mapping_notes": [
         "For DeviceGray uses reached by the documented bounded content paths: `gOutputCS != null`."
       ],
@@ -2622,12 +2462,8 @@
         }
       },
       "description": "An Image dictionary shall not contain the Alternates key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-IMAGE-ALTERNATES-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-IMAGE-ALTERNATES-001"],
       "mapping_notes": [
         "For invoked Image XObjects: `containsAlternates == false`."
       ],
@@ -2671,15 +2507,9 @@
         }
       },
       "description": "An XObject dictionary (Image or Form) shall not contain the OPI key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XOBJECT-OPI-001"
-      ],
-      "mapping_notes": [
-        "For invoked XObjects: `containsOPI == false`."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XOBJECT-OPI-001"],
+      "mapping_notes": ["For invoked XObjects: `containsOPI == false`."],
       "object": "PDXObject",
       "predicate": "containsOPI == false",
       "verapdf_rule_id": "ISO 19005-1:2005:6.2.4:2"
@@ -2716,15 +2546,9 @@
         }
       },
       "description": "If an Image dictionary contains the Interpolate key, its value shall be false",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-IMAGE-INTERPOLATE-001"
-      ],
-      "mapping_notes": [
-        "For invoked Image XObjects: `Interpolate == false`."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-IMAGE-INTERPOLATE-001"],
+      "mapping_notes": ["For invoked Image XObjects: `Interpolate == false`."],
       "object": "PDXImage",
       "predicate": "Interpolate == false",
       "verapdf_rule_id": "ISO 19005-1:2005:6.2.4:3"
@@ -2773,12 +2597,8 @@
         }
       },
       "description": "If an Image dictionary contains the BitsPerComponent key, its value shall be 1, 2, 4 or 8",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-IMAGE-BPC-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-IMAGE-BPC-001"],
       "mapping_notes": [
         "For invoked Image XObjects: `isMask == true || BitsPerComponent == null || BitsPerComponent == 1 || BitsPerComponent == 2 || BitsPerComponent == 4 || BitsPerComponent == 8`."
       ],
@@ -2826,12 +2646,8 @@
         }
       },
       "description": "If an image mask dictionary contains the BitsPerComponent key, its value shall be 1",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-IMAGE-MASK-BPC-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-IMAGE-MASK-BPC-001"],
       "mapping_notes": [
         "For images reached through another image's `/Mask` reference: `BitsPerComponent == null || BitsPerComponent == 1`."
       ],
@@ -2875,12 +2691,8 @@
         }
       },
       "description": "A form XObject dictionary shall not contain the Subtype2 key with a value of PS or the PS key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FORM-POSTSCRIPT-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FORM-POSTSCRIPT-001"],
       "mapping_notes": [
         "For invoked Form XObjects: `(Subtype2 == null || Subtype2 != \"PS\") && containsPS == false`."
       ],
@@ -2920,15 +2732,9 @@
         }
       },
       "description": "A conforming file shall not contain any reference XObjects",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FORM-REFERENCE-001"
-      ],
-      "mapping_notes": [
-        "For invoked Form XObjects: `containsRef == false`."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FORM-REFERENCE-001"],
+      "mapping_notes": ["For invoked Form XObjects: `containsRef == false`."],
       "object": "PDXForm",
       "predicate": "containsRef == false",
       "verapdf_rule_id": "ISO 19005-1:2005:6.2.6:1"
@@ -2965,15 +2771,9 @@
         }
       },
       "description": "A conforming file shall not contain any PostScript XObjects",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XOBJECT-POSTSCRIPT-001"
-      ],
-      "mapping_notes": [
-        "For invoked XObjects: `Subtype != \"PS\"`."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XOBJECT-POSTSCRIPT-001"],
+      "mapping_notes": ["For invoked XObjects: `Subtype != \"PS\"`."],
       "object": "PDXObject",
       "predicate": "Subtype != \"PS\"",
       "verapdf_rule_id": "ISO 19005-1:2005:6.2.7:1"
@@ -3018,12 +2818,8 @@
         }
       },
       "description": "An ExtGState dictionary shall not contain the TR key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-TR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-TR-001"],
       "mapping_notes": [
         "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR == false`."
       ],
@@ -3063,12 +2859,8 @@
         }
       },
       "description": "An ExtGState dictionary shall not contain the TR2 key with a value other than Default",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-TR2-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-TR2-001"],
       "mapping_notes": [
         "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR2 == false || TR2NameValue == \"Default\"`."
       ],
@@ -3120,12 +2912,8 @@
         }
       },
       "description": "Where a rendering intent is specified, its value shall be one of the four values defined in PDF Reference RelativeColorimetric, AbsoluteColorimetric, Perceptual or Saturation",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-RENDERING-INTENT-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-RENDERING-INTENT-001"],
       "mapping_notes": [
         "For rendering intents reached through executed `ri` and `gs` operators or invoked Image XObjects: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`."
       ],
@@ -3169,12 +2957,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Type - name - (Required) The type of PDF object that this dictionary describes; must be Font for a font dictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-TYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-TYPE-001"],
       "mapping_notes": [
         "For fonts reached by bounded text-show paths: `Type == \"Font\"`."
       ],
@@ -3213,12 +2997,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Subtype - name - (Required) The type of font; must be \"Type1\" for Type 1 fonts, \"MMType1\" for multiple master fonts, \"TrueType\" for TrueType fonts \"Type3\" for Type 3 fonts, \"Type0\" for Type 0 fonts and \"CIDFontType0\" or \"CIDFontType2\" for CID fonts",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-SUBTYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-SUBTYPE-001"],
       "mapping_notes": [
         "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable."
       ],
@@ -3262,12 +3042,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. BaseFont - name - (Required) The PostScript name of the font",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-BASEFONT-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-BASEFONT-001"],
       "mapping_notes": [
         "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`."
       ],
@@ -3307,12 +3083,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. FirstChar - integer - (Required except for the standard 14 fonts) The first character code defined in the font's Widths array",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-FIRSTCHAR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-FIRSTCHAR-001"],
       "mapping_notes": [
         "For modeled simple fonts: `isStandard == true || FirstChar != null`."
       ],
@@ -3352,12 +3124,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. LastChar - integer - (Required except for the standard 14 fonts) The last character code defined in the font's Widths array",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-LASTCHAR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-LASTCHAR-001"],
       "mapping_notes": [
         "For modeled simple fonts: `isStandard == true || LastChar != null`."
       ],
@@ -3409,12 +3177,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Widths - array - (Required except for the standard 14 fonts; indirect reference preferred) An array of (LastChar − FirstChar + 1) widths",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-WIDTHS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-WIDTHS-001"],
       "mapping_notes": [
         "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`."
       ],
@@ -3454,12 +3218,8 @@
         }
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. The subtype is the value of the Subtype key, if present, in the font file stream dictionary. The only valid values of this key in PDF 1.4 are Type1C - Type 1–equivalent font program represented in the Compact Font Format (CFF) and CIDFontType0C - Type 0 CIDFont program represented in the Compact Font Format (CFF)",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-FILE-SUBTYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-FILE-SUBTYPE-001"],
       "mapping_notes": [
         "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`."
       ],
@@ -3507,12 +3267,8 @@
         }
       },
       "description": "For any given composite (Type 0) font referenced within a conforming file, the CIDSystemInfo entries of its CIDFont and CMap dictionaries shall be compatible. In other words, the Registry and Ordering strings of the CIDSystemInfo dictionaries for that font shall be identical, unless the value of the Encoding key in the font dictionary is Identity-H or Identity-V",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TYPE0-CID-SYSTEM-INFO-001"],
       "mapping_notes": [
         "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths."
       ],
@@ -3560,12 +3316,8 @@
         }
       },
       "description": "For all Type 2 CIDFonts that are used for rendering, the CIDFont dictionary shall contain a CIDToGIDMap entry that shall be a stream mapping from CIDs to glyph indices or the name Identity, as described in PDF Reference Table 5.13",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-CIDTOGIDMAP-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-CIDTOGIDMAP-001"],
       "mapping_notes": [
         "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream."
       ],
@@ -3609,12 +3361,8 @@
         }
       },
       "description": "All CMaps used within a conforming file, except Identity-H and Identity-V, shall be embedded in that file as described in PDF Reference 5.6.4",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-CMAP-EMBEDDING-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-CMAP-EMBEDDING-001"],
       "mapping_notes": [
         "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`."
       ],
@@ -3662,12 +3410,8 @@
         }
       },
       "description": "For those CMaps that are embedded, the integer value of the WMode entry in the CMap dictionary shall be identical to the WMode value in the embedded CMap stream",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-CMAP-WMODE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-CMAP-WMODE-001"],
       "mapping_notes": [
         "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero."
       ],
@@ -3763,12 +3507,8 @@
         }
       },
       "description": "The font programs for all fonts used within a conforming file shall be embedded within that file, as defined in PDF Reference 5.8, except when the fonts are used exclusively with text rendering mode 3",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FONT-EMBEDDING-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FONT-EMBEDDING-001"],
       "mapping_notes": [
         "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths and used Type0 descendants."
       ],
@@ -3852,9 +3592,7 @@
         }
       },
       "description": "Embedded font programs shall define all font glyphs referenced for rendering with conforming file",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
+      "implementation_strength": ["partial/proxy"],
       "local_checks": [
         "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
         "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
@@ -3900,12 +3638,8 @@
         }
       },
       "description": "For all Type 1 font subsets referenced within a conforming file, the font descriptor dictionary shall include a CharSet string listing the character names defined in the font subset, as described in PDF Reference Table 5.18",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TYPE1-SUBSET-CHARSET-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TYPE1-SUBSET-CHARSET-001"],
       "mapping_notes": [
         "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph."
       ],
@@ -3953,12 +3687,8 @@
         }
       },
       "description": "For all CIDFont subsets referenced within a conforming file, the font descriptor dictionary shall include a CIDSet stream identifying which CIDs are present in the embedded CIDFont file, as described in PDF Reference Table 5.20",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-CID-SUBSET-CIDSET-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-CID-SUBSET-CIDSET-001"],
       "mapping_notes": [
         "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present."
       ],
@@ -4022,12 +3752,8 @@
         }
       },
       "description": "For every font embedded in a conforming file and used for rendering, the glyph width information in the font dictionary and in the embedded font program shall be consistent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
       "mapping_notes": [
         "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance."
       ],
@@ -4087,12 +3813,8 @@
         }
       },
       "description": "All non-symbolic TrueType fonts shall specify MacRomanEncoding or WinAnsiEncoding, either as the value of the Encoding entry in the font dictionary or as the value of the BaseEncoding entry in the dictionary that is the value of the Encoding entry in the font dictionary. If the value of the Encoding entry is a dictionary, it shall not contain a Differences entry",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"],
       "mapping_notes": [
         "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`."
       ],
@@ -4132,12 +3854,8 @@
         }
       },
       "description": "All symbolic TrueType fonts shall not specify an Encoding entry in the font dictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"],
       "mapping_notes": [
         "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`."
       ],
@@ -4181,12 +3899,8 @@
         }
       },
       "description": "Font programs' \"cmap\" tables for all symbolic TrueType fonts shall contain exactly one encoding",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"],
       "mapping_notes": [
         "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header."
       ],
@@ -4234,12 +3948,8 @@
         }
       },
       "description": "If an SMask key appears in an ExtGState dictionary, its value shall be None",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-SMASK-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-SMASK-001"],
       "mapping_notes": [
         "For indirect ExtGState dictionaries selected by executed `gs`: `containsSMask == false || SMaskNameValue == \"None\"`."
       ],
@@ -4283,12 +3993,8 @@
         }
       },
       "description": "An XObject dictionary shall not contain the SMask key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XOBJECT-SMASK-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XOBJECT-SMASK-001"],
       "mapping_notes": [
         "For XObjects in the bounded invoked graph: `containsSMask == false`."
       ],
@@ -4336,12 +4042,8 @@
         }
       },
       "description": "A Group object with an S key with a value of Transparency shall not be included in a form XObject. A Group object with an S key with a value of Transparency shall not be included in a page dictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-TRANSPARENCY-GROUP-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-TRANSPARENCY-GROUP-001"],
       "mapping_notes": [
         "For page Groups and bounded invoked-Form Groups: `S != \"Transparency\"`."
       ],
@@ -4386,12 +4088,8 @@
         }
       },
       "description": "If a BM key is present in an ExtGState object, its value shall be Normal or Compatible",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-BLEND-MODE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-BLEND-MODE-001"],
       "mapping_notes": [
         "For indirect ExtGState dictionaries selected by executed `gs`: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`."
       ],
@@ -4431,12 +4129,8 @@
         }
       },
       "description": "If a CA key is present in an ExtGState object, its value shall be 1.0",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-STROKE-ALPHA-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-STROKE-ALPHA-001"],
       "mapping_notes": [
         "For modeled numeric values in used indirect ExtGState dictionaries: `CA == null || abs(CA - 1.0) < 0.000001`."
       ],
@@ -4476,12 +4170,8 @@
         }
       },
       "description": "If a ca key is present in an ExtGState object, its value shall be 1.0",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-EXTGSTATE-FILL-ALPHA-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-EXTGSTATE-FILL-ALPHA-001"],
       "mapping_notes": [
         "For modeled numeric values in used indirect ExtGState dictionaries: `ca == null || abs(ca - 1.0) < 0.000001`."
       ],
@@ -4529,12 +4219,8 @@
         }
       },
       "description": "Annotation types not defined in PDF Reference shall not be permitted. Additionally, the FileAttachment, Sound and Movie types shall not be permitted",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-SUBTYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-SUBTYPE-001"],
       "mapping_notes": [
         "For page `/Annots` entries resolving to dictionaries: `Subtype` is `Text`, `Link`, `FreeText`, `Line`, `Square`, `Circle`, `Highlight`, `Underline`, `Squiggly`, `StrikeOut`, `Stamp`, `Ink`, `Popup`, `Widget`, `PrinterMark`, or `TrapNet`."
       ],
@@ -4574,12 +4260,8 @@
         }
       },
       "description": "An annotation dictionary shall not contain the CA key with a value other than 1.0",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-OPACITY-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-OPACITY-001"],
       "mapping_notes": [
         "For modeled numeric annotation values: `CA == null || CA == 1.0`."
       ],
@@ -4623,12 +4305,8 @@
         }
       },
       "description": "An annotation dictionary shall contain the F key. The F key’s Print flag bit shall be set to 1 and its Hidden, Invisible and NoView flag bits shall be set to 0",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-FLAGS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-FLAGS-001"],
       "mapping_notes": [
         "`F != null && (F & 4) == 4 && (F & 1) == 0 && (F & 2) == 0 && (F & 32) == 0`."
       ],
@@ -4676,12 +4354,8 @@
         }
       },
       "description": "An annotation dictionary shall not contain the C array or the IC array unless the colour space of the DestOutputProfile in the PDF/A-1 OutputIntent dictionary, defined in 6.2.2, is RGB",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-COLOR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-COLOR-001"],
       "mapping_notes": [
         "`(containsC == false && containsIC == false) || gOutputCS == \"RGB \"`, using the pinned PDF/A-1 output-colour fold."
       ],
@@ -4733,12 +4407,8 @@
         }
       },
       "description": "For all annotation dictionaries containing an AP key, the appearance dictionary that it defines as its value shall contain only the N key",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-AP-ENTRIES-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-AP-ENTRIES-001"],
       "mapping_notes": [
         "A resolved annotation appearance dictionary is absent or contains exactly the `N` key."
       ],
@@ -4786,12 +4456,8 @@
         }
       },
       "description": "If an annotation dictionary's Subtype key has a value of Widget and its FT key has a value of Btn, the value of the N key shall be an appearance subdictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-WIDGET-BUTTON-APPEARANCE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-WIDGET-BUTTON-APPEARANCE-001"],
       "mapping_notes": [
         "When `AP == \"N\"`, `Subtype == \"Widget\"`, and direct or inherited `FT == \"Btn\"`, `N` is a nonempty appearance subdictionary."
       ],
@@ -4835,12 +4501,8 @@
         }
       },
       "description": "If an annotation dictionary's Subtype key has value other than Widget, or if FT key associated with Widget annotation has value other than Btn, the value of the N key shall be an appearance stream",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"],
       "mapping_notes": [
         "When `AP == \"N\"` and the annotation is not a button Widget, `N` resolves to an appearance stream."
       ],
@@ -4960,12 +4622,8 @@
         }
       },
       "description": "The Launch, Sound, Movie, ResetForm, ImportData and JavaScript actions shall not be permitted. Additionally, the deprecated set-state and no-op actions shall not be permitted. The Hide action shall not be permitted (Corrigendum 2)",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ACTION-TYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ACTION-TYPE-001"],
       "mapping_notes": [
         "For actions reached through the bounded pinned-model graph: `S == \"GoTo\" || S == \"GoToR\" || S == \"Thread\" || S == \"URI\" || S == \"Named\" || S == \"SubmitForm\"`."
       ],
@@ -5017,12 +4675,8 @@
         }
       },
       "description": "Named actions other than NextPage, PrevPage, FirstPage, and LastPage shall not be permitted",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-NAMED-ACTION-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-NAMED-ACTION-001"],
       "mapping_notes": [
         "For reached actions with `S == \"Named\"`: `N == \"NextPage\" || N == \"PrevPage\" || N == \"FirstPage\" || N == \"LastPage\"`."
       ],
@@ -5066,12 +4720,8 @@
         }
       },
       "description": "Interactive form fields shall not perform actions of any type",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-WIDGET-ACTION-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-WIDGET-ACTION-001"],
       "mapping_notes": [
         "For Widget annotations reached from page `/Annots`: `containsA == false`; key presence is tested regardless of value type."
       ],
@@ -5119,12 +4769,8 @@
         }
       },
       "description": "A Widget annotation dictionary shall not include an AA entry for an additional-actions dictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"],
       "mapping_notes": [
         "For Widget annotations reached from page `/Annots`: `containsAA == false`; key presence is tested regardless of value type."
       ],
@@ -5184,12 +4830,8 @@
         }
       },
       "description": "A Field dictionary shall not include an AA entry for an additional-actions dictionary",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"],
       "mapping_notes": [
         "For dictionaries directly in AcroForm `/Fields` and named field descendants reached through `/Kids`: `containsAA == false`."
       ],
@@ -5241,12 +4883,8 @@
         }
       },
       "description": "The document catalog dictionary shall not include an AA entry for an additional-actions dictionary",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"],
       "mapping_notes": [
         "`containsAA == false` on the document catalog; key presence is tested regardless of value type."
       ],
@@ -5298,12 +4936,8 @@
         }
       },
       "description": "The PDF/A version and conformance level of a file shall be specified using the PDF/A Identification extension schema",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-SCHEMA-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-SCHEMA-001"],
       "mapping_notes": [
         "Common packages agree; veraPDF recovery differs for invalid duplicate packages."
       ],
@@ -5343,15 +4977,9 @@
         }
       },
       "description": "The value of \"pdfaid:part\" shall be the part number of ISO 19005 to which the file conforms",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-PART-001"
-      ],
-      "mapping_notes": [
-        "`part == 1`; common single-property packages agree."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-PART-001"],
+      "mapping_notes": ["`part == 1`; common single-property packages agree."],
       "object": "PDFAIdentification",
       "predicate": "part == 1",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.11:2"
@@ -5392,12 +5020,8 @@
         }
       },
       "description": "A Level A conforming file shall specify the value of \"pdfaid:conformance\" as A. A Level B conforming file shall specify the value of \"pdfaid:conformance\" as B",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-CONFORMANCE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-CONFORMANCE-001"],
       "mapping_notes": [
         "`conformance == \"B\" || conformance == \"A\"`; common single-property packages agree."
       ],
@@ -5441,12 +5065,8 @@
         }
       },
       "description": "Property \"part\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-PART-PREFIX-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-PART-PREFIX-001"],
       "mapping_notes": [
         "For the selected common identification property: `partPrefix == null || partPrefix == \"pdfaid\"`; lexical prefixes are recovered from the XML source QName."
       ],
@@ -5490,12 +5110,8 @@
         }
       },
       "description": "Property \"conformance\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-CONFORMANCE-PREFIX-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
       "mapping_notes": [
         "`conformancePrefix == null || conformancePrefix == \"pdfaid\"` for the selected common property."
       ],
@@ -5543,12 +5159,8 @@
         }
       },
       "description": "Property \"amd\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-ID-AMD-PREFIX-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-ID-AMD-PREFIX-001"],
       "mapping_notes": [
         "`amdPrefix == null || amdPrefix == \"pdfaid\"` for the selected common property; an absent `amd` is inapplicable and passes."
       ],
@@ -5600,15 +5212,9 @@
         }
       },
       "description": "The document catalog dictionary of a conforming file shall contain the Metadata key. The metadata stream dictionary shall contain entry Type with value /Metadata and entry Subtype with value /XML",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-METADATA-STRUCTURE-001"
-      ],
-      "mapping_notes": [
-        "`containsMetadata == true`"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-METADATA-STRUCTURE-001"],
+      "mapping_notes": ["`containsMetadata == true`"],
       "object": "PDDocument",
       "predicate": "containsMetadata == true",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.2:1"
@@ -5649,15 +5255,9 @@
         }
       },
       "description": "The Metadata object stream dictionary in the document’s catalog shall not contain the Filter key",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-METADATA-FILTER-001"
-      ],
-      "mapping_notes": [
-        "`isCatalogMetadata == false || Filter == null`"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-METADATA-FILTER-001"],
+      "mapping_notes": ["`isCatalogMetadata == false || Filter == null`"],
       "object": "PDMetadata",
       "predicate": "isCatalogMetadata == false || Filter == null",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.2:2"
@@ -5694,12 +5294,8 @@
         }
       },
       "description": "The value of CreationDate entry from the document information dictionary, if present, and its analogous XMP property \"xmp:CreateDate\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-CREATIONDATE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-CREATIONDATE-001"],
       "mapping_notes": [
         "Common full dates are compared as instants; reduced-precision XMP forms are not implemented."
       ],
@@ -5759,15 +5355,9 @@
         }
       },
       "description": "The value of Title entry from the document information dictionary, if present, and its analogous XMP property \"dc:title['x-default']\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-TITLE-001"
-      ],
-      "mapping_notes": [
-        "ASCII `dc:title` `rdf:Alt` `x-default` cases agree."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-TITLE-001"],
+      "mapping_notes": ["ASCII `dc:title` `rdf:Alt` `x-default` cases agree."],
       "object": "CosInfo",
       "predicate": "Title == null || Title == XMPTitle",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:2"
@@ -5824,12 +5414,8 @@
         }
       },
       "description": "The value of Author entry from the document information dictionary, if present, and its analogous XMP property \"dc:creator\" shall be equivalent. dc:creator shall contain exactly one entry",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-AUTHOR-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-AUTHOR-001"],
       "mapping_notes": [
         "ASCII `dc:creator` `rdf:Seq` equality and one-item multiplicity agree."
       ],
@@ -5885,12 +5471,8 @@
         }
       },
       "description": "The value of Subject entry from the document information dictionary, if present, and its analogous XMP property \"dc:description['x-default']\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-SUBJECT-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-SUBJECT-001"],
       "mapping_notes": [
         "ASCII `dc:description` `rdf:Alt` `x-default` cases agree."
       ],
@@ -5950,15 +5532,9 @@
         }
       },
       "description": "The value of Keywords entry from the document information dictionary, if present, and its analogous XMP property \"pdf:Keywords\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-KEYWORDS-001"
-      ],
-      "mapping_notes": [
-        "ASCII `pdf:Keywords` cases agree."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-KEYWORDS-001"],
+      "mapping_notes": ["ASCII `pdf:Keywords` cases agree."],
       "object": "CosInfo",
       "predicate": "Keywords == null || Keywords == XMPKeywords",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:5"
@@ -6011,15 +5587,9 @@
         }
       },
       "description": "The value of Creator entry from the document information dictionary, if present, and its analogous XMP property \"xmp:CreatorTool\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-CREATOR-001"
-      ],
-      "mapping_notes": [
-        "ASCII `xmp:CreatorTool` cases agree."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-CREATOR-001"],
+      "mapping_notes": ["ASCII `xmp:CreatorTool` cases agree."],
       "object": "CosInfo",
       "predicate": "Creator == null || Creator == XMPCreatorTool",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:6"
@@ -6072,15 +5642,9 @@
         }
       },
       "description": "The value of Producer entry from the document information dictionary, if present, and its analogous XMP property \"pdf:Producer\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-PRODUCER-001"
-      ],
-      "mapping_notes": [
-        "ASCII `pdf:Producer` cases agree."
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-PRODUCER-001"],
+      "mapping_notes": ["ASCII `pdf:Producer` cases agree."],
       "object": "CosInfo",
       "predicate": "Producer == null || Producer == XMPProducer",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:7"
@@ -6117,12 +5681,8 @@
         }
       },
       "description": "The value of ModDate entry from the document information dictionary, if present, and its analogous XMP property \"xmp:ModifyDate\" shall be equivalent",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-INFO-MODDATE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-INFO-MODDATE-001"],
       "mapping_notes": [
         "Common full dates are compared as instants; reduced-precision XMP forms are not implemented."
       ],
@@ -6198,12 +5758,8 @@
         }
       },
       "description": "The bytes attribute shall not be used in the header of an XMP packet",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-PACKET-BYTES-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-XMP-PACKET-BYTES-001"],
       "mapping_notes": [
         "On the last `xpacket` processing instruction encountered before the main RDF node: `bytes == null`, using veraPDF's case-sensitive, unanchored quoted-assignment matcher."
       ],
@@ -6247,12 +5803,8 @@
         }
       },
       "description": "The encoding attribute shall not be used in the header of an XMP packet",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-PACKET-ENCODING-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-XMP-PACKET-ENCODING-001"],
       "mapping_notes": [
         "On the same selected packet header: `encoding == null`, using the corresponding case-sensitive, unanchored quoted-assignment matcher."
       ],
@@ -6292,12 +5844,8 @@
         }
       },
       "description": "Extension schema descriptions shall be specified using the PDF/A extension schema description schema defined in this clause",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-FIELDS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-FIELDS-001"],
       "mapping_notes": [
         "For bounded common extension objects: `containsUndefinedFields == false`, using the pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields."
       ],
@@ -6341,12 +5889,8 @@
         }
       },
       "description": "Field 'category' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text, value external or internal and namespace prefix 'pdfaProperty'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
       "mapping_notes": [
         "`isCategoryValidText == true && (category == \"external\" || category == \"internal\") && categoryPrefix == \"pdfaProperty\"`."
       ],
@@ -6386,12 +5930,8 @@
         }
       },
       "description": "Field 'description' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaProperty\"`."
       ],
@@ -6431,12 +5971,8 @@
         }
       },
       "description": "Field 'type' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001"],
       "mapping_notes": [
         "`isTypeValidText == true && typePrefix == \"pdfaType\"`."
       ],
@@ -6476,12 +6012,8 @@
         }
       },
       "description": "Field 'namespaceURI' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type URI and namespace prefix 'pdfaType'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001"],
       "mapping_notes": [
         "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaType\"`."
       ],
@@ -6521,12 +6053,8 @@
         }
       },
       "description": "Field 'prefix' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001"],
       "mapping_notes": [
         "`isPrefixValidText == true && prefixPrefix == \"pdfaType\"`."
       ],
@@ -6566,12 +6094,8 @@
         }
       },
       "description": "Field 'description' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaType\"`."
       ],
@@ -6611,12 +6135,8 @@
         }
       },
       "description": "Field 'field' of the PDF/A ValueType value type in the PDF/A extension schema shall have type Seq Field and namespace prefix 'pdfaType'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"],
       "mapping_notes": [
         "`isFieldValidSeq == true && (fieldPrefix == null || fieldPrefix == \"pdfaType\")`; absence is allowed."
       ],
@@ -6656,12 +6176,8 @@
         }
       },
       "description": "Field 'name' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-FIELD-NAME-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-NAME-001"],
       "mapping_notes": [
         "`isNameValidText == true && namePrefix == \"pdfaField\"`."
       ],
@@ -6705,12 +6221,8 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'. Value of valueType property shall be defined",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
       "mapping_notes": [
         "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaField\"`."
       ],
@@ -6750,12 +6262,8 @@
         }
       },
       "description": "Field 'description' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaField\"`."
       ],
@@ -6799,12 +6307,8 @@
         }
       },
       "description": "The extension schema container schema uses the namespace URI \"http://www.aiim.org/pdfa/ns/extension/\". The required schema namespace prefix is pdfaExtension. pdfaExtension:schemas - Bag Schema - Description of extension schemas",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-CONTAINER-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
       "mapping_notes": [
         "For modeled `pdfaExtension:schemas`: `isValidBag == true && prefix == \"pdfaExtension\"`."
       ],
@@ -6844,12 +6348,8 @@
         }
       },
       "description": "Field 'schema' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaSchema'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001"],
       "mapping_notes": [
         "For modeled schema definitions: `isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"`."
       ],
@@ -6889,12 +6389,8 @@
         }
       },
       "description": "Field 'namespaceURI' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type URI and namespace prefix 'pdfaSchema'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001"],
       "mapping_notes": [
         "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaSchema\"`; the pinned URI validator requires a simple XMP node."
       ],
@@ -6934,12 +6430,8 @@
         }
       },
       "description": "Field 'prefix' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaSchema'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001"],
       "mapping_notes": [
         "`isPrefixValidText == true && prefixPrefix == \"pdfaSchema\"`."
       ],
@@ -6979,12 +6471,8 @@
         }
       },
       "description": "Field 'property' of the PDF/A Schema value type in the PDF/A extension schema shall have type Seq Property and namespace prefix 'pdfaSchema'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001"],
       "mapping_notes": [
         "`isPropertyValidSeq == true && (propertyPrefix == null || propertyPrefix == \"pdfaSchema\")`; absence is allowed."
       ],
@@ -7024,12 +6512,8 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Schema value type in the PDF/A extension schema shall have type Seq ValueType and namespace prefix 'pdfaSchema'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001"],
       "mapping_notes": [
         "`isValueTypeValidSeq == true && (valueTypePrefix == null || valueTypePrefix == \"pdfaSchema\")`; absence is allowed."
       ],
@@ -7069,12 +6553,8 @@
         }
       },
       "description": "Field 'name' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001"],
       "mapping_notes": [
         "`isNameValidText == true && namePrefix == \"pdfaProperty\"`."
       ],
@@ -7118,12 +6598,8 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'. Value of valueType property shall be defined",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
       "mapping_notes": [
         "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaProperty\"`."
       ],
@@ -7175,12 +6651,8 @@
         }
       },
       "description": "The metadata stream shall conform to XMP Specification and well formed PDFAExtension Schema for all extensions",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-XMP-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-XMP-001"],
       "mapping_notes": [
         "XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model."
       ],
@@ -7224,9 +6696,7 @@
         }
       },
       "description": "Properties specified in XMP form shall use either the predefined schemas defined in XMP Specification, or extension schemas that comply with XMP Specification",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
+      "implementation_strength": ["partial/proxy"],
       "local_checks": [
         "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
         "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001"
@@ -7287,9 +6757,7 @@
         }
       },
       "description": "Properties specified in XMP form shall use either the predefined schemas defined in XMP Specification, or extension schemas that comply with XMP Specification",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
+      "implementation_strength": ["partial/proxy"],
       "local_checks": [
         "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
         "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
@@ -7366,12 +6834,8 @@
         }
       },
       "description": "The NeedAppearances flag of the interactive form dictionary shall either not be present or shall be false",
-      "implementation_strength": [
-        "exact"
-      ],
-      "local_checks": [
-        "PDFA1B-ACROFORM-NEED-APPEARANCES-001"
-      ],
+      "implementation_strength": ["exact"],
+      "local_checks": ["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
       "mapping_notes": [
         "For a modeled catalog AcroForm: `NeedAppearances == null || NeedAppearances == false`; a present non-boolean value follows veraPDF's conservative true fallback and fails."
       ],
@@ -7447,12 +6911,8 @@
         }
       },
       "description": "Every form field shall have an appearance dictionary associated with the field's data",
-      "implementation_strength": [
-        "partial/proxy"
-      ],
-      "local_checks": [
-        "PDFA1B-WIDGET-APPEARANCE-001"
-      ],
+      "implementation_strength": ["partial/proxy"],
+      "local_checks": ["PDFA1B-WIDGET-APPEARANCE-001"],
       "mapping_notes": [
         "For Widget annotations reached from page `/Annots`: `AP != null`; veraPDF exposes AP only when it resolves to a dictionary, so streams and scalar values fail while an empty dictionary passes."
       ],
@@ -7471,10 +6931,7 @@
   },
   "schema_version": 1,
   "variant_matrix": {
-    "cyclic": [
-      "font:cyclic_form",
-      "icc_based:cyclic_form"
-    ],
+    "cyclic": ["font:cyclic_form", "icc_based:cyclic_form"],
     "direct_indirect": [
       "annotation:direct_invalid_annotation",
       "document_feature:file_spec_indirect_with_ef",
