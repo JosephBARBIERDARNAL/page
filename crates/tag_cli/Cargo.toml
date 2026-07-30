@@ -1,5 +1,5 @@
 [package]
-name = "tag-cli"
+name = "tag_cli"
 version.workspace = true
 edition.workspace = true
 
@@ -15,4 +15,4 @@ path = "src/bin/verapdf-diff.rs"
 clap = { version = "4.6", features = ["derive"] }
 serde = "1"
 serde_json = "1"
-tag-validation = { path = "../tag-validation" }
+tag_validation = { path = "../tag_validation" }

@@ -922,17 +922,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "tag-cli"
+name = "tag_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
  "serde",
  "serde_json",
- "tag-validation",
+ "tag_validation",
 ]
 
 [[package]]
-name = "tag-validation"
+name = "tag_validation"
 version = "0.1.0"
 dependencies = [
  "lopdf",

@@ -43,35 +43,35 @@ doc:
 
 # Verify that committed PDF fixtures remain byte-exact.
 test-fixtures:
-    cargo test -p tag-validation --test fixture_integrity
+    cargo test -p tag_validation --test fixture_integrity
 
 # Regenerate the deterministic Typst 0.15.0 PDF/A-1b acceptance fixture.
 generate-typst-pdfa-fixture:
-    typst compile crates/tag-validation/tests/fixtures/typst-pdfa-1b.typ crates/tag-validation/tests/fixtures/typst-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
+    typst compile crates/tag_validation/tests/fixtures/typst-pdfa-1b.typ crates/tag_validation/tests/fixtures/typst-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
 
 # Run only the metadata atomic tests.
 test-metadata:
-    cargo test -p tag-validation --test metadata_atomic
+    cargo test -p tag_validation --test metadata_atomic
 
 # Run only the output-intent atomic tests.
 test-output-intents:
-    cargo test -p tag-validation --test output_intent_atomic
+    cargo test -p tag_validation --test output_intent_atomic
 
 # Run only the CLI contract tests.
 test-cli:
-    cargo test -p tag-cli --test cli
+    cargo test -p tag_cli --test cli
 
 # Compare all pinned cases with veraPDF from PATH.
 test-verapdf VERAPDF_BIN=verapdf_bin:
-    cargo test -p tag-validation --test verapdf_diff -- --nocapture
+    cargo test -p tag_validation --test verapdf_diff -- --nocapture
 
 # Validate one PDF; format may be text or json.
 validate file format="text":
-    cargo run --quiet -p tag-cli --bin tag -- "{{ file }}" --profile a-1b {{ if format == "json" { "--json" } else { "" } }}
+    cargo run --quiet -p tag_cli --bin tag -- "{{ file }}" --profile a-1b {{ if format == "json" { "--json" } else { "" } }}
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:
-    cargo run --quiet -p tag-cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
+    cargo run --quiet -p tag_cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
 
 # Remove Cargo build artifacts.
 clean:

@@ -1,5 +1,5 @@
 [package]
-name = "tag-validation"
+name = "tag_validation"
 version.workspace = true
 edition.workspace = true
 

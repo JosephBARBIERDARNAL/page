@@ -18,7 +18,7 @@ fn tag_help_exposes_the_flat_validation_interface() {
 #[test]
 fn validation_json_uses_the_stable_public_schema() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../tag-validation/tests/fixtures/structural.pdf");
+        .join("../tag_validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_tag"))
         .arg(&fixture)
         .args(["--profile", "a-1b", "--json"])
@@ -43,7 +43,7 @@ fn validation_json_uses_the_stable_public_schema() {
 
 #[test]
 fn validation_json_reports_parser_and_operational_errors_separately() {
-    let validation = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tag-validation");
+    let validation = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tag_validation");
     let malformed = validation.join("tests/fixtures/malformed.pdf");
     let parser = Command::new(env!("CARGO_BIN_EXE_tag"))
         .arg(malformed)

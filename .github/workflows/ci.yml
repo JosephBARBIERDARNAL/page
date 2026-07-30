@@ -65,4 +65,4 @@ jobs:
       - name: Compare with veraPDF
         env:
           VERAPDF_BIN: /tmp/verapdf/verapdf
-        run: cargo test -p tag-validation --test verapdf_diff -- --nocapture
+        run: cargo test -p tag_validation --test verapdf_diff -- --nocapture

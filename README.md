@@ -11,7 +11,7 @@ This project is very early stage, and current focus is on the PDF/A-1b validatio
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/josephbarbierdarnal/tag.git tag-cli --bin tag
+cargo install --git https://github.com/josephbarbierdarnal/tag.git tag_cli --bin tag
 ```
 
 `tag` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
