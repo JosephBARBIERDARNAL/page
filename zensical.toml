@@ -9,6 +9,7 @@ nav = [
   { "Home" = "index.md" },
   { "API Reference" = [
     "reference/cli.md",
+    "reference/pdfa1b-completion.md",
     "reference/rust-crate.md",
     "reference/python-package.md",
   ] },

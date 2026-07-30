@@ -78,6 +78,10 @@ const CASES: &[(&str, &[&str])] = &[
         &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
     ),
     (
+        "predefined_unknown_property",
+        &["PDFA1B-XMP-PREDEFINED-PROPERTY-001"],
+    ),
+    (
         "extension_undefined_field",
         &["PDFA1B-XMP-EXTENSION-FIELDS-001"],
     ),

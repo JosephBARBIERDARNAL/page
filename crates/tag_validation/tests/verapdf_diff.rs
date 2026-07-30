@@ -60,6 +60,12 @@ struct ManifestCase {
     path: PathBuf,
     expected_classification: ComparisonClassification,
     rationale: String,
+    #[serde(default)]
+    reference_baseline: Option<PathBuf>,
+    #[serde(default)]
+    expected_verapdf_added_rule_ids: Vec<String>,
+    #[serde(default)]
+    expected_verapdf_passed_rule_ids: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -111,6 +117,47 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
             case.path.display(),
             case.rationale
         );
+        if let Some(baseline_path) = case.reference_baseline {
+            let baseline = runner.compare_file(&baseline_path, &SafetyLimits::default());
+            let baseline_ids = baseline
+                .reference_result
+                .expect("baseline reference result")
+                .failed_rule_ids
+                .iter()
+                .map(ToString::to_string)
+                .collect::<BTreeSet<_>>();
+            let actual_ids = report
+                .reference_result
+                .as_ref()
+                .expect("case reference result")
+                .failed_rule_ids
+                .iter()
+                .map(ToString::to_string)
+                .collect::<BTreeSet<_>>();
+            assert_rule_id_delta(
+                "veraPDF",
+                &case.path.display().to_string(),
+                &case.rationale,
+                &baseline_ids,
+                &actual_ids,
+                &case.expected_verapdf_added_rule_ids,
+                &[],
+            );
+        }
+        if let Some(reference) = report.reference_result.as_ref() {
+            let actual_ids = reference
+                .failed_rule_ids
+                .iter()
+                .map(ToString::to_string)
+                .collect::<BTreeSet<_>>();
+            for expected in &case.expected_verapdf_passed_rule_ids {
+                assert!(
+                    !actual_ids.contains(expected),
+                    "{}: expected veraPDF rule {expected} to pass; failures: {actual_ids:?}",
+                    case.path.display()
+                );
+            }
+        }
     }
 
     let temporary = std::env::temp_dir().join(format!(
@@ -323,9 +370,9 @@ fn assert_atomic_cases(
     }
 }
 
-/// Asserts that `actual_ids` differs from `baseline_ids` by exactly
-/// `expected_added` (no baseline failure disappears), and that none of
-/// `expected_passed` appear in `actual_ids`.
+/// Asserts that `actual_ids` adds exactly `expected_added`, removes only
+/// failures explicitly named by `expected_passed`, and contains none of the
+/// expected passing IDs.
 #[allow(clippy::too_many_arguments)]
 fn assert_rule_id_delta(
     label: &str,
@@ -342,13 +389,19 @@ fn assert_rule_id_delta(
         added, expected,
         "{case_name}: {rationale}: unexpected {label} rule delta; full set {actual_ids:?}"
     );
+    let expected_passed = expected_passed.iter().cloned().collect::<BTreeSet<_>>();
+    let unexpected_removed = removed
+        .difference(&expected_passed)
+        .cloned()
+        .collect::<BTreeSet<_>>();
     assert!(
-        removed.is_empty(),
-        "{case_name}: {rationale}: unexpectedly removed baseline {label} failures {removed:?}"
+        unexpected_removed.is_empty(),
+        "{case_name}: {rationale}: unexpectedly removed baseline {label} failures \
+         {unexpected_removed:?}"
     );
     for expected in expected_passed {
         assert!(
-            !actual_ids.contains(expected),
+            !actual_ids.contains(&expected),
             "{case_name}: {rationale}: unexpected {label} failure {expected}; actual {actual_ids:?}"
         );
     }

@@ -4,8 +4,8 @@ use clap::{Parser, ValueEnum};
 use tag_cli::output::{ReportFormat, emit_json};
 use tag_validation::SafetyLimits;
 use tag_validation::differential::{
-    DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner, PINNED_VERAPDF_VERSION,
-    ReferenceConfig, ReferenceProfile, aggregate_exit_code,
+    CoverageGapPolicy, DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner,
+    PINNED_VERAPDF_VERSION, ReferenceConfig, ReferenceProfile, aggregate_exit_code,
 };
 
 #[derive(Debug, Parser)]
@@ -43,6 +43,10 @@ struct Cli {
     /// One or more explicit PDF paths.
     #[arg(required = true, num_args = 1..)]
     files: Vec<PathBuf>,
+
+    /// Reject coverage_gap, as required after PDF/A-1B completion is declared.
+    #[arg(long)]
+    require_complete: bool,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -66,6 +70,9 @@ fn main() {
     config.profile = cli.profile.into();
     config.timeout_millis = cli.timeout_millis;
     config.max_report_bytes = cli.max_reference_report_bytes;
+    if cli.require_complete {
+        config.coverage_gap_policy = CoverageGapPolicy::RejectForCompleteProfile;
+    }
 
     let runner = match DifferentialRunner::new(config) {
         Ok(runner) => runner,

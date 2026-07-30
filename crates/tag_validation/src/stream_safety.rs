@@ -42,7 +42,6 @@ pub(crate) fn inspect(
         if stream.dict.get_type().ok() == Some(b"XRef".as_slice()) {
             summary.xref_streams.push((*object_id).into());
         }
-        let has_parser_position = stream.start_position.is_some();
         let raw_start = stream
             .start_position
             .or_else(|| locate_raw_stream_data_start(bytes, &stream.content, &used_stream_starts));
@@ -62,7 +61,7 @@ pub(crate) fn inspect(
             Some(start) => raw_stream_data_range(document, stream, start, limits)?,
             None => None,
         };
-        if let Some(range) = raw_range.filter(|_| has_parser_position) {
+        if let Some(range) = raw_range {
             stream_data_ranges.push(range);
         } else {
             all_stream_ranges_known = false;
@@ -99,12 +98,140 @@ pub(crate) fn inspect(
             summary.lzw_filters.push((*object_id).into());
         }
     }
+    for object in document.objects.values() {
+        if matches!(object, Object::Stream(_)) {
+            continue;
+        }
+        if !collect_nested_stream_data_ranges(
+            document,
+            object,
+            limits,
+            bytes,
+            &mut used_stream_starts,
+            &mut stream_data_ranges,
+        )? {
+            all_stream_ranges_known = false;
+        }
+    }
+    if has_unaccounted_stream(bytes, &stream_data_ranges, &used_stream_starts) {
+        all_stream_ranges_known = false;
+    }
     if all_stream_ranges_known {
         inspect_hex_strings(bytes, &stream_data_ranges, &mut summary);
         inspect_xref_syntax(bytes, &stream_data_ranges, &mut summary);
         inspect_indirect_object_syntax(bytes, &stream_data_ranges, &mut summary);
     }
     Ok(summary)
+}
+
+fn has_unaccounted_stream(
+    bytes: &[u8],
+    stream_data_ranges: &[std::ops::Range<usize>],
+    used_stream_starts: &[usize],
+) -> bool {
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if let Some(range) = stream_data_ranges
+            .iter()
+            .find(|range| range.contains(&cursor))
+        {
+            cursor = range.end;
+            continue;
+        }
+        match bytes[cursor] {
+            b'%' => {
+                cursor += 1;
+                while cursor < bytes.len() && !matches!(bytes[cursor], b'\r' | b'\n') {
+                    cursor += 1;
+                }
+            }
+            b'(' => cursor = skip_literal_string(bytes, cursor + 1),
+            b'<' if bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
+            b'<' => {
+                cursor += 1;
+                while cursor < bytes.len() && bytes[cursor] != b'>' {
+                    cursor += 1;
+                }
+                cursor += usize::from(cursor < bytes.len());
+            }
+            b's' if bytes.get(cursor..cursor + b"stream".len()) == Some(b"stream")
+                && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(cursor + b"stream".len()).copied()) =>
+            {
+                if stream_data_start_after_keyword(bytes, cursor + b"stream".len())
+                    .is_some_and(|start| !used_stream_starts.contains(&start))
+                {
+                    return true;
+                }
+                cursor += b"stream".len();
+            }
+            _ => cursor += 1,
+        }
+    }
+    false
+}
+
+fn collect_nested_stream_data_ranges(
+    document: &Document,
+    object: &Object,
+    limits: &SafetyLimits,
+    bytes: &[u8],
+    used_stream_starts: &mut Vec<usize>,
+    stream_data_ranges: &mut Vec<std::ops::Range<usize>>,
+) -> Result<bool, PdfError> {
+    match object {
+        Object::Stream(stream) => {
+            let Some(start) =
+                locate_raw_stream_data_start(bytes, &stream.content, used_stream_starts)
+            else {
+                return Ok(false);
+            };
+            used_stream_starts.push(start);
+            let Some(range) = raw_stream_data_range(document, stream, start, limits)? else {
+                return Ok(false);
+            };
+            stream_data_ranges.push(range);
+            collect_nested_stream_data_ranges(
+                document,
+                &Object::Dictionary(stream.dict.clone()),
+                limits,
+                bytes,
+                used_stream_starts,
+                stream_data_ranges,
+            )
+        }
+        Object::Dictionary(dictionary) => {
+            for (_, value) in dictionary.iter() {
+                if !collect_nested_stream_data_ranges(
+                    document,
+                    value,
+                    limits,
+                    bytes,
+                    used_stream_starts,
+                    stream_data_ranges,
+                )? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
+        Object::Array(values) => {
+            for value in values {
+                if !collect_nested_stream_data_ranges(
+                    document,
+                    value,
+                    limits,
+                    bytes,
+                    used_stream_starts,
+                    stream_data_ranges,
+                )? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
+        _ => Ok(true),
+    }
 }
 
 fn inspect_raw_stream_syntax(
@@ -436,7 +563,6 @@ fn indirect_object_header_end(bytes: &[u8], start: usize) -> Option<(usize, bool
     let generation_end = skip_digits(bytes, generation_start);
     (generation_end > generation_start).then_some(())?;
     let (obj_start, second_separator_length) = skip_whitespace(bytes, generation_end);
-    (obj_start > generation_end).then_some(())?;
     (bytes.get(obj_start..obj_start + b"obj".len()) == Some(b"obj")
         && is_pdf_boundary(bytes.get(obj_start + b"obj".len()).copied()))
     .then_some(())?;
@@ -490,7 +616,7 @@ fn filter_contains_lzw_decode(
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Dictionary, Document, Stream};
+    use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{StreamSafetySummary, inspect_raw_stream_syntax};
     use crate::SafetyLimits;
@@ -599,6 +725,22 @@ mod tests {
     }
 
     #[test]
+    fn excludes_nested_direct_stream_bytes_from_lexical_checks() {
+        let mut source = Document::with_version("1.4");
+        source.add_object(dictionary! {
+            "Nested" => Object::Stream(Stream::new(Dictionary::new(), b"<G>".to_vec())),
+        });
+        let mut bytes = Vec::new();
+        source.save_to(&mut bytes).expect("serialize nested stream");
+        let document = Document::load_mem(&bytes).expect("parse nested stream");
+
+        let summary =
+            super::inspect(&document, &SafetyLimits::default(), &bytes).expect("inspect stream");
+        assert!(!summary.has_odd_hex_string);
+        assert!(!summary.has_non_hex_character);
+    }
+
+    #[test]
     fn checks_hex_string_syntax_without_scanning_comments_or_stream_data() {
         let mut summary = StreamSafetySummary::default();
         let stream_range = 41..54;
@@ -657,6 +799,10 @@ mod tests {
 
         let mut summary = StreamSafetySummary::default();
         super::inspect_indirect_object_syntax(b"3 0 obj null\nendobj\n", &[], &mut summary);
+        assert!(summary.has_invalid_indirect_object_syntax);
+
+        let mut summary = StreamSafetySummary::default();
+        super::inspect_indirect_object_syntax(b"\n4 0obj\nnull\nendobj\n", &[], &mut summary);
         assert!(summary.has_invalid_indirect_object_syntax);
     }
 }

@@ -25,6 +25,19 @@ test:
 # Run formatting, linting, and offline tests.
 check: fmt lint test
 
+# Validate the pinned 129-predicate inventory and print its completion blockers.
+coverage:
+    cargo test -p tag_validation --test coverage_inventory -- --nocapture
+
+# Run every checked-in atomic and corpus case against pinned veraPDF.
+verapdf verapdf=verapdf_bin:
+    VERAPDF_BIN="{{ verapdf }}" cargo test -p tag_validation --test verapdf_diff -- --nocapture
+
+# Release-only gate. This intentionally fails while the inventory status is developing.
+pdfa1b-release-gate verapdf=verapdf_bin:
+    TAG_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p tag_validation --test coverage_inventory -- --nocapture
+    just verapdf "{{ verapdf }}"
+
 # Generate the crate documentation.
 doc:
     cargo doc --workspace --all-features --locked --no-deps

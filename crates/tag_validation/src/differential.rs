@@ -56,6 +56,7 @@ pub struct ReferenceConfig {
     pub timeout_millis: u64,
     pub max_report_bytes: usize,
     pub max_diagnostic_bytes: usize,
+    pub coverage_gap_policy: CoverageGapPolicy,
 }
 
 impl ReferenceConfig {
@@ -67,8 +68,15 @@ impl ReferenceConfig {
             timeout_millis: DEFAULT_TIMEOUT_MILLIS,
             max_report_bytes: DEFAULT_MAX_REPORT_BYTES,
             max_diagnostic_bytes: DEFAULT_MAX_DIAGNOSTIC_BYTES,
+            coverage_gap_policy: CoverageGapPolicy::AllowDuringDevelopment,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CoverageGapPolicy {
+    AllowDuringDevelopment,
+    RejectForCompleteProfile,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -156,6 +164,13 @@ impl ComparisonClassification {
         )
     }
 
+    pub const fn is_acceptable_under(self, policy: CoverageGapPolicy) -> bool {
+        match (self, policy) {
+            (Self::CoverageGap, CoverageGapPolicy::RejectForCompleteProfile) => false,
+            _ => self.is_acceptable(),
+        }
+    }
+
     pub const fn exit_code(self) -> i32 {
         match self {
             Self::Operational => 1,
@@ -209,7 +224,11 @@ pub struct DifferentialReport {
 
 impl DifferentialReport {
     pub fn exit_code(&self) -> i32 {
-        self.classification.exit_code()
+        match self.classification {
+            ComparisonClassification::Operational => 1,
+            _ if self.acceptable => 0,
+            _ => 2,
+        }
     }
 }
 
@@ -341,7 +360,7 @@ impl DifferentialRunner {
                     file: path.to_owned(),
                     reference_identity: self.identity.clone(),
                     classification,
-                    acceptable: classification.is_acceptable(),
+                    acceptable: classification.is_acceptable_under(self.config.coverage_gap_policy),
                     summary: classification_summary(classification).to_owned(),
                     local_report,
                     reference_result: Some(reference_result),
@@ -1007,6 +1026,22 @@ mod tests {
             2
         );
         assert_eq!(ComparisonClassification::Operational.exit_code(), 1);
+    }
+
+    #[test]
+    fn completed_profile_policy_rejects_coverage_gaps() {
+        assert!(
+            ComparisonClassification::CoverageGap
+                .is_acceptable_under(CoverageGapPolicy::AllowDuringDevelopment)
+        );
+        assert!(
+            !ComparisonClassification::CoverageGap
+                .is_acceptable_under(CoverageGapPolicy::RejectForCompleteProfile)
+        );
+        assert!(
+            ComparisonClassification::BothNoncompliant
+                .is_acceptable_under(CoverageGapPolicy::RejectForCompleteProfile)
+        );
     }
 
     #[test]

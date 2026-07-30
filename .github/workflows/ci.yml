@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      pdfa1b_release_gate:
+        description: Require the PDF/A-1B completion gate
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -31,6 +37,9 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace --all-features --locked
+
+      - name: Check PDF/A-1B coverage inventory
+        run: just coverage
 
   verapdf:
     name: veraPDF 1.28.2 differential
@@ -65,4 +74,10 @@ jobs:
       - name: Compare with veraPDF
         env:
           VERAPDF_BIN: /tmp/verapdf/verapdf
-        run: cargo test -p tag_validation --test verapdf_diff -- --nocapture
+        run: just verapdf
+
+      - name: Enforce PDF/A-1B release completion
+        if: ${{ inputs.pdfa1b_release_gate }}
+        env:
+          VERAPDF_BIN: /tmp/verapdf/verapdf
+        run: just pdfa1b-release-gate

@@ -4,6 +4,10 @@
 
 This project is very early stage, and current focus is on the PDF/A-1b validation.
 
+The validator remains preliminary until the
+[PDF/A-1B completion gate](docs/reference/pdfa1b-completion.md) passes. A local
+pass is not currently a PDF/A-1B conformance claim.
+
 <br>
 
 ## Install
@@ -49,3 +53,9 @@ tag document.pdf --profile a-1b --json
 - [ ] PDF/A-4f
 - [ ] PDF/UA-1
 - [ ] PDF/UA-2
+
+<br>
+
+## License
+
+[MIT](LICENSE)

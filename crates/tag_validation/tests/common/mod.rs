@@ -122,6 +122,11 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "pdf:Keywords=\"rust,pdf\" exif:GPSLatitude=\"invalid\"",
             );
         }
+        "predefined_unknown_property" => replace(
+            &mut xmp,
+            "pdf:Keywords=\"rust,pdf\"",
+            "pdf:Keywords=\"rust,pdf\" pdf:Unknown=\"invalid\"",
+        ),
         "id_alias_declaration_only" => {}
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
         "id_conformance_alias" => replace(
@@ -1678,6 +1683,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "inline_image_lzw_array" => {
             contents = b"BI /W 1 /H 1 /BPC 8 /Filter [/AHx /LZWDecode] ID x EI\n".to_vec()
         }
+        "inline_image_ascii_hex" => contents = b"BI /W 1 /H 1 /BPC 8 /F /AHx ID 00> EI\n".to_vec(),
         "known_operators" => contents = b"q\n0 0 m\n1 1 l\nS\nQ\n".to_vec(),
         "graphics_state_nesting_28" => {
             contents = [vec![b'q'; 0], b"q\n".repeat(28), b"Q\n".repeat(28)].concat()
