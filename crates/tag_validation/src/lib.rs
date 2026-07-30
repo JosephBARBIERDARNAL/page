@@ -20,6 +20,7 @@ mod object_limits;
 mod object_resolution;
 mod report;
 mod stream_safety;
+mod syntax;
 mod validation;
 mod xobject;
 

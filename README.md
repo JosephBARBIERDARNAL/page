@@ -8,6 +8,10 @@ The validator remains preliminary until the
 [PDF/A-1B completion gate](docs/reference/pdfa1b-completion.md) passes. A local
 pass is not currently a PDF/A-1B conformance claim.
 
+PDF/A-1B file syntax and low-level COS-object validation are complete against
+the pinned veraPDF 1.28.2 profile; higher-level profile coverage remains in
+development.
+
 <br>
 
 ## Install

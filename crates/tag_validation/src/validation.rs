@@ -107,7 +107,7 @@ fn validate_document(
     let has_trailer_id = if inspections.header.is_linearized {
         inspections.header.has_first_linearized_trailer_id
     } else {
-        document.trailer_id.is_some()
+        inspections.header.last_trailer_id.is_some() || document.trailer_id.is_some()
     };
     if !has_trailer_id {
         failures.push(failure(
@@ -118,8 +118,8 @@ fn validate_document(
         ));
     }
     if inspections.header.is_linearized
-        && document.trailer_id.is_some()
-        && inspections.header.first_linearized_trailer_id != document.trailer_id
+        && inspections.header.last_trailer_id.is_some()
+        && inspections.header.first_linearized_trailer_id != inspections.header.last_trailer_id
     {
         failures.push(failure(
             "PDFA1B-LINEARIZED-TRAILER-ID-001",
@@ -337,7 +337,7 @@ fn validate_document(
     finish_report(document, profile, failures, TOTAL_RULE_COUNT)
 }
 
-fn validate_header(header: &crate::model::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
+fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
     if !header.has_valid_header {
         failures.push(failure(
             "PDFA1B-HEADER-001",
@@ -1455,8 +1455,8 @@ mod tests {
                 .expect("parse fixture");
         document.trailer_id = Some(vec![b"last-one".to_vec(), b"last-two".to_vec()]);
         inspections.header.is_linearized = true;
-        inspections.header.first_linearized_trailer_id =
-            Some(vec![b"first-one".to_vec(), b"first-two".to_vec()]);
+        inspections.header.first_linearized_trailer_id = Some(b"first-onefirst-two".to_vec());
+        inspections.header.last_trailer_id = Some(b"last-onelast-two".to_vec());
         let report = validate_document(document, inspections, ValidationProfile::PdfA1b);
         assert_rule(&report, "PDFA1B-LINEARIZED-TRAILER-ID-001");
     }

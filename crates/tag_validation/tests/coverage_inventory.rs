@@ -154,6 +154,11 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
 
     assert_variant_and_corpus_shape(&inventory);
     assert_completion_policy(&inventory, &differential);
+    assert_eq!(
+        inventory["low_level_syntax"],
+        generated_low_level_syntax_matrix(&inventory),
+        "low-level syntax matrix is stale; run the ignored matrix generator"
+    );
 }
 
 #[test]
@@ -296,6 +301,22 @@ fn regenerate_coverage_inventory() {
     });
     inventory["predicates"] = Value::Array(predicates);
     inventory["corpus"] = generated_corpus(&differential);
+    fs::write(
+        INVENTORY_PATH,
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&inventory).expect("serialize inventory")
+        ),
+    )
+    .expect("write inventory");
+}
+
+#[test]
+#[ignore = "maintenance generator for the checked low-level syntax matrix"]
+fn regenerate_low_level_syntax_matrix() {
+    let mut inventory = read_json(INVENTORY_PATH);
+    let matrix = generated_low_level_syntax_matrix(&inventory);
+    inventory["low_level_syntax"] = matrix;
     fs::write(
         INVENTORY_PATH,
         format!(
@@ -476,7 +497,9 @@ fn assert_variant_and_corpus_shape(inventory: &Value) {
         parser_states,
         BTreeSet::from([
             "both_reject_malformed",
-            "local_parser_discrepancy",
+            "recoverable_invalid_hex",
+            "recoverable_xref_eol",
+            "recoverable_xref_spacing",
             "reference_parser_discrepancy",
             "valid_recovery",
         ])
@@ -741,6 +764,99 @@ fn generated_corpus(differential: &Value) -> Value {
             })
             .collect(),
     )
+}
+
+fn generated_low_level_syntax_matrix(inventory: &Value) -> Value {
+    let predicates = array(&inventory["predicates"], "predicates");
+    let mut entries = predicates
+        .iter()
+        .filter(|predicate| {
+            string(&predicate["verapdf_rule_id"], "veraPDF rule id")
+                .starts_with("ISO 19005-1:2005:6.1.")
+        })
+        .map(|predicate| {
+            let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
+            let provenance_class = low_level_provenance_class(rule_id);
+            let milestone_required = provenance_class != "content_or_embedded_program";
+            let strengths = array(
+                &predicate["implementation_strength"],
+                "implementation strength",
+            );
+            if milestone_required {
+                assert!(
+                    strengths
+                        .iter()
+                        .all(|strength| string(strength, "strength") == "exact"),
+                    "{rule_id} is in the low-level milestone but is not exact"
+                );
+            }
+            json!({
+                "verapdf_rule_id": rule_id,
+                "object": predicate["object"],
+                "predicate": predicate["predicate"],
+                "milestone_required": milestone_required,
+                "provenance_class": provenance_class,
+                "applicability": predicate["mapping_notes"],
+                "implementation_path": predicate["local_checks"],
+                "recovery_model": low_level_recovery_model(provenance_class),
+                "implementation_strength": predicate["implementation_strength"],
+            })
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| {
+        string(&left["verapdf_rule_id"], "left rule id")
+            .cmp(string(&right["verapdf_rule_id"], "right rule id"))
+    });
+    let required_count = entries
+        .iter()
+        .filter(|entry| entry["milestone_required"] == true)
+        .count();
+    json!({
+        "status": "complete",
+        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "profile_predicate_count": predicates.len(),
+        "inventoried_clause_6_1_predicate_count": entries.len(),
+        "required_predicate_count": required_count,
+        "policy": "Every clause 6.1 predicate is inventoried. The milestone requires exact behavior for raw file syntax and selected COS objects; content execution and embedded-program populations remain governed by their owning coverage families.",
+        "predicates": entries,
+    })
+}
+
+fn low_level_provenance_class(rule_id: &str) -> &'static str {
+    match rule_id {
+        "ISO 19005-1:2005:6.1.10:2"
+        | "ISO 19005-1:2005:6.1.12:8"
+        | "ISO 19005-1:2005:6.1.12:9"
+        | "ISO 19005-1:2005:6.1.12:10" => "content_or_embedded_program",
+        "ISO 19005-1:2005:6.1.2:1"
+        | "ISO 19005-1:2005:6.1.2:2"
+        | "ISO 19005-1:2005:6.1.3:1"
+        | "ISO 19005-1:2005:6.1.3:3"
+        | "ISO 19005-1:2005:6.1.3:4"
+        | "ISO 19005-1:2005:6.1.4:1"
+        | "ISO 19005-1:2005:6.1.4:2"
+        | "ISO 19005-1:2005:6.1.6:1"
+        | "ISO 19005-1:2005:6.1.6:2"
+        | "ISO 19005-1:2005:6.1.7:1"
+        | "ISO 19005-1:2005:6.1.7:2"
+        | "ISO 19005-1:2005:6.1.8:1" => "raw_file",
+        _ => "selected_cos_object",
+    }
+}
+
+fn low_level_recovery_model(provenance_class: &str) -> &'static str {
+    match provenance_class {
+        "raw_file" => {
+            "Evaluate original byte spans and revision-selected syntax; recover only oracle-pinned lexical or xref forms."
+        }
+        "selected_cos_object" => {
+            "Evaluate the active revision's modeled value using pinned duplicate-key, null, direct/indirect, and name-decoding semantics."
+        }
+        "content_or_embedded_program" => {
+            "Use the owning bounded content or embedded-program inspector; raw COS provenance is not the source of partial coverage."
+        }
+        _ => unreachable!("known provenance class"),
+    }
 }
 
 fn replace_once(bytes: &mut [u8], from: &[u8], to: &[u8]) {

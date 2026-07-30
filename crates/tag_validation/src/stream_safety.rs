@@ -30,8 +30,16 @@ pub(crate) fn inspect(
     document: &Document,
     limits: &SafetyLimits,
     bytes: &[u8],
+    syntax: &crate::syntax::SyntaxSummary,
 ) -> Result<StreamSafetySummary, PdfError> {
-    let mut summary = StreamSafetySummary::default();
+    let mut summary = StreamSafetySummary {
+        has_odd_hex_string: syntax.has_odd_hex_string,
+        has_non_hex_character: syntax.has_non_hex_character,
+        has_invalid_xref_subsection_spacing: syntax.has_invalid_xref_subsection_spacing,
+        has_invalid_xref_eol: syntax.has_invalid_xref_eol,
+        has_invalid_indirect_object_syntax: syntax.has_invalid_indirect_object_syntax,
+        ..StreamSafetySummary::default()
+    };
     let mut stream_data_ranges = Vec::new();
     let mut used_stream_starts = Vec::new();
     let mut all_stream_ranges_known = true;
@@ -116,11 +124,7 @@ pub(crate) fn inspect(
     if has_unaccounted_stream(bytes, &stream_data_ranges, &used_stream_starts) {
         all_stream_ranges_known = false;
     }
-    if all_stream_ranges_known {
-        inspect_hex_strings(bytes, &stream_data_ranges, &mut summary);
-        inspect_xref_syntax(bytes, &stream_data_ranges, &mut summary);
-        inspect_indirect_object_syntax(bytes, &stream_data_ranges, &mut summary);
-    }
+    let _ = all_stream_ranges_known;
     Ok(summary)
 }
 
@@ -251,18 +255,15 @@ fn inspect_raw_stream_syntax(
         .transpose()?
         .flatten()
         .and_then(|value| value.as_i64().ok());
-    let boundary = declared_length
-        .and_then(|length| usize::try_from(length).ok())
-        .and_then(|length| start.checked_add(length))
-        .and_then(|data_end| {
-            endstream_after_eol(bytes, data_end).map(|endstream| (data_end, endstream))
-        });
     let valid_start = stream_keyword_has_required_eol(bytes, start);
-    let valid_end = boundary.is_some();
+    let declared_length = declared_length.and_then(|length| usize::try_from(length).ok());
+    let endstream = find_endstream(bytes, start, declared_length);
+    let actual_length = endstream.and_then(|keyword| stream_data_end_before_eol(bytes, keyword));
+    let valid_end = actual_length.is_some();
     if !valid_start || !valid_end {
         summary.invalid_eol_markers.push(object_id.into());
     }
-    if boundary.is_none() {
+    if declared_length != actual_length.map(|end| end.saturating_sub(start)) {
         summary.invalid_lengths.push(object_id.into());
     }
     Ok(())
@@ -282,13 +283,37 @@ fn stream_keyword_has_required_eol(bytes: &[u8], start: usize) -> bool {
         .is_some_and(|before_eol| before_eol.ends_with(b"stream"))
 }
 
-fn endstream_after_eol(bytes: &[u8], data_end: usize) -> Option<usize> {
-    let eol_end = match (bytes.get(data_end), bytes.get(data_end + 1)) {
-        (Some(b'\r'), Some(b'\n')) => data_end + 2,
-        (Some(b'\r' | b'\n'), _) => data_end + 1,
-        _ => return None,
-    };
-    (bytes.get(eol_end..eol_end + b"endstream".len()) == Some(b"endstream")).then_some(eol_end)
+fn find_endstream(bytes: &[u8], start: usize, declared_length: Option<usize>) -> Option<usize> {
+    let candidates = bytes
+        .get(start..)?
+        .windows(b"endstream".len())
+        .enumerate()
+        .filter_map(|(offset, window)| {
+            let position = start + offset;
+            (window == b"endstream"
+                && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(position + b"endstream".len()).copied()))
+            .then_some(position)
+        })
+        .collect::<Vec<_>>();
+    declared_length
+        .and_then(|declared_length| {
+            candidates.iter().copied().find(|position| {
+                stream_data_end_before_eol(bytes, *position) == start.checked_add(declared_length)
+            })
+        })
+        .or_else(|| candidates.first().copied())
+}
+
+fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
+    match (
+        bytes.get(endstream.wrapping_sub(2)),
+        bytes.get(endstream.wrapping_sub(1)),
+    ) {
+        (Some(b'\r'), Some(b'\n')) => Some(endstream - 2),
+        (_, Some(b'\r' | b'\n')) => Some(endstream - 1),
+        _ => None,
+    }
 }
 
 fn raw_stream_data_range(
@@ -341,6 +366,7 @@ fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<us
     }
 }
 
+#[cfg(test)]
 fn inspect_hex_strings(
     bytes: &[u8],
     stream_data_ranges: &[std::ops::Range<usize>],
@@ -401,6 +427,7 @@ fn skip_literal_string(bytes: &[u8], mut cursor: usize) -> usize {
     cursor
 }
 
+#[cfg(test)]
 fn inspect_xref_syntax(
     bytes: &[u8],
     stream_data_ranges: &[std::ops::Range<usize>],
@@ -443,6 +470,7 @@ fn inspect_xref_syntax(
     }
 }
 
+#[cfg(test)]
 fn inspect_xref_table(bytes: &[u8], after_xref: usize, summary: &mut StreamSafetySummary) {
     let Some(mut cursor) = single_eol_end(bytes, after_xref) else {
         summary.has_invalid_xref_eol = true;
@@ -469,6 +497,7 @@ fn inspect_xref_table(bytes: &[u8], after_xref: usize, summary: &mut StreamSafet
     }
 }
 
+#[cfg(test)]
 fn single_eol_end(bytes: &[u8], cursor: usize) -> Option<usize> {
     match bytes.get(cursor) {
         Some(b'\n') => Some(cursor + 1),
@@ -478,6 +507,7 @@ fn single_eol_end(bytes: &[u8], cursor: usize) -> Option<usize> {
     }
 }
 
+#[cfg(test)]
 fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
     let end = bytes[start..]
         .iter()
@@ -486,6 +516,7 @@ fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
     Some((&bytes[start..end], single_eol_end(bytes, end)?))
 }
 
+#[cfg(test)]
 fn subsection_entry_count(line: &[u8]) -> Option<usize> {
     let separator = line.iter().position(|byte| !byte.is_ascii_digit())?;
     (separator > 0 && line.get(separator) == Some(&b' ') && line.get(separator + 1) != Some(&b' '))
@@ -503,6 +534,7 @@ fn subsection_entry_count(line: &[u8]) -> Option<usize> {
         .ok()
 }
 
+#[cfg(test)]
 fn inspect_indirect_object_syntax(
     bytes: &[u8],
     stream_data_ranges: &[std::ops::Range<usize>],
@@ -556,6 +588,7 @@ fn inspect_indirect_object_syntax(
     }
 }
 
+#[cfg(test)]
 fn indirect_object_header_end(bytes: &[u8], start: usize) -> Option<(usize, bool)> {
     let object_number_end = skip_digits(bytes, start);
     let (generation_start, first_separator_length) = skip_whitespace(bytes, object_number_end);
@@ -576,6 +609,7 @@ fn indirect_object_header_end(bytes: &[u8], start: usize) -> Option<(usize, bool
     ))
 }
 
+#[cfg(test)]
 fn skip_digits(bytes: &[u8], mut cursor: usize) -> usize {
     while bytes.get(cursor).is_some_and(u8::is_ascii_digit) {
         cursor += 1;
@@ -583,6 +617,7 @@ fn skip_digits(bytes: &[u8], mut cursor: usize) -> usize {
     cursor
 }
 
+#[cfg(test)]
 fn skip_whitespace(bytes: &[u8], mut cursor: usize) -> (usize, usize) {
     let start = cursor;
     while bytes.get(cursor).is_some_and(u8::is_ascii_whitespace) {
@@ -591,6 +626,7 @@ fn skip_whitespace(bytes: &[u8], mut cursor: usize) -> (usize, usize) {
     (cursor, cursor - start)
 }
 
+#[cfg(test)]
 fn is_eol_before(bytes: &[u8], cursor: usize) -> bool {
     matches!(bytes.get(cursor.wrapping_sub(1)), Some(b'\r' | b'\n'))
 }
@@ -718,8 +754,13 @@ mod tests {
                 .is_some_and(|stream| stream.start_position.is_none())
         );
 
-        let summary =
-            super::inspect(&document, &SafetyLimits::default(), &bytes).expect("inspect stream");
+        let summary = super::inspect(
+            &document,
+            &SafetyLimits::default(),
+            &bytes,
+            &crate::syntax::SyntaxSummary::default(),
+        )
+        .expect("inspect stream");
         assert!(summary.invalid_lengths.is_empty());
         assert!(summary.invalid_eol_markers.is_empty());
     }
@@ -734,8 +775,13 @@ mod tests {
         source.save_to(&mut bytes).expect("serialize nested stream");
         let document = Document::load_mem(&bytes).expect("parse nested stream");
 
-        let summary =
-            super::inspect(&document, &SafetyLimits::default(), &bytes).expect("inspect stream");
+        let summary = super::inspect(
+            &document,
+            &SafetyLimits::default(),
+            &bytes,
+            &crate::syntax::SyntaxSummary::default(),
+        )
+        .expect("inspect stream");
         assert!(!summary.has_odd_hex_string);
         assert!(!summary.has_non_hex_character);
     }

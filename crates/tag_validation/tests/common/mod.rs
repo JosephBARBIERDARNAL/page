@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::io::Write;
 
 use lopdf::content::{Content, Operation};
 use lopdf::xref::XrefType;
@@ -2630,6 +2631,144 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
 /// scaffolding. This alias just names the fixture for its own test file.
 pub fn object_limit_fixture(case: &str) -> Vec<u8> {
     document_feature_fixture(case)
+}
+
+/// A deliberately small classic-xref PDF used to exercise source syntax that
+/// `lopdf` normally discards. The semantic baseline is intentionally sparse;
+/// atomic tests compare only rule-ID deltas against the same baseline.
+pub fn syntax_fixture(case: &str) -> Vec<u8> {
+    if case.starts_with("stream_") {
+        return syntax_stream_fixture(case);
+    }
+    let (initial_probe, current_probe, incremental) = match case {
+        "baseline" => ("null".to_owned(), None, false),
+        "duplicate_last_null" => ("<< /K 2147483648 /K null >>".to_owned(), None, false),
+        "duplicate_last_invalid" => ("<< /K null /K 2147483648 >>".to_owned(), None, false),
+        "escaped_name_at_boundary" => (format!("/{}", "A#41".repeat(63) + "A"), None, false),
+        "escaped_name_over_boundary" => (format!("/{}", "A#41".repeat(64)), None, false),
+        "literal_string_at_boundary" => (format!("({})", "\\101".repeat(65_535)), None, false),
+        "literal_string_over_boundary" => (format!("({})", "\\101".repeat(65_536)), None, false),
+        "hex_string_invalid_character" => ("<GG>".to_owned(), None, false),
+        "hex_string_odd" => ("<ABC>".to_owned(), None, false),
+        "incremental_stale_invalid" => ("2147483648".to_owned(), Some("1".to_owned()), true),
+        "incremental_active_invalid" => ("1".to_owned(), Some("2147483648".to_owned()), true),
+        "empty_trailer_id" => ("null".to_owned(), None, false),
+        "single_trailer_id" => ("null".to_owned(), None, false),
+        "wrong_type_trailer_id" => ("null".to_owned(), None, false),
+        _ => panic!("unknown syntax fixture case {case}"),
+    };
+
+    let trailer_id = match case {
+        "empty_trailer_id" => "[]",
+        "single_trailer_id" => "[(one)]",
+        "wrong_type_trailer_id" => "(not-an-array)",
+        _ => "[(one) (two)]",
+    };
+    build_classic_pdf(
+        &initial_probe,
+        current_probe.as_deref(),
+        incremental,
+        trailer_id,
+    )
+}
+
+fn syntax_stream_fixture(case: &str) -> Vec<u8> {
+    let (length_object, stream_dictionary) = match case {
+        "stream_direct_length_valid" => (None, "<< /Length 3 >>"),
+        "stream_direct_length_mismatch" => (None, "<< /Length 4 >>"),
+        "stream_indirect_length_valid" => (Some("3"), "<< /Length 4 0 R >>"),
+        "stream_indirect_length_mismatch" => (Some("4"), "<< /Length 4 0 R >>"),
+        "stream_duplicate_length_last_valid" => (None, "<< /Length 4 /Length 3 >>"),
+        "stream_duplicate_length_last_invalid" => (None, "<< /Length 3 /Length 4 >>"),
+        "stream_duplicate_external_last_null" => (None, "<< /Length 3 /F (external) /F null >>"),
+        "stream_duplicate_external_last_invalid" => (None, "<< /Length 3 /F null /F (external) >>"),
+        "stream_escaped_lzw_filter" => (None, "<< /Length 3 /Filter /LZW#44ecode >>"),
+        _ => panic!("unknown stream syntax fixture case {case}"),
+    };
+    let mut objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >>".to_owned(),
+    ];
+    if let Some(length) = length_object {
+        objects.push(length.to_owned());
+    } else {
+        objects.push("null".to_owned());
+    }
+    objects.push(format!("{stream_dictionary}\nstream\nabc\nendstream"));
+    build_classic_pdf_objects(&objects, "[(one) (two)]")
+}
+
+fn build_classic_pdf(
+    initial_probe: &str,
+    current_probe: Option<&str>,
+    incremental: bool,
+    trailer_id: &str,
+) -> Vec<u8> {
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >>".to_owned(),
+        initial_probe.to_owned(),
+    ];
+    let mut bytes = build_classic_pdf_objects(&objects, trailer_id);
+    let first_xref = find_last_startxref(&bytes);
+
+    if incremental {
+        let object = current_probe.expect("incremental object");
+        let replacement_offset = bytes.len();
+        write!(bytes, "4 0 obj\n{object}\nendobj\n").expect("write replacement");
+        let second_xref = bytes.len();
+        write!(
+            bytes,
+            "xref\n4 1\n{replacement_offset:010} 00000 n \n\
+             trailer\n<< /Size 5 /Root 1 0 R /Prev {first_xref} /ID {trailer_id} >>\n\
+             startxref\n{second_xref}\n%%EOF\n"
+        )
+        .expect("write incremental trailer");
+    }
+    bytes
+}
+
+fn build_classic_pdf_objects(objects: &[String], trailer_id: &str) -> Vec<u8> {
+    let mut bytes = b"%PDF-1.4\n%\x80\x81\x82\x83\n".to_vec();
+    let mut offsets = Vec::new();
+    for (index, object) in objects.iter().enumerate() {
+        offsets.push(bytes.len());
+        write!(bytes, "{} 0 obj\n{}\nendobj\n", index + 1, object).expect("write object");
+    }
+    let first_xref = bytes.len();
+    write!(bytes, "xref\n0 {}\n", objects.len() + 1).expect("write xref");
+    bytes.extend_from_slice(b"0000000000 65535 f \n");
+    for offset in &offsets {
+        writeln!(bytes, "{offset:010} 00000 n ").expect("write xref entry");
+    }
+    write!(
+        bytes,
+        "trailer\n<< /Size {} /Root 1 0 R /ID {} >>\nstartxref\n{}\n%%EOF\n",
+        objects.len() + 1,
+        trailer_id,
+        first_xref
+    )
+    .expect("write trailer");
+    bytes
+}
+
+fn find_last_startxref(bytes: &[u8]) -> usize {
+    let marker = bytes
+        .windows(b"startxref\n".len())
+        .rposition(|window| window == b"startxref\n")
+        .expect("startxref")
+        + b"startxref\n".len();
+    let end = bytes[marker..]
+        .iter()
+        .position(|byte| !byte.is_ascii_digit())
+        .map(|length| marker + length)
+        .expect("startxref end");
+    std::str::from_utf8(&bytes[marker..end])
+        .expect("startxref UTF-8")
+        .parse()
+        .expect("startxref integer")
 }
 
 fn action(subtype: &str) -> Object {

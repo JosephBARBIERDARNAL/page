@@ -80,10 +80,10 @@
     },
     {
       "path": "tests/fixtures/parser-local-discrepancy-invalid-hex.pdf",
-      "expected_classification": "local_parser_discrepancy",
+      "expected_classification": "both_noncompliant",
       "reference_baseline": "tests/fixtures/structural.pdf",
       "expected_verapdf_added_rule_ids": ["ISO 19005-1:2005:6.1.6:2"],
-      "rationale": "veraPDF recovers an invalid hexadecimal character and reports test 6.1.6:2 while the strict local parser rejects it."
+      "rationale": "The bounded raw-syntax layer recovers the object while preserving the invalid hexadecimal token, so both validators report test 6.1.6:2."
     },
     {
       "path": "tests/fixtures/header-offset.pdf",
@@ -128,17 +128,17 @@
     },
     {
       "path": "tests/fixtures/xref-spacing.pdf",
-      "expected_classification": "local_parser_discrepancy",
+      "expected_classification": "both_noncompliant",
       "reference_baseline": "tests/fixtures/typst-pdfa-1b.pdf",
       "expected_verapdf_added_rule_ids": ["ISO 19005-1:2005:6.1.4:1"],
-      "rationale": "veraPDF recovers a tab between xref subsection numbers while the strict local parser rejects it."
+      "rationale": "The bounded raw-syntax layer recovers the tab-separated subsection header while preserving its original spacing, so both validators report test 6.1.4:1."
     },
     {
       "path": "tests/fixtures/xref-eol.pdf",
-      "expected_classification": "local_parser_discrepancy",
+      "expected_classification": "both_noncompliant",
       "reference_baseline": "tests/fixtures/typst-pdfa-1b.pdf",
       "expected_verapdf_added_rule_ids": ["ISO 19005-1:2005:6.1.4:2"],
-      "rationale": "veraPDF recovers an extra EOL after xref while the strict local parser rejects it."
+      "rationale": "The bounded raw-syntax layer recovers the extra xref EOL while preserving the original line structure, so both validators report test 6.1.4:2."
     },
     {
       "path": "tests/fixtures/stream-length-mismatch.pdf",
@@ -3976,6 +3976,192 @@
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:6"],
       "rationale": "The pinned COS dictionary size omits direct null entries."
+    }
+  ],
+  "atomic_syntax_cases": [
+    {
+      "name": "baseline",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INTEGER-RANGE-001", "PDFA1B-STRING-LENGTH-001", "PDFA1B-NAME-LENGTH-001", "PDFA1B-HEX-STRING-LENGTH-001", "PDFA1B-HEX-STRING-CHARACTERS-001", "PDFA1B-TRAILER-ID-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:1", "ISO 19005-1:2005:6.1.12:3", "ISO 19005-1:2005:6.1.12:4", "ISO 19005-1:2005:6.1.6:1", "ISO 19005-1:2005:6.1.6:2", "ISO 19005-1:2005:6.1.3:1"],
+      "rationale": "The raw-syntax baseline has valid classic xref syntax, trailer identification, and an in-range null probe."
+    },
+    {
+      "name": "duplicate_last_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INTEGER-RANGE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:1"],
+      "rationale": "A duplicate dictionary key whose final value is null does not expose the overwritten integer in the pinned COS model."
+    },
+    {
+      "name": "duplicate_last_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-INTEGER-RANGE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The last duplicate dictionary value wins and exposes the out-of-range integer."
+    },
+    {
+      "name": "escaped_name_at_boundary",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-NAME-LENGTH-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:4"],
+      "rationale": "Hex escapes are decoded before the 127-byte CosName limit is evaluated."
+    },
+    {
+      "name": "escaped_name_over_boundary",
+      "expected_local_failed_rule_ids": ["PDFA1B-NAME-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A name whose decoded internal representation is 128 bytes exceeds the pinned bound."
+    },
+    {
+      "name": "literal_string_at_boundary",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STRING-LENGTH-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:3"],
+      "rationale": "Literal-string escapes decode to exactly 65,535 bytes."
+    },
+    {
+      "name": "literal_string_over_boundary",
+      "expected_local_failed_rule_ids": ["PDFA1B-STRING-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Literal-string escapes decode to 65,536 bytes and exceed the pinned bound."
+    },
+    {
+      "name": "hex_string_invalid_character",
+      "expected_local_failed_rule_ids": ["PDFA1B-HEX-STRING-CHARACTERS-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.6:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Both validators recover an invalid hexadecimal character as a modeled conformance failure."
+    },
+    {
+      "name": "hex_string_odd",
+      "expected_local_failed_rule_ids": ["PDFA1B-HEX-STRING-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An odd raw hexadecimal digit count is retained after value decoding."
+    },
+    {
+      "name": "incremental_stale_invalid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INTEGER-RANGE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:1"],
+      "rationale": "A superseded out-of-range integer in an older revision is outside the active COS object graph."
+    },
+    {
+      "name": "incremental_active_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-INTEGER-RANGE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The active replacement object in the newest revision supplies the modeled integer."
+    },
+    {
+      "name": "empty_trailer_id",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRAILER-ID-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.3:1"],
+      "rationale": "The pinned trailer-ID accessor returns a non-null empty string for an empty ID array."
+    },
+    {
+      "name": "single_trailer_id",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRAILER-ID-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.3:1"],
+      "rationale": "The pinned accessor warns about cardinality but still exposes a one-string ID array."
+    },
+    {
+      "name": "wrong_type_trailer_id",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRAILER-ID-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-array trailer ID is absent from the pinned CosDocument model."
+    },
+    {
+      "name": "stream_direct_length_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "rationale": "A direct stream length equal to the raw data extent passes."
+    },
+    {
+      "name": "stream_direct_length_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A direct stream length differs from the raw data extent without changing EOL applicability."
+    },
+    {
+      "name": "stream_indirect_length_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "rationale": "An indirect stream length resolves through the active object graph."
+    },
+    {
+      "name": "stream_indirect_length_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A resolved indirect length is compared with the independent raw stream extent."
+    },
+    {
+      "name": "stream_duplicate_length_last_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "rationale": "The final duplicate Length value wins and matches the raw extent."
+    },
+    {
+      "name": "stream_duplicate_length_last_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LENGTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The final duplicate Length value wins and mismatches the raw extent."
+    },
+    {
+      "name": "stream_duplicate_external_last_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "rationale": "A final direct-null duplicate removes the external-file entry from the pinned dictionary model."
+    },
+    {
+      "name": "stream_duplicate_external_last_invalid",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-EXTERNAL-DATA-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.7:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A final non-null duplicate exposes the forbidden external-file entry."
+    },
+    {
+      "name": "stream_escaped_lzw_filter",
+      "expected_local_failed_rule_ids": ["PDFA1B-STREAM-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Name escapes are decoded before the LZW filter internal representation is compared."
     }
   ]
 }

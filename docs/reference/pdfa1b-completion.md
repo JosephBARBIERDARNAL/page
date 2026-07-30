@@ -36,6 +36,32 @@ The generated file is reviewed and checked in. CI verifies it against the
 pinned XML, the differential case manifest, the local mapping table, and the
 fixture bytes.
 
+## Low-level syntax milestone
+
+The inventory's `low_level_syntax` matrix covers all 30 clause 6.1 predicates.
+Its 26 file-syntax and selected-COS-object predicates are exact against
+veraPDF 1.28.2. The remaining four entries belong to bounded content execution
+or embedded-program inspection and retain the strength of their owning
+coverage families; they are not partial because raw COS provenance is missing.
+
+The internal source layer retains revision-selected object spans, duplicate
+dictionary entries, original scalar spellings, decoded name and string values,
+classic-xref and trailer provenance, and independent stream boundaries.
+Recoverable invalid hexadecimal and xref syntax is reported through the pinned
+PDF/A rule rather than collapsed into `PDF-PARSE-001`. Fatal malformed input and
+configured resource limits remain parser and operational outcomes,
+respectively.
+
+The centralized `syntax` differential family pins direct and indirect values,
+last-duplicate-key behavior, incremental replacement, linearized trailers,
+decoded boundary values, stream length and external-data keys, and malformed
+recovery. Regenerate only the matrix after changing its routing policy with:
+
+```sh
+cargo test -p tag_validation --test coverage_inventory \
+  regenerate_low_level_syntax_matrix -- --ignored
+```
+
 ## Declaring the profile complete
 
 Change `completion_gate.status` to `complete` only after all of these conditions
