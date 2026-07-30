@@ -183,18 +183,34 @@ impl PdfDocument {
                 stream_safety: crate::stream_safety::StreamSafetySummary::default(),
             }
         } else {
-            let icc_based = crate::icc_based::inspect(&document, limits)?;
+            // Computed once and shared: every inspector below that walks the
+            // page tree (icc_based, graphics, annotations, actions, forms,
+            // font_embedding) previously called `document.get_pages()`
+            // independently, repeating the same page-tree traversal up to
+            // six times per document.
+            let pages = document.get_pages();
+            // Shared so icc_based and font_embedding, which both execute
+            // page/Form content streams, decompress each stream once between
+            // them instead of separately.
+            let mut content_cache = crate::content_support::ContentCache::new();
+            let icc_based =
+                crate::icc_based::inspect(&document, &pages, &mut content_cache, limits)?;
             let xobjects = crate::xobject::inspect(&document, &icc_based.used_xobject_ids);
-            let graphics = crate::graphics::inspect(&document, &icc_based, limits)?;
-            let annotations = crate::annotations::inspect(&document, limits)?;
-            let actions = crate::actions::inspect(&document, limits)?;
-            let forms = crate::forms::inspect(&document, limits)?;
+            let graphics = crate::graphics::inspect(&document, &icc_based, &pages, limits)?;
+            let annotations = crate::annotations::inspect(&document, &pages, limits)?;
+            let actions = crate::actions::inspect(&document, &pages, limits)?;
+            let forms = crate::forms::inspect(&document, &pages, limits)?;
             let document_features = crate::document_features::inspect(&document, limits)?;
             let object_limits = crate::object_limits::inspect(&document);
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes)?;
             InspectionSummary {
                 header,
-                font_embedding: font_embedding::inspect(&document, limits)?,
+                font_embedding: font_embedding::inspect(
+                    &document,
+                    &pages,
+                    &mut content_cache,
+                    limits,
+                )?,
                 icc_based,
                 xobjects,
                 graphics,

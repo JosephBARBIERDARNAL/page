@@ -3,7 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use lopdf::content::Content;
 use lopdf::{Dictionary, Document, Object, ObjectId};
 
-use crate::content_support::{decode_content_stream, inherited_page_resources, resource_once};
+use crate::content_support::{
+    ContentCache, decode_content_stream_cached, inherited_page_resources, resource_once,
+};
 use crate::error::PdfError;
 use crate::graphics::is_standard_rendering_intent;
 use crate::limits::SafetyLimits;
@@ -37,6 +39,7 @@ enum DeviceColorSpace {
 struct Scanner<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
+    cache: &'a mut ContentCache,
     inspected_profiles: BTreeSet<ResourceKey>,
     failures: BTreeMap<ResourceKey, RuleFailure>,
     component_failures: BTreeMap<ResourceKey, RuleFailure>,
@@ -54,11 +57,14 @@ struct Scanner<'a> {
 
 pub(crate) fn inspect(
     document: &Document,
+    pages: &BTreeMap<u32, ObjectId>,
+    cache: &mut ContentCache,
     limits: &SafetyLimits,
 ) -> Result<IccBasedSummary, PdfError> {
     let mut scanner = Scanner {
         document,
         limits,
+        cache,
         inspected_profiles: BTreeSet::new(),
         failures: BTreeMap::new(),
         component_failures: BTreeMap::new(),
@@ -73,7 +79,7 @@ pub(crate) fn inspect(
         inline_image_lzw_context: None,
         invalid_devicen_components: Vec::new(),
     };
-    for (page_number, page_id) in document.get_pages() {
+    for (&page_number, &page_id) in pages {
         scanner.scan_page(page_number, page_id)?;
     }
     scanner
@@ -227,6 +233,7 @@ impl Scanner<'_> {
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
+        let content_id = contents.as_reference().ok();
         let Some(contents) =
             resolve_optional(self.document, contents, self.limits.max_reference_depth)?
         else {
@@ -249,7 +256,13 @@ impl Scanner<'_> {
         let Ok(stream) = contents.as_stream() else {
             return Ok(());
         };
-        let bytes = decode_content_stream(stream, self.limits, decoded_bytes)?;
+        let bytes = decode_content_stream_cached(
+            stream,
+            content_id,
+            self.cache,
+            self.limits,
+            decoded_bytes,
+        )?;
         for name in inline_image_color_space_names(&bytes) {
             self.inspect_selected_color_space(
                 &Object::Name(name),

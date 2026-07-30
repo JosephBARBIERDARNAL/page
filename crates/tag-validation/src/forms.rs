@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-use lopdf::{Document, Object};
+use lopdf::{Document, Object, ObjectId};
 
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
@@ -14,10 +14,14 @@ pub(crate) struct FormSummary {
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
 }
 
-pub(crate) fn inspect(document: &Document, limits: &SafetyLimits) -> Result<FormSummary, PdfError> {
+pub(crate) fn inspect(
+    document: &Document,
+    pages: &BTreeMap<u32, ObjectId>,
+    limits: &SafetyLimits,
+) -> Result<FormSummary, PdfError> {
     let mut summary = FormSummary::default();
     inspect_acro_form(document, limits, &mut summary)?;
-    inspect_page_widgets(document, limits, &mut summary)?;
+    inspect_page_widgets(document, pages, limits, &mut summary)?;
     Ok(summary)
 }
 
@@ -65,12 +69,14 @@ fn inspect_acro_form(
 
 fn inspect_page_widgets(
     document: &Document,
+    pages: &BTreeMap<u32, ObjectId>,
     limits: &SafetyLimits,
     summary: &mut FormSummary,
 ) -> Result<(), PdfError> {
     let mut inspected = BTreeSet::new();
     for_each_page_annotation(
         document,
+        pages,
         limits,
         &mut inspected,
         |page_number, index, object_id, value| {

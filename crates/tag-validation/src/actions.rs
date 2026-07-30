@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -26,6 +26,7 @@ pub(crate) struct ActionSummary {
 
 pub(crate) fn inspect(
     document: &Document,
+    pages: &BTreeMap<u32, ObjectId>,
     limits: &SafetyLimits,
 ) -> Result<ActionSummary, PdfError> {
     let Some(catalog_value) = document.trailer.get(b"Root").ok() else {
@@ -40,6 +41,7 @@ pub(crate) fn inspect(
 
     let mut inspector = Inspector {
         document,
+        pages,
         limits,
         summary: ActionSummary::default(),
         seen_actions: BTreeSet::new(),
@@ -73,6 +75,7 @@ pub(crate) fn inspect(
 
 struct Inspector<'a> {
     document: &'a Document,
+    pages: &'a BTreeMap<u32, ObjectId>,
     limits: &'a SafetyLimits,
     summary: ActionSummary,
     seen_actions: BTreeSet<ObjectId>,
@@ -88,7 +91,8 @@ impl Inspector<'_> {
     // conflicts with also passing `&mut self.seen_annotations` as a separate
     // argument.
     fn inspect_pages(&mut self) -> Result<(), PdfError> {
-        for (page_number, page_id) in self.document.get_pages() {
+        let pages = self.pages;
+        for (&page_number, &page_id) in pages {
             let Some(page) = self
                 .document
                 .objects

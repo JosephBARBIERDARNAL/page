@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use lopdf::{Dictionary, Document, ObjectId};
 
 use crate::error::PdfError;
@@ -23,6 +25,7 @@ pub(crate) struct GraphicsSummary {
 pub(crate) fn inspect(
     document: &Document,
     content: &IccBasedSummary,
+    pages: &BTreeMap<u32, ObjectId>,
     limits: &SafetyLimits,
 ) -> Result<GraphicsSummary, PdfError> {
     let mut summary = GraphicsSummary::default();
@@ -87,7 +90,7 @@ pub(crate) fn inspect(
         }
     }
 
-    for (_, page_id) in document.get_pages() {
+    for &page_id in pages.values() {
         let Some(page) = document
             .objects
             .get(&page_id)

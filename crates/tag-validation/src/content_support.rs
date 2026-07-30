@@ -1,4 +1,5 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::rc::Rc;
 
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 
@@ -40,6 +41,48 @@ pub(crate) fn decode_content_stream(
     Ok(bytes)
 }
 
+/// A page/Form content-stream decode cache keyed by the stream's own
+/// indirect object id, shared across the several inspectors that otherwise
+/// each independently decompress and re-tokenize the same page and Form
+/// content.
+pub(crate) type ContentCache = HashMap<ObjectId, Rc<[u8]>>;
+
+/// Decodes `stream`'s content like [`decode_content_stream`], reusing a
+/// previous decode of the same indirect object from `cache` instead of
+/// decompressing it again. `object_id` is the reference that resolved to
+/// `stream` (a page `/Contents` entry or an invoked Form XObject), if any;
+/// a directly embedded stream has no id to key on and is decoded but not
+/// cached, exactly as it always was.
+///
+/// A cache hit still runs the same `decoded_bytes` budget accounting as a
+/// fresh decode would (using the cached length), so the configured
+/// `max_decoded_stream_size` limit applies identically either way.
+pub(crate) fn decode_content_stream_cached(
+    stream: &Stream,
+    object_id: Option<ObjectId>,
+    cache: &mut ContentCache,
+    limits: &SafetyLimits,
+    decoded_bytes: &mut usize,
+) -> Result<Rc<[u8]>, PdfError> {
+    if let Some(object_id) = object_id
+        && let Some(cached) = cache.get(&object_id)
+    {
+        let remaining = limits
+            .max_decoded_stream_size
+            .saturating_sub(*decoded_bytes);
+        if cached.len() > remaining {
+            return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
+        }
+        *decoded_bytes = decoded_bytes.saturating_add(cached.len());
+        return Ok(Rc::clone(cached));
+    }
+    let bytes: Rc<[u8]> = Rc::from(decode_content_stream(stream, limits, decoded_bytes)?);
+    if let Some(object_id) = object_id {
+        cache.insert(object_id, Rc::clone(&bytes));
+    }
+    Ok(bytes)
+}
+
 pub(crate) fn inherited_page_resources<'a>(
     document: &'a Document,
     node: &'a Dictionary,
@@ -67,11 +110,12 @@ pub(crate) fn inherited_page_resources<'a>(
 /// dictionary, others also accept a stream-backed one via `dictionary_based`).
 pub(crate) fn for_each_page_annotation<'a>(
     document: &'a Document,
+    pages: &BTreeMap<u32, ObjectId>,
     limits: &SafetyLimits,
     inspected: &mut BTreeSet<ObjectId>,
     mut visit: impl FnMut(u32, usize, Option<PdfObjectId>, &'a Object) -> Result<(), PdfError>,
 ) -> Result<(), PdfError> {
-    for (page_number, page_id) in document.get_pages() {
+    for (&page_number, &page_id) in pages {
         let Some(page) = document
             .objects
             .get(&page_id)

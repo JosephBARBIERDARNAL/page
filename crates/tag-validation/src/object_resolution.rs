@@ -1,17 +1,69 @@
-use std::collections::BTreeSet;
-
 use lopdf::{Dictionary, Document, Object, ObjectId};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 
+/// Number of reference hops tracked without a heap allocation before cycle
+/// detection spills to a `Vec`. Real PDF reference chains almost always
+/// resolve within a couple of hops, so this keeps the hot `resolve`/
+/// `walk_inherited` paths allocation-free in the common case while staying
+/// correct for arbitrarily deep (and cyclic) chains up to `maximum_depth`.
+const INLINE_VISITED_CAPACITY: usize = 8;
+
+/// A cycle-detection set mirroring `BTreeSet<ObjectId>::insert`'s return
+/// value, backed by an inline array until more than
+/// `INLINE_VISITED_CAPACITY` distinct ids are seen.
+enum Visited {
+    Inline {
+        ids: [ObjectId; INLINE_VISITED_CAPACITY],
+        len: usize,
+    },
+    Spilled(Vec<ObjectId>),
+}
+
+impl Visited {
+    fn new() -> Self {
+        Self::Inline {
+            ids: [(0, 0); INLINE_VISITED_CAPACITY],
+            len: 0,
+        }
+    }
+
+    /// Returns `false` if `id` was already present, `true` if newly recorded.
+    fn insert(&mut self, id: ObjectId) -> bool {
+        match self {
+            Self::Inline { ids, len } => {
+                if ids[..*len].contains(&id) {
+                    return false;
+                }
+                if *len < INLINE_VISITED_CAPACITY {
+                    ids[*len] = id;
+                    *len += 1;
+                } else {
+                    let mut spilled = ids[..*len].to_vec();
+                    spilled.push(id);
+                    *self = Self::Spilled(spilled);
+                }
+                true
+            }
+            Self::Spilled(ids) => {
+                if ids.contains(&id) {
+                    return false;
+                }
+                ids.push(id);
+                true
+            }
+        }
+    }
+}
+
 pub(crate) fn resolve<'a>(
     document: &'a Document,
     mut object: &'a Object,
     maximum_depth: usize,
 ) -> Result<&'a Object, PdfError> {
-    let mut visited = BTreeSet::new();
+    let mut visited = Visited::new();
     for _ in 0..=maximum_depth {
         let Object::Reference(object_id) = object else {
             return Ok(object);
@@ -78,7 +130,7 @@ pub(crate) fn walk_inherited<'a, T>(
     key: &[u8],
     extract: impl Fn(&'a Document, &'a Object, &SafetyLimits) -> Result<Option<T>, PdfError>,
 ) -> Result<Option<T>, PdfError> {
-    let mut visited = BTreeSet::new();
+    let mut visited = Visited::new();
     for _ in 0..=limits.max_reference_depth {
         if let Ok(value) = node.get(key) {
             return extract(document, value, limits);

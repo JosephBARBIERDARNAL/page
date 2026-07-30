@@ -1,9 +1,12 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::rc::Rc;
 
 use lopdf::content::Content;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 
-use crate::content_support::{decode_content_stream, inherited_page_resources, resource_once};
+use crate::content_support::{
+    ContentCache, decode_content_stream_cached, inherited_page_resources, resource_once,
+};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
@@ -66,6 +69,11 @@ struct FontUse {
 struct Scanner<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
+    cache: &'a mut ContentCache,
+    /// Embedded CMaps parsed once per indirect object and reused across the
+    /// several checks that otherwise each independently decode and
+    /// re-tokenize the same CMap stream for the same font.
+    cmap_decoders: HashMap<ObjectId, Rc<CmapDecoder>>,
     uses: BTreeMap<ResourceKey, FontUse>,
     active_descendant_fonts: BTreeSet<ResourceKey>,
     invalid_types: Vec<RuleFailure>,
@@ -94,11 +102,15 @@ struct Scanner<'a> {
 
 pub(crate) fn inspect(
     document: &Document,
+    pages: &BTreeMap<u32, ObjectId>,
+    cache: &mut ContentCache,
     limits: &SafetyLimits,
 ) -> Result<FontEmbeddingSummary, PdfError> {
     let mut scanner = Scanner {
         document,
         limits,
+        cache,
+        cmap_decoders: HashMap::new(),
         uses: BTreeMap::new(),
         active_descendant_fonts: BTreeSet::new(),
         invalid_types: Vec::new(),
@@ -124,7 +136,7 @@ pub(crate) fn inspect(
         inconsistent_truetype_widths: Vec::new(),
         excessive_graphics_state_nesting: Vec::new(),
     };
-    for (page_number, page_id) in document.get_pages() {
+    for (&page_number, &page_id) in pages {
         scanner.scan_page(page_number, page_id)?;
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
@@ -251,6 +263,7 @@ impl Scanner<'_> {
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
+        let content_id = contents.as_reference().ok();
         let Some(contents) =
             resolve_optional(self.document, contents, self.limits.max_reference_depth)?
         else {
@@ -274,7 +287,13 @@ impl Scanner<'_> {
         let Ok(stream) = contents.as_stream() else {
             return Ok(());
         };
-        let bytes = decode_content_stream(stream, self.limits, decoded_bytes)?;
+        let bytes = decode_content_stream_cached(
+            stream,
+            content_id,
+            self.cache,
+            self.limits,
+            decoded_bytes,
+        )?;
         let content_bytes = crate::icc_based::content_without_inline_images(&bytes);
         let Ok(content) = Content::decode(&content_bytes) else {
             return Ok(());
@@ -520,6 +539,31 @@ impl Scanner<'_> {
         Ok(())
     }
 
+    /// Resolves the CIDs a Type0 font's `encoding` maps `shown_bytes`
+    /// through, reusing a previously decoded/parsed embedded CMap for the
+    /// same indirect object instead of re-decompressing and re-tokenizing it.
+    /// The two glyph-presence and width checks that need this both look it
+    /// up for the same font, so a cache hit is the common case.
+    fn cached_cids_for_rendered_bytes(
+        &mut self,
+        encoding: &Object,
+        shown_bytes: &[u8],
+    ) -> Result<Option<Vec<u16>>, PdfError> {
+        let Some(object_id) = encoding.as_reference().ok() else {
+            let decoder = resolve_cmap_decoder(self.document, encoding, self.limits)?;
+            return Ok(decoder.decode(shown_bytes));
+        };
+        let decoder = match self.cmap_decoders.get(&object_id) {
+            Some(decoder) => Rc::clone(decoder),
+            None => {
+                let decoder = Rc::new(resolve_cmap_decoder(self.document, encoding, self.limits)?);
+                self.cmap_decoders.insert(object_id, Rc::clone(&decoder));
+                decoder
+            }
+        };
+        Ok(decoder.decode(shown_bytes))
+    }
+
     fn inspect_truetype_font(
         &mut self,
         font: &Dictionary,
@@ -694,8 +738,7 @@ impl Scanner<'_> {
             let Ok(encoding) = font.get(b"Encoding") else {
                 continue;
             };
-            let Some(cids) =
-                cids_for_rendered_bytes(self.document, encoding, &usage.shown_bytes, self.limits)?
+            let Some(cids) = self.cached_cids_for_rendered_bytes(encoding, &usage.shown_bytes)?
             else {
                 continue;
             };
@@ -738,12 +781,14 @@ impl Scanner<'_> {
             let Ok(face) = ttf_parser::Face::parse(&bytes, 0) else {
                 continue;
             };
+            // Resolved/parsed once per font instead of once per rendered CID.
+            let cid_to_gid_map = resolve_cid_to_gid_map(self.document, cid_to_gid, self.limits)?;
+            let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
             for cid in cids.into_iter().collect::<BTreeSet<_>>() {
                 if cid == 0 {
                     continue;
                 }
-                let Some(glyph) = cid_to_gid_index(self.document, cid_to_gid, cid, self.limits)?
-                else {
+                let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
                     continue;
                 };
                 let Some(advance) = face.glyph_hor_advance(glyph) else {
@@ -754,9 +799,7 @@ impl Scanner<'_> {
                     ));
                     continue;
                 };
-                let Some(dictionary_width) =
-                    cid_dictionary_width(self.document, descendant, cid, self.limits)?
-                else {
+                let Some(dictionary_width) = cid_widths.width_for(cid) else {
                     continue;
                 };
                 let program_width = f64::from(advance) * 1000.0 / f64::from(face.units_per_em());
@@ -807,14 +850,21 @@ impl Scanner<'_> {
         let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
             return Ok(());
         };
+        // Built once per font instead of scanning every glyph per rendered
+        // CID; `or_insert` keeps the same lowest-glyph-id tie-break as the
+        // original `.find()` over an ascending glyph-id range.
+        let mut glyph_by_cid: HashMap<u16, ttf_parser::GlyphId> = HashMap::new();
+        for glyph in (0..cff.number_of_glyphs()).map(ttf_parser::GlyphId) {
+            if let Some(cid) = cff.glyph_cid(glyph) {
+                glyph_by_cid.entry(cid).or_insert(glyph);
+            }
+        }
+        let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
         for cid in cids.iter().copied().collect::<BTreeSet<_>>() {
             if cid == 0 {
                 continue;
             }
-            let Some(glyph) = (0..cff.number_of_glyphs())
-                .map(ttf_parser::GlyphId)
-                .find(|glyph| cff.glyph_cid(*glyph) == Some(cid))
-            else {
+            let Some(&glyph) = glyph_by_cid.get(&cid) else {
                 self.missing_truetype_glyphs.push(font_failure(
                     usage.object_id,
                     &usage.description,
@@ -825,9 +875,7 @@ impl Scanner<'_> {
             let Some(program_width) = cff_cid_glyph_width(&bytes, glyph.0) else {
                 continue;
             };
-            let Some(dictionary_width) =
-                cid_dictionary_width(self.document, descendant, cid, self.limits)?
-            else {
+            let Some(dictionary_width) = cid_widths.width_for(cid) else {
                 continue;
             };
             if (program_width - dictionary_width).abs() > 1.0 {
@@ -1195,8 +1243,7 @@ impl Scanner<'_> {
             let Ok(encoding) = font.get(b"Encoding") else {
                 continue;
             };
-            let Some(cids) =
-                cids_for_rendered_bytes(self.document, encoding, &usage.shown_bytes, self.limits)?
+            let Some(cids) = self.cached_cids_for_rendered_bytes(encoding, &usage.shown_bytes)?
             else {
                 continue;
             };
@@ -1524,88 +1571,179 @@ fn type1_encoding_differences(
     Ok(names)
 }
 
-fn cid_to_gid_index(
+/// A `/CIDToGIDMap` resolved once per font instead of once per rendered
+/// CID, since the map itself (`Identity` or a decoded stream) never changes
+/// across the many CIDs a single font renders.
+enum CidToGidMap {
+    Identity,
+    Table(Vec<u8>),
+    Unavailable,
+}
+
+impl CidToGidMap {
+    fn glyph_for(&self, cid: u16) -> Option<ttf_parser::GlyphId> {
+        match self {
+            Self::Identity => Some(ttf_parser::GlyphId(cid)),
+            Self::Table(bytes) => {
+                let offset = usize::from(cid).checked_mul(2)?;
+                let entry = bytes.get(offset..offset.saturating_add(2))?;
+                Some(ttf_parser::GlyphId(u16::from_be_bytes([
+                    entry[0], entry[1],
+                ])))
+            }
+            Self::Unavailable => None,
+        }
+    }
+}
+
+fn resolve_cid_to_gid_map(
     document: &Document,
     map: &Object,
-    cid: u16,
     limits: &SafetyLimits,
-) -> Result<Option<ttf_parser::GlyphId>, PdfError> {
+) -> Result<CidToGidMap, PdfError> {
     if map.as_name().ok() == Some(b"Identity".as_slice()) {
-        return Ok(Some(ttf_parser::GlyphId(cid)));
+        return Ok(CidToGidMap::Identity);
     }
     let Some(stream) = resolve_optional(document, map, limits.max_reference_depth)?
         .and_then(|value| value.as_stream().ok())
     else {
-        return Ok(None);
+        return Ok(CidToGidMap::Unavailable);
     };
-    let bytes = decode_font_stream(stream, limits)?;
-    let offset = usize::from(cid).checked_mul(2);
-    let Some(offset) = offset else {
-        return Ok(None);
-    };
-    let Some(entry) = bytes.get(offset..offset.saturating_add(2)) else {
-        return Ok(None);
-    };
-    Ok(Some(ttf_parser::GlyphId(u16::from_be_bytes([
-        entry[0], entry[1],
-    ]))))
+    Ok(CidToGidMap::Table(decode_font_stream(stream, limits)?))
 }
 
-fn cid_dictionary_width(
-    document: &Document,
-    font: &Dictionary,
-    cid: u16,
-    limits: &SafetyLimits,
-) -> Result<Option<f64>, PdfError> {
-    if let Ok(value) = font.get(b"W")
-        && let Some(array) = resolve_optional(document, value, limits.max_reference_depth)?
-            .and_then(|value| value.as_array().ok())
-    {
-        let mut index = 0usize;
-        while index < array.len() {
-            let Some(first) = array
-                .get(index)
-                .and_then(as_integer)
-                .and_then(|value| u16::try_from(value).ok())
-            else {
-                return Ok(None);
-            };
-            let Some(next) = array.get(index + 1) else {
-                return Ok(None);
-            };
-            if let Ok(widths) = next.as_array() {
-                for (offset, width) in widths.iter().enumerate() {
-                    let Some(offset) = u16::try_from(offset).ok() else {
-                        return Ok(None);
-                    };
-                    if first.checked_add(offset) == Some(cid) {
-                        return Ok(width.as_float().ok().map(f64::from));
+/// A single `/W` array group, in original array order.
+enum WGroup {
+    /// `c [w1 w2 ... wn]`: width for CID `first + i` is `widths[i]`, when
+    /// present and numeric.
+    Singles {
+        first: u16,
+        widths: Vec<Option<f64>>,
+    },
+    /// `cFirst cLast w`.
+    Range { first: u16, last: u16, width: f64 },
+}
+
+/// A font's `/W` (and `/DW`) entries, parsed once instead of rescanning the
+/// whole array for every rendered CID. `width_for` reproduces
+/// the original sequential-scan predicate exactly, including that a
+/// malformed group aborts the lookup for every CID from that point on
+/// *without* falling back to `/DW` (unlike a fully well-formed array that
+/// simply has no matching group).
+struct CidWidths {
+    groups: Vec<WGroup>,
+    truncated: bool,
+    default_width: Option<f64>,
+}
+
+impl CidWidths {
+    fn width_for(&self, cid: u16) -> Option<f64> {
+        for group in &self.groups {
+            match group {
+                WGroup::Singles { first, widths } => {
+                    if let Some(offset) = cid.checked_sub(*first)
+                        && let Some(width) = widths.get(usize::from(offset))
+                    {
+                        return *width;
                     }
                 }
-                index += 2;
-                continue;
+                WGroup::Range { first, last, width } => {
+                    if (*first..=*last).contains(&cid) {
+                        return Some(*width);
+                    }
+                }
             }
-            let Some(last) = next
-                .as_i64()
-                .ok()
-                .and_then(|value| u16::try_from(value).ok())
-            else {
-                return Ok(None);
-            };
-            let Some(width) = array.get(index + 2).and_then(|value| value.as_float().ok()) else {
-                return Ok(None);
-            };
-            if (first..=last).contains(&cid) {
-                return Ok(Some(f64::from(width)));
-            }
-            index += 3;
+        }
+        if self.truncated {
+            None
+        } else {
+            self.default_width
         }
     }
-    Ok(font
+}
+
+fn parse_cid_widths(
+    document: &Document,
+    font: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<CidWidths, PdfError> {
+    let default_width = font
         .get(b"DW")
         .ok()
         .and_then(|value| value.as_float().ok())
-        .map(f64::from))
+        .map(f64::from);
+    let none = || CidWidths {
+        groups: Vec::new(),
+        truncated: false,
+        default_width,
+    };
+    let Ok(value) = font.get(b"W") else {
+        return Ok(none());
+    };
+    let Some(array) = resolve_optional(document, value, limits.max_reference_depth)?
+        .and_then(|value| value.as_array().ok())
+    else {
+        return Ok(none());
+    };
+
+    let mut groups = Vec::new();
+    let mut index = 0usize;
+    let truncated = loop {
+        if index >= array.len() {
+            break false;
+        }
+        let Some(first) = array
+            .get(index)
+            .and_then(as_integer)
+            .and_then(|value| u16::try_from(value).ok())
+        else {
+            break true;
+        };
+        let Some(next) = array.get(index + 1) else {
+            break true;
+        };
+        if let Ok(widths) = next.as_array() {
+            // The original scan converts each offset `0..widths.len()` to a
+            // `u16` one at a time, aborting the moment that overflows.
+            // Reaching offset 65536 is exactly the same overflow point.
+            let usable_len = widths.len().min(usize::from(u16::MAX) + 1);
+            let overflowed = widths.len() > usable_len;
+            groups.push(WGroup::Singles {
+                first,
+                widths: widths[..usable_len]
+                    .iter()
+                    .map(|value| value.as_float().ok().map(f64::from))
+                    .collect(),
+            });
+            if overflowed {
+                break true;
+            }
+            index += 2;
+            continue;
+        }
+        let Some(last) = next
+            .as_i64()
+            .ok()
+            .and_then(|value| u16::try_from(value).ok())
+        else {
+            break true;
+        };
+        let Some(width) = array.get(index + 2).and_then(|value| value.as_float().ok()) else {
+            break true;
+        };
+        groups.push(WGroup::Range {
+            first,
+            last,
+            width: f64::from(width),
+        });
+        index += 3;
+    };
+
+    Ok(CidWidths {
+        groups,
+        truncated,
+        default_width,
+    })
 }
 
 fn single_encoded_character(encoding: &lopdf::Encoding<'_>, byte: u8) -> Option<char> {
@@ -1762,39 +1900,64 @@ fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
     maximum
 }
 
-fn cids_for_rendered_bytes(
+/// A Type0 font's resolved `/Encoding`, cacheable per indirect CMap object
+/// since it never changes across the many rendered-byte sequences checked
+/// against it.
+enum CmapDecoder {
+    /// The literal name `/Identity-H`/`/Identity-V`, or an embedded CMap
+    /// that itself `usecmap`s one of them: every two shown bytes decode
+    /// directly as a big-endian CID.
+    IdentityBytes,
+    /// A parsed explicit embedded CMap.
+    Parsed(ParsedCmap),
+    /// `encoding` did not resolve to a usable CMap.
+    Unavailable,
+}
+
+impl CmapDecoder {
+    fn decode(&self, shown_bytes: &[u8]) -> Option<Vec<u16>> {
+        match self {
+            Self::IdentityBytes => identity_cids(shown_bytes),
+            Self::Parsed(parsed) => parsed.decode(shown_bytes),
+            Self::Unavailable => None,
+        }
+    }
+}
+
+fn identity_cids(shown_bytes: &[u8]) -> Option<Vec<u16>> {
+    let mut chunks = shown_bytes.chunks_exact(2);
+    let cids = chunks
+        .by_ref()
+        .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
+        .collect();
+    chunks.remainder().is_empty().then_some(cids)
+}
+
+fn resolve_cmap_decoder(
     document: &Document,
     encoding: &Object,
-    shown_bytes: &[u8],
     limits: &SafetyLimits,
-) -> Result<Option<Vec<u16>>, PdfError> {
+) -> Result<CmapDecoder, PdfError> {
     if encoding
         .as_name()
         .ok()
         .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
     {
-        let mut chunks = shown_bytes.chunks_exact(2);
-        let cids = chunks
-            .by_ref()
-            .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
-            .collect();
-        return Ok(chunks.remainder().is_empty().then_some(cids));
+        return Ok(CmapDecoder::IdentityBytes);
     }
     let Some(cmap) = resolve_optional(document, encoding, limits.max_reference_depth)?
         .and_then(|object| object.as_stream().ok())
     else {
-        return Ok(None);
+        return Ok(CmapDecoder::Unavailable);
     };
     let bytes = decode_font_stream(cmap, limits)?;
     if cmap_uses_identity_base(&bytes) {
-        let mut chunks = shown_bytes.chunks_exact(2);
-        let cids = chunks
-            .by_ref()
-            .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
-            .collect();
-        return Ok(chunks.remainder().is_empty().then_some(cids));
+        return Ok(CmapDecoder::IdentityBytes);
     }
-    Ok(cmap_cids(&bytes, shown_bytes))
+    Ok(match parse_cmap(&bytes) {
+        Some(parsed) => CmapDecoder::Parsed(parsed),
+        None => CmapDecoder::Unavailable,
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -1819,10 +1982,19 @@ fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
         .any(|pair| matches!(pair[0], b"/Identity-H" | b"/Identity-V") && pair[1] == b"usecmap")
 }
 
+/// An embedded CMap's code spaces, single-CID mappings, and CID ranges,
+/// parsed once from its raw bytes and reused for every rendered-byte
+/// sequence decoded through it.
+struct ParsedCmap {
+    code_spaces: Vec<CmapCodeSpace>,
+    chars: BTreeMap<(usize, u32), u16>,
+    ranges: Vec<CmapCidRange>,
+}
+
 /// Resolves explicit CID CMaps with one- through four-byte code spaces. Other
 /// inherited maps remain inapplicable until the predefined CMap collection is
 /// modeled.
-fn cmap_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
+fn parse_cmap(bytes: &[u8]) -> Option<ParsedCmap> {
     let tokens = cmap_tokens(bytes);
     let mut cursor = 0usize;
     let mut code_spaces = Vec::new();
@@ -1917,41 +2089,51 @@ fn cmap_cids(bytes: &[u8], shown_bytes: &[u8]) -> Option<Vec<u16>> {
         return None;
     }
     code_spaces.sort_by_key(|space| space.bytes);
-    let mut cids = Vec::new();
-    let mut position = 0usize;
-    while position < shown_bytes.len() {
-        let mut decoded = None;
-        for space in &code_spaces {
-            let Some(end) = position.checked_add(space.bytes) else {
-                continue;
-            };
-            let Some(code_bytes) = shown_bytes.get(position..end) else {
-                continue;
-            };
-            let code = code_bytes
-                .iter()
-                .fold(0_u32, |value, byte| value << 8 | u32::from(*byte));
-            if code < space.start || code > space.end {
-                continue;
-            }
-            let cid = chars.get(&(space.bytes, code)).copied().or_else(|| {
-                ranges
+    Some(ParsedCmap {
+        code_spaces,
+        chars,
+        ranges,
+    })
+}
+
+impl ParsedCmap {
+    fn decode(&self, shown_bytes: &[u8]) -> Option<Vec<u16>> {
+        let mut cids = Vec::new();
+        let mut position = 0usize;
+        while position < shown_bytes.len() {
+            let mut decoded = None;
+            for space in &self.code_spaces {
+                let Some(end) = position.checked_add(space.bytes) else {
+                    continue;
+                };
+                let Some(code_bytes) = shown_bytes.get(position..end) else {
+                    continue;
+                };
+                let code = code_bytes
                     .iter()
-                    .find(|range| {
-                        range.bytes == space.bytes && range.start <= code && code <= range.end
-                    })
-                    .map(|range| range.first_cid + (code - range.start) as u16)
-            });
-            decoded = Some((space.bytes, cid));
-            break;
+                    .fold(0_u32, |value, byte| value << 8 | u32::from(*byte));
+                if code < space.start || code > space.end {
+                    continue;
+                }
+                let cid = self.chars.get(&(space.bytes, code)).copied().or_else(|| {
+                    self.ranges
+                        .iter()
+                        .find(|range| {
+                            range.bytes == space.bytes && range.start <= code && code <= range.end
+                        })
+                        .map(|range| range.first_cid + (code - range.start) as u16)
+                });
+                decoded = Some((space.bytes, cid));
+                break;
+            }
+            let Some((width, Some(cid))) = decoded else {
+                return None;
+            };
+            position += width;
+            cids.push(cid);
         }
-        let Some((width, Some(cid))) = decoded else {
-            return None;
-        };
-        position += width;
-        cids.push(cid);
+        Some(cids)
     }
-    Some(cids)
 }
 
 fn cmap_tokens(bytes: &[u8]) -> Vec<&[u8]> {
@@ -2764,7 +2946,7 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        cmap_cids, cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids,
+        cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
         shown_text_bytes,
     };
     use crate::SafetyLimits;
@@ -2788,9 +2970,11 @@ mod tests {
     #[test]
     fn decodes_explicit_variable_width_cid_cmaps() {
         let cmap = b"% 1 begincidchar <41> 99 endcidchar\n2 begincodespacerange\n<00> <7F>\n<8000> <80FF>\nendcodespacerange\n1 begincidchar\n<41> 12\nendcidchar\n1 begincidrange\n<8000> <8002> 20\nendcidrange";
-        assert_eq!(cmap_cids(cmap, &[0x41, 0x80, 0x01]), Some(vec![12, 21]));
-        assert_eq!(cmap_cids(cmap, &[0x80]), None);
-        assert_eq!(cmap_cids(cmap, &[0x42]), None);
+        let cmap_cids =
+            |shown_bytes: &[u8]| parse_cmap(cmap).and_then(|parsed| parsed.decode(shown_bytes));
+        assert_eq!(cmap_cids(&[0x41, 0x80, 0x01]), Some(vec![12, 21]));
+        assert_eq!(cmap_cids(&[0x80]), None);
+        assert_eq!(cmap_cids(&[0x42]), None);
     }
 
     #[test]
