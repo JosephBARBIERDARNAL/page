@@ -480,6 +480,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#low-level-syntax-milestone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Low-level syntax milestone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#declaring-the-profile-complete" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -601,6 +612,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#low-level-syntax-milestone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Low-level syntax milestone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#declaring-the-profile-complete" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -717,6 +739,26 @@ profile, rule mapping, or atomic manifest:</p>
 <p>The generated file is reviewed and checked in. CI verifies it against the
 pinned XML, the differential case manifest, the local mapping table, and the
 fixture bytes.</p>
+<h2 id="low-level-syntax-milestone">Low-level syntax milestone<a class="headerlink" href="#low-level-syntax-milestone" title="Permanent link">&para;</a></h2>
+<p>The inventory's <code>low_level_syntax</code> matrix covers all 30 clause 6.1 predicates.
+Its 26 file-syntax and selected-COS-object predicates are exact against
+veraPDF 1.28.2. The remaining four entries belong to bounded content execution
+or embedded-program inspection and retain the strength of their owning
+coverage families; they are not partial because raw COS provenance is missing.</p>
+<p>The internal source layer retains revision-selected object spans, duplicate
+dictionary entries, original scalar spellings, decoded name and string values,
+classic-xref and trailer provenance, and independent stream boundaries.
+Recoverable invalid hexadecimal and xref syntax is reported through the pinned
+PDF/A rule rather than collapsed into <code>PDF-PARSE-001</code>. Fatal malformed input and
+configured resource limits remain parser and operational outcomes,
+respectively.</p>
+<p>The centralized <code>syntax</code> differential family pins direct and indirect values,
+last-duplicate-key behavior, incremental replacement, linearized trailers,
+decoded boundary values, stream length and external-data keys, and malformed
+recovery. Regenerate only the matrix after changing its routing policy with:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>tag_validation<span class="w"> </span>--test<span class="w"> </span>coverage_inventory<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>regenerate_low_level_syntax_matrix<span class="w"> </span>--<span class="w"> </span>--ignored
+</span></code></pre></div>
 <h2 id="declaring-the-profile-complete">Declaring the profile complete<a class="headerlink" href="#declaring-the-profile-complete" title="Permanent link">&para;</a></h2>
 <p>Change <code>completion_gate.status</code> to <code>complete</code> only after all of these conditions
 are true:</p>
@@ -736,7 +778,7 @@ are true:</p>
    platform.</li>
 </ol>
 <p>The release-only command enforces the declaration and then runs the live suite:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>pdfa1b-release-gate
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>pdfa1b-release-gate
 </span></code></pre></div>
 <p>It intentionally fails while the inventory remains <code>developing</code>. A manual
 GitHub Actions run can enable <code>pdfa1b_release_gate</code> to run the same release
