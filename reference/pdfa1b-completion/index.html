@@ -12,11 +12,13 @@
         <meta name="author" content="Joseph Barbier">
       
       
-        <link rel="canonical" href="https://JosephBARBIERDARNAL.github.io/tag/reference/python-package/">
+        <link rel="canonical" href="https://JosephBARBIERDARNAL.github.io/tag/reference/pdfa1b-completion/">
       
       
-        <link rel="prev" href="../rust-crate/">
+        <link rel="prev" href="../cli/">
       
+      
+        <link rel="next" href="../rust-crate/">
       
       
         
@@ -27,7 +29,7 @@
     
     
       
-        <title>Python package - tag</title>
+        <title>PDF/A-1B completion gate - tag</title>
       
     
     
@@ -84,7 +86,8 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        <a href="#__skip" class="md-skip">
+        
+        <a href="#pdfa-1b-completion-gate" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Python package
+              PDF/A-1B completion gate
             
           </span>
         </div>
@@ -415,10 +418,36 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../pdfa1b-completion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/A-1B completion gate
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -433,6 +462,38 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#declaring-the-profile-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Declaring the profile complete
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -469,17 +530,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../python-package/" class="md-nav__link">
         
   
   
@@ -494,7 +548,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -521,6 +574,13 @@
                     
                     
                     
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -531,6 +591,27 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#declaring-the-profile-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Declaring the profile complete
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -611,9 +692,60 @@
   
 
 
-  <h1 id="__skip">Python package</h1>
+<h1 id="pdfa-1b-completion-gate">PDF/A-1B completion gate<a class="headerlink" href="#pdfa-1b-completion-gate" title="Permanent link">&para;</a></h1>
+<p><code>tag</code> must not describe a local pass as PDF/A-1B compliant while the checked-in
+coverage inventory is marked <code>developing</code>. The source of truth is veraPDF
+1.28.2, flavour <code>1b</code>, and the byte-pinned
+<code>PDFA-1B-1.28.xml</code> validation profile.</p>
+<p>The machine-readable inventory is
+<code>crates/tag_validation/tests/fixtures/pdfa-1b-coverage.json</code>. It contains all
+129 unique profile predicates, their local rule mappings, implementation
+strength, pass/fail/inapplicable evidence, variant matrix, parser matrix,
+integration corpus, fixture hashes, and bounded mutation recipes.</p>
+<p>Run the offline inventory check with:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>just<span class="w"> </span>coverage
+</span></code></pre></div>
+<p>Run every centralized atomic and corpus comparison with the pinned executable:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>verapdf
+</span></code></pre></div>
+<p>Regenerate the predicate portion of the inventory after changing the pinned
+profile, rule mapping, or atomic manifest:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>tag_validation<span class="w"> </span>--test<span class="w"> </span>coverage_inventory<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>regenerate_coverage_inventory<span class="w"> </span>--<span class="w"> </span>--ignored
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>just<span class="w"> </span>coverage
+</span></code></pre></div>
+<p>The generated file is reviewed and checked in. CI verifies it against the
+pinned XML, the differential case manifest, the local mapping table, and the
+fixture bytes.</p>
+<h2 id="declaring-the-profile-complete">Declaring the profile complete<a class="headerlink" href="#declaring-the-profile-complete" title="Permanent link">&para;</a></h2>
+<p>Change <code>completion_gate.status</code> to <code>complete</code> only after all of these conditions
+are true:</p>
+<ol>
+<li>All 129 predicates have centralized veraPDF rule-ID delta evidence for an
+   applicable pass and applicable fail.</li>
+<li>Every representable inapplicable state and every object-model distinction
+   that changes veraPDF behavior has a fixture.</li>
+<li>Direct/indirect, null/wrong-type, inherited, nested, cyclic, malformed, and
+   parser-recovery matrices are complete.</li>
+<li>Every local mapping has <code>exact</code> strength.</li>
+<li>The parser and cross-family corpora have no unexpected semantic or parser
+   discrepancy.</li>
+<li>No checked-in case expects <code>coverage_gap</code>.</li>
+<li><code>completion_gate.coverage_gap_is_success</code> is <code>false</code>.</li>
+<li><code>just check</code> and the full opt-in veraPDF suite pass on every supported CI
+   platform.</li>
+</ol>
+<p>The release-only command enforces the declaration and then runs the live suite:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>pdfa1b-release-gate
+</span></code></pre></div>
+<p>It intentionally fails while the inventory remains <code>developing</code>. A manual
+GitHub Actions run can enable <code>pdfa1b_release_gate</code> to run the same release
+check.</p>
+<p>After completion, invoke <code>verapdf-diff --require-complete</code> in release workflows.
+That policy changes <code>coverage_gap</code> from an acceptable development
+classification to exit status <code>2</code>. Operational failures remain status <code>1</code>;
+unexpected semantic and parser discrepancies remain status <code>2</code>.</p>
 
-<p><code>tag</code> validation is available as a Python package.</p>
 
 
 
@@ -621,10 +753,6 @@
 
 
 
-
-
-  
-  
 
 
 
@@ -654,7 +782,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../rust-crate/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Rust crate">
+          <a href="../cli/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CLI">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -664,11 +792,27 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Rust crate
+                CLI
               </div>
             </div>
           </a>
         
+        
+          
+          <a href="../rust-crate/" class="md-footer__link md-footer__link--next" aria-label="Next: Rust crate">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Rust crate
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
         
       </nav>
     
