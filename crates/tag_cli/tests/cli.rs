@@ -81,11 +81,12 @@ fn missing_input_reports_a_direct_error_without_validation_output() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
+    let missing_file_error = std::io::Error::from_raw_os_error(2);
     assert_eq!(
         stderr,
         format!(
-            "error: could not read '{}': No such file or directory (os error 2)\n",
-            missing.display()
+            "error: could not read '{}': {missing_file_error}\n",
+            missing.display(),
         )
     );
 }
