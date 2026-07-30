@@ -1,8 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
-use lopdf::{Document, Object, ObjectId};
+use lopdf::{Document, Object};
 
+use crate::content_support::{ContentExecutionSummary, XObjectUseKind};
 use crate::model::PdfObjectId;
+use crate::object_resolution::ResourceKey;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -17,19 +19,20 @@ pub(crate) struct XObjectSummary {
     pub(crate) postscript_xobject: Vec<RuleFailure>,
 }
 
-pub(crate) fn inspect(
-    document: &Document,
-    used_xobject_ids: &BTreeSet<ObjectId>,
-) -> XObjectSummary {
+pub(crate) fn inspect(document: &Document, execution: &ContentExecutionSummary) -> XObjectSummary {
     let mut summary = XObjectSummary::default();
-    let explicit_mask_ids = explicit_mask_ids(document);
-    for (object_id, object) in &document.objects {
-        if !used_xobject_ids.contains(object_id) {
-            continue;
-        }
+    let mut uses = BTreeMap::<ResourceKey, (&Object, bool)>::new();
+    for use_ in &execution.xobjects {
+        let entry = uses
+            .entry(use_.key.clone())
+            .or_insert((&use_.object, false));
+        entry.1 |= use_.kind == XObjectUseKind::ExplicitMask;
+    }
+    for (key, (object, is_explicit_mask)) in uses {
         let Object::Stream(stream) = object else {
             continue;
         };
+        let object_id = key.object_id();
         let subtype = stream
             .dict
             .get(b"Subtype")
@@ -37,27 +40,17 @@ pub(crate) fn inspect(
             .and_then(|value| value.as_name().ok());
         match subtype {
             Some(b"Image") => {
-                inspect_common_xobject(&stream.dict, (*object_id).into(), "image", &mut summary);
-                inspect_image(
-                    &stream.dict,
-                    (*object_id).into(),
-                    explicit_mask_ids.contains(object_id),
-                    &mut summary,
-                );
+                inspect_common_xobject(&stream.dict, object_id, "image", &mut summary);
+                inspect_image(&stream.dict, object_id, is_explicit_mask, &mut summary);
             }
             Some(b"Form") => {
-                inspect_common_xobject(&stream.dict, (*object_id).into(), "Form", &mut summary);
-                inspect_form(document, &stream.dict, (*object_id).into(), &mut summary);
+                inspect_common_xobject(&stream.dict, object_id, "Form", &mut summary);
+                inspect_form(document, &stream.dict, object_id, &mut summary);
             }
             Some(b"PS") => {
-                inspect_common_xobject(
-                    &stream.dict,
-                    (*object_id).into(),
-                    "PostScript XObject",
-                    &mut summary,
-                );
+                inspect_common_xobject(&stream.dict, object_id, "PostScript XObject", &mut summary);
                 summary.postscript_xobject.push(RuleFailure {
-                    object_id: Some((*object_id).into()),
+                    object_id,
                     description: "XObject has /Subtype /PS".to_owned(),
                 });
             }
@@ -67,38 +60,15 @@ pub(crate) fn inspect(
     summary
 }
 
-fn explicit_mask_ids(document: &Document) -> BTreeSet<ObjectId> {
-    document
-        .objects
-        .values()
-        .filter_map(|object| object.as_stream().ok())
-        .filter(|stream| {
-            stream
-                .dict
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok())
-                == Some(b"Image".as_slice())
-        })
-        .filter_map(|stream| {
-            stream
-                .dict
-                .get(b"Mask")
-                .ok()
-                .and_then(|value| value.as_reference().ok())
-        })
-        .collect()
-}
-
 fn inspect_common_xobject(
     dictionary: &lopdf::Dictionary,
-    object_id: PdfObjectId,
+    object_id: Option<PdfObjectId>,
     kind: &str,
     summary: &mut XObjectSummary,
 ) {
     if dictionary.has(b"OPI") {
         summary.xobject_opi.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: format!("{kind} dictionary contains /OPI"),
         });
     }
@@ -106,13 +76,13 @@ fn inspect_common_xobject(
 
 fn inspect_image(
     dictionary: &lopdf::Dictionary,
-    object_id: PdfObjectId,
+    object_id: Option<PdfObjectId>,
     is_explicit_mask: bool,
     summary: &mut XObjectSummary,
 ) {
     if dictionary.has(b"Alternates") {
         summary.image_alternates.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: "image dictionary contains /Alternates".to_owned(),
         });
     }
@@ -124,7 +94,7 @@ fn inspect_image(
             != Some(false)
     {
         summary.image_interpolate.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: "image dictionary /Interpolate is not false".to_owned(),
         });
     }
@@ -141,7 +111,7 @@ fn inspect_image(
     if is_explicit_mask {
         if bits_per_component.is_some_and(|value| value != 1) {
             summary.mask_bits_per_component.push(RuleFailure {
-                object_id: Some(object_id),
+                object_id,
                 description: format!(
                     "image mask dictionary has /BitsPerComponent {bits_per_component:?}"
                 ),
@@ -151,7 +121,7 @@ fn inspect_image(
         && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8))
     {
         summary.image_bits_per_component.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
         });
     }
@@ -160,7 +130,7 @@ fn inspect_image(
 fn inspect_form(
     document: &Document,
     dictionary: &lopdf::Dictionary,
-    object_id: PdfObjectId,
+    object_id: Option<PdfObjectId>,
     summary: &mut XObjectSummary,
 ) {
     let subtype2_is_ps = dictionary
@@ -178,13 +148,13 @@ fn inspect_form(
     });
     if subtype2_is_ps || contains_modeled_ps {
         summary.form_postscript.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: "Form dictionary contains /PS or /Subtype2 /PS".to_owned(),
         });
     }
     if dictionary.has(b"Ref") {
         summary.form_reference.push(RuleFailure {
-            object_id: Some(object_id),
+            object_id,
             description: "Form dictionary contains /Ref".to_owned(),
         });
     }

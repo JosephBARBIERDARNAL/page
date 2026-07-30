@@ -159,6 +159,11 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
         generated_low_level_syntax_matrix(&inventory),
         "low-level syntax matrix is stale; run the ignored matrix generator"
     );
+    assert_eq!(
+        inventory["graphical_content"],
+        generated_graphical_content_matrix(&inventory),
+        "graphical-content matrix is stale; run the ignored matrix generator"
+    );
 }
 
 #[test]
@@ -317,6 +322,21 @@ fn regenerate_low_level_syntax_matrix() {
     let mut inventory = read_json(INVENTORY_PATH);
     let matrix = generated_low_level_syntax_matrix(&inventory);
     inventory["low_level_syntax"] = matrix;
+    fs::write(
+        INVENTORY_PATH,
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&inventory).expect("serialize inventory")
+        ),
+    )
+    .expect("write inventory");
+}
+
+#[test]
+#[ignore = "maintenance generator for the checked graphical-content matrix"]
+fn regenerate_graphical_content_matrix() {
+    let mut inventory = read_json(INVENTORY_PATH);
+    inventory["graphical_content"] = generated_graphical_content_matrix(&inventory);
     fs::write(
         INVENTORY_PATH,
         format!(
@@ -818,6 +838,53 @@ fn generated_low_level_syntax_matrix(inventory: &Value) -> Value {
         "inventoried_clause_6_1_predicate_count": entries.len(),
         "required_predicate_count": required_count,
         "policy": "Every clause 6.1 predicate is inventoried. The milestone requires exact behavior for raw file syntax and selected COS objects; content execution and embedded-program populations remain governed by their owning coverage families.",
+        "predicates": entries,
+    })
+}
+
+fn generated_graphical_content_matrix(inventory: &Value) -> Value {
+    let shared = BTreeSet::from(["ISO 19005-1:2005:6.1.10:2", "ISO 19005-1:2005:6.1.12:9"]);
+    let mut entries = array(&inventory["predicates"], "predicates")
+        .iter()
+        .filter(|predicate| {
+            let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
+            rule_id.starts_with("ISO 19005-1:2005:6.2.") || shared.contains(rule_id)
+        })
+        .map(|predicate| {
+            let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
+            let strengths = array(
+                &predicate["implementation_strength"],
+                "implementation strength",
+            );
+            assert!(
+                strengths
+                    .iter()
+                    .all(|strength| string(strength, "strength") == "exact"),
+                "{rule_id} is in the graphical-content milestone but is not exact"
+            );
+            json!({
+                "verapdf_rule_id": rule_id,
+                "object": predicate["object"],
+                "predicate": predicate["predicate"],
+                "implementation_path": predicate["local_checks"],
+                "applicability": predicate["mapping_notes"],
+                "implementation_strength": predicate["implementation_strength"],
+                "coverage": predicate["coverage"],
+            })
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| {
+        string(&left["verapdf_rule_id"], "left rule id")
+            .cmp(string(&right["verapdf_rule_id"], "right rule id"))
+    });
+    assert_eq!(entries.len(), 21, "graphical-content predicate count");
+    json!({
+        "status": "complete",
+        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "clause_6_2_predicate_count": 19,
+        "shared_clause_6_1_predicate_count": 2,
+        "exact_predicate_count": 21,
+        "policy": "One bounded page/Form execution model supplies every clause 6.2 graphical-content population plus inline-image LZW and DeviceN component evidence.",
         "predicates": entries,
     })
 }

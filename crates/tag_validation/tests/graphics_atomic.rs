@@ -17,7 +17,10 @@ const CASES: &[(&str, &[&str])] = &[
     ("undefined_in_bx", &["PDFA1B-CONTENT-OPERATOR-001"]),
     ("inline_image_lzw", &["PDFA1B-INLINE-IMAGE-LZW-001"]),
     ("inline_image_lzw_array", &["PDFA1B-INLINE-IMAGE-LZW-001"]),
+    ("inline_image_lzw_escaped", &["PDFA1B-INLINE-IMAGE-LZW-001"]),
     ("inline_image_ascii_hex", &[]),
+    ("inline_image_false_ei", &[]),
+    ("inline_image_tokens_in_string", &[]),
     ("known_operators", &[]),
     ("graphics_state_nesting_28", &[]),
     (

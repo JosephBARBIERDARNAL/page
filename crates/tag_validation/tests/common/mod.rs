@@ -1684,7 +1684,12 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "inline_image_lzw_array" => {
             contents = b"BI /W 1 /H 1 /BPC 8 /Filter [/AHx /LZWDecode] ID x EI\n".to_vec()
         }
+        "inline_image_lzw_escaped" => {
+            contents = b"BI /W 1 /H 1 /BPC 8 /F /LZW#44ecode ID x EI\n".to_vec()
+        }
         "inline_image_ascii_hex" => contents = b"BI /W 1 /H 1 /BPC 8 /F /AHx ID 00> EI\n".to_vec(),
+        "inline_image_false_ei" => contents = b"BI /W 1 /H 1 /BPC 8 ID xEIx y EI\n".to_vec(),
+        "inline_image_tokens_in_string" => contents = b"(BI /F /LZW ID x EI) Tj\n".to_vec(),
         "known_operators" => contents = b"q\n0 0 m\n1 1 l\nS\nQ\n".to_vec(),
         "graphics_state_nesting_28" => {
             contents = [vec![b'q'; 0], b"q\n".repeat(28), b"Q\n".repeat(28)].concat()

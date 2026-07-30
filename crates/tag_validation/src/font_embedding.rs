@@ -294,7 +294,7 @@ impl Scanner<'_> {
             self.limits,
             decoded_bytes,
         )?;
-        let content_bytes = crate::icc_based::content_without_inline_images(&bytes);
+        let content_bytes = crate::content_support::content_without_inline_images(&bytes);
         let Ok(content) = Content::decode(&content_bytes) else {
             return Ok(());
         };

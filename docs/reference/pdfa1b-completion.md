@@ -62,6 +62,32 @@ cargo test -p tag_validation --test coverage_inventory \
   regenerate_low_level_syntax_matrix -- --ignored
 ```
 
+## Graphical-content milestone
+
+The inventory's generated `graphical_content` matrix covers all 19 clause 6.2
+predicates and the two content-related predicates at 6.1.10 test 2 and 6.1.12
+test 9. All 21 are exact against veraPDF 1.28.2. Together with the completed
+low-level work, the inventory now contains 55 exact and 74 partial/proxy
+predicates.
+
+One crate-private execution summary supplies the ICC, device-colour, XObject,
+ExtGState, rendering-intent, content-operator, inline-image LZW, and DeviceN
+checks. It executes page content arrays in order, resolves inherited resources,
+uses Form resources with page-resource fallback, follows only invoked
+XObjects, bounds active Form recursion, and deduplicates shared indirect
+failures by identity. The inline-image tokenizer handles token boundaries,
+comments, escaped names, abbreviated and full dictionary keys, filter arrays,
+and false `EI` candidates in image data before ordinary operations are parsed.
+
+Regenerate this matrix after changing the shared execution population or any
+of its rule mappings:
+
+```sh
+cargo test -p tag_validation --test coverage_inventory \
+  regenerate_graphical_content_matrix -- --ignored
+just coverage
+```
+
 ## Declaring the profile complete
 
 Change `completion_gate.status` to `complete` only after all of these conditions

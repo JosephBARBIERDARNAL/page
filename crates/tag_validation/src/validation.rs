@@ -323,7 +323,7 @@ fn validate_document(
     let output_color_space = pdfa_output_color_space(&document);
     validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
     validate_xobjects(&inspections.xobjects, &mut failures);
-    validate_graphics(&inspections.graphics, &inspections.icc_based, &mut failures);
+    validate_graphics(&inspections.graphics, &inspections.content, &mut failures);
     validate_annotations(output_color_space, &inspections.annotations, &mut failures);
     validate_actions(&inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
@@ -867,7 +867,7 @@ fn validate_xobjects(
 
 fn validate_graphics(
     graphics: &crate::graphics::GraphicsSummary,
-    content: &crate::icc_based::IccBasedSummary,
+    content: &crate::content_support::ContentExecutionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     for (invalid, rule_id) in [

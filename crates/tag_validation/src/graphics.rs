@@ -1,12 +1,12 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use lopdf::{Dictionary, Document, ObjectId};
+use lopdf::{Dictionary, Document, Object, ObjectId};
 
+use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
-use crate::icc_based::IccBasedSummary;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::object_resolution::resolve_optional;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -24,7 +24,7 @@ pub(crate) struct GraphicsSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    content: &IccBasedSummary,
+    content: &ContentExecutionSummary,
     pages: &BTreeMap<u32, ObjectId>,
     limits: &SafetyLimits,
 ) -> Result<GraphicsSummary, PdfError> {
@@ -36,27 +36,22 @@ pub(crate) fn inspect(
         });
     }
 
-    for object_id in &content.used_extgstate_ids {
-        let Some(dictionary) = resolve_dictionary(document, *object_id, limits)? else {
-            continue;
-        };
-        let reported_id = Some((*object_id).into());
-        inspect_extgstate(dictionary, reported_id, &mut summary);
+    let mut extgstates = BTreeSet::new();
+    for use_ in &content.extgstates {
+        if extgstates.insert(use_.key.clone()) {
+            inspect_extgstate(&use_.dictionary, use_.key.object_id(), &mut summary);
+        }
     }
 
-    for dictionary in &content.used_direct_extgstates {
-        inspect_extgstate(dictionary, None, &mut summary);
-    }
-
-    for object_id in &content.used_xobject_ids {
-        let Some(stream) = document
-            .objects
-            .get(object_id)
-            .and_then(|object| object.as_stream().ok())
-        else {
+    let mut xobjects = BTreeSet::new();
+    for use_ in &content.xobjects {
+        if !xobjects.insert(use_.key.clone()) {
+            continue;
+        }
+        let Object::Stream(stream) = &use_.object else {
             continue;
         };
-        let reported_id = Some((*object_id).into());
+        let reported_id = use_.key.object_id();
         if stream.dict.has(b"SMask") {
             summary.xobject_soft_masks.push(RuleFailure {
                 object_id: reported_id,
@@ -254,15 +249,4 @@ fn inspect_extgstate(
         &mut summary.fill_alpha,
     );
     inspect_rendering_intent(dictionary, object_id, "used ExtGState", summary);
-}
-
-fn resolve_dictionary<'a>(
-    document: &'a Document,
-    object_id: ObjectId,
-    limits: &SafetyLimits,
-) -> Result<Option<&'a Dictionary>, PdfError> {
-    let Some(object) = document.objects.get(&object_id) else {
-        return Ok(None);
-    };
-    Ok(resolve_optional(document, object, limits.max_reference_depth)?.and_then(dictionary_based))
 }

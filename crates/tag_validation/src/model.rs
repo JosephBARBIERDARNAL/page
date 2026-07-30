@@ -132,6 +132,7 @@ pub struct PdfDocument {
 
 pub(crate) struct InspectionSummary {
     pub(crate) header: crate::syntax::HeaderSummary,
+    pub(crate) content: crate::content_support::ContentExecutionSummary,
     pub(crate) font_embedding: FontEmbeddingSummary,
     pub(crate) icc_based: crate::icc_based::IccBasedSummary,
     pub(crate) xobjects: crate::xobject::XObjectSummary,
@@ -161,6 +162,7 @@ impl PdfDocument {
         let inspections = if normalized.encrypted {
             InspectionSummary {
                 header,
+                content: crate::content_support::ContentExecutionSummary::default(),
                 font_embedding: FontEmbeddingSummary::default(),
                 icc_based: crate::icc_based::IccBasedSummary::default(),
                 xobjects: crate::xobject::XObjectSummary::default(),
@@ -183,10 +185,15 @@ impl PdfDocument {
             // page/Form content streams, decompress each stream once between
             // them instead of separately.
             let mut content_cache = crate::content_support::ContentCache::new();
-            let icc_based =
-                crate::icc_based::inspect(&document, &pages, &mut content_cache, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &icc_based.used_xobject_ids);
-            let graphics = crate::graphics::inspect(&document, &icc_based, &pages, limits)?;
+            let content = crate::content_support::execute_content(
+                &document,
+                &pages,
+                &mut content_cache,
+                limits,
+            )?;
+            let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
+            let xobjects = crate::xobject::inspect(&document, &content);
+            let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
             let annotations = crate::annotations::inspect(&document, &pages, limits)?;
             let actions = crate::actions::inspect(&document, &pages, limits)?;
             let forms = crate::forms::inspect(&document, &pages, limits)?;
@@ -195,6 +202,7 @@ impl PdfDocument {
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
             InspectionSummary {
                 header,
+                content,
                 font_embedding: font_embedding::inspect(
                     &document,
                     &pages,

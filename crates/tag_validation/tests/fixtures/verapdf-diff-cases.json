@@ -2198,12 +2198,36 @@
       "rationale": "An executed inline image includes LZWDecode in a filter array."
     },
     {
+      "name": "inline_image_lzw_escaped",
+      "expected_local_failed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "PDF name hex escapes are decoded before matching the inline-image LZWDecode filter."
+    },
+    {
       "name": "inline_image_ascii_hex",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.10:2"],
       "rationale": "An executed inline image uses ASCIIHexDecode rather than LZW."
+    },
+    {
+      "name": "inline_image_false_ei",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001", "PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.10:2", "ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "The letters EI embedded without PDF token boundaries in inline-image data do not terminate the image."
+    },
+    {
+      "name": "inline_image_tokens_in_string",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001", "PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.10:2", "ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "BI, ID, EI, and LZW-looking text inside a literal string is not executable inline-image syntax."
     }
   ],
   "atomic_font_cases": [
