@@ -69,6 +69,28 @@ fn validation_json_reports_parser_and_operational_errors_separately() {
 }
 
 #[test]
+fn missing_input_reports_a_direct_error_without_validation_output() {
+    let missing =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../tag_validation/tests/fixtures/missing.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_tag"))
+        .arg(&missing)
+        .args(["--profile", "a-1b"])
+        .output()
+        .expect("run missing PDF validation");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
+    assert_eq!(
+        stderr,
+        format!(
+            "error: could not read '{}': No such file or directory (os error 2)\n",
+            missing.display()
+        )
+    );
+}
+
+#[test]
 fn differential_help_keeps_its_own_client_contract() {
     let output = Command::new(env!("CARGO_BIN_EXE_verapdf-diff"))
         .arg("--help")

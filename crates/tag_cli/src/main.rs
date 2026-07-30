@@ -82,6 +82,17 @@ fn main() {
             0 => report.exit_code(),
             status => status,
         }
+    } else if let Some(failure) = report
+        .failures
+        .iter()
+        .find(|failure| failure.rule_id == "INPUT-IO-001")
+    {
+        eprintln!(
+            "error: could not read '{}': {}",
+            cli.file.display(),
+            failure.message
+        );
+        report.exit_code()
     } else {
         print!("{report}");
         report.exit_code()
