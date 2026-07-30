@@ -491,6 +491,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#graphical-content-milestone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Graphical-content milestone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#declaring-the-profile-complete" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -616,6 +627,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Low-level syntax milestone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graphical-content-milestone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Graphical-content milestone
       </span>
     </span>
   </a>
@@ -759,6 +781,26 @@ recovery. Regenerate only the matrix after changing its routing policy with:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>tag_validation<span class="w"> </span>--test<span class="w"> </span>coverage_inventory<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>regenerate_low_level_syntax_matrix<span class="w"> </span>--<span class="w"> </span>--ignored
 </span></code></pre></div>
+<h2 id="graphical-content-milestone">Graphical-content milestone<a class="headerlink" href="#graphical-content-milestone" title="Permanent link">&para;</a></h2>
+<p>The inventory's generated <code>graphical_content</code> matrix covers all 19 clause 6.2
+predicates and the two content-related predicates at 6.1.10 test 2 and 6.1.12
+test 9. All 21 are exact against veraPDF 1.28.2. Together with the completed
+low-level work, the inventory now contains 55 exact and 74 partial/proxy
+predicates.</p>
+<p>One crate-private execution summary supplies the ICC, device-colour, XObject,
+ExtGState, rendering-intent, content-operator, inline-image LZW, and DeviceN
+checks. It executes page content arrays in order, resolves inherited resources,
+uses Form resources with page-resource fallback, follows only invoked
+XObjects, bounds active Form recursion, and deduplicates shared indirect
+failures by identity. The inline-image tokenizer handles token boundaries,
+comments, escaped names, abbreviated and full dictionary keys, filter arrays,
+and false <code>EI</code> candidates in image data before ordinary operations are parsed.</p>
+<p>Regenerate this matrix after changing the shared execution population or any
+of its rule mappings:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>tag_validation<span class="w"> </span>--test<span class="w"> </span>coverage_inventory<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>regenerate_graphical_content_matrix<span class="w"> </span>--<span class="w"> </span>--ignored
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>just<span class="w"> </span>coverage
+</span></code></pre></div>
 <h2 id="declaring-the-profile-complete">Declaring the profile complete<a class="headerlink" href="#declaring-the-profile-complete" title="Permanent link">&para;</a></h2>
 <p>Change <code>completion_gate.status</code> to <code>complete</code> only after all of these conditions
 are true:</p>
@@ -778,7 +820,7 @@ are true:</p>
    platform.</li>
 </ol>
 <p>The release-only command enforces the declaration and then runs the live suite:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>pdfa1b-release-gate
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf<span class="w"> </span>just<span class="w"> </span>pdfa1b-release-gate
 </span></code></pre></div>
 <p>It intentionally fails while the inventory remains <code>developing</code>. A manual
 GitHub Actions run can enable <code>pdfa1b_release_gate</code> to run the same release
