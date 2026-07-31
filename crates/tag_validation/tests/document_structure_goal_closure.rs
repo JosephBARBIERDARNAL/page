@@ -59,6 +59,49 @@ fn gap_1_recursive_name_trees_are_bounded_not_silently_truncated() {
     );
 }
 
+/// Gap 1b: the "duplicate-reference" case (criterion #2), applied to the
+/// name tree rather than the page tree — the same regression class as
+/// `gap_3b` below, found and fixed in `document_features.rs::
+/// inspect_name_tree` by the identical audit. The same name-tree leaf
+/// reachable from two different `Kids` branches is a DAG, not a cycle, and
+/// veraPDF 1.28.2 processes it without a parse or resource-limit failure.
+#[test]
+fn gap_1b_duplicate_non_cyclic_name_tree_references_are_not_treated_as_cycles() {
+    let mut document = Document::with_version("1.4");
+    let leaf = document.add_object(dictionary! {
+        "Names" => vec![
+            Object::string_literal("file"),
+            Object::Dictionary(dictionary! {}),
+        ],
+    });
+    let branch_a = document.add_object(dictionary! { "Kids" => vec![Object::Reference(leaf)] });
+    let branch_b = document.add_object(dictionary! { "Kids" => vec![Object::Reference(leaf)] });
+    let embedded_files = document.add_object(dictionary! {
+        "Kids" => vec![Object::Reference(branch_a), Object::Reference(branch_b)],
+    });
+    let names_id = document.add_object(dictionary! { "EmbeddedFiles" => embedded_files });
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Names" => names_id,
+    });
+    document.trailer.set("Root", Object::Reference(catalog_id));
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save shared-name-tree-leaf fixture");
+
+    let report = tag_validation::validate_bytes(
+        &bytes,
+        tag_validation::ValidationProfile::PdfA1b,
+        &tag_validation::SafetyLimits::default(),
+    );
+    assert!(
+        !report.has_operational_failure(),
+        "a name-tree leaf legitimately shared by two Kids branches must not be treated as a \
+         reference cycle: {report:?}"
+    );
+}
+
 /// Gap 2: "file specifications reachable outside the currently modeled name
 /// tree." Confirmed (differentially, against real veraPDF 1.28.2) and
 /// implemented this session: a `GoToR`/`SubmitForm` action's `/F` file
@@ -85,6 +128,57 @@ fn gap_3_page_tree_direct_dictionaries_and_inherited_resources_are_handled() {
         "direct_page_invalid_annotation",
     ));
     common::assert_single_failure(&report, "PDFA1B-ANNOTATION-SUBTYPE-001");
+}
+
+/// Criterion #2 explicitly names "duplicate-reference" as its own case,
+/// distinct from "cyclic". Found as a real regression while auditing for
+/// this closure test: the page tree's original cycle detection used a
+/// single "ever visited anywhere" set, which treated the same Page object
+/// legitimately reached through two different `Pages` branches (a DAG, not
+/// a cycle) as an error. Confirmed against veraPDF 1.28.2 that this is
+/// compliant, not rejected; fixed by making cycle detection
+/// ancestor-path-scoped instead of globally-ever-visited (see
+/// `page_tree.rs::walk`'s doc comment for the DAG-blowup safety tradeoff
+/// this required).
+#[test]
+fn gap_3b_duplicate_non_cyclic_page_references_are_not_treated_as_cycles() {
+    let mut document = lopdf::Document::with_version("1.4");
+    let page_id = document.add_object(dictionary! { "Type" => "Page" });
+    let branch_a = document.add_object(dictionary! {
+        "Type" => "Pages",
+        "Kids" => vec![Object::Reference(page_id)],
+        "Count" => 1,
+    });
+    let branch_b = document.add_object(dictionary! {
+        "Type" => "Pages",
+        "Kids" => vec![Object::Reference(page_id)],
+        "Count" => 1,
+    });
+    let root_pages = document.add_object(dictionary! {
+        "Type" => "Pages",
+        "Kids" => vec![Object::Reference(branch_a), Object::Reference(branch_b)],
+        "Count" => 2,
+    });
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => root_pages,
+    });
+    document.trailer.set("Root", Object::Reference(catalog_id));
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save shared-page-reference fixture");
+
+    let report = tag_validation::validate_bytes(
+        &bytes,
+        tag_validation::ValidationProfile::PdfA1b,
+        &tag_validation::SafetyLimits::default(),
+    );
+    assert!(
+        !report.has_operational_failure(),
+        "a Page object legitimately shared by two Pages branches must not be treated as a \
+         reference cycle: {report:?}"
+    );
 }
 
 /// Gap 4: "logical-structure objects when present." Confirmed by scanning

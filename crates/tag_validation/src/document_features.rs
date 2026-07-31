@@ -49,13 +49,15 @@ pub(crate) fn inspect(
     if let Some(names) = names
         && let Ok(embedded_files) = names.get(b"EmbeddedFiles")
     {
-        let mut visited = BTreeSet::new();
+        let mut ancestors = BTreeSet::new();
+        let mut steps = 0usize;
         inspect_name_tree(
             document,
             embedded_files,
             limits,
             &mut file_specs_with_embedded_files,
-            &mut visited,
+            &mut ancestors,
+            &mut steps,
             0,
         )?;
     }
@@ -77,25 +79,61 @@ pub(crate) fn inspect(
 /// like every other reference this node is reached through — including the
 /// tree's own root, unlike a walker that only registers references
 /// encountered while iterating `/Kids`. This mirrors `page_tree::collect_pages`'s
-/// traversal shape so both trees share one cycle-safety story: any indirect
-/// object id revisited during the walk raises `PdfError::ReferenceDepth`
-/// rather than silently truncating traversal.
+/// traversal shape so both trees share one cycle-safety story: `ancestors`
+/// tracks only ids currently on the path from the root to this call (pushed
+/// on entry, popped before every return), so a *true* cycle (an id
+/// revisited while still an ancestor) raises `PdfError::ReferenceDepth`,
+/// while the same file specification or intermediate node legitimately
+/// reachable from two different `Kids` branches (a DAG, not a cycle) is not
+/// mistaken for one — confirmed against veraPDF 1.28.2, which processes
+/// such a shared reference without a parse or resource-limit failure, the
+/// same way it does for a page shared by two `Pages` branches. `steps`
+/// bounds the walk's total work (independent of ancestor depth) against a
+/// DAG that fans out shared subtrees without any node being its own
+/// ancestor, the same DAG-blowup safety `page_tree.rs` uses.
+#[allow(clippy::too_many_arguments)]
 fn inspect_name_tree(
     document: &Document,
     node: &Object,
     limits: &SafetyLimits,
     failures: &mut Vec<RuleFailure>,
-    visited: &mut BTreeSet<ObjectId>,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
     depth: usize,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
-    if let Ok(object_id) = node.as_reference()
-        && !visited.insert(object_id)
+    *steps += 1;
+    if *steps > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual: *steps,
+            limit: limits.max_object_count,
+        });
+    }
+    let object_id = node.as_reference().ok();
+    if let Some(id) = object_id
+        && !ancestors.insert(id)
     {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
+    let result = inspect_name_tree_node(document, node, limits, failures, ancestors, steps, depth);
+    if let Some(id) = object_id {
+        ancestors.remove(&id);
+    }
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_name_tree_node(
+    document: &Document,
+    node: &Object,
+    limits: &SafetyLimits,
+    failures: &mut Vec<RuleFailure>,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    depth: usize,
+) -> Result<(), PdfError> {
     let Some(node) =
         resolve_optional(document, node, limits.max_reference_depth)?.and_then(dictionary_based)
     else {
@@ -121,7 +159,15 @@ fn inspect_name_tree(
             .and_then(|object| object.as_array().ok())
     {
         for value in kids {
-            inspect_name_tree(document, value, limits, failures, visited, depth + 1)?;
+            inspect_name_tree(
+                document,
+                value,
+                limits,
+                failures,
+                ancestors,
+                steps,
+                depth + 1,
+            )?;
         }
     }
     Ok(())
@@ -191,5 +237,54 @@ mod tests {
             inspect(&document, &SafetyLimits::default()),
             Err(PdfError::ReferenceDepth(_))
         ));
+    }
+
+    /// Confirmed against veraPDF 1.28.2: the same name-tree leaf reachable
+    /// from two different `Kids` branches (a DAG, not a cycle — neither
+    /// branch is the other's ancestor) is processed without error, the same
+    /// way a Page object shared by two `Pages` branches is (see
+    /// `page_tree.rs`'s identical fix this session).
+    #[test]
+    fn shared_name_tree_leaf_reached_from_two_branches_is_not_a_cycle() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Names" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "EmbeddedFiles" => Object::Reference((3, 0)) }),
+        );
+        // Root EmbeddedFiles node with two Kids branches (4,0) and (5,0),
+        // both pointing at the same leaf (6,0).
+        document.objects.insert(
+            (3, 0),
+            Object::Dictionary(
+                dictionary! { "Kids" => vec![Object::Reference((4, 0)), Object::Reference((5, 0))] },
+            ),
+        );
+        document.objects.insert(
+            (4, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((6, 0))] }),
+        );
+        document.objects.insert(
+            (5, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((6, 0))] }),
+        );
+        document.objects.insert(
+            (6, 0),
+            Object::Dictionary(dictionary! {
+                "Names" => vec![
+                    Object::string_literal("file"),
+                    Object::Dictionary(dictionary! {}),
+                ],
+            }),
+        );
+
+        assert!(inspect(&document, &SafetyLimits::default()).is_ok());
     }
 }

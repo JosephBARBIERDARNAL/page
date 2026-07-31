@@ -60,12 +60,20 @@ impl PageEntry {
 /// instead of reporting them.
 ///
 /// Bounded exactly like every other traversal in this crate: depth is capped
-/// by `limits.max_reference_depth`, and any indirect object id revisited
-/// during the walk (a true ancestor cycle, or a non-tree DAG sharing a node)
-/// raises `PdfError::ReferenceDepth` rather than silently truncating the
-/// page list. A `/Pages` tree must form a proper tree per PDF32000 (each
-/// node has a single `/Parent`), so a document that violates this is
-/// treated the same as any other malformed reference chain.
+/// by `limits.max_reference_depth`, and a *true* cycle (an indirect object
+/// id revisited while still an ancestor on the current path) raises
+/// `PdfError::ReferenceDepth` rather than silently truncating the page
+/// list. Cycle detection is ancestor-path-scoped, not "ever visited
+/// anywhere": confirmed against veraPDF 1.28.2 that the *same* Page object
+/// legitimately reachable through two different `Pages` branches (a DAG,
+/// not a cycle — neither branch is the other's ancestor) is processed
+/// without error, so an earlier global "ever visited" set was a false
+/// positive relative to veraPDF and has been replaced. A separate step
+/// counter, bounded by `limits.max_object_count`, still caps the total
+/// walk — without it, a pathological DAG that doesn't repeat any single
+/// object as its own ancestor (so ancestor-scoped tracking alone would
+/// never reject it) could still make the walk's total work exponential in
+/// its depth by fanning out shared subtrees.
 ///
 /// A `Kids` entry is followed whether it is an indirect reference or a
 /// direct dictionary (see [`PageEntry`]); an unresolvable reference or a
@@ -87,42 +95,85 @@ pub(crate) fn collect_pages(
     let Ok(root) = catalog.get(b"Pages") else {
         return Ok(pages);
     };
-    let mut visited = BTreeSet::new();
+    let mut ancestors = BTreeSet::new();
+    let mut steps = 0usize;
     let mut next_number = 1u32;
     walk(
         document,
         root,
         limits,
         0,
-        &mut visited,
+        &mut ancestors,
+        &mut steps,
         &mut pages,
         &mut next_number,
     )?;
     Ok(pages)
 }
 
+/// Walks one node, tracking `ancestors` (ids currently on the path from the
+/// root to this call, for true-cycle detection) and `steps` (a running
+/// total of every node visited anywhere in the walk, for DAG-blowup
+/// safety). `ancestors` is restored to its pre-call state before returning
+/// on every path, success or failure, so a sibling branch that legitimately
+/// shares a node with an already-completed branch is not mistaken for that
+/// node being its own ancestor.
 #[allow(clippy::too_many_arguments)]
 fn walk(
     document: &Document,
     node: &Object,
     limits: &SafetyLimits,
     depth: usize,
-    visited: &mut BTreeSet<ObjectId>,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
     pages: &mut BTreeMap<u32, PageEntry>,
     next_number: &mut u32,
 ) -> Result<(), PdfError> {
     if depth >= limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
-    let object_id = match node {
-        Object::Reference(id) => {
-            if !visited.insert(*id) {
-                return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
-            }
-            Some(*id)
-        }
-        _ => None,
-    };
+    *steps += 1;
+    if *steps > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual: *steps,
+            limit: limits.max_object_count,
+        });
+    }
+    let object_id = node.as_reference().ok();
+    if let Some(id) = object_id
+        && !ancestors.insert(id)
+    {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    let result = walk_node(
+        document,
+        node,
+        object_id,
+        limits,
+        depth,
+        ancestors,
+        steps,
+        pages,
+        next_number,
+    );
+    if let Some(id) = object_id {
+        ancestors.remove(&id);
+    }
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn walk_node(
+    document: &Document,
+    node: &Object,
+    object_id: Option<ObjectId>,
+    limits: &SafetyLimits,
+    depth: usize,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    pages: &mut BTreeMap<u32, PageEntry>,
+    next_number: &mut u32,
+) -> Result<(), PdfError> {
     let resolved = match object_id {
         Some(_) => {
             let Some(resolved) = resolve_optional(document, node, limits.max_reference_depth)?
@@ -160,7 +211,8 @@ fn walk(
                     kid,
                     limits,
                     depth + 1,
-                    visited,
+                    ancestors,
+                    steps,
                     pages,
                     next_number,
                 )?;
@@ -252,6 +304,42 @@ mod tests {
             let result = collect_pages(&document, catalog, &SafetyLimits::default());
             assert!(matches!(result, Err(crate::PdfError::UnexpectedObject(_))));
         }
+    }
+
+    /// Confirmed against veraPDF 1.28.2: the *same* Page object reachable
+    /// through two different `Pages` branches (a DAG, not a cycle — neither
+    /// branch is the other's ancestor) is processed without error.
+    #[test]
+    fn shared_page_reached_from_two_branches_is_not_a_cycle() {
+        let mut document = Document::with_version("1.4");
+        let page_id = document.add_object(dictionary! { "Type" => "Page" });
+        let branch_a = document.add_object(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(page_id)],
+            "Count" => 1,
+        });
+        let branch_b = document.add_object(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(page_id)],
+            "Count" => 1,
+        });
+        let root_pages = document.add_object(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(branch_a), Object::Reference(branch_b)],
+            "Count" => 2,
+        });
+        let catalog_id = document.add_object(dictionary! {
+            "Type" => "Catalog",
+            "Pages" => root_pages,
+        });
+        document.trailer.set("Root", Object::Reference(catalog_id));
+
+        let catalog = catalog_pages(&document);
+        let pages =
+            collect_pages(&document, catalog, &SafetyLimits::default()).expect("collect pages");
+        assert_eq!(pages.len(), 2);
+        assert_eq!(pages[&1].object_id(), Some(page_id));
+        assert_eq!(pages[&2].object_id(), Some(page_id));
     }
 
     /// Confirmed against veraPDF 1.28.2: a Page dictionary embedded directly
