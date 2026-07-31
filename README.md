@@ -2,15 +2,7 @@
 
 `tag` is an experimental PDF/A and PDF/UA validator, written in Rust.
 
-This project is very early stage, and current focus is on the PDF/A-1b validation.
-
-The validator remains preliminary until the
-[PDF/A-1B completion gate](docs/reference/pdfa1b-completion.md) passes. A local
-pass is not currently a PDF/A-1B conformance claim.
-
-PDF/A-1B file syntax and low-level COS-object validation are complete against
-the pinned veraPDF 1.28.2 profile; higher-level profile coverage remains in
-development.
+This project is **very early stage**, and current focus is on the PDF/A-1b validation.
 
 <br>
 
@@ -39,19 +31,6 @@ Add `--json` to emit the validation report as JSON:
 ```sh
 tag document.pdf --profile a-1b --json
 ```
-
-Compare end-to-end command-line performance on the checked-in long PDF with a
-veraPDF executable (release builds are used for `tag`; `rust-script` is
-required):
-
-```sh
-# Install it if it is not already available.
-cargo install rust-script
-just benchmark /path/to/verapdf
-```
-
-The benchmark starts each validator for every measured run, so its timings
-include process startup, file I/O, parsing, validation, and report generation.
 
 <br>
 
