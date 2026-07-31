@@ -1448,8 +1448,11 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             Stream::new(dictionary, vec![0, 0, 0])
         }
         "image_alternates"
+        | "image_alternates_null"
         | "image_opi"
+        | "image_opi_null"
         | "image_interpolate_true"
+        | "image_interpolate_null"
         | "image_bpc_16"
         | "unused_resource_invalid_image"
         | "unreferenced_invalid_image"
@@ -1464,8 +1467,11 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             };
             match case {
                 "image_alternates" => dictionary.set("Alternates", Vec::<Object>::new()),
+                "image_alternates_null" => dictionary.set("Alternates", Object::Null),
                 "image_opi" => dictionary.set("OPI", Dictionary::new()),
+                "image_opi_null" => dictionary.set("OPI", Object::Null),
                 "image_interpolate_true" => dictionary.set("Interpolate", true),
+                "image_interpolate_null" => dictionary.set("Interpolate", Object::Null),
                 "image_bpc_16"
                 | "unused_resource_invalid_image"
                 | "unreferenced_invalid_image"
@@ -1505,7 +1511,8 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             },
             vec![0, 0, 0],
         ),
-        "form_opi" | "form_ps_key" | "form_ps_null" | "form_subtype2_ps" | "form_ref" => {
+        "form_opi" | "form_opi_null" | "form_ps_key" | "form_ps_null" | "form_subtype2_ps"
+        | "form_ref" | "form_ref_null" => {
             let mut dictionary = dictionary! {
                 "Type" => "XObject",
                 "Subtype" => "Form",
@@ -1513,6 +1520,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             };
             match case {
                 "form_opi" => dictionary.set("OPI", Dictionary::new()),
+                "form_opi_null" => dictionary.set("OPI", Object::Null),
                 "form_ps_key" => {
                     let postscript =
                         document.add_object(Stream::new(Dictionary::new(), b"%!PS\n".to_vec()));
@@ -1521,6 +1529,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 "form_ps_null" => dictionary.set("PS", Object::Null),
                 "form_subtype2_ps" => dictionary.set("Subtype2", "PS"),
                 "form_ref" => dictionary.set("Ref", Dictionary::new()),
+                "form_ref_null" => dictionary.set("Ref", Object::Null),
                 _ => unreachable!(),
             }
             Stream::new(dictionary, Vec::new())
@@ -1595,17 +1604,21 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "baseline" => {}
         "extgstate_tr"
         | "direct_extgstate_tr"
+        | "extgstate_tr_null"
         | "extgstate_tr2_default"
         | "extgstate_tr2_other"
+        | "extgstate_tr2_null"
         | "extgstate_ri_invalid"
         | "unused_extgstate_tr"
         | "unreferenced_extgstate_tr"
         | "extgstate_smask_none"
         | "extgstate_smask_other"
         | "extgstate_smask_dictionary"
+        | "extgstate_smask_null"
         | "extgstate_bm_normal"
         | "extgstate_bm_compatible"
         | "extgstate_bm_multiply"
+        | "extgstate_bm_null"
         | "extgstate_stroke_alpha_one"
         | "extgstate_stroke_alpha_zero"
         | "extgstate_fill_alpha_one"
@@ -1619,17 +1632,21 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 | "unreferenced_extgstate_tr" => {
                     state.set("TR", "Identity");
                 }
+                "extgstate_tr_null" => state.set("TR", Object::Null),
                 "extgstate_tr2_default" => state.set("TR2", "Default"),
                 "extgstate_tr2_other" => state.set("TR2", "Identity"),
+                "extgstate_tr2_null" => state.set("TR2", Object::Null),
                 "extgstate_ri_invalid" => state.set("RI", "MaiIntent"),
                 "extgstate_smask_none" => state.set("SMask", "None"),
                 "extgstate_smask_other" | "unused_extgstate_transparency" => {
                     state.set("SMask", "Alpha")
                 }
                 "extgstate_smask_dictionary" => state.set("SMask", Dictionary::new()),
+                "extgstate_smask_null" => state.set("SMask", Object::Null),
                 "extgstate_bm_normal" => state.set("BM", "Normal"),
                 "extgstate_bm_compatible" => state.set("BM", "Compatible"),
                 "extgstate_bm_multiply" => state.set("BM", "Multiply"),
+                "extgstate_bm_null" => state.set("BM", Object::Null),
                 "extgstate_stroke_alpha_one" => state.set("CA", 1),
                 "extgstate_stroke_alpha_zero" => state.set("CA", 0),
                 "extgstate_fill_alpha_one" => state.set("ca", 1),
@@ -1711,7 +1728,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 contents = b"/Fm Do\n".to_vec();
             }
         }
-        "xobject_smask" | "unused_xobject_smask" => {
+        "xobject_smask" | "unused_xobject_smask" | "xobject_smask_null" => {
             let soft_mask = document.add_object(Stream::new(
                 dictionary! {
                     "Type" => "XObject",
@@ -1731,12 +1748,16 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                     "Height" => 1,
                     "BitsPerComponent" => 8,
                     "ColorSpace" => "DeviceRGB",
-                    "SMask" => soft_mask,
+                    "SMask" => if case == "xobject_smask_null" {
+                        Object::Null
+                    } else {
+                        Object::Reference(soft_mask)
+                    },
                 },
                 vec![0, 0, 0],
             ));
             resources.set("XObject", dictionary! {"Im" => image});
-            if case == "xobject_smask" {
+            if case != "unused_xobject_smask" {
                 contents = b"/Im Do\n".to_vec();
             }
         }
@@ -1859,6 +1880,10 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         "flags_hidden" => annotation.set("F", 6),
         "flags_no_view" => annotation.set("F", 36),
         "color_c_rgb" => annotation.set("C", vec![1.into(), 0.into(), 0.into()]),
+        "color_c_null" => {
+            annotation.set("C", Object::Null);
+            output_color_space = Some(*b"CMYK");
+        }
         "color_ic_rgb" => annotation.set("IC", vec![1.into(), 0.into(), 0.into()]),
         "color_c_cmyk" => {
             annotation.set("C", vec![1.into(), 0.into(), 0.into()]);
@@ -3333,6 +3358,14 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "Type" => "Encoding",
                 "BaseEncoding" => "WinAnsiEncoding",
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+            },
+        ),
+        "tt_nonsymbolic_differences_null" => font.set(
+            "Encoding",
+            dictionary! {
+                "Type" => "Encoding",
+                "BaseEncoding" => "WinAnsiEncoding",
+                "Differences" => Object::Null,
             },
         ),
         "tt_glyph_width_mismatch" => font.set("Widths", vec![497.into()]),

@@ -625,6 +625,28 @@ mod tests {
 
     use super::*;
 
+    /// Confirmed against veraPDF 1.28.2: a trailer with a direct `/Encrypt
+    /// null` is compliant (not encrypted), matching the same direct-null
+    /// convention as every other `containsX` predicate. Built directly on
+    /// an in-memory `Document` rather than round-tripped through bytes:
+    /// `lopdf` itself special-cases *any* trailer `/Encrypt` key (even a
+    /// literal null) at load time and does not populate `document.objects`
+    /// for such a file — a separate, upstream parsing quirk unrelated to
+    /// this flag-computation fix, and out of scope to work around here (a
+    /// literal-null `/Encrypt` trailer entry is not a realistic PDF
+    /// producer's output).
+    #[test]
+    fn direct_null_encrypt_key_is_not_encrypted() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Encrypt", Object::Null);
+        let catalog_id = document.add_object(dictionary! { "Type" => "Catalog" });
+        document.trailer.set("Root", catalog_id);
+
+        let normalized =
+            PdfDocument::normalize(&document, &SafetyLimits::default()).expect("normalize");
+        assert!(!normalized.encrypted);
+    }
+
     #[test]
     fn extracts_info_dictionary() {
         let mut document = Document::with_version("1.4");

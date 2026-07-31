@@ -1573,6 +1573,27 @@ mod tests {
         }
     }
 
+    /// Confirmed against veraPDF 1.28.2: a catalog Metadata stream with a
+    /// direct null `/Filter` is compliant, matching the same direct-null
+    /// convention as every other `containsX` predicate this crate checks.
+    #[test]
+    fn catalog_metadata_direct_null_filter_is_not_a_filter_violation() {
+        let report = validate_bytes(
+            &fixture_with_metadata_dictionary(
+                VALID_XMP,
+                dictionary! {
+                    "Type" => "Metadata",
+                    "Subtype" => "XML",
+                    "Filter" => Object::Null,
+                },
+                None,
+            ),
+            ValidationProfile::PdfA1b,
+            &SafetyLimits::default(),
+        );
+        assert_no_rule(&report, "PDFA1B-METADATA-FILTER-001");
+    }
+
     #[test]
     fn rejects_missing_and_duplicate_identification_declarations() {
         let missing = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>"#;

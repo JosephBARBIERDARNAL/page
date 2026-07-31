@@ -30,6 +30,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("flags_no_view", &[FLAGS]),
     ("color_c_rgb", &[]),
     ("color_ic_rgb", &[]),
+    ("color_c_null", &[]),
     ("color_c_cmyk", &[COLOR]),
     ("color_ic_without_output", &[COLOR]),
     ("no_color_cmyk", &[]),

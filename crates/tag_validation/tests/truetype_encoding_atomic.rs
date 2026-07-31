@@ -12,6 +12,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("tt_nonsymbolic_dictionary_winansi", &[]),
     ("tt_nonsymbolic_dictionary_macroman", &[]),
     ("tt_nonsymbolic_differences", &[NONSYMBOLIC]),
+    ("tt_nonsymbolic_differences_null", &[]),
     ("tt_symbolic_no_encoding", &[]),
     ("tt_symbolic_with_encoding", &[SYMBOLIC]),
     ("tt_symbolic_one_cmap", &[]),

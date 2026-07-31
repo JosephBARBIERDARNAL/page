@@ -3,10 +3,14 @@ mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("image_alternates", &["PDFA1B-IMAGE-ALTERNATES-001"]),
+    ("image_alternates_null", &[]),
     ("image_opi", &["PDFA1B-XOBJECT-OPI-001"]),
+    ("image_opi_null", &[]),
     ("form_opi", &["PDFA1B-XOBJECT-OPI-001"]),
+    ("form_opi_null", &[]),
     ("image_interpolate_true", &["PDFA1B-IMAGE-INTERPOLATE-001"]),
     ("image_interpolate_false", &[]),
+    ("image_interpolate_null", &[]),
     ("image_bpc_16", &["PDFA1B-IMAGE-BPC-001"]),
     ("image_bpc_missing", &[]),
     ("mask_bpc_8", &[]),
@@ -16,6 +20,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("form_ps_null", &[]),
     ("form_subtype2_ps", &["PDFA1B-FORM-POSTSCRIPT-001"]),
     ("form_ref", &["PDFA1B-FORM-REFERENCE-001"]),
+    ("form_ref_null", &[]),
     ("postscript_xobject", &["PDFA1B-XOBJECT-POSTSCRIPT-001"]),
     ("unused_resource_invalid_image", &[]),
     ("unreferenced_invalid_image", &[]),
