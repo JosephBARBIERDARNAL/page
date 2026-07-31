@@ -20,6 +20,23 @@ use crate::report::RuleFailure;
 /// null remains a present key and fails, matching the same convention
 /// `PDFA1B-NAMES-EMBEDDED-FILES-001` uses for the enclosing `EmbeddedFiles`
 /// entry.
+///
+/// PDF32000 has exactly two other file-specification sites, and both are
+/// deliberately *not* wired to this check because the object carrying the
+/// file specification is already unconditionally forbidden for PDF/A-1b by
+/// a different rule, making a second (redundant) report of the same
+/// underlying object pointless:
+/// - a `FileAttachment` annotation's `/FS` entry: `FileAttachment` is not in
+///   `PDFA1B-ANNOTATION-SUBTYPE-001`'s allowed subtype list, so the
+///   annotation itself already fails before its file specification would
+///   matter;
+/// - a `Launch`/`GoToE` action's file specification: neither action type is
+///   in `PDFA1B-ACTION-TYPE-001`'s allowed list, so the action itself
+///   already fails the same way.
+///
+/// That leaves the `Names/EmbeddedFiles` tree and a `GoToR`/`SubmitForm`
+/// action's `/F` as the only two reachability paths that need this check,
+/// which is exactly what's wired up (`document_features.rs`, `actions.rs`).
 pub(crate) fn inspect(
     document: &Document,
     value: &Object,

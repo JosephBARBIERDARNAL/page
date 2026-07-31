@@ -2161,11 +2161,25 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             );
             annotations.push(Object::Reference(document.add_object(widget)));
         }
+        "widget_a_null" => {
+            let mut widget = valid_annotation("Widget");
+            widget.set("FT", "Tx");
+            widget.set("AP", dictionary! {"N" => widget_appearance});
+            widget.set("A", Object::Null);
+            annotations.push(Object::Reference(document.add_object(widget)));
+        }
         "widget_additional_actions" => {
             let mut widget = valid_annotation("Widget");
             widget.set("FT", "Tx");
             widget.set("AP", dictionary! {"N" => widget_appearance});
             widget.set("AA", Dictionary::new());
+            annotations.push(Object::Reference(document.add_object(widget)));
+        }
+        "widget_aa_null" => {
+            let mut widget = valid_annotation("Widget");
+            widget.set("FT", "Tx");
+            widget.set("AP", dictionary! {"N" => widget_appearance});
+            widget.set("AA", Object::Null);
             annotations.push(Object::Reference(document.add_object(widget)));
         }
         "widget_additional_javascript" => {
@@ -2180,7 +2194,7 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             annotation.set("AA", Dictionary::new());
             annotations.push(Object::Reference(document.add_object(annotation)));
         }
-        "field_additional_actions" | "top_field_without_t" => {
+        "field_additional_actions" | "top_field_without_t" | "direct_field_additional_actions" => {
             let mut field = dictionary! {
                 "T" => Object::string_literal("field"),
                 "FT" => "Tx",
@@ -2189,7 +2203,19 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             if case == "top_field_without_t" {
                 field.remove(b"T");
             }
-            fields.push(Object::Reference(document.add_object(field)));
+            let field_object = if case == "direct_field_additional_actions" {
+                Object::Dictionary(field)
+            } else {
+                Object::Reference(document.add_object(field))
+            };
+            fields.push(field_object);
+        }
+        "field_aa_null" => {
+            fields.push(Object::Reference(document.add_object(dictionary! {
+                "T" => Object::string_literal("field"),
+                "FT" => "Tx",
+                "AA" => Object::Null,
+            })));
         }
         "field_additional_javascript" => {
             fields.push(Object::Reference(document.add_object(dictionary! {
@@ -2231,6 +2257,7 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             fields.push(Object::Reference(widget_id));
         }
         "catalog_additional_actions" => catalog.set("AA", Dictionary::new()),
+        "catalog_aa_null" => catalog.set("AA", Object::Null),
         "catalog_additional_javascript" => {
             catalog.set("AA", dictionary! {"WC" => action("JavaScript")});
         }
@@ -2486,6 +2513,33 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                         "Names" => vec![
                             Object::string_literal("file"),
                             Object::Dictionary(dictionary! {"EF" => Dictionary::new()}),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_direct_null_ef" => {
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Dictionary(dictionary! {"EF" => Object::Null}),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_indirect_null_ef" => {
+            let null_ref = document.add_object(Object::Null);
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Dictionary(dictionary! {"EF" => null_ref}),
                         ],
                     },
                 },

@@ -164,6 +164,11 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
         generated_graphical_content_matrix(&inventory),
         "graphical-content matrix is stale; run the ignored matrix generator"
     );
+    assert_eq!(
+        inventory["document_structure"],
+        generated_document_structure_matrix(&inventory),
+        "document-structure matrix is stale; run the ignored matrix generator"
+    );
 }
 
 #[test]
@@ -337,6 +342,21 @@ fn regenerate_low_level_syntax_matrix() {
 fn regenerate_graphical_content_matrix() {
     let mut inventory = read_json(INVENTORY_PATH);
     inventory["graphical_content"] = generated_graphical_content_matrix(&inventory);
+    fs::write(
+        INVENTORY_PATH,
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&inventory).expect("serialize inventory")
+        ),
+    )
+    .expect("write inventory");
+}
+
+#[test]
+#[ignore = "maintenance generator for the checked document-structure matrix"]
+fn regenerate_document_structure_matrix() {
+    let mut inventory = read_json(INVENTORY_PATH);
+    inventory["document_structure"] = generated_document_structure_matrix(&inventory);
     fs::write(
         INVENTORY_PATH,
         format!(
@@ -885,6 +905,117 @@ fn generated_graphical_content_matrix(inventory: &Value) -> Value {
         "shared_clause_6_1_predicate_count": 2,
         "exact_predicate_count": 21,
         "policy": "One bounded page/Form execution model supplies every clause 6.2 graphical-content population plus inline-image LZW and DeviceN component evidence.",
+        "predicates": entries,
+    })
+}
+
+/// The pinned predicates whose applicability genuinely "begins at the
+/// catalog": evaluating them requires resolving the trailer `/Root` and
+/// walking a structure rooted there (`Names`, `OCProperties`, `AcroForm`, or
+/// an action's file specification), as opposed to a predicate whose
+/// `object` happens to be `CosDocument`/`CosTrailer`/`CosXRef` but whose
+/// applicability is raw file bytes, the trailer directly, or a
+/// whole-document fact independent of `/Root` (the file header, the
+/// post-EOF byte count, the applicable trailer's `ID`, linearized-trailer
+/// agreement, xref-subsection spacing/EOL, `/Encrypt` presence, the
+/// indirect-object count, or xref-stream presence) — those are inventoried
+/// by the low-level-syntax milestone instead, per
+/// `low_level_provenance_class`.
+fn document_structure_catalog_rooted_rule_ids() -> BTreeSet<&'static str> {
+    BTreeSet::from([
+        "ISO 19005-1:2005:6.1.11:1",
+        "ISO 19005-1:2005:6.1.11:2",
+        "ISO 19005-1:2005:6.1.13:1",
+        "ISO 19005-1:2005:6.6.2:2",
+        "ISO 19005-1:2005:6.6.2:3",
+        "ISO 19005-1:2005:6.7.2:1",
+        "ISO 19005-1:2005:6.9:1",
+    ])
+}
+
+fn document_structure_traversal_origin(rule_id: &str) -> &'static str {
+    match rule_id {
+        "ISO 19005-1:2005:6.1.11:1" => {
+            "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.28.2 to instantiate the same CosFileSpecification object either way)"
+        }
+        "ISO 19005-1:2005:6.1.11:2" => {
+            "catalog::resolve_catalog -> Names -> EmbeddedFiles key presence (document_features::inspect)"
+        }
+        "ISO 19005-1:2005:6.1.13:1" => {
+            "catalog::resolve_catalog -> OCProperties key presence (document_features::inspect)"
+        }
+        "ISO 19005-1:2005:6.6.2:2" => {
+            "catalog::resolve_catalog -> AcroForm -> Fields tree, recursive Kids with a top-level-vs-child /T distinction matching veraPDF (actions::inspect_acro_form / inspect_field)"
+        }
+        "ISO 19005-1:2005:6.6.2:3" => {
+            "catalog::resolve_catalog -> AA key presence (actions::inspect)"
+        }
+        "ISO 19005-1:2005:6.7.2:1" => {
+            "catalog::resolve_catalog -> Metadata stream (model::normalize -> inspect_catalog_metadata)"
+        }
+        "ISO 19005-1:2005:6.9:1" => {
+            "catalog::resolve_catalog -> AcroForm -> NeedAppearances (forms::inspect_acro_form)"
+        }
+        _ => unreachable!("rule id not in the catalog-rooted set"),
+    }
+}
+
+/// Documents the acceptance-criteria question "every document-structure
+/// predicate has a documented veraPDF-backed applicability and traversal
+/// model" precisely, rather than by assertion: every pinned predicate whose
+/// evaluation requires walking from the trailer `/Root` is listed with the
+/// exact shared-traversal call path that supplies it. Separately records
+/// the (confirmed, not assumed) fact that neither the page tree nor a
+/// general name-tree node owns any predicate of its own in this profile —
+/// no `PDPage`, `PDPagesTreeNode`, or name-tree-node object exists among
+/// the 129 pinned predicates — so both are pure shared infrastructure
+/// (`page_tree::collect_pages`, the name-tree walker) whose correctness is
+/// verified indirectly through every downstream family that depends on it.
+fn generated_document_structure_matrix(inventory: &Value) -> Value {
+    let catalog_rooted = document_structure_catalog_rooted_rule_ids();
+    let mut entries = array(&inventory["predicates"], "predicates")
+        .iter()
+        .filter(|predicate| {
+            catalog_rooted.contains(string(&predicate["verapdf_rule_id"], "veraPDF rule id"))
+        })
+        .map(|predicate| {
+            let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id").to_owned();
+            let traversal_origin = document_structure_traversal_origin(&rule_id);
+            json!({
+                "verapdf_rule_id": rule_id,
+                "object": predicate["object"],
+                "predicate": predicate["predicate"],
+                "implementation_path": predicate["local_checks"],
+                "applicability": predicate["mapping_notes"],
+                "implementation_strength": predicate["implementation_strength"],
+                "traversal_origin": traversal_origin,
+                "coverage": predicate["coverage"],
+            })
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| {
+        string(&left["verapdf_rule_id"], "left rule id")
+            .cmp(string(&right["verapdf_rule_id"], "right rule id"))
+    });
+    assert_eq!(
+        entries.len(),
+        catalog_rooted.len(),
+        "catalog-rooted predicate count"
+    );
+    json!({
+        "status": "complete",
+        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "catalog_rooted_predicate_count": entries.len(),
+        "page_tree_owned_predicate_count": 0,
+        "name_tree_owned_predicate_count": 0,
+        "policy": "Applicability 'begins at the catalog' means evaluating the predicate requires resolving the trailer /Root and walking a structure rooted there (Names, OCProperties, AcroForm, or an action's file specification). A predicate whose object is CosDocument/CosTrailer/CosXRef but whose applicability is raw file bytes, the trailer directly, or a whole-document xref/object-count fact independent of /Root is excluded here and is instead inventoried by the low-level-syntax milestone. Neither the page tree nor a general name-tree node owns a predicate of its own anywhere in this profile: no PDPage, PDPagesTreeNode, or name-tree-node object exists among the 129 pinned predicates. Both are pure shared traversal substrate (catalog::resolve_catalog, page_tree::collect_pages, and the generalized name-tree walker in document_features.rs) feeding the downstream annotation, action, form, font, colour, and content predicate families instead of owning predicates themselves; their correctness (cycle detection, /Type strictness matching veraPDF's fatal parse exception, direct-dictionary support) is verified by page_tree.rs's and document_features.rs's own unit tests plus every downstream family's atomic and differential coverage, not by a predicate of their own.",
+        "downstream_families_fed_by_page_tree": [
+            "annotations (PDAnnot, PDWidgetAnnot)",
+            "actions (PDAction, PDNamedAction)",
+            "forms (PDAcroForm field walk, PDFormField)",
+            "content execution (Op_Undefined, Op_q_gsave, PDGroup, PDExtGState, colour spaces)",
+            "fonts (PDFont, PDSimpleFont, PDCIDFont, PDType0Font, PDType1Font, PDTrueTypeFont, Glyph, CMapFile)"
+        ],
         "predicates": entries,
     })
 }

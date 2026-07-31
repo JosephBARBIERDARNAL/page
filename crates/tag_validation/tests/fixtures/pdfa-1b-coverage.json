@@ -132,6 +132,534 @@
       "sha256": "a301c82e0fb28d298daa6543f1b04395afb234759234d4bc903d560ea7a6781c"
     }
   ],
+  "document_structure": {
+    "catalog_rooted_predicate_count": 7,
+    "downstream_families_fed_by_page_tree": [
+      "annotations (PDAnnot, PDWidgetAnnot)",
+      "actions (PDAction, PDNamedAction)",
+      "forms (PDAcroForm field walk, PDFormField)",
+      "content execution (Op_Undefined, Op_q_gsave, PDGroup, PDExtGState, colour spaces)",
+      "fonts (PDFont, PDSimpleFont, PDCIDFont, PDType0Font, PDType1Font, PDTrueTypeFont, Glyph, CMapFile)"
+    ],
+    "name_tree_owned_predicate_count": 0,
+    "page_tree_owned_predicate_count": 0,
+    "policy": "Applicability 'begins at the catalog' means evaluating the predicate requires resolving the trailer /Root and walking a structure rooted there (Names, OCProperties, AcroForm, or an action's file specification). A predicate whose object is CosDocument/CosTrailer/CosXRef but whose applicability is raw file bytes, the trailer directly, or a whole-document xref/object-count fact independent of /Root is excluded here and is instead inventoried by the low-level-syntax milestone. Neither the page tree nor a general name-tree node owns a predicate of its own anywhere in this profile: no PDPage, PDPagesTreeNode, or name-tree-node object exists among the 129 pinned predicates. Both are pure shared traversal substrate (catalog::resolve_catalog, page_tree::collect_pages, and the generalized name-tree walker in document_features.rs) feeding the downstream annotation, action, form, font, colour, and content predicate families instead of owning predicates themselves; their correctness (cycle detection, /Type strictness matching veraPDF's fatal parse exception, direct-dictionary support) is verified by page_tree.rs's and document_features.rs's own unit tests plus every downstream family's atomic and differential coverage, not by a predicate of their own.",
+    "predicates": [
+      {
+        "applicability": [
+          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "action:gotor_action_with_ef_file_spec",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:submit_form_action_with_ef_file_spec",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:embedded_files_kids_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_indirect_null_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_indirect_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_stream_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_with_ef",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "action:gotor_action_without_ef_file_spec",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_direct_null_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_scalar",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_without_ef",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "CosFileSpecification",
+        "predicate": "containsEF == false",
+        "traversal_origin": "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.28.2 to instantiate the same CosFileSpecification object either way)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.1.11:1"
+      },
+      {
+        "applicability": [
+          "For the catalog's dictionary-based `/Names`: `EmbeddedFiles` is absent; direct null is empty, while an indirect null remains a present key."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "document_feature:embedded_files_kids_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_direct_null_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_indirect_null_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_indirect_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_scalar",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_stream_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_with_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:file_spec_without_ef",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_embedded_files_dictionary",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_embedded_files_indirect_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_embedded_files_wrong_type",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_indirect_dictionary",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "document_feature:baseline",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_embedded_files_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_empty",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_stream_embedded_files",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:names_wrong_type",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:unreferenced_names_embedded_files",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "reason": "CosDocument is always applicable for this profile predicate.",
+            "representable": false
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-NAMES-EMBEDDED-FILES-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "CosDocument",
+        "predicate": "containsEmbeddedFiles == false",
+        "traversal_origin": "catalog::resolve_catalog -> Names -> EmbeddedFiles key presence (document_features::inspect)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.1.11:2"
+      },
+      {
+        "applicability": [
+          "On the document catalog: `OCProperties` is empty or absent; direct null is empty, while any non-empty value, including an indirect null, is present."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "document_feature:ocproperties_dictionary",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:ocproperties_indirect_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:ocproperties_stream",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:ocproperties_wrong_type",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "document_feature:baseline",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:ocproperties_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "document_feature:unreferenced_catalog_ocproperties",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "reason": "CosDocument is always applicable for this profile predicate.",
+            "representable": false
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-OPTIONAL-CONTENT-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "CosDocument",
+        "predicate": "isOptionalContentPresent == false",
+        "traversal_origin": "catalog::resolve_catalog -> OCProperties key presence (document_features::inspect)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.1.13:1"
+      },
+      {
+        "applicability": [
+          "For dictionaries directly in AcroForm `/Fields` and named field descendants reached through `/Kids`: `containsAA == false`."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "action:child_field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:combined_widget_field_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:direct_field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:field_additional_javascript",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:top_field_without_t",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "action:child_without_t",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:field_aa_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:unreferenced_field_additional_actions",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDFormField",
+        "predicate": "containsAA == false",
+        "traversal_origin": "catalog::resolve_catalog -> AcroForm -> Fields tree, recursive Kids with a top-level-vs-child /T distinction matching veraPDF (actions::inspect_acro_form / inspect_field)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.6.2:2"
+      },
+      {
+        "applicability": [
+          "`containsAA == false` on the document catalog; key presence is tested regardless of value type."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "action:catalog_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:catalog_additional_actions_wrong_type",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:catalog_additional_javascript",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:catalog_unknown_additional_action",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "action:catalog_aa_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDDocument",
+        "predicate": "containsAA == false",
+        "traversal_origin": "catalog::resolve_catalog -> AA key presence (actions::inspect)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.6.2:3"
+      },
+      {
+        "applicability": [
+          "`containsMetadata == true`"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "metadata:missing_metadata",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "metadata:missing_subtype",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "metadata:missing_type",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "metadata:baseline_b",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-METADATA-STRUCTURE-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDDocument",
+        "predicate": "containsMetadata == true",
+        "traversal_origin": "catalog::resolve_catalog -> Metadata stream (model::normalize -> inspect_catalog_metadata)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.7.2:1"
+      },
+      {
+        "applicability": [
+          "For a modeled catalog AcroForm: `NeedAppearances == null || NeedAppearances == false`; a present non-boolean value follows veraPDF's conservative true fallback and fails."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "form:acroform_stream_true",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_true",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_true_indirect",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_wrong_type",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "form:acroform_wrong_type",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:baseline",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_absent",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_false_indirect",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:need_appearances_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "form:no_acroform",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-ACROFORM-NEED-APPEARANCES-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDAcroForm",
+        "predicate": "NeedAppearances == null || NeedAppearances == false",
+        "traversal_origin": "catalog::resolve_catalog -> AcroForm -> NeedAppearances (forms::inspect_acro_form)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.9:1"
+      }
+    ],
+    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "status": "complete"
+  },
   "graphical_content": {
     "clause_6_2_predicate_count": 19,
     "exact_predicate_count": 21,
@@ -2481,6 +3009,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "document_feature:file_spec_indirect_null_ef",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "document_feature:file_spec_indirect_with_ef",
               "kind": "verapdf_delta"
             },
@@ -2499,6 +3031,10 @@
           "evidence": [
             {
               "case": "action:gotor_action_without_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "document_feature:file_spec_direct_null_ef",
               "kind": "verapdf_delta"
             },
             {
@@ -2543,6 +3079,14 @@
           "evidence": [
             {
               "case": "document_feature:embedded_files_kids_with_ef",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "document_feature:file_spec_direct_null_ef",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "document_feature:file_spec_indirect_null_ef",
               "kind": "verapdf_delta"
             },
             {
@@ -7224,6 +7768,10 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "action:widget_a_null",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "form:baseline",
               "kind": "verapdf_delta"
             }
@@ -7279,6 +7827,10 @@
             {
               "case": "action:text_additional_actions",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:widget_aa_null",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7321,6 +7873,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:direct_field_additional_actions",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:field_additional_actions",
               "kind": "verapdf_delta"
             },
@@ -7339,6 +7895,10 @@
           "evidence": [
             {
               "case": "action:child_without_t",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:field_aa_null",
               "kind": "verapdf_delta"
             },
             {
@@ -7398,6 +7958,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "action:catalog_aa_null",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "corpus:typst-pdfa-1b.pdf",
               "kind": "verapdf_delta"

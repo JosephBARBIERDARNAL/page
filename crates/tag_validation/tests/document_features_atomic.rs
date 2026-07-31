@@ -20,6 +20,8 @@ const CASES: &[(&str, &[&str])] = &[
     ("unreferenced_names_embedded_files", &[]),
     ("file_spec_without_ef", &[EMBEDDED_FILES]),
     ("file_spec_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
+    ("file_spec_direct_null_ef", &[EMBEDDED_FILES]),
+    ("file_spec_indirect_null_ef", &[EMBEDDED_FILES, FILE_SPEC]),
     ("file_spec_indirect_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
     ("file_spec_stream_with_ef", &[EMBEDDED_FILES, FILE_SPEC]),
     ("file_spec_scalar", &[EMBEDDED_FILES]),

@@ -6,7 +6,7 @@ use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{resolve_optional, walk_inherited};
+use crate::object_resolution::{contains_key, resolve_optional, walk_inherited};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -117,7 +117,7 @@ fn inspect_annotation(
         ));
     }
 
-    if annotation.has(b"C") || annotation.has(b"IC") {
+    if contains_key(annotation, b"C") || contains_key(annotation, b"IC") {
         summary
             .color_uses
             .push(annotation_failure(object_id, context, "contains /C or /IC"));

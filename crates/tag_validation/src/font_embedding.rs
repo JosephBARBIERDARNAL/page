@@ -10,7 +10,7 @@ use crate::content_support::{
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{ResourceKey, resolve_optional};
+use crate::object_resolution::{ResourceKey, contains_key, resolve_optional};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -2733,7 +2733,7 @@ fn truetype_encoding(
         .ok()
         .and_then(|value| value.as_name().ok())
         .map(ToOwned::to_owned);
-    Ok((base, dictionary.has(b"Differences")))
+    Ok((base, contains_key(dictionary, b"Differences")))
 }
 
 fn truetype_cmap_count(

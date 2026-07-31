@@ -4,7 +4,7 @@ use lopdf::{Document, Object};
 
 use crate::content_support::{ContentExecutionSummary, XObjectUseKind};
 use crate::model::PdfObjectId;
-use crate::object_resolution::ResourceKey;
+use crate::object_resolution::{ResourceKey, contains_key};
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -66,7 +66,7 @@ fn inspect_common_xobject(
     kind: &str,
     summary: &mut XObjectSummary,
 ) {
-    if dictionary.has(b"OPI") {
+    if contains_key(dictionary, b"OPI") {
         summary.xobject_opi.push(RuleFailure {
             object_id,
             description: format!("{kind} dictionary contains /OPI"),
@@ -80,13 +80,13 @@ fn inspect_image(
     is_explicit_mask: bool,
     summary: &mut XObjectSummary,
 ) {
-    if dictionary.has(b"Alternates") {
+    if contains_key(dictionary, b"Alternates") {
         summary.image_alternates.push(RuleFailure {
             object_id,
             description: "image dictionary contains /Alternates".to_owned(),
         });
     }
-    if dictionary.has(b"Interpolate")
+    if contains_key(dictionary, b"Interpolate")
         && dictionary
             .get(b"Interpolate")
             .ok()
@@ -152,7 +152,7 @@ fn inspect_form(
             description: "Form dictionary contains /PS or /Subtype2 /PS".to_owned(),
         });
     }
-    if dictionary.has(b"Ref") {
+    if contains_key(dictionary, b"Ref") {
         summary.form_reference.push(RuleFailure {
             object_id,
             description: "Form dictionary contains /Ref".to_owned(),

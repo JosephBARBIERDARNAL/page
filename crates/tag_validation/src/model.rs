@@ -8,7 +8,7 @@ use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
-use crate::object_resolution::{dictionary_based, resolve, resolve_optional};
+use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_optional};
 use crate::page_tree;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -235,7 +235,7 @@ impl PdfDocument {
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {
         let root = document.trailer.get(b"Root").ok();
         let catalog_reference = root.and_then(reference_id);
-        let encrypted = document.was_encrypted() || document.trailer.has(b"Encrypt");
+        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
         let mut trailer_keys = document
             .trailer
             .iter()
@@ -374,7 +374,7 @@ fn inspect_catalog_metadata(
         .ok()
         .and_then(|object| object.as_name().ok())
         == Some(b"XML".as_slice());
-    result.has_filter = stream.dict.has(b"Filter");
+    result.has_filter = contains_key(&stream.dict, b"Filter");
     Ok(result)
 }
 

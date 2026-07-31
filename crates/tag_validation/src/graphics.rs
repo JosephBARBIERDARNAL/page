@@ -6,7 +6,7 @@ use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::resolve_optional;
+use crate::object_resolution::{contains_key, resolve_optional};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -53,7 +53,7 @@ pub(crate) fn inspect(
             continue;
         };
         let reported_id = use_.key.object_id();
-        if stream.dict.has(b"SMask") {
+        if contains_key(&stream.dict, b"SMask") {
             summary.xobject_soft_masks.push(RuleFailure {
                 object_id: reported_id,
                 description: "invoked XObject dictionary contains /SMask".to_owned(),
@@ -186,13 +186,13 @@ fn inspect_extgstate(
     object_id: Option<PdfObjectId>,
     summary: &mut GraphicsSummary,
 ) {
-    if dictionary.has(b"TR") {
+    if contains_key(dictionary, b"TR") {
         summary.transfer_functions.push(RuleFailure {
             object_id,
             description: "used ExtGState dictionary contains /TR".to_owned(),
         });
     }
-    if dictionary.has(b"TR2")
+    if contains_key(dictionary, b"TR2")
         && dictionary
             .get(b"TR2")
             .ok()
@@ -204,7 +204,7 @@ fn inspect_extgstate(
             description: "used ExtGState dictionary has /TR2 other than /Default".to_owned(),
         });
     }
-    if dictionary.has(b"SMask")
+    if contains_key(dictionary, b"SMask")
         && dictionary
             .get(b"SMask")
             .ok()
@@ -216,7 +216,7 @@ fn inspect_extgstate(
             description: "used ExtGState dictionary has /SMask other than /None".to_owned(),
         });
     }
-    if dictionary.has(b"BM")
+    if contains_key(dictionary, b"BM")
         && !matches!(
             dictionary
                 .get(b"BM")

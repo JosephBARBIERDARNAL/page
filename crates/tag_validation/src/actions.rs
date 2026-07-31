@@ -6,7 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
-use crate::object_resolution::resolve_optional;
+use crate::object_resolution::{contains_key, resolve_optional};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -49,7 +49,7 @@ pub(crate) fn inspect(
         seen_fields: BTreeSet::new(),
         seen_outlines: BTreeSet::new(),
     };
-    if catalog.has(b"AA") {
+    if contains_key(catalog, b"AA") {
         inspector
             .summary
             .catalog_with_additional_actions
@@ -141,13 +141,13 @@ impl Inspector<'_> {
             .ok()
             .and_then(|value| value.as_name().ok())
             == Some(b"Widget".as_slice());
-        if is_widget && annotation.has(b"A") {
+        if is_widget && contains_key(annotation, b"A") {
             self.summary.widgets_with_actions.push(RuleFailure {
                 object_id: failure_id,
                 description: format!("{context} is a Widget containing /A"),
             });
         }
-        if is_widget && annotation.has(b"AA") {
+        if is_widget && contains_key(annotation, b"AA") {
             self.summary
                 .widgets_with_additional_actions
                 .push(RuleFailure {
@@ -214,7 +214,7 @@ impl Inspector<'_> {
         if !top_level && !field.has(b"T") {
             return Ok(());
         }
-        if field.has(b"AA") {
+        if contains_key(field, b"AA") {
             self.summary
                 .fields_with_additional_actions
                 .push(RuleFailure {
