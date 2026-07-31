@@ -32,6 +32,10 @@ struct Manifest {
     #[serde(default)]
     atomic_font_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
+    atomic_font_content_source_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
+    atomic_type0_descendant_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
     atomic_composite_font_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
     atomic_truetype_cases: Vec<AtomicRuleCase>,
@@ -222,6 +226,22 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         "baseline_embedded",
         &manifest.atomic_font_cases,
         common::font_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "font-content-source",
+        "baseline",
+        &manifest.atomic_font_content_source_cases,
+        common::font_content_source_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "type0-descendant",
+        "baseline",
+        &manifest.atomic_type0_descendant_cases,
+        common::type0_descendant_fixture,
     );
     assert_atomic_cases(
         &runner,

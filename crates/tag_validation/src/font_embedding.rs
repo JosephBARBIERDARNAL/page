@@ -5,7 +5,8 @@ use lopdf::content::Content;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 
 use crate::content_support::{
-    ContentCache, decode_content_stream_cached, inherited_page_resources, resource_once,
+    ContentCache, decode_content_stream_cached, for_each_page_annotation, inherited_page_resources,
+    resource_once,
 };
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
@@ -77,6 +78,12 @@ struct Scanner<'a> {
     cmap_decoders: HashMap<ObjectId, Rc<CmapDecoder>>,
     uses: BTreeMap<ResourceKey, FontUse>,
     active_descendant_fonts: BTreeSet<ResourceKey>,
+    /// Indirect annotation-appearance, Pattern, and Type3 CharProc streams
+    /// already scanned once, so a Pattern painted repeatedly (or the same
+    /// appearance stream shared by two annotations) is not re-parsed for
+    /// every occurrence -- these streams take no per-invocation parameters,
+    /// so a second scan can only ever repeat the first one's findings.
+    scanned_standalone_streams: BTreeSet<ObjectId>,
     invalid_types: Vec<RuleFailure>,
     invalid_subtypes: Vec<RuleFailure>,
     invalid_base_fonts: Vec<RuleFailure>,
@@ -114,6 +121,7 @@ pub(crate) fn inspect(
         cmap_decoders: HashMap::new(),
         uses: BTreeMap::new(),
         active_descendant_fonts: BTreeSet::new(),
+        scanned_standalone_streams: BTreeSet::new(),
         invalid_types: Vec::new(),
         invalid_subtypes: Vec::new(),
         invalid_base_fonts: Vec::new(),
@@ -143,6 +151,8 @@ pub(crate) fn inspect(
             .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
         scanner.scan_page(page_number, page)?;
     }
+    scanner.scan_annotation_appearances(pages)?;
+    scanner.scan_type3_charproc_fonts()?;
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
         left.object_id
@@ -388,6 +398,25 @@ impl Scanner<'_> {
                     }
                     result?;
                 }
+                "scn" | "SCN" => {
+                    let Some(name) = operation
+                        .operands
+                        .last()
+                        .and_then(|operand| operand.as_name().ok())
+                    else {
+                        continue;
+                    };
+                    let Some(pattern) =
+                        resource_once(self.document, self.limits, resources, b"Pattern", name)?
+                    else {
+                        continue;
+                    };
+                    self.scan_form_like_stream_once(
+                        pattern,
+                        None,
+                        &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
+                    )?;
+                }
                 _ => {}
             }
         }
@@ -436,6 +465,210 @@ impl Scanner<'_> {
             context,
             depth,
         )
+    }
+
+    /// Scans every page annotation's `/AP` `/N` appearance stream for font
+    /// use, confirmed live against veraPDF 1.28.2: a font referenced only
+    /// from an annotation appearance (never from the page's own content)
+    /// still populates a `PDFont` object and is still checked for embedding.
+    /// A button Widget's `/N` is a subdictionary of named states (e.g.
+    /// `Off`/`Yes`); veraPDF walks every state's stream, not just the one
+    /// selected by `/AS` (also confirmed live), so every value is scanned.
+    fn scan_annotation_appearances(
+        &mut self,
+        pages: &BTreeMap<u32, PageEntry>,
+    ) -> Result<(), PdfError> {
+        let mut inspected = BTreeSet::new();
+        let mut annotations = Vec::new();
+        for_each_page_annotation(
+            self.document,
+            pages,
+            self.limits,
+            &mut inspected,
+            |page_number, index, _object_id, annotation| {
+                if let Ok(dictionary) = annotation.as_dict() {
+                    annotations.push((page_number, index, dictionary.clone()));
+                }
+                Ok(())
+            },
+        )?;
+        for (page_number, index, annotation) in annotations {
+            let Ok(appearance) = annotation.get(b"AP") else {
+                continue;
+            };
+            let Some(appearance) =
+                resolve_optional(self.document, appearance, self.limits.max_reference_depth)?
+                    .and_then(|object| object.as_dict().ok())
+            else {
+                continue;
+            };
+            // Confirmed live against veraPDF 1.28.2: /D (down) and /R
+            // (rollover) appearance streams are walked for font use exactly
+            // like /N, even though their mere presence already fails
+            // PDFA1B-ANNOTATION-AP-ENTRIES-001 on its own (a compliant file
+            // never has them, but veraPDF still evaluates every other
+            // predicate against the same object graph regardless).
+            for key in [b"N".as_slice(), b"D".as_slice(), b"R".as_slice()] {
+                let Ok(entry) = appearance.get(key) else {
+                    continue;
+                };
+                let Some(resolved_entry) =
+                    resolve_optional(self.document, entry, self.limits.max_reference_depth)?
+                else {
+                    continue;
+                };
+                let context = format!(
+                    "page {page_number} annotation {index}/AP/{}",
+                    String::from_utf8_lossy(key)
+                );
+                if resolved_entry.as_stream().is_ok() {
+                    self.scan_form_like_stream_once(entry, None, &context)?;
+                } else if let Ok(states) = resolved_entry.as_dict() {
+                    for (state, value) in states.iter() {
+                        let state_context = format!("{context}/{}", String::from_utf8_lossy(state));
+                        self.scan_form_like_stream_once(value, None, &state_context)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Scans a Pattern or Type3 CharProc content stream (or an annotation
+    /// appearance stream) exactly once, deduplicating indirect streams via
+    /// `scanned_standalone_streams` -- unlike a page/Form invocation, these
+    /// streams take no per-invocation parameters, so a repeat scan can only
+    /// ever repeat the first scan's findings.
+    fn scan_form_like_stream_once(
+        &mut self,
+        object: &Object,
+        fallback_resources: Option<&Dictionary>,
+        context: &str,
+    ) -> Result<(), PdfError> {
+        if let Ok(id) = object.as_reference()
+            && !self.scanned_standalone_streams.insert(id)
+        {
+            return Ok(());
+        }
+        self.scan_form_like_stream(object, fallback_resources, context, 0)
+    }
+
+    /// Executes a standalone content stream that is shaped like a Form
+    /// XObject (its own optional `/Resources`, otherwise `fallback_resources`)
+    /// but is reached by a route other than a page/Form `Do` invocation: an
+    /// annotation appearance, a Pattern's content, or a Type3 glyph
+    /// CharProc. Reuses `scan_contents` unchanged, so every existing font
+    /// check (embedding, widths, CMaps, glyph presence, ...) applies to
+    /// fonts discovered this way exactly as it does for page/Form fonts.
+    fn scan_form_like_stream(
+        &mut self,
+        object: &Object,
+        fallback_resources: Option<&Dictionary>,
+        context: &str,
+        depth: usize,
+    ) -> Result<(), PdfError> {
+        let Some(resolved) =
+            resolve_optional(self.document, object, self.limits.max_reference_depth)?
+        else {
+            return Ok(());
+        };
+        let Ok(stream) = resolved.as_stream() else {
+            return Ok(());
+        };
+        let resources = match stream.dict.get(b"Resources") {
+            Ok(entry) => resolve_optional(self.document, entry, self.limits.max_reference_depth)?
+                .and_then(|object| object.as_dict().ok()),
+            Err(_) => fallback_resources,
+        };
+        let mut state = GraphicsState::default();
+        let mut stack = Vec::new();
+        let mut active_forms = BTreeSet::new();
+        let mut decoded_bytes = 0usize;
+        self.scan_contents(
+            object,
+            resources,
+            &mut state,
+            &mut stack,
+            &mut active_forms,
+            &mut decoded_bytes,
+            context,
+            depth,
+        )
+    }
+
+    /// Scans the `/CharProcs` glyph stream for every byte actually rendered
+    /// through a used Type3 font, confirmed live against veraPDF 1.28.2 to
+    /// populate a `PDFont` object for a font shown only from inside a Type3
+    /// glyph description. Falls back to the Type3 font's own `/Resources`
+    /// per PDF32000 9.6.5.2 when a CharProc stream has none of its own.
+    /// Loops to a fixed point (bounded by `max_reference_depth` rounds)
+    /// since scanning a CharProc can itself discover a further Type3 font
+    /// whose own CharProcs have not yet been scanned.
+    fn scan_type3_charproc_fonts(&mut self) -> Result<(), PdfError> {
+        for _ in 0..=self.limits.max_reference_depth {
+            let before = self.uses.len();
+            let uses: Vec<_> = self.uses.values().cloned().collect();
+            for usage in uses {
+                if !usage.visible
+                    || usage.subtype.as_deref() != Some("Type3")
+                    || usage.shown_bytes.is_empty()
+                {
+                    continue;
+                }
+                let Some(object) = resolve_optional(
+                    self.document,
+                    &usage.object,
+                    self.limits.max_reference_depth,
+                )?
+                else {
+                    continue;
+                };
+                let Ok(font) = object.as_dict() else {
+                    continue;
+                };
+                let Some(char_procs) = font
+                    .get(b"CharProcs")
+                    .ok()
+                    .map(|value| {
+                        resolve_optional(self.document, value, self.limits.max_reference_depth)
+                    })
+                    .transpose()?
+                    .flatten()
+                    .and_then(|value| value.as_dict().ok())
+                else {
+                    continue;
+                };
+                let differences = type1_encoding_differences(self.document, font, self.limits)?;
+                let fallback_resources = font
+                    .get(b"Resources")
+                    .ok()
+                    .map(|value| {
+                        resolve_optional(self.document, value, self.limits.max_reference_depth)
+                    })
+                    .transpose()?
+                    .flatten()
+                    .and_then(|value| value.as_dict().ok())
+                    .cloned();
+                for byte in usage.shown_bytes.iter().copied().collect::<BTreeSet<_>>() {
+                    let Some(name) = differences.get(&byte) else {
+                        continue;
+                    };
+                    let Ok(charproc) = char_procs.get(name.as_bytes()) else {
+                        continue;
+                    };
+                    let context = format!("{}/CharProc /{name}", usage.description);
+                    self.scan_form_like_stream_once(
+                        charproc,
+                        fallback_resources.as_ref(),
+                        &context,
+                    )?;
+                }
+            }
+            if self.uses.len() == before {
+                return Ok(());
+            }
+        }
+        Err(PdfError::ReferenceDepth(self.limits.max_reference_depth))
     }
 
     fn record_font(
@@ -517,20 +750,26 @@ impl Scanner<'_> {
         if subtype.as_deref() == Some("Type0")
             && self.active_descendant_fonts.insert(selected.key.clone())
         {
+            // PDF32000 9.7.3 requires exactly one entry, and veraPDF 1.28.2
+            // confirms this in its object model: it creates a PDCIDFont (and
+            // evaluates every per-font predicate, including embedding) only
+            // for DescendantFonts[0]. A second or later entry is invisible
+            // to it entirely, so recording it here too would make a local
+            // check fail (e.g. embedding) for an object veraPDF never
+            // examines -- a confirmed false positive, not extra coverage.
             if let Ok(descendants) = font.get(b"DescendantFonts")
                 && let Some(descendants) =
                     resolve_optional(self.document, descendants, self.limits.max_reference_depth)?
                         .and_then(|object| object.as_array().ok())
+                && let Some(descendant) = descendants.first()
             {
-                for (index, descendant) in descendants.iter().enumerate() {
-                    let context = format!("{}/descendant {index}", selected.description);
-                    let descendant = SelectedFont {
-                        key: object_key(descendant, &context, None),
-                        object: descendant.clone(),
-                        description: describe_descendant(descendant, &selected.description, index),
-                    };
-                    self.record_font(&descendant, rendering_mode, &[])?;
-                }
+                let context = format!("{}/descendant 0", selected.description);
+                let descendant = SelectedFont {
+                    key: object_key(descendant, &context, None),
+                    object: descendant.clone(),
+                    description: describe_descendant(descendant, &selected.description),
+                };
+                self.record_font(&descendant, rendering_mode, &[])?;
             }
             self.active_descendant_fonts.remove(&selected.key);
         }
@@ -1483,9 +1722,17 @@ impl Scanner<'_> {
             ));
         }
 
-        if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3"))
-            && !base_font.is_some_and(is_standard_14_font)
-        {
+        // Confirmed live against veraPDF 1.28.2: the "standard 14 fonts"
+        // /FirstChar//LastChar//Widths exemption applies only to Type1/
+        // MMType1 -- a TrueType (or Type3) font whose /BaseFont happens to
+        // match a standard-14 name (e.g. "Helvetica") is still required to
+        // supply all three, since standard-14 metrics are a Type1 concept.
+        let requires_simple_font_metrics = match subtype {
+            Some("Type1" | "MMType1") => !base_font.is_some_and(is_standard_14_font),
+            Some("TrueType" | "Type3") => true,
+            _ => false,
+        };
+        if requires_simple_font_metrics {
             let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
             let last_char = font.get(b"LastChar").ok().and_then(as_integer);
             if first_char.is_none() {
@@ -1833,6 +2080,22 @@ fn cmap_content_wmode(bytes: &[u8]) -> Option<i64> {
     None
 }
 
+/// Clamps a CMap's self-declared entry count to the number of entries the
+/// remaining token buffer could actually hold, so a tiny malicious stream
+/// declaring an astronomical count (e.g. `99999999999999 begincidrange
+/// <00> <01> 1 endcidrange`, ~50 bytes) cannot force a near-unbounded loop:
+/// every claimed entry beyond the real buffer size would only ever find
+/// missing tokens via `.get()` anyway, so clamping changes no outcome for a
+/// well-formed or merely under-provisioned declaration.
+fn bounded_cmap_entry_count(
+    declared: usize,
+    tokens: &[&[u8]],
+    entries_start: usize,
+    entry_width: usize,
+) -> usize {
+    declared.min(tokens.len().saturating_sub(entries_start) / entry_width)
+}
+
 fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
     let tokens = bytes
         .split(|byte| byte.is_ascii_whitespace())
@@ -1857,6 +2120,7 @@ fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
         };
         match tokens.get(cursor + 1).copied() {
             Some(b"begincidchar") => {
+                let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 2);
                 for entry in 0..count {
                     if let Some(cid) = tokens
                         .get(cursor + 3 + entry * 2)
@@ -1868,6 +2132,7 @@ fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
                 cursor += 2 + count * 2;
             }
             Some(b"begincidrange") => {
+                let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 3);
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 3;
                     let Some(start) = tokens.get(base).and_then(|token| parse_cmap_hex(token))
@@ -2015,6 +2280,7 @@ fn parse_cmap(bytes: &[u8]) -> Option<ParsedCmap> {
         };
         match tokens[cursor + 1] {
             b"begincodespacerange" => {
+                let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 2);
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 2;
                     let (Some(start), Some(end)) = (
@@ -2036,6 +2302,7 @@ fn parse_cmap(bytes: &[u8]) -> Option<ParsedCmap> {
                 cursor += 2 + count * 2;
             }
             b"begincidchar" => {
+                let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 2);
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 2;
                     let (Some(code), Some(cid)) = (
@@ -2053,6 +2320,7 @@ fn parse_cmap(bytes: &[u8]) -> Option<ParsedCmap> {
                 cursor += 2 + count * 2;
             }
             b"begincidrange" => {
+                let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 3);
                 for entry in 0..count {
                     let base = cursor + 2 + entry * 3;
                     let (Some(start), Some(end), Some(cid)) = (
@@ -2875,12 +3143,12 @@ fn describe_font(object: &Object, context: &str, name: Option<&Object>) -> Strin
     }
 }
 
-fn describe_descendant(object: &Object, parent: &str, index: usize) -> String {
+fn describe_descendant(object: &Object, parent: &str) -> String {
     match object {
         Object::Reference((number, generation)) => {
             format!("descendant font object {number} {generation}")
         }
-        _ => format!("direct descendant font {index} of {parent}"),
+        _ => format!("direct descendant font of {parent}"),
     }
 }
 
@@ -2948,6 +3216,37 @@ mod tests {
         shown_text_bytes,
     };
     use crate::SafetyLimits;
+
+    /// A malicious CMap can declare an astronomical entry count while
+    /// supplying almost no real tokens (`99999999999999 begincidrange <00>
+    /// <01> 1 endcidrange` is ~50 bytes). Before `bounded_cmap_entry_count`
+    /// existed, both `cmap_maximal_cid` and `parse_cmap` trusted the
+    /// declared count directly as a loop bound, so this alone hung the
+    /// validator (confirmed: still running after 30+ seconds). The fix
+    /// clamps the count to what the token buffer could actually hold, so
+    /// this must now return almost immediately.
+    #[test]
+    fn huge_declared_cmap_entry_count_does_not_hang() {
+        let malicious = b"99999999999999 begincidrange <00> <01> 1 endcidrange";
+        let started = std::time::Instant::now();
+        assert_eq!(cmap_maximal_cid(malicious), Some(2));
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(5),
+            "cmap_maximal_cid took {:?} on a malicious declared count",
+            started.elapsed()
+        );
+
+        let malicious_parse =
+            b"1 begincodespacerange <00> <FF> endcodespacerange 99999999999999 begincidrange <00> <01> 1 endcidrange";
+        let started = std::time::Instant::now();
+        let parsed = parse_cmap(malicious_parse).expect("parse malicious cmap");
+        assert_eq!(parsed.decode(&[0x00]), Some(vec![1]));
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(5),
+            "parse_cmap took {:?} on a malicious declared count",
+            started.elapsed()
+        );
+    }
 
     #[test]
     fn finds_maximum_cid_in_char_and_range_mappings() {

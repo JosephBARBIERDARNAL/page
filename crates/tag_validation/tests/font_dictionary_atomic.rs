@@ -25,6 +25,10 @@ const CASES: &[(&str, &[&str])] = &[
     ("font_widths_missing", &[WIDTHS]),
     ("font_widths_wrong_size", &[WIDTHS]),
     ("standard14_missing_metrics", &[EMBEDDING]),
+    (
+        "truetype_named_standard14_missing_metrics",
+        &[FIRST_CHAR, LAST_CHAR, WIDTHS, EMBEDDING],
+    ),
     ("font_file_subtype_invalid", &[FILE_SUBTYPE]),
     ("type1_subset_missing_charset", &[TYPE1_SUBSET_CHARSET]),
     ("unused_invalid_font", &[]),

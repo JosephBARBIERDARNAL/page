@@ -3333,6 +3333,18 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.remove(b"Widths");
             font.remove(b"FontDescriptor");
         }
+        // The "standard 14 fonts" /FirstChar//LastChar//Widths exemption is
+        // scoped to Type1/MMType1 only (confirmed live against veraPDF
+        // 1.28.2): a TrueType font whose /BaseFont matches a standard-14
+        // name (e.g. "Helvetica") still requires all three, unlike the
+        // Type1 case above.
+        "truetype_named_standard14_missing_metrics" => {
+            font.set("BaseFont", "Helvetica");
+            font.remove(b"FirstChar");
+            font.remove(b"LastChar");
+            font.remove(b"Widths");
+            font.remove(b"FontDescriptor");
+        }
         "tt_nonsymbolic_macroman" => font.set("Encoding", "MacRomanEncoding"),
         "tt_nonsymbolic_missing_encoding" => {
             font.remove(b"Encoding");
@@ -3688,6 +3700,422 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     document.trailer.set("Info", info_id);
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect("save font fixture");
+    bytes
+}
+
+/// A minimal, always-non-embedded `Type1`/Helvetica font: using it anywhere
+/// visible must trigger `PDFA1B-FONT-EMBEDDING-001` on its own.
+fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
+    document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "Helvetica",
+        "Encoding" => "WinAnsiEncoding",
+        "FirstChar" => 32,
+        "LastChar" => 32,
+        "Widths" => vec![278.into()],
+    })
+}
+
+/// Builds a minimal PDF/A-1b page exercising font-use discovery through a
+/// content source other than the page's own content stream or an invoked
+/// Form XObject: an annotation appearance stream (including a button
+/// Widget's non-selected state), a Pattern's own content, or a Type3 glyph
+/// CharProc. Each was confirmed live against veraPDF 1.28.2 to still
+/// populate a `PDFont` object for a font used only there, so it must still
+/// be checked for embedding (see `font_embedding.rs`'s
+/// `scan_annotation_appearances`/`scan_form_like_stream`/
+/// `scan_type3_charproc_fonts`).
+pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+
+    let mut resources = Dictionary::new();
+    let mut page_content = Vec::new();
+    let mut annotations = Vec::new();
+
+    match case {
+        // A trivial fill with no font anywhere: every other case below also
+        // paints something (a glyph or a filled rectangle), which uses the
+        // default DeviceGray colour space and fails PDFA1B-DEVICE-GRAY-001
+        // on its own (this fixture's output intent carries no ICC profile).
+        // Painting here too keeps that failure common to every case so the
+        // rule-ID delta isolates PDFA1B-FONT-EMBEDDING-001 alone.
+        "baseline" => {
+            page_content = content(vec![
+                operation("re", vec![0.into(), 0.into(), 1.into(), 1.into()]),
+                operation("f", vec![]),
+            ]);
+        }
+        "annotation_appearance_unembedded" => {
+            let helper_font = non_embedded_helper_font(&mut document);
+            let appearance_content = content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"FAnnot".to_vec()), 8.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+            ]);
+            let appearance_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 20.into(), 20.into()],
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "FAnnot" => helper_font },
+                    },
+                },
+                appearance_content,
+            ));
+            annotations.push(document.add_object(dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "FreeText",
+                "Rect" => vec![10.into(), 10.into(), 110.into(), 30.into()],
+                "F" => 4,
+                "AP" => dictionary! { "N" => appearance_id },
+            }));
+        }
+        "down_appearance_unembedded" => {
+            let helper_font = non_embedded_helper_font(&mut document);
+            let normal_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 20.into(), 20.into()],
+                },
+                Vec::new(),
+            ));
+            let down_content = content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"FAnnot".to_vec()), 8.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+            ]);
+            let down_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 20.into(), 20.into()],
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "FAnnot" => helper_font },
+                    },
+                },
+                down_content,
+            ));
+            // /D's mere presence already fails PDFA1B-ANNOTATION-AP-ENTRIES-001
+            // on its own (confirmed live: a compliant /AP has only /N), but
+            // veraPDF 1.28.2 still walks /D for font use regardless, so the
+            // unembedded font used only there is independently flagged too.
+            annotations.push(document.add_object(dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "FreeText",
+                "Rect" => vec![10.into(), 10.into(), 110.into(), 30.into()],
+                "F" => 4,
+                "AP" => dictionary! {
+                    "N" => normal_id,
+                    "D" => down_id,
+                },
+            }));
+        }
+        "widget_state_unembedded" => {
+            let helper_font = non_embedded_helper_font(&mut document);
+            let off_content = content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"FAnnot".to_vec()), 8.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+            ]);
+            let off_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 20.into(), 20.into()],
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "FAnnot" => helper_font },
+                    },
+                },
+                off_content,
+            ));
+            let yes_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 20.into(), 20.into()],
+                    "Resources" => dictionary! {},
+                },
+                Vec::new(),
+            ));
+            annotations.push(document.add_object(dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "Widget",
+                "FT" => "Btn",
+                "Rect" => vec![10.into(), 10.into(), 30.into(), 30.into()],
+                "F" => 4,
+                "AS" => "Yes",
+                "AP" => dictionary! {
+                    "N" => dictionary! {
+                        "Off" => off_id,
+                        "Yes" => yes_id,
+                    },
+                },
+            }));
+        }
+        "pattern_unembedded" | "pattern_unused" => {
+            let helper_font = non_embedded_helper_font(&mut document);
+            let pattern_content = content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"FPat".to_vec()), 8.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+            ]);
+            let pattern_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "XStep" => 10,
+                    "YStep" => 10,
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "FPat" => helper_font },
+                    },
+                },
+                pattern_content,
+            ));
+            resources.set("Pattern", dictionary! { "P1" => pattern_id });
+            resources.set(
+                "ColorSpace",
+                dictionary! { "CSP1" => vec![Object::Name(b"Pattern".to_vec())] },
+            );
+            page_content = if case == "pattern_unembedded" {
+                content(vec![
+                    operation("q", vec![]),
+                    operation("cs", vec![Object::Name(b"CSP1".to_vec())]),
+                    operation("scn", vec![Object::Name(b"P1".to_vec())]),
+                    operation("re", vec![0.into(), 0.into(), 50.into(), 50.into()]),
+                    operation("f", vec![]),
+                    operation("Q", vec![]),
+                ])
+            } else {
+                // Same DeviceGray-triggering fill as the shared baseline,
+                // but never selecting the Pattern colour space -- the
+                // Pattern above is declared but genuinely unused.
+                content(vec![
+                    operation("re", vec![0.into(), 0.into(), 1.into(), 1.into()]),
+                    operation("f", vec![]),
+                ])
+            };
+        }
+        "type3_charproc_unembedded" => {
+            let helper_font = non_embedded_helper_font(&mut document);
+            let charproc_content = content(vec![
+                operation(
+                    "d1",
+                    vec![
+                        1000.into(),
+                        0.into(),
+                        0.into(),
+                        0.into(),
+                        1000.into(),
+                        1000.into(),
+                    ],
+                ),
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"FInner".to_vec()), 8.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+            ]);
+            let charproc_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "FInner" => helper_font },
+                    },
+                },
+                charproc_content,
+            ));
+            let type3_font_id = document.add_object(dictionary! {
+                "Type" => "Font",
+                "Subtype" => "Type3",
+                "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+                "FontMatrix" => vec![
+                    0.001.into(),
+                    0.into(),
+                    0.into(),
+                    0.001.into(),
+                    0.into(),
+                    0.into(),
+                ],
+                "CharProcs" => dictionary! { "g1" => charproc_id },
+                "Encoding" => dictionary! {
+                    "Type" => "Encoding",
+                    "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+                },
+                "FirstChar" => 65,
+                "LastChar" => 65,
+                "Widths" => vec![1000.into()],
+            });
+            resources.set("Font", dictionary! { "T3" => type3_font_id });
+            page_content = content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"T3".to_vec()), 12.into()]),
+                operation("Tj", vec![Object::string_literal("A")]),
+                operation("ET", vec![]),
+            ]);
+        }
+        other => panic!("unknown font_content_source_fixture case {other}"),
+    }
+
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), page_content));
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Resources" => resources,
+        "Contents" => contents_id,
+    };
+    if !annotations.is_empty() {
+        page.set(
+            "Annots",
+            annotations
+                .into_iter()
+                .map(Object::Reference)
+                .collect::<Vec<_>>(),
+        );
+    }
+    let page_id = document.add_object(page);
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save font content source fixture");
+    bytes
+}
+
+fn type0_descendant_dictionary(
+    document: &mut Document,
+    embedded: bool,
+    cid_to_gid_map: bool,
+) -> ObjectId {
+    let descriptor = font_descriptor(document, embedded);
+    let descriptor_id = document.add_object(descriptor);
+    let mut descendant = dictionary! {
+        "Type" => "Font",
+        "Subtype" => "CIDFontType2",
+        "BaseFont" => "MaiTestFont",
+        "CIDSystemInfo" => dictionary! {
+            "Registry" => Object::string_literal("Adobe"),
+            "Ordering" => Object::string_literal("Identity"),
+            "Supplement" => 0,
+        },
+        "FontDescriptor" => descriptor_id,
+        // Matches sfnt::minimal_truetype()'s glyph 0/1 hmtx advance width,
+        // so a compliant descendant also passes the width-consistency check.
+        "DW" => 500,
+    };
+    if cid_to_gid_map {
+        descendant.set("CIDToGIDMap", "Identity");
+    }
+    document.add_object(descendant)
+}
+
+/// Builds a Type0 font with one or two `/DescendantFonts` entries. PDF32000
+/// 9.7.3 requires exactly one entry, and this was confirmed live against
+/// veraPDF 1.28.2: it creates a `PDCIDFont` object, and evaluates every
+/// per-font predicate against it (including embedding and `/CIDToGIDMap`),
+/// only for `DescendantFonts[0]`. A second entry is invisible to veraPDF's
+/// object model entirely, however broken -- so `font_embedding.rs`'s
+/// `Scanner::record_font` must not independently flag it either.
+pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+
+    let descendant0 = type0_descendant_dictionary(&mut document, true, true);
+    let mut descendants = vec![Object::Reference(descendant0)];
+    match case {
+        "baseline" => {}
+        "second_descendant_unembedded" => {
+            descendants.push(Object::Reference(type0_descendant_dictionary(
+                &mut document,
+                false,
+                true,
+            )));
+        }
+        "second_descendant_missing_cidtogidmap" => {
+            descendants.push(Object::Reference(type0_descendant_dictionary(
+                &mut document,
+                true,
+                false,
+            )));
+        }
+        other => panic!("unknown type0_descendant_fixture case {other}"),
+    }
+
+    let cmap_content =
+        b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> def\n\
+/CMapName /Identity-H def\n\
+1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n\
+1 begincidrange\n<0000> <FFFF> 0\nendcidrange\n"
+            .to_vec();
+    let cmap_id = document.add_object(Stream::new(
+        dictionary! { "Type" => "CMap", "CMapName" => "Identity-H" },
+        cmap_content,
+    ));
+
+    let type0_font = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type0",
+        "BaseFont" => "MaiTestFont",
+        "Encoding" => cmap_id,
+        "DescendantFonts" => descendants,
+    });
+
+    let resources = dictionary! {
+        "Font" => dictionary! { "T0" => type0_font },
+    };
+    let page_content = content(vec![
+        operation("BT", vec![]),
+        operation("Tf", vec![Object::Name(b"T0".to_vec()), 12.into()]),
+        operation(
+            "Tj",
+            vec![Object::String(vec![0, 0], StringFormat::Literal)],
+        ),
+        operation("ET", vec![]),
+    ]);
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), page_content));
+    let page_id = document.add_object(dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Resources" => resources,
+        "Contents" => contents_id,
+    });
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save Type0 descendant fixture");
     bytes
 }
 

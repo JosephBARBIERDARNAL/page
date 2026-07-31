@@ -169,6 +169,11 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
         generated_document_structure_matrix(&inventory),
         "document-structure matrix is stale; run the ignored matrix generator"
     );
+    assert_eq!(
+        inventory["font"],
+        generated_font_matrix(&inventory),
+        "font matrix is stale; run the ignored matrix generator"
+    );
 }
 
 #[test]
@@ -357,6 +362,21 @@ fn regenerate_graphical_content_matrix() {
 fn regenerate_document_structure_matrix() {
     let mut inventory = read_json(INVENTORY_PATH);
     inventory["document_structure"] = generated_document_structure_matrix(&inventory);
+    fs::write(
+        INVENTORY_PATH,
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&inventory).expect("serialize inventory")
+        ),
+    )
+    .expect("write inventory");
+}
+
+#[test]
+#[ignore = "maintenance generator for the checked font matrix"]
+fn regenerate_font_matrix() {
+    let mut inventory = read_json(INVENTORY_PATH);
+    inventory["font"] = generated_font_matrix(&inventory);
     fs::write(
         INVENTORY_PATH,
         format!(
@@ -1019,6 +1039,117 @@ fn generated_document_structure_matrix(inventory: &Value) -> Value {
         ],
         "predicates": entries,
         "family_accounting": family_accounting,
+    })
+}
+
+/// The 20 distinct veraPDF rule ids implemented by `font_embedding.rs`
+/// (§§6.3.2-6.3.7 plus the shared §6.1.12:10 CID-range limit); one of them,
+/// `ISO 19005-1:2005:6.3.5:1`, is shared by two local checks
+/// (`PDFA1B-TYPE1-GLYPH-PRESENCE-001` and
+/// `PDFA1B-TRUETYPE-GLYPH-PRESENCE-001`), so this set has 20 members for 21
+/// local rule ids. `PDFA1B-CMAP-CID-RANGE-001` is deliberately absent: per
+/// AGENTS.md's pinned mapping table it has no veraPDF rule id of its own
+/// (a local bounded precondition supporting the 6.3.5:1 glyph-presence
+/// predicate), so it cannot appear in the profile-keyed `predicates` array.
+fn font_predicate_rule_ids() -> BTreeSet<&'static str> {
+    BTreeSet::from([
+        "ISO 19005-1:2005:6.1.12:10",
+        "ISO 19005-1:2005:6.3.2:1",
+        "ISO 19005-1:2005:6.3.2:2",
+        "ISO 19005-1:2005:6.3.2:3",
+        "ISO 19005-1:2005:6.3.2:4",
+        "ISO 19005-1:2005:6.3.2:5",
+        "ISO 19005-1:2005:6.3.2:6",
+        "ISO 19005-1:2005:6.3.2:7",
+        "ISO 19005-1:2005:6.3.3.1:1",
+        "ISO 19005-1:2005:6.3.3.2:1",
+        "ISO 19005-1:2005:6.3.3.3:1",
+        "ISO 19005-1:2005:6.3.3.3:2",
+        "ISO 19005-1:2005:6.3.4:1",
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.5:3",
+        "ISO 19005-1:2005:6.3.6:1",
+        "ISO 19005-1:2005:6.3.7:1",
+        "ISO 19005-1:2005:6.3.7:2",
+        "ISO 19005-1:2005:6.3.7:3",
+    ])
+}
+
+/// The content-discovery routes that populate `font_embedding::Scanner::uses`
+/// (the shared population every font predicate below except
+/// `CMAP-MAX-CID-001` evaluates against): page content, Form XObjects
+/// invoked via `Do` (including the first used Type0 descendant), annotation
+/// `/AP`/`/N` appearance streams (every button-Widget appearance state, not
+/// only the `/AS`-selected one), tiling Pattern content selected via
+/// `cs`/`scn`, and Type3 `/CharProcs` glyph descriptions for rendered
+/// glyphs. The three non-page/Form routes were each confirmed live against
+/// veraPDF 1.28.2 (a font used only there still populates a `PDFont`
+/// object) before this milestone added them; see the
+/// `font_content_source_*` atomic and differential cases.
+const FONT_CONTENT_SOURCES: &[&str] = &[
+    "page content (font_embedding::Scanner::scan_page)",
+    "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+    "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+    "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+    "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)",
+];
+
+fn font_predicate_content_sources(rule_id: &str) -> &'static [&'static str] {
+    match rule_id {
+        // Scans every embedded CMap object reachable in the parsed object
+        // graph directly (inspect_all_embedded_cmap_cids), independent of
+        // which fonts are used or where -- not fed by content execution at
+        // all, so it does not share the other predicates' content-source
+        // list.
+        "ISO 19005-1:2005:6.1.12:10" => &[
+            "every embedded CMap object in the parsed document (font_embedding::inspect_all_embedded_cmap_cids), independent of content execution",
+        ],
+        _ => FONT_CONTENT_SOURCES,
+    }
+}
+
+/// Documents the acceptance-criteria question "font discovery includes
+/// every veraPDF-recognized page, Form, appearance, Pattern, and Type3
+/// content path" precisely, rather than by assertion: every pinned font
+/// predicate is listed with the exact set of content-discovery routes that
+/// feed the `Scanner::uses` population it evaluates against.
+fn generated_font_matrix(inventory: &Value) -> Value {
+    let rule_ids = font_predicate_rule_ids();
+    let mut entries = array(&inventory["predicates"], "predicates")
+        .iter()
+        .filter(|predicate| {
+            rule_ids.contains(string(&predicate["verapdf_rule_id"], "veraPDF rule id"))
+        })
+        .map(|predicate| {
+            let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id").to_owned();
+            let content_sources = font_predicate_content_sources(&rule_id);
+            json!({
+                "verapdf_rule_id": rule_id,
+                "object": predicate["object"],
+                "predicate": predicate["predicate"],
+                "implementation_path": predicate["local_checks"],
+                "applicability": predicate["mapping_notes"],
+                "implementation_strength": predicate["implementation_strength"],
+                "content_sources": content_sources,
+                "coverage": predicate["coverage"],
+            })
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| {
+        string(&left["verapdf_rule_id"], "left rule id")
+            .cmp(string(&right["verapdf_rule_id"], "right rule id"))
+    });
+    assert_eq!(entries.len(), rule_ids.len(), "font predicate count");
+    json!({
+        "status": "complete",
+        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "predicate_count": entries.len(),
+        "local_only_precondition_rules": [
+            "PDFA1B-CMAP-CID-RANGE-001"
+        ],
+        "policy": "The 20 pinned font predicates below (§§6.3.2-6.3.7 plus the shared §6.1.12:10 CID-range limit; ISO 19005-1:2005:6.3.5:1 covers two local checks) are evaluated against font_embedding::Scanner::uses, a single population fed by every content-discovery route veraPDF itself recognizes: page content, Form XObjects invoked via Do (including the first used Type0 descendant), annotation appearance streams (every button-Widget state, not only the /AS-selected one), Pattern content actually selected via cs/scn, and Type3 CharProcs for rendered glyphs. CMAP-MAX-CID-001 is the one exception, scanning every embedded CMap object directly instead. PDFA1B-CMAP-CID-RANGE-001 has no veraPDF rule id of its own (a local bounded precondition for the 6.3.5:1 glyph-presence predicate over CID-keyed fonts) and so is listed by name only, not as a profile-keyed predicate entry.",
+        "predicates": entries,
     })
 }
 

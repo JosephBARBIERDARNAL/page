@@ -833,6 +833,1275 @@
     "source": "veraPDF 1.28.2 PDF/A-1B profile",
     "status": "complete"
   },
+  "font": {
+    "local_only_precondition_rules": [
+      "PDFA1B-CMAP-CID-RANGE-001"
+    ],
+    "policy": "The 20 pinned font predicates below (§§6.3.2-6.3.7 plus the shared §6.1.12:10 CID-range limit; ISO 19005-1:2005:6.3.5:1 covers two local checks) are evaluated against font_embedding::Scanner::uses, a single population fed by every content-discovery route veraPDF itself recognizes: page content, Form XObjects invoked via Do (including the first used Type0 descendant), annotation appearance streams (every button-Widget state, not only the /AS-selected one), Pattern content actually selected via cs/scn, and Type3 CharProcs for rendered glyphs. CMAP-MAX-CID-001 is the one exception, scanning every embedded CMap object directly instead. PDFA1B-CMAP-CID-RANGE-001 has no veraPDF rule id of its own (a local bounded precondition for the 6.3.5:1 glyph-presence predicate over CID-keyed fonts) and so is listed by name only, not as a profile-keyed predicate entry.",
+    "predicate_count": 20,
+    "predicates": [
+      {
+        "applicability": [
+          "Every embedded CMap's maximum CID is at most 65,535."
+        ],
+        "content_sources": [
+          "every embedded CMap object in the parsed document (font_embedding::inspect_all_embedded_cmap_cids), independent of content execution"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_cid_too_large",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_matching",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CMAP-MAX-CID-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "CMapFile",
+        "predicate": "maximalCID <= 65535",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.1.12:10"
+      },
+      {
+        "applicability": [
+          "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_type_invalid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_type_missing",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:direct_descriptor",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-TYPE-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDFont",
+        "predicate": "Type == \"Font\"",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:1"
+      },
+      {
+        "applicability": [
+          "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both)."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "reason": "Missing or unsupported subtypes create no veraPDF PDFont object, so the predicate has no failing model instance.",
+            "representable": false
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:font_subtype_invalid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_subtype_missing",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-SUBTYPE-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDFont",
+        "predicate": "Subtype == \"Type1\" || Subtype == \"MMType1\" || Subtype == \"TrueType\" || Subtype == \"Type3\" || Subtype == \"Type0\" || Subtype == \"CIDFontType0\" || Subtype == \"CIDFontType2\"",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:2"
+      },
+      {
+        "applicability": [
+          "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_basefont_invalid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_basefont_missing",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:direct_descriptor",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-BASEFONT-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDFont",
+        "predicate": "Subtype == \"Type3\" || fontName != null",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:3"
+      },
+      {
+        "applicability": [
+          "For modeled simple fonts: `isStandard == true || FirstChar != null`. `isStandard` (the standard-14-fonts exemption) is confirmed live to apply only to `Type1`/`MMType1`; a `TrueType` or `Type3` font whose `/BaseFont` matches a standard-14 name is not exempt."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_firstchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:truetype_named_standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-FIRSTCHAR-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDSimpleFont",
+        "predicate": "isStandard == true || FirstChar != null",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:4"
+      },
+      {
+        "applicability": [
+          "For modeled simple fonts: `isStandard == true || LastChar != null`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_lastchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:truetype_named_standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-LASTCHAR-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDSimpleFont",
+        "predicate": "isStandard == true || LastChar != null",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:5"
+      },
+      {
+        "applicability": [
+          "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_firstchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_lastchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_wrong_size",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:truetype_named_standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-WIDTHS-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDSimpleFont",
+        "predicate": "isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:6"
+      },
+      {
+        "applicability": [
+          "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant)."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:font_file_subtype_invalid",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:direct_descriptor",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-FILE-SUBTYPE-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "PDFont",
+        "predicate": "fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.2:7"
+      },
+      {
+        "applicability": [
+          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_mismatch_system",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_named_cmap",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_matching",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDType0Font",
+        "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.3.1:1"
+      },
+      {
+        "applicability": [
+          "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cidmap_invalid_name",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cidmap_missing",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cidmap_stream",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CIDTOGIDMAP-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDCIDFont",
+        "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.3.2:1"
+      },
+      {
+        "applicability": [
+          "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_named_cmap",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_matching",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CMAP-EMBEDDING-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDCMap",
+        "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.3.3:1"
+      },
+      {
+        "applicability": [
+          "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_wmode_mismatch",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cmap_matching",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cmap_wmode_match",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CMAP-WMODE-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "CMapFile",
+        "predicate": "WMode == dictWMode",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.3.3:2"
+      },
+      {
+        "applicability": [
+          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:cyclic_form",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:direct_font",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:form_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:graphics_state_visible",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:inherited_resources",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:malformed_font_program",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:mixed_visible_first",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:truetype_named_standard14_missing_metrics",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type0_unembedded_descendant",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:unembedded_visible",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font_content_source:annotation_appearance_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font_content_source:down_appearance_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font_content_source:pattern_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font_content_source:type3_charproc_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font_content_source:widget_state_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_invalid_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:direct_descriptor",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:direct_font_file",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:mixed_rendering_modes",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type0_embedded_descendant",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_visible",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-FONT-EMBEDDING-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDFont",
+        "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.4:1"
+      },
+      {
+        "applicability": [
+          "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte.",
+          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "font:type0_embedded_descendant",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_glyph_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_visible",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_missing_encoding",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_no_encoding",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_one_cmap",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_two_cmaps",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_with_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cff_cidset_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cff_present_glyph",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cidset_real_program",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_identity_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+          "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "Glyph",
+        "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.5:1"
+      },
+      {
+        "applicability": [
+          "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "local-failure:PDFA1B-TYPE1-SUBSET-CHARSET-001",
+                "kind": "local_regression",
+                "note": "Applicable-fail evidence is not yet a central veraPDF delta."
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TYPE1-SUBSET-CHARSET-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDType1Font",
+        "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (CharSet != null && charSetListsAllGlyphs == true)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.5:2"
+      },
+      {
+        "applicability": [
+          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cff_cidset_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cid_subset_missing_cidset",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cidset_real_program",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_cff_present_glyph",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-CID-SUBSET-CIDSET-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDCIDFont",
+        "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (containsCIDSet == true && cidSetListsAllGlyphs == true)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.5:3"
+      },
+      {
+        "applicability": [
+          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "composite_font:composite_identity_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_firstchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_lastchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_wrong_size",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_visible",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "Glyph",
+        "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.6:1"
+      },
+      {
+        "applicability": [
+          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "truetype:tt_nonsymbolic_differences",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_invalid_encoding",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_missing_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "truetype:tt_nonsymbolic_dictionary_macroman",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_dictionary_winansi",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_nonsymbolic_macroman",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_no_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDTrueTypeFont",
+        "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false)",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.7:1"
+      },
+      {
+        "applicability": [
+          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "truetype:tt_symbolic_with_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "truetype:tt_symbolic_no_encoding",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "PDTrueTypeFont",
+        "predicate": "isSymbolic == false || Encoding == null",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.7:2"
+      },
+      {
+        "applicability": [
+          "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header."
+        ],
+        "content_sources": [
+          "page content (font_embedding::Scanner::scan_page)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
+          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "truetype:tt_symbolic_two_cmaps",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "truetype:tt_symbolic_no_encoding",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "truetype:tt_symbolic_one_cmap",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"
+        ],
+        "implementation_strength": [
+          "partial/proxy"
+        ],
+        "object": "TrueTypeFontProgram",
+        "predicate": "isSymbolic == false || nrCmaps == 1",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.3.7:3"
+      }
+    ],
+    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "status": "complete"
+  },
   "graphical_content": {
     "clause_6_2_predicate_count": 19,
     "exact_predicate_count": 21,
@@ -6071,13 +7340,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Type - name - (Required) The type of PDF object that this dictionary describes; must be Font for a font dictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-TYPE-001"
       ],
       "mapping_notes": [
-        "For fonts reached by bounded text-show paths: `Type == \"Font\"`."
+        "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object."
       ],
       "object": "PDFont",
       "predicate": "Type == \"Font\"",
@@ -6115,13 +7384,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Subtype - name - (Required) The type of font; must be \"Type1\" for Type 1 fonts, \"MMType1\" for multiple master fonts, \"TrueType\" for TrueType fonts \"Type3\" for Type 3 fonts, \"Type0\" for Type 0 fonts and \"CIDFontType0\" or \"CIDFontType2\" for CID fonts",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-SUBTYPE-001"
       ],
       "mapping_notes": [
-        "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable."
+        "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both)."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type1\" || Subtype == \"MMType1\" || Subtype == \"TrueType\" || Subtype == \"Type3\" || Subtype == \"Type0\" || Subtype == \"CIDFontType0\" || Subtype == \"CIDFontType2\"",
@@ -6164,13 +7433,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. BaseFont - name - (Required) The PostScript name of the font",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-BASEFONT-001"
       ],
       "mapping_notes": [
-        "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`."
+        "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || fontName != null",
@@ -6182,6 +7451,10 @@
           "evidence": [
             {
               "case": "font:font_firstchar_missing",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:truetype_named_standard14_missing_metrics",
               "kind": "verapdf_delta"
             }
           ],
@@ -6209,13 +7482,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. FirstChar - integer - (Required except for the standard 14 fonts) The first character code defined in the font's Widths array",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-FIRSTCHAR-001"
       ],
       "mapping_notes": [
-        "For modeled simple fonts: `isStandard == true || FirstChar != null`."
+        "For modeled simple fonts: `isStandard == true || FirstChar != null`. `isStandard` (the standard-14-fonts exemption) is confirmed live to apply only to `Type1`/`MMType1`; a `TrueType` or `Type3` font whose `/BaseFont` matches a standard-14 name is not exempt."
       ],
       "object": "PDSimpleFont",
       "predicate": "isStandard == true || FirstChar != null",
@@ -6227,6 +7500,10 @@
           "evidence": [
             {
               "case": "font:font_lastchar_missing",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:truetype_named_standard14_missing_metrics",
               "kind": "verapdf_delta"
             }
           ],
@@ -6254,13 +7531,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. LastChar - integer - (Required except for the standard 14 fonts) The last character code defined in the font's Widths array",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-LASTCHAR-001"
       ],
       "mapping_notes": [
-        "For modeled simple fonts: `isStandard == true || LastChar != null`."
+        "For modeled simple fonts: `isStandard == true || LastChar != null`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
       ],
       "object": "PDSimpleFont",
       "predicate": "isStandard == true || LastChar != null",
@@ -6284,6 +7561,10 @@
             },
             {
               "case": "font:font_widths_wrong_size",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:truetype_named_standard14_missing_metrics",
               "kind": "verapdf_delta"
             }
           ],
@@ -6311,13 +7592,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. Widths - array - (Required except for the standard 14 fonts; indirect reference preferred) An array of (LastChar − FirstChar + 1) widths",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-WIDTHS-001"
       ],
       "mapping_notes": [
-        "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`."
+        "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
       ],
       "object": "PDSimpleFont",
       "predicate": "isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)",
@@ -6356,13 +7637,13 @@
       },
       "description": "All fonts used in a conforming file shall conform to the font specifications defined in PDF Reference 5.5. The subtype is the value of the Subtype key, if present, in the font file stream dictionary. The only valid values of this key in PDF 1.4 are Type1C - Type 1–equivalent font program represented in the Compact Font Format (CFF) and CIDFontType0C - Type 0 CIDFont program represented in the Compact Font Format (CFF)",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-FILE-SUBTYPE-001"
       ],
       "mapping_notes": [
-        "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`."
+        "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant)."
       ],
       "object": "PDFont",
       "predicate": "fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"",
@@ -6613,11 +7894,35 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:truetype_named_standard14_missing_metrics",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type0_unembedded_descendant",
               "kind": "verapdf_delta"
             },
             {
               "case": "font:unembedded_visible",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:annotation_appearance_unembedded",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:down_appearance_unembedded",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:pattern_unembedded",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:type3_charproc_unembedded",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:widget_state_unembedded",
               "kind": "verapdf_delta"
             },
             {
@@ -6671,7 +7976,7 @@
         "PDFA1B-FONT-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths and used Type0 descendants."
+        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
@@ -7612,6 +8917,10 @@
             },
             {
               "case": "annotation:appearance_n_and_r",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font_content_source:down_appearance_unembedded",
               "kind": "verapdf_delta"
             },
             {

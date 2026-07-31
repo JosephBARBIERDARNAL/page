@@ -2500,6 +2500,24 @@
       "rationale": "The standard Helvetica font is exempt from FirstChar, LastChar, and Widths."
     },
     {
+      "name": "truetype_named_standard14_missing_metrics",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-FONT-EMBEDDING-001",
+        "PDFA1B-FONT-FIRSTCHAR-001",
+        "PDFA1B-FONT-LASTCHAR-001",
+        "PDFA1B-FONT-WIDTHS-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.3.4:1",
+        "ISO 19005-1:2005:6.3.2:4",
+        "ISO 19005-1:2005:6.3.2:5",
+        "ISO 19005-1:2005:6.3.2:6"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The standard-14-fonts FirstChar/LastChar/Widths exemption is scoped to Type1/MMType1 only: a TrueType font named Helvetica is not exempt, unlike standard14_missing_metrics above."
+    },
+    {
       "name": "font_file_subtype_invalid",
       "expected_local_failed_rule_ids": ["PDFA1B-FONT-FILE-SUBTYPE-001"],
       "expected_local_passed_rule_ids": [],
@@ -2538,6 +2556,74 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "The embedded Type1C glyph width differs from the dictionary width by more than one unit."
+    }
+  ],
+  "atomic_font_content_source_cases": [
+    {
+      "name": "annotation_appearance_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A font used only from a FreeText annotation's /AP /N appearance stream, never from the page's own content, still populates a PDFont object in veraPDF 1.28.2 and is still checked for embedding."
+    },
+    {
+      "name": "widget_state_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF 1.28.2 walks every state stream in a button Widget's /AP /N subdictionary, not only the one named by /AS, so a font used only in a non-selected state is still checked for embedding."
+    },
+    {
+      "name": "down_appearance_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001", "PDFA1B-ANNOTATION-AP-ENTRIES-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1", "ISO 19005-1:2005:6.5.3:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF 1.28.2 walks a /D (down) appearance stream for font use just like /N, even though /D's mere presence already independently fails PDFA1B-ANNOTATION-AP-ENTRIES-001 (an /AP dictionary with entries other than only /N)."
+    },
+    {
+      "name": "pattern_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A font used only inside a tiling Pattern's own content stream, selected via cs/scn and actually painted, still populates a PDFont object in veraPDF 1.28.2."
+    },
+    {
+      "name": "pattern_unused",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Pattern resource that is declared but never selected via cs/scn is not used, so its font must not be flagged, in veraPDF 1.28.2 or locally."
+    },
+    {
+      "name": "type3_charproc_unembedded",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A font used only inside a Type3 font's own rendered glyph /CharProcs stream still populates a PDFont object in veraPDF 1.28.2; the Type3 font itself is exempt from this rule but the nested font is not."
+    }
+  ],
+  "atomic_type0_descendant_cases": [
+    {
+      "name": "second_descendant_unembedded",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "PDF32000 9.7.3 requires exactly one /DescendantFonts entry; veraPDF 1.28.2 creates a PDCIDFont object, and checks embedding, only for DescendantFonts[0]. A second, unembedded entry is invisible to it entirely and must not be flagged locally either."
+    },
+    {
+      "name": "second_descendant_missing_cidtogidmap",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF 1.28.2 evaluates PDFA1B-CIDTOGIDMAP-001's rule only against DescendantFonts[0]; a second entry missing /CIDToGIDMap is invisible to it entirely and must not be flagged locally either."
     }
   ],
   "atomic_composite_font_cases": [
