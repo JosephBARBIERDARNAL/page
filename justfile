@@ -50,6 +50,11 @@ typst:
 diff file format="text" verapdf=verapdf_bin:
     cargo run --quiet -p tag_cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
 
+# Build release executables and compare end-to-end validation time per PDF.
+benchmark verapdf=verapdf_bin runs="10" warmup="1" tag="target/release/tag" files="crates/tag_validation/tests/fixtures/typst-pdfa-1b.pdf":
+    cargo build --quiet --release -p tag_cli --bin tag --bin verapdf-bench
+    target/release/verapdf-bench --tag "{{ tag }}" --verapdf "{{ verapdf }}" --runs {{ runs }} --warmup {{ warmup }} {{ files }}
+
 # Serve documentation
 preview:
     uvx zensical serve

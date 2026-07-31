@@ -40,6 +40,16 @@ Add `--json` to emit the validation report as JSON:
 tag document.pdf --profile a-1b --json
 ```
 
+Compare end-to-end command-line performance with a veraPDF executable (release
+builds are used for `tag`):
+
+```sh
+just benchmark verapdf=/path/to/verapdf files="document.pdf"
+```
+
+The benchmark starts each validator for every measured run, so its timings
+include process startup, file I/O, parsing, validation, and report generation.
+
 <br>
 
 ## Roadmap

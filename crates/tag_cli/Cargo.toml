@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "verapdf-diff"
 path = "src/bin/verapdf-diff.rs"
 
+[[bin]]
+name = "verapdf-bench"
+path = "src/bin/verapdf-bench.rs"
+
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
 serde = "1"
