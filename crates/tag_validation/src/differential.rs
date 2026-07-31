@@ -602,6 +602,12 @@ struct RawTaskException {
 struct RawBatchSummary {
     failed_encrypted_jobs: u64,
     failed_parsing_jobs: u64,
+    /// Count of unexpected internal veraPDF exceptions during the batch.
+    /// Some malformed-structure failures (confirmed: a page-tree node with
+    /// a missing or unrecognized `/Type`) surface as a `PARSE` task
+    /// exception counted here rather than in `failed_parsing_jobs`.
+    #[serde(default)]
+    vera_exceptions: u64,
 }
 
 fn parse_reference_report(
@@ -668,7 +674,9 @@ fn parse_reference_report(
             }
             let parse_state = if raw.report.batch_summary.failed_encrypted_jobs > 0 {
                 ReferenceParseState::RejectedEncrypted
-            } else if raw.report.batch_summary.failed_parsing_jobs > 0 {
+            } else if raw.report.batch_summary.failed_parsing_jobs > 0
+                || raw.report.batch_summary.vera_exceptions > 0
+            {
                 ReferenceParseState::RejectedMalformed
             } else {
                 return Err(
@@ -957,6 +965,23 @@ mod tests {
     fn parses_reference_parse_exception_structurally() {
         let parsed = parse_reference_report(
             include_bytes!("../tests/reference-reports/parse-error.json"),
+            &identity(),
+            diagnostics_fixture(),
+        )
+        .expect("reference report");
+        assert_eq!(parsed.compliant, None);
+        assert_eq!(parsed.parse_state, ReferenceParseState::RejectedMalformed);
+    }
+
+    /// Confirmed against veraPDF 1.28.2: a page-tree node with a missing or
+    /// unrecognized `/Type` surfaces as a `PARSE` task exception counted in
+    /// `batchSummary.veraExceptions` rather than `failedParsingJobs`. This
+    /// bucket must still classify as `RejectedMalformed`, not error out as
+    /// an unrecognized reference report shape.
+    #[test]
+    fn parses_reference_parse_exception_reported_as_a_vera_exception() {
+        let parsed = parse_reference_report(
+            include_bytes!("../tests/reference-reports/parse-error-vera-exception.json"),
             &identity(),
             diagnostics_fixture(),
         )

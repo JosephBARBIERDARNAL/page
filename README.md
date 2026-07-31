@@ -2,7 +2,8 @@
 
 `tag` is an experimental PDF/A and PDF/UA validator, written in Rust.
 
-This project is **very early stage**, and current focus is on the PDF/A-1b validation.
+> [!WARNING]
+> This project is **very early stage**, and current focus is on the PDF/A-1b validation.
 
 <br>
 

@@ -2,22 +2,20 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, ObjectId};
 
+use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
+use crate::file_spec;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_id: Option<PdfObjectId>,
     pub(crate) contains_embedded_files_name: bool,
     pub(crate) contains_optional_content: bool,
-    pub(crate) file_specs_with_embedded_files: Vec<FileSpecFailure>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct FileSpecFailure {
-    pub(crate) object_id: Option<PdfObjectId>,
+    pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -28,15 +26,7 @@ pub(crate) fn inspect(
     let catalog_id = root
         .and_then(|value| value.as_reference().ok())
         .map(Into::into);
-    let Some(catalog) = root
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|object| match object {
-            Object::Dictionary(dictionary) => Some(dictionary),
-            _ => None,
-        })
-    else {
+    let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
         return Ok(DocumentFeatureSummary {
             catalog_id,
             ..DocumentFeatureSummary::default()
@@ -61,9 +51,6 @@ pub(crate) fn inspect(
     let mut file_specs_with_embedded_files = Vec::new();
     if let Some(names) = names
         && let Ok(embedded_files) = names.get(b"EmbeddedFiles")
-        && let Some(embedded_files) =
-            resolve_optional(document, embedded_files, limits.max_reference_depth)?
-                .and_then(dictionary_based)
     {
         let mut visited = BTreeSet::new();
         inspect_name_tree(
@@ -87,32 +74,48 @@ pub(crate) fn inspect(
     })
 }
 
+/// Walks one name-tree node (an intermediate node with `/Kids`, a leaf with
+/// `/Names`, or both), starting from `node` before it has been resolved so
+/// that a node's own indirect identity is tracked for cycle detection just
+/// like every other reference this node is reached through — including the
+/// tree's own root, unlike a walker that only registers references
+/// encountered while iterating `/Kids`. This mirrors `page_tree::collect_pages`'s
+/// traversal shape so both trees share one cycle-safety story: any indirect
+/// object id revisited during the walk raises `PdfError::ReferenceDepth`
+/// rather than silently truncating traversal.
 fn inspect_name_tree(
     document: &Document,
-    node: &lopdf::Dictionary,
+    node: &Object,
     limits: &SafetyLimits,
-    failures: &mut Vec<FileSpecFailure>,
+    failures: &mut Vec<RuleFailure>,
     visited: &mut BTreeSet<ObjectId>,
     depth: usize,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
+    if let Ok(object_id) = node.as_reference()
+        && !visited.insert(object_id)
+    {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    let Some(node) =
+        resolve_optional(document, node, limits.max_reference_depth)?.and_then(dictionary_based)
+    else {
+        return Ok(());
+    };
     if let Ok(names) = node.get(b"Names")
         && let Some(names) = resolve_optional(document, names, limits.max_reference_depth)?
             .and_then(|object| object.as_array().ok())
     {
         for value in names.iter().skip(1).step_by(2) {
-            let object_id = value.as_reference().ok().map(Into::into);
-            if resolve_optional(document, value, limits.max_reference_depth)?
-                .and_then(dictionary_based)
-                .is_some_and(|file_spec| {
-                    file_spec
-                        .get(b"EF")
-                        .is_ok_and(|value| !matches!(value, Object::Null))
-                })
-            {
-                failures.push(FileSpecFailure { object_id });
+            if let Some(failure) = file_spec::inspect(
+                document,
+                value,
+                limits,
+                "file specification in the EmbeddedFiles name tree",
+            )? {
+                failures.push(failure);
             }
         }
     }
@@ -121,16 +124,7 @@ fn inspect_name_tree(
             .and_then(|object| object.as_array().ok())
     {
         for value in kids {
-            if let Ok(object_id) = value.as_reference()
-                && !visited.insert(object_id)
-            {
-                return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
-            }
-            if let Some(child) = resolve_optional(document, value, limits.max_reference_depth)?
-                .and_then(dictionary_based)
-            {
-                inspect_name_tree(document, child, limits, failures, visited, depth + 1)?;
-            }
+            inspect_name_tree(document, value, limits, failures, visited, depth + 1)?;
         }
     }
     Ok(())
@@ -164,6 +158,35 @@ mod tests {
         );
         document.objects.insert(
             (4, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((3, 0))] }),
+        );
+
+        assert!(matches!(
+            inspect(&document, &SafetyLimits::default()),
+            Err(PdfError::ReferenceDepth(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_an_embedded_files_node_that_references_itself() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Names" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "EmbeddedFiles" => Object::Reference((3, 0)) }),
+        );
+        // The EmbeddedFiles node's own Kids loops straight back to itself,
+        // a one-hop self-reference at the tree's root rather than a cycle
+        // spanning several Kids hops.
+        document.objects.insert(
+            (3, 0),
             Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((3, 0))] }),
         );
 

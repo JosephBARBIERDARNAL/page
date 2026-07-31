@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use lopdf::{Dictionary, Document, ObjectId};
+use lopdf::{Dictionary, Document};
 
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{resolve_optional, walk_inherited};
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -22,7 +23,7 @@ pub(crate) struct AnnotationSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
 ) -> Result<AnnotationSummary, PdfError> {
     let mut summary = AnnotationSummary::default();

@@ -1696,7 +1696,7 @@
       },
       {
         "applicability": [
-          "For dictionary-based values in the catalog's `EmbeddedFiles` name tree: `containsEF == false`; `Names` arrays and recursive `Kids` are traversed with configured reference-depth bounds."
+          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
         ],
         "implementation_path": [
           "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
@@ -2469,6 +2469,14 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "action:gotor_action_with_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:submit_form_action_with_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "document_feature:embedded_files_kids_with_ef",
               "kind": "verapdf_delta"
             },
@@ -2489,6 +2497,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "action:gotor_action_without_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "document_feature:file_spec_scalar",
               "kind": "verapdf_delta"
@@ -2519,7 +2531,7 @@
         "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
       ],
       "mapping_notes": [
-        "For dictionary-based values in the catalog's `EmbeddedFiles` name tree: `containsEF == false`; `Names` arrays and recursive `Kids` are traversed with configured reference-depth bounds."
+        "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
       ],
       "object": "CosFileSpecification",
       "predicate": "containsEF == false",
@@ -6646,6 +6658,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "annotation:direct_page_invalid_annotation",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "annotation:subtype_file_attachment",
               "kind": "verapdf_delta"
             },
@@ -7066,6 +7082,14 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:gotor_action_with_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:gotor_action_without_ef_file_spec",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:named_forbidden",
               "kind": "verapdf_delta"
             },
@@ -7083,6 +7107,10 @@
             },
             {
               "case": "action:page_unknown_additional_action",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:submit_form_action_with_ef_file_spec",
               "kind": "verapdf_delta"
             },
             {

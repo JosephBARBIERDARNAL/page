@@ -1,13 +1,15 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
 
+use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 use crate::object_resolution::{dictionary_based, resolve, resolve_optional};
+use crate::page_tree;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct PdfObjectId {
@@ -179,8 +181,15 @@ impl PdfDocument {
             // page tree (icc_based, graphics, annotations, actions, forms,
             // font_embedding) previously called `document.get_pages()`
             // independently, repeating the same page-tree traversal up to
-            // six times per document.
-            let pages = document.get_pages();
+            // six times per document. `page_tree::collect_pages` also
+            // replaces `lopdf`'s own bound (a hardcoded depth and object-count
+            // iteration budget) with this crate's `SafetyLimits`, and
+            // surfaces a cyclic or overlong page tree as `PdfError`
+            // instead of silently truncating the page list.
+            let pages = match resolve_catalog(&document, limits)? {
+                Some(catalog) => page_tree::collect_pages(&document, catalog.dictionary, limits)?,
+                None => BTreeMap::new(),
+            };
             // Shared so icc_based and font_embedding, which both execute
             // page/Form content streams, decompress each stream once between
             // them instead of separately.
@@ -251,12 +260,8 @@ impl PdfDocument {
             });
         }
 
-        let catalog = match root.filter(|_| catalog_reference.is_some()) {
-            Some(root) => resolve_optional(document, root, limits.max_reference_depth)?
-                .and_then(|object| object.as_dict().ok())
-                .filter(|dictionary| dictionary.get_type().ok() == Some(b"Catalog".as_slice())),
-            None => None,
-        };
+        let catalog = resolve_catalog(document, limits)?;
+        let catalog = catalog.map(|catalog| catalog.dictionary);
 
         let (info, info_object) = extract_info(document, limits)?;
         let catalog_metadata = inspect_catalog_metadata(document, catalog, limits)?;
@@ -272,7 +277,7 @@ impl PdfDocument {
             .map(|entry| entry.object_id)
             .collect();
         let page_count = match catalog {
-            Some(catalog) => count_pages(document, catalog, limits.max_reference_depth)?,
+            Some(catalog) => page_tree::collect_pages(document, catalog, limits)?.len(),
             None => 0,
         };
 
@@ -375,54 +380,6 @@ fn inspect_catalog_metadata(
 
 fn reference_id(object: &Object) -> Option<PdfObjectId> {
     object.as_reference().ok().map(Into::into)
-}
-
-fn count_pages(
-    document: &Document,
-    catalog: &Dictionary,
-    maximum_depth: usize,
-) -> Result<usize, PdfError> {
-    let Ok(pages) = catalog.get(b"Pages") else {
-        return Ok(0);
-    };
-    let mut count = 0usize;
-    let mut visited = BTreeSet::new();
-    let mut stack = vec![(pages, 0usize)];
-
-    while let Some((object, depth)) = stack.pop() {
-        if depth > maximum_depth {
-            continue;
-        }
-        if let Object::Reference(id) = object
-            && !visited.insert(*id)
-        {
-            continue;
-        }
-        let Some(object) = resolve_optional(document, object, maximum_depth.saturating_sub(depth))?
-        else {
-            continue;
-        };
-        let Ok(dictionary) = object.as_dict() else {
-            continue;
-        };
-        match dictionary.get_type().ok() {
-            Some(b"Page") => count = count.saturating_add(1),
-            Some(b"Pages") => {
-                let Ok(kids) = dictionary.get(b"Kids") else {
-                    continue;
-                };
-                let Some(kids) =
-                    resolve_optional(document, kids, maximum_depth.saturating_sub(depth))?
-                        .and_then(|object| object.as_array().ok())
-                else {
-                    continue;
-                };
-                stack.extend(kids.iter().rev().map(|kid| (kid, depth + 1)));
-            }
-            _ => {}
-        }
-    }
-    Ok(count)
 }
 
 fn extract_info(

@@ -17,6 +17,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("subtype_unknown", &[SUBTYPE]),
     ("subtype_missing", &[SUBTYPE]),
     ("direct_invalid_annotation", &[SUBTYPE]),
+    ("direct_page_invalid_annotation", &[SUBTYPE]),
     ("unreferenced_invalid_annotation", &[]),
     ("opacity_absent", &[]),
     ("opacity_one", &[]),

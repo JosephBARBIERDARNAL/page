@@ -1823,6 +1823,7 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
     };
     let mut include_annotation = true;
     let mut direct_annotation = false;
+    let mut direct_page = false;
     let mut output_color_space = Some(*b"RGB ");
 
     match case {
@@ -1839,6 +1840,13 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         "direct_invalid_annotation" => {
             annotation.set("Subtype", "MaiAnnot");
             direct_annotation = true;
+        }
+        // Confirmed against veraPDF 1.28.2: a Page dictionary embedded
+        // directly (not as an indirect reference) in the page tree's Kids
+        // array is still walked and its annotations validated.
+        "direct_page_invalid_annotation" => {
+            annotation.set("Subtype", "MaiAnnot");
+            direct_page = true;
         }
         "opacity_one" => annotation.set("CA", 1),
         "opacity_zero" => annotation.set("CA", 0),
@@ -1938,8 +1946,19 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
     if include_annotation {
         page.set("Annots", vec![annotation_object]);
     }
-    let page_id = document.add_object(page);
-    wrap_pages(&mut document, pages_id, page_id);
+    if direct_page {
+        document.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Dictionary(page)],
+                "Count" => 1,
+            }),
+        );
+    } else {
+        let page_id = document.add_object(page);
+        wrap_pages(&mut document, pages_id, page_id);
+    }
     let metadata_id = standard_metadata_stream(&mut document);
     let mut catalog = dictionary! {
         "Type" => "Catalog",
@@ -2001,6 +2020,24 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             catalog.set("OpenAction", named);
         }
         "allowed_submit_form" => catalog.set("OpenAction", action("SubmitForm")),
+        "gotor_action_with_ef_file_spec" => {
+            let mut goto_r = action_dictionary("GoToR");
+            goto_r.set("F", file_spec_with_ef("test.txt"));
+            catalog.set("OpenAction", goto_r);
+        }
+        "submit_form_action_with_ef_file_spec" => {
+            let mut submit_form = action_dictionary("SubmitForm");
+            submit_form.set("F", file_spec_with_ef("https://example.com/submit"));
+            catalog.set("OpenAction", submit_form);
+        }
+        "gotor_action_without_ef_file_spec" => {
+            let mut goto_r = action_dictionary("GoToR");
+            goto_r.set(
+                "F",
+                dictionary! {"Type" => "Filespec", "F" => Object::string_literal("test.txt")},
+            );
+            catalog.set("OpenAction", goto_r);
+        }
         "open_javascript" | "open_javascript_indirect" => {
             let javascript = action_dictionary("JavaScript");
             if case == "open_javascript_indirect" {
@@ -2784,6 +2821,14 @@ fn action_dictionary(subtype: &str) -> Dictionary {
     dictionary! {
         "Type" => "Action",
         "S" => subtype,
+    }
+}
+
+fn file_spec_with_ef(target: &str) -> Dictionary {
+    dictionary! {
+        "Type" => "Filespec",
+        "F" => Object::string_literal(target),
+        "EF" => dictionary! {"F" => Dictionary::new()},
     }
 }
 

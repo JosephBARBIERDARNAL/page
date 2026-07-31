@@ -7,6 +7,7 @@ const WIDGET_ACTION: &str = "PDFA1B-WIDGET-ACTION-001";
 const WIDGET_AA: &str = "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001";
 const FIELD_AA: &str = "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001";
 const CATALOG_AA: &str = "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001";
+const FILE_SPEC: &str = "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001";
 
 const CASES: &[(&str, &[&str])] = &[
     ("allowed_goto", &[]),
@@ -15,6 +16,9 @@ const CASES: &[(&str, &[&str])] = &[
     ("allowed_uri", &[]),
     ("allowed_named", &[]),
     ("allowed_submit_form", &[]),
+    ("gotor_action_with_ef_file_spec", &[FILE_SPEC]),
+    ("submit_form_action_with_ef_file_spec", &[FILE_SPEC]),
+    ("gotor_action_without_ef_file_spec", &[]),
     ("open_javascript", &[ACTION_TYPE]),
     ("open_javascript_indirect", &[ACTION_TYPE]),
     ("open_missing_subtype", &[ACTION_TYPE]),
@@ -68,6 +72,7 @@ fn action_cases_have_the_complete_expected_failure_delta() {
         WIDGET_AA,
         FIELD_AA,
         CATALOG_AA,
+        FILE_SPEC,
     ] {
         assert!(!baseline.contains(rule));
     }

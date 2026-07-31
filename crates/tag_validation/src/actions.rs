@@ -2,9 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};
 
+use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
+use crate::file_spec;
 use crate::limits::SafetyLimits;
 use crate::object_resolution::resolve_optional;
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 const CATALOG_ACTION_KEYS: &[&[u8]] = &[b"WC", b"WS", b"DS", b"WP", b"DP"];
@@ -22,22 +25,19 @@ pub(crate) struct ActionSummary {
     pub(crate) widgets_with_additional_actions: Vec<RuleFailure>,
     pub(crate) fields_with_additional_actions: Vec<RuleFailure>,
     pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
 ) -> Result<ActionSummary, PdfError> {
-    let Some(catalog_value) = document.trailer.get(b"Root").ok() else {
+    let Some(catalog) = resolve_catalog(document, limits)? else {
         return Ok(ActionSummary::default());
     };
-    let catalog_id = catalog_value.as_reference().ok().map(Into::into);
-    let Some(catalog) = resolve_optional(document, catalog_value, limits.max_reference_depth)?
-        .and_then(|object| object.as_dict().ok())
-    else {
-        return Ok(ActionSummary::default());
-    };
+    let catalog_id = Some(catalog.object_id);
+    let catalog = catalog.dictionary;
 
     let mut inspector = Inspector {
         document,
@@ -75,7 +75,7 @@ pub(crate) fn inspect(
 
 struct Inspector<'a> {
     document: &'a Document,
-    pages: &'a BTreeMap<u32, ObjectId>,
+    pages: &'a BTreeMap<u32, PageEntry>,
     limits: &'a SafetyLimits,
     summary: ActionSummary,
     seen_actions: BTreeSet<ObjectId>,
@@ -92,13 +92,8 @@ impl Inspector<'_> {
     // argument.
     fn inspect_pages(&mut self) -> Result<(), PdfError> {
         let pages = self.pages;
-        for (&page_number, &page_id) in pages {
-            let Some(page) = self
-                .document
-                .objects
-                .get(&page_id)
-                .and_then(|object| object.as_dict().ok())
-            else {
+        for (&page_number, page_entry) in pages {
+            let Some(page) = page_entry.resolve(self.document) else {
                 continue;
             };
             self.inspect_additional_actions(
@@ -357,6 +352,23 @@ impl Inspector<'_> {
                 object_id: failure_id,
                 description: format!("{context} has a missing or forbidden named action /N"),
             });
+        }
+        // GoToR and SubmitForm are the only allowed action types that carry
+        // a file specification (/F); veraPDF creates the same
+        // CosFileSpecification object, and applies the same containsEF
+        // check, for a file spec reached this way as for one reached
+        // through the catalog Names/EmbeddedFiles tree (confirmed against
+        // veraPDF 1.28.2).
+        if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
+            && let Ok(file_spec_value) = action.get(b"F")
+            && let Some(failure) = file_spec::inspect(
+                self.document,
+                file_spec_value,
+                self.limits,
+                &format!("{context} /F"),
+            )?
+        {
+            self.summary.file_specs_with_embedded_files.push(failure);
         }
 
         let Ok(next_value) = action.get(b"Next") else {

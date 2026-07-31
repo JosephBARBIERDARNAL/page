@@ -8,6 +8,7 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{ResourceKey, resolve_optional, walk_inherited};
+use crate::page_tree::PageEntry;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SelectedColorSpace {
@@ -151,17 +152,13 @@ pub(crate) fn inherited_page_resources<'a>(
 /// dictionary, others also accept a stream-backed one via `dictionary_based`).
 pub(crate) fn for_each_page_annotation<'a>(
     document: &'a Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &'a BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
     inspected: &mut BTreeSet<ObjectId>,
     mut visit: impl FnMut(u32, usize, Option<PdfObjectId>, &'a Object) -> Result<(), PdfError>,
 ) -> Result<(), PdfError> {
-    for (&page_number, &page_id) in pages {
-        let Some(page) = document
-            .objects
-            .get(&page_id)
-            .and_then(|object| object.as_dict().ok())
-        else {
+    for (&page_number, page_entry) in pages {
+        let Some(page) = page_entry.resolve(document) else {
             continue;
         };
         let Ok(annotations) = page.get(b"Annots") else {
@@ -213,7 +210,7 @@ pub(crate) fn resource_once<'a>(
 
 pub(crate) fn execute_content(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     cache: &mut ContentCache,
     limits: &SafetyLimits,
 ) -> Result<ContentExecutionSummary, PdfError> {
@@ -223,8 +220,11 @@ pub(crate) fn execute_content(
         cache,
         summary: ContentExecutionSummary::default(),
     };
-    for (&page_number, &page_id) in pages {
-        executor.execute_page(page_number, page_id)?;
+    for (&page_number, page_entry) in pages {
+        let page = page_entry
+            .resolve(document)
+            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
+        executor.execute_page(page_number, page)?;
     }
     Ok(executor.summary)
 }
@@ -237,13 +237,7 @@ struct ContentExecutor<'a> {
 }
 
 impl ContentExecutor<'_> {
-    fn execute_page(&mut self, page_number: u32, page_id: ObjectId) -> Result<(), PdfError> {
-        let page = self
-            .document
-            .objects
-            .get(&page_id)
-            .and_then(|object| object.as_dict().ok())
-            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
+    fn execute_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let mut active_forms = BTreeSet::new();
         let mut decoded_bytes = 0usize;
@@ -1002,6 +996,7 @@ mod tests {
         tokenize_inline_images,
     };
     use crate::SafetyLimits;
+    use crate::page_tree::PageEntry;
 
     #[test]
     fn nul_byte_is_a_pdf_boundary() {
@@ -1185,7 +1180,7 @@ mod tests {
         };
         let error = execute_content(
             &document,
-            &BTreeMap::from([(1, page_id)]),
+            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
             &mut ContentCache::new(),
             &limits,
         )
@@ -1209,7 +1204,7 @@ mod tests {
     ) -> Result<super::ContentExecutionSummary, crate::PdfError> {
         execute_content(
             document,
-            &BTreeMap::from([(1, page_id)]),
+            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
             &mut ContentCache::new(),
             &SafetyLimits::default(),
         )

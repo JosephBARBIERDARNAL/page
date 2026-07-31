@@ -1,0 +1,25 @@
+{
+  "report": {
+    "buildInformation": {
+      "releaseDetails": [
+        {
+          "id": "core",
+          "version": "1.28.2"
+        }
+      ]
+    },
+    "jobs": [
+      {
+        "taskException": {
+          "type": "PARSE",
+          "exceptionMessage": "Exception: Caught unexpected exception during parsing caused by exception: unknown type of page tree node"
+        }
+      }
+    ],
+    "batchSummary": {
+      "failedEncryptedJobs": 0,
+      "failedParsingJobs": 0,
+      "veraExceptions": 1
+    }
+  }
+}

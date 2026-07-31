@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use lopdf::{Dictionary, Document, Object, ObjectId};
+use lopdf::{Dictionary, Document, Object};
 
 use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::resolve_optional;
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -25,7 +26,7 @@ pub(crate) struct GraphicsSummary {
 pub(crate) fn inspect(
     document: &Document,
     content: &ContentExecutionSummary,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
 ) -> Result<GraphicsSummary, PdfError> {
     let mut summary = GraphicsSummary::default();
@@ -85,18 +86,14 @@ pub(crate) fn inspect(
         }
     }
 
-    for &page_id in pages.values() {
-        let Some(page) = document
-            .objects
-            .get(&page_id)
-            .and_then(|object| object.as_dict().ok())
-        else {
+    for page_entry in pages.values() {
+        let Some(page) = page_entry.resolve(document) else {
             continue;
         };
         inspect_group(
             document,
             page,
-            Some(page_id.into()),
+            page_entry.object_id().map(Into::into),
             "page",
             limits,
             &mut summary,

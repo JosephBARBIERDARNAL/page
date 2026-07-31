@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use lopdf::{Document, Object, ObjectId};
+use lopdf::{Document, Object};
 
+use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -16,7 +18,7 @@ pub(crate) struct FormSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
 ) -> Result<FormSummary, PdfError> {
     let mut summary = FormSummary::default();
@@ -30,17 +32,10 @@ fn inspect_acro_form(
     limits: &SafetyLimits,
     summary: &mut FormSummary,
 ) -> Result<(), PdfError> {
-    let Some(catalog) = document
-        .trailer
-        .get(b"Root")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|object| object.as_dict().ok())
-    else {
+    let Some(catalog) = resolve_catalog(document, limits)? else {
         return Ok(());
     };
+    let catalog = catalog.dictionary;
     let Ok(value) = catalog.get(b"AcroForm") else {
         return Ok(());
     };
@@ -69,7 +64,7 @@ fn inspect_acro_form(
 
 fn inspect_page_widgets(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     limits: &SafetyLimits,
     summary: &mut FormSummary,
 ) -> Result<(), PdfError> {

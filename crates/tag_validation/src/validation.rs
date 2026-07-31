@@ -328,6 +328,11 @@ fn validate_document(
     validate_actions(&inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
     validate_document_features(&inspections.document_features, &mut failures);
+    validate_file_specifications(
+        &inspections.document_features,
+        &inspections.actions,
+        &mut failures,
+    );
     validate_object_limits(&inspections.object_limits, &mut failures);
     validate_stream_safety(&inspections.stream_safety, &mut failures);
 
@@ -585,16 +590,28 @@ fn validate_document_features(
             ));
         }
     }
-    if !features.file_specs_with_embedded_files.is_empty() {
-        let object_id =
-            only(&features.file_specs_with_embedded_files).and_then(|entry| entry.object_id);
-        failures.push(failure(
-            "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
-            "a file specification in the EmbeddedFiles name tree contains an EF entry",
-            object_id,
-            FailureCategory::Conformance,
-        ));
-    }
+}
+
+/// Aggregates `PDFA1B-FILE-SPEC-EMBEDDED-FILE-001` failures across every
+/// reachability path veraPDF's `CosFileSpecification` object covers: the
+/// catalog `Names/EmbeddedFiles` name tree, and `GoToR`/`SubmitForm` action
+/// `/F` entries.
+fn validate_file_specifications(
+    document_features: &crate::document_features::DocumentFeatureSummary,
+    actions: &crate::actions::ActionSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let file_spec_failures = document_features
+        .file_specs_with_embedded_files
+        .iter()
+        .chain(&actions.file_specs_with_embedded_files)
+        .cloned()
+        .collect::<Vec<_>>();
+    aggregate_failures(
+        &file_spec_failures,
+        "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
+        failures,
+    );
 }
 
 fn validate_stream_safety(

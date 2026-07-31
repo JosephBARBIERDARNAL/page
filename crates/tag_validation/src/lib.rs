@@ -5,10 +5,12 @@
 
 mod actions;
 mod annotations;
+mod catalog;
 mod content_support;
 pub mod differential;
 mod document_features;
 mod error;
+mod file_spec;
 mod font_embedding;
 mod forms;
 mod graphics;
@@ -18,6 +20,7 @@ mod metadata;
 mod model;
 mod object_limits;
 mod object_resolution;
+mod page_tree;
 mod report;
 mod stream_safety;
 mod syntax;

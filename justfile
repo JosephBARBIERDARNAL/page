@@ -38,10 +38,6 @@ pdfa1b-release-gate verapdf=verapdf_bin:
     TAG_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p tag_validation --test coverage_inventory -- --nocapture
     just verapdf "{{ verapdf }}"
 
-# Generate the crate documentation.
-doc:
-    cargo doc --workspace --all-features --locked --no-deps
-
 # Regenerate the deterministic Typst 0.15.0 PDF/A-1b acceptance fixture.
 typst:
     typst compile crates/tag_validation/tests/fixtures/typst-pdfa-1b.typ crates/tag_validation/tests/fixtures/typst-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600

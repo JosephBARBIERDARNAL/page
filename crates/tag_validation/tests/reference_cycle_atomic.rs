@@ -129,6 +129,48 @@ fn cyclic_page_tree_reference_is_a_resource_limit_failure() {
     assert_resource_limit_failure(&bytes);
 }
 
+/// A page-tree cycle spanning two `Pages` nodes (A's `Kids` contains B, B's
+/// `Kids` contains A) is not caught by a single `resolve()` call the way the
+/// one-hop self-reference above is: each node is only one reference hop from
+/// its parent, so the cycle only closes after two separate `Kids` lookups.
+/// This regression-tests that the page-tree walker still detects it via its
+/// own cross-call visited set, instead of silently returning zero pages.
+#[test]
+fn two_level_page_tree_cycle_is_a_resource_limit_failure() {
+    let mut document = Document::with_version("1.4");
+    let a_id = document.new_object_id();
+    let b_id = document.new_object_id();
+    document.objects.insert(
+        a_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(b_id)],
+            "Count" => 1,
+        }),
+    );
+    document.objects.insert(
+        b_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Pages",
+            "Kids" => vec![Object::Reference(a_id)],
+            "Count" => 1,
+        }),
+    );
+
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => a_id,
+    });
+    document.trailer.set("Root", catalog_id);
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save two-level cyclic page tree fixture");
+
+    assert_resource_limit_failure(&bytes);
+}
+
 fn nested_page_tree_fixture(depth: usize) -> Vec<u8> {
     let mut document = Document::with_version("1.4");
     let mut current = document.add_object(dictionary! {

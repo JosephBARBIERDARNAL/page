@@ -11,6 +11,7 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{ResourceKey, resolve_optional};
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -102,7 +103,7 @@ struct Scanner<'a> {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, ObjectId>,
+    pages: &BTreeMap<u32, PageEntry>,
     cache: &mut ContentCache,
     limits: &SafetyLimits,
 ) -> Result<FontEmbeddingSummary, PdfError> {
@@ -136,8 +137,11 @@ pub(crate) fn inspect(
         inconsistent_truetype_widths: Vec::new(),
         excessive_graphics_state_nesting: Vec::new(),
     };
-    for (&page_number, &page_id) in pages {
-        scanner.scan_page(page_number, page_id)?;
+    for (&page_number, page_entry) in pages {
+        let page = page_entry
+            .resolve(document)
+            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
+        scanner.scan_page(page_number, page)?;
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
@@ -221,13 +225,7 @@ fn inspect_all_embedded_cmap_cids(
 }
 
 impl Scanner<'_> {
-    fn scan_page(&mut self, page_number: u32, page_id: ObjectId) -> Result<(), PdfError> {
-        let page = self
-            .document
-            .objects
-            .get(&page_id)
-            .and_then(|object| object.as_dict().ok())
-            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
+    fn scan_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
         let resources = inherited_page_resources(self.document, page, self.limits)?;
         let mut state = GraphicsState::default();
         let mut stack = Vec::new();
