@@ -1892,6 +1892,14 @@
       "rationale": "An Image XObject dictionary contains the forbidden OPI key."
     },
     {
+      "name": "image_opi_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XOBJECT-OPI-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:2"],
+      "rationale": "An Image XObject dictionary's direct null OPI value is empty and passes containsOPI."
+    },
+    {
       "name": "form_opi",
       "expected_local_failed_rule_ids": ["PDFA1B-XOBJECT-OPI-001"],
       "expected_local_passed_rule_ids": [],
@@ -2054,12 +2062,28 @@
       "rationale": "A used ExtGState dictionary contains the forbidden TR entry."
     },
     {
+      "name": "extgstate_tr_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "A used ExtGState dictionary's direct null TR value is empty and passes containsTR, matching the same direct-null convention confirmed for containsAA."
+    },
+    {
       "name": "extgstate_tr2_default",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR2-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:2"],
       "rationale": "TR2 is permitted when its value is the name Default."
+    },
+    {
+      "name": "extgstate_tr2_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR2-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:2"],
+      "rationale": "A used ExtGState dictionary's direct null TR2 value is empty and passes containsTR2."
     },
     {
       "name": "extgstate_tr2_other",
@@ -2882,6 +2906,14 @@
       "rationale": "An invoked Image XObject contains an SMask key."
     },
     {
+      "name": "xobject_smask_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XOBJECT-SMASK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:2"],
+      "rationale": "An invoked Image XObject's direct null SMask value is empty and passes containsSMask."
+    },
+    {
       "name": "unused_xobject_smask",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": ["PDFA1B-XOBJECT-SMASK-001"],
@@ -3016,6 +3048,14 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Annotation colour is used with a CMYK output profile."
+    },
+    {
+      "name": "color_c_null",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ANNOTATION-COLOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.5.3:3"],
+      "rationale": "An annotation's direct null C value is empty and passes containsC, matching the same direct-null convention confirmed for containsAA, with a CMYK output profile so the check is not vacuously satisfied by gOutputCS == RGB."
     },
     {
       "name": "color_ic_without_output",

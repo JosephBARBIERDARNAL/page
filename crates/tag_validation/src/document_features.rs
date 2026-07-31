@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, ObjectId};
 
-use crate::catalog::resolve_catalog;
+use crate::catalog::{resolve_catalog, root_reference_id};
 use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
@@ -22,10 +22,7 @@ pub(crate) fn inspect(
     document: &Document,
     limits: &SafetyLimits,
 ) -> Result<DocumentFeatureSummary, PdfError> {
-    let root = document.trailer.get(b"Root").ok();
-    let catalog_id = root
-        .and_then(|value| value.as_reference().ok())
-        .map(Into::into);
+    let catalog_id = root_reference_id(document);
     let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
         return Ok(DocumentFeatureSummary {
             catalog_id,

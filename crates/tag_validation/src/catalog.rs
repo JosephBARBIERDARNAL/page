@@ -47,6 +47,21 @@ pub(crate) fn resolve_catalog<'a>(
     }))
 }
 
+/// The trailer `/Root` entry's own indirect object id, whether or not it
+/// resolves to a valid `/Type /Catalog` dictionary. `resolve_catalog` only
+/// exposes an id once the catalog is fully valid; callers that need to
+/// attribute a failure to "whatever `/Root` pointed at" even when the
+/// catalog itself doesn't validate (`PDFA1B-CATALOG-001` and similar) use
+/// this instead of independently re-deriving it from `document.trailer`.
+pub(crate) fn root_reference_id(document: &Document) -> Option<PdfObjectId> {
+    document
+        .trailer
+        .get(b"Root")
+        .ok()
+        .and_then(|value| value.as_reference().ok())
+        .map(Into::into)
+}
+
 #[cfg(test)]
 mod tests {
     use lopdf::{Document, Object, dictionary};

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
 
-use crate::catalog::resolve_catalog;
+use crate::catalog::{resolve_catalog, root_reference_id};
 use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
@@ -233,8 +233,7 @@ impl PdfDocument {
     }
 
     fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {
-        let root = document.trailer.get(b"Root").ok();
-        let catalog_reference = root.and_then(reference_id);
+        let catalog_reference = root_reference_id(document);
         let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
         let mut trailer_keys = document
             .trailer
