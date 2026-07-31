@@ -40,11 +40,14 @@ Add `--json` to emit the validation report as JSON:
 tag document.pdf --profile a-1b --json
 ```
 
-Compare end-to-end command-line performance with a veraPDF executable (release
-builds are used for `tag`):
+Compare end-to-end command-line performance on the checked-in long PDF with a
+veraPDF executable (release builds are used for `tag`; `rust-script` is
+required):
 
 ```sh
-just benchmark verapdf=/path/to/verapdf files="document.pdf"
+# Install it if it is not already available.
+cargo install rust-script
+just benchmark /path/to/verapdf
 ```
 
 The benchmark starts each validator for every measured run, so its timings

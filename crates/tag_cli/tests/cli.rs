@@ -104,18 +104,3 @@ fn differential_help_keeps_its_own_client_contract() {
     assert!(stdout.contains("--verapdf"));
     assert!(stdout.contains("--expected-version"));
 }
-
-#[test]
-fn benchmark_help_exposes_end_to_end_controls() {
-    let output = Command::new(env!("CARGO_BIN_EXE_verapdf-bench"))
-        .arg("--help")
-        .output()
-        .expect("run verapdf-bench --help");
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("Usage: verapdf-bench"));
-    assert!(stdout.contains("--verapdf"));
-    assert!(stdout.contains("--runs"));
-    assert!(stdout.contains("--warmup"));
-}

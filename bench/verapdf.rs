@@ -1,3 +1,11 @@
+#!/usr/bin/env rust-script
+//! ```cargo
+//! [dependencies]
+//! clap = { version = "4.6", features = ["derive"] }
+//! ```
+
+extern crate clap;
+
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -5,11 +13,11 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
+const BENCHMARK_PDF: &str = "bench/long-pdfa-1b.pdf";
+
 #[derive(Debug, Parser)]
 #[command(
     name = "verapdf-bench",
-    bin_name = "verapdf-bench",
-    version,
     about = "Compare end-to-end tag and veraPDF validation performance"
 )]
 struct Cli {
@@ -21,17 +29,13 @@ struct Cli {
     #[arg(long)]
     verapdf: PathBuf,
 
-    /// Number of measured invocations for each validator and file.
+    /// Number of measured invocations for each validator.
     #[arg(long, default_value_t = 10)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
     #[arg(long, default_value_t = 1)]
     warmup: usize,
-
-    /// PDFs to validate, measured one at a time by both executables.
-    #[arg(required = true, num_args = 1..)]
-    files: Vec<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -52,17 +56,16 @@ impl Summary {
             samples[samples.len() / 2]
         };
         let p95_index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
-        let p95 = samples[p95_index];
         Self {
             min: samples[0],
             median,
-            p95,
+            p95: samples[p95_index],
             mean: total / samples.len() as u32,
         }
     }
 }
 
-fn run_validator(executable: &Path, args: &[&Path]) -> io::Result<Duration> {
+fn run(executable: &Path, args: &[&Path]) -> io::Result<Duration> {
     let mut command = Command::new(executable);
     command
         .args(args)
@@ -78,7 +81,13 @@ fn run_tag(executable: &Path, file: &Path) -> io::Result<Duration> {
     let mut command = Command::new(executable);
     command
         .arg(file)
-        .args(["--profile", "a-1b", "--json"])
+        .args([
+            "--profile",
+            "a-1b",
+            "--json",
+            "--max-reference-depth",
+            "512",
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -88,7 +97,7 @@ fn run_tag(executable: &Path, file: &Path) -> io::Result<Duration> {
 }
 
 fn run_verapdf(executable: &Path, file: &Path) -> io::Result<Duration> {
-    run_validator(
+    run(
         executable,
         &[
             Path::new("--loglevel"),
@@ -124,40 +133,46 @@ fn main() -> io::Result<()> {
             "--runs must be greater than zero",
         ));
     }
+    let file = Path::new(BENCHMARK_PDF);
+    if !file.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("benchmark PDF not found: {}", file.display()),
+        ));
+    }
+
     println!(
         "end-to-end benchmark: {} measured run(s), {} warmup run(s)",
         cli.runs, cli.warmup
     );
+    println!("PDF: {BENCHMARK_PDF}");
     println!("tag: {}", cli.tag.display());
     println!("veraPDF: {}", cli.verapdf.display());
 
-    for file in &cli.files {
-        for _ in 0..cli.warmup {
-            run_tag(&cli.tag, file)?;
-            run_verapdf(&cli.verapdf, file)?;
-        }
-
-        let mut tag_samples = Vec::with_capacity(cli.runs);
-        let mut verapdf_samples = Vec::with_capacity(cli.runs);
-        for run in 0..cli.runs {
-            if run % 2 == 0 {
-                tag_samples.push(run_tag(&cli.tag, file)?);
-                verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
-            } else {
-                verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
-                tag_samples.push(run_tag(&cli.tag, file)?);
-            }
-        }
-
-        let tag = Summary::from_samples(tag_samples);
-        let verapdf = Summary::from_samples(verapdf_samples);
-        println!("\n{}", file.display());
-        print_summary("tag", tag);
-        print_summary("veraPDF", verapdf);
-        println!(
-            "  speedup: {:.2}x (veraPDF median / tag median)",
-            verapdf.median.as_secs_f64() / tag.median.as_secs_f64()
-        );
+    for _ in 0..cli.warmup {
+        run_tag(&cli.tag, file)?;
+        run_verapdf(&cli.verapdf, file)?;
     }
+
+    let mut tag_samples = Vec::with_capacity(cli.runs);
+    let mut verapdf_samples = Vec::with_capacity(cli.runs);
+    for run_number in 0..cli.runs {
+        if run_number.is_multiple_of(2) {
+            tag_samples.push(run_tag(&cli.tag, file)?);
+            verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
+        } else {
+            verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
+            tag_samples.push(run_tag(&cli.tag, file)?);
+        }
+    }
+
+    let tag = Summary::from_samples(tag_samples);
+    let verapdf = Summary::from_samples(verapdf_samples);
+    print_summary("tag", tag);
+    print_summary("veraPDF", verapdf);
+    println!(
+        "speedup: {:.2}x (veraPDF median / tag median)",
+        verapdf.median.as_secs_f64() / tag.median.as_secs_f64()
+    );
     Ok(())
 }
