@@ -26,7 +26,7 @@ struct Cli {
     tag: PathBuf,
 
     /// Path to the veraPDF executable.
-    #[arg(long)]
+    #[arg(long, default_value = "verapdf")]
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
@@ -146,8 +146,6 @@ fn main() -> io::Result<()> {
         cli.runs, cli.warmup
     );
     println!("PDF: {BENCHMARK_PDF}");
-    println!("tag: {}", cli.tag.display());
-    println!("veraPDF: {}", cli.verapdf.display());
 
     for _ in 0..cli.warmup {
         run_tag(&cli.tag, file)?;

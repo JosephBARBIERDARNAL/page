@@ -47,10 +47,10 @@ diff file format="text" verapdf=verapdf_bin:
     cargo run --quiet -p tag_cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
 
 # Build the release validator and compare it with veraPDF on the checked-in long PDF.
-benchmark verapdf=verapdf_bin runs="10" warmup="1" tag="target/release/tag":
+benchmark:
     typst compile bench/long-pdfa-1b.typ bench/long-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
     cargo build --quiet --release -p tag_cli --bin tag
-    rust-script bench/verapdf.rs --tag "{{ tag }}" --verapdf "{{ verapdf }}" --runs {{ runs }} --warmup {{ warmup }}
+    rust-script bench/verapdf.rs
 
 # Serve documentation
 preview:

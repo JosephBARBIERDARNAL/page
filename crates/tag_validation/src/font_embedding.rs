@@ -1596,14 +1596,17 @@ impl Scanner<'_> {
         let Ok(encoding) = font.get(b"Encoding") else {
             return Ok(());
         };
-        if encoding
-            .as_name()
-            .ok()
+        // Confirmed live against veraPDF 1.28.2: an *indirect* reference to
+        // the name /Identity-H or /Identity-V is accepted exactly like a
+        // direct one, so resolution must happen before checking either
+        // shape, not only before the stream fallback.
+        let resolved = resolve_optional(self.document, encoding, self.limits.max_reference_depth)?;
+        if resolved
+            .and_then(|object| object.as_name().ok())
             .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
         {
             return Ok(());
         }
-        let resolved = resolve_optional(self.document, encoding, self.limits.max_reference_depth)?;
         let Some(cmap) = resolved.and_then(|object| object.as_stream().ok()) else {
             self.unembedded_cmaps.push(font_failure(
                 object_id,
@@ -2025,13 +2028,14 @@ fn valid_cid_to_gid_map(
     value: &Object,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    if value.as_name().ok().is_some_and(|name| name == b"Identity") {
-        return Ok(true);
-    }
-    Ok(
-        resolve_optional(document, value, limits.max_reference_depth)?
-            .is_some_and(|object| object.as_stream().is_ok()),
-    )
+    // Confirmed live against veraPDF 1.28.2: an *indirect* reference to the
+    // name /Identity is accepted exactly like a direct one, so resolution
+    // must happen before checking either shape, not only before the stream
+    // fallback.
+    let Some(resolved) = resolve_optional(document, value, limits.max_reference_depth)? else {
+        return Ok(false);
+    };
+    Ok(resolved.as_name().ok() == Some(b"Identity".as_slice()) || resolved.as_stream().is_ok())
 }
 
 fn cid_system_info(
@@ -2201,16 +2205,16 @@ fn resolve_cmap_decoder(
     encoding: &Object,
     limits: &SafetyLimits,
 ) -> Result<CmapDecoder, PdfError> {
-    if encoding
-        .as_name()
-        .ok()
+    let resolved = resolve_optional(document, encoding, limits.max_reference_depth)?;
+    // Confirmed live against veraPDF 1.28.2: an indirect reference to the
+    // name /Identity-H or /Identity-V is accepted exactly like a direct one.
+    if resolved
+        .and_then(|object| object.as_name().ok())
         .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
     {
         return Ok(CmapDecoder::IdentityBytes);
     }
-    let Some(cmap) = resolve_optional(document, encoding, limits.max_reference_depth)?
-        .and_then(|object| object.as_stream().ok())
-    else {
+    let Some(cmap) = resolved.and_then(|object| object.as_stream().ok()) else {
         return Ok(CmapDecoder::Unavailable);
     };
     let bytes = decode_font_stream(cmap, limits)?;

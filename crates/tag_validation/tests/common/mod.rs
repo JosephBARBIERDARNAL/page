@@ -3233,6 +3233,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 let map = document.add_object(Stream::new(Dictionary::new(), vec![0, 0]));
                 descendant_dictionary.set("CIDToGIDMap", map);
             }
+            // An *indirect* reference to the name /Identity, not a direct
+            // one -- confirmed live against veraPDF 1.28.2 to be accepted
+            // exactly like a direct /Identity.
+            "composite_cidmap_indirect_identity" => {
+                let map = document.add_object(Object::Name(b"Identity".to_vec()));
+                descendant_dictionary.set("CIDToGIDMap", map);
+            }
             "composite_stream_cidmap_missing_glyph" => {
                 let mut map = vec![0; 66];
                 map[65] = 2;
@@ -3253,6 +3260,12 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         let descendant = document.add_object(descendant_dictionary);
         let encoding = match case {
             "composite_identity_v" => Object::Name(b"Identity-V".to_vec()),
+            // An *indirect* reference to the name /Identity-H, not a direct
+            // one -- confirmed live against veraPDF 1.28.2 to be accepted
+            // exactly like a direct /Identity-H.
+            "composite_indirect_identity_h" => {
+                Object::Reference(document.add_object(Object::Name(b"Identity-H".to_vec())))
+            }
             "composite_named_cmap" => Object::Name(b"UniJIS-UCS2-H".to_vec()),
             "composite_cmap_matching"
             | "composite_cmap_mismatch_system"

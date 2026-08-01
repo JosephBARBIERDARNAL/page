@@ -18,9 +18,11 @@ const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
 
 const CASES: &[(&str, &[&str])] = &[
     ("composite_identity_v", &[]),
+    ("composite_indirect_identity_h", &[]),
     ("composite_cidmap_missing", &[CID_TO_GID]),
     ("composite_cidmap_invalid_name", &[CID_TO_GID]),
     ("composite_cidmap_stream", &[]),
+    ("composite_cidmap_indirect_identity", &[]),
     ("composite_named_cmap", &[CMAP_EMBEDDING]),
     ("composite_cmap_matching", &[GLYPH_PRESENCE]),
     (

@@ -1336,7 +1336,7 @@
       },
       {
         "applicability": [
-          "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream."
+          "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1361,6 +1361,10 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "composite_font:composite_cidmap_indirect_identity",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "composite_font:composite_cidmap_stream",
                 "kind": "verapdf_delta"
@@ -1387,7 +1391,7 @@
           "PDFA1B-CIDTOGIDMAP-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDCIDFont",
         "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3",
@@ -7720,6 +7724,10 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "composite_font:composite_cidmap_indirect_identity",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_cidmap_stream",
               "kind": "verapdf_delta"
             },
@@ -7743,13 +7751,13 @@
       },
       "description": "For all Type 2 CIDFonts that are used for rendering, the CIDFont dictionary shall contain a CIDToGIDMap entry that shall be a stream mapping from CIDs to glyph indices or the name Identity, as described in PDF Reference Table 5.13",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-CIDTOGIDMAP-001"
       ],
       "mapping_notes": [
-        "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream."
+        "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one)."
       ],
       "object": "PDCIDFont",
       "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3",
