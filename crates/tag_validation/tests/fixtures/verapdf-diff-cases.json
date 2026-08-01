@@ -2386,6 +2386,50 @@
       "rationale": "Type3 is exempt from the embedding rule; incomplete synthetic glyph data triggers unrelated rules."
     },
     {
+      "name": "type3_width_match",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A rendered Type3 /space CharProc starts with `500 0 d0`, matching its dictionary width."
+    },
+    {
+      "name": "type3_width_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE1-GLYPH-PRESENCE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "rationale": "A present rendered Type3 glyph declares width 400 with d0 while /Widths declares 500."
+    },
+    {
+      "name": "type3_width_d1_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE1-GLYPH-PRESENCE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "rationale": "A present rendered Type3 glyph declares width 400 with d1 while /Widths declares 500."
+    },
+    {
+      "name": "type3_macroman_base",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "MacRomanEncoding maps rendered byte 32 to /space, selecting the matching Type3 CharProc and width."
+    },
+    {
       "name": "direct_descriptor",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": [
@@ -2803,7 +2847,10 @@
     },
     {
       "name": "composite_named_cmap",
-      "expected_local_failed_rule_ids": ["PDFA1B-CMAP-EMBEDDING-001"],
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
+        "PDFA1B-CMAP-EMBEDDING-001"
+      ],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": [
         "ISO 19005-1:2005:6.3.3.1:1",
@@ -2811,6 +2858,24 @@
       ],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "A non-Identity named CMap is not embedded and its Adobe/Japan1 system information conflicts with the Adobe/Identity CIDFont."
+    },
+    {
+      "name": "composite_named_cmap_cidset_real_program",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-CMAP-EMBEDDING-001",
+        "PDFA1B-CID-SUBSET-CIDSET-001"
+      ],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.3.3.3:1",
+        "ISO 19005-1:2005:6.3.5:3"
+      ],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.3.1:1"
+      ],
+      "rationale": "The exact predefined UniJIS-UCS2-H CMap bundled by veraPDF maps rendered code 003F to CID 32, so the matching Adobe/Japan1 system info passes while the unembedded-CMap and missing-CIDSet predicates both fail."
     },
     {
       "name": "composite_cmap_cid_too_large",

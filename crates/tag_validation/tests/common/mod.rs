@@ -2921,6 +2921,14 @@ fn valid_annotation(subtype: &str) -> Dictionary {
 }
 
 pub fn font_fixture(case: &str) -> Vec<u8> {
+    font_fixture_with_type1_program(case, None)
+}
+
+pub fn font_fixture_with_external_type1_program(case: &str, program: &[u8]) -> Vec<u8> {
+    font_fixture_with_type1_program(case, Some(program))
+}
+
+fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[u8]>) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let embedded = !matches!(
@@ -3017,6 +3025,38 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 b"%!PS-AdobeFont-1.0: garbage garbage garbage not a real program".to_vec(),
             )),
         );
+    } else if case.starts_with("type1_real_symbol_") {
+        let (program, length1, length2, length3) = pdf_type1_program(
+            external_type1_program.unwrap_or(include_bytes!("../fixtures/fonts/usyr.pfa")),
+        );
+        descriptor.remove(b"FontFile2");
+        descriptor.set("FontName", "StandardSymL");
+        descriptor.set(
+            "FontFile",
+            document.add_object(Stream::new(
+                dictionary! {
+                    "Length1" => i64::try_from(length1).expect("Type1 clear length"),
+                    "Length2" => i64::try_from(length2).expect("Type1 encrypted length"),
+                    "Length3" => i64::try_from(length3).expect("Type1 trailer length"),
+                },
+                program,
+            )),
+        );
+        if matches!(
+            case,
+            "type1_real_symbol_subset_complete"
+                | "type1_real_symbol_subset_incomplete"
+                | "type1_real_symbol_subset_program_encoding_ignored"
+        ) {
+            descriptor.set(
+                "CharSet",
+                Object::string_literal(if case == "type1_real_symbol_subset_complete" {
+                    "/.notdef/universal"
+                } else {
+                    "/.notdef"
+                }),
+            );
+        }
     } else if matches!(
         case,
         "type1_glyph_missing"
@@ -3122,6 +3162,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         case,
         "composite_cidset_real_program"
             | "composite_cidset_nonidentity_real_program"
+            | "composite_named_cmap_cidset_real_program"
             | "composite_cidset_indirect_basefont_real_program"
     ) {
         descriptor.set(
@@ -3188,6 +3229,47 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         font.set("BaseFont", "ABCDEF+MaiTestFont");
     } else if case == "type1_fontfile_header_only_garbage" {
         font.set("Subtype", "Type1");
+    } else if case.starts_with("type1_real_symbol_") {
+        font.set("Subtype", "Type1");
+        font.set(
+            "BaseFont",
+            if matches!(
+                case,
+                "type1_real_symbol_subset_complete"
+                    | "type1_real_symbol_subset_incomplete"
+                    | "type1_real_symbol_subset_program_encoding_ignored"
+            ) {
+                "ABCDEF+StandardSymL"
+            } else {
+                "StandardSymL"
+            },
+        );
+        font.remove(b"Encoding");
+        font.set("FirstChar", 34);
+        font.set("LastChar", 34);
+        font.set(
+            "Widths",
+            vec![if case == "type1_real_symbol_width_mismatch" {
+                700.into()
+            } else {
+                713.into()
+            }],
+        );
+        if case == "type1_real_symbol_pdf_base_missing_glyph" {
+            font.set("Encoding", "WinAnsiEncoding");
+        } else if matches!(
+            case,
+            "type1_real_symbol_difference_present"
+                | "type1_real_symbol_subset_complete"
+                | "type1_real_symbol_subset_incomplete"
+        ) {
+            font.set(
+                "Encoding",
+                dictionary! {
+                    "Differences" => vec![34.into(), Object::Name(b"universal".to_vec())],
+                },
+            );
+        }
     } else if matches!(
         case,
         "type1_glyph_missing"
@@ -3261,17 +3343,42 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         let indirect_base_font = document.add_object(Object::Name(b"ABCDEF+MaiTestFont".to_vec()));
         font.set("BaseFont", indirect_base_font);
     }
-    if case == "type3_visible" {
+    if matches!(
+        case,
+        "type3_visible"
+            | "type3_width_match"
+            | "type3_width_mismatch"
+            | "type3_width_d1_mismatch"
+            | "type3_macroman_base"
+    ) {
+        let mut char_procs = Dictionary::new();
+        let charproc_bytes = match case {
+            "type3_width_match" | "type3_macroman_base" => Some(b"500 0 d0\n".as_slice()),
+            "type3_width_mismatch" => Some(b"400 0 d0\n".as_slice()),
+            "type3_width_d1_mismatch" => Some(b"400 0 0 0 500 700 d1\n".as_slice()),
+            _ => None,
+        };
+        if let Some(bytes) = charproc_bytes {
+            char_procs.set(
+                "space",
+                document.add_object(Stream::new(Dictionary::new(), bytes.to_vec())),
+            );
+        }
+        let encoding = if case == "type3_macroman_base" {
+            Object::Name(b"MacRomanEncoding".to_vec())
+        } else {
+            Object::Dictionary(dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+            })
+        };
         font = dictionary! {
             "Type" => "Font",
             "Subtype" => "Type3",
             "FontBBox" => vec![0.into(), 0.into(), 500.into(), 700.into()],
             "FontMatrix" => vec![0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into()],
-            "CharProcs" => Dictionary::new(),
-            "Encoding" => dictionary! {
-                "Type" => "Encoding",
-                "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
-            },
+            "CharProcs" => char_procs,
+            "Encoding" => encoding,
             "FirstChar" => 32,
             "LastChar" => 32,
             "Widths" => vec![500.into()],
@@ -3289,6 +3396,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "composite_cid_subset_missing_cidset"
                     | "composite_cidset_real_program"
                     | "composite_cidset_nonidentity_real_program"
+                    | "composite_named_cmap_cidset_real_program"
                     | "composite_cidset_indirect_basefont_real_program"
                     | "composite_cff_missing_glyph"
                     | "composite_cff_present_glyph"
@@ -3320,6 +3428,16 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                     "Registry" => indirect_registry,
                     "Ordering" => Object::string_literal("Identity"),
                     "Supplement" => 0,
+                },
+            );
+        }
+        if case == "composite_named_cmap_cidset_real_program" {
+            descendant_dictionary.set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Japan1"),
+                    "Supplement" => 4,
                 },
             );
         }
@@ -3432,7 +3550,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "composite_indirect_identity_h" => {
                 Object::Reference(document.add_object(Object::Name(b"Identity-H".to_vec())))
             }
-            "composite_named_cmap" => Object::Name(b"UniJIS-UCS2-H".to_vec()),
+            "composite_named_cmap" | "composite_named_cmap_cidset_real_program" => {
+                Object::Name(b"UniJIS-UCS2-H".to_vec())
+            }
             "composite_cmap_matching"
             | "composite_cmap_mismatch_system"
             | "composite_indirect_cid_system_info"
@@ -3683,6 +3803,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     };
     resources.set("Font", font_resources.clone());
     let page_content = match case {
+        case if case.starts_with("type1_real_symbol_") => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![34], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
         "composite_cidset_real_program" | "composite_cidset_indirect_basefont_real_program" => {
             content(vec![
                 operation("BT", vec![]),
@@ -3700,6 +3829,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation(
                 "Tj",
                 vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "composite_named_cmap_cidset_real_program" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![0, 0x3f], lopdf::StringFormat::Literal)],
             ),
             operation("ET", vec![]),
         ]),
@@ -4572,7 +4710,96 @@ fn type1_program(char_names: &[&str]) -> Vec<u8> {
             ciphertext
         })
         .collect::<Vec<_>>();
-    [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat()
+    [
+        b"%!PS-AdobeFont\n/Encoding StandardEncoding def\neexec\n".as_slice(),
+        encrypted.as_slice(),
+    ]
+    .concat()
+}
+
+fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
+    if !bytes.starts_with(&[0x80, 0x01]) {
+        let length1 = bytes
+            .windows(b"eexec\n".len())
+            .position(|window| window == b"eexec\n")
+            .map(|position| position + b"eexec\n".len())
+            .unwrap_or(bytes.len());
+        let Some(clear_to_mark) = bytes
+            .windows(b"cleartomark".len())
+            .position(|window| window == b"cleartomark")
+        else {
+            return (bytes.to_vec(), length1, bytes.len() - length1, 0);
+        };
+        let mut encrypted_end = clear_to_mark;
+        while encrypted_end > length1
+            && matches!(
+                bytes[encrypted_end - 1],
+                b'0' | b' ' | b'\t' | b'\r' | b'\n'
+            )
+        {
+            encrypted_end -= 1;
+        }
+        let hex = bytes[length1..encrypted_end]
+            .iter()
+            .copied()
+            .filter(|byte| !byte.is_ascii_whitespace())
+            .collect::<Vec<_>>();
+        if !hex.is_empty() && hex.len() % 2 == 0 && hex.iter().all(u8::is_ascii_hexdigit) {
+            let encrypted = hex
+                .chunks_exact(2)
+                .map(|pair| {
+                    let digit = |byte| match byte {
+                        b'0'..=b'9' => byte - b'0',
+                        b'a'..=b'f' => byte - b'a' + 10,
+                        b'A'..=b'F' => byte - b'A' + 10,
+                        _ => unreachable!("checked Type1 hexadecimal byte"),
+                    };
+                    digit(pair[0]) << 4 | digit(pair[1])
+                })
+                .collect::<Vec<_>>();
+            let trailer = &bytes[encrypted_end..];
+            let mut payload = Vec::with_capacity(length1 + encrypted.len() + trailer.len());
+            payload.extend_from_slice(&bytes[..length1]);
+            payload.extend_from_slice(&encrypted);
+            payload.extend_from_slice(trailer);
+            let encrypted_length = encrypted.len();
+            let trailer_length = trailer.len();
+            return (payload, length1, encrypted_length, trailer_length);
+        }
+        return (bytes.to_vec(), length1, bytes.len() - length1, 0);
+    }
+    let mut payload = Vec::new();
+    let mut lengths = [0usize; 3];
+    let mut position = 0usize;
+    let mut segment = 0usize;
+    while bytes.get(position) == Some(&0x80) && segment < 3 {
+        let Some(kind) = bytes.get(position + 1).copied() else {
+            break;
+        };
+        if kind == 3 {
+            break;
+        }
+        let Some(length) = bytes
+            .get(position + 2..position + 6)
+            .and_then(|value| value.try_into().ok())
+            .map(u32::from_le_bytes)
+            .and_then(|value| usize::try_from(value).ok())
+        else {
+            break;
+        };
+        let start = position + 6;
+        let Some(end) = start.checked_add(length) else {
+            break;
+        };
+        let Some(data) = bytes.get(start..end) else {
+            break;
+        };
+        payload.extend_from_slice(data);
+        lengths[segment] = length;
+        position = end;
+        segment += 1;
+    }
+    (payload, lengths[0], lengths[1], lengths[2])
 }
 
 fn type1_program_with_width(width: u16) -> Vec<u8> {
@@ -4622,7 +4849,11 @@ fn type1_program_with_width(width: u16) -> Vec<u8> {
             ciphertext
         })
         .collect::<Vec<_>>();
-    [b"%!PS-AdobeFont\neexec\n".as_slice(), encrypted.as_slice()].concat()
+    [
+        b"%!PS-AdobeFont\n/Encoding StandardEncoding def\neexec\n".as_slice(),
+        encrypted.as_slice(),
+    ]
+    .concat()
 }
 
 fn text_content(rendering_mode: i64) -> Vec<u8> {

@@ -24,7 +24,11 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_cidmap_invalid_name", &[CID_TO_GID]),
     ("composite_cidmap_stream", &[]),
     ("composite_cidmap_indirect_identity", &[]),
-    ("composite_named_cmap", &[CMAP_EMBEDDING]),
+    ("composite_named_cmap", &[SYSTEM_INFO, CMAP_EMBEDDING]),
+    (
+        "composite_named_cmap_cidset_real_program",
+        &[CMAP_EMBEDDING, CID_SUBSET_CIDSET],
+    ),
     ("composite_cmap_matching", &[GLYPH_PRESENCE]),
     ("composite_indirect_cid_system_info", &[GLYPH_PRESENCE]),
     (
@@ -129,6 +133,7 @@ fn rendered_cidset_coverage_matches_pinned_verapdf_when_opted_in() {
     for case in [
         "composite_cidset_real_program",
         "composite_cidset_nonidentity_real_program",
+        "composite_named_cmap_cidset_real_program",
     ] {
         let path = env::temp_dir().join(format!("tag-{case}-{}.pdf", std::process::id()));
         fs::write(&path, common::font_fixture(case)).expect("write CIDSet fixture");

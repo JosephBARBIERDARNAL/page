@@ -1297,7 +1297,7 @@
       },
       {
         "applicability": [
-          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one) -- still `partial/proxy` because the predefined (non-embedded, named) CMap collection is not modeled, per `resolve_cmap_decoder`'s own doc comment."
+          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1337,6 +1337,10 @@
               {
                 "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_named_cmap_cidset_real_program",
+                "kind": "verapdf_delta"
               }
             ],
             "representable": true
@@ -1356,7 +1360,7 @@
           "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDType0Font",
         "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
@@ -1449,6 +1453,10 @@
             "evidence": [
               {
                 "case": "composite_font:composite_named_cmap",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_named_cmap_cidset_real_program",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1889,7 +1897,7 @@
       },
       {
         "applicability": [
-          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Still `partial/proxy` for the same reason as `TYPE0-CID-SYSTEM-INFO-001`: this predicate first needs `cached_cids_for_rendered_bytes` to decode the rendered bytes into CIDs, which silently yields no CIDs (and so silently skips this whole check) when `/Encoding` is a predefined, non-Identity, non-embedded named CMap, since that collection is not modeled locally."
+          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1915,6 +1923,10 @@
               },
               {
                 "case": "composite_font:composite_cidset_real_program",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_named_cmap_cidset_real_program",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1944,7 +1956,7 @@
           "PDFA1B-CID-SUBSET-CIDSET-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDCIDFont",
         "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (containsCIDSet == true && cidSetListsAllGlyphs == true)",
@@ -7841,6 +7853,10 @@
             {
               "case": "composite_font:composite_indirect_identity_h",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_named_cmap_cidset_real_program",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7858,13 +7874,13 @@
       },
       "description": "For any given composite (Type 0) font referenced within a conforming file, the CIDSystemInfo entries of its CIDFont and CMap dictionaries shall be compatible. In other words, the Registry and Ordering strings of the CIDSystemInfo dictionaries for that font shall be identical, unless the value of the Encoding key in the font dictionary is Identity-H or Identity-V",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
       ],
       "mapping_notes": [
-        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one) -- still `partial/proxy` because the predefined (non-embedded, named) CMap collection is not modeled, per `resolve_cmap_decoder`'s own doc comment."
+        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
       ],
       "object": "PDType0Font",
       "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
@@ -7941,6 +7957,10 @@
           "evidence": [
             {
               "case": "composite_font:composite_named_cmap",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_named_cmap_cidset_real_program",
               "kind": "verapdf_delta"
             }
           ],
@@ -8378,6 +8398,10 @@
             {
               "case": "composite_font:composite_cidset_real_program",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_named_cmap_cidset_real_program",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -8404,13 +8428,13 @@
       },
       "description": "For all CIDFont subsets referenced within a conforming file, the font descriptor dictionary shall include a CIDSet stream identifying which CIDs are present in the embedded CIDFont file, as described in PDF Reference Table 5.20",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-CID-SUBSET-CIDSET-001"
       ],
       "mapping_notes": [
-        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Still `partial/proxy` for the same reason as `TYPE0-CID-SYSTEM-INFO-001`: this predicate first needs `cached_cids_for_rendered_bytes` to decode the rendered bytes into CIDs, which silently yields no CIDs (and so silently skips this whole check) when `/Encoding` is a predefined, non-Identity, non-embedded named CMap, since that collection is not modeled locally."
+        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
       ],
       "object": "PDCIDFont",
       "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (containsCIDSet == true && cidSetListsAllGlyphs == true)",
