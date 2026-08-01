@@ -3061,7 +3061,8 @@
         "ISO 19005-1:2005:6.3.5:3"
       ],
       "expected_verapdf_passed_rule_ids": [
-        "ISO 19005-1:2005:6.3.3.1:1"
+        "ISO 19005-1:2005:6.3.3.1:1",
+        "ISO 19005-1:2005:6.3.5:1"
       ],
       "rationale": "The exact predefined UniJIS-UCS2-H CMap bundled by veraPDF maps rendered code 003F to CID 32, so the matching Adobe/Japan1 system info passes while the unembedded-CMap and missing-CIDSet predicates both fail."
     },

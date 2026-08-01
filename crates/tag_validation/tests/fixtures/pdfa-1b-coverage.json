@@ -1819,6 +1819,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "composite_font:composite_named_cmap_cidset_real_program",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_w_singles_element_indirect_mismatch",
                 "kind": "verapdf_delta"
               },
@@ -8472,6 +8476,10 @@
             },
             {
               "case": "composite_font:composite_identity_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_named_cmap_cidset_real_program",
               "kind": "verapdf_delta"
             },
             {
