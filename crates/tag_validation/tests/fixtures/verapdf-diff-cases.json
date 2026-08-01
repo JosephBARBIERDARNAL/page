@@ -3053,9 +3053,7 @@
         "PDFA1B-CMAP-EMBEDDING-001",
         "PDFA1B-CID-SUBSET-CIDSET-001"
       ],
-      "expected_local_passed_rule_ids": [
-        "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
-      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE0-CID-SYSTEM-INFO-001"],
       "expected_verapdf_failed_rule_ids": [
         "ISO 19005-1:2005:6.3.3.3:1",
         "ISO 19005-1:2005:6.3.5:3"
