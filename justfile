@@ -53,8 +53,9 @@ benchmark:
     rust-script bench/verapdf.rs
 
 # Serve documentation
-preview:
+doc:
     uvx zensical serve
 
+# Install locally
 install:
     cargo install --path crates/tag_cli --force

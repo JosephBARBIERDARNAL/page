@@ -15,6 +15,20 @@
     ],
     "status": "developing"
   },
+  "local_only_checks": [
+    {
+      "local_rule_id": "PDF-PARSE-001",
+      "mapping_note": "Operational parser gate, not an ISO conformance rule."
+    },
+    {
+      "local_rule_id": "PDFA1B-CATALOG-001",
+      "mapping_note": "Local object-model gate; the profile has no standalone catalog-exists rule."
+    },
+    {
+      "local_rule_id": "PDFA1B-CMAP-CID-RANGE-001",
+      "mapping_note": "Local bounded precondition supporting the ISO 19005-1 §6.3.5 test-1 glyph-presence predicate: a CID decoded from a rendered byte must be within the descendant CIDFont's supported range before glyph presence can be evaluated. It is not an independently numbered veraPDF test."
+    }
+  ],
   "corpus": [
     {
       "fixture": "encrypted.pdf",

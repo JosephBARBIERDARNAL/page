@@ -8,10 +8,11 @@ extra_css = ["stylesheets/style.css"]
 nav = [
   { "Home" = "index.md" },
   { "API Reference" = [
-    "reference/cli.md",
-    "reference/rust-crate.md",
-    "reference/python-package.md",
+    "api/cli.md",
+    "api/rust-crate.md",
+    "api/python-package.md",
   ] },
+  { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] }
 ]
 
 [project.theme]

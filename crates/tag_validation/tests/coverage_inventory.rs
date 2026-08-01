@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 const INVENTORY_PATH: &str = "tests/fixtures/pdfa-1b-coverage.json";
 const PROFILE_PATH: &str = "tests/fixtures/PDFA-1B-1.28.xml";
 const DIFFERENTIAL_PATH: &str = "tests/fixtures/verapdf-diff-cases.json";
+const RULE_MAPPING_DOC_PATH: &str = "../../docs/rules/pdfa-1b-rule-mapping.md";
 const EXPECTED_PROFILE_SHA256: &str =
     "1fd81cc8002e089a7597967ee607cd1b49744f29219d08a89f79687657fdc75d";
 
@@ -86,8 +87,6 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
     assert_eq!(differential["reference"]["version"], "1.28.2");
     assert_eq!(differential["reference"]["profile"], "1b");
     let atomic = atomic_evidence(&differential);
-    let agents = include_str!("../../../AGENTS.md");
-
     let predicates = array(&inventory["predicates"], "predicates");
     assert_eq!(predicates.len(), 129);
     let inventory_ids = predicates
@@ -107,13 +106,12 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
             );
             let local_checks = array(&predicate["local_checks"], "local checks");
             assert!(!local_checks.is_empty(), "{rule_id} has no local mapping");
-            for local_check in local_checks {
-                let local_check = string(local_check, "local check");
-                assert!(
-                    agents.contains(&format!("| `{local_check}` | `{rule_id}` |")),
-                    "{rule_id} mapping to {local_check} is absent from AGENTS.md"
-                );
-            }
+            let mapping_notes = array(&predicate["mapping_notes"], "mapping notes");
+            assert_eq!(
+                local_checks.len(),
+                mapping_notes.len(),
+                "{rule_id} must have one mapping note per local check"
+            );
             let strengths = array(
                 &predicate["implementation_strength"],
                 "implementation strength",
@@ -183,7 +181,7 @@ fn regenerate_coverage_inventory() {
     let differential = read_json(DIFFERENTIAL_PATH);
     let profile_source = fs::read_to_string(PROFILE_PATH).expect("read pinned profile");
     let profile = roxmltree::Document::parse(&profile_source).expect("parse pinned profile");
-    let mappings = mapping_table(include_str!("../../../AGENTS.md"));
+    let mappings = inventory_mappings(&inventory);
 
     let mut failed = BTreeMap::<String, Vec<String>>::new();
     let mut passed = BTreeMap::<String, Vec<String>>::new();
@@ -324,6 +322,29 @@ fn regenerate_coverage_inventory() {
         ),
     )
     .expect("write inventory");
+}
+
+#[test]
+#[ignore = "maintenance generator for the human-readable rule mapping"]
+fn regenerate_rule_mapping_documentation() {
+    let inventory = read_json(INVENTORY_PATH);
+    fs::write(
+        RULE_MAPPING_DOC_PATH,
+        generated_rule_mapping_documentation(&inventory),
+    )
+    .expect("write rule mapping documentation");
+}
+
+#[test]
+fn rule_mapping_documentation_is_current() {
+    let inventory = read_json(INVENTORY_PATH);
+    let documentation = fs::read_to_string(RULE_MAPPING_DOC_PATH)
+        .expect("read generated rule mapping documentation");
+    assert_eq!(
+        documentation,
+        generated_rule_mapping_documentation(&inventory),
+        "rule mapping documentation is stale; run the ignored documentation generator"
+    );
 }
 
 #[test]
@@ -743,34 +764,95 @@ fn atomic_evidence(differential: &Value) -> BTreeMap<String, AtomicEvidence> {
     result
 }
 
-fn mapping_table(agents: &str) -> BTreeMap<String, Vec<LocalMapping>> {
+fn inventory_mappings(inventory: &Value) -> BTreeMap<String, Vec<LocalMapping>> {
     let mut mappings = BTreeMap::<String, Vec<LocalMapping>>::new();
-    for line in agents.lines() {
-        if !line.starts_with("| `PDFA1B-") {
-            continue;
+    for predicate in array(&inventory["predicates"], "predicates") {
+        let reference_rule = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
+        let local_checks = array(&predicate["local_checks"], "local checks");
+        let notes = array(&predicate["mapping_notes"], "mapping notes");
+        let strengths = array(
+            &predicate["implementation_strength"],
+            "implementation strength",
+        );
+        assert_eq!(
+            local_checks.len(),
+            notes.len(),
+            "{reference_rule} must have one mapping note per local check"
+        );
+        assert_eq!(
+            strengths.len(),
+            1,
+            "{reference_rule} must currently have one shared implementation strength"
+        );
+        let strength = string(&strengths[0], "implementation strength");
+        for (local_check, note) in local_checks.iter().zip(notes) {
+            mappings
+                .entry(reference_rule.to_owned())
+                .or_default()
+                .push(LocalMapping {
+                    rule_id: string(local_check, "local check").to_owned(),
+                    strength: strength.to_owned(),
+                    note: string(note, "mapping note").to_owned(),
+                });
         }
-        let fields = line.split(" | ").collect::<Vec<_>>();
-        if fields.len() != 5 {
-            continue;
-        }
-        let local_rule = fields[0].trim_start_matches("| `").trim_end_matches('`');
-        let reference_rule = fields[1].trim_matches('`');
-        if !reference_rule.starts_with("ISO 19005-1") {
-            continue;
-        }
-        mappings
-            .entry(reference_rule.to_owned())
-            .or_default()
-            .push(LocalMapping {
-                rule_id: local_rule.to_owned(),
-                strength: fields[3].to_owned(),
-                note: fields[4]
-                    .trim_end_matches(" |")
-                    .replace("\\|", "|")
-                    .to_owned(),
-            });
     }
     mappings
+}
+
+fn generated_rule_mapping_documentation(inventory: &Value) -> String {
+    let mut output = String::from(
+        "# PDF/A-1b pinned rule mapping\n\n\
+         <!-- Generated by `regenerate_rule_mapping_documentation`; do not edit manually. -->\n\n\
+         The pinned veraPDF profile is `crates/tag_validation/tests/fixtures/PDFA-1B-1.28.xml`. \
+         The machine-readable local mapping and differential evidence live in \
+         `crates/tag_validation/tests/fixtures/pdfa-1b-coverage.json`.\n\n\
+         ## Local-only checks\n\n\
+         These checks support parsing or local model preconditions and do not map to a standalone veraPDF profile predicate.\n\n\
+         | Local rule | Semantic note |\n\
+         | --- | --- |\n",
+    );
+    for check in array(&inventory["local_only_checks"], "local-only checks") {
+        let local_rule = string(&check["local_rule_id"], "local-only rule id");
+        let note = markdown_table_text(string(&check["mapping_note"], "local-only mapping note"));
+        output.push_str(&format!("| `{local_rule}` | {note} |\n"));
+    }
+
+    output.push_str(
+        "\n## veraPDF profile mappings\n\n\
+         | Local rule | veraPDF rule | Clause | Strength | Pinned semantic note |\n\
+         | --- | --- | --- | --- | --- |\n",
+    );
+    for predicate in array(&inventory["predicates"], "predicates") {
+        let reference_rule = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
+        let clause = reference_rule
+            .strip_prefix("ISO 19005-1:2005:")
+            .and_then(|suffix| suffix.rsplit_once(':'))
+            .map(|(clause, _)| clause)
+            .expect("PDF/A-1 veraPDF rule id");
+        let strengths = array(
+            &predicate["implementation_strength"],
+            "implementation strength",
+        )
+        .iter()
+        .map(|strength| string(strength, "implementation strength"))
+        .collect::<Vec<_>>()
+        .join(", ");
+        let local_checks = array(&predicate["local_checks"], "local checks");
+        let notes = array(&predicate["mapping_notes"], "mapping notes");
+        assert_eq!(local_checks.len(), notes.len());
+        for (local_check, note) in local_checks.iter().zip(notes) {
+            let local_check = string(local_check, "local check");
+            let note = markdown_table_text(string(note, "mapping note"));
+            output.push_str(&format!(
+                "| `{local_check}` | `{reference_rule}` | §{clause} | {strengths} | {note} |\n"
+            ));
+        }
+    }
+    output
+}
+
+fn markdown_table_text(value: &str) -> String {
+    value.replace('|', "\\|").replace('\n', " ")
 }
 
 fn generated_corpus(differential: &Value) -> Value {
@@ -1047,10 +1129,10 @@ fn generated_document_structure_matrix(inventory: &Value) -> Value {
 /// `ISO 19005-1:2005:6.3.5:1`, is shared by two local checks
 /// (`PDFA1B-TYPE1-GLYPH-PRESENCE-001` and
 /// `PDFA1B-TRUETYPE-GLYPH-PRESENCE-001`), so this set has 20 members for 21
-/// local rule ids. `PDFA1B-CMAP-CID-RANGE-001` is deliberately absent: per
-/// AGENTS.md's pinned mapping table it has no veraPDF rule id of its own
-/// (a local bounded precondition supporting the 6.3.5:1 glyph-presence
-/// predicate), so it cannot appear in the profile-keyed `predicates` array.
+/// local rule ids. `PDFA1B-CMAP-CID-RANGE-001` is deliberately absent: the
+/// coverage inventory records it as a local bounded precondition supporting
+/// the 6.3.5:1 glyph-presence predicate, with no veraPDF rule id of its own,
+/// so it cannot appear in the profile-keyed `predicates` array.
 fn font_predicate_rule_ids() -> BTreeSet<&'static str> {
     BTreeSet::from([
         "ISO 19005-1:2005:6.1.12:10",

@@ -15,10 +15,10 @@ const COVERAGE_PATH: &str = "tests/fixtures/pdfa-1b-coverage.json";
 /// can be reclassified as exact or have a narrowly documented veraPDF-backed
 /// exception." Reads the checked-in coverage inventory's `font` matrix
 /// directly (not a chat summary) and asserts that every predicate still
-/// marked `partial/proxy` has its precise remaining gap spelled out in its
-/// own `AGENTS.md` applicability text -- the "still `partial/proxy`: <reason>"
-/// phrase this project's mapping notes consistently use for a documented
-/// exception, as opposed to a bare `partial/proxy` tag with no stated reason.
+/// marked `partial/proxy` has its precise remaining gap spelled out in the
+/// inventory's mapping notes -- the "still `partial/proxy`: <reason>" phrase
+/// consistently used for a documented exception, as opposed to a bare
+/// `partial/proxy` tag with no stated reason.
 #[test]
 fn gap_every_partial_proxy_font_predicate_has_a_documented_exception() {
     let coverage: serde_json::Value =
@@ -59,7 +59,7 @@ fn gap_every_partial_proxy_font_predicate_has_a_documented_exception() {
     }
     assert!(
         undocumented.is_empty(),
-        "these partial/proxy font predicates have no documented exception in AGENTS.md \
+        "these partial/proxy font predicates have no documented exception in the coverage inventory \
          (add a \"still `partial/proxy`: <reason>\" sentence, or reclassify to exact): \
          {undocumented:?}"
     );

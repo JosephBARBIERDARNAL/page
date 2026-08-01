@@ -18,9 +18,9 @@ cargo install --git https://github.com/josephbarbierdarnal/tag.git tag_cli --bin
 
 ## Usage
 
-- [CLI](./reference/cli.md)
-- [Rust crate](./reference/rust-crate.md)
-- [Python package](./reference/python-package.md)
+- [CLI](api/cli.md)
+- [Rust crate](api/rust-crate.md)
+- [Python package](api/python-package.md)
 
 ## Roadmap
 
