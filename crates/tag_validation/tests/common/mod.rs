@@ -2933,6 +2933,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "selected_not_shown"
             | "direct_font"
             | "form_unembedded"
+            | "form_unembedded_indirect_subtype"
             | "nested_form_unembedded"
             | "inherited_resources"
             | "repeated_aliases"
@@ -3002,6 +3003,20 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 sfnt::minimal_truetype(),
             )),
         );
+    } else if case == "type1_fontfile_header_only_garbage" {
+        // A /FontFile whose bytes start with the Type1 magic header
+        // (`%!PS-AdobeFont`) but are otherwise garbage, not a real
+        // eexec-encrypted program -- tests whether veraPDF's own
+        // containsFontFile check for /FontFile requires more structural
+        // validity than the local magic-byte heuristic does.
+        descriptor.remove(b"FontFile2");
+        descriptor.set(
+            "FontFile",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                b"%!PS-AdobeFont-1.0: garbage garbage garbage not a real program".to_vec(),
+            )),
+        );
     } else if matches!(
         case,
         "type1_glyph_missing"
@@ -3009,6 +3024,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "type1_difference_glyph"
             | "type1_subset_charset_incomplete"
             | "type1_subset_charset_difference_incomplete"
+            | "type1_subset_charset_incomplete_indirect_basefont"
             | "type1_width_mismatch"
     ) {
         descriptor.remove(b"FontFile2");
@@ -3025,7 +3041,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         );
         if matches!(
             case,
-            "type1_subset_charset_incomplete" | "type1_subset_charset_difference_incomplete"
+            "type1_subset_charset_incomplete"
+                | "type1_subset_charset_difference_incomplete"
+                | "type1_subset_charset_incomplete_indirect_basefont"
         ) {
             descriptor.set("CharSet", Object::string_literal("/.notdef"));
         }
@@ -3041,6 +3059,38 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                     "Subtype" => "Type1C",
                 },
                 minimal_type1c(case != "type1c_glyph_missing"),
+            )),
+        );
+    } else if case == "type1c_header_only_garbage" {
+        // A /FontFile3 whose bytes satisfy the local header heuristic
+        // (major version 1 or 2, hdrSize <= length) but are otherwise
+        // garbage, not a real CFF table -- tests whether veraPDF's own
+        // containsFontFile check for /FontFile3 requires more structural
+        // validity than the local header-byte heuristic does.
+        descriptor.remove(b"FontFile2");
+        descriptor.set(
+            "FontFile3",
+            document.add_object(Stream::new(
+                dictionary! {
+                    "Subtype" => "Type1C",
+                },
+                vec![1, 0, 4, 4, 0xFF, 0xFF, 0xFF, 0xFF],
+            )),
+        );
+    } else if case == "type1c_embedded_indirect_subtype" {
+        // The embedded FontFile3 stream's own /Subtype as an *indirect*
+        // reference to the name /Type1C, not a direct one -- discriminates
+        // whether an unresolved indirect /Subtype wrongly makes a validly
+        // embedded Type1C program count as unembedded.
+        descriptor.remove(b"FontFile2");
+        let indirect_subtype = document.add_object(Object::Name(b"Type1C".to_vec()));
+        descriptor.set(
+            "FontFile3",
+            document.add_object(Stream::new(
+                dictionary! {
+                    "Subtype" => indirect_subtype,
+                },
+                minimal_type1c(true),
             )),
         );
     } else if matches!(
@@ -3070,7 +3120,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         );
     } else if matches!(
         case,
-        "composite_cidset_real_program" | "composite_cidset_nonidentity_real_program"
+        "composite_cidset_real_program"
+            | "composite_cidset_nonidentity_real_program"
+            | "composite_cidset_indirect_basefont_real_program"
     ) {
         descriptor.set(
             "FontFile2",
@@ -3134,6 +3186,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     } else if case == "type1_subset_missing_charset" {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
+    } else if case == "type1_fontfile_header_only_garbage" {
+        font.set("Subtype", "Type1");
     } else if matches!(
         case,
         "type1_glyph_missing"
@@ -3145,12 +3199,20 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "type1c_glyph_missing"
             | "type1c_glyph_present"
             | "type1c_width_mismatch"
+            | "type1c_embedded_indirect_subtype"
+            | "type1c_header_only_garbage"
     ) {
         font.set("Subtype", "Type1");
         if case == "type1_subset_charset_difference_incomplete" {
             font.set("BaseFont", "ABCDEF+MaiTestFont");
         }
-        if matches!(case, "type1c_glyph_missing" | "type1c_glyph_present") {
+        if matches!(
+            case,
+            "type1c_glyph_missing"
+                | "type1c_glyph_present"
+                | "type1c_embedded_indirect_subtype"
+                | "type1c_header_only_garbage"
+        ) {
             font.set("Widths", vec![0.into()]);
         }
         if matches!(
@@ -3189,6 +3251,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     ) {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
+    } else if case == "type1_subset_charset_incomplete_indirect_basefont" {
+        // /BaseFont as an *indirect* reference to a subset-tagged name, not
+        // a direct one -- discriminates whether an unresolved indirect
+        // /BaseFont wrongly makes the font look non-subset (both the
+        // TYPE1-SUBSET-CHARSET-001 dictionary check and the rendered-glyph
+        // check silently skipped) instead of being resolved and recognized.
+        font.set("Subtype", "Type1");
+        let indirect_base_font = document.add_object(Object::Name(b"ABCDEF+MaiTestFont".to_vec()));
+        font.set("BaseFont", indirect_base_font);
     }
     if case == "type3_visible" {
         font = dictionary! {
@@ -3218,6 +3289,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "composite_cid_subset_missing_cidset"
                     | "composite_cidset_real_program"
                     | "composite_cidset_nonidentity_real_program"
+                    | "composite_cidset_indirect_basefont_real_program"
                     | "composite_cff_missing_glyph"
                     | "composite_cff_present_glyph"
                     | "composite_cff_width_mismatch"
@@ -3251,6 +3323,17 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        if case == "composite_cidset_indirect_basefont_real_program" {
+            // The descendant's own /BaseFont as an *indirect* reference to
+            // a subset-tagged name, not a direct one -- discriminates
+            // whether an unresolved indirect /BaseFont wrongly makes the
+            // descendant look non-subset (both the dict-level /CIDSet
+            // presence check and the rendered-CID coverage check silently
+            // skipped) instead of being resolved and recognized.
+            let indirect_base_font =
+                document.add_object(Object::Name(b"ABCDEF+MaiTestFont".to_vec()));
+            descendant_dictionary.set("BaseFont", indirect_base_font);
+        }
         if case == "composite_descendant_subtype_indirect_width_mismatch" {
             // The descendant's own /Subtype as an *indirect* reference to
             // the name /CIDFontType2, not a direct one, paired with a
@@ -3279,6 +3362,16 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         match case {
             "composite_cidmap_missing" => {
                 descendant_dictionary.remove(b"CIDToGIDMap");
+            }
+            // The descendant's own /Subtype as an *indirect* reference to
+            // /CIDFontType2, not a direct one, paired with a missing
+            // /CIDToGIDMap -- discriminates whether an unresolved indirect
+            // /Subtype wrongly skips the /CIDToGIDMap validity check
+            // entirely instead of being resolved and recognized.
+            "composite_cidmap_missing_indirect_subtype" => {
+                descendant_dictionary.remove(b"CIDToGIDMap");
+                let indirect_subtype = document.add_object(Object::Name(b"CIDFontType2".to_vec()));
+                descendant_dictionary.set("Subtype", indirect_subtype);
             }
             "composite_cidmap_invalid_name" => {
                 descendant_dictionary.set("CIDToGIDMap", "NotIdentity");
@@ -3488,6 +3581,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "BaseEncoding" => "WinAnsiEncoding",
             },
         ),
+        // /BaseEncoding as an *indirect* reference to the name
+        // /WinAnsiEncoding, not a direct one -- discriminates whether an
+        // unresolved indirect /BaseEncoding wrongly makes an otherwise
+        // compliant non-symbolic encoding look unrecognized.
+        "tt_nonsymbolic_dictionary_indirect_baseencoding" => {
+            let indirect_base_encoding =
+                document.add_object(Object::Name(b"WinAnsiEncoding".to_vec()));
+            font.set(
+                "Encoding",
+                dictionary! {
+                    "Type" => "Encoding",
+                    "BaseEncoding" => indirect_base_encoding,
+                },
+            );
+        }
         "tt_nonsymbolic_dictionary_macroman" => font.set(
             "Encoding",
             dictionary! {
@@ -3528,6 +3636,17 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         | "tt_symbolic_indirect_flags" => {
             font.remove(b"Encoding");
         }
+        // A symbolic font whose /Encoding is present but neither a name,
+        // dictionary, nor null -- an integer. Hypothesis check: does
+        // veraPDF's `Encoding == null` predicate fail here (since the value
+        // is non-null), or does an unrecognized-shape value get silently
+        // treated the same as absent, matching the local implementation?
+        "tt_symbolic_malformed_encoding" => {
+            font.set("Encoding", Object::Boolean(true));
+        }
+        "tt_nonsymbolic_malformed_encoding" => {
+            font.set("Encoding", Object::Boolean(true));
+        }
         _ => {}
     }
     let font_object = if case == "direct_font" {
@@ -3564,15 +3683,17 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     };
     resources.set("Font", font_resources.clone());
     let page_content = match case {
-        "composite_cidset_real_program" => content(vec![
-            operation("BT", vec![]),
-            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
-            operation(
-                "Tj",
-                vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
-            ),
-            operation("ET", vec![]),
-        ]),
+        "composite_cidset_real_program" | "composite_cidset_indirect_basefont_real_program" => {
+            content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation(
+                    "Tj",
+                    vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
+                ),
+                operation("ET", vec![]),
+            ])
+        }
         "composite_cidset_nonidentity_real_program" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
@@ -3686,11 +3807,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("Tj", vec![Object::string_literal(" ")]),
             operation("ET", vec![]),
         ]),
-        "form_unembedded" | "nested_form_unembedded" => {
+        "form_unembedded" | "form_unembedded_indirect_subtype" | "nested_form_unembedded" => {
+            let form_subtype: Object = if case == "form_unembedded_indirect_subtype" {
+                // The Form XObject's own /Subtype as an *indirect*
+                // reference to the name /Form, not a direct one --
+                // discriminates whether an unresolved indirect /Subtype
+                // wrongly makes the whole form (and every font it uses)
+                // invisible to font discovery.
+                Object::Reference(document.add_object(Object::Name(b"Form".to_vec())))
+            } else {
+                Object::Name(b"Form".to_vec())
+            };
             let form = Stream::new(
                 dictionary! {
                     "Type" => "XObject",
-                    "Subtype" => "Form",
+                    "Subtype" => form_subtype,
                     "BBox" => vec![0.into(), 0.into(), 100.into(), 100.into()],
                     "Resources" => resources.clone(),
                 },
@@ -3788,7 +3919,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("ET", vec![]),
         ]),
         "type1_glyph_present" => text_content(0),
-        "type1_subset_charset_incomplete" => text_content(0),
+        "type1_subset_charset_incomplete" | "type1_subset_charset_incomplete_indirect_basefont" => {
+            text_content(0)
+        }
         "tt_nonascii_winansi" | "tt_nonascii_winansi_width_mismatch" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),

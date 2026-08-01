@@ -2284,6 +2284,30 @@
       "rationale": "/Subtype as an indirect reference to the name /TrueType is resolved and recognized exactly like a direct name, so an otherwise-unembedded font is still checked rather than treated as an unsupported/inapplicable subtype."
     },
     {
+      "name": "type1_fontfile_header_only_garbage",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A /FontFile stream starting with the Type1 magic header but containing no eexec-encrypted section at all is not considered embedded by veraPDF; the magic-byte-only heuristic is a confirmed false negative without also requiring an eexec marker."
+    },
+    {
+      "name": "type1c_header_only_garbage",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A /FontFile3 stream matching only the CFF header-byte shape but containing no parseable CFF structure is not considered embedded by veraPDF; the header-byte-only heuristic is a confirmed false negative without full CFF table parseability."
+    },
+    {
+      "name": "type1c_embedded_indirect_subtype",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "rationale": "An embedded FontFile3 stream's own /Subtype as an indirect reference to /Type1C is resolved and recognized exactly like a direct name, so a validly embedded Type1C program still counts as embedded."
+    },
+    {
       "name": "mixed_rendering_modes",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
@@ -2314,6 +2338,14 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Visible text in a Form XObject uses an unembedded font."
+    },
+    {
+      "name": "form_unembedded_indirect_subtype",
+      "expected_local_failed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The Form XObject's own /Subtype as an indirect reference to the name /Form is resolved and recognized exactly like a direct name, so a font used only inside it is still discovered and checked rather than the whole form being invisible to font discovery."
     },
     {
       "name": "inherited_resources",
@@ -2738,6 +2770,14 @@
       "rationale": "A visible Type 2 CIDFont descendant has no CIDToGIDMap."
     },
     {
+      "name": "composite_cidmap_missing_indirect_subtype",
+      "expected_local_failed_rule_ids": ["PDFA1B-CIDTOGIDMAP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The descendant's own /Subtype as an indirect reference to /CIDFontType2 is resolved and recognized exactly like a direct name, so a missing /CIDToGIDMap is still caught rather than the descendant being treated as an unrecognized subtype and the check silently skipped."
+    },
+    {
       "name": "composite_cidmap_invalid_name",
       "expected_local_failed_rule_ids": ["PDFA1B-CIDTOGIDMAP-001"],
       "expected_local_passed_rule_ids": [],
@@ -2874,6 +2914,14 @@
       "rationale": "A subset CIDFont CIDSet omits a rendered CID present in a real bounded font program."
     },
     {
+      "name": "composite_cidset_indirect_basefont_real_program",
+      "expected_local_failed_rule_ids": ["PDFA1B-CID-SUBSET-CIDSET-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "rationale": "The descendant's own /BaseFont as an indirect reference to a subset-tagged name is resolved and recognized exactly like a direct name, so a CIDSet omitting a rendered CID is still caught rather than the descendant being treated as non-subset and silently skipped."
+    },
+    {
       "name": "composite_identity_width_mismatch",
       "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
       "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
@@ -2984,6 +3032,16 @@
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
       "rationale": "An Encoding dictionary with MacRomanEncoding BaseEncoding and no Differences is valid."
+    },
+    {
+      "name": "tt_nonsymbolic_dictionary_indirect_baseencoding",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.7:1"],
+      "rationale": "/BaseEncoding as an indirect reference to the name /WinAnsiEncoding is resolved and recognized exactly like a direct name."
     },
     {
       "name": "tt_nonsymbolic_differences",

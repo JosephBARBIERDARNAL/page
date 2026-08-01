@@ -439,11 +439,7 @@ impl Scanner<'_> {
         else {
             return Ok(());
         };
-        if form
-            .dict
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        if resolved_name(self.document, &form.dict, b"Subtype", self.limits)?
             != Some(b"Form".as_slice())
         {
             return Ok(());
@@ -1076,11 +1072,7 @@ impl Scanner<'_> {
         else {
             return Ok(());
         };
-        if stream
-            .dict
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        if resolved_name(self.document, &stream.dict, b"Subtype", self.limits)?
             != Some(b"CIDFontType0C".as_slice())
         {
             return Ok(());
@@ -1160,16 +1152,12 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(char_set) = descriptor
-                .get(b"CharSet")
-                .ok()
-                .and_then(|value| match value {
-                    Object::String(bytes, _) => Some(type1_charset_names(bytes)),
-                    _ => None,
-                })
+            let Some(char_set_bytes) =
+                resolved_string(self.document, descriptor, b"CharSet", self.limits)?
             else {
                 continue;
             };
+            let char_set = type1_charset_names(&char_set_bytes);
             let Some(stream) = descriptor
                 .get(b"FontFile")
                 .ok()
@@ -1395,11 +1383,7 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            if stream
-                .dict
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok())
+            if resolved_name(self.document, &stream.dict, b"Subtype", self.limits)?
                 != Some(b"Type1C".as_slice())
             {
                 continue;
@@ -1544,17 +1528,16 @@ impl Scanner<'_> {
         object_id: Option<PdfObjectId>,
         description: &str,
     ) -> Result<(), PdfError> {
-        let is_subset = font
-            .get(b"BaseFont")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        let is_subset = resolved_name(self.document, font, b"BaseFont", self.limits)?
             .is_some_and(is_subset_font_name);
         if !is_subset {
             return Ok(());
         }
         let has_charset = font_descriptor_dictionary(self.document, font, self.limits)?
-            .and_then(|descriptor| descriptor.get(b"CharSet").ok())
-            .is_some_and(|value| matches!(value, Object::String(_, _)));
+            .map(|descriptor| resolved_string(self.document, descriptor, b"CharSet", self.limits))
+            .transpose()?
+            .flatten()
+            .is_some();
         if !has_charset {
             self.invalid_type1_subset_charsets.push(font_failure(
                 object_id,
@@ -1577,10 +1560,7 @@ impl Scanner<'_> {
             self.inspect_cid_subset_font(descendant, object_id, description)?;
         }
         if let Some(descendant) = descendant
-            && descendant
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok())
+            && resolved_name(self.document, descendant, b"Subtype", self.limits)?
                 == Some(b"CIDFontType2".as_slice())
             && rendering_mode != 3
         {
@@ -1620,11 +1600,7 @@ impl Scanner<'_> {
             return Ok(());
         };
 
-        let cmap_name = cmap
-            .dict
-            .get(b"CMapName")
-            .ok()
-            .and_then(|value| value.as_name().ok());
+        let cmap_name = resolved_name(self.document, &cmap.dict, b"CMapName", self.limits)?;
         if cmap_name.is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V")) {
             return Ok(());
         }
@@ -1675,10 +1651,7 @@ impl Scanner<'_> {
         object_id: Option<PdfObjectId>,
         description: &str,
     ) -> Result<(), PdfError> {
-        let is_subset = font
-            .get(b"BaseFont")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        let is_subset = resolved_name(self.document, font, b"BaseFont", self.limits)?
             .is_some_and(is_subset_font_name);
         if !is_subset {
             return Ok(());
@@ -1706,12 +1679,7 @@ impl Scanner<'_> {
         description: &str,
         subtype: Option<&str>,
     ) -> Result<(), PdfError> {
-        if font
-            .get(b"Type")
-            .ok()
-            .and_then(|value| value.as_name().ok())
-            != Some(b"Font".as_slice())
-        {
+        if resolved_name(self.document, font, b"Type", self.limits)? != Some(b"Font".as_slice()) {
             self.invalid_types.push(font_failure(
                 object_id,
                 description,
@@ -1719,10 +1687,7 @@ impl Scanner<'_> {
             ));
         }
 
-        let base_font = font
-            .get(b"BaseFont")
-            .ok()
-            .and_then(|value| value.as_name().ok());
+        let base_font = resolved_name(self.document, font, b"BaseFont", self.limits)?;
         if subtype != Some("Type3") && base_font.is_none() {
             self.invalid_base_fonts.push(font_failure(
                 object_id,
@@ -3100,11 +3065,7 @@ fn truetype_encoding(
     let Ok(dictionary) = encoding.as_dict() else {
         return Ok((None, false));
     };
-    let base = dictionary
-        .get(b"BaseEncoding")
-        .ok()
-        .and_then(|value| value.as_name().ok())
-        .map(ToOwned::to_owned);
+    let base = resolved_name(document, dictionary, b"BaseEncoding", limits)?.map(ToOwned::to_owned);
     Ok((base, contains_key(dictionary, b"Differences")))
 }
 
@@ -3154,7 +3115,7 @@ fn font_is_embedded(
         if let Ok(file) = descriptor.get(key)
             && let Some(stream) = resolve_optional(document, file, limits.max_reference_depth)?
                 .and_then(|object| object.as_stream().ok())
-            && valid_font_program(key, stream, limits)?
+            && valid_font_program(document, key, stream, limits)?
         {
             return Ok(true);
         }
@@ -3179,12 +3140,7 @@ fn invalid_embedded_font_subtype(
         else {
             continue;
         };
-        let Some(subtype) = stream
-            .dict
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
-        else {
+        let Some(subtype) = resolved_name(document, &stream.dict, b"Subtype", limits)? else {
             continue;
         };
         if !matches!(subtype, b"Type1C" | b"CIDFontType0C") {
@@ -3195,6 +3151,7 @@ fn invalid_embedded_font_subtype(
 }
 
 fn valid_font_program(
+    document: &Document,
     key: &[u8],
     stream: &Stream,
     limits: &SafetyLimits,
@@ -3207,19 +3164,31 @@ fn valid_font_program(
         Err(_) => return Ok(false),
     };
     Ok(match key {
-        b"FontFile" => bytes.starts_with(b"%!PS-AdobeFont") || bytes.starts_with(&[0x80, 0x01]),
+        // Confirmed live against veraPDF 1.28.2: a stream whose bytes start
+        // with the Type1 magic header but never contain an `eexec` marker
+        // (no encrypted/binary section at all, just header text) still
+        // fails `PDFA1B-FONT-EMBEDDING-001` on veraPDF -- the header alone
+        // is not sufficient, matching the PFB/Type1 format's own
+        // requirement that a real program always has an encrypted segment.
+        b"FontFile" => {
+            (bytes.starts_with(b"%!PS-AdobeFont")
+                && bytes.windows(5).any(|window| window == b"eexec"))
+                || (bytes.starts_with(&[0x80, 0x01])
+                    && bytes.windows(2).any(|window| window == [0x80, 0x02]))
+        }
         b"FontFile2" => valid_sfnt(&bytes),
+        // Confirmed live against veraPDF 1.28.2: a stream whose bytes
+        // satisfy only the CFF header-byte shape (major/minor version,
+        // hdrSize) but contain no parseable CFF structure beyond that still
+        // fails `PDFA1B-FONT-EMBEDDING-001` -- the header alone is not
+        // sufficient. Uses the same `ttf_parser::cff::Table::parse` already
+        // relied on for glyph lookups (`inspect_rendered_cff_type1_glyphs`/
+        // `inspect_rendered_cff_cidfont_glyphs`), for consistency.
         b"FontFile3" => {
             matches!(
-                stream
-                    .dict
-                    .get(b"Subtype")
-                    .ok()
-                    .and_then(|value| value.as_name().ok()),
+                resolved_name(document, &stream.dict, b"Subtype", limits)?,
                 Some(b"Type1C" | b"CIDFontType0C")
-            ) && bytes.len() >= 4
-                && matches!(bytes[0], 1 | 2)
-                && usize::from(bytes[2]) <= bytes.len()
+            ) && ttf_parser::cff::Table::parse(&bytes).is_some()
         }
         _ => false,
     })
@@ -3344,8 +3313,9 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
-        shown_text_bytes,
+        cff_fd_select, cff_index, cmap_maximal_cid, cmap_uses_identity_base,
+        inspect_all_embedded_cmap_cids, parse_cmap, shown_text_bytes, type1_eexec_ciphertext,
+        type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
     };
     use crate::SafetyLimits;
 
@@ -3463,6 +3433,37 @@ mod tests {
         let failures = inspect_all_embedded_cmap_cids(&document, &SafetyLimits::default())
             .expect("inspect CMaps");
         assert_eq!(failures.len(), 1);
+    }
+
+    /// Every hand-rolled font byte-parser in this file must not panic on
+    /// truncated or empty input, since embedded font programs are attacker
+    /// controlled. Reaching the final assertions at all (rather than
+    /// aborting on a panic) is the test; the specific `None`/empty return
+    /// values are incidental. This does not exercise `ttf_parser`/`lopdf`
+    /// -backed paths (`RawFace`, `cff::Table`), which are already
+    /// panic-free by the external crate's own contract.
+    #[test]
+    fn hand_rolled_font_parsers_do_not_panic_on_truncated_input() {
+        for truncated in [b"".as_slice(), b"\x00", b"\x00\x01\x02", b"\x80\x01\x00"] {
+            let _ = cff_fd_select(truncated, 0, 0);
+            let _ = cff_index(truncated, 0);
+            let _ = parse_cmap(truncated);
+            assert!(type1_program_char_names(truncated).is_empty());
+            assert!(type1_program_charstring_widths(truncated).is_empty());
+            let _ = type1_eexec_ciphertext(truncated);
+            let _ = type1_pfb_payload(truncated);
+        }
+        // A `cff_fd_select` format-3 range table declaring a huge count
+        // with almost no backing bytes must not hang (same class of bug as
+        // `bounded_cmap_entry_count` guards for CMaps): each iteration's
+        // `bytes.get(...)` bounds check fails immediately once the real
+        // data is exhausted, since `count` is read as a fixed 2-byte `u16`
+        // (capped at 65,535) rather than parsed from unbounded decimal
+        // text.
+        let huge_count_fd_select = [3u8, 0xFF, 0xFF, 0, 1, 0];
+        let started = std::time::Instant::now();
+        assert_eq!(cff_fd_select(&huge_count_fd_select, 0, 5), None);
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
     }
 
     #[test]

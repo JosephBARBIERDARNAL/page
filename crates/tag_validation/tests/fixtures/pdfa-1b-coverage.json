@@ -893,7 +893,7 @@
       },
       {
         "applicability": [
-          "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object."
+          "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object. `/Type` is resolved through indirection before this check."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -998,7 +998,7 @@
       },
       {
         "applicability": [
-          "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally."
+          "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally. `/BaseFont` is resolved through indirection before this check and before every other `/BaseFont`-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for `TYPE1-SUBSET-CHARSET-001`/`CID-SUBSET-CIDSET-001`)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1246,7 +1246,7 @@
       },
       {
         "applicability": [
-          "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant)."
+          "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant). The `/FontFile3` stream's own `/Subtype` is resolved through indirection before this comparison."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1364,7 +1364,7 @@
       },
       {
         "applicability": [
-          "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one)."
+          "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one). The descendant's own `/Subtype` is also resolved through indirection before this predicate's applicability check runs at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a missing `/CIDToGIDMap` is still caught rather than the check being silently skipped)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1382,6 +1382,10 @@
               },
               {
                 "case": "composite_font:composite_cidmap_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cidmap_missing_indirect_subtype",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1431,7 +1435,7 @@
       },
       {
         "applicability": [
-          "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
+          "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). The embedded CMap stream's own `/CMapName` entry (checked when `/Encoding` resolves to a stream rather than a name) is likewise resolved through indirection first. Reaching a resolved stream unconditionally satisfies `containsEmbeddedFile`, independent of that stream's own `/CMapName` -- so, unlike `TYPE0-CID-SYSTEM-INFO-001`, this predicate never needs to decode a predefined (non-embedded, named) CMap's contents, only detect its name-vs-stream shape; a named non-Identity CMap that is not embedded is confirmed live to fail exactly like the local `unembedded_cmaps` check (`composite_named_cmap`)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1486,7 +1490,7 @@
           "PDFA1B-CMAP-EMBEDDING-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDCMap",
         "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true",
@@ -1565,7 +1569,7 @@
       },
       {
         "applicability": [
-          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF."
+          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced Form XObject's own `/Subtype` (`scan_form`'s `== \"Form\"` gate, guarding every content source this predicate depends on) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1594,6 +1598,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:form_unembedded_indirect_subtype",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:graphics_state_visible",
                 "kind": "verapdf_delta"
               },
@@ -1619,6 +1627,14 @@
               },
               {
                 "case": "font:type0_unembedded_descendant",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_fontfile_header_only_garbage",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_header_only_garbage",
                 "kind": "verapdf_delta"
               },
               {
@@ -1671,6 +1687,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:type1c_embedded_indirect_subtype",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type3_visible",
                 "kind": "verapdf_delta"
               }
@@ -1692,7 +1712,7 @@
           "PDFA1B-FONT-EMBEDDING-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDFont",
         "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
@@ -1700,8 +1720,8 @@
       },
       {
         "applicability": [
-          "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte.",
-          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately."
+          "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte. Still `partial/proxy`: shares the `type1_standard_glyph_name`-fallback gap documented under `TYPE1-SUBSET-CHARSET-001` (a byte absent from `/Differences` always resolves via a hardcoded StandardEncoding table, never the embedded Type1 program's own built-in `/Encoding` array). The whole hand-rolled `type1_program` fixture family (every `type1_glyph_*`/`type1_difference_glyph`/`type1_width_mismatch` case) is confirmed to crash veraPDF 1.28.2 itself (`Exception: ... Range [0, 0 + -3) out of bounds for length 8192`, reproduced directly) when dumped for live differential comparison, since these fixtures were only ever built to exercise this crate's own byte-level Type1 scanning (`type1_program_char_names`/`type1_program_charstring_widths`), not to be a spec-complete Type1 program a real Type1 parser can execute -- so none of this family's local behavior has ever been confirmed against live veraPDF; `atomic_font_cases` has zero entries for it.",
+          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately. Still `partial/proxy`: glyph lookup uses `ttf_parser::Face::parse` (requiring `head`/`hhea`/`maxp`/`hmtx`/`loca`/`glyf` to all parse), unlike `PDFA1B-FONT-EMBEDDING-001`/`PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`'s narrower `RawFace` reads; confirmed live that veraPDF still evaluates this predicate (and flags a missing glyph) for a font whose `cmap`/`FontFile2` signature is otherwise valid but whose `maxp` is malformed enough that `Face::parse` fails, which the local implementation instead silently skips. No safe `ttf_parser` API path to replicate this narrower behavior was found (glyph/`loca` lookup requires `numberOfGlyphs`/`indexToLocFormat`, which come from the same `maxp`/`head` tables that are malformed in the confirmed counter-example)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1763,6 +1783,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "composite_font:composite_cidset_indirect_basefont_real_program",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_cidset_real_program",
                 "kind": "verapdf_delta"
               },
@@ -1813,7 +1837,7 @@
       },
       {
         "applicability": [
-          "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph."
+          "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph. `/BaseFont` is resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged name is recognized exactly like a direct one, so an incomplete `/CharSet` is still caught rather than the font being treated as non-subset and the check silently skipped). Still `partial/proxy`: a rendered byte's glyph name, when absent from `/Differences`, always falls back to a hardcoded StandardEncoding table (`type1_standard_glyph_name`) rather than reading the embedded Type1 program's own built-in `/Encoding` array (PostScript-level, distinct from the PDF `/Encoding` dictionary) -- a font relying on a non-standard built-in encoding (e.g. Symbol-like fonts) would resolve the wrong glyph name. Not independently live-confirmed: the whole `type1_program`-based fixture family shares the veraPDF 1.28.2 crash documented under `TYPE1-GLYPH-PRESENCE-001` below, blocking further live testing of this family."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1865,7 +1889,7 @@
       },
       {
         "applicability": [
-          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present."
+          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Still `partial/proxy` for the same reason as `TYPE0-CID-SYSTEM-INFO-001`: this predicate first needs `cached_cids_for_rendered_bytes` to decode the rendered bytes into CIDs, which silently yields no CIDs (and so silently skips this whole check) when `/Encoding` is a predefined, non-Identity, non-embedded named CMap, since that collection is not modeled locally."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1883,6 +1907,10 @@
               },
               {
                 "case": "composite_font:composite_cid_subset_missing_cidset",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cidset_indirect_basefont_real_program",
                 "kind": "verapdf_delta"
               },
               {
@@ -1924,7 +1952,7 @@
       },
       {
         "applicability": [
-          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both)."
+          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both). Still `partial/proxy` for the same `ttf_parser::Face::parse`-vs-`RawFace` reason as `TRUETYPE-GLYPH-PRESENCE-001`: a font whose `maxp` is malformed enough to fail `Face::parse` is still width-checked by veraPDF but silently skipped locally."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -2019,7 +2047,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`."
+          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.28.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -2048,6 +2076,10 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "truetype:tt_nonsymbolic_dictionary_indirect_baseencoding",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "truetype:tt_nonsymbolic_dictionary_macroman",
                 "kind": "verapdf_delta"
@@ -2094,7 +2126,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`."
+          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -7458,7 +7490,7 @@
         "PDFA1B-FONT-TYPE-001"
       ],
       "mapping_notes": [
-        "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object."
+        "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object. `/Type` is resolved through indirection before this check."
       ],
       "object": "PDFont",
       "predicate": "Type == \"Font\"",
@@ -7551,7 +7583,7 @@
         "PDFA1B-FONT-BASEFONT-001"
       ],
       "mapping_notes": [
-        "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally."
+        "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally. `/BaseFont` is resolved through indirection before this check and before every other `/BaseFont`-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for `TYPE1-SUBSET-CHARSET-001`/`CID-SUBSET-CIDSET-001`)."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || fontName != null",
@@ -7771,7 +7803,7 @@
         "PDFA1B-FONT-FILE-SUBTYPE-001"
       ],
       "mapping_notes": [
-        "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant)."
+        "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant). The `/FontFile3` stream's own `/Subtype` is resolved through indirection before this comparison."
       ],
       "object": "PDFont",
       "predicate": "fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"",
@@ -7849,6 +7881,10 @@
             {
               "case": "composite_font:composite_cidmap_missing",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_cidmap_missing_indirect_subtype",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7893,7 +7929,7 @@
         "PDFA1B-CIDTOGIDMAP-001"
       ],
       "mapping_notes": [
-        "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one)."
+        "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one). The descendant's own `/Subtype` is also resolved through indirection before this predicate's applicability check runs at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a missing `/CIDToGIDMap` is still caught rather than the check being silently skipped)."
       ],
       "object": "PDCIDFont",
       "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3",
@@ -7944,13 +7980,13 @@
       },
       "description": "All CMaps used within a conforming file, except Identity-H and Identity-V, shall be embedded in that file as described in PDF Reference 5.6.4",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-CMAP-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
+        "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). The embedded CMap stream's own `/CMapName` entry (checked when `/Encoding` resolves to a stream rather than a name) is likewise resolved through indirection first. Reaching a resolved stream unconditionally satisfies `containsEmbeddedFile`, independent of that stream's own `/CMapName` -- so, unlike `TYPE0-CID-SYSTEM-INFO-001`, this predicate never needs to decode a predefined (non-embedded, named) CMap's contents, only detect its name-vs-stream shape; a named non-Identity CMap that is not embedded is confirmed live to fail exactly like the local `unembedded_cmaps` check (`composite_named_cmap`)."
       ],
       "object": "PDCMap",
       "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true",
@@ -8042,6 +8078,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:form_unembedded_indirect_subtype",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:graphics_state_visible",
               "kind": "verapdf_delta"
             },
@@ -8067,6 +8107,14 @@
             },
             {
               "case": "font:type0_unembedded_descendant",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_fontfile_header_only_garbage",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_header_only_garbage",
               "kind": "verapdf_delta"
             },
             {
@@ -8119,6 +8167,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:type1c_embedded_indirect_subtype",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type3_visible",
               "kind": "verapdf_delta"
             }
@@ -8138,13 +8190,13 @@
       },
       "description": "The font programs for all fonts used within a conforming file shall be embedded within that file, as defined in PDF Reference 5.8, except when the fonts are used exclusively with text rendering mode 3",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FONT-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF."
+        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced Form XObject's own `/Subtype` (`scan_form`'s `== \"Form\"` gate, guarding every content source this predicate depends on) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
@@ -8204,6 +8256,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "composite_font:composite_cidset_indirect_basefont_real_program",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_cidset_real_program",
               "kind": "verapdf_delta"
             },
@@ -8250,8 +8306,8 @@
         "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
       ],
       "mapping_notes": [
-        "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte.",
-        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately."
+        "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte. Still `partial/proxy`: shares the `type1_standard_glyph_name`-fallback gap documented under `TYPE1-SUBSET-CHARSET-001` (a byte absent from `/Differences` always resolves via a hardcoded StandardEncoding table, never the embedded Type1 program's own built-in `/Encoding` array). The whole hand-rolled `type1_program` fixture family (every `type1_glyph_*`/`type1_difference_glyph`/`type1_width_mismatch` case) is confirmed to crash veraPDF 1.28.2 itself (`Exception: ... Range [0, 0 + -3) out of bounds for length 8192`, reproduced directly) when dumped for live differential comparison, since these fixtures were only ever built to exercise this crate's own byte-level Type1 scanning (`type1_program_char_names`/`type1_program_charstring_widths`), not to be a spec-complete Type1 program a real Type1 parser can execute -- so none of this family's local behavior has ever been confirmed against live veraPDF; `atomic_font_cases` has zero entries for it.",
+        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately. Still `partial/proxy`: glyph lookup uses `ttf_parser::Face::parse` (requiring `head`/`hhea`/`maxp`/`hmtx`/`loca`/`glyf` to all parse), unlike `PDFA1B-FONT-EMBEDDING-001`/`PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`'s narrower `RawFace` reads; confirmed live that veraPDF still evaluates this predicate (and flags a missing glyph) for a font whose `cmap`/`FontFile2` signature is otherwise valid but whose `maxp` is malformed enough that `Face::parse` fails, which the local implementation instead silently skips. No safe `ttf_parser` API path to replicate this narrower behavior was found (glyph/`loca` lookup requires `numberOfGlyphs`/`indexToLocFormat`, which come from the same `maxp`/`head` tables that are malformed in the confirmed counter-example)."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true",
@@ -8297,7 +8353,7 @@
         "PDFA1B-TYPE1-SUBSET-CHARSET-001"
       ],
       "mapping_notes": [
-        "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph."
+        "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph. `/BaseFont` is resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged name is recognized exactly like a direct one, so an incomplete `/CharSet` is still caught rather than the font being treated as non-subset and the check silently skipped). Still `partial/proxy`: a rendered byte's glyph name, when absent from `/Differences`, always falls back to a hardcoded StandardEncoding table (`type1_standard_glyph_name`) rather than reading the embedded Type1 program's own built-in `/Encoding` array (PostScript-level, distinct from the PDF `/Encoding` dictionary) -- a font relying on a non-standard built-in encoding (e.g. Symbol-like fonts) would resolve the wrong glyph name. Not independently live-confirmed: the whole `type1_program`-based fixture family shares the veraPDF 1.28.2 crash documented under `TYPE1-GLYPH-PRESENCE-001` below, blocking further live testing of this family."
       ],
       "object": "PDType1Font",
       "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (CharSet != null && charSetListsAllGlyphs == true)",
@@ -8313,6 +8369,10 @@
             },
             {
               "case": "composite_font:composite_cid_subset_missing_cidset",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_cidset_indirect_basefont_real_program",
               "kind": "verapdf_delta"
             },
             {
@@ -8350,7 +8410,7 @@
         "PDFA1B-CID-SUBSET-CIDSET-001"
       ],
       "mapping_notes": [
-        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present."
+        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Still `partial/proxy` for the same reason as `TYPE0-CID-SYSTEM-INFO-001`: this predicate first needs `cached_cids_for_rendered_bytes` to decode the rendered bytes into CIDs, which silently yields no CIDs (and so silently skips this whole check) when `/Encoding` is a predefined, non-Identity, non-embedded named CMap, since that collection is not modeled locally."
       ],
       "object": "PDCIDFont",
       "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (containsCIDSet == true && cidSetListsAllGlyphs == true)",
@@ -8439,7 +8499,7 @@
         "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
       ],
       "mapping_notes": [
-        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both)."
+        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both). Still `partial/proxy` for the same `ttf_parser::Face::parse`-vs-`RawFace` reason as `TRUETYPE-GLYPH-PRESENCE-001`: a font whose `maxp` is malformed enough to fail `Face::parse` is still width-checked by veraPDF but silently skipped locally."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",
@@ -8466,6 +8526,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "truetype:tt_nonsymbolic_dictionary_indirect_baseencoding",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "truetype:tt_nonsymbolic_dictionary_macroman",
               "kind": "verapdf_delta"
@@ -8508,7 +8572,7 @@
         "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`."
+        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.28.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false)",
@@ -8557,7 +8621,7 @@
         "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`."
+        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == false || Encoding == null",

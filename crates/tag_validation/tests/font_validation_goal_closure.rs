@@ -9,6 +9,61 @@
 use std::fs;
 
 const PROFILE_PATH: &str = "tests/fixtures/PDFA-1B-1.28.xml";
+const COVERAGE_PATH: &str = "tests/fixtures/pdfa-1b-coverage.json";
+
+/// Acceptance criterion: "All font mappings currently marked `partial/proxy`
+/// can be reclassified as exact or have a narrowly documented veraPDF-backed
+/// exception." Reads the checked-in coverage inventory's `font` matrix
+/// directly (not a chat summary) and asserts that every predicate still
+/// marked `partial/proxy` has its precise remaining gap spelled out in its
+/// own `AGENTS.md` applicability text -- the "still `partial/proxy`: <reason>"
+/// phrase this project's mapping notes consistently use for a documented
+/// exception, as opposed to a bare `partial/proxy` tag with no stated reason.
+#[test]
+fn gap_every_partial_proxy_font_predicate_has_a_documented_exception() {
+    let coverage: serde_json::Value =
+        serde_json::from_slice(&fs::read(COVERAGE_PATH).expect("read coverage inventory"))
+            .expect("parse coverage inventory");
+    let predicates = coverage["font"]["predicates"]
+        .as_array()
+        .expect("font predicates array");
+    assert!(!predicates.is_empty(), "font predicate matrix is empty");
+
+    let mut undocumented = Vec::new();
+    for predicate in predicates {
+        let strength = predicate["implementation_strength"][0]
+            .as_str()
+            .expect("implementation_strength");
+        if strength != "partial/proxy" {
+            continue;
+        }
+        let rule_ids = predicate["implementation_path"]
+            .as_array()
+            .expect("implementation_path")
+            .iter()
+            .map(|value| value.as_str().expect("rule id string"))
+            .collect::<Vec<_>>();
+        let applicability = predicate["applicability"]
+            .as_array()
+            .expect("applicability array")
+            .iter()
+            .map(|value| value.as_str().expect("applicability string"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let has_documented_exception = applicability
+            .to_ascii_lowercase()
+            .contains("still `partial/proxy`".to_ascii_lowercase().as_str());
+        if !has_documented_exception {
+            undocumented.push(rule_ids.join(", "));
+        }
+    }
+    assert!(
+        undocumented.is_empty(),
+        "these partial/proxy font predicates have no documented exception in AGENTS.md \
+         (add a \"still `partial/proxy`: <reason>\" sentence, or reclassify to exact): \
+         {undocumented:?}"
+    );
+}
 
 /// Gap: "Unicode mappings ... required by the pinned PDF/A-1B profile/API."
 /// Confirmed by scanning the pinned, SHA256-verified profile XML directly

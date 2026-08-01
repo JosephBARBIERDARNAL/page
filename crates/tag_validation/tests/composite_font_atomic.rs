@@ -20,6 +20,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_identity_v", &[]),
     ("composite_indirect_identity_h", &[]),
     ("composite_cidmap_missing", &[CID_TO_GID]),
+    ("composite_cidmap_missing_indirect_subtype", &[CID_TO_GID]),
     ("composite_cidmap_invalid_name", &[CID_TO_GID]),
     ("composite_cidmap_stream", &[]),
     ("composite_cidmap_indirect_identity", &[]),
@@ -42,6 +43,10 @@ const CASES: &[(&str, &[&str])] = &[
     ),
     ("composite_cid_subset_missing_cidset", &[CID_SUBSET_CIDSET]),
     ("composite_cidset_real_program", &[CID_SUBSET_CIDSET]),
+    (
+        "composite_cidset_indirect_basefont_real_program",
+        &[CID_SUBSET_CIDSET],
+    ),
     (
         "composite_cidset_nonidentity_real_program",
         &[CID_SUBSET_CIDSET],

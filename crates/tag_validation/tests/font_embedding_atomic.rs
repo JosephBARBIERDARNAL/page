@@ -21,6 +21,7 @@ const CASES: &[(&str, bool)] = &[
     ("selected_not_shown", false),
     ("direct_font", true),
     ("form_unembedded", true),
+    ("form_unembedded_indirect_subtype", true),
     ("nested_form_unembedded", true),
     ("inherited_resources", true),
     ("type0_unembedded_descendant", true),
@@ -38,6 +39,9 @@ const CASES: &[(&str, bool)] = &[
     ("graphics_state_invisible", false),
     ("cyclic_form", true),
     ("font_subtype_indirect_unembedded", true),
+    ("type1c_embedded_indirect_subtype", false),
+    ("type1_fontfile_header_only_garbage", true),
+    ("type1c_header_only_garbage", true),
 ];
 
 #[test]
@@ -120,6 +124,14 @@ fn type1_subset_charset_covers_rendered_embedded_glyphs() {
     assert!(
         common::failure_ids(&common::font_fixture(
             "type1_subset_charset_difference_incomplete"
+        ))
+        .contains(TYPE1_SUBSET_CHARSET)
+    );
+    // /BaseFont as an indirect reference to a subset-tagged name must still
+    // be recognized as a subset font, not silently treated as non-subset.
+    assert!(
+        common::failure_ids(&common::font_fixture(
+            "type1_subset_charset_incomplete_indirect_basefont"
         ))
         .contains(TYPE1_SUBSET_CHARSET)
     );

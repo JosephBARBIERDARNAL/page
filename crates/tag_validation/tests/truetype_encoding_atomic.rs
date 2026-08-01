@@ -11,6 +11,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("tt_nonsymbolic_invalid_encoding", &[NONSYMBOLIC]),
     ("tt_nonsymbolic_dictionary_winansi", &[]),
     ("tt_nonsymbolic_dictionary_macroman", &[]),
+    ("tt_nonsymbolic_dictionary_indirect_baseencoding", &[]),
     ("tt_nonsymbolic_differences", &[NONSYMBOLIC]),
     ("tt_nonsymbolic_differences_null", &[]),
     ("tt_symbolic_no_encoding", &[]),
@@ -35,4 +36,23 @@ fn symbolic_cmap_failure_reports_the_table_count() {
     let report = common::validate(&common::font_fixture("tt_symbolic_two_cmaps"));
     let failure = common::assert_single_failure(&report, SYMBOLIC_CMAP);
     assert!(failure.message.contains("2 cmap subtables"));
+}
+
+/// Confirmed live against veraPDF 1.28.2 via reprex: a TrueType font's
+/// `/Encoding` present as a value that is neither a name, a dictionary, nor
+/// null (a `Boolean` here) crashes veraPDF's own validation entirely --
+/// `Wrapped java.lang.NullPointerException: Cannot invoke
+/// "org.verapdf.cos.COSObject.getString()" because the return value of
+/// "org.verapdf.cos.COSObject.getKey(org.verapdf.as.ASAtom)" is null` --
+/// for both a symbolic and a non-symbolic font (the crash is unconditional,
+/// not gated on the Symbolic flag). This is a genuine upstream veraPDF
+/// robustness bug, not a local gap: no differential result exists to match
+/// for this exact shape. This test only pins that the local implementation
+/// itself stays bounded (no panic) and produces a defined result, without
+/// asserting which specific rule fires, since that answer cannot be
+/// verified against veraPDF for this input.
+#[test]
+fn malformed_encoding_type_does_not_panic_locally() {
+    let _ = common::validate(&common::font_fixture("tt_symbolic_malformed_encoding"));
+    let _ = common::validate(&common::font_fixture("tt_nonsymbolic_malformed_encoding"));
 }
