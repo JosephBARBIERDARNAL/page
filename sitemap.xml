@@ -4,12 +4,15 @@
         <loc>https://JosephBARBIERDARNAL.github.io/tag/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/reference/cli/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/cli/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/reference/rust-crate/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/rust-crate/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/reference/python-package/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/python-package/</loc>
+      </url>
+      <url>
+        <loc>https://JosephBARBIERDARNAL.github.io/tag/rules/pdfa-1b-rule-mapping/</loc>
       </url>
 </urlset>

@@ -1,0 +1,1760 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Experimental veraPDF-compliant PDF/A validation, written in Rust">
+      
+      
+        <meta name="author" content="Joseph Barbier">
+      
+      
+        <link rel="canonical" href="https://JosephBARBIERDARNAL.github.io/tag/rules/pdfa-1b-rule-mapping/">
+      
+      
+        <link rel="prev" href="../../api/python-package/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.52">
+    
+    
+      
+        <title>PDF/A-1b pinned rule mapping - tag</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.8b3b5a67.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pdfa-1b-pinned-rule-mapping" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="tag" class="md-header__button md-logo" aria-label="tag" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            tag
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PDF/A-1b pinned rule mapping
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/JosephBARBIERDARNAL/tag" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/cli/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="././" class="md-tabs__link">
+          
+  
+  Rule Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="tag" class="md-nav__button md-logo" aria-label="tag" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    tag
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JosephBARBIERDARNAL/tag" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../api/cli/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API Reference
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rule Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Rule Reference
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/A-1b pinned rule mapping
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/A-1b pinned rule mapping
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-only-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Local-only checks
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verapdf-profile-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        veraPDF profile mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-only-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Local-only checks
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verapdf-profile-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        veraPDF profile mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="././" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Rule Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="pdfa-1b-pinned-rule-mapping">PDF/A-1b pinned rule mapping<a class="headerlink" href="#pdfa-1b-pinned-rule-mapping" title="Permanent link">&para;</a></h1>
+<!-- Generated by `regenerate_rule_mapping_documentation`; do not edit manually. -->
+
+<p>The pinned veraPDF profile is <code>crates/tag_validation/tests/fixtures/PDFA-1B-1.28.xml</code>. The machine-readable local mapping and differential evidence live in <code>crates/tag_validation/tests/fixtures/pdfa-1b-coverage.json</code>.</p>
+<h2 id="local-only-checks">Local-only checks<a class="headerlink" href="#local-only-checks" title="Permanent link">&para;</a></h2>
+<p>These checks support parsing or local model preconditions and do not map to a standalone veraPDF profile predicate.</p>
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>Semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDF-PARSE-001</code></td>
+<td>Operational parser gate, not an ISO conformance rule.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CATALOG-001</code></td>
+<td>Local object-model gate; the profile has no standalone catalog-exists rule.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CMAP-CID-RANGE-001</code></td>
+<td>Local bounded precondition supporting the ISO 19005-1 §6.3.5 test-1 glyph-presence predicate: a CID decoded from a rendered byte must be within the descendant CIDFont's supported range before glyph presence can be evaluated. It is not an independently numbered veraPDF test.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="verapdf-profile-mappings">veraPDF profile mappings<a class="headerlink" href="#verapdf-profile-mappings" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFA1B-STREAM-LZW-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.10:1</code></td>
+<td>§6.1.10</td>
+<td>exact</td>
+<td>For every selected indirect stream filter: <code>internalRepresentation != "LZWDecode"</code>; escaped names are decoded and direct, array, and indirect declarations are resolved.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INLINE-IMAGE-LZW-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.10:2</code></td>
+<td>§6.1.10</td>
+<td>exact</td>
+<td>No inline image in bounded executed page/Form content declares <code>internalRepresentation == "LZWDecode"</code> (or the inline-image-only <code>LZW</code> spelling).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FILE-SPEC-EMBEDDED-FILE-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.11:1</code></td>
+<td>§6.1.11</td>
+<td>exact</td>
+<td><code>containsEF == false</code> for every reachable file specification: dictionary-based values in the catalog's <code>EmbeddedFiles</code> name tree (<code>Names</code> arrays and recursive <code>Kids</code> traversed with configured reference-depth bounds), and a <code>GoToR</code>/<code>SubmitForm</code> action's <code>/F</code> entry (confirmed against veraPDF 1.28.2, which creates the same <code>CosFileSpecification</code> object either way).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-NAMES-EMBEDDED-FILES-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.11:2</code></td>
+<td>§6.1.11</td>
+<td>exact</td>
+<td>For the catalog's dictionary-based <code>/Names</code>: <code>EmbeddedFiles</code> is absent; direct null is empty, while an indirect null remains a present key.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INTEGER-RANGE-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:1</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every integer in the active revision's effective object graph is evaluated from its source token before <code>lopdf</code> narrowing; overwritten duplicate values and superseded revisions are inapplicable.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CMAP-MAX-CID-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:10</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every embedded CMap's maximum CID is at most 65,535.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-REAL-RANGE-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:2</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every real in the active revision's effective object graph is evaluated from its source token before <code>lopdf</code> <code>f32</code> normalization.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-STRING-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:3</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every effective literal or hexadecimal string value has fewer than 65,536 decoded bytes; original escape and odd-nibble forms are retained separately.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-NAME-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:4</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every effective name value has at most 127 decoded bytes after <code>#xx</code> processing; dictionary keys are outside the pinned <code>CosName</code> model.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ARRAY-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:5</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every parsed array has at most 8,191 entries.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-DICTIONARY-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:6</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every effective dictionary has at most 4,095 unique non-null entries after last-duplicate-key selection; direct null entries are absent in the pinned COS size.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INDIRECT-OBJECT-COUNT-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:7</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Active non-free classic or compressed xref entries supply <code>nrIndirects &lt;= 8388607</code>; configured input/object limits may fail operationally before a larger source is modeled.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-GRAPHICS-STATE-NESTING-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:8</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Bounded invoked page/Form content maintains at most 28 saved graphics states; Form invocation starts a separate graphics-state stack.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-DEVICEN-COMPONENTS-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.12:9</code></td>
+<td>§6.1.12</td>
+<td>exact</td>
+<td>Every DeviceN colour space array reached anywhere in the parsed object graph, or through the bounded content-execution paths, declares at most 8 components.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-OPTIONAL-CONTENT-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.13:1</code></td>
+<td>§6.1.13</td>
+<td>exact</td>
+<td>On the document catalog: <code>OCProperties</code> is empty or absent; direct null is empty, while any non-empty value, including an indirect null, is present.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-HEADER-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.2:1</code></td>
+<td>§6.1.2</td>
+<td>exact</td>
+<td>The <code>%</code> marker of the file header occurs at byte offset 0 and is immediately followed by a <code>PDF-</code>major<code>.</code>minor version declaration.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-HEADER-BINARY-COMMENT-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.2:2</code></td>
+<td>§6.1.2</td>
+<td>exact</td>
+<td>The header line is immediately followed by a comment whose first four bytes each have a decimal value above 127.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRAILER-ID-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.3:1</code></td>
+<td>§6.1.3</td>
+<td>exact</td>
+<td>The applicable revision trailer is the first-page trailer for a validated linearized file and otherwise the last trailer. Any direct <code>ID</code> array is non-null in veraPDF's accessor, including empty and one-item arrays; string elements are concatenated and wrong-type elements are ignored.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ENCRYPTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.3:2</code></td>
+<td>§6.1.3</td>
+<td>exact</td>
+<td><code>isEncrypted != true</code></td>
+</tr>
+<tr>
+<td><code>PDFA1B-POST-EOF-DATA-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.3:3</code></td>
+<td>§6.1.3</td>
+<td>exact</td>
+<td>No bytes follow the last <code>%%EOF</code> marker except a single optional end-of-line marker.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-LINEARIZED-TRAILER-ID-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.3:4</code></td>
+<td>§6.1.3</td>
+<td>exact</td>
+<td>In a linearized file, if <code>ID</code> is present in both the first-page and last trailer, the two values are identical.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XREF-SUBSECTION-SPACING-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.4:1</code></td>
+<td>§6.1.4</td>
+<td>exact</td>
+<td>Each classic-xref subsection in the <code>/Prev</code> and <code>/XRefStm</code> revision graph separates its starting object number and range with a single SPACE; recoverable alternate separators remain modeled failures.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XREF-EOL-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.4:2</code></td>
+<td>§6.1.4</td>
+<td>exact</td>
+<td>The <code>xref</code> keyword and each subsection header in every selected revision are separated by a single end-of-line marker; recoverable extra markers remain modeled failures.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XREF-STREAM-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.4:3</code></td>
+<td>§6.1.4</td>
+<td>exact</td>
+<td>The document contains no cross-reference stream.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-HEX-STRING-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.6:1</code></td>
+<td>§6.1.6</td>
+<td>exact</td>
+<td>Every modeled hexadecimal string retains its original non-whitespace digit count, including veraPDF-recoverable malformed strings, and that count is even.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-HEX-STRING-CHARACTERS-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.6:2</code></td>
+<td>§6.1.6</td>
+<td>exact</td>
+<td>Every modeled hexadecimal string retains whether all original non-whitespace characters were <code>0</code>-<code>9</code>, <code>A</code>-<code>F</code>, or <code>a</code>-<code>f</code>; a recoverable invalid character is a conformance failure rather than <code>PDF-PARSE-001</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-STREAM-LENGTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.7:1</code></td>
+<td>§6.1.7</td>
+<td>exact</td>
+<td>The effective direct or indirect <code>/Length</code>, after last-duplicate-key selection, matches the independent raw byte extent from the first data byte through the byte before the EOL preceding <code>endstream</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-STREAM-EOL-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.7:2</code></td>
+<td>§6.1.7</td>
+<td>exact</td>
+<td>The <code>stream</code> keyword is followed by CRLF or a single LF, and <code>endstream</code> is preceded by an end-of-line marker.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-STREAM-EXTERNAL-DATA-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.7:3</code></td>
+<td>§6.1.7</td>
+<td>exact</td>
+<td>For every selected indirect stream dictionary: <code>F == null &amp;&amp; FFilter == null &amp;&amp; FDecodeParms == null</code>; direct null and last-duplicate-key selection follow the pinned COS model.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INDIRECT-OBJECT-SYNTAX-001</code></td>
+<td><code>ISO 19005-1:2005:6.1.8:1</code></td>
+<td>§6.1.8</td>
+<td>exact</td>
+<td>An indirect object's number and generation are separated from each other and from the <code>obj</code>/<code>endobj</code> keywords by single whitespace, bounded by end-of-line markers.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CONTENT-OPERATOR-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.10:1</code></td>
+<td>§6.2.10</td>
+<td>exact</td>
+<td>No undefined operator occurs in bounded executed page or Form content, including compatibility sections delimited by <code>BX</code> and <code>EX</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-OUTPUTINTENT-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.2:1</code></td>
+<td>§6.2.2</td>
+<td>exact</td>
+<td>For safely decoded linked streams: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY") &amp;&amp; version &lt; 3.0</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-OUTPUTINTENT-IDENTITY-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.2:2</code></td>
+<td>§6.2.2</td>
+<td>exact</td>
+<td><code>sameOutputProfileIndirect == true</code>; missing/direct values are ignored and indirect non-stream targets participate by identity.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ICCBASED-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.3.2:1</code></td>
+<td>§6.2.3.2</td>
+<td>exact</td>
+<td>For safely decoded profiles reached by the documented bounded content paths: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr" \|\| deviceClass == "scnr" \|\| deviceClass == "spac") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY" \|\| colorSpace == "Lab ") &amp;&amp; version &lt; 3.0</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ICCBASED-COMPONENTS-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.3.2:2</code></td>
+<td>§6.2.3.2</td>
+<td>exact</td>
+<td>For safely decoded profiles reached by the documented bounded content paths: <code>N != null &amp;&amp; ((N == 1 &amp;&amp; colorSpace == "GRAY") \|\| (N == 3 &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "Lab ")) \|\| (N == 4 &amp;&amp; colorSpace == "CMYK"))</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-DEVICE-RGB-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.3.3:1</code></td>
+<td>§6.2.3.3</td>
+<td>exact</td>
+<td>For DeviceRGB uses reached by the documented bounded content paths: <code>gOutputCS != null &amp;&amp; gOutputCS == "RGB "</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-DEVICE-CMYK-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.3.3:2</code></td>
+<td>§6.2.3.3</td>
+<td>exact</td>
+<td>For DeviceCMYK uses reached by the documented bounded content paths: <code>gOutputCS != null &amp;&amp; gOutputCS == "CMYK"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-DEVICE-GRAY-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.3.3:3</code></td>
+<td>§6.2.3.3</td>
+<td>exact</td>
+<td>For DeviceGray uses reached by the documented bounded content paths: <code>gOutputCS != null</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-IMAGE-ALTERNATES-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.4:1</code></td>
+<td>§6.2.4</td>
+<td>exact</td>
+<td>For invoked Image XObjects: <code>containsAlternates == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XOBJECT-OPI-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.4:2</code></td>
+<td>§6.2.4</td>
+<td>exact</td>
+<td>For invoked XObjects: <code>containsOPI == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-IMAGE-INTERPOLATE-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.4:3</code></td>
+<td>§6.2.4</td>
+<td>exact</td>
+<td>For invoked Image XObjects: <code>Interpolate == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-IMAGE-BPC-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.4:4</code></td>
+<td>§6.2.4</td>
+<td>exact</td>
+<td>For invoked Image XObjects: <code>isMask == true \|\| BitsPerComponent == null \|\| BitsPerComponent == 1 \|\| BitsPerComponent == 2 \|\| BitsPerComponent == 4 \|\| BitsPerComponent == 8</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-IMAGE-MASK-BPC-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.4:5</code></td>
+<td>§6.2.4</td>
+<td>exact</td>
+<td>For images reached through another image's <code>/Mask</code> reference: <code>BitsPerComponent == null \|\| BitsPerComponent == 1</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FORM-POSTSCRIPT-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.5:1</code></td>
+<td>§6.2.5</td>
+<td>exact</td>
+<td>For invoked Form XObjects: <code>(Subtype2 == null \|\| Subtype2 != "PS") &amp;&amp; containsPS == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FORM-REFERENCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.6:1</code></td>
+<td>§6.2.6</td>
+<td>exact</td>
+<td>For invoked Form XObjects: <code>containsRef == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XOBJECT-POSTSCRIPT-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.7:1</code></td>
+<td>§6.2.7</td>
+<td>exact</td>
+<td>For invoked XObjects: <code>Subtype != "PS"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-TR-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.8:1</code></td>
+<td>§6.2.8</td>
+<td>exact</td>
+<td>For indirect ExtGState dictionaries selected by executed <code>gs</code> operators: <code>containsTR == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-TR2-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.8:2</code></td>
+<td>§6.2.8</td>
+<td>exact</td>
+<td>For indirect ExtGState dictionaries selected by executed <code>gs</code> operators: <code>containsTR2 == false \|\| TR2NameValue == "Default"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-RENDERING-INTENT-001</code></td>
+<td><code>ISO 19005-1:2005:6.2.9:1</code></td>
+<td>§6.2.9</td>
+<td>exact</td>
+<td>For rendering intents reached through executed <code>ri</code> and <code>gs</code> operators or invoked Image XObjects: the name is <code>RelativeColorimetric</code>, <code>AbsoluteColorimetric</code>, <code>Perceptual</code>, or <code>Saturation</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-TYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:1</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For fonts reached by bounded text-show paths: <code>Type == "Font"</code>. Confirmed live: a font with a valid <code>/Subtype</code> but a missing <code>/Type</code> fails on both veraPDF and locally, with the failure attached to the same font object. <code>/Type</code> is resolved through indirection before this check.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-SUBTYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:2</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>Modeled fonts have subtype <code>Type1</code>, <code>MMType1</code>, <code>TrueType</code>, <code>Type3</code>, <code>Type0</code>, <code>CIDFontType0</code>, or <code>CIDFontType2</code>; missing/unsupported subtypes create no veraPDF <code>PDFont</code> object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported <code>/Subtype</code>, used normally, is fully compliant on both). <code>/Subtype</code> itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. <code>/TrueType</code>, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-BASEFONT-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:3</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For fonts reached by bounded text-show paths: <code>Subtype == "Type3" \|\| fontName != null</code>. Confirmed live: missing and wrong-type <code>/BaseFont</code> both fail on veraPDF and locally. <code>/BaseFont</code> is resolved through indirection before this check and before every other <code>/BaseFont</code>-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for <code>TYPE1-SUBSET-CHARSET-001</code>/<code>CID-SUBSET-CIDSET-001</code>).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-FIRSTCHAR-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:4</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For modeled simple fonts: <code>isStandard == true \|\| FirstChar != null</code>. <code>isStandard</code> (the standard-14-fonts exemption) is confirmed live to apply only to <code>Type1</code>/<code>MMType1</code>; a <code>TrueType</code> or <code>Type3</code> font whose <code>/BaseFont</code> matches a standard-14 name is not exempt.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-LASTCHAR-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:5</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For modeled simple fonts: <code>isStandard == true \|\| LastChar != null</code>. <code>isStandard</code> is confirmed live to apply only to <code>Type1</code>/<code>MMType1</code>, not <code>TrueType</code>/<code>Type3</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-WIDTHS-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:6</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For modeled simple fonts: <code>isStandard == true \|\| (Widths_size != null &amp;&amp; Widths_size == LastChar - FirstChar + 1)</code>. <code>isStandard</code> is confirmed live to apply only to <code>Type1</code>/<code>MMType1</code>, not <code>TrueType</code>/<code>Type3</code>. <code>/Widths</code> is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-FILE-SUBTYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.2:7</code></td>
+<td>§6.3.2</td>
+<td>exact</td>
+<td>For embedded font streams reached through modeled fonts: <code>fontFileSubtype == null \|\| fontFileSubtype == "Type1C" \|\| fontFileSubtype == "CIDFontType0C"</code>. Confirmed live for both a simple font's own <code>/FontDescriptor</code> and a Type0 font's first descendant's <code>/FontDescriptor</code> (the recursive <code>record_font</code> call applies the same dictionary check to the descendant). The <code>/FontFile3</code> stream's own <code>/Subtype</code> is resolved through indirection before this comparison.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TYPE0-CID-SYSTEM-INFO-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.3.1:1</code></td>
+<td>§6.3.3.1</td>
+<td>exact</td>
+<td><code>cmapName == "Identity-H" \|\| cmapName == "Identity-V" \|\| (CIDFontOrdering != null &amp;&amp; CIDFontOrdering == CMapOrdering &amp;&amp; CIDFontRegistry != null &amp;&amp; CIDFontRegistry == CMapRegistry)</code> over CMaps reached by bounded text-show paths. <code>/Encoding</code> is resolved through indirection before the Identity-H/V name check (confirmed live: an <em>indirect</em> reference to <code>/Identity-H</code> is exempt exactly like a direct one). <code>CIDFontRegistry</code>/<code>CIDFontOrdering</code>/<code>CMapRegistry</code>/<code>CMapOrdering</code> are each resolved through indirection before comparison (confirmed live: an indirect <code>/Registry</code> string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the <code>composite_named_cmap</code> fixture confirms <code>/UniJIS-UCS2-H</code> supplies Adobe/Japan1 system information and produces the same failed-rule delta.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CIDTOGIDMAP-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.3.2:1</code></td>
+<td>§6.3.3.2</td>
+<td>exact</td>
+<td>For used first descendants: <code>Subtype != "CIDFontType2" \|\| CIDToGIDMap != null \|\| renderingMode == 3</code>; a modeled map is <code>Identity</code> or a stream, resolved through indirection first (confirmed live: an <em>indirect</em> reference to the name <code>/Identity</code> is accepted exactly like a direct one). The descendant's own <code>/Subtype</code> is also resolved through indirection before this predicate's applicability check runs at all (confirmed live: an indirect reference to <code>/CIDFontType2</code> is recognized exactly like a direct one, so a missing <code>/CIDToGIDMap</code> is still caught rather than the check being silently skipped).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CMAP-EMBEDDING-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.3.3:1</code></td>
+<td>§6.3.3.3</td>
+<td>exact</td>
+<td>For Type0 fonts reached by bounded text-show paths: <code>CMapName == "Identity-H" \|\| CMapName == "Identity-V" \|\| containsEmbeddedFile == true</code>. <code>/Encoding</code> is resolved through indirection before the Identity-H/V name check (confirmed live: an <em>indirect</em> reference to <code>/Identity-H</code> is exempt exactly like a direct one). The embedded CMap stream's own <code>/CMapName</code> entry (checked when <code>/Encoding</code> resolves to a stream rather than a name) is likewise resolved through indirection first. Reaching a resolved stream unconditionally satisfies <code>containsEmbeddedFile</code>, independent of that stream's own <code>/CMapName</code> -- so, unlike <code>TYPE0-CID-SYSTEM-INFO-001</code>, this predicate never needs to decode a predefined (non-embedded, named) CMap's contents, only detect its name-vs-stream shape; a named non-Identity CMap that is not embedded is confirmed live to fail exactly like the local <code>unembedded_cmaps</code> check (<code>composite_named_cmap</code>).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CMAP-WMODE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.3.3:2</code></td>
+<td>§6.3.3.3</td>
+<td>exact</td>
+<td>For bounded embedded CMaps: the parsed stream <code>WMode</code> equals the stream-dictionary <code>WMode</code>, defaulting each missing value to zero, resolved through indirection first (confirmed live: an <em>indirect</em> <code>/WMode</code> value is resolved and compared exactly like a direct one).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FONT-EMBEDDING-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.4:1</code></td>
+<td>§6.3.4</td>
+<td>exact</td>
+<td>Implements <code>Subtype == "Type3" \|\| Subtype == "Type0" \|\| renderingMode == 3 \|\| containsFontFile == true</code> for bounded page/Form text-show paths, used Type0 descendants, annotation <code>/AP</code>/<code>/N</code> appearance streams (including every button Widget appearance state, not only the <code>/AS</code>-selected one), Pattern content streams, and Type3 <code>/CharProcs</code> glyph descriptions. <code>containsFontFile</code> for a <code>/FontFile2</code> stream is <code>valid_sfnt</code> via <code>ttf_parser::RawFace</code> (SFNT signature + table directory only), confirmed live: a font whose <code>maxp</code> table is malformed enough that a full <code>ttf_parser::Face::parse</code> fails still counts as embedded on veraPDF. For a <code>/FontFile3</code> stream, the stream's own <code>/Subtype</code> (<code>Type1C</code>/<code>CIDFontType0C</code>) is resolved through indirection before this check (confirmed live: an indirect reference to <code>/Type1C</code> is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced Form XObject's own <code>/Subtype</code> (<code>scan_form</code>'s <code>== "Form"</code> gate, guarding every content source this predicate depends on) is likewise resolved through indirection first. <code>containsFontFile</code> for a <code>/FontFile</code> (Type1) stream requires both the magic header (<code>%!PS-AdobeFont</code> or the <code>0x80 0x01</code> PFB marker) and an <code>eexec</code>/<code>0x80 0x02</code> marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). <code>containsFontFile</code> for a <code>/FontFile3</code> (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via <code>ttf_parser::cff::Table::parse</code>, not merely match the header-byte shape (confirmed live: a stream matching only <code>bytes[0] in {1,2}</code> and <code>bytes[2] &lt;= len</code> but with no parseable CFF structure beyond the header still fails on veraPDF).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TYPE1-GLYPH-PRESENCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.5:1</code></td>
+<td>§6.3.5</td>
+<td>exact</td>
+<td>For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 <code>/CharProcs</code>. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus <code>/Differences</code>; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF <code>/Differences</code>, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRUETYPE-GLYPH-PRESENCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.5:1</code></td>
+<td>§6.3.5</td>
+<td>exact</td>
+<td>For TrueType, <code>CIDFontType2</code>, and CID-keyed CFF (<code>CIDFontType0C</code>) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For <code>CIDFontType2</code>, <code>/CIDToGIDMap</code> is resolved through indirection before the <code>/Identity</code> name check; an unresolvable map is treated as inapplicable because <code>PDFA1B-CIDTOGIDMAP-001</code> separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT <code>cmap</code> and <code>loca</code> reads rather than a whole-font parse, including Unicode, Windows Symbol (<code>0xF000 + byte</code> with direct-byte fallback), and other direct byte-oriented subtables. The malformed-<code>maxp</code> fixture confirms live that veraPDF still reports the missing glyph when <code>maxp</code> is unreadable but <code>cmap</code> and short <code>loca</code> prove the referenced GID is outside the program.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TYPE1-SUBSET-CHARSET-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.5:2</code></td>
+<td>§6.3.5</td>
+<td>exact</td>
+<td>For a subset Type1/MMType1/Type1C font (<code>BaseFont</code> with a six-uppercase-letter subset tag): the descriptor <code>/CharSet</code> names every rendered embedded glyph selected by the PDF <code>/Encoding</code>. <code>/BaseFont</code>, <code>/Encoding</code>, <code>/BaseEncoding</code>, <code>/Differences</code> codes/names, and the embedded stream subtype are resolved through bounded indirection. Matching veraPDF's <code>GFGlyph.name</code>, this predicate deliberately does not fall back to the Type1 or Type1C program encoding when the PDF encoding supplies no name; real StandardSymL and minimal Type1C cases pin complete, incomplete, and program-encoding-ignored outcomes live.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CID-SUBSET-CIDSET-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.5:3</code></td>
+<td>§6.3.5</td>
+<td>exact</td>
+<td>For a subset <code>CIDFontType0</code>/<code>CIDFontType2</code> descendant: the descriptor <code>/CIDSet</code> stream's bits identify every rendered CID as present. The descendant's own <code>/Subtype</code> and <code>/BaseFont</code> are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged <code>/BaseFont</code> is recognized exactly like a direct one, so a <code>/CIDSet</code> omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited <code>usecmap</code>, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; <code>composite_named_cmap_cidset_real_program</code> pins <code>/UniJIS-UCS2-H</code> code <code>003F</code> to CID 32 and reproduces veraPDF's missing-<code>CIDSet</code> failure.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRUETYPE-GLYPH-WIDTH-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.6:1</code></td>
+<td>§6.3.6</td>
+<td>exact</td>
+<td>For TrueType, <code>CIDFontType2</code>, Type1, Type1C/<code>CIDFontType0C</code>, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive <code>abs(...) &lt;= 1</code> tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph program width zero; Type3 reads the leading <code>d0</code>/<code>d1</code> width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 <code>d0</code>, <code>d1</code>, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For <code>CIDFontType2</code>, <code>/CIDToGIDMap</code> is resolved through indirection before <code>/Identity</code>; for simple fonts, the <code>/Widths</code> array and entries are resolved; for CID fonts, <code>/DW</code> and <code>/W</code> singles entries are resolved. TrueType advances and units-per-em are independently bounded reads from <code>hmtx</code>/<code>hhea</code>/<code>head</code>, so malformed unrelated tables do not introduce a whole-font parse gate.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.7:1</code></td>
+<td>§6.3.7</td>
+<td>partial/proxy</td>
+<td>For used TrueType fonts whose descriptor Flags do not set Symbolic: <code>(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") &amp;&amp; containsDifferences == false</code>. When <code>/Encoding</code> resolves to a dictionary, its <code>/BaseEncoding</code> entry is resolved through indirection before this comparison. Still <code>partial/proxy</code>: an <code>/Encoding</code> value that is present but neither a name, a dictionary, nor null (e.g. a <code>Boolean</code> or <code>Integer</code>) crashes veraPDF 1.28.2 itself with an unconditional <code>NullPointerException</code> in <code>COSObject.getKey</code> (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.7:2</code></td>
+<td>§6.3.7</td>
+<td>partial/proxy</td>
+<td>For used TrueType fonts whose descriptor Flags set Symbolic: <code>Encoding == null</code>. Still <code>partial/proxy</code> for the same reason as <code>TRUETYPE-NONSYMBOLIC-ENCODING-001</code>: a present, non-name/non-dictionary/non-null <code>/Encoding</code> value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to <code>null</code> here cannot be differentially verified; direct and indirect <code>Null</code> values are both confirmed to resolve and compare as <code>null</code> correctly.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001</code></td>
+<td><code>ISO 19005-1:2005:6.3.7:3</code></td>
+<td>§6.3.7</td>
+<td>exact</td>
+<td>For recognized embedded symbolic TrueType programs: <code>nrCmaps == 1</code>, read from the bounded SFNT <code>cmap</code> table header via <code>ttf_parser::RawFace</code> (confirmed live: this holds even when the rest of the font -- <code>maxp</code>, <code>hhea</code>, ... -- is malformed enough that a full <code>ttf_parser::Face::parse</code> fails).</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-SMASK-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:1</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For indirect ExtGState dictionaries selected by executed <code>gs</code>: <code>containsSMask == false \|\| SMaskNameValue == "None"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XOBJECT-SMASK-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:2</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For XObjects in the bounded invoked graph: <code>containsSMask == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-TRANSPARENCY-GROUP-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:3</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For page Groups and bounded invoked-Form Groups: <code>S != "Transparency"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-BLEND-MODE-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:4</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For indirect ExtGState dictionaries selected by executed <code>gs</code>: <code>containsBM == false \|\| BMNameValue == "Normal" \|\| BMNameValue == "Compatible"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-STROKE-ALPHA-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:5</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For modeled numeric values in used indirect ExtGState dictionaries: <code>CA == null \|\| abs(CA - 1.0) &lt; 0.000001</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-EXTGSTATE-FILL-ALPHA-001</code></td>
+<td><code>ISO 19005-1:2005:6.4:6</code></td>
+<td>§6.4</td>
+<td>partial/proxy</td>
+<td>For modeled numeric values in used indirect ExtGState dictionaries: <code>ca == null \|\| abs(ca - 1.0) &lt; 0.000001</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-SUBTYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.2:1</code></td>
+<td>§6.5.2</td>
+<td>partial/proxy</td>
+<td>For page <code>/Annots</code> entries resolving to dictionaries: <code>Subtype</code> is <code>Text</code>, <code>Link</code>, <code>FreeText</code>, <code>Line</code>, <code>Square</code>, <code>Circle</code>, <code>Highlight</code>, <code>Underline</code>, <code>Squiggly</code>, <code>StrikeOut</code>, <code>Stamp</code>, <code>Ink</code>, <code>Popup</code>, <code>Widget</code>, <code>PrinterMark</code>, or <code>TrapNet</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-OPACITY-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:1</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td>For modeled numeric annotation values: <code>CA == null \|\| CA == 1.0</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-FLAGS-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:2</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td><code>F != null &amp;&amp; (F &amp; 4) == 4 &amp;&amp; (F &amp; 1) == 0 &amp;&amp; (F &amp; 2) == 0 &amp;&amp; (F &amp; 32) == 0</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-COLOR-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:3</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td><code>(containsC == false &amp;&amp; containsIC == false) \|\| gOutputCS == "RGB "</code>, using the pinned PDF/A-1 output-colour fold.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-AP-ENTRIES-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:4</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td>A resolved annotation appearance dictionary is absent or contains exactly the <code>N</code> key.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-WIDGET-BUTTON-APPEARANCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:5</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td>When <code>AP == "N"</code>, <code>Subtype == "Widget"</code>, and direct or inherited <code>FT == "Btn"</code>, <code>N</code> is a nonempty appearance subdictionary.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.5.3:6</code></td>
+<td>§6.5.3</td>
+<td>partial/proxy</td>
+<td>When <code>AP == "N"</code> and the annotation is not a button Widget, <code>N</code> resolves to an appearance stream.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ACTION-TYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.1:1</code></td>
+<td>§6.6.1</td>
+<td>partial/proxy</td>
+<td>For actions reached through the bounded pinned-model graph: <code>S == "GoTo" \|\| S == "GoToR" \|\| S == "Thread" \|\| S == "URI" \|\| S == "Named" \|\| S == "SubmitForm"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-NAMED-ACTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.1:2</code></td>
+<td>§6.6.1</td>
+<td>partial/proxy</td>
+<td>For reached actions with <code>S == "Named"</code>: <code>N == "NextPage" \|\| N == "PrevPage" \|\| N == "FirstPage" \|\| N == "LastPage"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-WIDGET-ACTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.1:3</code></td>
+<td>§6.6.1</td>
+<td>partial/proxy</td>
+<td>For Widget annotations reached from page <code>/Annots</code>: <code>containsA == false</code>; key presence is tested regardless of value type.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.2:1</code></td>
+<td>§6.6.2</td>
+<td>partial/proxy</td>
+<td>For Widget annotations reached from page <code>/Annots</code>: <code>containsAA == false</code>; key presence is tested regardless of value type.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-FIELD-ADDITIONAL-ACTIONS-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.2:2</code></td>
+<td>§6.6.2</td>
+<td>partial/proxy</td>
+<td>For dictionaries directly in AcroForm <code>/Fields</code> and named field descendants reached through <code>/Kids</code>: <code>containsAA == false</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001</code></td>
+<td><code>ISO 19005-1:2005:6.6.2:3</code></td>
+<td>§6.6.2</td>
+<td>exact</td>
+<td><code>containsAA == false</code> on the document catalog; key presence is tested regardless of value type.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-SCHEMA-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:1</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td>Common packages agree; veraPDF recovery differs for invalid duplicate packages.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-PART-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:2</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td><code>part == 1</code>; common single-property packages agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-CONFORMANCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:3</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td><code>conformance == "B" \|\| conformance == "A"</code>; common single-property packages agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-PART-PREFIX-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:4</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td>For the selected common identification property: <code>partPrefix == null \|\| partPrefix == "pdfaid"</code>; lexical prefixes are recovered from the XML source QName.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-CONFORMANCE-PREFIX-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:5</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td><code>conformancePrefix == null \|\| conformancePrefix == "pdfaid"</code> for the selected common property.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ID-AMD-PREFIX-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.11:6</code></td>
+<td>§6.7.11</td>
+<td>partial/proxy</td>
+<td><code>amdPrefix == null \|\| amdPrefix == "pdfaid"</code> for the selected common property; an absent <code>amd</code> is inapplicable and passes.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-METADATA-STRUCTURE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.2:1</code></td>
+<td>§6.7.2</td>
+<td>exact</td>
+<td><code>containsMetadata == true</code></td>
+</tr>
+<tr>
+<td><code>PDFA1B-METADATA-FILTER-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.2:2</code></td>
+<td>§6.7.2</td>
+<td>exact</td>
+<td><code>isCatalogMetadata == false \|\| Filter == null</code></td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-CREATIONDATE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:1</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>Common full dates are compared as instants; reduced-precision XMP forms are not implemented.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-TITLE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:2</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>dc:title</code> <code>rdf:Alt</code> <code>x-default</code> cases agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-AUTHOR-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:3</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>dc:creator</code> <code>rdf:Seq</code> equality and one-item multiplicity agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-SUBJECT-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:4</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>dc:description</code> <code>rdf:Alt</code> <code>x-default</code> cases agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-KEYWORDS-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:5</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>pdf:Keywords</code> cases agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-CREATOR-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:6</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>xmp:CreatorTool</code> cases agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-PRODUCER-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:7</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>ASCII <code>pdf:Producer</code> cases agree.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-INFO-MODDATE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.3:8</code></td>
+<td>§6.7.3</td>
+<td>partial/proxy</td>
+<td>Common full dates are compared as instants; reduced-precision XMP forms are not implemented.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-PACKET-BYTES-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.5:1</code></td>
+<td>§6.7.5</td>
+<td>exact</td>
+<td>On the last <code>xpacket</code> processing instruction encountered before the main RDF node: <code>bytes == null</code>, using veraPDF's case-sensitive, unanchored quoted-assignment matcher.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-PACKET-ENCODING-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.5:2</code></td>
+<td>§6.7.5</td>
+<td>exact</td>
+<td>On the same selected packet header: <code>encoding == null</code>, using the corresponding case-sensitive, unanchored quoted-assignment matcher.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-FIELDS-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:1</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td>For bounded common extension objects: <code>containsUndefinedFields == false</code>, using the pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:10</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isCategoryValidText == true &amp;&amp; (category == "external" \|\| category == "internal") &amp;&amp; categoryPrefix == "pdfaProperty"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:11</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaProperty"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:12</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isTypeValidText == true &amp;&amp; typePrefix == "pdfaType"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:13</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isNamespaceURIValidURI == true &amp;&amp; namespaceURIPrefix == "pdfaType"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:14</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isPrefixValidText == true &amp;&amp; prefixPrefix == "pdfaType"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:15</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaType"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:16</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isFieldValidSeq == true &amp;&amp; (fieldPrefix == null \|\| fieldPrefix == "pdfaType")</code>; absence is allowed.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-FIELD-NAME-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:17</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isNameValidText == true &amp;&amp; namePrefix == "pdfaField"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:18</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isValueTypeValidText == true &amp;&amp; isValueTypeDefined == true &amp;&amp; valueTypePrefix == "pdfaField"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:19</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaField"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-CONTAINER-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:2</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td>For modeled <code>pdfaExtension:schemas</code>: <code>isValidBag == true &amp;&amp; prefix == "pdfaExtension"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:3</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td>For modeled schema definitions: <code>isSchemaValidText == true &amp;&amp; schemaPrefix == "pdfaSchema"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:4</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isNamespaceURIValidURI == true &amp;&amp; namespaceURIPrefix == "pdfaSchema"</code>; the pinned URI validator requires a simple XMP node.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:5</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isPrefixValidText == true &amp;&amp; prefixPrefix == "pdfaSchema"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:6</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isPropertyValidSeq == true &amp;&amp; (propertyPrefix == null \|\| propertyPrefix == "pdfaSchema")</code>; absence is allowed.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:7</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isValueTypeValidSeq == true &amp;&amp; (valueTypePrefix == null \|\| valueTypePrefix == "pdfaSchema")</code>; absence is allowed.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:8</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isNameValidText == true &amp;&amp; namePrefix == "pdfaProperty"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.8:9</code></td>
+<td>§6.7.8</td>
+<td>partial/proxy</td>
+<td><code>isValueTypeValidText == true &amp;&amp; isValueTypeDefined == true &amp;&amp; valueTypePrefix == "pdfaProperty"</code>.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.9:1</code></td>
+<td>§6.7.9</td>
+<td>partial/proxy</td>
+<td>XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-PREDEFINED-PROPERTY-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.9:2</code></td>
+<td>§6.7.9</td>
+<td>partial/proxy</td>
+<td>Every element or attribute in a predefined XMP2004 namespace is a property that namespace defines, over the bounded <code>xmp2004_properties.txt</code> table.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.9:2</code></td>
+<td>§6.7.9</td>
+<td>partial/proxy</td>
+<td>Every property used in the XMP body outside the predefined namespaces is declared by the document's own extension schemas.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.9:3</code></td>
+<td>§6.7.9</td>
+<td>partial/proxy</td>
+<td>Every predefined-namespace property's value matches its predefined value-type shape; pinned live by the opt-in <code>invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in</code> case, which confirms veraPDF reports this same test for an invalid GPS coordinate.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001</code></td>
+<td><code>ISO 19005-1:2005:6.7.9:3</code></td>
+<td>§6.7.9</td>
+<td>partial/proxy</td>
+<td>Every used extension property's value matches its extension-schema-declared value type; pinned live by the opt-in <code>invalid_extension_xpath_matches_pinned_verapdf_when_opted_in</code> case, which confirms veraPDF reports this same test for an invalid extension property value.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-ACROFORM-NEED-APPEARANCES-001</code></td>
+<td><code>ISO 19005-1:2005:6.9:1</code></td>
+<td>§6.9</td>
+<td>exact</td>
+<td>For a modeled catalog AcroForm: <code>NeedAppearances == null \|\| NeedAppearances == false</code>; a present non-boolean value follows veraPDF's conservative true fallback and fails.</td>
+</tr>
+<tr>
+<td><code>PDFA1B-WIDGET-APPEARANCE-001</code></td>
+<td><code>ISO 19005-1:2005:6.9:2</code></td>
+<td>§6.9</td>
+<td>partial/proxy</td>
+<td>For Widget annotations reached from page <code>/Annots</code>: <code>AP != null</code>; veraPDF exposes AP only when it resolves to a dictionary, so streams and scalar values fail while an empty dictionary passes.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../api/python-package/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Python package">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Python package
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.sections","navigation.top","navigation.tracking","search.highlight","navigation.prune"],"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.ed145cee.min.js"></script>
+      
+    
+  </body>
+</html>
