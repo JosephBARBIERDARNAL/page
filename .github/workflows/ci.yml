@@ -35,8 +35,14 @@ jobs:
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Typst
+        uses: typst-community/setup-typst@v5
+
       - name: Install just
         uses: taiki-e/install-action@just
+
+      - name: Generate PDF fixtures
+        uses: just typst
 
       - name: Run tests
         run: cargo test --workspace --all-features --locked
