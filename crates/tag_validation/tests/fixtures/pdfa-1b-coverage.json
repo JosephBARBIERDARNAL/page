@@ -862,6 +862,10 @@
               {
                 "case": "composite_font:composite_cmap_matching",
                 "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_cid_system_info",
+                "kind": "verapdf_delta"
               }
             ],
             "representable": true
@@ -1289,7 +1293,7 @@
       },
       {
         "applicability": [
-          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
+          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one) -- still `partial/proxy` because the predefined (non-embedded, named) CMap collection is not modeled, per `resolve_cmap_decoder`'s own doc comment."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1320,6 +1324,10 @@
               },
               {
                 "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_cid_system_info",
                 "kind": "verapdf_delta"
               },
               {
@@ -1449,6 +1457,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "composite_font:composite_indirect_cid_system_info",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
               }
@@ -1516,6 +1528,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "composite_font:composite_indirect_cid_system_info",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
               }
@@ -1545,7 +1561,7 @@
       },
       {
         "applicability": [
-          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions."
+          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1677,7 +1693,7 @@
       {
         "applicability": [
           "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte.",
-          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID."
+          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1888,7 +1904,7 @@
       },
       {
         "applicability": [
-          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance."
+          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1926,6 +1942,10 @@
               },
               {
                 "case": "font:type3_visible",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "type0_descendant:indirect_identity_cidtogidmap",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2093,7 +2113,7 @@
       },
       {
         "applicability": [
-          "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header."
+          "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header via `ttf_parser::RawFace` (confirmed live: this holds even when the rest of the font -- `maxp`, `hhea`, ... -- is malformed enough that a full `ttf_parser::Face::parse` fails)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -2144,7 +2164,7 @@
           "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "TrueTypeFontProgram",
         "predicate": "isSymbolic == false || nrCmaps == 1",
@@ -4770,6 +4790,10 @@
           "evidence": [
             {
               "case": "composite_font:composite_cmap_matching",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_cid_system_info",
               "kind": "verapdf_delta"
             }
           ],
@@ -7739,6 +7763,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "composite_font:composite_indirect_cid_system_info",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_indirect_identity_h",
               "kind": "verapdf_delta"
             }
@@ -7764,7 +7792,7 @@
         "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
       ],
       "mapping_notes": [
-        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
+        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one) -- still `partial/proxy` because the predefined (non-embedded, named) CMap collection is not modeled, per `resolve_cmap_decoder`'s own doc comment."
       ],
       "object": "PDType0Font",
       "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
@@ -7853,6 +7881,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "composite_font:composite_indirect_cid_system_info",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_indirect_identity_h",
               "kind": "verapdf_delta"
             }
@@ -7911,6 +7943,10 @@
             },
             {
               "case": "composite_font:composite_identity_v",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_cid_system_info",
               "kind": "verapdf_delta"
             },
             {
@@ -8064,7 +8100,7 @@
         "PDFA1B-FONT-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions."
+        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
@@ -8159,7 +8195,7 @@
       ],
       "mapping_notes": [
         "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte.",
-        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID."
+        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true",
@@ -8295,6 +8331,10 @@
             {
               "case": "font:type3_visible",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "type0_descendant:indirect_identity_cidtogidmap",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -8327,7 +8367,7 @@
         "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
       ],
       "mapping_notes": [
-        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance."
+        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped)."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",
@@ -8492,13 +8532,13 @@
       },
       "description": "Font programs' \"cmap\" tables for all symbolic TrueType fonts shall contain exactly one encoding",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"
       ],
       "mapping_notes": [
-        "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header."
+        "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header via `ttf_parser::RawFace` (confirmed live: this holds even when the rest of the font -- `maxp`, `hhea`, ... -- is malformed enough that a full `ttf_parser::Face::parse` fails)."
       ],
       "object": "TrueTypeFontProgram",
       "predicate": "isSymbolic == false || nrCmaps == 1",

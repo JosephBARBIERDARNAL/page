@@ -3134,6 +3134,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         "type1_glyph_missing"
             | "type1_glyph_present"
             | "type1_difference_glyph"
+            | "type1_indirect_difference_code"
             | "type1_subset_charset_difference_incomplete"
             | "type1_width_mismatch"
             | "type1c_glyph_missing"
@@ -3155,6 +3156,22 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 "Encoding",
                 dictionary! {
                     "Differences" => Object::Array(vec![33.into(), Object::Name(b"space".to_vec())]),
+                },
+            );
+        }
+        if case == "type1_indirect_difference_code" {
+            // The Differences array's code entry (33) as an *indirect*
+            // reference, not a direct integer -- confirmed live against
+            // veraPDF 1.28.2 to be resolved and used exactly like a direct
+            // value.
+            let indirect_code = document.add_object(Object::Integer(33));
+            font.set(
+                "Encoding",
+                dictionary! {
+                    "Differences" => Object::Array(vec![
+                        Object::Reference(indirect_code),
+                        Object::Name(b"space".to_vec()),
+                    ]),
                 },
             );
         }
@@ -3214,6 +3231,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "DW" => 500,
             "CIDToGIDMap" => "Identity",
         };
+        if case == "composite_indirect_cid_system_info" {
+            // The descendant's CIDSystemInfo /Registry as an *indirect*
+            // reference, not a direct string -- confirmed live against
+            // veraPDF 1.28.2 to be resolved and compared exactly like a
+            // direct value.
+            let indirect_registry = document.add_object(Object::string_literal("Adobe"));
+            descendant_dictionary.set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => indirect_registry,
+                    "Ordering" => Object::string_literal("Identity"),
+                    "Supplement" => 0,
+                },
+            );
+        }
         if matches!(
             case,
             "composite_cff_missing_glyph"
@@ -3276,6 +3308,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             "composite_named_cmap" => Object::Name(b"UniJIS-UCS2-H".to_vec()),
             "composite_cmap_matching"
             | "composite_cmap_mismatch_system"
+            | "composite_indirect_cid_system_info"
             | "composite_cmap_wmode_match"
             | "composite_cmap_wmode_mismatch"
             | "composite_cmap_wmode_indirect_match"
@@ -3681,7 +3714,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             operation("Tj", vec![Object::string_literal("!")]),
             operation("ET", vec![]),
         ]),
-        "type1_difference_glyph" => content(vec![
+        "type1_difference_glyph" | "type1_indirect_difference_code" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation("Tj", vec![Object::string_literal("!")]),
@@ -4087,6 +4120,27 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
     let mut descendants = vec![Object::Reference(descendant0)];
     match case {
         "baseline" => {}
+        "indirect_identity_cidtogidmap" => {
+            // The first descendant's own /CIDToGIDMap as an *indirect*
+            // reference to the name /Identity, not a direct one --
+            // confirmed live against veraPDF 1.28.2 to resolve rendered
+            // CIDs to the same glyphs as a direct /Identity would. /DW is
+            // also deliberately mismatched (999, not the real glyph 1
+            // advance width of 500): `glyph_for`'s `None` case (an
+            // unresolvable map) is a silent `continue`, not a pushed
+            // failure, so a *matching*-width case can't distinguish
+            // "resolved and correct" from "unresolved and skipped" --
+            // only a genuine mismatch proves the map was actually resolved
+            // and checked.
+            let indirect_identity = document.add_object(Object::Name(b"Identity".to_vec()));
+            let descendant0_dict = document
+                .get_object_mut(descendant0)
+                .expect("descendant0")
+                .as_dict_mut()
+                .expect("descendant0 dict");
+            descendant0_dict.set("CIDToGIDMap", indirect_identity);
+            descendant0_dict.set("DW", 999);
+        }
         "second_descendant_unembedded" => {
             descendants.push(Object::Reference(type0_descendant_dictionary(
                 &mut document,
@@ -4126,12 +4180,20 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
     let resources = dictionary! {
         "Font" => dictionary! { "T0" => type0_font },
     };
+    // CID 0 is deliberately skipped by `inspect_rendered_cidfont_glyphs`
+    // (`.notdef`), so a case that means to exercise `CIDToGIDMap`
+    // resolution (`glyph_for`) must render a non-zero CID instead.
+    let rendered_cid = if case == "indirect_identity_cidtogidmap" {
+        vec![0, 1]
+    } else {
+        vec![0, 0]
+    };
     let page_content = content(vec![
         operation("BT", vec![]),
         operation("Tf", vec![Object::Name(b"T0".to_vec()), 12.into()]),
         operation(
             "Tj",
-            vec![Object::String(vec![0, 0], StringFormat::Literal)],
+            vec![Object::String(rendered_cid, StringFormat::Literal)],
         ),
         operation("ET", vec![]),
     ]);
@@ -4159,6 +4221,117 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save Type0 descendant fixture");
+    bytes
+}
+
+/// A symbolic TrueType font whose embedded program's `cmap` table is fully
+/// valid (declaring 2 subtables) but whose `maxp` table is truncated to 2
+/// bytes (too short to read `numGlyphs`), so `ttf_parser`'s whole-font
+/// `Face::parse` fails even though the `cmap` table itself is perfectly
+/// readable. Confirmed live against veraPDF 1.28.2: it reads the `cmap`
+/// table's subtable count directly (matching its own mapping note, "read
+/// from the bounded SFNT cmap table header"), so `PDFA1B-TRUETYPE-SYMBOLIC-
+/// CMAP-001` must not gate on a full-font parse either -- see
+/// `truetype_cmap_count` in `font_embedding.rs`, which now uses
+/// `ttf_parser::RawFace` to read just the `cmap` table directly.
+pub fn symbolic_cmap_with_malformed_maxp_fixture() -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+
+    let mut head = vec![0; 54];
+    head[0..4].copy_from_slice(&0x0001_0000u32.to_be_bytes());
+    head[4..8].copy_from_slice(&0x0001_0000u32.to_be_bytes());
+    head[12..16].copy_from_slice(&0x5F0F_3CF5u32.to_be_bytes());
+    head[18..20].copy_from_slice(&1000u16.to_be_bytes());
+    head[46..48].copy_from_slice(&8u16.to_be_bytes());
+
+    let malformed_maxp = vec![0u8; 2];
+
+    let cmap_header_length = 4 + 2 * 8;
+    let mut cmap = vec![0u8; cmap_header_length + 262];
+    cmap[2..4].copy_from_slice(&2u16.to_be_bytes());
+    for index in 0..2usize {
+        let record = 4 + index * 8;
+        cmap[record..record + 2].copy_from_slice(&3u16.to_be_bytes());
+        cmap[record + 2..record + 4]
+            .copy_from_slice(&u16::try_from(index + 1).unwrap().to_be_bytes());
+        cmap[record + 4..record + 8]
+            .copy_from_slice(&u32::try_from(cmap_header_length).unwrap().to_be_bytes());
+    }
+    cmap[cmap_header_length..cmap_header_length + 2].copy_from_slice(&0u16.to_be_bytes());
+    cmap[cmap_header_length + 2..cmap_header_length + 4].copy_from_slice(&262u16.to_be_bytes());
+    cmap[cmap_header_length + 6 + 65] = 1;
+
+    let tables = vec![
+        (*b"OS/2", vec![0u8; 78]),
+        (*b"cmap", cmap),
+        (*b"glyf", vec![0u8; 4]),
+        (*b"head", head),
+        (*b"hhea", vec![0u8; 36]),
+        (*b"hmtx", vec![0u8; 8]),
+        (*b"loca", vec![0u8; 4]),
+        (*b"maxp", malformed_maxp),
+        (*b"name", vec![0u8; 6]),
+        (*b"post", vec![0u8; 32]),
+    ];
+    let font_program = sfnt::build_sfnt(tables);
+
+    let font_file = document.add_object(Stream::new(Dictionary::new(), font_program));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor",
+        "FontName" => "MaiTestFont",
+        "Flags" => 4,
+        "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+        "ItalicAngle" => 0,
+        "Ascent" => 800,
+        "Descent" => -200,
+        "CapHeight" => 700,
+        "StemV" => 80,
+        "FontFile2" => font_file,
+    });
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "TrueType",
+        "BaseFont" => "MaiTestFont",
+        "FirstChar" => 65,
+        "LastChar" => 65,
+        "Widths" => vec![Object::Integer(1000)],
+        "FontDescriptor" => descriptor,
+    });
+
+    let resources = dictionary! {
+        "Font" => dictionary! { "FSym" => font_id },
+    };
+    let page_content = content(vec![
+        operation("BT", vec![]),
+        operation("Tf", vec![Object::Name(b"FSym".to_vec()), 12.into()]),
+        operation("Tj", vec![Object::String(vec![65], StringFormat::Literal)]),
+        operation("ET", vec![]),
+    ]);
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), page_content));
+    let page_id = document.add_object(dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Resources" => resources,
+        "Contents" => contents_id,
+    });
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save malformed-maxp experiment fixture");
     bytes
 }
 

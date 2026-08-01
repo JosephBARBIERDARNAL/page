@@ -25,6 +25,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("composite_cidmap_indirect_identity", &[]),
     ("composite_named_cmap", &[CMAP_EMBEDDING]),
     ("composite_cmap_matching", &[GLYPH_PRESENCE]),
+    ("composite_indirect_cid_system_info", &[GLYPH_PRESENCE]),
     (
         "composite_cmap_mismatch_system",
         &[SYSTEM_INFO, GLYPH_PRESENCE],

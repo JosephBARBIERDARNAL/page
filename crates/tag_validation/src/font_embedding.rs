@@ -1880,12 +1880,14 @@ fn resolve_cid_to_gid_map(
     map: &Object,
     limits: &SafetyLimits,
 ) -> Result<CidToGidMap, PdfError> {
-    if map.as_name().ok() == Some(b"Identity".as_slice()) {
+    // Confirmed live against veraPDF 1.28.2 (matching `valid_cid_to_gid_map`):
+    // an indirect reference to the name /Identity is accepted exactly like
+    // a direct one, so resolution must happen before checking either shape.
+    let resolved = resolve_optional(document, map, limits.max_reference_depth)?;
+    if resolved.and_then(|value| value.as_name().ok()) == Some(b"Identity".as_slice()) {
         return Ok(CidToGidMap::Identity);
     }
-    let Some(stream) = resolve_optional(document, map, limits.max_reference_depth)?
-        .and_then(|value| value.as_stream().ok())
-    else {
+    let Some(stream) = resolved.and_then(|value| value.as_stream().ok()) else {
         return Ok(CidToGidMap::Unavailable);
     };
     Ok(CidToGidMap::Table(decode_font_stream(stream, limits)?))
@@ -2084,15 +2086,34 @@ fn cid_system_info(
     else {
         return Ok(None);
     };
-    let registry = match info.get(b"Registry") {
-        Ok(Object::String(value, _)) => value.clone(),
-        _ => return Ok(None),
+    // Confirmed live against veraPDF 1.28.2: an indirect reference to the
+    // /Registry or /Ordering string is resolved exactly like a direct one.
+    let Some(registry) = resolved_string(document, info, b"Registry", limits)? else {
+        return Ok(None);
     };
-    let ordering = match info.get(b"Ordering") {
-        Ok(Object::String(value, _)) => value.clone(),
-        _ => return Ok(None),
+    let Some(ordering) = resolved_string(document, info, b"Ordering", limits)? else {
+        return Ok(None);
     };
     Ok(Some((registry, ordering)))
+}
+
+fn resolved_string(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<Vec<u8>>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?.and_then(|object| {
+            match object {
+                Object::String(value, _) => Some(value.clone()),
+                _ => None,
+            }
+        }),
+    )
 }
 
 fn decode_font_stream(stream: &Stream, limits: &SafetyLimits) -> Result<Vec<u8>, PdfError> {
@@ -3058,9 +3079,17 @@ fn truetype_cmap_count(
         return Ok(None);
     };
     let bytes = decode_font_stream(stream, limits)?;
-    Ok(ttf_parser::Face::parse(&bytes, 0)
+    // Confirmed live against veraPDF 1.28.2: it reads the `cmap` table's
+    // subtable count directly from the SFNT table directory, independent
+    // of whether the rest of the font (`maxp`, `hhea`, ...) otherwise
+    // parses -- a font whose `cmap` table is valid but whose `maxp` table
+    // is malformed still gets this predicate evaluated. `RawFace` reads
+    // only the table directory, unlike `Face::parse`, which additionally
+    // requires several unrelated mandatory tables to succeed.
+    Ok(ttf_parser::RawFace::parse(&bytes, 0)
         .ok()
-        .and_then(|face| face.tables().cmap)
+        .and_then(|face| face.table(ttf_parser::Tag::from_bytes(b"cmap")))
+        .and_then(ttf_parser::cmap::Table::parse)
         .map(|cmap| usize::from(cmap.subtables.len())))
 }
 
@@ -3150,8 +3179,16 @@ fn valid_font_program(
     })
 }
 
+// Confirmed live against veraPDF 1.28.2 (the same fixture that confirmed
+// `truetype_cmap_count`'s fix): it still considers a `/FontFile2` stream
+// "embedded" (no `PDFA1B-FONT-EMBEDDING-001` failure) even when the font's
+// `maxp` table is malformed enough that a full `ttf_parser::Face::parse`
+// fails, as long as the SFNT signature and table directory are themselves
+// readable. `RawFace::parse` reads only the table directory, matching that
+// narrower bar, instead of requiring every mandatory table
+// (`head`/`hhea`/`maxp`/`hmtx`/glyph outlines) to individually succeed.
 fn valid_sfnt(bytes: &[u8]) -> bool {
-    ttf_parser::Face::parse(bytes, 0).is_ok()
+    ttf_parser::RawFace::parse(bytes, 0).is_ok()
 }
 
 fn object_key(object: &Object, context: &str, name: Option<&Object>) -> ResourceKey {

@@ -2644,6 +2644,14 @@
   ],
   "atomic_type0_descendant_cases": [
     {
+      "name": "indirect_identity_cidtogidmap",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect reference to the name /Identity for /CIDToGIDMap resolves rendered CIDs to the same glyphs a direct /Identity would, so the deliberately mismatched /DW is still caught as a real glyph-width inconsistency on both sides."
+    },
+    {
       "name": "second_descendant_unembedded",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": [],
@@ -2768,6 +2776,24 @@
         "ISO 19005-1:2005:6.3.3.3:2"
       ],
       "rationale": "An embedded CMap has matching CIDSystemInfo and matching default WMode values."
+    },
+    {
+      "name": "composite_indirect_cid_system_info",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
+        "PDFA1B-CMAP-EMBEDDING-001",
+        "PDFA1B-CMAP-WMODE-001",
+        "PDFA1B-CMAP-MAX-CID-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.1.12:10",
+        "ISO 19005-1:2005:6.3.3.1:1",
+        "ISO 19005-1:2005:6.3.3.3:1",
+        "ISO 19005-1:2005:6.3.3.3:2"
+      ],
+      "rationale": "The descendant's CIDSystemInfo /Registry is an indirect reference to a matching string, resolved and compared exactly like a direct value."
     },
     {
       "name": "composite_cmap_mismatch_system",
