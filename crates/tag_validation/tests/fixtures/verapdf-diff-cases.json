@@ -2416,6 +2416,28 @@
       "rationale": "A present rendered Type3 glyph declares width 400 with d1 while /Widths declares 500."
     },
     {
+      "name": "type3_width_tolerance_boundary",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A Type3 CharProc width of 499 and dictionary width of 500 are exactly one unit apart, the inclusive veraPDF tolerance boundary."
+    },
+    {
+      "name": "type3_missing_charproc_zero_width",
+      "expected_local_failed_rule_ids": ["PDFA1B-TYPE1-GLYPH-PRESENCE-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
+      "rationale": "A missing Type3 CharProc has veraPDF program width zero; with /Widths also zero, only glyph presence fails and the metric predicate passes."
+    },
+    {
       "name": "type3_macroman_base",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": [
@@ -2427,7 +2449,21 @@
         "ISO 19005-1:2005:6.3.5:1",
         "ISO 19005-1:2005:6.3.6:1"
       ],
-      "rationale": "MacRomanEncoding maps rendered byte 32 to /space, selecting the matching Type3 CharProc and width."
+      "rationale": "MacRomanEncoding maps rendered byte 202 to /space, selecting the matching Type3 CharProc and width; this byte distinguishes the pinned MacRoman table from StandardEncoding."
+    },
+    {
+      "name": "type3_macexpert_base",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "MacExpertEncoding maps rendered byte 33 to /exclamsmall, selecting the matching Type3 CharProc and width."
     },
     {
       "name": "direct_descriptor",
@@ -2684,6 +2720,158 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "The embedded Type1C glyph width differs from the dictionary width by more than one unit."
+    },
+    {
+      "name": "type1c_subset_complete",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A subset Type1C font's PDF encoding maps the rendered byte to /space, and /CharSet lists that embedded glyph."
+    },
+    {
+      "name": "type1c_subset_incomplete",
+      "expected_local_failed_rule_ids": ["PDFA1B-TYPE1-SUBSET-CHARSET-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:2"],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A subset Type1C font's PDF encoding maps the rendered byte to /space, but /CharSet omits that embedded glyph."
+    },
+    {
+      "name": "type1c_subset_program_encoding_ignored",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "veraPDF uses the PDF encoding name, not the Type1C program's fallback encoding, for the subset /CharSet membership predicate; with no PDF /Encoding, the omitted /space name is inapplicable."
+    },
+    {
+      "name": "type1_real_symbol_present",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A real embedded Type1 program maps rendered byte 34 through its own encoding to /universal, which is present with the matching 713-unit width."
+    },
+    {
+      "name": "type1_real_symbol_difference_present",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "A PDF /Differences entry maps rendered byte 34 to the real Type1 program's /universal glyph and matching width."
+    },
+    {
+      "name": "type1_real_symbol_pdf_base_missing_glyph",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-TYPE1-SUBSET-CHARSET-001"],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.5:2"],
+      "rationale": "WinAnsiEncoding overrides the Type1 program encoding and maps byte 34 to absent /quotedbl; veraPDF reports both glyph absence and program width zero versus /Widths 713."
+    },
+    {
+      "name": "type1_real_symbol_width_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001"
+      ],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.6:1"],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2"
+      ],
+      "rationale": "The real Type1 program's /universal glyph width is 713 while the PDF /Widths entry is 700."
+    },
+    {
+      "name": "type1_real_symbol_subset_complete",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "The subset Type1 font's PDF /Differences mapping selects /universal, and /CharSet lists it."
+    },
+    {
+      "name": "type1_real_symbol_subset_incomplete",
+      "expected_local_failed_rule_ids": ["PDFA1B-TYPE1-SUBSET-CHARSET-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:2"],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "The subset Type1 font's PDF /Differences mapping selects /universal, but /CharSet omits it."
+    },
+    {
+      "name": "type1_real_symbol_subset_program_encoding_ignored",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+        "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+        "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1",
+        "ISO 19005-1:2005:6.3.5:2",
+        "ISO 19005-1:2005:6.3.6:1"
+      ],
+      "rationale": "veraPDF uses the PDF encoding name, not the Type1 program's own encoding fallback, for subset /CharSet membership; with no PDF /Encoding, the omitted /universal name is inapplicable."
     }
   ],
   "atomic_font_content_source_cases": [

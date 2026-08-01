@@ -1400,8 +1400,8 @@ impl Scanner<'_> {
                     ));
                 }
                 let program_width = match charproc.and_then(|value| value.as_stream().ok()) {
-                    Some(stream) => type3_charproc_width(stream, self.limits)?.unwrap_or(-1.0),
-                    None => -1.0,
+                    Some(stream) => type3_charproc_width(stream, self.limits)?.unwrap_or(0.0),
+                    None => 0.0,
                 };
                 let (Some(first_char), Some(widths)) = (first_char, widths) else {
                     continue;

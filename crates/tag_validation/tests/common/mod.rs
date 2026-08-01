@@ -3089,7 +3089,12 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
         }
     } else if matches!(
         case,
-        "type1c_glyph_missing" | "type1c_glyph_present" | "type1c_width_mismatch"
+        "type1c_glyph_missing"
+            | "type1c_glyph_present"
+            | "type1c_width_mismatch"
+            | "type1c_subset_complete"
+            | "type1c_subset_incomplete"
+            | "type1c_subset_program_encoding_ignored"
     ) {
         descriptor.remove(b"FontFile2");
         descriptor.set(
@@ -3101,6 +3106,21 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
                 minimal_type1c(case != "type1c_glyph_missing"),
             )),
         );
+        if matches!(
+            case,
+            "type1c_subset_complete"
+                | "type1c_subset_incomplete"
+                | "type1c_subset_program_encoding_ignored"
+        ) {
+            descriptor.set(
+                "CharSet",
+                Object::string_literal(if case == "type1c_subset_complete" {
+                    "/.notdef/space"
+                } else {
+                    "/.notdef"
+                }),
+            );
+        }
     } else if case == "type1c_header_only_garbage" {
         // A /FontFile3 whose bytes satisfy the local header heuristic
         // (major version 1 or 2, hdrSize <= length) but are otherwise
@@ -3281,6 +3301,9 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             | "type1c_glyph_missing"
             | "type1c_glyph_present"
             | "type1c_width_mismatch"
+            | "type1c_subset_complete"
+            | "type1c_subset_incomplete"
+            | "type1c_subset_program_encoding_ignored"
             | "type1c_embedded_indirect_subtype"
             | "type1c_header_only_garbage"
     ) {
@@ -3292,10 +3315,24 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             case,
             "type1c_glyph_missing"
                 | "type1c_glyph_present"
+                | "type1c_subset_complete"
+                | "type1c_subset_incomplete"
+                | "type1c_subset_program_encoding_ignored"
                 | "type1c_embedded_indirect_subtype"
                 | "type1c_header_only_garbage"
         ) {
             font.set("Widths", vec![0.into()]);
+        }
+        if matches!(
+            case,
+            "type1c_subset_complete"
+                | "type1c_subset_incomplete"
+                | "type1c_subset_program_encoding_ignored"
+        ) {
+            font.set("BaseFont", "ABCDEF+MaiTestFont");
+        }
+        if case == "type1c_subset_program_encoding_ignored" {
+            font.remove(b"Encoding");
         }
         if matches!(
             case,
@@ -3349,28 +3386,43 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             | "type3_width_match"
             | "type3_width_mismatch"
             | "type3_width_d1_mismatch"
+            | "type3_width_tolerance_boundary"
+            | "type3_missing_charproc_zero_width"
             | "type3_macroman_base"
+            | "type3_macexpert_base"
     ) {
         let mut char_procs = Dictionary::new();
         let charproc_bytes = match case {
-            "type3_width_match" | "type3_macroman_base" => Some(b"500 0 d0\n".as_slice()),
+            "type3_width_match" | "type3_macroman_base" | "type3_macexpert_base" => {
+                Some(b"500 0 d0\n".as_slice())
+            }
+            "type3_width_tolerance_boundary" => Some(b"499 0 d0\n".as_slice()),
             "type3_width_mismatch" => Some(b"400 0 d0\n".as_slice()),
             "type3_width_d1_mismatch" => Some(b"400 0 0 0 500 700 d1\n".as_slice()),
             _ => None,
         };
         if let Some(bytes) = charproc_bytes {
             char_procs.set(
-                "space",
+                if case == "type3_macexpert_base" {
+                    "exclamsmall"
+                } else {
+                    "space"
+                },
                 document.add_object(Stream::new(Dictionary::new(), bytes.to_vec())),
             );
         }
-        let encoding = if case == "type3_macroman_base" {
-            Object::Name(b"MacRomanEncoding".to_vec())
-        } else {
-            Object::Dictionary(dictionary! {
+        let encoding = match case {
+            "type3_macroman_base" => Object::Name(b"MacRomanEncoding".to_vec()),
+            "type3_macexpert_base" => Object::Name(b"MacExpertEncoding".to_vec()),
+            _ => Object::Dictionary(dictionary! {
                 "Type" => "Encoding",
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
-            })
+            }),
+        };
+        let rendered_byte = match case {
+            "type3_macroman_base" => 202,
+            "type3_macexpert_base" => 33,
+            _ => 32,
         };
         font = dictionary! {
             "Type" => "Font",
@@ -3379,9 +3431,13 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             "FontMatrix" => vec![0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into()],
             "CharProcs" => char_procs,
             "Encoding" => encoding,
-            "FirstChar" => 32,
-            "LastChar" => 32,
-            "Widths" => vec![500.into()],
+            "FirstChar" => rendered_byte,
+            "LastChar" => rendered_byte,
+            "Widths" => vec![if case == "type3_missing_charproc_zero_width" {
+                0.into()
+            } else {
+                500.into()
+            }],
         };
     } else if matches!(
         case,
@@ -3809,6 +3865,22 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             operation(
                 "Tj",
                 vec![Object::String(vec![34], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "type3_macroman_base" | "type3_macexpert_base" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(
+                    vec![if case == "type3_macroman_base" {
+                        202
+                    } else {
+                        33
+                    }],
+                    lopdf::StringFormat::Literal,
+                )],
             ),
             operation("ET", vec![]),
         ]),

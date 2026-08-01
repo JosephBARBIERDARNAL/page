@@ -117,7 +117,12 @@ fn type3_rendered_glyphs_must_have_charprocs() {
 
 #[test]
 fn type3_charproc_widths_and_predefined_base_encodings_are_checked() {
-    for case in ["type3_width_match", "type3_macroman_base"] {
+    for case in [
+        "type3_width_match",
+        "type3_width_tolerance_boundary",
+        "type3_macroman_base",
+        "type3_macexpert_base",
+    ] {
         let fixture = common::font_fixture(case);
         let report = common::validate(&fixture);
         let failures = common::failure_ids(&fixture);
@@ -138,6 +143,9 @@ fn type3_charproc_widths_and_predefined_base_encodings_are_checked() {
         );
         assert!(failures.contains(GLYPH_WIDTH), "{case}: {failures:?}");
     }
+    let failures = common::failure_ids(&common::font_fixture("type3_missing_charproc_zero_width"));
+    assert!(failures.contains(TYPE1_GLYPH_PRESENCE), "{failures:?}");
+    assert!(!failures.contains(GLYPH_WIDTH), "{failures:?}");
 }
 
 #[test]
@@ -150,7 +158,10 @@ fn type3_width_and_base_encoding_match_pinned_verapdf_when_opted_in() {
         ("type3_width_match", false),
         ("type3_width_mismatch", true),
         ("type3_width_d1_mismatch", true),
+        ("type3_width_tolerance_boundary", false),
+        ("type3_missing_charproc_zero_width", false),
         ("type3_macroman_base", false),
+        ("type3_macexpert_base", false),
     ] {
         let path = env::temp_dir().join(format!("tag-{case}-{}.pdf", std::process::id()));
         fs::write(&path, common::font_fixture(case)).expect("write Type3 fixture");
@@ -275,6 +286,59 @@ fn real_type1_program_cases_match_pinned_verapdf_when_opted_in() {
             );
         }
         fs::remove_file(path).expect("remove real Type1 fixture");
+    }
+}
+
+#[test]
+fn type1c_subset_charset_uses_pdf_encoding_names() {
+    for case in [
+        "type1c_subset_complete",
+        "type1c_subset_program_encoding_ignored",
+    ] {
+        let failures = common::failure_ids(&common::font_fixture(case));
+        assert!(
+            !failures.contains(TYPE1_SUBSET_CHARSET),
+            "{case}: {failures:?}"
+        );
+    }
+    let failures = common::failure_ids(&common::font_fixture("type1c_subset_incomplete"));
+    assert!(failures.contains(TYPE1_SUBSET_CHARSET), "{failures:?}");
+}
+
+#[test]
+fn type1c_subset_charset_cases_match_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    for (case, should_fail) in [
+        ("type1c_subset_complete", false),
+        ("type1c_subset_incomplete", true),
+        ("type1c_subset_program_encoding_ignored", false),
+    ] {
+        let path = env::temp_dir().join(format!("tag-{case}-{}.pdf", std::process::id()));
+        fs::write(&path, common::font_fixture(case)).expect("write Type1C fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let reference_rules = report
+            .reference_result
+            .as_ref()
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            reference_rules.contains("ISO 19005-1:2005:6.3.5:2"),
+            should_fail,
+            "{case}: {report:#?}"
+        );
+        assert_eq!(
+            common::failure_ids(&fs::read(&path).expect("read Type1C fixture"))
+                .contains(TYPE1_SUBSET_CHARSET),
+            should_fail,
+            "{case}: local mismatch"
+        );
+        fs::remove_file(path).expect("remove Type1C fixture");
     }
 }
 
