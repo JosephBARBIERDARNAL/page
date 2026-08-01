@@ -18,6 +18,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Install Typst
+        uses: typst-community/setup-typst@v5
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Generate PDF fixtures
+        uses: just typst
+
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
