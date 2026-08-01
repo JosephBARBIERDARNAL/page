@@ -416,6 +416,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Performance
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -615,6 +626,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Performance
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -675,6 +697,33 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/UA-1</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/UA-2</li>
 </ul>
+<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
+<p><code>page</code> is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th><code>page</code></th>
+<th><code>veraPDF</code></th>
+<th>ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Validation time (median)</td>
+<td>~50 ms</td>
+<td>~1300 ms</td>
+<td>~26× faster</td>
+</tr>
+<tr>
+<td>Peak RSS (median)</td>
+<td>~13 MB</td>
+<td>~254 MB</td>
+<td>~20× lighter</td>
+</tr>
+</tbody>
+</table>
+<p>Benchark code lives in <a href="https://github.com/JosephBARBIERDARNAL/page/tree/main/bench">bench</a>.</p>
 
 
 
