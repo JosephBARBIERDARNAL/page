@@ -59,21 +59,12 @@ Always follow official verapdf rules specs.
     - https://github.com/veraPDF/veraPDF-validation-profiles/wiki/PDFUA-Part-2-rules
 
 
-## Run
-
-```bash
-cargo run -p tag_cli --bin tag -- validate --profile a-1b path/to/file.pdf
-cargo run -p tag_cli --bin tag -- validate --profile a-1b --format json path/to/file.pdf
-```
-
-The process exits with status `0` when all implemented checks pass, `2` for a malformed PDF or failed validation check, and `1` for an operational problem such as unreadable input, a configured safety limit, or report serialization.
-
 ## Architecture
 
 ```text
-tag_cli
+`tag_cli`
     -> argument and output handling
-    -> tag_validation
+    -> `tag_validation`
        -> bounded file input
        -> strict lopdf parser
        -> normalized PdfDocument model
@@ -219,7 +210,7 @@ The source of truth is `veraPDF-validation-profiles-rel-1.28/PDF_A/PDFA-1B.xml` 
 | `PDFA1B-TRUETYPE-GLYPH-PRESENCE-001` | `ISO 19005-1:2005:6.3.5:1` | §6.3.5 | partial/proxy | For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately. |
 | `PDFA1B-TYPE1-SUBSET-CHARSET-001` | `ISO 19005-1:2005:6.3.5:2` | §6.3.5 | partial/proxy | For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph. |
 | `PDFA1B-CID-SUBSET-CIDSET-001` | `ISO 19005-1:2005:6.3.5:3` | §6.3.5 | partial/proxy | For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. |
-| `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` | `ISO 19005-1:2005:6.3.6:1` | §6.3.6 | partial/proxy | For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). |
+| `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` | `ISO 19005-1:2005:6.3.6:1` | §6.3.6 | partial/proxy | For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). |
 | `PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001` | `ISO 19005-1:2005:6.3.7:1` | §6.3.7 | partial/proxy | For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") && containsDifferences == false`. |
 | `PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001` | `ISO 19005-1:2005:6.3.7:2` | §6.3.7 | partial/proxy | For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. |
 | `PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001` | `ISO 19005-1:2005:6.3.7:3` | §6.3.7 | exact | For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header via `ttf_parser::RawFace` (confirmed live: this holds even when the rest of the font -- `maxp`, `hhea`, ... -- is malformed enough that a full `ttf_parser::Face::parse` fails). |
