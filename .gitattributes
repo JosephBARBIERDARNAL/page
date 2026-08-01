@@ -1,2 +1,3 @@
 *.pdf binary
+crates/tag_validation/tests/fixtures/fonts/*.pfa binary
 *.xml text eol=lf
