@@ -3389,6 +3389,21 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.remove(b"Widths");
         }
         "font_widths_wrong_size" => font.set("Widths", Vec::<Object>::new()),
+        // The whole /Widths array as an *indirect* reference, not a direct
+        // array, with a size and value that would otherwise fully comply.
+        "font_widths_array_indirect" => {
+            let indirect_widths = document.add_object(Object::Array(vec![500.into()]));
+            font.set("Widths", indirect_widths);
+        }
+        // /Widths is direct, but its single entry is an *indirect* reference
+        // to a mismatched value (497 vs. the embedded program's real 500),
+        // so only a genuine, observable width discrepancy proves the
+        // element itself was resolved and compared rather than silently
+        // skipped.
+        "font_widths_element_indirect_mismatch" => {
+            let indirect_width = document.add_object(Object::Integer(497));
+            font.set("Widths", vec![Object::Reference(indirect_width)]);
+        }
         // /FirstChar and /LastChar as *indirect* references, not direct
         // integers -- confirmed live against veraPDF 1.28.2 to be resolved
         // and compared exactly like direct values.

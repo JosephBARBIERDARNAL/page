@@ -903,10 +903,7 @@ impl Scanner<'_> {
                 .map(|value| resolved_integer(self.document, self.limits, value))
                 .transpose()?
                 .flatten();
-            let widths = font
-                .get(b"Widths")
-                .ok()
-                .and_then(|value| value.as_array().ok());
+            let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
             let Some(encoding) = encoding.as_deref() else {
                 continue;
             };
@@ -939,8 +936,11 @@ impl Scanner<'_> {
                 let Ok(index) = usize::try_from(index) else {
                     continue;
                 };
-                let Some(dictionary_width) =
-                    widths.get(index).and_then(|value| value.as_float().ok())
+                let Some(dictionary_width) = widths
+                    .get(index)
+                    .map(|value| resolved_float(self.document, self.limits, value))
+                    .transpose()?
+                    .flatten()
                 else {
                     continue;
                 };
@@ -1262,10 +1262,7 @@ impl Scanner<'_> {
                 .map(|value| resolved_integer(self.document, self.limits, value))
                 .transpose()?
                 .flatten();
-            let widths = font
-                .get(b"Widths")
-                .ok()
-                .and_then(|value| value.as_array().ok());
+            let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
             for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
                 let Some(name) = differences
                     .get(&byte)
@@ -1293,8 +1290,11 @@ impl Scanner<'_> {
                 let Ok(index) = usize::try_from(index) else {
                     continue;
                 };
-                let Some(dictionary_width) =
-                    widths.get(index).and_then(|value| value.as_float().ok())
+                let Some(dictionary_width) = widths
+                    .get(index)
+                    .map(|value| resolved_float(self.document, self.limits, value))
+                    .transpose()?
+                    .flatten()
                 else {
                     continue;
                 };
@@ -1423,10 +1423,7 @@ impl Scanner<'_> {
                 .map(|value| resolved_integer(self.document, self.limits, value))
                 .transpose()?
                 .flatten();
-            let widths = font
-                .get(b"Widths")
-                .ok()
-                .and_then(|value| value.as_array().ok());
+            let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
             for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
                 let Some(name) = differences
                     .get(&byte)
@@ -1454,8 +1451,11 @@ impl Scanner<'_> {
                 let Ok(index) = usize::try_from(index) else {
                     continue;
                 };
-                let Some(dictionary_width) =
-                    widths.get(index).and_then(|value| value.as_float().ok())
+                let Some(dictionary_width) = widths
+                    .get(index)
+                    .map(|value| resolved_float(self.document, self.limits, value))
+                    .transpose()?
+                    .flatten()
                 else {
                     continue;
                 };
@@ -1781,10 +1781,7 @@ impl Scanner<'_> {
                     "has a missing or invalid /LastChar",
                 ));
             }
-            let widths_size = font
-                .get(b"Widths")
-                .ok()
-                .and_then(|value| value.as_array().ok())
+            let widths_size = resolved_array(self.document, font, b"Widths", self.limits)?
                 .and_then(|widths| i64::try_from(widths.len()).ok());
             let expected_size = first_char
                 .and_then(|first| last_char.and_then(|last| last.checked_sub(first)))
@@ -2113,6 +2110,38 @@ fn resolved_string(
                 _ => None,
             }
         }),
+    )
+}
+
+/// A dictionary array value (e.g. `/Widths`) resolved through indirection
+/// before use, mirroring `resolved_string`/`resolved_integer` -- the array
+/// itself is not guaranteed to be direct.
+fn resolved_array<'a>(
+    document: &'a Document,
+    dictionary: &'a Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<&'a Vec<Object>>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .and_then(|object| object.as_array().ok()),
+    )
+}
+
+/// A single numeric array element (e.g. a `/Widths` entry) resolved through
+/// indirection before use, mirroring `resolved_integer`'s contract for a
+/// real-valued rather than integer-valued reference.
+fn resolved_float(
+    document: &Document,
+    limits: &SafetyLimits,
+    object: &Object,
+) -> Result<Option<f32>, PdfError> {
+    Ok(
+        resolve_optional(document, object, limits.max_reference_depth)?
+            .and_then(|object| object.as_float().ok()),
     )
 }
 

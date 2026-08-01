@@ -24,6 +24,8 @@ const CASES: &[(&str, &[&str])] = &[
     ("font_lastchar_missing", &[LAST_CHAR, WIDTHS]),
     ("font_widths_missing", &[WIDTHS]),
     ("font_widths_wrong_size", &[WIDTHS]),
+    ("font_widths_array_indirect", &[]),
+    ("font_widths_element_indirect_mismatch", &[GLYPH_WIDTH]),
     ("font_firstchar_lastchar_indirect", &[]),
     ("standard14_missing_metrics", &[EMBEDDING]),
     (
