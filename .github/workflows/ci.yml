@@ -42,7 +42,7 @@ jobs:
         uses: taiki-e/install-action@just
 
       - name: Generate PDF fixtures
-        uses: just typst
+        run: just typst
 
       - name: Run tests
         run: cargo test --workspace --all-features --locked
@@ -64,6 +64,12 @@ jobs:
 
       - name: Install just
         uses: taiki-e/install-action@just
+
+      - name: Install Typst
+        uses: typst-community/setup-typst@v5
+
+      - name: Generate PDF fixtures
+        run: just typst
 
       - name: Install Java
         uses: actions/setup-java@v5

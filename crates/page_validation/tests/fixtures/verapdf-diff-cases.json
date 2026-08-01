@@ -54,7 +54,7 @@
     {
       "path": "tests/fixtures/proposal.pdf",
       "expected_classification": "both_noncompliant",
-      "rationale": "This real-world PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
     },
     {
       "path": "tests/fixtures/resume.pdf",
@@ -64,12 +64,12 @@
     {
       "path": "tests/fixtures/example-1.pdf",
       "expected_classification": "both_noncompliant",
-      "rationale": "This real-world PDF makes no PDF/A claim; the local subset fails identification, font, and colour checks and veraPDF reports PDF/A-1b failures."
+      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
     },
     {
       "path": "tests/fixtures/not-compliant-1.pdf",
       "expected_classification": "both_noncompliant",
-      "rationale": "This real-world PDF makes no PDF/A claim and has no XMP metadata stream; both validators report it as outside the selected PDF/A-1b requirements."
+      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
     },
     {
       "path": "tests/fixtures/odd-hex-string.pdf",

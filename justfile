@@ -38,9 +38,9 @@ pdfa1b-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
     just verapdf "{{ verapdf }}"
 
-# Regenerate the deterministic Typst 0.15.0 PDF/A-1b acceptance fixture.
+# Regenerate deterministic Typst fixtures. Only the acceptance fixture targets PDF/A-1b.
 typst:
-    for f in crates/page_validation/tests/fixtures/*.typ; do typst compile "$f" "${f%.typ}.pdf" --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600; done
+    for f in crates/page_validation/tests/fixtures/*.typ; do if [ "$f" = "crates/page_validation/tests/fixtures/typst-pdfa-1b.typ" ]; then standard="--pdf-standard a-1b"; else standard=""; fi; typst compile "$f" "${f%.typ}.pdf" $standard --ignore-system-fonts --creation-timestamp 1767225600; done
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:

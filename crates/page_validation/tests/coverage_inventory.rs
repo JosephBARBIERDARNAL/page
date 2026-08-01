@@ -891,7 +891,11 @@ fn generated_corpus(differential: &Value) -> Value {
             .map(|name| {
                 let bytes = fs::read(Path::new("tests/fixtures").join(&name))
                     .unwrap_or_else(|error| panic!("read {name}: {error}"));
-                let recipe = if name == "typst-pdfa-1b.pdf" {
+                let recipe = if Path::new("tests/fixtures")
+                    .join(&name)
+                    .with_extension("typ")
+                    .is_file()
+                {
                     "just typst"
                 } else if generated.contains(name.as_str()) {
                     "ignored Rust structural boundary generator"

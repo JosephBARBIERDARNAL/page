@@ -11,7 +11,7 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "example-1.pdf",
             include_bytes!("fixtures/example-1.pdf"),
-            "cdfc6f02b1d22e5074e8ddc42b2c4262015ae83a4ff5ded2c334090f02b4b355",
+            "278add4cefbf769806547b661d792df63eda95fcd82e643f791cdeeeaf705a6e",
         ),
         (
             "malformed.pdf",
@@ -21,22 +21,22 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "not-compliant-1.pdf",
             include_bytes!("fixtures/not-compliant-1.pdf"),
-            "d9d256bd545284685108fb3d1977b67bb76369d88b057576cb0cffe462bf1ce0",
+            "c9220b8c7336ae1b8a6f1430b28fe6b55d97a4a29ee0376640b8e3ba9b8d124d",
         ),
         (
             "poster.pdf",
             include_bytes!("fixtures/poster.pdf"),
-            "f9a5f76d8aed003d991a3b22db94c4ea568a27381f1e9214d4b4cd12285d8109",
+            "417377a7fa9b2dda8dc2f0a6bda70d228c7f4e026e10e95256a82011a5d5dabd",
         ),
         (
             "proposal.pdf",
             include_bytes!("fixtures/proposal.pdf"),
-            "293407d3ae3db2fd20b25e7e07050c7d7f7b57d9d097b70cfcd69f251d784f39",
+            "ced967b642b023ab1cfbdad510f496b9be4d09f9c55b52e5e27ddc8e71db5565",
         ),
         (
             "resume.pdf",
             include_bytes!("fixtures/resume.pdf"),
-            "2db88d2710d1b424571feb6679c21985079e7843717f7a6513f2c718d69a3a0f",
+            "98df4b5bb63cc7f3c2f55e67604aad769c43868bce0d8f70b0e6630d2fcb667f",
         ),
         (
             "structural.pdf",
@@ -46,7 +46,7 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "typst-pdfa-1b.pdf",
             include_bytes!("fixtures/typst-pdfa-1b.pdf"),
-            "edb537fa821e49eadb76e64be659b9d42b206b3d3d2d72051b69b497d471068e",
+            "e4df432cc9934c3d8e4596a9c0cab4afe4bd524966f3cf654cd642e2adb56b65",
         ),
     ];
 
