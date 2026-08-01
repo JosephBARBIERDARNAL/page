@@ -19,12 +19,13 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 ## Usage
 
 - [CLI](api/cli.md)
-- [Rust](api/rust-crate.md)
-- [Python](api/python-package.md)
+- [Rust](api/rust.md)
+- [Python](api/python.md)
+- [Node.js](api/nodejs.md)
 
 ## Roadmap
 
-- [ ] PDF/A-1b (current WIP)
+- [ ] PDF/A-1b (~95% done, current WIP)
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b

@@ -7,10 +7,11 @@ site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]
 nav = [
   { "Home" = "index.md" },
-  { "API Reference" = [
+  { "Usage" = [
     "api/cli.md",
-    "api/rust-crate.md",
-    "api/python-package.md",
+    "api/rust.md",
+    "api/python.md",
+    "api/nodejs.md",
   ] },
   { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] }
 ]

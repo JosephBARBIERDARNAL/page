@@ -1,5 +1,5 @@
 ---
-title: "Rust crate"
+title: "Rust"
 ---
 
 # Using the `page_validation` Crate

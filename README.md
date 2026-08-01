@@ -37,7 +37,7 @@ page document.pdf --profile a-1b --json
 
 ## Roadmap
 
-- [ ] PDF/A-1b (current WIP)
+- [ ] PDF/A-1b (~95% done, current WIP)
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
