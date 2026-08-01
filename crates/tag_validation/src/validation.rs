@@ -70,6 +70,7 @@ pub fn validate_file(
             );
         }
     };
+
     if metadata.len() > limits.max_input_size {
         return ValidationReport::operational_failure(
             profile,
@@ -81,6 +82,12 @@ pub fn validate_file(
             ),
         );
     }
+
+    match validate_profile(profile) {
+        Ok(()) => {}
+        Err(report) => return report,
+    }
+
     match fs::read(path) {
         Ok(bytes) => validate_bytes(&bytes, profile, limits),
         Err(error) => {
@@ -106,6 +113,17 @@ pub fn validate_bytes(
         Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
     };
     validate_document(document, inspections, profile)
+}
+
+fn validate_profile(profile: ValidationProfile) -> Result<(), ValidationReport> {
+    match profile {
+        ValidationProfile::PdfA1b => Ok(()),
+        _ => Err(ValidationReport::operational_failure(
+            profile,
+            "PROFILE-001",
+            format!("validation profile {profile} is not supported"),
+        )),
+    }
 }
 
 fn validate_document(
