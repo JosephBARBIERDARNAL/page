@@ -1075,6 +1075,10 @@
           "applicable_pass": {
             "evidence": [
               {
+                "case": "font:font_firstchar_lastchar_indirect",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:standard14_missing_metrics",
                 "kind": "verapdf_delta"
               }
@@ -1129,6 +1133,10 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "font:font_firstchar_lastchar_indirect",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "font:standard14_missing_metrics",
                 "kind": "verapdf_delta"
@@ -1196,6 +1204,10 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "font:font_firstchar_lastchar_indirect",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "font:standard14_missing_metrics",
                 "kind": "verapdf_delta"
@@ -1694,6 +1706,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "truetype:tt_symbolic_indirect_flags",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "truetype:tt_symbolic_no_encoding",
                 "kind": "verapdf_delta"
               },
@@ -1989,6 +2005,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "truetype:tt_symbolic_indirect_flags",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "truetype:tt_symbolic_no_encoding",
                 "kind": "verapdf_delta"
               }
@@ -2040,6 +2060,10 @@
           "applicable_pass": {
             "evidence": [
               {
+                "case": "truetype:tt_symbolic_indirect_flags",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "truetype:tt_symbolic_no_encoding",
                 "kind": "verapdf_delta"
               }
@@ -2090,6 +2114,10 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "truetype:tt_symbolic_indirect_flags",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "truetype:tt_symbolic_no_encoding",
                 "kind": "verapdf_delta"
@@ -7487,6 +7515,10 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "font:font_firstchar_lastchar_indirect",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:standard14_missing_metrics",
               "kind": "verapdf_delta"
             }
@@ -7535,6 +7567,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "font:font_firstchar_lastchar_indirect",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "font:standard14_missing_metrics",
               "kind": "verapdf_delta"
@@ -7596,6 +7632,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "font:font_firstchar_lastchar_indirect",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "font:standard14_missing_metrics",
               "kind": "verapdf_delta"
@@ -8051,6 +8091,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "truetype:tt_symbolic_indirect_flags",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "truetype:tt_symbolic_no_encoding",
               "kind": "verapdf_delta"
             },
@@ -8323,6 +8367,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "truetype:tt_symbolic_indirect_flags",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "truetype:tt_symbolic_no_encoding",
               "kind": "verapdf_delta"
             }
@@ -8368,6 +8416,10 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "truetype:tt_symbolic_indirect_flags",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "truetype:tt_symbolic_no_encoding",
               "kind": "verapdf_delta"
             }
@@ -8412,6 +8464,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "truetype:tt_symbolic_indirect_flags",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "truetype:tt_symbolic_no_encoding",
               "kind": "verapdf_delta"

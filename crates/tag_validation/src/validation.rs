@@ -83,9 +83,8 @@ pub fn validate_file(
         );
     }
 
-    match validate_profile(profile) {
-        Ok(()) => {}
-        Err(report) => return report,
+    if let Some(report) = validate_profile(profile) {
+        return report;
     }
 
     match fs::read(path) {
@@ -115,10 +114,10 @@ pub fn validate_bytes(
     validate_document(document, inspections, profile)
 }
 
-fn validate_profile(profile: ValidationProfile) -> Result<(), ValidationReport> {
+fn validate_profile(profile: ValidationProfile) -> Option<ValidationReport> {
     match profile {
-        ValidationProfile::PdfA1b => Ok(()),
-        _ => Err(ValidationReport::operational_failure(
+        ValidationProfile::PdfA1b => None,
+        _ => Some(ValidationReport::operational_failure(
             profile,
             "PROFILE-001",
             format!("validation profile {profile} is not supported"),

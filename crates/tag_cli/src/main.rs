@@ -44,12 +44,33 @@ struct Cli {
 enum ProfileArg {
     #[value(name = "a-1b")]
     PdfA1b,
+    #[value(name = "a-1a")]
+    PdfA1a,
+    #[value(name = "a-2b")]
+    PdfA2b,
+    #[value(name = "a-2a")]
+    PdfA2a,
+    #[value(name = "a-2u")]
+    PdfA2u,
+    #[value(name = "a-3b")]
+    PdfA3b,
+    #[value(name = "a-3a")]
+    PdfA3a,
+    #[value(name = "a-3u")]
+    PdfA3u,
 }
 
 impl From<ProfileArg> for ValidationProfile {
     fn from(value: ProfileArg) -> Self {
         match value {
             ProfileArg::PdfA1b => Self::PdfA1b,
+            ProfileArg::PdfA1a => Self::PdfA1a,
+            ProfileArg::PdfA2b => Self::PdfA2b,
+            ProfileArg::PdfA2a => Self::PdfA2a,
+            ProfileArg::PdfA2u => Self::PdfA2u,
+            ProfileArg::PdfA3b => Self::PdfA3b,
+            ProfileArg::PdfA3a => Self::PdfA3a,
+            ProfileArg::PdfA3u => Self::PdfA3u,
         }
     }
 }
@@ -58,6 +79,13 @@ impl ProfileArg {
     const fn as_str(self) -> &'static str {
         match self {
             Self::PdfA1b => "a-1b",
+            Self::PdfA1a => "a-1a",
+            Self::PdfA2b => "a-2b",
+            Self::PdfA2a => "a-2a",
+            Self::PdfA2u => "a-2u",
+            Self::PdfA3b => "a-3b",
+            Self::PdfA3a => "a-3a",
+            Self::PdfA3u => "a-3u",
         }
     }
 }

@@ -3356,6 +3356,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.remove(b"Widths");
         }
         "font_widths_wrong_size" => font.set("Widths", Vec::<Object>::new()),
+        // /FirstChar and /LastChar as *indirect* references, not direct
+        // integers -- confirmed live against veraPDF 1.28.2 to be resolved
+        // and compared exactly like direct values.
+        "font_firstchar_lastchar_indirect" => {
+            let indirect_first_char = document.add_object(Object::Integer(32));
+            let indirect_last_char = document.add_object(Object::Integer(32));
+            font.set("FirstChar", indirect_first_char);
+            font.set("LastChar", indirect_last_char);
+        }
         "standard14_missing_metrics" => {
             font.set("Subtype", "Type1");
             font.set("BaseFont", "Helvetica");
@@ -3422,7 +3431,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.set("LastChar", 233);
             font.set("Widths", vec![497.into()]);
         }
-        "tt_symbolic_no_encoding" | "tt_symbolic_one_cmap" | "tt_symbolic_two_cmaps"
+        "tt_symbolic_no_encoding"
+        | "tt_symbolic_one_cmap"
+        | "tt_symbolic_two_cmaps"
         | "tt_symbolic_indirect_flags" => {
             font.remove(b"Encoding");
         }
