@@ -34,6 +34,7 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_cmap_wmode_mismatch",
         &[CMAP_WMODE, GLYPH_PRESENCE],
     ),
+    ("composite_cmap_wmode_indirect_match", &[GLYPH_PRESENCE]),
     (
         "composite_cmap_cid_too_large",
         &[CMAP_CID_RANGE, CMAP_MAX_CID],

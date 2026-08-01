@@ -3271,6 +3271,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "composite_cmap_mismatch_system"
             | "composite_cmap_wmode_match"
             | "composite_cmap_wmode_mismatch"
+            | "composite_cmap_wmode_indirect_match"
             | "composite_cmap_cid_too_large"
             | "composite_cidset_nonidentity_real_program"
             | "composite_nonidentity_missing_glyph"
@@ -3282,9 +3283,19 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                     "Identity"
                 };
                 let dictionary_wmode = i64::from(case == "composite_cmap_wmode_match")
-                    + i64::from(case == "composite_cmap_wmode_mismatch");
-                let content_wmode = i64::from(case == "composite_cmap_wmode_match");
+                    + i64::from(case == "composite_cmap_wmode_mismatch")
+                    + i64::from(case == "composite_cmap_wmode_indirect_match");
+                let content_wmode = i64::from(case == "composite_cmap_wmode_match")
+                    + i64::from(case == "composite_cmap_wmode_indirect_match");
                 let cid_start = u32::from(case == "composite_cmap_cid_too_large") * 65_536;
+                // An *indirect* reference to the /WMode integer, not a
+                // direct one -- confirmed live against veraPDF 1.28.2 to be
+                // resolved and compared exactly like a direct value.
+                let wmode_object = if case == "composite_cmap_wmode_indirect_match" {
+                    Object::Reference(document.add_object(Object::Integer(dictionary_wmode)))
+                } else {
+                    Object::Integer(dictionary_wmode)
+                };
                 Object::Reference(document.add_object(Stream::new(
                     dictionary! {
                         "Type" => "CMap",
@@ -3294,7 +3305,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                             "Ordering" => Object::string_literal(cmap_ordering),
                             "Supplement" => 0,
                         },
-                        "WMode" => dictionary_wmode,
+                        "WMode" => wmode_object,
                     },
                     if case == "composite_nonidentity_multibyte_missing_glyph" {
                         embedded_two_byte_cmap(cmap_ordering, content_wmode, cid_start)

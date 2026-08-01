@@ -810,7 +810,9 @@ impl Scanner<'_> {
         let descriptor = font_descriptor_dictionary(self.document, font, self.limits)?;
         let symbolic = descriptor
             .and_then(|descriptor| descriptor.get(b"Flags").ok())
-            .and_then(as_integer)
+            .map(|value| resolved_integer(self.document, self.limits, value))
+            .transpose()?
+            .flatten()
             .is_some_and(|flags| flags & 4 != 0);
         let (encoding, contains_differences) = truetype_encoding(self.document, font, self.limits)?;
 
@@ -895,7 +897,12 @@ impl Scanner<'_> {
             let Ok(face) = ttf_parser::Face::parse(&bytes, 0) else {
                 continue;
             };
-            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let first_char = font
+                .get(b"FirstChar")
+                .ok()
+                .map(|value| resolved_integer(self.document, self.limits, value))
+                .transpose()?
+                .flatten();
             let widths = font
                 .get(b"Widths")
                 .ok()
@@ -1249,7 +1256,12 @@ impl Scanner<'_> {
                 continue;
             }
             let differences = type1_encoding_differences(self.document, font, self.limits)?;
-            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let first_char = font
+                .get(b"FirstChar")
+                .ok()
+                .map(|value| resolved_integer(self.document, self.limits, value))
+                .transpose()?
+                .flatten();
             let widths = font
                 .get(b"Widths")
                 .ok()
@@ -1405,7 +1417,12 @@ impl Scanner<'_> {
                 continue;
             };
             let differences = type1_encoding_differences(self.document, font, self.limits)?;
-            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
+            let first_char = font
+                .get(b"FirstChar")
+                .ok()
+                .map(|value| resolved_integer(self.document, self.limits, value))
+                .transpose()?
+                .flatten();
             let widths = font
                 .get(b"Widths")
                 .ok()
@@ -1640,7 +1657,9 @@ impl Scanner<'_> {
             .dict
             .get(b"WMode")
             .ok()
-            .and_then(as_integer)
+            .map(|value| resolved_integer(self.document, self.limits, value))
+            .transpose()?
+            .flatten()
             .unwrap_or(0);
         let bytes = decode_font_stream(cmap, self.limits)?;
         if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
@@ -1736,8 +1755,18 @@ impl Scanner<'_> {
             _ => false,
         };
         if requires_simple_font_metrics {
-            let first_char = font.get(b"FirstChar").ok().and_then(as_integer);
-            let last_char = font.get(b"LastChar").ok().and_then(as_integer);
+            let first_char = font
+                .get(b"FirstChar")
+                .ok()
+                .map(|value| resolved_integer(self.document, self.limits, value))
+                .transpose()?
+                .flatten();
+            let last_char = font
+                .get(b"LastChar")
+                .ok()
+                .map(|value| resolved_integer(self.document, self.limits, value))
+                .transpose()?
+                .flatten();
             if first_char.is_none() {
                 self.invalid_first_chars.push(font_failure(
                     object_id,
@@ -1809,7 +1838,9 @@ fn type1_encoding_differences(
     let mut names = BTreeMap::new();
     let mut code = None;
     for entry in differences {
-        if let Some(value) = as_integer(entry).and_then(|value| u8::try_from(value).ok()) {
+        if let Some(value) = resolved_integer(document, limits, entry)?
+            .and_then(|value| u8::try_from(value).ok())
+        {
             code = Some(value);
         } else if let (Some(current), Ok(name)) = (code, entry.as_name()) {
             names.insert(current, String::from_utf8_lossy(name).into_owned());
@@ -1942,7 +1973,9 @@ fn parse_cid_widths(
         }
         let Some(first) = array
             .get(index)
-            .and_then(as_integer)
+            .map(|value| resolved_integer(document, limits, value))
+            .transpose()?
+            .flatten()
             .and_then(|value| u16::try_from(value).ok())
         else {
             break true;
@@ -3180,8 +3213,20 @@ fn collect_shown_text_bytes(operands: &[Object], bytes: &mut Vec<u8>) {
     }
 }
 
-fn as_integer(object: &Object) -> Option<i64> {
-    object.as_i64().ok()
+/// Resolves `object` through indirection before checking whether it is an
+/// integer. Confirmed live against veraPDF 1.28.2 that an *indirect*
+/// numeric value (e.g. a CMap's `/WMode`) is resolved rather than treated
+/// as absent -- the several integer-valued keys this file reads (`/WMode`,
+/// `/Flags`, `/FirstChar`, `/LastChar`) are not guaranteed to be direct.
+fn resolved_integer(
+    document: &Document,
+    limits: &SafetyLimits,
+    object: &Object,
+) -> Result<Option<i64>, PdfError> {
+    Ok(
+        resolve_optional(document, object, limits.max_reference_depth)?
+            .and_then(|object| object.as_i64().ok()),
+    )
 }
 
 fn is_standard_14_font(name: &[u8]) -> bool {

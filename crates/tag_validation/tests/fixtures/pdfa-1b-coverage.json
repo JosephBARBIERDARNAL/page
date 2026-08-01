@@ -1277,7 +1277,7 @@
       },
       {
         "applicability": [
-          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths."
+          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1308,6 +1308,10 @@
               },
               {
                 "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1372,6 +1376,10 @@
               {
                 "case": "composite_font:composite_identity_v",
                 "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_identity_h",
+                "kind": "verapdf_delta"
               }
             ],
             "representable": true
@@ -1399,7 +1407,7 @@
       },
       {
         "applicability": [
-          "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`."
+          "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1426,6 +1434,10 @@
               },
               {
                 "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1485,6 +1497,10 @@
               },
               {
                 "case": "composite_font:composite_identity_v",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_indirect_identity_h",
                 "kind": "verapdf_delta"
               }
             ],
@@ -7677,6 +7693,10 @@
             {
               "case": "composite_font:composite_identity_v",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_identity_h",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7700,7 +7720,7 @@
         "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
       ],
       "mapping_notes": [
-        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths."
+        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
       ],
       "object": "PDType0Font",
       "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
@@ -7733,6 +7753,10 @@
             },
             {
               "case": "composite_font:composite_identity_v",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_identity_h",
               "kind": "verapdf_delta"
             }
           ],
@@ -7783,6 +7807,10 @@
             {
               "case": "composite_font:composite_identity_v",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_identity_h",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7806,7 +7834,7 @@
         "PDFA1B-CMAP-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`."
+        "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one)."
       ],
       "object": "PDCMap",
       "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true",
@@ -7835,6 +7863,10 @@
             },
             {
               "case": "composite_font:composite_identity_v",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_indirect_identity_h",
               "kind": "verapdf_delta"
             }
           ],
