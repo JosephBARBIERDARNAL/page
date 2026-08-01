@@ -7,3 +7,8 @@ sandbox
 .cache
 .claude
 long-pdfa-1b.pdf
+
+# fixtures
+crates/page_validation/tests/fixtures/poster.pdf
+crates/page_validation/tests/fixtures/typst-pdfa-1b.pdf
+crates/page_validation/tests/fixtures/resume.pdf

@@ -40,7 +40,7 @@ pdfa1b-release-gate verapdf=verapdf_bin:
 
 # Regenerate the deterministic Typst 0.15.0 PDF/A-1b acceptance fixture.
 typst:
-    typst compile crates/page_validation/tests/fixtures/typst-pdfa-1b.typ crates/page_validation/tests/fixtures/typst-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
+    for f in crates/page_validation/tests/fixtures/*.typ; do typst compile "$f" "${f%.typ}.pdf" --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600; done
 
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:
