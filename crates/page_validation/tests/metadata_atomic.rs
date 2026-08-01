@@ -9,6 +9,48 @@ use page_validation::differential::{
 mod common;
 
 const CASES: &[(&str, &[&str])] = &[
+    ("first_rdf_package", &[]),
+    (
+        "duplicate_producer",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    ("predefined_structured_field", &[]),
+    ("predefined_structured_attribute_fields", &[]),
+    ("info_empty_property_value", &[]),
+    (
+        "rdf_parse_type_literal",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    (
+        "no_rdf_package",
+        &[
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
     (
         "missing_metadata",
         &[

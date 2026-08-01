@@ -111,6 +111,77 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline_b" => {}
+        "first_rdf_package" => {
+            replace(
+                &mut xmp,
+                "<?xpacket begin=\"\"?>",
+                "<?xpacket begin=\"\"?><wrapper>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "</rdf:RDF><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\"><rdf:Description pdfaid:part=\"2\" pdfaid:conformance=\"A\"/></rdf:RDF>",
+            );
+            replace(
+                &mut xmp,
+                "<?xpacket end=\"w\"?>",
+                "</wrapper><?xpacket end=\"w\"?>",
+            );
+        }
+        "duplicate_producer" => replace(
+            &mut xmp,
+            "</rdf:RDF>",
+            "<rdf:Description pdf:Producer=\"second\"/></rdf:RDF>",
+        ),
+        "predefined_structured_field" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">",
+            );
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<exif:Flash rdf:parseType=\"Resource\"><exif:Fired>True</exif:Fired></exif:Flash><dc:title>",
+            );
+        }
+        "predefined_structured_attribute_fields" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">",
+            );
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<exif:Flash><rdf:Description exif:Fired=\"True\" exif:Mode=\"1\"/></exif:Flash><dc:title>",
+            );
+        }
+        "info_empty_property_value" => {
+            replace(&mut xmp, " pdf:Keywords=\"rust,pdf\"", "");
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<pdf:Keywords rdf:value=\"rust,pdf\"/><dc:title>",
+            );
+        }
+        "rdf_parse_type_literal" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<xmp:Nickname rdf:parseType=\"Literal\">nickname</xmp:Nickname><dc:title>",
+        ),
+        "no_rdf_package" => {
+            let begin = xmp
+                .windows(b"<rdf:RDF".len())
+                .position(|window| window == b"<rdf:RDF")
+                .expect("RDF start");
+            let end = xmp
+                .windows(b"</rdf:RDF>".len())
+                .position(|window| window == b"</rdf:RDF>")
+                .expect("RDF end")
+                + b"</rdf:RDF>".len();
+            xmp.splice(begin..end, b"<not-xmp/>".iter().copied());
+        }
         "gps_coordinate_invalid" => {
             replace(
                 &mut xmp,

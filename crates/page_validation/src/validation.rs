@@ -1328,9 +1328,10 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
         |a, b| a == b,
     );
     if let Some(xmp) = xmp {
-        if !xmp
-            .invalid_predefined_xmp_value_types
-            .contains("{http://ns.adobe.com/xap/1.0/}CreateDate (date)")
+        if !xmp.create_dates.is_empty()
+            && !xmp
+                .invalid_predefined_xmp_value_types
+                .contains("{http://ns.adobe.com/xap/1.0/}CreateDate (date)")
         {
             compare_field(
                 document,
@@ -1343,9 +1344,10 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
                 dates_equivalent,
             );
         }
-        if !xmp
-            .invalid_predefined_xmp_value_types
-            .contains("{http://ns.adobe.com/xap/1.0/}ModifyDate (date)")
+        if !xmp.modify_dates.is_empty()
+            && !xmp
+                .invalid_predefined_xmp_value_types
+                .contains("{http://ns.adobe.com/xap/1.0/}ModifyDate (date)")
         {
             compare_field(
                 document,
