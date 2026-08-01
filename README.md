@@ -55,7 +55,7 @@ page document.pdf --profile a-1b --json
 
 ## Performance
 
-`page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) shows:
+`page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:
 
 | Metric | `page` | `veraPDF` | ratio
 |---|---|---|---

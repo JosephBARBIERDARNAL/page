@@ -38,3 +38,15 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 - [ ] PDF/A-4f
 - [ ] PDF/UA-1
 - [ ] PDF/UA-2
+
+
+## Performance
+
+`page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:
+
+| Metric | `page` | `veraPDF` | ratio
+|---|---|---|---
+| Validation time (median) | ~50 ms | ~1300 ms | ~26× faster
+| Peak RSS (median) | ~13 MB | ~254 MB | ~20× lighter
+
+Benchark code lives in [bench](https://github.com/JosephBARBIERDARNAL/page/tree/main/bench).
