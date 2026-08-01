@@ -19,8 +19,8 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 ## Usage
 
 - [CLI](api/cli.md)
-- [Rust crate](api/rust-crate.md)
-- [Python package](api/python-package.md)
+- [Rust](api/rust-crate.md)
+- [Python](api/python-package.md)
 
 ## Roadmap
 
