@@ -2949,6 +2949,13 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
     if case.starts_with("tt_symbolic_") {
         descriptor.set("Flags", 4);
     }
+    if case == "tt_symbolic_indirect_flags" {
+        // An *indirect* reference to the Symbolic flags value (4), not a
+        // direct one -- confirmed live against veraPDF 1.28.2 to be
+        // resolved and treated as symbolic exactly like a direct value.
+        let indirect_flags = document.add_object(Object::Integer(4));
+        descriptor.set("Flags", indirect_flags);
+    }
     if case == "tt_symbolic_two_cmaps" {
         descriptor.set(
             "FontFile2",
@@ -3415,7 +3422,8 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.set("LastChar", 233);
             font.set("Widths", vec![497.into()]);
         }
-        "tt_symbolic_no_encoding" | "tt_symbolic_one_cmap" | "tt_symbolic_two_cmaps" => {
+        "tt_symbolic_no_encoding" | "tt_symbolic_one_cmap" | "tt_symbolic_two_cmaps"
+        | "tt_symbolic_indirect_flags" => {
             font.remove(b"Encoding");
         }
         _ => {}

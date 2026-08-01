@@ -21,12 +21,10 @@ use std::path::Path;
 use tag_validation::{SafetyLimits, ValidationProfile, validate_file};
 
 fn main() {
-    let limits = SafetyLimits::default();
-
     let report = validate_file(
         Path::new("document.pdf"),
         ValidationProfile::PdfA1b,
-        &limits,
+        &SafetyLimits::default(),
     );
 
     println!("{report}");

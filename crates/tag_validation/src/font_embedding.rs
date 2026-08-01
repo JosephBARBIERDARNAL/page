@@ -1838,8 +1838,8 @@ fn type1_encoding_differences(
     let mut names = BTreeMap::new();
     let mut code = None;
     for entry in differences {
-        if let Some(value) = resolved_integer(document, limits, entry)?
-            .and_then(|value| u8::try_from(value).ok())
+        if let Some(value) =
+            resolved_integer(document, limits, entry)?.and_then(|value| u8::try_from(value).ok())
         {
             code = Some(value);
         } else if let (Some(current), Ok(name)) = (code, entry.as_name()) {

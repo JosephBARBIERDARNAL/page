@@ -14,6 +14,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("tt_nonsymbolic_differences", &[NONSYMBOLIC]),
     ("tt_nonsymbolic_differences_null", &[]),
     ("tt_symbolic_no_encoding", &[]),
+    ("tt_symbolic_indirect_flags", &[]),
     ("tt_symbolic_with_encoding", &[SYMBOLIC]),
     ("tt_symbolic_one_cmap", &[]),
     ("tt_symbolic_two_cmaps", &[SYMBOLIC_CMAP]),

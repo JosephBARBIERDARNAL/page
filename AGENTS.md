@@ -62,8 +62,8 @@ Always follow official verapdf rules specs.
 ## Run
 
 ```bash
-cargo run -p tag_cli --bin tag -- validate --profile pdfa-1b path/to/file.pdf
-cargo run -p tag_cli --bin tag -- validate --profile pdfa-1b --format json path/to/file.pdf
+cargo run -p tag_cli --bin tag -- validate --profile a-1b path/to/file.pdf
+cargo run -p tag_cli --bin tag -- validate --profile a-1b --format json path/to/file.pdf
 ```
 
 The process exits with status `0` when all implemented checks pass, `2` for a malformed PDF or failed validation check, and `1` for an operational problem such as unreadable input, a configured safety limit, or report serialization.
@@ -212,7 +212,7 @@ The source of truth is `veraPDF-validation-profiles-rel-1.28/PDF_A/PDFA-1B.xml` 
 | `PDFA1B-TYPE0-CID-SYSTEM-INFO-001` | `ISO 19005-1:2005:6.3.3.1:1` | §6.3.3.1 | partial/proxy | `cmapName == "Identity-H" \|\| cmapName == "Identity-V" \|\| (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over embedded CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). |
 | `PDFA1B-CIDTOGIDMAP-001` | `ISO 19005-1:2005:6.3.3.2:1` | §6.3.3.2 | exact | For used first descendants: `Subtype != "CIDFontType2" \|\| CIDToGIDMap != null \|\| renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one). |
 | `PDFA1B-CMAP-EMBEDDING-001` | `ISO 19005-1:2005:6.3.3.3:1` | §6.3.3.3 | partial/proxy | For Type0 fonts reached by bounded text-show paths: `CMapName == "Identity-H" \|\| CMapName == "Identity-V" \|\| containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). |
-| `PDFA1B-CMAP-WMODE-001` | `ISO 19005-1:2005:6.3.3.3:2` | §6.3.3.3 | partial/proxy | For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero. |
+| `PDFA1B-CMAP-WMODE-001` | `ISO 19005-1:2005:6.3.3.3:2` | §6.3.3.3 | exact | For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one). |
 | `PDFA1B-CMAP-CID-RANGE-001` | none | none | none | Local bounded precondition supporting the §6.3.5 test-1 glyph-presence predicate below: a CID a rendered byte decodes to must be within the descendant CIDFont's supported range before glyph presence can be meaningfully evaluated. Not an independently numbered veraPDF test. |
 | `PDFA1B-CMAP-MAX-CID-001` | `ISO 19005-1:2005:6.1.12:10` | §6.1.12 | exact | Every embedded CMap's maximum CID is at most 65,535. |
 | `PDFA1B-TYPE1-GLYPH-PRESENCE-001` | `ISO 19005-1:2005:6.3.5:1` | §6.3.5 | partial/proxy | For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte. |

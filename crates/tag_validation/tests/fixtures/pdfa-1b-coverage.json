@@ -1466,7 +1466,7 @@
       },
       {
         "applicability": [
-          "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero."
+          "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1489,6 +1489,10 @@
             "evidence": [
               {
                 "case": "composite_font:composite_cmap_matching",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_cmap_wmode_indirect_match",
                 "kind": "verapdf_delta"
               },
               {
@@ -1521,7 +1525,7 @@
           "PDFA1B-CMAP-WMODE-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "CMapFile",
         "predicate": "WMode == dictWMode",
@@ -7858,6 +7862,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "composite_font:composite_cmap_wmode_indirect_match",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_cmap_wmode_match",
               "kind": "verapdf_delta"
             },
@@ -7885,13 +7893,13 @@
       },
       "description": "For those CMaps that are embedded, the integer value of the WMode entry in the CMap dictionary shall be identical to the WMode value in the embedded CMap stream",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-CMAP-WMODE-001"
       ],
       "mapping_notes": [
-        "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero."
+        "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one)."
       ],
       "object": "CMapFile",
       "predicate": "WMode == dictWMode",

@@ -13,14 +13,35 @@ use crate::report::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum ValidationProfile {
-    #[serde(rename = "pdfa-1b")]
+    #[serde(rename = "a-1b")]
     PdfA1b,
+    #[serde(rename = "a-1a")]
+    PdfA1a,
+    #[serde(rename = "a-2b")]
+    PdfA2b,
+    #[serde(rename = "a-2a")]
+    PdfA2a,
+    #[serde(rename = "a-2u")]
+    PdfA2u,
+    #[serde(rename = "a-3b")]
+    PdfA3b,
+    #[serde(rename = "a-3a")]
+    PdfA3a,
+    #[serde(rename = "a-3u")]
+    PdfA3u,
 }
 
 impl fmt::Display for ValidationProfile {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PdfA1b => formatter.write_str("PDF/A-1b"),
+            Self::PdfA1a => formatter.write_str("PDF/A-1a"),
+            Self::PdfA2b => formatter.write_str("PDF/A-2b"),
+            Self::PdfA2a => formatter.write_str("PDF/A-2a"),
+            Self::PdfA2u => formatter.write_str("PDF/A-2u"),
+            Self::PdfA3b => formatter.write_str("PDF/A-3b"),
+            Self::PdfA3a => formatter.write_str("PDF/A-3a"),
+            Self::PdfA3u => formatter.write_str("PDF/A-3u"),
         }
     }
 }
