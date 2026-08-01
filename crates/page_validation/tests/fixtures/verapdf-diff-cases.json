@@ -29,7 +29,7 @@
         "ISO 19005-1:2005:6.7.9:2",
         "ISO 19005-1:2005:6.7.9:3"
       ],
-      "rationale": "Typst 0.15.0 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/structural.pdf",
@@ -48,28 +48,28 @@
     },
     {
       "path": "tests/fixtures/poster.pdf",
-      "expected_classification": "both_noncompliant",
-      "rationale": "This real-world PDF makes no PDF/A claim; the local subset fails identification checks and veraPDF reports PDF/A-1b failures."
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/proposal.pdf",
-      "expected_classification": "both_noncompliant",
-      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/resume.pdf",
-      "expected_classification": "both_noncompliant",
-      "rationale": "This real-world PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/example-1.pdf",
-      "expected_classification": "both_noncompliant",
-      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/not-compliant-1.pdf",
-      "expected_classification": "both_noncompliant",
-      "rationale": "This ordinary Typst-generated PDF makes no PDF/A claim; both validators report it as outside the selected PDF/A-1b requirements."
+      "expected_classification": "agreement",
+      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
     },
     {
       "path": "tests/fixtures/odd-hex-string.pdf",

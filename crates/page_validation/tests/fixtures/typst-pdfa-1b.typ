@@ -1,4 +1,4 @@
-// Generated with Typst 0.15.0. Keep the fixed metadata date and compile
+// Generated with Typst 0.15.1. Keep the fixed metadata date and compile
 // timestamp in the justfile recipe so the PDF remains byte-reproducible.
 #set document(
   title: [page PDF/A-1b conformance fixture],

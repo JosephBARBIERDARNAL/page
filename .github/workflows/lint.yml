@@ -20,6 +20,8 @@ jobs:
 
       - name: Install Typst
         uses: typst-community/setup-typst@v5
+        with:
+          typst-version: 0.15.1
 
       - name: Install just
         uses: taiki-e/install-action@just
