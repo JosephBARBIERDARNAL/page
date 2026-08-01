@@ -4,7 +4,10 @@
 
 tag provides an alternative to veraPDF written in Rust. veraPDF is the source of truth for the expected output of a given validation. ALWAYS use verapdf to confirm or infirm the output of a given test or rule. We're currently focusing on PDF/A-1b validation.
 
-Note: there is backward compatibility policy, breaking changes are allowed.
+## Notes
+
+- there is NO backward compatibility policy, breaking changes are allowed.
+- when you found a very unexpected result in veraPDF, figure out whether it's a real upstream bug or not. In order to prove that it is one, you need to create a reprex (as minimalist as possible).
 
 ## Project Structure & Module Organization
 
