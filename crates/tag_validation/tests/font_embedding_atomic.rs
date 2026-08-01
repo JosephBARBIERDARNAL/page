@@ -37,6 +37,7 @@ const CASES: &[(&str, bool)] = &[
     ("graphics_state_visible", true),
     ("graphics_state_invisible", false),
     ("cyclic_form", true),
+    ("font_subtype_indirect_unembedded", true),
 ];
 
 #[test]

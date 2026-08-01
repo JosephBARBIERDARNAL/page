@@ -694,10 +694,7 @@ impl Scanner<'_> {
         let Ok(font) = object.as_dict() else {
             return Ok(());
         };
-        let subtype = font
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        let subtype = resolved_name(self.document, font, b"Subtype", self.limits)?
             .map(|value| String::from_utf8_lossy(value).into_owned());
         // veraPDF 1.28.2 does not create a PDFont model object for a missing
         // or unsupported subtype, so none of the PDFont predicates are
@@ -990,10 +987,8 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let descendant_subtype = descendant
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok());
+            let descendant_subtype =
+                resolved_name(self.document, descendant, b"Subtype", self.limits)?;
             if descendant_subtype == Some(b"CIDFontType0".as_slice()) {
                 self.inspect_rendered_cff_cidfont_glyphs(&usage, descendant, &cids)?;
                 continue;
@@ -1156,10 +1151,7 @@ impl Scanner<'_> {
             let Ok(font) = object.as_dict() else {
                 continue;
             };
-            if !font
-                .get(b"BaseFont")
-                .ok()
-                .and_then(|value| value.as_name().ok())
+            if !resolved_name(self.document, font, b"BaseFont", self.limits)?
                 .is_some_and(is_subset_font_name)
             {
                 continue;
@@ -1505,15 +1497,10 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let descendant_subtype = descendant
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok());
+            let descendant_subtype =
+                resolved_name(self.document, descendant, b"Subtype", self.limits)?;
             if !matches!(descendant_subtype, Some(b"CIDFontType2" | b"CIDFontType0"))
-                || !descendant
-                    .get(b"BaseFont")
-                    .ok()
-                    .and_then(|value| value.as_name().ok())
+                || !resolved_name(self.document, descendant, b"BaseFont", self.limits)?
                     .is_some_and(is_subset_font_name)
             {
                 continue;
@@ -1948,7 +1935,9 @@ fn parse_cid_widths(
     let default_width = font
         .get(b"DW")
         .ok()
-        .and_then(|value| value.as_float().ok())
+        .map(|value| resolved_float(document, limits, value))
+        .transpose()?
+        .flatten()
         .map(f64::from);
     let none = || CidWidths {
         groups: Vec::new(),
@@ -1979,7 +1968,12 @@ fn parse_cid_widths(
         else {
             break true;
         };
-        let Some(next) = array.get(index + 1) else {
+        let Some(next) = array
+            .get(index + 1)
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+        else {
             break true;
         };
         if let Ok(widths) = next.as_array() {
@@ -1988,12 +1982,13 @@ fn parse_cid_widths(
             // Reaching offset 65536 is exactly the same overflow point.
             let usable_len = widths.len().min(usize::from(u16::MAX) + 1);
             let overflowed = widths.len() > usable_len;
+            let mut resolved_widths = Vec::with_capacity(usable_len);
+            for width in &widths[..usable_len] {
+                resolved_widths.push(resolved_float(document, limits, width)?.map(f64::from));
+            }
             groups.push(WGroup::Singles {
                 first,
-                widths: widths[..usable_len]
-                    .iter()
-                    .map(|value| value.as_float().ok().map(f64::from))
-                    .collect(),
+                widths: resolved_widths,
             });
             if overflowed {
                 break true;
@@ -2008,7 +2003,12 @@ fn parse_cid_widths(
         else {
             break true;
         };
-        let Some(width) = array.get(index + 2).and_then(|value| value.as_float().ok()) else {
+        let Some(width) = array
+            .get(index + 2)
+            .map(|value| resolved_float(document, limits, value))
+            .transpose()?
+            .flatten()
+        else {
             break true;
         };
         groups.push(WGroup::Range {
@@ -2128,6 +2128,23 @@ fn resolved_array<'a>(
     Ok(
         resolve_optional(document, value, limits.max_reference_depth)?
             .and_then(|object| object.as_array().ok()),
+    )
+}
+
+/// A dictionary name value (e.g. `/Subtype`) resolved through indirection
+/// before use, mirroring `resolved_string`/`resolved_array`.
+fn resolved_name<'a>(
+    document: &'a Document,
+    dictionary: &'a Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<&'a [u8]>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .and_then(|object| object.as_name().ok()),
     )
 }
 

@@ -948,7 +948,7 @@
       },
       {
         "applicability": [
-          "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both)."
+          "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both). `/Subtype` itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. `/TrueType`, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1171,7 +1171,7 @@
       },
       {
         "applicability": [
-          "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
+          "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`. `/Widths` is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1210,6 +1210,10 @@
             "evidence": [
               {
                 "case": "font:font_firstchar_lastchar_indirect",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_array_indirect",
                 "kind": "verapdf_delta"
               },
               {
@@ -1582,6 +1586,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:font_subtype_indirect_unembedded",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:form_unembedded",
                 "kind": "verapdf_delta"
               },
@@ -1759,7 +1767,19 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "composite_font:composite_descendant_subtype_indirect_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_dw_indirect_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_identity_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_w_singles_element_indirect_mismatch",
                 "kind": "verapdf_delta"
               },
               {
@@ -1904,7 +1924,7 @@
       },
       {
         "applicability": [
-          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped)."
+          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both)."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1917,7 +1937,19 @@
           "applicable_fail": {
             "evidence": [
               {
+                "case": "composite_font:composite_descendant_subtype_indirect_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_dw_indirect_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "composite_font:composite_identity_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "composite_font:composite_w_singles_element_indirect_mismatch",
                 "kind": "verapdf_delta"
               },
               {
@@ -1926,6 +1958,10 @@
               },
               {
                 "case": "font:font_lastchar_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:font_widths_element_indirect_mismatch",
                 "kind": "verapdf_delta"
               },
               {
@@ -7466,7 +7502,7 @@
         "PDFA1B-FONT-SUBTYPE-001"
       ],
       "mapping_notes": [
-        "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both)."
+        "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both). `/Subtype` itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. `/TrueType`, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped)."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type1\" || Subtype == \"MMType1\" || Subtype == \"TrueType\" || Subtype == \"Type3\" || Subtype == \"Type0\" || Subtype == \"CIDFontType0\" || Subtype == \"CIDFontType2\"",
@@ -7661,6 +7697,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:font_widths_array_indirect",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:standard14_missing_metrics",
               "kind": "verapdf_delta"
             }
@@ -7686,7 +7726,7 @@
         "PDFA1B-FONT-WIDTHS-001"
       ],
       "mapping_notes": [
-        "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
+        "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`. `/Widths` is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one)."
       ],
       "object": "PDSimpleFont",
       "predicate": "isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)",
@@ -7994,6 +8034,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:font_subtype_indirect_unembedded",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:form_unembedded",
               "kind": "verapdf_delta"
             },
@@ -8164,7 +8208,19 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "composite_font:composite_descendant_subtype_indirect_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_dw_indirect_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_identity_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_w_singles_element_indirect_mismatch",
               "kind": "verapdf_delta"
             },
             {
@@ -8305,7 +8361,19 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "composite_font:composite_descendant_subtype_indirect_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_dw_indirect_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "composite_font:composite_identity_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "composite_font:composite_w_singles_element_indirect_mismatch",
               "kind": "verapdf_delta"
             },
             {
@@ -8314,6 +8382,10 @@
             },
             {
               "case": "font:font_lastchar_missing",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:font_widths_element_indirect_mismatch",
               "kind": "verapdf_delta"
             },
             {
@@ -8367,7 +8439,7 @@
         "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
       ],
       "mapping_notes": [
-        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped)."
+        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both)."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",

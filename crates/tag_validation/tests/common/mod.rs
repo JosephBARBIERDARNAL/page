@@ -2944,6 +2944,7 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             | "graphics_state_invisible"
             | "cyclic_form"
             | "large_content"
+            | "font_subtype_indirect_unembedded"
     );
     let mut descriptor = font_descriptor(&mut document, embedded);
     if case.starts_with("tt_symbolic_") {
@@ -3084,7 +3085,11 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         );
     } else if matches!(
         case,
-        "composite_identity_width_mismatch" | "composite_identity_width_override_mismatch"
+        "composite_identity_width_mismatch"
+            | "composite_identity_width_override_mismatch"
+            | "composite_descendant_subtype_indirect_width_mismatch"
+            | "composite_dw_indirect_mismatch"
+            | "composite_w_singles_element_indirect_mismatch"
     ) {
         descriptor.set(
             "FontFile2",
@@ -3246,6 +3251,16 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        if case == "composite_descendant_subtype_indirect_width_mismatch" {
+            // The descendant's own /Subtype as an *indirect* reference to
+            // the name /CIDFontType2, not a direct one, paired with a
+            // genuine /DW mismatch (400 vs. the embedded program's real
+            // 500) so only a resolved, recognized Subtype proves the
+            // descendant's glyph/width checks still run rather than being
+            // silently skipped as an unrecognized subtype.
+            let indirect_subtype = document.add_object(Object::Name(b"CIDFontType2".to_vec()));
+            descendant_dictionary.set("Subtype", indirect_subtype);
+        }
         if matches!(
             case,
             "composite_cff_missing_glyph"
@@ -3285,13 +3300,32 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
                 let map = document.add_object(Stream::new(Dictionary::new(), map));
                 descendant_dictionary.set("CIDToGIDMap", map);
             }
-            "composite_identity_width_mismatch" => {
+            "composite_identity_width_mismatch"
+            | "composite_descendant_subtype_indirect_width_mismatch" => {
                 descendant_dictionary.set("DW", 400);
+            }
+            // /DW as an *indirect* reference to a mismatched value (400
+            // vs. the embedded program's real 500), not a direct one.
+            "composite_dw_indirect_mismatch" => {
+                let indirect_dw = document.add_object(Object::Integer(400));
+                descendant_dictionary.set("DW", indirect_dw);
             }
             "composite_identity_width_override_mismatch" => {
                 descendant_dictionary.set(
                     "W",
                     Object::Array(vec![32.into(), Object::Array(vec![400.into()])]),
+                );
+            }
+            // A /W singles group (`c [w1 ...]`) whose one width entry is an
+            // *indirect* reference to a mismatched value, not a direct one.
+            "composite_w_singles_element_indirect_mismatch" => {
+                let indirect_width = document.add_object(Object::Integer(400));
+                descendant_dictionary.set(
+                    "W",
+                    Object::Array(vec![
+                        32.into(),
+                        Object::Array(vec![Object::Reference(indirect_width)]),
+                    ]),
                 );
             }
             _ => {}
@@ -3375,6 +3409,15 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
             font.remove(b"Subtype");
         }
         "font_subtype_invalid" => font.set("Subtype", "UnsupportedFont"),
+        // /Subtype as an *indirect* reference to the name /TrueType, on an
+        // otherwise-unembedded font -- discriminates whether an unresolved
+        // indirect /Subtype wrongly makes the whole font inapplicable (no
+        // PDFont object, every predicate silently skipped) instead of being
+        // resolved and recognized like a direct name.
+        "font_subtype_indirect_unembedded" => {
+            let indirect_subtype = document.add_object(Object::Name(b"TrueType".to_vec()));
+            font.set("Subtype", indirect_subtype);
+        }
         "font_basefont_missing" => {
             font.remove(b"BaseFont");
         }
@@ -3569,6 +3612,9 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
         "composite_identity_missing_glyph"
         | "composite_identity_width_mismatch"
         | "composite_identity_width_override_mismatch"
+        | "composite_descendant_subtype_indirect_width_mismatch"
+        | "composite_dw_indirect_mismatch"
+        | "composite_w_singles_element_indirect_mismatch"
         | "composite_stream_cidmap_missing_glyph"
         | "composite_cff_missing_glyph"
         | "composite_cff_present_glyph"

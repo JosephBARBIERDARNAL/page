@@ -48,7 +48,16 @@ const CASES: &[(&str, &[&str])] = &[
     ),
     ("composite_identity_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_identity_width_mismatch", &[GLYPH_WIDTH]),
+    (
+        "composite_descendant_subtype_indirect_width_mismatch",
+        &[GLYPH_WIDTH],
+    ),
     ("composite_identity_width_override_mismatch", &[GLYPH_WIDTH]),
+    ("composite_dw_indirect_mismatch", &[GLYPH_WIDTH]),
+    (
+        "composite_w_singles_element_indirect_mismatch",
+        &[GLYPH_WIDTH],
+    ),
     ("composite_stream_cidmap_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_nonidentity_missing_glyph", &[GLYPH_PRESENCE]),
     (
