@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/page/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/cli/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/page/api/cli/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/rust-crate/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/page/api/rust-crate/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/api/python-package/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/page/api/python-package/</loc>
       </url>
       <url>
-        <loc>https://JosephBARBIERDARNAL.github.io/tag/rules/pdfa-1b-rule-mapping/</loc>
+        <loc>https://JosephBARBIERDARNAL.github.io/page/rules/pdfa-1b-rule-mapping/</loc>
       </url>
 </urlset>
