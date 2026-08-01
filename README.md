@@ -1,6 +1,6 @@
-# tag
+# page
 
-`tag` is an experimental PDF/A and PDF/UA validator, written in Rust.
+`page` is an experimental PDF/A and PDF/UA validator, written in Rust.
 
 > [!WARNING]
 > This project is **very early stage**, and current focus is on the PDF/A-1b validation.
@@ -12,10 +12,10 @@
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/josephbarbierdarnal/tag.git tag_cli --bin tag
+cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
 ```
 
-`tag` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
+`page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
 
 <br>
 
@@ -24,13 +24,13 @@ cargo install --git https://github.com/josephbarbierdarnal/tag.git tag_cli --bin
 Validate one PDF against a profile:
 
 ```sh
-tag document.pdf --profile a-1b
+page document.pdf --profile a-1b
 ```
 
 Add `--json` to emit the validation report as JSON:
 
 ```sh
-tag document.pdf --profile a-1b --json
+page document.pdf --profile a-1b --json
 ```
 
 <br>
@@ -55,8 +55,8 @@ tag document.pdf --profile a-1b --json
 
 ## License
 
-The original `tag` source code is licensed under [MIT](LICENSE).
+The original `page` source code is licensed under [MIT](LICENSE).
 
-The `tag_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license;
-see the [third-party notices](crates/tag_validation/THIRD_PARTY_NOTICES.md).
+The `page_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license;
+see the [third-party notices](crates/page_validation/THIRD_PARTY_NOTICES.md).
 Binary distributions must include both license documents.

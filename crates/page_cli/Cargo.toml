@@ -1,0 +1,19 @@
+[package]
+name = "page_cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "page"
+path = "src/main.rs"
+
+[[bin]]
+name = "verapdf-diff"
+path = "src/bin/verapdf-diff.rs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+page_validation = { path = "../page_validation" }
+serde = "1"
+serde_json = "1"

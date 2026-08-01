@@ -1,4 +1,4 @@
-#set document(title: "Long PDF/A-1b benchmark document", author: "tag")
+#set document(title: "Long PDF/A-1b benchmark document", author: "page")
 
 = Long PDF/A-1b benchmark document
 

@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-  "crates/tag_cli",
-  "crates/tag_validation",
+  "crates/page_cli",
+  "crates/page_validation",
 ]
 
 [workspace.package]

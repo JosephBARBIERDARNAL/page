@@ -669,6 +669,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
+name = "page_cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "page_validation",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "page_validation"
+version = "0.1.0"
+dependencies = [
+ "lopdf",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sxd-xpath",
+ "thiserror",
+ "ttf-parser",
+ "wait-timeout",
+]
+
+[[package]]
 name = "peresil"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -919,31 +944,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "tag_cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "serde",
- "serde_json",
- "tag_validation",
-]
-
-[[package]]
-name = "tag_validation"
-version = "0.1.0"
-dependencies = [
- "lopdf",
- "roxmltree",
- "serde",
- "serde_json",
- "sha2",
- "sxd-xpath",
- "thiserror",
- "ttf-parser",
- "wait-timeout",
 ]
 
 [[package]]

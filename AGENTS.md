@@ -2,7 +2,7 @@
 
 ## Overview
 
-tag provides an alternative to veraPDF written in Rust. veraPDF is the source of truth for the expected output of a given validation. ALWAYS use verapdf to confirm or infirm the output of a given test or rule. We're currently focusing on PDF/A-1b validation.
+page provides an alternative to veraPDF written in Rust. veraPDF is the source of truth for the expected output of a given validation. ALWAYS use verapdf to confirm or infirm the output of a given test or rule. We're currently focusing on PDF/A-1b validation.
 
 ## Notes
 
@@ -11,13 +11,13 @@ tag provides an alternative to veraPDF written in Rust. veraPDF is the source of
 
 ## Project Structure & Module Organization
 
-This Rust 2024 project is a virtual Cargo workspace with two packages. Keep reusable PDF parsing, normalization, validation rules, reports, safety limits, and veraPDF differential logic in `crates/tag_validation`. Keep argument parsing, presentation, exit behavior, and executable entry points in `crates/tag_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
+This Rust 2024 project is a virtual Cargo workspace with two packages. Keep reusable PDF parsing, normalization, validation rules, reports, safety limits, and veraPDF differential logic in `crates/page_validation`. Keep argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
 
-Validation unit and integration tests live with `tag_validation`; keep its shared helpers in `crates/tag_validation/tests/common/`, PDF inputs and the differential manifest in `crates/tag_validation/tests/fixtures/`, and sanitized veraPDF output in `crates/tag_validation/tests/reference-reports/`. CLI contract tests live in `crates/tag_cli/tests/`. Build artifacts under `target/` are not source files.
+Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/`, PDF inputs and the differential manifest in `crates/page_validation/tests/fixtures/`, and sanitized veraPDF output in `crates/page_validation/tests/reference-reports/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
 
 ## Testing Guidelines
 
-Place focused unit tests beside their owning validation modules in `#[cfg(test)]` blocks and validation integration behavior in `crates/tag_validation/tests/*.rs`. Test argument parsing, output formats, and exit-status behavior in `crates/tag_cli/tests/*.rs`. Name tests for observable behavior, for example `rejects_encrypted_pdf`. Add regression coverage to the package that owns the behavior. There is no stated numeric coverage target. PDF fixtures are binary and hash-pinned by `crates/tag_validation/tests/fixture_integrity.rs`; update fixtures and their expected hashes intentionally.
+Place focused unit tests beside their owning validation modules in `#[cfg(test)]` blocks and validation integration behavior in `crates/page_validation/tests/*.rs`. Test argument parsing, output formats, and exit-status behavior in `crates/page_cli/tests/*.rs`. Name tests for observable behavior, for example `rejects_encrypted_pdf`. Add regression coverage to the package that owns the behavior. There is no stated numeric coverage target. PDF fixtures are binary and hash-pinned by `crates/page_validation/tests/fixture_integrity.rs`; update fixtures and their expected hashes intentionally.
 
 ## veraPDF Validation Rule Pages
 
@@ -61,9 +61,9 @@ Always follow official verapdf rules specs.
 ## Architecture
 
 ```text
-`tag_cli`
+`page_cli`
     -> argument and output handling
-    -> `tag_validation`
+    -> `page_validation`
        -> bounded file input
        -> strict lopdf parser
        -> normalized PdfDocument model
@@ -73,7 +73,7 @@ Always follow official verapdf rules specs.
        -> deterministic ValidationReport
 ```
 
-Operational and parser failures are kept separate from metadata and conformance failures. Limits are configurable for input bytes, decoded stream bytes, object count, and reference-chain depth. Operational failures use `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance. Library tests and fixtures live under `crates/tag_validation/tests`; CLI contract tests live under `crates/tag_cli/tests`. Each package declares only the dependencies it uses.
+Operational and parser failures are kept separate from metadata and conformance failures. Limits are configurable for input bytes, decoded stream bytes, object count, and reference-chain depth. Operational failures use `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance. Library tests and fixtures live under `crates/page_validation/tests`; CLI contract tests live under `crates/page_cli/tests`. Each package declares only the dependencies it uses.
 
 ## Differential testing against veraPDF
 
@@ -81,7 +81,7 @@ The `verapdf-diff` binary compares the local subset with an explicitly pinned
 veraPDF installation:
 
 ```bash
-cargo run -p tag_cli --bin verapdf-diff -- \
+cargo run -p page_cli --bin verapdf-diff -- \
   --verapdf /path/to/verapdf \
   --expected-version 1.28.2 \
   --profile 1b \
@@ -110,4 +110,4 @@ The classifications are:
 
 ### Pinned rule mapping
 
-The machine-readable source of truth for the PDF/A-1b rule mapping and coverage evidence is `crates/tag_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/tag_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1b-rule-mapping.md` for the generated human-readable mapping.
+The machine-readable source of truth for the PDF/A-1b rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1b-rule-mapping.md` for the generated human-readable mapping.

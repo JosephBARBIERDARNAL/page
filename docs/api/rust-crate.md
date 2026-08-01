@@ -2,15 +2,15 @@
 title: "Rust crate"
 ---
 
-# Using the `tag_validation` Crate
+# Using the `page_validation` Crate
 
-The `tag_validation` crate validates PDF files against a supported PDF/A or PDF/UA profile.
+The `page_validation` crate validates PDF files against a supported PDF/A or PDF/UA profile.
 
 ## Add the dependency
 
 ```toml
 [dependencies]
-tag_validation = "0.1.0"
+page_validation = "0.1.0"
 ```
 
 ## Validate a PDF
@@ -18,7 +18,7 @@ tag_validation = "0.1.0"
 ```rust
 use std::path::Path;
 
-use tag_validation::{SafetyLimits, ValidationProfile, validate_file};
+use page_validation::{SafetyLimits, ValidationProfile, validate_file};
 
 fn main() {
     let report = validate_file(
@@ -64,7 +64,7 @@ Document: PDF 1.5, 13 page(s), 128 object(s)
 Safety limits protect the validator from excessively large or complex inputs.
 
 ```rust
-use tag_validation::SafetyLimits;
+use page_validation::SafetyLimits;
 
 let limits = SafetyLimits {
     max_input_size: 100 * 1024 * 1024,
@@ -91,7 +91,7 @@ for failure in &report.failures {
 Failure categories distinguish conformance problems from parser or operational errors:
 
 ```rust
-use tag_validation::FailureCategory;
+use page_validation::FailureCategory;
 
 match failure.category {
     FailureCategory::Metadata | FailureCategory::Conformance => {

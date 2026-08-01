@@ -18,12 +18,12 @@ const BENCHMARK_PDF: &str = "bench/long-pdfa-1b.pdf";
 #[derive(Debug, Parser)]
 #[command(
     name = "verapdf-bench",
-    about = "Compare end-to-end tag and veraPDF validation performance"
+    about = "Compare end-to-end page and veraPDF validation performance"
 )]
 struct Cli {
-    /// Path to the release tag executable.
-    #[arg(long, default_value = "target/release/tag")]
-    tag: PathBuf,
+    /// Path to the release page executable.
+    #[arg(long, default_value = "target/release/page")]
+    page: PathBuf,
 
     /// Path to the veraPDF executable.
     #[arg(long, default_value = "verapdf")]
@@ -77,7 +77,7 @@ fn run(executable: &Path, args: &[&Path]) -> io::Result<Duration> {
     Ok(started.elapsed())
 }
 
-fn run_tag(executable: &Path, file: &Path) -> io::Result<Duration> {
+fn run_page(executable: &Path, file: &Path) -> io::Result<Duration> {
     let mut command = Command::new(executable);
     command
         .arg(file)
@@ -147,29 +147,29 @@ fn main() -> io::Result<()> {
     );
 
     for _ in 0..cli.warmup {
-        run_tag(&cli.tag, file)?;
+        run_page(&cli.page, file)?;
         run_verapdf(&cli.verapdf, file)?;
     }
 
-    let mut tag_samples = Vec::with_capacity(cli.runs);
+    let mut page_samples = Vec::with_capacity(cli.runs);
     let mut verapdf_samples = Vec::with_capacity(cli.runs);
     for run_number in 0..cli.runs {
         if run_number.is_multiple_of(2) {
-            tag_samples.push(run_tag(&cli.tag, file)?);
+            page_samples.push(run_page(&cli.page, file)?);
             verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
         } else {
             verapdf_samples.push(run_verapdf(&cli.verapdf, file)?);
-            tag_samples.push(run_tag(&cli.tag, file)?);
+            page_samples.push(run_page(&cli.page, file)?);
         }
     }
 
-    let tag = Summary::from_samples(tag_samples);
+    let page = Summary::from_samples(page_samples);
     let verapdf = Summary::from_samples(verapdf_samples);
-    print_summary("tag", tag);
+    print_summary("page", page);
     print_summary("veraPDF", verapdf);
     println!(
-        "speedup: {:.2}x (veraPDF median / tag median)",
-        verapdf.median.as_secs_f64() / tag.median.as_secs_f64()
+        "speedup: {:.2}x (veraPDF median / page median)",
+        verapdf.median.as_secs_f64() / page.median.as_secs_f64()
     );
     Ok(())
 }
