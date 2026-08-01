@@ -55,4 +55,8 @@ tag document.pdf --profile a-1b --json
 
 ## License
 
-[MIT](LICENSE)
+The original `tag` source code is licensed under [MIT](LICENSE).
+
+The `tag_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license;
+see the [third-party notices](crates/tag_validation/THIRD_PARTY_NOTICES.md).
+Binary distributions must include both license documents.

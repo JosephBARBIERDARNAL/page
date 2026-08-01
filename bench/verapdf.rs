@@ -142,10 +142,9 @@ fn main() -> io::Result<()> {
     }
 
     println!(
-        "end-to-end benchmark: {} measured run(s), {} warmup run(s)",
+        "\n\nPDF: {BENCHMARK_PDF} with {} measured runs, {} warmup run\n",
         cli.runs, cli.warmup
     );
-    println!("PDF: {BENCHMARK_PDF}");
 
     for _ in 0..cli.warmup {
         run_tag(&cli.tag, file)?;
