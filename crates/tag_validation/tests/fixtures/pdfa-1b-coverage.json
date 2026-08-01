@@ -1728,8 +1728,8 @@
       },
       {
         "applicability": [
-          "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte. Still `partial/proxy`: shares the `type1_standard_glyph_name`-fallback gap documented under `TYPE1-SUBSET-CHARSET-001` (a byte absent from `/Differences` always resolves via a hardcoded StandardEncoding table, never the embedded Type1 program's own built-in `/Encoding` array). The whole hand-rolled `type1_program` fixture family (every `type1_glyph_*`/`type1_difference_glyph`/`type1_width_mismatch` case) is confirmed to crash veraPDF 1.28.2 itself (`Exception: ... Range [0, 0 + -3) out of bounds for length 8192`, reproduced directly) when dumped for live differential comparison, since these fixtures were only ever built to exercise this crate's own byte-level Type1 scanning (`type1_program_char_names`/`type1_program_charstring_widths`), not to be a spec-complete Type1 program a real Type1 parser can execute -- so none of this family's local behavior has ever been confirmed against live veraPDF; `atomic_font_cases` has zero entries for it.",
-          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately. Still `partial/proxy`: glyph lookup uses `ttf_parser::Face::parse` (requiring `head`/`hhea`/`maxp`/`hmtx`/`loca`/`glyf` to all parse), unlike `PDFA1B-FONT-EMBEDDING-001`/`PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`'s narrower `RawFace` reads; confirmed live that veraPDF still evaluates this predicate (and flags a missing glyph) for a font whose `cmap`/`FontFile2` signature is otherwise valid but whose `maxp` is malformed enough that `Face::parse` fails, which the local implementation instead silently skips. No safe `ttf_parser` API path to replicate this narrower behavior was found (glyph/`loca` lookup requires `numberOfGlyphs`/`indexToLocFormat`, which come from the same `maxp`/`head` tables that are malformed in the confirmed counter-example)."
+          "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
+          "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1746,7 +1746,15 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type1c_glyph_missing",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_missing_charproc_zero_width",
                 "kind": "verapdf_delta"
               },
               {
@@ -1815,7 +1823,67 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:type1_real_symbol_difference_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_incomplete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_incomplete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_program_encoding_ignored",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_macexpert_base",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_macroman_base",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_d1_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_match",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_tolerance_boundary",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1837,7 +1905,7 @@
           "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "Glyph",
         "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true",
@@ -1845,7 +1913,7 @@
       },
       {
         "applicability": [
-          "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph. `/BaseFont` is resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged name is recognized exactly like a direct one, so an incomplete `/CharSet` is still caught rather than the font being treated as non-subset and the check silently skipped). Still `partial/proxy`: a rendered byte's glyph name, when absent from `/Differences`, always falls back to a hardcoded StandardEncoding table (`type1_standard_glyph_name`) rather than reading the embedded Type1 program's own built-in `/Encoding` array (PostScript-level, distinct from the PDF `/Encoding` dictionary) -- a font relying on a non-standard built-in encoding (e.g. Symbol-like fonts) would resolve the wrong glyph name. Not independently live-confirmed: the whole `type1_program`-based fixture family shares the veraPDF 1.28.2 crash documented under `TYPE1-GLYPH-PRESENCE-001` below, blocking further live testing of this family."
+          "For a subset Type1/MMType1/Type1C font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` names every rendered embedded glyph selected by the PDF `/Encoding`. `/BaseFont`, `/Encoding`, `/BaseEncoding`, `/Differences` codes/names, and the embedded stream subtype are resolved through bounded indirection. Matching veraPDF's `GFGlyph.name`, this predicate deliberately does not fall back to the Type1 or Type1C program encoding when the PDF encoding supplies no name; real StandardSymL and minimal Type1C cases pin complete, incomplete, and program-encoding-ignored outcomes live."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -1858,9 +1926,12 @@
           "applicable_fail": {
             "evidence": [
               {
-                "case": "local-failure:PDFA1B-TYPE1-SUBSET-CHARSET-001",
-                "kind": "local_regression",
-                "note": "Applicable-fail evidence is not yet a central veraPDF delta."
+                "case": "font:type1_real_symbol_subset_incomplete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_incomplete",
+                "kind": "verapdf_delta"
               }
             ],
             "representable": true
@@ -1868,7 +1939,39 @@
           "applicable_pass": {
             "evidence": [
               {
+                "case": "font:type1_real_symbol_difference_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_program_encoding_ignored",
                 "kind": "verapdf_delta"
               }
             ],
@@ -1889,7 +1992,7 @@
           "PDFA1B-TYPE1-SUBSET-CHARSET-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDType1Font",
         "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (CharSet != null && charSetListsAllGlyphs == true)",
@@ -1964,7 +2067,7 @@
       },
       {
         "applicability": [
-          "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both). Still `partial/proxy` for the same `ttf_parser::Face::parse`-vs-`RawFace` reason as `TRUETYPE-GLYPH-PRESENCE-001`: a font whose `maxp` is malformed enough to fail `Face::parse` is still width-checked by veraPDF but silently skipped locally."
+          "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph program width zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` singles entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -2013,11 +2116,27 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_width_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type1c_width_mismatch",
                 "kind": "verapdf_delta"
               },
               {
                 "case": "font:type3_visible",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_d1_mismatch",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_mismatch",
                 "kind": "verapdf_delta"
               },
               {
@@ -2030,7 +2149,59 @@
           "applicable_pass": {
             "evidence": [
               {
+                "case": "font:type1_real_symbol_difference_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_incomplete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "font:type1c_glyph_present",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_complete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_incomplete",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type1c_subset_program_encoding_ignored",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_macexpert_base",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_macroman_base",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_missing_charproc_zero_width",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_match",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "font:type3_width_tolerance_boundary",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2051,7 +2222,7 @@
           "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "Glyph",
         "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",
@@ -8231,7 +8402,15 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type1c_glyph_missing",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_missing_charproc_zero_width",
               "kind": "verapdf_delta"
             },
             {
@@ -8300,7 +8479,67 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:type1_real_symbol_difference_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_incomplete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type1c_glyph_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_incomplete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_program_encoding_ignored",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_macexpert_base",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_macroman_base",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_d1_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_match",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_tolerance_boundary",
               "kind": "verapdf_delta"
             }
           ],
@@ -8319,15 +8558,15 @@
       },
       "description": "Embedded font programs shall define all font glyphs referenced for rendering with conforming file",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
         "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
       ],
       "mapping_notes": [
-        "For simple Type1, MMType1, and Type1C fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte. Still `partial/proxy`: shares the `type1_standard_glyph_name`-fallback gap documented under `TYPE1-SUBSET-CHARSET-001` (a byte absent from `/Differences` always resolves via a hardcoded StandardEncoding table, never the embedded Type1 program's own built-in `/Encoding` array). The whole hand-rolled `type1_program` fixture family (every `type1_glyph_*`/`type1_difference_glyph`/`type1_width_mismatch` case) is confirmed to crash veraPDF 1.28.2 itself (`Exception: ... Range [0, 0 + -3) out of bounds for length 8192`, reproduced directly) when dumped for live differential comparison, since these fixtures were only ever built to exercise this crate's own byte-level Type1 scanning (`type1_program_char_names`/`type1_program_charstring_widths`), not to be a spec-complete Type1 program a real Type1 parser can execute -- so none of this family's local behavior has ever been confirmed against live veraPDF; `atomic_font_cases` has zero entries for it.",
-        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live via the paired `PDFA1B-TRUETYPE-GLYPH-WIDTH-001` fix); an unresolvable map is treated as inapplicable (silently skipped) rather than a missing-glyph failure, since `PDFA1B-CIDTOGIDMAP-001` already flags a genuinely missing/invalid map separately. Still `partial/proxy`: glyph lookup uses `ttf_parser::Face::parse` (requiring `head`/`hhea`/`maxp`/`hmtx`/`loca`/`glyf` to all parse), unlike `PDFA1B-FONT-EMBEDDING-001`/`PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`'s narrower `RawFace` reads; confirmed live that veraPDF still evaluates this predicate (and flags a missing glyph) for a font whose `cmap`/`FontFile2` signature is otherwise valid but whose `maxp` is malformed enough that `Face::parse` fails, which the local implementation instead silently skips. No safe `ttf_parser` API path to replicate this narrower behavior was found (glyph/`loca` lookup requires `numberOfGlyphs`/`indexToLocFormat`, which come from the same `maxp`/`head` tables that are malformed in the confirmed counter-example)."
+        "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
+        "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true",
@@ -8338,9 +8577,12 @@
         "applicable_fail": {
           "evidence": [
             {
-              "case": "local-failure:PDFA1B-TYPE1-SUBSET-CHARSET-001",
-              "kind": "local_regression",
-              "note": "Applicable-fail evidence is not yet a central veraPDF delta."
+              "case": "font:type1_real_symbol_subset_incomplete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_incomplete",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -8348,7 +8590,39 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "font:type1_real_symbol_difference_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type1c_glyph_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_program_encoding_ignored",
               "kind": "verapdf_delta"
             }
           ],
@@ -8367,13 +8641,13 @@
       },
       "description": "For all Type 1 font subsets referenced within a conforming file, the font descriptor dictionary shall include a CharSet string listing the character names defined in the font subset, as described in PDF Reference Table 5.18",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TYPE1-SUBSET-CHARSET-001"
       ],
       "mapping_notes": [
-        "For a subset Type1/MMType1 font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` string names every rendered glyph. `/BaseFont` is resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged name is recognized exactly like a direct one, so an incomplete `/CharSet` is still caught rather than the font being treated as non-subset and the check silently skipped). Still `partial/proxy`: a rendered byte's glyph name, when absent from `/Differences`, always falls back to a hardcoded StandardEncoding table (`type1_standard_glyph_name`) rather than reading the embedded Type1 program's own built-in `/Encoding` array (PostScript-level, distinct from the PDF `/Encoding` dictionary) -- a font relying on a non-standard built-in encoding (e.g. Symbol-like fonts) would resolve the wrong glyph name. Not independently live-confirmed: the whole `type1_program`-based fixture family shares the veraPDF 1.28.2 crash documented under `TYPE1-GLYPH-PRESENCE-001` below, blocking further live testing of this family."
+        "For a subset Type1/MMType1/Type1C font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` names every rendered embedded glyph selected by the PDF `/Encoding`. `/BaseFont`, `/Encoding`, `/BaseEncoding`, `/Differences` codes/names, and the embedded stream subtype are resolved through bounded indirection. Matching veraPDF's `GFGlyph.name`, this predicate deliberately does not fall back to the Type1 or Type1C program encoding when the PDF encoding supplies no name; real StandardSymL and minimal Type1C cases pin complete, incomplete, and program-encoding-ignored outcomes live."
       ],
       "object": "PDType1Font",
       "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (CharSet != null && charSetListsAllGlyphs == true)",
@@ -8481,11 +8755,27 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "font:type1_real_symbol_pdf_base_missing_glyph",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_width_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type1c_width_mismatch",
               "kind": "verapdf_delta"
             },
             {
               "case": "font:type3_visible",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_d1_mismatch",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_mismatch",
               "kind": "verapdf_delta"
             },
             {
@@ -8498,7 +8788,59 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "font:type1_real_symbol_difference_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_incomplete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1_real_symbol_subset_program_encoding_ignored",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "font:type1c_glyph_present",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_complete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_incomplete",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type1c_subset_program_encoding_ignored",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_macexpert_base",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_macroman_base",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_missing_charproc_zero_width",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_match",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "font:type3_width_tolerance_boundary",
               "kind": "verapdf_delta"
             }
           ],
@@ -8517,13 +8859,13 @@
       },
       "description": "For every font embedded in a conforming file and used for rendering, the glyph width information in the font dictionary and in the embedded font program shall be consistent",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TRUETYPE-GLYPH-WIDTH-001"
       ],
       "mapping_notes": [
-        "For TrueType, `CIDFontType2`, Type1, and Type1C/`CIDFontType0C` fonts reached by bounded text-show paths: a rendered byte or CID's width in the embedded program agrees with its dictionary-declared width within 1 unit, matching veraPDF's `abs(...) <= 1` tolerance. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check (confirmed live: an indirect `/Identity` reference resolves rendered CIDs to the same glyphs as a direct one, so a genuine width mismatch is still caught rather than silently skipped). For simple fonts, both the whole `/Widths` array and each individual entry it reads are resolved through indirection before comparison (confirmed live for an indirect array and, separately, for a direct array whose one entry is an indirect reference to a mismatched value -- the mismatch is still caught rather than silently skipped). A descendant's own `/Subtype` (the `CIDFontType0`/`CIDFontType2` selector) is resolved through indirection before this and the paired presence check run at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a genuine width mismatch is still caught rather than the descendant being treated as an unrecognized subtype and silently skipped). For CID fonts, `/DW` and each `/W` singles-group width entry are likewise resolved through indirection before comparison (confirmed live for both). Still `partial/proxy` for the same `ttf_parser::Face::parse`-vs-`RawFace` reason as `TRUETYPE-GLYPH-PRESENCE-001`: a font whose `maxp` is malformed enough to fail `Face::parse` is still width-checked by veraPDF but silently skipped locally."
+        "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph program width zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` singles entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",

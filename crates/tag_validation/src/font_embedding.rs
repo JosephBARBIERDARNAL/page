@@ -3442,7 +3442,6 @@ struct RawTrueType<'a> {
     cmap: Option<ttf_parser::cmap::Table<'a>>,
     hmtx: Option<&'a [u8]>,
     number_of_h_metrics: Option<usize>,
-    metric_glyph_count: Option<usize>,
     glyph_count: Option<usize>,
     units_per_em: Option<u16>,
 }
@@ -3489,7 +3488,6 @@ impl<'a> RawTrueType<'a> {
             cmap,
             hmtx,
             number_of_h_metrics,
-            metric_glyph_count,
             glyph_count,
             units_per_em,
         })
@@ -3529,7 +3527,7 @@ impl<'a> RawTrueType<'a> {
 
     fn glyph_hor_advance(&self, glyph: ttf_parser::GlyphId) -> Option<u16> {
         let glyph = usize::from(glyph.0);
-        if glyph >= self.metric_glyph_count? {
+        if glyph >= self.glyph_count? {
             return None;
         }
         let metric = glyph.min(self.number_of_h_metrics?.checked_sub(1)?);
