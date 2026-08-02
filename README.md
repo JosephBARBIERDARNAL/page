@@ -83,8 +83,6 @@ Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR`
 ## Roadmap
 
 - [ ] PDF/A-1b. Missing implementations are:
-  - complete graphics and content-stream reachability
-  - complete colour-space, ICC, and output-intent validation
   - complete annotations, actions, forms, and interactive-feature validation
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
