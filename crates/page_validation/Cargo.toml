@@ -9,9 +9,6 @@ homepage = "https://josephbarbierdarnal.github.io/page/"
 repository = "https://github.com/josephbarbierdarnal/page"
 license = "MIT AND BSD-3-Clause"
 keywords = ["PDF", "profile", "validation", "verapdf"]
-exclude = [
-  "/tests/",
-]
 
 [dependencies]
 chrono = "0.4"
