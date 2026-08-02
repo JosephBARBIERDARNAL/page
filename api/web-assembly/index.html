@@ -12,13 +12,13 @@
         <meta name="author" content="Joseph Barbier">
       
       
-        <link rel="canonical" href="https://pagestandards.github.io/page/api/nodejs/">
+        <link rel="canonical" href="https://pagestandards.github.io/page/api/web-assembly/">
       
       
-        <link rel="prev" href="../python/">
+        <link rel="prev" href="../nodejs/">
       
       
-        <link rel="next" href="../web-assembly/">
+        <link rel="next" href="../../rules/pdfa-1b-rule-mapping/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Node.js - page</title>
+        <title>WebAssembly - page</title>
       
     
     
@@ -87,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#using-page-in-nodejs" class="md-skip">
+        <a href="#using-page-in-webassembly" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Node.js
+              WebAssembly
             
           </span>
         </div>
@@ -528,6 +528,33 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodejs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Node.js
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -547,7 +574,7 @@
   <span class="md-ellipsis">
     
   
-  Node.js
+  WebAssembly
 
     
   </span>
@@ -564,7 +591,7 @@
   <span class="md-ellipsis">
     
   
-  Node.js
+  WebAssembly
 
     
   </span>
@@ -590,17 +617,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#use-the-declared-profile" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -623,10 +639,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation-report" class="md-nav__link">
+  <a href="#typescript" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Validation report
+        TypeScript
       </span>
     </span>
   </a>
@@ -637,33 +653,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../web-assembly/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  WebAssembly
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -829,17 +818,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#use-the-declared-profile" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -862,10 +840,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation-report" class="md-nav__link">
+  <a href="#typescript" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Validation report
+        TypeScript
       </span>
     </span>
   </a>
@@ -955,59 +933,46 @@
   
 
 
-<h1 id="using-page-in-nodejs">Using page in Node.js<a class="headerlink" href="#using-page-in-nodejs" title="Permanent link">&para;</a></h1>
-<p>The Node.js package uses WebAssembly and accepts PDF data as a Node.js <code>Buffer</code>
-or <code>Uint8Array</code>. It initializes the WebAssembly module automatically.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>npm<span class="w"> </span>install<span class="w"> </span>page_validation_wasm
-</span></code></pre></div>
+<h1 id="using-page-in-webassembly">Using page in WebAssembly<a class="headerlink" href="#using-page-in-webassembly" title="Permanent link">&para;</a></h1>
+<p>The WebAssembly package provides synchronous functions for validating PDF bytes held in a <code>Uint8Array</code>. </p>
 <h2 id="use-the-declared-profile">Use the declared profile<a class="headerlink" href="#use-the-declared-profile" title="Permanent link">&para;</a></h2>
 <p><code>validatePdf</code> infers the profile from the PDF's XMP metadata:</p>
-<div class="language-js highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">readFileSync</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;node:fs&quot;</span><span class="p">);</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">validatePdf</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;page_validation_wasm&quot;</span><span class="p">);</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">readFileSync</span><span class="p">(</span><span class="s2">&quot;document.pdf&quot;</span><span class="p">);</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">validatePdf</span><span class="p">(</span><span class="nx">bytes</span><span class="p">);</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">report</span><span class="p">.</span><span class="nx">valid</span><span class="p">);</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">failure</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">report</span><span class="p">.</span><span class="nx">failures</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`[</span><span class="si">${</span><span class="nx">failure</span><span class="p">.</span><span class="nx">rule</span><span class="si">}</span><span class="sb">] </span><span class="si">${</span><span class="nx">failure</span><span class="p">.</span><span class="nx">message</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">}</span>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">import</span><span class="w"> </span><span class="nx">init</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">validatePdf</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;./pkg/page_validation_wasm.js&quot;</span><span class="p">;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">();</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s2">&quot;document.pdf&quot;</span><span class="p">);</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Uint8Array</span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">response</span><span class="p">.</span><span class="nx">arrayBuffer</span><span class="p">());</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">validatePdf</span><span class="p">(</span><span class="nx">bytes</span><span class="p">);</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">report</span><span class="p">.</span><span class="nx">valid</span><span class="p">);</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">failure</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">report</span><span class="p">.</span><span class="nx">failures</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`[</span><span class="si">${</span><span class="nx">failure</span><span class="p">.</span><span class="nx">rule</span><span class="si">}</span><span class="sb">] </span><span class="si">${</span><span class="nx">failure</span><span class="p">.</span><span class="nx">message</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>This function throws a JavaScript <code>Error</code> when the bytes cannot be parsed or
-when the profile declaration is missing, malformed, unsupported, or exceeds a
-safety limit. PDF conformance failures are returned in <code>report.failures</code>.</p>
+<p>This function throws a JavaScript <code>Error</code> when the bytes cannot be parsed or when the profile declaration is missing, malformed, unsupported, or exceeds a safety limit. PDF conformance failures are returned in <code>report.failures</code>.</p>
 <h2 id="select-a-profile-explicitly">Select a profile explicitly<a class="headerlink" href="#select-a-profile-explicitly" title="Permanent link">&para;</a></h2>
 <p>Use <code>validatePdfWithProfile</code> when the caller selects the validation profile:</p>
-<div class="language-js highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">readFileSync</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;node:fs&quot;</span><span class="p">);</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nx">validatePdfWithProfile</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;page_validation_wasm&quot;</span><span class="p">);</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">readFileSync</span><span class="p">(</span><span class="s2">&quot;document.pdf&quot;</span><span class="p">);</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">validatePdfWithProfile</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;a-1b&quot;</span><span class="p">);</span>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">import</span><span class="w"> </span><span class="nx">init</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="nx">validatePdfWithProfile</span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;./pkg/page_validation_wasm.js&quot;</span><span class="p">;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">();</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s2">&quot;document.pdf&quot;</span><span class="p">);</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Uint8Array</span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">response</span><span class="p">.</span><span class="nx">arrayBuffer</span><span class="p">());</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">validatePdfWithProfile</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;a-1b&quot;</span><span class="p">);</span>
 </span></code></pre></div>
-<p>Explicit-profile validation does not require the PDF to declare a profile.
-Parser, operational, and conformance problems are represented in the returned
-report. An unknown profile string throws a JavaScript <code>Error</code>.</p>
-<p>The accepted profile strings are <code>a-1b</code>, <code>a-1a</code>, <code>a-2b</code>, <code>a-2a</code>, <code>a-2u</code>,
-<code>a-3b</code>, <code>a-3a</code>, <code>a-3u</code>, <code>a-4</code>, <code>a-4e</code>, <code>a-4f</code>, <code>ua-1</code>, and <code>ua-2</code>. PDF/A-1b
-is currently the only supported profile.</p>
-<h2 id="validation-report">Validation report<a class="headerlink" href="#validation-report" title="Permanent link">&para;</a></h2>
-<p>Both functions return a validation report:</p>
-<div class="language-js highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nx">profile</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;a-1b&quot;</span><span class="p">,</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nx">valid</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nx">failures</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nx">rule</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;PDFA1B-TRAILER-ID-001&quot;</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;the applicable document trailer does not contain an ID entry&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="p">},</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="p">],</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">}</span>
+<p>Explicit-profile validation does not require the PDF to declare a profile. Parser, operational, and conformance problems are represented in the returned report. An unknown profile string throws a JavaScript <code>Error</code>.</p>
+<p>The accepted profile strings are <code>a-1b</code>, <code>a-1a</code>, <code>a-2b</code>, <code>a-2a</code>, <code>a-2u</code>, <code>a-3b</code>, <code>a-3a</code>, <code>a-3u</code>, <code>a-4</code>, <code>a-4e</code>, <code>a-4f</code>, <code>ua-1</code>, and <code>ua-2</code>. Profiles other than <code>a-1b</code> currently return an unsupported-profile report.</p>
+<h2 id="typescript">TypeScript<a class="headerlink" href="#typescript" title="Permanent link">&para;</a></h2>
+<p>The generated declarations expose these signatures:</p>
+<div class="language-ts highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">validatePdf</span><span class="p">(</span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">Uint8Array</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ValidationReport</span><span class="p">;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kd">function</span><span class="w"> </span><span class="nx">validatePdfWithProfile</span><span class="p">(</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">Uint8Array</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nx">profile</span><span class="o">:</span><span class="w"> </span><span class="kt">ValidationProfile</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ValidationReport</span><span class="p">;</span>
 </span></code></pre></div>
-<p>TypeScript declarations for the functions, reports, failures, errors, and
-profile strings are included in the package.</p>
+<p>They also define <code>ValidationReport</code>, <code>ValidationFailure</code>, <code>ValidationError</code>, and the <code>ValidationProfile</code> string union.</p>
 
 
 
@@ -1048,7 +1013,7 @@ profile strings are included in the package.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../python/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Python">
+          <a href="../nodejs/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Node.js">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1058,20 +1023,20 @@ profile strings are included in the package.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Python
+                Node.js
               </div>
             </div>
           </a>
         
         
           
-          <a href="../web-assembly/" class="md-footer__link md-footer__link--next" aria-label="Next: WebAssembly">
+          <a href="../../rules/pdfa-1b-rule-mapping/" class="md-footer__link md-footer__link--next" aria-label="Next: PDF&#x2f;A-1b pinned rule mapping">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                WebAssembly
+                PDF/A-1b pinned rule mapping
               </div>
             </div>
             <div class="md-footer__button md-icon">
