@@ -85,7 +85,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#what-is-pdf-validation" class="md-skip">
+        <a href="#related-projects" class="md-skip">
           Skip to content
         </a>
       
@@ -611,17 +611,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-pdf-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        What is PDF validation?
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#related-projects" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -648,6 +637,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Why are there multiple PDF formats?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-pdf-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is PDF validation?
       </span>
     </span>
   </a>
@@ -707,17 +707,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-pdf-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        What is PDF validation?
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#related-projects" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -744,6 +733,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Why are there multiple PDF formats?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-pdf-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is PDF validation?
       </span>
     </span>
   </a>
@@ -827,8 +827,6 @@
 
   <h1 id="__skip">FAQ</h1>
 
-<h2 id="what-is-pdf-validation">What is PDF validation?<a class="headerlink" href="#what-is-pdf-validation" title="Permanent link">&para;</a></h2>
-<p>TODO</p>
 <h2 id="related-projects">Related projects<a class="headerlink" href="#related-projects" title="Permanent link">&para;</a></h2>
 <p>There are multiple projects that attempt to provide a PDF validator, but only one is:</p>
 <ul>
@@ -846,13 +844,15 @@
 <h2 id="how-page-compares-to-verapdf">How <code>page</code> compares to <code>veraPDF</code>?<a class="headerlink" href="#how-page-compares-to-verapdf" title="Permanent link">&para;</a></h2>
 <p>Currently, <code>page</code> is <strong>far from a usable state</strong>: it does not provide complete profile validations for most PDF profiles and has no stable API.</p>
 <p>Even if <code>page</code> is meant as an "alternative" to <code>veraPDF</code>, <strong><code>page</code> only exists because of <code>veraPDF</code></strong>. The latter is the most important development tool used for <code>page</code> as it provides the source of truth for all passed/failed rules for each PDF profile.</p>
-<p>In the long run, I hope that <code>page</code> will provide a veraPDF-compliant alternative, that is faster and very lightweight. <a href=".././#performance">Latest measurements</a> suggest that <code>page</code> could be around an order of magnitude faster and use correspondingly less memory (peak RSS).</p>
+<p>In the long run, I hope that <code>page</code> will provide a veraPDF-compliant alternative, that is faster and more lightweight. <a href=".././#performance">Latest measurements</a> suggest that <code>page</code> could be around an order of magnitude faster and use correspondingly less memory (peak RSS).</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>Reason for those differences is that <code>page</code> is written in <strong>Rust</strong> and <code>veraPDF</code> in <strong>Java</strong>. Note that it is likely that a significant part of memory usage from <code>veraPDF</code> is due to the JVM, not <code>veraPDF</code> itself.</p>
 <p>The reasons of choosing Rust for <code>page</code> are: speed, memory/type safety and downstream integration. Indeed, it's easier to integrat Rust-based programs in other languages like Python, Node.js and other languages with a C interface (even if that's also possible in Java).</p>
 </div>
 <h2 id="why-are-there-multiple-pdf-formats">Why are there multiple PDF formats?<a class="headerlink" href="#why-are-there-multiple-pdf-formats" title="Permanent link">&para;</a></h2>
+<p>TODO</p>
+<h2 id="what-is-pdf-validation">What is PDF validation?<a class="headerlink" href="#what-is-pdf-validation" title="Permanent link">&para;</a></h2>
 <p>TODO</p>
 
 

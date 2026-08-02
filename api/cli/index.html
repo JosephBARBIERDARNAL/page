@@ -782,11 +782,34 @@
 <p>Validate one PDF against a profile:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>a-1b
 </span></code></pre></div>
-<p>Add <code>--format details</code> to emit the details of the failure:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>a-1b<span class="w"> </span>--format<span class="w"> </span>details
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>PDF/A-1b:<span class="w"> </span><span class="m">1</span>/134<span class="w"> </span>implemented<span class="w"> </span>checks<span class="w"> </span>failed
 </span></code></pre></div>
+<p><br></p>
+<p>Add <code>--format details</code> to emit the details of the failure:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>a-1b<span class="w"> </span>--format<span class="w"> </span>details
+</span></code></pre></div>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Preliminary<span class="w"> </span>PDF/A<span class="w"> </span>validation
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Profile:<span class="w"> </span>PDF/A-1b
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Result:<span class="w"> </span>failed
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Checks:<span class="w"> </span><span class="m">133</span><span class="w"> </span>passed,<span class="w"> </span><span class="m">1</span><span class="w"> </span>failed,<span class="w"> </span><span class="m">134</span><span class="w"> </span>total
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Document:<span class="w"> </span>PDF<span class="w"> </span><span class="m">1</span>.4,<span class="w"> </span><span class="m">1</span><span class="w"> </span>page<span class="o">(</span>s<span class="o">)</span>,<span class="w"> </span><span class="m">62</span><span class="w"> </span>object<span class="o">(</span>s<span class="o">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="o">[</span>PDFA1B-TRAILER-ID-001<span class="o">]</span>:<span class="w"> </span>the<span class="w"> </span>applicable<span class="w"> </span>document<span class="w"> </span>trailer<span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>contain<span class="w"> </span>an<span class="w"> </span>ID<span class="w"> </span>entry
+</span></code></pre></div>
+<p><br></p>
 <p>Or <code>--format json</code> to emit the details as JSON:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>a-1b<span class="w"> </span>--format<span class="w"> </span>json
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>a-1b<span class="w"> </span>--format<span class="w"> </span>json
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;document.pdf&quot;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;profile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a-1b&quot;</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;failures&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">      </span><span class="nt">&quot;rule&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PDFA1B-TRAILER-ID-001&quot;</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">      </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;the applicable document trailer does not contain an ID entry&quot;</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">}</span>
 </span></code></pre></div>
 
 
