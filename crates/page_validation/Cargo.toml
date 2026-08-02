@@ -3,10 +3,10 @@ name = "page_validation"
 version.workspace = true
 edition.workspace = true
 description = "PDF/A and PDF/UA validation."
-documentation = "https://josephbarbierdarnal.github.io/page/"
+documentation = "https://page-pdf.github.io/page/"
 readme = "../../README.md"
-homepage = "https://josephbarbierdarnal.github.io/page/"
-repository = "https://github.com/josephbarbierdarnal/page"
+homepage = "https://page-pdf.github.io/page/"
+repository = "https://github.com/page-pdf/page"
 license = "MIT AND BSD-3-Clause"
 keywords = ["PDF", "profile", "validation", "verapdf"]
 

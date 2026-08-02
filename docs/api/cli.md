@@ -59,6 +59,17 @@ page document.pdf --profile a-1b --format json
 
 <br>
 
+Write the report to a file with `--output`. A `.json` extension selects JSON automatically; use `--format details` for a detailed text report:
+
+```sh
+page document.pdf --output report.json
+page document.pdf --format details --output report.txt
+```
+
+Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
+
+<br>
+
 !!! note
 
       Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.

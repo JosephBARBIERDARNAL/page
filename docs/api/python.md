@@ -2,4 +2,4 @@
 title: "Python"
 ---
 
-`page` will be available as a Python package. Issue: https://github.com/JosephBARBIERDARNAL/page/issues/27
+`page` will be available as a Python package. Issue: https://github.com/page-pdf/page/issues/27

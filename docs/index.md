@@ -11,7 +11,7 @@
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
+cargo install --git https://github.com/page-pdf/page.git page_cli --bin page
 ```
 
 `page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
@@ -54,4 +54,4 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 | Validation time (median) | ~50 ms | ~1300 ms | ~26× faster
 | Peak RSS (median) | ~13 MB | ~254 MB | ~20× lighter
 
-Benchmark code lives in [bench](https://github.com/JosephBARBIERDARNAL/page/tree/main/bench).
+Benchmark code lives in [bench](https://github.com/page-pdf/page/tree/main/bench).

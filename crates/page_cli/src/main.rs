@@ -1,10 +1,12 @@
 use std::fmt;
+use std::fmt::Write as _;
+use std::fs;
 use std::io::{self, IsTerminal};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anstyle::{AnsiColor, Style};
 use clap::{Parser, ValueEnum};
-use page_cli::output::emit_json;
+use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_validation::{
     FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
     validate_file, validate_file_with_profile,
@@ -29,6 +31,10 @@ struct Cli {
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
+    /// Write the report to a file; .json infers JSON when --format is omitted.
+    #[arg(long, value_name = "FILE")]
+    output: Option<PathBuf>,
+
     /// Disable colors in human-readable output.
     #[arg(long)]
     no_color: bool,
@@ -52,6 +58,13 @@ struct Cli {
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum FormatArg {
+    Details,
+    Json,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SelectedFormat {
+    Summary,
     Details,
     Json,
 }
@@ -124,40 +137,51 @@ fn print_error(message: impl fmt::Display, colors: bool) {
     eprintln!("{error}error:{error:#} {message}");
 }
 
-fn print_summary(report: &ValidationReport, colors: bool) {
+fn render_summary(report: &ValidationReport, colors: bool) -> String {
+    let mut output = String::new();
     let profile = selected_style(colors, EMPHASIS);
     if report.has_operational_failure() {
         let result = selected_style(colors, WARNING);
-        println!(
+        writeln!(
+            output,
             "{profile}{}{profile:#}: {result}validation could not be completed{result:#}",
             report.profile
-        );
+        )
+        .expect("writing to a String cannot fail");
     } else if report
         .failures
         .iter()
         .any(|failure| failure.category == FailureCategory::Parser)
     {
         let result = selected_style(colors, FAILURE);
-        println!(
+        writeln!(
+            output,
             "{profile}{}{profile:#}: {result}input could not be parsed{result:#}",
             report.profile
-        );
+        )
+        .expect("writing to a String cannot fail");
     } else if report.checks_passed {
         let result = selected_style(colors, SUCCESS);
-        println!(
+        writeln!(
+            output,
             "{profile}{}{profile:#}: {result}all {} implemented checks passed{result:#}",
             report.profile, report.checks.total
-        );
+        )
+        .expect("writing to a String cannot fail");
     } else {
         let result = selected_style(colors, FAILURE);
-        println!(
+        writeln!(
+            output,
             "{profile}{}{profile:#}: {result}{}/{} implemented checks failed{result:#}",
             report.profile, report.checks.failed, report.checks.total
-        );
+        )
+        .expect("writing to a String cannot fail");
     }
+    output
 }
 
-fn print_details(report: &ValidationReport, colors: bool) {
+fn render_details(report: &ValidationReport, colors: bool) -> String {
+    let mut output = String::new();
     let heading = selected_style(colors, EMPHASIS);
     let result = selected_style(
         colors,
@@ -167,37 +191,100 @@ fn print_details(report: &ValidationReport, colors: bool) {
             FAILURE
         },
     );
-    println!("{heading}Preliminary PDF/A validation{heading:#}");
-    println!("Profile: {}", report.profile);
-    println!(
+    writeln!(output, "{heading}Preliminary PDF/A validation{heading:#}")
+        .expect("writing to a String cannot fail");
+    writeln!(output, "Profile: {}", report.profile).expect("writing to a String cannot fail");
+    writeln!(
+        output,
         "Result: {result}{}{result:#}",
         if report.checks_passed {
             "no failures in implemented checks"
         } else {
             "failed"
         }
-    );
-    println!(
+    )
+    .expect("writing to a String cannot fail");
+    writeln!(
+        output,
         "Checks: {} passed, {} failed, {} total",
         report.checks.passed, report.checks.failed, report.checks.total
-    );
+    )
+    .expect("writing to a String cannot fail");
     if let Some(document) = &report.document {
-        println!(
+        writeln!(
+            output,
             "Document: PDF {}, {} page(s), {} object(s)",
             document.version, document.page_count, document.object_count
-        );
+        )
+        .expect("writing to a String cannot fail");
     }
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
-        print!(
+        write!(
+            output,
             "{rule}[{}]{rule:#} {:?}: {}",
             failure.rule_id, failure.category, failure.message
-        );
+        )
+        .expect("writing to a String cannot fail");
         if let Some(id) = failure.object_id {
-            print!(" (object {} {})", id.object_number, id.generation);
+            write!(output, " (object {} {})", id.object_number, id.generation)
+                .expect("writing to a String cannot fail");
         }
-        println!();
+        output.push('\n');
     }
+    output
+}
+
+fn extension(path: &Path) -> Option<&str> {
+    path.extension().and_then(|extension| extension.to_str())
+}
+
+fn select_format(
+    format: Option<FormatArg>,
+    output: Option<&Path>,
+) -> Result<SelectedFormat, String> {
+    let extension = output.and_then(extension);
+    match format {
+        Some(FormatArg::Json)
+            if extension.is_some_and(|value| value.eq_ignore_ascii_case("txt")) =>
+        {
+            Err("output extension '.txt' conflicts with JSON format".to_owned())
+        }
+        Some(FormatArg::Details)
+            if extension.is_some_and(|value| value.eq_ignore_ascii_case("json")) =>
+        {
+            Err("output extension '.json' conflicts with details format".to_owned())
+        }
+        Some(FormatArg::Json) => Ok(SelectedFormat::Json),
+        Some(FormatArg::Details) => Ok(SelectedFormat::Details),
+        None if extension.is_some_and(|value| value.eq_ignore_ascii_case("json")) => {
+            Ok(SelectedFormat::Json)
+        }
+        None => Ok(SelectedFormat::Summary),
+    }
+}
+
+fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
+    if input == output {
+        return true;
+    }
+
+    if let (Ok(input), Ok(output)) = (fs::canonicalize(input), fs::canonicalize(output))
+        && input == output
+    {
+        return true;
+    }
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+
+        if let (Ok(input), Ok(output)) = (fs::metadata(input), fs::metadata(output)) {
+            return input.dev() == output.dev() && input.ino() == output.ino();
+        }
+    }
+
+    false
 }
 
 fn main() {
@@ -205,6 +292,22 @@ fn main() {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
     let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
     let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
+    let selected_format = match select_format(cli.format, cli.output.as_deref()) {
+        Ok(format) => format,
+        Err(error) => {
+            print_error(error, stderr_colors);
+            std::process::exit(1);
+        }
+    };
+    if let Some(output) = &cli.output
+        && paths_refer_to_same_file(&cli.file, output)
+    {
+        print_error(
+            "input and output paths refer to the same file",
+            stderr_colors,
+        );
+        std::process::exit(1);
+    }
     let limits = SafetyLimits {
         max_input_size: cli.max_input_size,
         max_decoded_stream_size: cli.max_decoded_stream_size,
@@ -253,20 +356,48 @@ fn main() {
         );
         report.exit_code()
     } else {
-        match cli.format {
-            Some(FormatArg::Json) => {
+        match (cli.output.as_deref(), selected_format) {
+            (Some(output), format) => {
+                let rendered = match format {
+                    SelectedFormat::Summary => Ok(render_summary(&report, false)),
+                    SelectedFormat::Details => Ok(render_details(&report, false)),
+                    SelectedFormat::Json => {
+                        let json = report.json_report(cli.file.display().to_string());
+                        serialize_json(&json).map_err(|error| {
+                            format!("could not serialize validation report: {error}")
+                        })
+                    }
+                };
+                let rendered = match rendered {
+                    Ok(rendered) => rendered,
+                    Err(error) => {
+                        print_error(error, stderr_colors);
+                        std::process::exit(1);
+                    }
+                };
+                if let Err(error) = write_atomic(output, rendered.as_bytes()) {
+                    print_error(
+                        format_args!("could not write '{}': {error}", output.display()),
+                        stderr_colors,
+                    );
+                    1
+                } else {
+                    report.exit_code()
+                }
+            }
+            (None, SelectedFormat::Json) => {
                 let json = report.json_report(cli.file.display().to_string());
                 match emit_json(&json, "validation report") {
                     0 => report.exit_code(),
                     status => status,
                 }
             }
-            Some(FormatArg::Details) => {
-                print_details(&report, stdout_colors);
+            (None, SelectedFormat::Details) => {
+                print!("{}", render_details(&report, stdout_colors));
                 report.exit_code()
             }
-            None => {
-                print_summary(&report, stdout_colors);
+            (None, SelectedFormat::Summary) => {
+                print!("{}", render_summary(&report, stdout_colors));
                 report.exit_code()
             }
         }

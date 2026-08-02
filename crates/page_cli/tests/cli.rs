@@ -1,5 +1,36 @@
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEMP_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+struct TempDirectory(PathBuf);
+
+impl TempDirectory {
+    fn new() -> Self {
+        let sequence = TEMP_DIRECTORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let path =
+            std::env::temp_dir().join(format!("page-cli-tests-{}-{sequence}", std::process::id()));
+        fs::create_dir(&path).expect("create temporary CLI test directory");
+        Self(path)
+    }
+
+    fn join(&self, path: impl AsRef<Path>) -> PathBuf {
+        self.0.join(path)
+    }
+}
+
+impl Drop for TempDirectory {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.0).expect("remove temporary CLI test directory");
+    }
+}
+
+fn noncompliant_fixture() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/trailer-id-missing.pdf")
+}
 
 #[test]
 fn page_help_exposes_the_flat_validation_interface() {
@@ -13,12 +44,134 @@ fn page_help_exposes_the_flat_validation_interface() {
     assert!(stdout.contains("Usage: page [OPTIONS] <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
     assert!(stdout.contains("details, json"));
+    assert!(stdout.contains("--output <FILE>"));
     assert!(stdout.contains("--no-color"));
     assert!(!stdout.contains("--json"));
     assert!(
         stdout.contains(
             "a-1b, a-1a, a-2b, a-2a, a-2u, a-3b, a-3a, a-3u, a-4, a-4e, a-4f, ua-1, ua-2"
         )
+    );
+}
+
+#[test]
+fn json_extension_infers_json_file_output() {
+    let temporary = TempDirectory::new();
+    let report_path = temporary.join("report.JSON");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(noncompliant_fixture())
+        .args(["--output", report_path.to_str().expect("UTF-8 report path")])
+        .output()
+        .expect("write inferred JSON report");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    let contents = fs::read_to_string(report_path).expect("read JSON report");
+    assert!(contents.ends_with('\n'));
+    let report: serde_json::Value = serde_json::from_str(&contents).expect("parse JSON report");
+    assert_eq!(report["valid"], false);
+}
+
+#[test]
+fn txt_extension_writes_plain_summary_and_replaces_existing_output() {
+    let temporary = TempDirectory::new();
+    let report_path = temporary.join("report.txt");
+    fs::write(&report_path, "stale report").expect("seed existing report");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(noncompliant_fixture())
+        .args(["--output", report_path.to_str().expect("UTF-8 report path")])
+        .output()
+        .expect("write text report");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    let contents = fs::read_to_string(report_path).expect("read text report");
+    assert_eq!(contents.lines().count(), 1);
+    assert!(contents.starts_with("PDF/A-1b: "));
+    assert!(!contents.contains('\u{1b}'));
+    assert_ne!(contents, "stale report");
+}
+
+#[test]
+fn explicit_json_format_allows_an_extensionless_output() {
+    let temporary = TempDirectory::new();
+    let report_path = temporary.join("report");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(noncompliant_fixture())
+        .args([
+            "--format",
+            "json",
+            "--output",
+            report_path.to_str().expect("UTF-8 report path"),
+        ])
+        .output()
+        .expect("write extensionless JSON report");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    let contents = fs::read(report_path).expect("read extensionless report");
+    serde_json::from_slice::<serde_json::Value>(&contents)
+        .expect("parse extensionless JSON report");
+}
+
+#[test]
+fn recognized_extensions_reject_a_conflicting_explicit_format() {
+    let temporary = TempDirectory::new();
+    let cases = [
+        ("json", "report.txt", "'.txt' conflicts with JSON format"),
+        (
+            "details",
+            "report.json",
+            "'.json' conflicts with details format",
+        ),
+    ];
+
+    for (format, file_name, expected_error) in cases {
+        let report_path = temporary.join(file_name);
+        let output = Command::new(env!("CARGO_BIN_EXE_page"))
+            .arg(noncompliant_fixture())
+            .args([
+                "--format",
+                format,
+                "--output",
+                report_path.to_str().expect("UTF-8 report path"),
+            ])
+            .output()
+            .expect("reject conflicting output extension");
+
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(
+            String::from_utf8(output.stderr)
+                .expect("UTF-8 conflict error")
+                .contains(expected_error)
+        );
+        assert!(!report_path.exists());
+    }
+}
+
+#[test]
+fn output_cannot_replace_the_input_pdf() {
+    let fixture = noncompliant_fixture();
+    let original = fs::read(&fixture).expect("read fixture before validation");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--output", fixture.to_str().expect("UTF-8 fixture path")])
+        .output()
+        .expect("reject input as output");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(output.stderr).expect("UTF-8 same-file error"),
+        "error: input and output paths refer to the same file\n"
+    );
+    assert_eq!(
+        fs::read(fixture).expect("read fixture after validation"),
+        original
     );
 }
 

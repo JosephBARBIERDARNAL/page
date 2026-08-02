@@ -12,7 +12,7 @@
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
+cargo install --git https://github.com/page-pdf/page.git page_cli --bin page
 ```
 
 `page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
@@ -75,6 +75,15 @@ page document.pdf --profile a-1b --format json
   ]
 }
 ```
+
+Write the report to a file with `--output`. A `.json` extension selects JSON automatically; use `--format details` for a detailed text report:
+
+```sh
+page document.pdf --output report.json
+page document.pdf --format details --output report.txt
+```
+
+Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
 
 Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.
 
