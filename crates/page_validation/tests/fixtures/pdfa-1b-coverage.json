@@ -1989,7 +1989,7 @@
       },
       {
         "applicability": [
-          "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph program width zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` singles entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
+          "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph a program width of zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` single entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
         ],
         "content_sources": [
           "page content (font_embedding::Scanner::scan_page)",
@@ -4154,7 +4154,7 @@
       },
       {
         "applicability": [
-          "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by single whitespace, bounded by end-of-line markers."
+          "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by a single whitespace character, bounded by end-of-line markers."
         ],
         "implementation_path": ["PDFA1B-INDIRECT-OBJECT-SYNTAX-001"],
         "implementation_strength": ["exact"],
@@ -5783,7 +5783,7 @@
       "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INDIRECT-OBJECT-SYNTAX-001"],
       "mapping_notes": [
-        "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by single whitespace, bounded by end-of-line markers."
+        "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by a single whitespace character, bounded by end-of-line markers."
       ],
       "object": "CosIndirect",
       "predicate": "spacingCompliesPDFA",
@@ -8285,7 +8285,7 @@
       "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
       "mapping_notes": [
-        "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph program width zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` singles entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
+        "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph a program width of zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` single entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
       ],
       "object": "Glyph",
       "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1",
@@ -9758,7 +9758,7 @@
       "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-AMD-PREFIX-001"],
       "mapping_notes": [
-        "`amdPrefix == null || amdPrefix == \"pdfaid\"`; lexical source-QName selection matches veraPDF, and absent `amd` is inapplicable."
+        "`amdPrefix == null || amdPrefix == \"pdfaid\"`; lexical source-QName selection matches veraPDF, and a missing `amd` property is inapplicable."
       ],
       "object": "PDFAIdentification",
       "predicate": "amdPrefix == null || amdPrefix == \"pdfaid\"",
@@ -10247,7 +10247,7 @@
       "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-PRODUCER-001"],
       "mapping_notes": [
-        "Exact Info PDF-string decoding, including one trailing NUL removal, and XMP simple-property extraction."
+        "Exact Info PDF-string decoding, including the removal of one trailing NUL, and XMP simple-property extraction."
       ],
       "object": "CosInfo",
       "predicate": "Producer == null || Producer == XMPProducer",

@@ -309,7 +309,9 @@
     {
       "name": "lang_alt_partial_language",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
       "rationale": "The pinned Lang Alt validator accepts an Alt array when any item carries xml:lang, even if another item is unqualified."
@@ -521,7 +523,10 @@
     {
       "name": "xmp_latin1_recovery",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [
         "ISO 19005-1:2005:6.7.9:1",
@@ -532,7 +537,10 @@
     {
       "name": "xmp_ascii_control_reference_recovery",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [
         "ISO 19005-1:2005:6.7.9:1",
@@ -551,7 +559,10 @@
     {
       "name": "xmp_utf16le_without_bom",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [
         "ISO 19005-1:2005:6.7.9:1",
@@ -562,7 +573,10 @@
     {
       "name": "xmp_utf32be_without_bom",
       "expected_local_failed_rule_ids": [],
-      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [
         "ISO 19005-1:2005:6.7.9:1",
@@ -1191,7 +1205,9 @@
     },
     {
       "name": "id_part_unicode_digit",
-      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
       "expected_local_passed_rule_ids": ["PDFA1B-ID-PART-001"],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:2"],

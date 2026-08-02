@@ -14,7 +14,7 @@ PDF/A-1b: 1/134 implemented checks failed
 
 <br>
 
-Add `--format details` to emit the details of the failure:
+Add `--format details` to emit details about the failure:
 
 ```sh
 page document.pdf --profile a-1b --format details
@@ -31,7 +31,7 @@ Document: PDF 1.4, 1 page(s), 62 object(s)
 
 <br>
 
-Or `--format json` to emit the details as JSON:
+Or use `--format json` to emit the details as JSON:
 
 ```sh
 page document.pdf --profile a-1b --format json
@@ -50,3 +50,9 @@ page document.pdf --profile a-1b --format json
   ]
 }
 ```
+
+<br>
+
+!!! note
+
+      Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.

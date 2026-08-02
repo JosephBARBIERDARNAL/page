@@ -40,14 +40,16 @@ Or emit the validation report as JSON:
 page document.pdf --profile a-1b --format json
 ```
 
-Human-readable output uses colors when writing to a terminal. Set the
-`NO_COLOR` environment variable or pass `--no-color` to disable them.
+Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.
 
 <br>
 
 ## Roadmap
 
-- [ ] PDF/A-1b (~95% done, current WIP)
+- [ ] PDF/A-1b. Missing implementations are:
+  - complete graphics and content-stream reachability
+  - complete colour-space, ICC, and output-intent validation
+  - complete annotations, actions, forms, and interactive-feature validation
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
@@ -67,10 +69,10 @@ Human-readable output uses colors when writing to a terminal. Set the
 
 `page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:
 
-| Metric | `page` | `veraPDF` | ratio
-|---|---|---|---
-| Validation time (median) | ~50 ms | ~1300 ms | ~26× faster
-| Peak RSS (median) | ~13 MB | ~254 MB | ~20× lighter
+| Metric                   | `page` | `veraPDF` | ratio        |
+| ------------------------ | ------ | --------- | ------------ |
+| Validation time (median) | ~50 ms | ~1300 ms  | ~26× faster  |
+| Peak RSS (median)        | ~13 MB | ~254 MB   | ~20× lighter |
 
 Benchark code lives in [bench](./bench/).
 

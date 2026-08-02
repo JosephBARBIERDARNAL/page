@@ -49,7 +49,7 @@ fn main() {
 - A `ValidationProfile`, such as `ValidationProfile::PdfA1b`.
 - A reference to [`SafetyLimits`](#configure-safety-limits).
 
-It returns a `ValidationReport` and prints something like this:
+It returns a `ValidationReport`. Printing the report produces output like this:
 
 ```
 Preliminary PDF/A validation

@@ -4,7 +4,7 @@
 
 !!! warning
 
-      `page` is an experimental project and isn't already usable. Current focus is on validating PDF/A-1b.
+      `page` is an experimental project and isn't usable yet. The current focus is on validating PDF/A-1b.
 
 ## Install
 
@@ -26,6 +26,10 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 ## Roadmap
 
 - [ ] PDF/A-1b (~95% done, current WIP)
+      
+      - complete graphics and content-stream reachability
+      - complete colour-space, ICC, and output-intent validation
+      - complete annotations, actions, forms, and interactive-feature validation
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
@@ -42,11 +46,11 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 
 ## Performance
 
-`page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:
+`page` is still in a preliminary stage, but the current tests and benchmarks I ran (only on PDF/A-1b) show:
 
-| Metric | `page` | `veraPDF` | ratio
+| Metric | `page` | `veraPDF` | Ratio
 |---|---|---|---
 | Validation time (median) | ~50 ms | ~1300 ms | ~26× faster
 | Peak RSS (median) | ~13 MB | ~254 MB | ~20× lighter
 
-Benchark code lives in [bench](https://github.com/JosephBARBIERDARNAL/page/tree/main/bench).
+Benchmark code lives in [bench](https://github.com/JosephBARBIERDARNAL/page/tree/main/bench).
