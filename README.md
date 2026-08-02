@@ -7,7 +7,7 @@
 
 <br>
 
-## Install
+## Installation
 
 With Rust and Cargo installed:
 

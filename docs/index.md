@@ -6,7 +6,7 @@
 
       `page` is an experimental project and isn't usable yet. The current focus is on validating PDF/A-1b.
 
-## Install
+## Installation
 
 With Rust and Cargo installed:
 
