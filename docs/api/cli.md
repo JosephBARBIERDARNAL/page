@@ -8,8 +8,14 @@ Validate one PDF against a profile:
 page document.pdf --profile a-1b
 ```
 
-Add `--json` to emit the validation report as JSON:
+Add `--format details` to emit the details of the failure:
 
 ```sh
-page document.pdf --profile a-1b --json
+page document.pdf --profile a-1b --format details
+```
+
+Or `--format json` to emit the details as JSON:
+
+```sh
+page document.pdf --profile a-1b --format json
 ```

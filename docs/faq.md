@@ -33,7 +33,7 @@ In the long run, I hope that `page` will provide a veraPDF-compliant alternative
 
 !!! info
       
-      Reason for those differences is that `page` is written in Rust and `veraPDF` in Java. Note that it is likely that a significant part of memory usage from `veraPDF` is due to the JVM, not `veraPDF` itself.
+      Reason for those differences is that `page` is written in **Rust** and `veraPDF` in **Java**. Note that it is likely that a significant part of memory usage from `veraPDF` is due to the JVM, not `veraPDF` itself.
 
       The reasons of choosing Rust for `page` are: speed, memory/type safety and downstream integration. Indeed, it's easier to integrat Rust-based programs in other languages like Python, Node.js and other languages with a C interface (even if that's also possible in Java).
 

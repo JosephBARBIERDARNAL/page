@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
 use page_cli::output::{JsonValidationReport, emit_json};
-use page_validation::{SafetyLimits, ValidationProfile, validate_file};
+use page_validation::{
+    FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file,
+};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -19,9 +21,9 @@ struct Cli {
     #[arg(long, value_enum)]
     profile: ProfileArg,
 
-    /// Emit the validation report as JSON.
-    #[arg(long)]
-    json: bool,
+    /// Select detailed text or JSON output instead of the compact summary.
+    #[arg(long, value_enum)]
+    format: Option<FormatArg>,
 
     /// Maximum input size in bytes.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE)]
@@ -38,6 +40,12 @@ struct Cli {
     /// Maximum reference-chain depth used by the normalized model.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH)]
     max_reference_depth: usize,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum FormatArg {
+    Details,
+    Json,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -110,6 +118,28 @@ impl ProfileArg {
     }
 }
 
+fn print_summary(report: &ValidationReport) {
+    if report.has_operational_failure() {
+        println!("{}: validation could not be completed", report.profile);
+    } else if report
+        .failures
+        .iter()
+        .any(|failure| failure.category == FailureCategory::Parser)
+    {
+        println!("{}: input could not be parsed", report.profile);
+    } else if report.checks_passed {
+        println!(
+            "{}: all {} implemented checks passed",
+            report.profile, report.checks.total
+        );
+    } else {
+        println!(
+            "{}: {}/{} implemented checks failed",
+            report.profile, report.checks.failed, report.checks.total
+        );
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
     let profile = cli.profile;
@@ -137,19 +167,28 @@ fn main() {
             failure.message
         );
         report.exit_code()
-    } else if cli.json {
-        let json = JsonValidationReport::from_report(
-            cli.file.display().to_string(),
-            profile.as_str(),
-            &report,
-        );
-        match emit_json(&json, "validation report") {
-            0 => report.exit_code(),
-            status => status,
-        }
     } else {
-        print!("{report}");
-        report.exit_code()
+        match cli.format {
+            Some(FormatArg::Json) => {
+                let json = JsonValidationReport::from_report(
+                    cli.file.display().to_string(),
+                    profile.as_str(),
+                    &report,
+                );
+                match emit_json(&json, "validation report") {
+                    0 => report.exit_code(),
+                    status => status,
+                }
+            }
+            Some(FormatArg::Details) => {
+                print!("{report}");
+                report.exit_code()
+            }
+            None => {
+                print_summary(&report);
+                report.exit_code()
+            }
+        }
     };
 
     std::process::exit(status);

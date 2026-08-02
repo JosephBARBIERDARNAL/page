@@ -27,10 +27,17 @@ Validate one PDF against a profile:
 page document.pdf --profile a-1b
 ```
 
-Add `--json` to emit the validation report as JSON:
+By default, `page` prints a compact validation summary. Use detailed output to
+list every failed rule:
 
 ```sh
-page document.pdf --profile a-1b --json
+page document.pdf --profile a-1b --format details
+```
+
+Or emit the validation report as JSON:
+
+```sh
+page document.pdf --profile a-1b --format json
 ```
 
 <br>

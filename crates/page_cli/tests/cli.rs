@@ -11,12 +11,60 @@ fn page_help_exposes_the_flat_validation_interface() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
     assert!(stdout.contains("Usage: page [OPTIONS] --profile <PROFILE> <FILE>"));
-    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("--format <FORMAT>"));
+    assert!(stdout.contains("details, json"));
+    assert!(!stdout.contains("--json"));
     assert!(
         stdout.contains(
             "a-1b, a-1a, a-2b, a-2a, a-2u, a-3b, a-3a, a-3u, a-4, a-4e, a-4f, ua-1, ua-2"
         )
     );
+}
+
+#[test]
+fn default_validation_output_is_a_compact_summary() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "a-1b"])
+        .output()
+        .expect("run PDF validation");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
+    let summary = String::from_utf8(output.stdout).expect("UTF-8 summary");
+    assert_eq!(summary.lines().count(), 1);
+    assert!(summary.starts_with("PDF/A-1b: "));
+    assert!(summary.ends_with(" implemented checks failed\n"));
+    assert!(!summary.contains('['));
+}
+
+#[test]
+fn details_format_prints_every_failed_rule() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let details = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "a-1b", "--format", "details"])
+        .output()
+        .expect("run detailed PDF validation");
+    let json = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "a-1b", "--format", "json"])
+        .output()
+        .expect("run JSON PDF validation");
+
+    assert_eq!(details.status.code(), Some(2));
+    assert!(details.stderr.is_empty());
+    let details = String::from_utf8(details.stdout).expect("UTF-8 details");
+    let detailed_failure_count = details.lines().filter(|line| line.starts_with('[')).count();
+    let json: serde_json::Value = serde_json::from_slice(&json.stdout).expect("validation JSON");
+    assert_eq!(
+        detailed_failure_count,
+        json["failures"].as_array().expect("JSON failures").len()
+    );
+    assert!(detailed_failure_count > 0);
 }
 
 #[test]
@@ -60,7 +108,7 @@ fn validation_json_uses_the_stable_public_schema() {
         .join("../page_validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&fixture)
-        .args(["--profile", "a-1b", "--json"])
+        .args(["--profile", "a-1b", "--format", "json"])
         .output()
         .expect("run PDF validation");
 
@@ -86,7 +134,7 @@ fn validation_json_reports_parser_errors_separately() {
     let malformed = validation.join("tests/fixtures/malformed.pdf");
     let parser = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(malformed)
-        .args(["--profile", "a-1b", "--json"])
+        .args(["--profile", "a-1b", "--format", "json"])
         .output()
         .expect("run malformed PDF validation");
     assert_eq!(parser.status.code(), Some(2));
@@ -97,7 +145,7 @@ fn validation_json_reports_parser_errors_separately() {
 }
 
 #[test]
-fn missing_input_ignores_json_and_reports_a_direct_error() {
+fn missing_input_ignores_json_format_and_reports_a_direct_error() {
     let missing =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation/tests/fixtures/missing.pdf");
     let without_json = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -107,9 +155,9 @@ fn missing_input_ignores_json_and_reports_a_direct_error() {
         .expect("run missing PDF validation");
     let with_json = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&missing)
-        .args(["--profile", "a-1b", "--json"])
+        .args(["--profile", "a-1b", "--format", "json"])
         .output()
-        .expect("run missing PDF validation with --json");
+        .expect("run missing PDF validation with JSON format");
 
     assert_eq!(with_json.status.code(), Some(1));
     assert!(with_json.stdout.is_empty());
