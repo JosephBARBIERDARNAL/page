@@ -9,6 +9,7 @@ const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 const PDFA_ID_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/id/";
 const DC_NAMESPACE: &str = "http://purl.org/dc/elements/1.1/";
+const DC_DEPRECATED_NAMESPACE: &str = "http://purl.org/dc/1.1/";
 const PDF_NAMESPACE: &str = "http://ns.adobe.com/pdf/1.3/";
 const XMP_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/";
 const PDFA_EXTENSION_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/extension/";
@@ -87,20 +88,20 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let Some((rdf, packet_header)) = select_xmp_root(&document) else {
         return Ok(XmpMetadata::default());
     };
-    validate_rdf_package(rdf)?;
+    validate_rdf_package(rdf, &xml)?;
     let extension_schema_failed_tests = inspect_extension_schemas(rdf, &xml);
-    let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(rdf);
-    let invalid_predefined_xmp_value_types = inspect_predefined_xmp_value_types(rdf);
+    let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(rdf, &xml);
+    let invalid_predefined_xmp_value_types = inspect_predefined_xmp_value_types(rdf, &xml);
     let extension_schema_definitions = extension_schema_property_definitions(rdf);
     let undefined_extension_xmp_properties =
-        inspect_undefined_extension_xmp_properties(rdf, &extension_schema_definitions);
+        inspect_undefined_extension_xmp_properties(rdf, &xml, &extension_schema_definitions);
     let invalid_extension_xmp_value_types =
-        inspect_extension_xmp_value_types(rdf, &extension_schema_definitions);
+        inspect_extension_xmp_value_types(rdf, &xml, &extension_schema_definitions);
     let identification_prefix_failed_tests = inspect_identification_prefixes(rdf, &xml);
 
-    let pdfa_identification_present = contains_namespace_property(rdf, PDFA_ID_NAMESPACE);
-    let pdfa_parts = property_values(rdf, PDFA_ID_NAMESPACE, "part");
-    let pdfa_conformances = property_values(rdf, PDFA_ID_NAMESPACE, "conformance");
+    let pdfa_identification_present = contains_namespace_property(rdf, &xml, PDFA_ID_NAMESPACE);
+    let pdfa_parts = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "part");
+    let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
     let title_x_default = localized_text_values(rdf, DC_NAMESPACE, "title");
     let creator_nodes = property_nodes(rdf, DC_NAMESPACE, "creator");
     let creators = creator_nodes
@@ -119,11 +120,11 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         creators,
         creator_container_count: creator_nodes.len(),
         description_x_default,
-        keywords: property_values(rdf, PDF_NAMESPACE, "Keywords"),
-        creator_tools: property_values(rdf, XMP_NAMESPACE, "CreatorTool"),
-        producers: property_values(rdf, PDF_NAMESPACE, "Producer"),
-        create_dates: property_values(rdf, XMP_NAMESPACE, "CreateDate"),
-        modify_dates: property_values(rdf, XMP_NAMESPACE, "ModifyDate"),
+        keywords: property_values(rdf, &xml, PDF_NAMESPACE, "Keywords"),
+        creator_tools: property_values(rdf, &xml, XMP_NAMESPACE, "CreatorTool"),
+        producers: property_values(rdf, &xml, PDF_NAMESPACE, "Producer"),
+        create_dates: property_values(rdf, &xml, XMP_NAMESPACE, "CreateDate"),
+        modify_dates: property_values(rdf, &xml, XMP_NAMESPACE, "ModifyDate"),
         packet_header_has_bytes: packet_header
             .is_some_and(|header| has_quoted_assignment(header, b"bytes")),
         packet_header_has_encoding: packet_header
@@ -258,6 +259,7 @@ impl RdfNodeState {
         let Some(namespace) = namespace else {
             return Err(format!("property {name:?} has no XML namespace"));
         };
+        let namespace = normalized_xmp_namespace(namespace);
         let is_array_item = namespace == RDF_NAMESPACE && name == "li";
         let is_value = namespace == RDF_NAMESPACE && name == "value";
         if is_array_item && self.kind != Some(RdfCompoundKind::Array) {
@@ -327,31 +329,34 @@ enum RdfTerm {
 
 /// Validate the complete RDF/XML serialization subset accepted by the Adobe
 /// XMP 2004 parser embedded in veraPDF 1.28.2.
-fn validate_rdf_package(rdf: Node<'_, '_>) -> Result<(), String> {
+fn validate_rdf_package(rdf: Node<'_, '_>, xml: &str) -> Result<(), String> {
+    validate_cdata_usage(rdf, xml)?;
     let mut package = RdfNodeState::new(RdfCompoundKind::Schema);
     let mut about = None;
-    validate_property_element_list(rdf, true, &mut package, &mut about)
+    validate_property_element_list(rdf, true, false, &mut package, &mut about, xml)
 }
 
 fn validate_property_element_list(
     parent: Node<'_, '_>,
-    top_level: bool,
+    node_element_list: bool,
+    properties_are_top_level: bool,
     state: &mut RdfNodeState,
     package_about: &mut Option<String>,
+    xml: &str,
 ) -> Result<(), String> {
     for child in parent.children() {
         if child.is_comment()
-            || child.is_text() && child.text().is_none_or(|text| text.trim().is_empty())
+            || child.is_text() && child.text().is_none_or(java_text_is_whitespace)
         {
             continue;
         }
         if !child.is_element() {
             return Err("expected RDF element".to_owned());
         }
-        if top_level {
-            validate_node_element(child, true, state, package_about)?;
+        if node_element_list {
+            validate_node_element(child, true, state, package_about, xml)?;
         } else {
-            validate_property_element(child, state, package_about)?;
+            validate_property_element(child, properties_are_top_level, state, package_about, xml)?;
         }
     }
     Ok(())
@@ -362,6 +367,7 @@ fn validate_node_element(
     top_level: bool,
     state: &mut RdfNodeState,
     package_about: &mut Option<String>,
+    xml: &str,
 ) -> Result<(), String> {
     let term = rdf_term(node.tag_name().namespace(), node.tag_name().name(), false);
     if !matches!(term, RdfTerm::Description | RdfTerm::Other) {
@@ -399,14 +405,19 @@ fn validate_node_element(
             _ => return Err("invalid RDF node-element attribute".to_owned()),
         }
     }
-    validate_property_element_list(node, false, state, package_about)
+    validate_property_element_list(node, false, top_level, state, package_about, xml)
 }
 
 fn validate_property_element(
     property: Node<'_, '_>,
+    is_top_level: bool,
     parent: &mut RdfNodeState,
     package_about: &mut Option<String>,
+    xml: &str,
 ) -> Result<(), String> {
+    if is_top_level && is_ignored_ix_changes_property(property, xml) {
+        return Ok(());
+    }
     let term = rdf_term(
         property.tag_name().namespace(),
         property.tag_name().name(),
@@ -439,7 +450,9 @@ fn validate_property_element(
             RdfTerm::Datatype => return validate_literal_property(property, parent),
             RdfTerm::ParseType => {
                 return match attribute.value() {
-                    "Resource" => validate_parse_type_resource(property, parent, package_about),
+                    "Resource" => {
+                        validate_parse_type_resource(property, parent, package_about, xml)
+                    }
                     "Literal" => Err("rdf:parseType Literal is not allowed in XMP".to_owned()),
                     "Collection" => {
                         Err("rdf:parseType Collection is not allowed in XMP".to_owned())
@@ -454,7 +467,7 @@ fn validate_property_element(
         .children()
         .any(|child| !child.is_text() && !child.is_comment())
     {
-        validate_resource_property(property, parent, package_about)
+        validate_resource_property(property, parent, package_about, xml)
     } else if property.children().next().is_some() {
         validate_literal_property(property, parent)
     } else {
@@ -495,6 +508,7 @@ fn validate_resource_property(
     property: Node<'_, '_>,
     parent: &mut RdfNodeState,
     package_about: &mut Option<String>,
+    xml: &str,
 ) -> Result<(), String> {
     let is_value = parent.add_child(property.tag_name().namespace(), property.tag_name().name())?;
     let mut language_qualifier = false;
@@ -512,7 +526,7 @@ fn validate_resource_property(
         .children()
         .filter(|child| {
             !child.is_comment()
-                && !(child.is_text() && child.text().is_none_or(|text| text.trim().is_empty()))
+                && !(child.is_text() && child.text().is_none_or(java_text_is_whitespace))
         })
         .collect::<Vec<_>>();
     if children.len() != 1 || !children[0].is_element() {
@@ -531,12 +545,12 @@ fn validate_resource_property(
         state.add_qualifier(XML_NAMESPACE, "lang")?;
     }
     if kind == RdfCompoundKind::Struct
-        && !(child.tag_name().namespace() == Some(RDF_NAMESPACE)
-            && child.tag_name().name() == "Description")
+        && child.tag_name().namespace() != Some(RDF_NAMESPACE)
+        && child.tag_name().name() != "Description"
     {
         state.add_qualifier(RDF_NAMESPACE, "type")?;
     }
-    validate_node_element(child, false, &mut state, package_about)?;
+    validate_node_element(child, false, &mut state, package_about, xml)?;
     state.fixup_qualified_value()?;
     if is_value {
         parent.value_child = Some(Box::new(state));
@@ -548,6 +562,7 @@ fn validate_parse_type_resource(
     property: Node<'_, '_>,
     parent: &mut RdfNodeState,
     package_about: &mut Option<String>,
+    xml: &str,
 ) -> Result<(), String> {
     let is_value = parent.add_child(property.tag_name().namespace(), property.tag_name().name())?;
     let mut state = RdfNodeState::new(RdfCompoundKind::Struct);
@@ -562,7 +577,7 @@ fn validate_parse_type_resource(
             return Err("invalid rdf:parseType Resource attribute".to_owned());
         }
     }
-    validate_property_element_list(property, false, &mut state, package_about)?;
+    validate_property_element_list(property, false, false, &mut state, package_about, xml)?;
     state.fixup_qualified_value()?;
     if is_value {
         parent.value_child = Some(Box::new(state));
@@ -677,9 +692,9 @@ fn rdf_term(namespace: Option<&str>, name: &str, _attribute: bool) -> RdfTerm {
     }
 }
 
-fn inspect_predefined_xmp_properties(rdf: Node<'_, '_>) -> BTreeSet<String> {
+fn inspect_predefined_xmp_properties(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
-    for property in top_level_properties(rdf) {
+    for property in xmp_properties(rdf, xml) {
         if let Some(namespace) = property.namespace() {
             insert_invalid_predefined_property(&mut invalid, namespace, property.name());
         }
@@ -713,9 +728,9 @@ fn predefined_xmp2004_type(namespace: &str, name: &str) -> Option<&'static str> 
         })
 }
 
-fn inspect_predefined_xmp_value_types(rdf: Node<'_, '_>) -> BTreeSet<String> {
+fn inspect_predefined_xmp_value_types(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
-    for property in top_level_properties(rdf) {
+    for property in xmp_properties(rdf, xml) {
         inspect_predefined_xmp_value_type(&mut invalid, property);
     }
     invalid
@@ -763,10 +778,11 @@ fn value_type_matches(
             return false;
         }
         if item_type == "lang alt" {
-            return property.array_items().into_iter().all(|item| {
-                item.attribute((XML_NAMESPACE, "lang")).is_some()
-                    && XmpProperty::Element(item).is_simple()
-            });
+            let items = property.array_items();
+            return items.is_empty()
+                || items
+                    .iter()
+                    .any(|item| item.attribute((XML_NAMESPACE, "lang")).is_some());
         }
         return property.array_items().into_iter().all(|item| {
             value_type_matches(XmpProperty::Element(item), item_type, extension_types)
@@ -835,7 +851,7 @@ fn xmp_type_key(value_type: &str) -> String {
         };
         value_type.truncate(start);
     }
-    let value_type = value_type.trim().to_owned();
+    let value_type = java_string_trim(&value_type).to_owned();
     if value_type.is_empty() {
         return "text".to_owned();
     }
@@ -1065,32 +1081,26 @@ fn mime_type_byte(byte: u8) -> bool {
 
 fn inspect_extension_xmp_value_types(
     rdf: Node<'_, '_>,
+    xml: &str,
     definitions: &ExtensionSchemaDefinitions,
 ) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
-    for description in top_level_descriptions(rdf) {
-        for property in child_properties(description) {
-            let Some(namespace) = property.namespace() else {
-                continue;
-            };
-            if predefined_xmp2004_namespace(namespace)
-                || matches!(
-                    namespace,
-                    RDF_NAMESPACE | XML_NAMESPACE | PDFA_EXTENSION_NAMESPACE
-                )
-            {
-                continue;
-            }
-            let Some(value_type) = definitions
-                .properties
-                .get(&(namespace.to_owned(), property.name().to_owned()))
-            else {
-                invalid.insert(format!("{{{namespace}}}{} (undefined)", property.name()));
-                continue;
-            };
-            if !value_type_matches(property, value_type, definitions.types.get(namespace)) {
-                invalid.insert(format!("{{{namespace}}}{} ({value_type})", property.name()));
-            }
+    for property in xmp_properties(rdf, xml) {
+        let Some(namespace) = property.namespace() else {
+            continue;
+        };
+        if predefined_xmp2004_namespace(namespace) {
+            continue;
+        }
+        let Some(value_type) = definitions
+            .properties
+            .get(&(namespace.to_owned(), property.name().to_owned()))
+        else {
+            invalid.insert(format!("{{{namespace}}}{} (undefined)", property.name()));
+            continue;
+        };
+        if !value_type_matches(property, value_type, definitions.types.get(namespace)) {
+            invalid.insert(format!("{{{namespace}}}{} ({value_type})", property.name()));
         }
     }
     invalid
@@ -1098,25 +1108,20 @@ fn inspect_extension_xmp_value_types(
 
 fn inspect_undefined_extension_xmp_properties(
     rdf: Node<'_, '_>,
+    xml: &str,
     definitions: &ExtensionSchemaDefinitions,
 ) -> BTreeSet<String> {
     let mut undefined = BTreeSet::new();
-    for description in top_level_descriptions(rdf) {
-        for property in child_properties(description) {
-            let Some(namespace) = property.namespace() else {
-                continue;
-            };
-            if !predefined_xmp2004_namespace(namespace)
-                && !matches!(
-                    namespace,
-                    RDF_NAMESPACE | XML_NAMESPACE | PDFA_EXTENSION_NAMESPACE
-                )
-                && !definitions
-                    .properties
-                    .contains_key(&(namespace.to_owned(), property.name().to_owned()))
-            {
-                undefined.insert(format!("{{{namespace}}}{}", property.name()));
-            }
+    for property in xmp_properties(rdf, xml) {
+        let Some(namespace) = property.namespace() else {
+            continue;
+        };
+        if !predefined_xmp2004_namespace(namespace)
+            && !definitions
+                .properties
+                .contains_key(&(namespace.to_owned(), property.name().to_owned()))
+        {
+            undefined.insert(format!("{{{namespace}}}{}", property.name()));
         }
     }
     undefined
@@ -1265,8 +1270,8 @@ impl<'a> XmpProperty<'a> {
 
     fn namespace(self) -> Option<&'a str> {
         match self {
-            Self::Element(node) => node.tag_name().namespace(),
-            Self::Attribute(attribute) => attribute.namespace(),
+            Self::Element(node) => node.tag_name().namespace().map(normalized_xmp_namespace),
+            Self::Attribute(attribute) => attribute.namespace().map(normalized_xmp_namespace),
         }
     }
 
@@ -1368,7 +1373,7 @@ impl<'a> XmpProperty<'a> {
 
 fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
     let mut failed = BTreeSet::new();
-    for container in top_level_properties(rdf).into_iter().filter(|property| {
+    for container in top_level_properties(rdf, xml).into_iter().filter(|property| {
         property.namespace() == Some(PDFA_EXTENSION_NAMESPACE) && property.name() == "schemas"
     }) {
         if container.array_kind() != Some(ArrayKind::Bag)
@@ -1388,7 +1393,7 @@ fn inspect_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8>
     [("part", 4), ("conformance", 5), ("amd", 6)]
         .into_iter()
         .filter_map(|(name, test)| {
-            first_document_property(rdf, PDFA_ID_NAMESPACE, name)
+            first_document_property(rdf, xml, PDFA_ID_NAMESPACE, name)
                 .and_then(|property| property.prefix(xml))
                 .is_some_and(|prefix| prefix != "pdfaid")
                 .then_some(test)
@@ -1398,10 +1403,11 @@ fn inspect_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8>
 
 fn first_document_property<'a>(
     rdf: Node<'a, 'a>,
+    xml: &str,
     namespace: &str,
     name: &str,
 ) -> Option<XmpProperty<'a>> {
-    top_level_properties(rdf)
+    top_level_properties(rdf, xml)
         .into_iter()
         .find(|property| property.namespace() == Some(namespace) && property.name() == name)
 }
@@ -1765,9 +1771,7 @@ fn find_xmp_root<'a>(
             && child.tag_name().namespace() == Some("adobe:ns:meta/")
             && matches!(child.tag_name().name(), "xmpmeta" | "xapmeta")
         {
-            if let Some(rdf) = find_xmp_root(child, false, packet_header) {
-                return Some(rdf);
-            }
+            return find_xmp_root(child, false, packet_header);
         } else if !xmpmeta_required
             && child.is_element()
             && child.tag_name().namespace() == Some(RDF_NAMESPACE)
@@ -1813,6 +1817,120 @@ fn trim_ascii_regex_whitespace(mut bytes: &[u8]) -> &[u8] {
     bytes
 }
 
+fn normalized_xmp_namespace(namespace: &str) -> &str {
+    if namespace == DC_DEPRECATED_NAMESPACE {
+        DC_NAMESPACE
+    } else {
+        namespace
+    }
+}
+
+/// `ParseRDF.isWhitespaceNode` uses `Character.isWhitespace(char)`, whose
+/// definition deliberately excludes the three non-breaking space characters
+/// that Rust's Unicode `trim`/`is_whitespace` includes.
+fn java_text_is_whitespace(text: &str) -> bool {
+    text.chars().all(|character| {
+        matches!(
+            character,
+            '\u{0009}'..='\u{000d}'
+                | '\u{001c}'..='\u{001f}'
+                | '\u{0020}'
+                | '\u{1680}'
+                | '\u{2000}'..='\u{2006}'
+                | '\u{2008}'..='\u{200a}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{205f}'
+                | '\u{3000}'
+        )
+    })
+}
+
+/// Java `String.trim()` removes only code units at or below U+0020.
+fn java_string_trim(value: &str) -> &str {
+    value.trim_matches(|character| character <= '\u{0020}')
+}
+
+fn source_element_qname<'a>(node: Node<'_, '_>, xml: &'a str) -> Option<&'a str> {
+    let source = xml.get(node.range())?;
+    source
+        .strip_prefix('<')?
+        .split(|character: char| {
+            character.is_ascii_whitespace() || matches!(character, '/' | '>')
+        })
+        .next()
+}
+
+fn cdata_positions(xml: &str, range: std::ops::Range<usize>) -> Vec<usize> {
+    let bytes = xml.as_bytes();
+    let mut positions = Vec::new();
+    let mut position = range.start;
+    while position < range.end {
+        let Some(relative) = bytes[position..range.end]
+            .iter()
+            .position(|byte| *byte == b'<')
+        else {
+            break;
+        };
+        position += relative;
+        let tail = &bytes[position..range.end];
+        if tail.starts_with(b"<!--") {
+            match bytes[position + 4..range.end]
+                .windows(3)
+                .position(|window| window == b"-->")
+            {
+                Some(relative) => position += 4 + relative + 3,
+                None => break,
+            }
+        } else if tail.starts_with(b"<![CDATA[") {
+            positions.push(position);
+            match bytes[position + 9..range.end]
+                .windows(3)
+                .position(|window| window == b"]]>")
+            {
+                Some(relative) => position += 9 + relative + 3,
+                None => break,
+            }
+        } else {
+            match find_xml_tag_end(bytes, position + 1) {
+                Ok((end, _)) => position = end,
+                Err(_) => break,
+            }
+        }
+    }
+    positions
+}
+
+fn is_ignored_ix_changes_property(property: Node<'_, '_>, xml: &str) -> bool {
+    if source_element_qname(property, xml) != Some("iX:changes")
+        || property.attributes().any(|attribute| {
+            attribute.namespace() != Some(XML_NAMESPACE) || attribute.name() != "lang"
+        })
+    {
+        return false;
+    }
+    property
+        .children()
+        .any(|child| !child.is_text() && !child.is_comment())
+        || !cdata_positions(xml, property.range()).is_empty()
+}
+
+fn validate_cdata_usage(rdf: Node<'_, '_>, xml: &str) -> Result<(), String> {
+    let ignored = top_level_descriptions(rdf)
+        .flat_map(|description| description.children())
+        .filter(|property| property.is_element() && is_ignored_ix_changes_property(*property, xml))
+        .map(|property| property.range())
+        .collect::<Vec<_>>();
+    if cdata_positions(xml, rdf.range())
+        .into_iter()
+        .any(|position| !ignored.iter().any(|range| range.contains(&position)))
+    {
+        Err("CDATA nodes are not accepted by the XMP 2004 RDF parser".to_owned())
+    } else {
+        Ok(())
+    }
+}
+
 fn top_level_descriptions<'a>(rdf: Node<'a, 'a>) -> impl Iterator<Item = Node<'a, 'a>> {
     rdf.children().filter(|node| {
         node.is_element()
@@ -1821,25 +1939,40 @@ fn top_level_descriptions<'a>(rdf: Node<'a, 'a>) -> impl Iterator<Item = Node<'a
     })
 }
 
-fn top_level_properties<'a>(rdf: Node<'a, 'a>) -> Vec<XmpProperty<'a>> {
+fn top_level_properties<'a>(rdf: Node<'a, 'a>, xml: &str) -> Vec<XmpProperty<'a>> {
     top_level_descriptions(rdf)
         .flat_map(|description| {
             description
                 .attributes()
-                .filter(|attribute| attribute.namespace() != Some(RDF_NAMESPACE))
+                .filter(move |attribute| {
+                    !matches!(
+                        rdf_attribute_term(description, *attribute),
+                        RdfTerm::Id | RdfTerm::NodeId | RdfTerm::About
+                    )
+                })
                 .map(XmpProperty::Attribute)
                 .chain(
                     description
                         .children()
                         .filter(|child| child.is_element())
+                        .filter(|child| !is_ignored_ix_changes_property(*child, xml))
                         .map(XmpProperty::Element),
                 )
         })
         .collect()
 }
 
-fn contains_namespace_property(rdf: Node<'_, '_>, namespace: &str) -> bool {
-    top_level_properties(rdf)
+fn xmp_properties<'a>(rdf: Node<'a, 'a>, xml: &str) -> Vec<XmpProperty<'a>> {
+    top_level_properties(rdf, xml)
+        .into_iter()
+        .filter(|property| {
+            property.namespace() != Some(PDFA_EXTENSION_NAMESPACE) || property.name() != "schemas"
+        })
+        .collect()
+}
+
+fn contains_namespace_property(rdf: Node<'_, '_>, xml: &str, namespace: &str) -> bool {
+    xmp_properties(rdf, xml)
         .into_iter()
         .any(|property| property.namespace() == Some(namespace))
 }
@@ -1849,15 +1982,24 @@ fn property_nodes<'a>(rdf: Node<'a, 'a>, namespace: &str, local_name: &str) -> V
         .flat_map(|description| description.children())
         .filter(|property| {
             property.is_element()
-                && property.tag_name().namespace() == Some(namespace)
+                && property
+                    .tag_name()
+                    .namespace()
+                    .map(normalized_xmp_namespace)
+                    == Some(namespace)
                 && property.tag_name().name() == local_name
         })
         .collect()
 }
 
-fn property_values(rdf: Node<'_, '_>, namespace: &str, local_name: &str) -> Vec<String> {
+fn property_values(
+    rdf: Node<'_, '_>,
+    xml: &str,
+    namespace: &str,
+    local_name: &str,
+) -> Vec<String> {
     let mut values = Vec::new();
-    for property in top_level_properties(rdf) {
+    for property in xmp_properties(rdf, xml) {
         if property.namespace() == Some(namespace)
             && property.name() == local_name
             && let Some(value) = property.value()
@@ -2412,6 +2554,28 @@ mod tests {
     }
 
     #[test]
+    fn accepts_a_lang_alt_when_any_item_has_a_language() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>
+          <rdf:Alt><rdf:li xml:lang="x-default">Rights</rdf:li><rdf:li>Unqualified</rdf:li>
+          </rdf:Alt></dc:rights></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert!(parsed.invalid_predefined_xmp_value_types.is_empty());
+    }
+
+    #[test]
+    fn maps_the_deprecated_dc_namespace_to_the_xmp_2004_dc_schema() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:dc="http://purl.org/dc/1.1/"><rdf:Description><dc:title>
+          <rdf:Alt><rdf:li xml:lang="x-default">Title</rdf:li></rdf:Alt>
+          </dc:title></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid XMP");
+        assert_eq!(parsed.title_x_default, ["Title"]);
+        assert!(parsed.invalid_predefined_xmp_properties.is_empty());
+        assert!(parsed.undefined_extension_xmp_properties.is_empty());
+    }
+
+    #[test]
     fn normalizes_qualified_simple_and_array_properties() {
         let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
@@ -2582,6 +2746,51 @@ mod tests {
     }
 
     #[test]
+    fn an_empty_xmpmeta_stops_the_pinned_root_search() {
+        let xmp = br#"<wrapper xmlns:x="adobe:ns:meta/"
+          xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+          <x:xmpmeta/>
+          <rdf:RDF><rdf:Description pdfaid:part="1" pdfaid:conformance="B"/></rdf:RDF>
+        </wrapper>"#;
+        let parsed = parse_xmp(xmp).expect("empty metadata model");
+        assert!(!parsed.pdfa_identification_present);
+    }
+
+    #[test]
+    fn ignores_top_level_resource_form_ix_changes() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:iX="http://ns.adobe.com/iX/1.0/"><rdf:Description>
+          <iX:changes><rdf:Description><iX:unknown><![CDATA[ignored]]></iX:unknown>
+          </rdf:Description></iX:changes></rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("iX changes are discarded by the pinned parser");
+        assert!(parsed.undefined_extension_xmp_properties.is_empty());
+    }
+
+    #[test]
+    fn rejects_cdata_and_non_java_whitespace_in_selected_rdf() {
+        let cdata = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description>
+          <pdf:Producer><![CDATA[value]]></pdf:Producer></rdf:Description></rdf:RDF>"#;
+        assert!(parse_xmp(cdata).is_err());
+
+        let nbsp = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
+          <rdf:Description/>\u{a0}<rdf:Description/></rdf:RDF>";
+        assert!(parse_xmp(nbsp.as_bytes()).is_err());
+    }
+
+    #[test]
+    fn treats_unknown_rdf_attributes_as_xmp_properties() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+          <rdf:Description rdf:unknown="value"/></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("RDF/XML accepts non-syntax RDF attributes");
+        assert_eq!(
+            parsed.undefined_extension_xmp_properties,
+            BTreeSet::from([format!("{{{RDF_NAMESPACE}}}unknown")])
+        );
+    }
+
+    #[test]
     fn rejects_duplicate_named_properties_across_descriptions() {
         let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
@@ -2719,6 +2928,7 @@ mod tests {
         assert_eq!(xmp_type_key("prefix Choice of Rational"), "prefix rational");
         assert_eq!(xmp_type_key("Closed Choice"), "text");
         assert!(!xmp_type_is_known("Undefined", &known));
+        assert_eq!(xmp_type_key("\u{a0}Text\u{a0}"), "\u{a0}text\u{a0}");
     }
 
     #[test]
