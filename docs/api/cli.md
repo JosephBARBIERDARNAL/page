@@ -8,14 +8,45 @@ Validate one PDF against a profile:
 page document.pdf --profile a-1b
 ```
 
+```sh
+PDF/A-1b: 1/134 implemented checks failed
+```
+
+<br>
+
 Add `--format details` to emit the details of the failure:
 
 ```sh
 page document.pdf --profile a-1b --format details
 ```
 
+```sh
+Preliminary PDF/A validation
+Profile: PDF/A-1b
+Result: failed
+Checks: 133 passed, 1 failed, 134 total
+Document: PDF 1.4, 1 page(s), 62 object(s)
+[PDFA1B-TRAILER-ID-001]: the applicable document trailer does not contain an ID entry
+```
+
+<br>
+
 Or `--format json` to emit the details as JSON:
 
 ```sh
 page document.pdf --profile a-1b --format json
+```
+
+```json
+{
+  "file": "document.pdf",
+  "profile": "a-1b",
+  "valid": false,
+  "failures": [
+    {
+      "rule": "PDFA1B-TRAILER-ID-001",
+      "message": "the applicable document trailer does not contain an ID entry"
+    }
+  ]
+}
 ```

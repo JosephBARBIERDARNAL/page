@@ -13,6 +13,7 @@ name = "verapdf-diff"
 path = "src/bin/verapdf-diff.rs"
 
 [dependencies]
+anstyle = "1"
 clap = { version = "4.6", features = ["derive"] }
 page_validation = { path = "../page_validation" }
 serde = "1"

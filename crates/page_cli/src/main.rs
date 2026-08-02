@@ -1,5 +1,8 @@
+use std::fmt;
+use std::io::{self, IsTerminal};
 use std::path::PathBuf;
 
+use anstyle::{AnsiColor, Style};
 use clap::{Parser, ValueEnum};
 use page_cli::output::{JsonValidationReport, emit_json};
 use page_validation::{
@@ -24,6 +27,10 @@ struct Cli {
     /// Select detailed text or JSON output instead of the compact summary.
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
+
+    /// Disable colors in human-readable output.
+    #[arg(long)]
+    no_color: bool,
 
     /// Maximum input size in bytes.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE)]
@@ -118,34 +125,112 @@ impl ProfileArg {
     }
 }
 
-fn print_summary(report: &ValidationReport) {
+const EMPHASIS: Style = Style::new().bold();
+const SUCCESS: Style = AnsiColor::Green.on_default().bold();
+const FAILURE: Style = AnsiColor::Red.on_default().bold();
+const WARNING: Style = AnsiColor::Yellow.on_default().bold();
+
+fn selected_style(enabled: bool, style: Style) -> Style {
+    if enabled { style } else { Style::new() }
+}
+
+fn colors_enabled(no_color_flag: bool, no_color_env: bool, is_terminal: bool) -> bool {
+    !no_color_flag && !no_color_env && is_terminal
+}
+
+fn print_error(message: impl fmt::Display, colors: bool) {
+    let error = selected_style(colors, FAILURE);
+    eprintln!("{error}error:{error:#} {message}");
+}
+
+fn print_summary(report: &ValidationReport, colors: bool) {
+    let profile = selected_style(colors, EMPHASIS);
     if report.has_operational_failure() {
-        println!("{}: validation could not be completed", report.profile);
+        let result = selected_style(colors, WARNING);
+        println!(
+            "{profile}{}{profile:#}: {result}validation could not be completed{result:#}",
+            report.profile
+        );
     } else if report
         .failures
         .iter()
         .any(|failure| failure.category == FailureCategory::Parser)
     {
-        println!("{}: input could not be parsed", report.profile);
-    } else if report.checks_passed {
+        let result = selected_style(colors, FAILURE);
         println!(
-            "{}: all {} implemented checks passed",
+            "{profile}{}{profile:#}: {result}input could not be parsed{result:#}",
+            report.profile
+        );
+    } else if report.checks_passed {
+        let result = selected_style(colors, SUCCESS);
+        println!(
+            "{profile}{}{profile:#}: {result}all {} implemented checks passed{result:#}",
             report.profile, report.checks.total
         );
     } else {
+        let result = selected_style(colors, FAILURE);
         println!(
-            "{}: {}/{} implemented checks failed",
+            "{profile}{}{profile:#}: {result}{}/{} implemented checks failed{result:#}",
             report.profile, report.checks.failed, report.checks.total
         );
     }
 }
 
+fn print_details(report: &ValidationReport, colors: bool) {
+    let heading = selected_style(colors, EMPHASIS);
+    let result = selected_style(
+        colors,
+        if report.checks_passed {
+            SUCCESS
+        } else {
+            FAILURE
+        },
+    );
+    println!("{heading}Preliminary PDF/A validation{heading:#}");
+    println!("Profile: {}", report.profile);
+    println!(
+        "Result: {result}{}{result:#}",
+        if report.checks_passed {
+            "no failures in implemented checks"
+        } else {
+            "failed"
+        }
+    );
+    println!(
+        "Checks: {} passed, {} failed, {} total",
+        report.checks.passed, report.checks.failed, report.checks.total
+    );
+    if let Some(document) = &report.document {
+        println!(
+            "Document: PDF {}, {} page(s), {} object(s)",
+            document.version, document.page_count, document.object_count
+        );
+    }
+    let rule = selected_style(colors, FAILURE);
+    for failure in &report.failures {
+        print!(
+            "{rule}[{}]{rule:#} {:?}: {}",
+            failure.rule_id, failure.category, failure.message
+        );
+        if let Some(id) = failure.object_id {
+            print!(" (object {} {})", id.object_number, id.generation);
+        }
+        println!();
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
+    let no_color_env = std::env::var_os("NO_COLOR").is_some();
+    let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
+    let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
     let profile = cli.profile;
     let validation_profile: ValidationProfile = profile.into();
     if !validation_profile.is_implemented() {
-        eprintln!("error: validation profile {validation_profile} is not implemented yet");
+        print_error(
+            format_args!("validation profile {validation_profile} is not implemented yet"),
+            stderr_colors,
+        );
         std::process::exit(1);
     }
 
@@ -161,10 +246,13 @@ fn main() {
         .iter()
         .find(|failure| failure.rule_id == "INPUT-IO-001")
     {
-        eprintln!(
-            "error: could not read '{}': {}",
-            cli.file.display(),
-            failure.message
+        print_error(
+            format_args!(
+                "could not read '{}': {}",
+                cli.file.display(),
+                failure.message
+            ),
+            stderr_colors,
         );
         report.exit_code()
     } else {
@@ -181,15 +269,28 @@ fn main() {
                 }
             }
             Some(FormatArg::Details) => {
-                print!("{report}");
+                print_details(&report, stdout_colors);
                 report.exit_code()
             }
             None => {
-                print_summary(&report);
+                print_summary(&report, stdout_colors);
                 report.exit_code()
             }
         }
     };
 
     std::process::exit(status);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::colors_enabled;
+
+    #[test]
+    fn colors_require_a_terminal_and_no_opt_out() {
+        assert!(colors_enabled(false, false, true));
+        assert!(!colors_enabled(true, false, true));
+        assert!(!colors_enabled(false, true, true));
+        assert!(!colors_enabled(false, false, false));
+    }
 }

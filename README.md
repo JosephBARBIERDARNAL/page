@@ -40,6 +40,9 @@ Or emit the validation report as JSON:
 page document.pdf --profile a-1b --format json
 ```
 
+Human-readable output uses colors when writing to a terminal. Set the
+`NO_COLOR` environment variable or pass `--no-color` to disable them.
+
 <br>
 
 ## Roadmap

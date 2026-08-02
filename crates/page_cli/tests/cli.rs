@@ -13,6 +13,7 @@ fn page_help_exposes_the_flat_validation_interface() {
     assert!(stdout.contains("Usage: page [OPTIONS] --profile <PROFILE> <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
     assert!(stdout.contains("details, json"));
+    assert!(stdout.contains("--no-color"));
     assert!(!stdout.contains("--json"));
     assert!(
         stdout.contains(
@@ -38,6 +39,21 @@ fn default_validation_output_is_a_compact_summary() {
     assert!(summary.starts_with("PDF/A-1b: "));
     assert!(summary.ends_with(" implemented checks failed\n"));
     assert!(!summary.contains('['));
+}
+
+#[test]
+fn no_color_flag_preserves_plain_human_output() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "a-1b", "--format", "details", "--no-color"])
+        .output()
+        .expect("run PDF validation without colors");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(!output.stdout.contains(&0x1b));
+    assert!(!output.stderr.contains(&0x1b));
 }
 
 #[test]

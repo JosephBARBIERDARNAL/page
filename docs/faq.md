@@ -2,10 +2,6 @@
 title: "FAQ"
 ---
 
-## What is PDF validation?
-
-TODO
-
 ## Related projects
 
 There are multiple projects that attempt to provide a PDF validator, but only one is:
@@ -29,7 +25,7 @@ Currently, `page` is **far from a usable state**: it does not provide complete p
 
 Even if `page` is meant as an "alternative" to `veraPDF`, **`page` only exists because of `veraPDF`**. The latter is the most important development tool used for `page` as it provides the source of truth for all passed/failed rules for each PDF profile.
 
-In the long run, I hope that `page` will provide a veraPDF-compliant alternative, that is faster and very lightweight. [Latest measurements](./#performance) suggest that `page` could be around an order of magnitude faster and use correspondingly less memory (peak RSS).
+In the long run, I hope that `page` will provide a veraPDF-compliant alternative, that is faster and more lightweight. [Latest measurements](./#performance) suggest that `page` could be around an order of magnitude faster and use correspondingly less memory (peak RSS).
 
 !!! info
       
@@ -38,5 +34,9 @@ In the long run, I hope that `page` will provide a veraPDF-compliant alternative
       The reasons of choosing Rust for `page` are: speed, memory/type safety and downstream integration. Indeed, it's easier to integrat Rust-based programs in other languages like Python, Node.js and other languages with a C interface (even if that's also possible in Java).
 
 ## Why are there multiple PDF formats?
+
+TODO
+
+## What is PDF validation?
 
 TODO
