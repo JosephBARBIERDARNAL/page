@@ -18,6 +18,8 @@
         <link rel="prev" href="../../api/nodejs/">
       
       
+        <link rel="next" href="../../faq/">
+      
       
         
       
@@ -266,6 +268,32 @@
           
   
   Rule Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../faq/" class="md-tabs__link">
+          
+  
+  FAQ
 
         </a>
       </li>
@@ -561,6 +589,62 @@
             
           </ul>
         </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../faq/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  FAQ
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
       
     </li>
   
@@ -1360,43 +1444,43 @@
 <td><code>PDFA1B-ID-SCHEMA-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:1</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td>Common packages agree; veraPDF recovery differs for invalid duplicate packages.</td>
+<td>exact</td>
+<td>Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete <code>metadata:*</code> veraPDF 1.28.2 differential suite.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-PART-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:2</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td><code>part == 1</code>; common single-property packages agree.</td>
+<td>exact</td>
+<td>Exact Java <code>Integer.parseInt</code> value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete <code>metadata:*</code> differential suite.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-CONFORMANCE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:3</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td><code>conformance == "B" \|\| conformance == "A"</code>; common single-property packages agree.</td>
+<td>exact</td>
+<td>Exact <code>A</code>/<code>B</code> value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete <code>metadata:*</code> differential suite.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-PART-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:4</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td>For the selected common identification property: <code>partPrefix == null \|\| partPrefix == "pdfaid"</code>; lexical prefixes are recovered from the XML source QName.</td>
+<td>exact</td>
+<td><code>partPrefix == null \|\| partPrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.28.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-CONFORMANCE-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:5</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td><code>conformancePrefix == null \|\| conformancePrefix == "pdfaid"</code> for the selected common property.</td>
+<td>exact</td>
+<td><code>conformancePrefix == null \|\| conformancePrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.28.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-AMD-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:6</code></td>
 <td>§6.7.11</td>
-<td>partial/proxy</td>
-<td><code>amdPrefix == null \|\| amdPrefix == "pdfaid"</code> for the selected common property; an absent <code>amd</code> is inapplicable and passes.</td>
+<td>exact</td>
+<td><code>amdPrefix == null \|\| amdPrefix == "pdfaid"</code>; lexical source-QName selection matches veraPDF, and absent <code>amd</code> is inapplicable.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-METADATA-STRUCTURE-001</code></td>
@@ -1416,57 +1500,57 @@
 <td><code>PDFA1B-INFO-CREATIONDATE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:1</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>Common full dates are compared as instants; reduced-precision XMP forms are not implemented.</td>
+<td>exact</td>
+<td>Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-TITLE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:2</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>dc:title</code> <code>rdf:Alt</code> <code>x-default</code> cases agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-AUTHOR-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:3</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>dc:creator</code> <code>rdf:Seq</code> equality and one-item multiplicity agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding, ordered-array extraction, simple-item validation, and sole-entry multiplicity.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-SUBJECT-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:4</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>dc:description</code> <code>rdf:Alt</code> <code>x-default</code> cases agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-KEYWORDS-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:5</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>pdf:Keywords</code> cases agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-CREATOR-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:6</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>xmp:CreatorTool</code> cases agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-PRODUCER-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:7</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>ASCII <code>pdf:Producer</code> cases agree.</td>
+<td>exact</td>
+<td>Exact Info PDF-string decoding, including one trailing NUL removal, and XMP simple-property extraction.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-INFO-MODDATE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.3:8</code></td>
 <td>§6.7.3</td>
-<td>partial/proxy</td>
-<td>Common full dates are compared as instants; reduced-precision XMP forms are not implemented.</td>
+<td>exact</td>
+<td>Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-PACKET-BYTES-001</code></td>
@@ -1486,169 +1570,169 @@
 <td><code>PDFA1B-XMP-EXTENSION-FIELDS-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:1</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
-<td>For bounded common extension objects: <code>containsUndefinedFields == false</code>, using the pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields.</td>
+<td>exact</td>
+<td><code>containsUndefinedFields == false</code>, using the complete pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:10</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isCategoryValidText == true &amp;&amp; (category == "external" \|\| category == "internal") &amp;&amp; categoryPrefix == "pdfaProperty"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:11</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaProperty"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:12</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isTypeValidText == true &amp;&amp; typePrefix == "pdfaType"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:13</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isNamespaceURIValidURI == true &amp;&amp; namespaceURIPrefix == "pdfaType"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:14</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isPrefixValidText == true &amp;&amp; prefixPrefix == "pdfaType"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:15</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaType"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:16</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isFieldValidSeq == true &amp;&amp; (fieldPrefix == null \|\| fieldPrefix == "pdfaType")</code>; absence is allowed.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-FIELD-NAME-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:17</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isNameValidText == true &amp;&amp; namePrefix == "pdfaField"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:18</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isValueTypeValidText == true &amp;&amp; isValueTypeDefined == true &amp;&amp; valueTypePrefix == "pdfaField"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:19</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isDescriptionValidText == true &amp;&amp; descriptionPrefix == "pdfaField"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-CONTAINER-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:2</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
-<td>For modeled <code>pdfaExtension:schemas</code>: <code>isValidBag == true &amp;&amp; prefix == "pdfaExtension"</code>.</td>
+<td>exact</td>
+<td>For every selected <code>pdfaExtension:schemas</code>: <code>isValidBag == true &amp;&amp; prefix == "pdfaExtension"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:3</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
-<td>For modeled schema definitions: <code>isSchemaValidText == true &amp;&amp; schemaPrefix == "pdfaSchema"</code>.</td>
+<td>exact</td>
+<td>For every schema definition: <code>isSchemaValidText == true &amp;&amp; schemaPrefix == "pdfaSchema"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:4</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isNamespaceURIValidURI == true &amp;&amp; namespaceURIPrefix == "pdfaSchema"</code>; the pinned URI validator requires a simple XMP node.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:5</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isPrefixValidText == true &amp;&amp; prefixPrefix == "pdfaSchema"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:6</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isPropertyValidSeq == true &amp;&amp; (propertyPrefix == null \|\| propertyPrefix == "pdfaSchema")</code>; absence is allowed.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:7</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isValueTypeValidSeq == true &amp;&amp; (valueTypePrefix == null \|\| valueTypePrefix == "pdfaSchema")</code>; absence is allowed.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:8</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isNameValidText == true &amp;&amp; namePrefix == "pdfaProperty"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.8:9</code></td>
 <td>§6.7.8</td>
-<td>partial/proxy</td>
+<td>exact</td>
 <td><code>isValueTypeValidText == true &amp;&amp; isValueTypeDefined == true &amp;&amp; valueTypePrefix == "pdfaProperty"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.9:1</code></td>
 <td>§6.7.9</td>
-<td>partial/proxy</td>
-<td>XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model.</td>
+<td>exact</td>
+<td>Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.28.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-PREDEFINED-PROPERTY-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.9:2</code></td>
 <td>§6.7.9</td>
-<td>partial/proxy</td>
-<td>Every element or attribute in a predefined XMP2004 namespace is a property that namespace defines, over the bounded <code>xmp2004_properties.txt</code> table.</td>
+<td>exact</td>
+<td>Every top-level XMP property in a predefined namespace is checked against the complete 172-entry XMP 2004 table reflected from the pinned release.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.9:2</code></td>
 <td>§6.7.9</td>
-<td>partial/proxy</td>
-<td>Every property used in the XMP body outside the predefined namespaces is declared by the document's own extension schemas.</td>
+<td>exact</td>
+<td>Every top-level extension property is resolved against the exact current-package extension-schema registration and replacement semantics.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.9:3</code></td>
 <td>§6.7.9</td>
-<td>partial/proxy</td>
-<td>Every predefined-namespace property's value matches its predefined value-type shape; pinned live by the opt-in <code>invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in</code> case, which confirms veraPDF reports this same test for an invalid GPS coordinate.</td>
+<td>exact</td>
+<td>Every predefined property is checked with the pinned simple, array, LangAlt, date, XPath, GPS, and structured-type validators.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.9:3</code></td>
 <td>§6.7.9</td>
-<td>partial/proxy</td>
-<td>Every used extension property's value matches its extension-schema-declared value type; pinned live by the opt-in <code>invalid_extension_xpath_matches_pinned_verapdf_when_opted_in</code> case, which confirms veraPDF reports this same test for an invalid extension property value.</td>
+<td>exact</td>
+<td>Every extension property is checked with the pinned declared simple, array, and structured field/value-type semantics.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ACROFORM-NEED-APPEARANCES-001</code></td>
@@ -1721,6 +1805,22 @@
             </div>
           </a>
         
+        
+          
+          <a href="../../faq/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                FAQ
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
         
       </nav>
     
