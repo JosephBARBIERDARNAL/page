@@ -1,8 +1,9 @@
 [workspace]
-resolver = "3"
+resolver = "2"
 members = [
   "crates/page_cli",
   "crates/page_validation",
+  "crates/page_validation_wasm",
 ]
 
 [workspace.package]

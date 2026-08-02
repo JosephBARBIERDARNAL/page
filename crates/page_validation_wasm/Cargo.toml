@@ -1,0 +1,27 @@
+[package]
+name = "page_validation_wasm"
+version.workspace = true
+edition.workspace = true
+description = "WebAssembly bindings for page_validation."
+documentation = "https://pagestandards.github.io/page/"
+readme = "../../README.md"
+homepage = "https://pagestandards.github.io/page/"
+repository = "https://github.com/pagestandards/page"
+license = "MIT AND BSD-3-Clause"
+keywords = ["PDF", "validation", "wasm", "webassembly"]
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+js-sys = "0.3"
+page_validation = { path = "../page_validation" }
+serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.4.3", features = ["wasm_js"] }

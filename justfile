@@ -22,6 +22,10 @@ lint:
 test:
     cargo test --workspace --all-features --locked
 
+# Run the WebAssembly binding contract tests under Node.js.
+test-wasm:
+    wasm-pack test --node --release crates/page_validation_wasm
+
 # Run formatting, linting, and offline tests.
 check: fmt lint test
 

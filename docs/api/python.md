@@ -2,7 +2,7 @@
 title: "Python"
 ---
 
-Github repository for this project is [here](https://github.com/page-pdf/python-page).
+Github repository for this project is [here](https://github.com/pagestandards/python-page).
 
 ## Installation
 

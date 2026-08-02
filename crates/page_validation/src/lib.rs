@@ -7,6 +7,7 @@ mod actions;
 mod annotations;
 mod catalog;
 mod content_support;
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub mod differential;
 mod document_features;
 mod error;
