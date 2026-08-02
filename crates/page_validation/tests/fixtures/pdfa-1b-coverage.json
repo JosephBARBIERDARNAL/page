@@ -9530,10 +9530,10 @@
         }
       },
       "description": "The PDF/A version and conformance level of a file shall be specified using the PDF/A Identification extension schema",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-SCHEMA-001"],
       "mapping_notes": [
-        "Common packages agree; veraPDF recovery differs for invalid duplicate packages."
+        "Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.28.2 differential suite."
       ],
       "object": "MainXMPPackage",
       "predicate": "containsPDFAIdentification == true",
@@ -9571,9 +9571,11 @@
         }
       },
       "description": "The value of \"pdfaid:part\" shall be the part number of ISO 19005 to which the file conforms",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-PART-001"],
-      "mapping_notes": ["`part == 1`; common single-property packages agree."],
+      "mapping_notes": [
+        "Exact Java `Integer.parseInt` value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete `metadata:*` differential suite."
+      ],
       "object": "PDFAIdentification",
       "predicate": "part == 1",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.11:2"
@@ -9614,10 +9616,10 @@
         }
       },
       "description": "A Level A conforming file shall specify the value of \"pdfaid:conformance\" as A. A Level B conforming file shall specify the value of \"pdfaid:conformance\" as B",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-CONFORMANCE-001"],
       "mapping_notes": [
-        "`conformance == \"B\" || conformance == \"A\"`; common single-property packages agree."
+        "Exact `A`/`B` value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete `metadata:*` differential suite."
       ],
       "object": "PDFAIdentification",
       "predicate": "conformance == \"B\" || conformance == \"A\"",
@@ -9659,10 +9661,10 @@
         }
       },
       "description": "Property \"part\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-PART-PREFIX-001"],
       "mapping_notes": [
-        "For the selected common identification property: `partPrefix == null || partPrefix == \"pdfaid\"`; lexical prefixes are recovered from the XML source QName."
+        "`partPrefix == null || partPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.28.2."
       ],
       "object": "PDFAIdentification",
       "predicate": "partPrefix == null || partPrefix == \"pdfaid\"",
@@ -9704,10 +9706,10 @@
         }
       },
       "description": "Property \"conformance\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
       "mapping_notes": [
-        "`conformancePrefix == null || conformancePrefix == \"pdfaid\"` for the selected common property."
+        "`conformancePrefix == null || conformancePrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.28.2."
       ],
       "object": "PDFAIdentification",
       "predicate": "conformancePrefix == null || conformancePrefix == \"pdfaid\"",
@@ -9753,10 +9755,10 @@
         }
       },
       "description": "Property \"amd\" of the PDF/A Identification Schema shall have namespace prefix \"pdfaid\"",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-ID-AMD-PREFIX-001"],
       "mapping_notes": [
-        "`amdPrefix == null || amdPrefix == \"pdfaid\"` for the selected common property; an absent `amd` is inapplicable and passes."
+        "`amdPrefix == null || amdPrefix == \"pdfaid\"`; lexical source-QName selection matches veraPDF, and absent `amd` is inapplicable."
       ],
       "object": "PDFAIdentification",
       "predicate": "amdPrefix == null || amdPrefix == \"pdfaid\"",
@@ -9888,10 +9890,10 @@
         }
       },
       "description": "The value of CreationDate entry from the document information dictionary, if present, and its analogous XMP property \"xmp:CreateDate\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-CREATIONDATE-001"],
       "mapping_notes": [
-        "Common full dates are compared as instants; reduced-precision XMP forms are not implemented."
+        "Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison."
       ],
       "object": "CosInfo",
       "predicate": "doCreationDatesMatch != false",
@@ -9949,9 +9951,11 @@
         }
       },
       "description": "The value of Title entry from the document information dictionary, if present, and its analogous XMP property \"dc:title['x-default']\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-TITLE-001"],
-      "mapping_notes": ["ASCII `dc:title` `rdf:Alt` `x-default` cases agree."],
+      "mapping_notes": [
+        "Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order."
+      ],
       "object": "CosInfo",
       "predicate": "Title == null || Title == XMPTitle",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:2"
@@ -10008,10 +10012,10 @@
         }
       },
       "description": "The value of Author entry from the document information dictionary, if present, and its analogous XMP property \"dc:creator\" shall be equivalent. dc:creator shall contain exactly one entry",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-AUTHOR-001"],
       "mapping_notes": [
-        "ASCII `dc:creator` `rdf:Seq` equality and one-item multiplicity agree."
+        "Exact Info PDF-string decoding, ordered-array extraction, simple-item validation, and sole-entry multiplicity."
       ],
       "object": "CosInfo",
       "predicate": "Author == null || (Author == XMPCreator && XMPCreatorSize == 1)",
@@ -10065,10 +10069,10 @@
         }
       },
       "description": "The value of Subject entry from the document information dictionary, if present, and its analogous XMP property \"dc:description['x-default']\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-SUBJECT-001"],
       "mapping_notes": [
-        "ASCII `dc:description` `rdf:Alt` `x-default` cases agree."
+        "Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order."
       ],
       "object": "CosInfo",
       "predicate": "Subject == null || Subject == XMPDescription",
@@ -10126,9 +10130,11 @@
         }
       },
       "description": "The value of Keywords entry from the document information dictionary, if present, and its analogous XMP property \"pdf:Keywords\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-KEYWORDS-001"],
-      "mapping_notes": ["ASCII `pdf:Keywords` cases agree."],
+      "mapping_notes": [
+        "Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms."
+      ],
       "object": "CosInfo",
       "predicate": "Keywords == null || Keywords == XMPKeywords",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:5"
@@ -10181,9 +10187,11 @@
         }
       },
       "description": "The value of Creator entry from the document information dictionary, if present, and its analogous XMP property \"xmp:CreatorTool\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-CREATOR-001"],
-      "mapping_notes": ["ASCII `xmp:CreatorTool` cases agree."],
+      "mapping_notes": [
+        "Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms."
+      ],
       "object": "CosInfo",
       "predicate": "Creator == null || Creator == XMPCreatorTool",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:6"
@@ -10236,9 +10244,11 @@
         }
       },
       "description": "The value of Producer entry from the document information dictionary, if present, and its analogous XMP property \"pdf:Producer\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-PRODUCER-001"],
-      "mapping_notes": ["ASCII `pdf:Producer` cases agree."],
+      "mapping_notes": [
+        "Exact Info PDF-string decoding, including one trailing NUL removal, and XMP simple-property extraction."
+      ],
       "object": "CosInfo",
       "predicate": "Producer == null || Producer == XMPProducer",
       "verapdf_rule_id": "ISO 19005-1:2005:6.7.3:7"
@@ -10275,10 +10285,10 @@
         }
       },
       "description": "The value of ModDate entry from the document information dictionary, if present, and its analogous XMP property \"xmp:ModifyDate\" shall be equivalent",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-INFO-MODDATE-001"],
       "mapping_notes": [
-        "Common full dates are compared as instants; reduced-precision XMP forms are not implemented."
+        "Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison."
       ],
       "object": "CosInfo",
       "predicate": "doModDatesMatch != false",
@@ -10438,10 +10448,10 @@
         }
       },
       "description": "Extension schema descriptions shall be specified using the PDF/A extension schema description schema defined in this clause",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-FIELDS-001"],
       "mapping_notes": [
-        "For bounded common extension objects: `containsUndefinedFields == false`, using the pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields."
+        "`containsUndefinedFields == false`, using the complete pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields."
       ],
       "object": "ExtensionSchemaObject",
       "predicate": "containsUndefinedFields == false",
@@ -10483,7 +10493,7 @@
         }
       },
       "description": "Field 'category' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text, value external or internal and namespace prefix 'pdfaProperty'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001"],
       "mapping_notes": [
         "`isCategoryValidText == true && (category == \"external\" || category == \"internal\") && categoryPrefix == \"pdfaProperty\"`."
@@ -10524,7 +10534,7 @@
         }
       },
       "description": "Field 'description' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaProperty\"`."
@@ -10565,7 +10575,7 @@
         }
       },
       "description": "Field 'type' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001"],
       "mapping_notes": [
         "`isTypeValidText == true && typePrefix == \"pdfaType\"`."
@@ -10606,7 +10616,7 @@
         }
       },
       "description": "Field 'namespaceURI' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type URI and namespace prefix 'pdfaType'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001"],
       "mapping_notes": [
         "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaType\"`."
@@ -10647,7 +10657,7 @@
         }
       },
       "description": "Field 'prefix' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001"],
       "mapping_notes": [
         "`isPrefixValidText == true && prefixPrefix == \"pdfaType\"`."
@@ -10688,7 +10698,7 @@
         }
       },
       "description": "Field 'description' of the PDF/A ValueType value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaType'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaType\"`."
@@ -10729,7 +10739,7 @@
         }
       },
       "description": "Field 'field' of the PDF/A ValueType value type in the PDF/A extension schema shall have type Seq Field and namespace prefix 'pdfaType'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"],
       "mapping_notes": [
         "`isFieldValidSeq == true && (fieldPrefix == null || fieldPrefix == \"pdfaType\")`; absence is allowed."
@@ -10770,7 +10780,7 @@
         }
       },
       "description": "Field 'name' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-NAME-001"],
       "mapping_notes": [
         "`isNameValidText == true && namePrefix == \"pdfaField\"`."
@@ -10815,7 +10825,7 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'. Value of valueType property shall be defined",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"],
       "mapping_notes": [
         "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaField\"`."
@@ -10856,7 +10866,7 @@
         }
       },
       "description": "Field 'description' of the PDF/A Field value type in the PDF/A extension schema shall have type Text and namespace prefix 'pdfaField'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001"],
       "mapping_notes": [
         "`isDescriptionValidText == true && descriptionPrefix == \"pdfaField\"`."
@@ -10901,10 +10911,10 @@
         }
       },
       "description": "The extension schema container schema uses the namespace URI \"http://www.aiim.org/pdfa/ns/extension/\". The required schema namespace prefix is pdfaExtension. pdfaExtension:schemas - Bag Schema - Description of extension schemas",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
       "mapping_notes": [
-        "For modeled `pdfaExtension:schemas`: `isValidBag == true && prefix == \"pdfaExtension\"`."
+        "For every selected `pdfaExtension:schemas`: `isValidBag == true && prefix == \"pdfaExtension\"`."
       ],
       "object": "ExtensionSchemasContainer",
       "predicate": "isValidBag == true && prefix == \"pdfaExtension\"",
@@ -10942,10 +10952,10 @@
         }
       },
       "description": "Field 'schema' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaSchema'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001"],
       "mapping_notes": [
-        "For modeled schema definitions: `isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"`."
+        "For every schema definition: `isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"`."
       ],
       "object": "ExtensionSchemaDefinition",
       "predicate": "isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"",
@@ -10983,7 +10993,7 @@
         }
       },
       "description": "Field 'namespaceURI' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type URI and namespace prefix 'pdfaSchema'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001"],
       "mapping_notes": [
         "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaSchema\"`; the pinned URI validator requires a simple XMP node."
@@ -11024,7 +11034,7 @@
         }
       },
       "description": "Field 'prefix' of the PDF/A Schema value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaSchema'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001"],
       "mapping_notes": [
         "`isPrefixValidText == true && prefixPrefix == \"pdfaSchema\"`."
@@ -11065,7 +11075,7 @@
         }
       },
       "description": "Field 'property' of the PDF/A Schema value type in the PDF/A extension schema shall have type Seq Property and namespace prefix 'pdfaSchema'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001"],
       "mapping_notes": [
         "`isPropertyValidSeq == true && (propertyPrefix == null || propertyPrefix == \"pdfaSchema\")`; absence is allowed."
@@ -11106,7 +11116,7 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Schema value type in the PDF/A extension schema shall have type Seq ValueType and namespace prefix 'pdfaSchema'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001"],
       "mapping_notes": [
         "`isValueTypeValidSeq == true && (valueTypePrefix == null || valueTypePrefix == \"pdfaSchema\")`; absence is allowed."
@@ -11147,7 +11157,7 @@
         }
       },
       "description": "Field 'name' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001"],
       "mapping_notes": [
         "`isNameValidText == true && namePrefix == \"pdfaProperty\"`."
@@ -11192,7 +11202,7 @@
         }
       },
       "description": "Field 'valueType' of the PDF/A Property value type in the PDF/A extension schema shall be present and shall have type Text and namespace prefix 'pdfaProperty'. Value of valueType property shall be defined",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"],
       "mapping_notes": [
         "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaProperty\"`."
@@ -11245,10 +11255,10 @@
         }
       },
       "description": "The metadata stream shall conform to XMP Specification and well formed PDFAExtension Schema for all extensions",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": ["PDFA1B-XMP-001"],
       "mapping_notes": [
-        "XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model."
+        "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.28.2."
       ],
       "object": "XMPPackage",
       "predicate": "isSerializationValid",
@@ -11290,14 +11300,14 @@
         }
       },
       "description": "Properties specified in XMP form shall use either the predefined schemas defined in XMP Specification, or extension schemas that comply with XMP Specification",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": [
         "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
         "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001"
       ],
       "mapping_notes": [
-        "Every element or attribute in a predefined XMP2004 namespace is a property that namespace defines, over the bounded `xmp2004_properties.txt` table.",
-        "Every property used in the XMP body outside the predefined namespaces is declared by the document's own extension schemas."
+        "Every top-level XMP property in a predefined namespace is checked against the complete 172-entry XMP 2004 table reflected from the pinned release.",
+        "Every top-level extension property is resolved against the exact current-package extension-schema registration and replacement semantics."
       ],
       "object": "XMPProperty",
       "predicate": "isPredefinedInXMP2004 == true || isDefinedInCurrentPackage == true",
@@ -11351,14 +11361,14 @@
         }
       },
       "description": "Properties specified in XMP form shall use either the predefined schemas defined in XMP Specification, or extension schemas that comply with XMP Specification",
-      "implementation_strength": ["partial/proxy"],
+      "implementation_strength": ["exact"],
       "local_checks": [
         "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
         "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
       ],
       "mapping_notes": [
-        "Every predefined-namespace property's value matches its predefined value-type shape; pinned live by the opt-in `invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in` case, which confirms veraPDF reports this same test for an invalid GPS coordinate.",
-        "Every used extension property's value matches its extension-schema-declared value type; pinned live by the opt-in `invalid_extension_xpath_matches_pinned_verapdf_when_opted_in` case, which confirms veraPDF reports this same test for an invalid extension property value."
+        "Every predefined property is checked with the pinned simple, array, LangAlt, date, XPath, GPS, and structured-type validators.",
+        "Every extension property is checked with the pinned declared simple, array, and structured field/value-type semantics."
       ],
       "object": "XMPProperty",
       "predicate": "isValueTypeCorrect == true",

@@ -4,6 +4,7 @@ use chrono::{Duration, Local, LocalResult, NaiveDate, TimeZone};
 use roxmltree::{Attribute, Document, Node, ParsingOptions};
 use serde::Serialize;
 use sxd_xpath::Factory as XPathFactory;
+use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -345,8 +346,7 @@ fn validate_property_element_list(
     xml: &str,
 ) -> Result<(), String> {
     for child in parent.children() {
-        if child.is_comment()
-            || child.is_text() && child.text().is_none_or(java_text_is_whitespace)
+        if child.is_comment() || child.is_text() && child.text().is_none_or(java_text_is_whitespace)
         {
             continue;
         }
@@ -525,8 +525,8 @@ fn validate_resource_property(
     let children = property
         .children()
         .filter(|child| {
-            !child.is_comment()
-                && !(child.is_text() && child.text().is_none_or(java_text_is_whitespace))
+            !(child.is_comment()
+                || child.is_text() && child.text().is_none_or(java_text_is_whitespace))
         })
         .collect::<Vec<_>>();
     if children.len() != 1 || !children[0].is_element() {
@@ -836,8 +836,7 @@ fn xmp_type_key(value_type: &str) -> String {
         };
         value_type.push_str(&lower[copied..start]);
         let after_choice = choice + "choice ".len();
-        copied = after_choice
-            + usize::from(lower[after_choice..].starts_with("of ")) * "of ".len();
+        copied = after_choice + usize::from(lower[after_choice..].starts_with("of ")) * "of ".len();
     }
     value_type.push_str(&lower[copied..]);
     if value_type.ends_with("choice") {
@@ -1373,9 +1372,12 @@ impl<'a> XmpProperty<'a> {
 
 fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
     let mut failed = BTreeSet::new();
-    for container in top_level_properties(rdf, xml).into_iter().filter(|property| {
-        property.namespace() == Some(PDFA_EXTENSION_NAMESPACE) && property.name() == "schemas"
-    }) {
+    for container in top_level_properties(rdf, xml)
+        .into_iter()
+        .filter(|property| {
+            property.namespace() == Some(PDFA_EXTENSION_NAMESPACE) && property.name() == "schemas"
+        })
+    {
         if container.array_kind() != Some(ArrayKind::Bag)
             || container.prefix(xml) != Some("pdfaExtension")
         {
@@ -1855,9 +1857,7 @@ fn source_element_qname<'a>(node: Node<'_, '_>, xml: &'a str) -> Option<&'a str>
     let source = xml.get(node.range())?;
     source
         .strip_prefix('<')?
-        .split(|character: char| {
-            character.is_ascii_whitespace() || matches!(character, '/' | '>')
-        })
+        .split(|character: char| character.is_ascii_whitespace() || matches!(character, '/' | '>'))
         .next()
 }
 
@@ -1992,12 +1992,7 @@ fn property_nodes<'a>(rdf: Node<'a, 'a>, namespace: &str, local_name: &str) -> V
         .collect()
 }
 
-fn property_values(
-    rdf: Node<'_, '_>,
-    xml: &str,
-    namespace: &str,
-    local_name: &str,
-) -> Vec<String> {
+fn property_values(rdf: Node<'_, '_>, xml: &str, namespace: &str, local_name: &str) -> Vec<String> {
     let mut values = Vec::new();
     for property in xmp_properties(rdf, xml) {
         if property.namespace() == Some(namespace)
@@ -2031,16 +2026,49 @@ fn localized_text_value(property: Node<'_, '_>) -> Option<String> {
     }
     items
         .iter()
-        .find(|item| item.attribute((XML_NAMESPACE, "lang")) == Some("x-default"))
+        .find(|item| {
+            item.attribute((XML_NAMESPACE, "lang"))
+                .is_some_and(|language| normalize_xmp_language(language) == "x-default")
+        })
         .or_else(|| {
             items.iter().find(|item| {
                 item.attribute((XML_NAMESPACE, "lang"))
-                    .is_some_and(|language| language.starts_with('x'))
+                    .is_some_and(|language| normalize_xmp_language(language).starts_with('x'))
             })
         })
         .or_else(|| items.first())
         .and_then(|item| XmpProperty::Element(*item).value())
         .map(str::to_owned)
+}
+
+fn normalize_xmp_language(value: &str) -> String {
+    if value == "x-default" {
+        return value.to_owned();
+    }
+    let mut subtag = 1_u32;
+    let mut normalized = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '-' | '_' => {
+                normalized.push('-');
+                subtag += 1;
+            }
+            ' ' => {}
+            character if subtag == 2 => {
+                let mut uppercase = character.to_uppercase();
+                let first = uppercase.next().unwrap_or(character);
+                normalized.push(if uppercase.next().is_none() {
+                    first
+                } else {
+                    character
+                });
+            }
+            character => {
+                normalized.push(character.to_lowercase().next().unwrap_or(character));
+            }
+        }
+    }
+    normalized
 }
 
 fn ordered_array_values(property: Node<'_, '_>) -> Option<Vec<String>> {
@@ -2062,20 +2090,24 @@ fn decode_xml(bytes: &[u8]) -> Result<String, String> {
     let xml = if bytes.starts_with(&[0, 0, 0xFE, 0xFF])
         || bytes.len() >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0
     {
-        decode_utf32(bytes.strip_prefix(&[0, 0, 0xFE, 0xFF]).unwrap_or(bytes), true)
+        decode_utf32(
+            bytes.strip_prefix(&[0, 0, 0xFE, 0xFF]).unwrap_or(bytes),
+            true,
+        )
     } else if bytes.starts_with(&[0xFF, 0xFE, 0, 0])
         || bytes.len() >= 4 && bytes[0] != 0 && bytes[1] == 0 && bytes[2] == 0
     {
-        decode_utf32(bytes.strip_prefix(&[0xFF, 0xFE, 0, 0]).unwrap_or(bytes), false)
-    } else if bytes.starts_with(&[0xFE, 0xFF])
-        || bytes.len() >= 2 && bytes[0] == 0 && bytes[1] != 0
+        decode_utf32(
+            bytes.strip_prefix(&[0xFF, 0xFE, 0, 0]).unwrap_or(bytes),
+            false,
+        )
+    } else if bytes.starts_with(&[0xFE, 0xFF]) || bytes.len() >= 2 && bytes[0] == 0 && bytes[1] != 0
     {
         decode_utf16_lossy(
             bytes.strip_prefix(&[0xFE, 0xFF]).unwrap_or(bytes),
             u16::from_be_bytes,
         )
-    } else if bytes.starts_with(&[0xFF, 0xFE])
-        || bytes.len() >= 2 && bytes[0] != 0 && bytes[1] == 0
+    } else if bytes.starts_with(&[0xFF, 0xFE]) || bytes.len() >= 2 && bytes[0] != 0 && bytes[1] == 0
     {
         decode_utf16_lossy(
             bytes.strip_prefix(&[0xFF, 0xFE]).unwrap_or(bytes),
@@ -2252,6 +2284,38 @@ pub(crate) fn dates_equivalent(pdf: &str, xmp: &str) -> bool {
         .is_some_and(|(pdf, xmp)| pdf == xmp)
 }
 
+pub(crate) fn xmp_integer_value(value: &str) -> Option<i32> {
+    let units = value.encode_utf16().collect::<Vec<_>>();
+    let (negative, digits) = match units.first().copied() {
+        Some(value) if value == u16::from(b'-') => (true, &units[1..]),
+        Some(value) if value == u16::from(b'+') => (false, &units[1..]),
+        Some(_) => (false, units.as_slice()),
+        None => return None,
+    };
+    if digits.is_empty() {
+        return None;
+    }
+    let maximum = if negative {
+        i64::from(i32::MAX) + 1
+    } else {
+        i64::from(i32::MAX)
+    };
+    let mut parsed = 0_i64;
+    for unit in digits {
+        parsed = parsed
+            .checked_mul(10)?
+            .checked_add(i64::from(java_decimal_digit(*unit)?))?;
+        if parsed > maximum {
+            return None;
+        }
+    }
+    if negative {
+        i32::try_from(-parsed).ok()
+    } else {
+        i32::try_from(parsed).ok()
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct ParsedDate {
     year: i32,
@@ -2262,6 +2326,7 @@ struct ParsedDate {
     second: i32,
     millisecond: i32,
     zone: DateZone,
+    calendar: CalendarKind,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -2270,26 +2335,34 @@ enum DateZone {
     Local,
 }
 
+#[derive(Clone, Copy, Debug)]
+enum CalendarKind {
+    JavaGregorian,
+    ProlepticGregorian,
+}
+
 impl ParsedDate {
     fn from_pdf(value: &str) -> Option<Self> {
-        let mut value = value.strip_prefix("D:")?;
-        if value.ends_with('\'') {
-            if value.ends_with("''") {
-                return None;
-            }
-            value = &value[..value.len() - 1];
-        }
-        if value.len() < 4 || value.len() > 20 {
+        let mut value = value.encode_utf16().collect::<Vec<_>>();
+        if !value.starts_with(&[u16::from(b'D'), u16::from(b':')]) {
             return None;
         }
-        let year = digits(value, 0, 4)? as i32;
-        let month_index = pdf_optional_pair(value, 4, 1)? - 1;
-        let day = pdf_optional_pair(value, 6, 1)?;
-        let hour = pdf_optional_pair(value, 8, 0)?;
-        let minute = pdf_optional_pair(value, 10, 0)?;
-        let second = pdf_optional_pair(value, 12, 0)?;
-        let timezone = value.get(value.len().min(14)..)?;
-        let offset_minutes = parse_pdf_offset(timezone)?;
+        if value.last() == Some(&u16::from(b'\'')) {
+            if value.ends_with(&[u16::from(b'\''), u16::from(b'\'')]) {
+                return None;
+            }
+            value.pop();
+        }
+        if value.len() < 6 || value.len() > 22 {
+            return None;
+        }
+        let year = pdf_digits(&value, 2, 4)?;
+        let month_index = pdf_optional_pair(&value, 6, 1)? - 1;
+        let day = pdf_optional_pair(&value, 8, 1)?;
+        let hour = pdf_optional_pair(&value, 10, 0)?;
+        let minute = pdf_optional_pair(&value, 12, 0)?;
+        let second = pdf_optional_pair(&value, 14, 0)?;
+        let offset_minutes = parse_pdf_offset(&value)?;
         Some(Self {
             year,
             month_index,
@@ -2299,6 +2372,7 @@ impl ParsedDate {
             second,
             millisecond: 0,
             zone: DateZone::Fixed(offset_minutes),
+            calendar: CalendarKind::JavaGregorian,
         })
     }
 
@@ -2345,13 +2419,17 @@ impl ParsedDate {
                 if position < bytes.len() && bytes[position] == b'.' {
                     position += 1;
                     let fraction_start = position;
-                    gather_xmp_integer(bytes, &mut position, 999_999_999)?;
-                    let fraction = &bytes[fraction_start..position];
-                    result.millisecond = fraction
-                        .iter()
-                        .take(3)
-                        .fold(0, |value, digit| value * 10 + i32::from(digit - b'0'))
-                        * 10_i32.pow(3_u32.saturating_sub(fraction.len().min(3) as u32));
+                    let mut nanoseconds = gather_xmp_integer(bytes, &mut position, 999_999_999)?;
+                    let mut digits = position - fraction_start;
+                    while digits > 9 {
+                        nanoseconds /= 10;
+                        digits -= 1;
+                    }
+                    while digits < 9 {
+                        nanoseconds = nanoseconds.wrapping_mul(10);
+                        digits += 1;
+                    }
+                    result.millisecond = nanoseconds / 1_000_000;
                 }
             } else if !matches!(bytes[position], b'Z' | b'+' | b'-') {
                 return None;
@@ -2380,7 +2458,7 @@ impl ParsedDate {
     }
 
     fn empty_xmp() -> Self {
-        Some(Self {
+        Self {
             year: 0,
             month_index: -1,
             day: 0,
@@ -2389,13 +2467,26 @@ impl ParsedDate {
             second: 0,
             millisecond: 0,
             zone: DateZone::Local,
-        })
-        .expect("date literal")
+            calendar: CalendarKind::ProlepticGregorian,
+        }
     }
 
     fn instant_millis(self) -> Option<i64> {
         let normalized_year = self.year + self.month_index.div_euclid(12);
         let normalized_month = self.month_index.rem_euclid(12) as u32 + 1;
+        if matches!(self.calendar, CalendarKind::JavaGregorian) {
+            let day = java_gregorian_day(normalized_year, normalized_month, self.day)?;
+            let local_millis = day
+                .checked_mul(86_400_000)?
+                .checked_add(i64::from(self.hour) * 3_600_000)?
+                .checked_add(i64::from(self.minute) * 60_000)?
+                .checked_add(i64::from(self.second) * 1_000)?
+                .checked_add(i64::from(self.millisecond))?;
+            return match self.zone {
+                DateZone::Fixed(offset) => local_millis.checked_sub(i64::from(offset) * 60_000),
+                DateZone::Local => None,
+            };
+        }
         let naive = NaiveDate::from_ymd_opt(normalized_year, normalized_month, 1)?
             .and_hms_opt(0, 0, 0)?
             .checked_add_signed(Duration::days(i64::from(self.day - 1)))?
@@ -2418,43 +2509,72 @@ impl ParsedDate {
     }
 }
 
-fn digits(value: &str, start: usize, length: usize) -> Option<u32> {
-    value.get(start..start + length)?.parse().ok()
+fn java_gregorian_day(year: i32, month: u32, day: i32) -> Option<i64> {
+    let gregorian = gregorian_julian_day(year, month, 1, false)? + i64::from(day - 1);
+    let julian_day = if gregorian >= 2_299_161 {
+        gregorian
+    } else {
+        gregorian_julian_day(year, month, 1, true)? + i64::from(day - 1)
+    };
+    julian_day.checked_sub(2_440_588)
 }
 
-fn pdf_optional_pair(value: &str, start: usize, default: i32) -> Option<i32> {
+fn gregorian_julian_day(year: i32, month: u32, day: i32, julian: bool) -> Option<i64> {
+    let month = i64::from(month);
+    let day = i64::from(day);
+    let adjustment = (14 - month).div_euclid(12);
+    let year = i64::from(year)
+        .checked_add(4_800)?
+        .checked_sub(adjustment)?;
+    let month = month + 12 * adjustment - 3;
+    let common = day + (153 * month + 2).div_euclid(5) + 365 * year + year.div_euclid(4);
+    Some(if julian {
+        common - 32_083
+    } else {
+        common - year.div_euclid(100) + year.div_euclid(400) - 32_045
+    })
+}
+
+fn pdf_optional_pair(value: &[u16], start: usize, default: i32) -> Option<i32> {
     if value.len() <= start {
         Some(default)
     } else {
-        digits(value, start, 2).map(|value| value as i32)
+        pdf_digits(value, start, 2)
     }
 }
 
-fn parse_pdf_offset(value: &str) -> Option<i32> {
-    if value.is_empty() {
+fn parse_pdf_offset(value: &[u16]) -> Option<i32> {
+    if value.len() <= 16 {
         return Some(0);
     }
-    let sign = match value.as_bytes()[0] {
-        b'Z' => 0,
-        b'+' => 1,
-        b'-' => -1,
+    let sign = match value[16] {
+        value if value == u16::from(b'Z') => 0,
+        value if value == u16::from(b'+') => 1,
+        value if value == u16::from(b'-') => -1,
         _ => return None,
     };
-    if value.len() == 1 {
-        return Some(0);
-    }
-    if sign == 0 || !matches!(value.len(), 3 | 4 | 6) {
-        return None;
-    }
-    let hours = digits(value, 1, 2)? as i32;
-    let minutes = if value.len() > 3 {
-        if value.as_bytes().get(3) != Some(&b'\'') || value.len() != 6 {
-            return None;
-        }
-        digits(value, 4, 2)? as i32
+    let hours = if value.len() > 17 {
+        pdf_digits(value, 17, 2)?
     } else {
         0
     };
+    if value.len() > 19 && value[19] != u16::from(b'\'') {
+        return None;
+    }
+    let minutes = if value.len() > 20 {
+        pdf_digits(value, 20, 2)?
+    } else {
+        0
+    };
+    if value.len() > 22 {
+        return None;
+    }
+    if sign == 0 {
+        if hours != 0 || minutes != 0 {
+            return None;
+        }
+        return Some(0);
+    }
     if hours <= 23 && minutes <= 59 {
         Some(sign * (hours * 60 + minutes))
     } else {
@@ -2464,14 +2584,39 @@ fn parse_pdf_offset(value: &str) -> Option<i32> {
     }
 }
 
+fn pdf_digits(value: &[u16], start: usize, length: usize) -> Option<i32> {
+    let mut parsed = 0_i32;
+    for unit in value.get(start..start + length)? {
+        parsed = parsed
+            .checked_mul(10)?
+            .checked_add(java_decimal_digit(*unit)?)?;
+    }
+    Some(parsed)
+}
+
+fn java_decimal_digit(unit: u16) -> Option<i32> {
+    let character = char::from_u32(u32::from(unit))?;
+    (character.general_category() == GeneralCategory::DecimalNumber).then_some(())?;
+    let mut first = u32::from(character);
+    while first > 0
+        && char::from_u32(first - 1)
+            .is_some_and(|previous| previous.general_category() == GeneralCategory::DecimalNumber)
+    {
+        first -= 1;
+    }
+    Some(((u32::from(character) - first) % 10) as i32)
+}
+
 fn gather_xmp_integer(bytes: &[u8], position: &mut usize, maximum: i32) -> Option<i32> {
     let start = *position;
-    let mut value = 0_i64;
+    let mut value = 0_i32;
     while bytes.get(*position).is_some_and(u8::is_ascii_digit) {
-        value = (value * 10 + i64::from(bytes[*position] - b'0')).min(i64::from(maximum));
+        value = value
+            .wrapping_mul(10)
+            .wrapping_add(i32::from(bytes[*position] - b'0'));
         *position += 1;
     }
-    (*position > start).then_some(value as i32)
+    (*position > start).then_some(value.clamp(0, maximum))
 }
 
 fn take_byte(bytes: &[u8], position: &mut usize, expected: u8) -> Option<()> {
@@ -2605,6 +2750,11 @@ mod tests {
                 "{http://ns.adobe.com/xap/1.0/rights/}Marked (boolean)".to_owned(),
             ])
         );
+        assert_eq!(xmp_integer_value("+01"), Some(1));
+        assert_eq!(xmp_integer_value("١"), Some(1));
+        assert_eq!(xmp_integer_value("2147483647"), Some(i32::MAX));
+        assert_eq!(xmp_integer_value("-2147483648"), Some(i32::MIN));
+        assert_eq!(xmp_integer_value("2147483648"), None);
     }
 
     #[test]
@@ -2845,7 +2995,10 @@ mod tests {
             .to_vec();
         latin1.push(0xE9);
         latin1.extend_from_slice(br#""/></rdf:RDF>"#);
-        assert_eq!(parse_xmp(&latin1).expect("recovered Latin-1").producers, ["café"]);
+        assert_eq!(
+            parse_xmp(&latin1).expect("recovered Latin-1").producers,
+            ["café"]
+        );
 
         let controls = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description pdf:Producer="a&#x1;b"/>
@@ -2867,19 +3020,16 @@ mod tests {
     fn detects_utf16_and_utf32_xmp_without_requiring_a_bom() {
         let xml = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" \
           xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\"><rdf:Description pdf:Producer=\"ok\"/></rdf:RDF>";
-        let utf16le = xml.encode_utf16().flat_map(u16::to_le_bytes).collect::<Vec<_>>();
-        assert_eq!(
-            parse_xmp(&utf16le).expect("UTF-16LE").producers,
-            ["ok"]
-        );
+        let utf16le = xml
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect::<Vec<_>>();
+        assert_eq!(parse_xmp(&utf16le).expect("UTF-16LE").producers, ["ok"]);
         let utf32be = xml
             .chars()
             .flat_map(|character| u32::from(character).to_be_bytes())
             .collect::<Vec<_>>();
-        assert_eq!(
-            parse_xmp(&utf32be).expect("UTF-32BE").producers,
-            ["ok"]
-        );
+        assert_eq!(parse_xmp(&utf32be).expect("UTF-32BE").producers, ["ok"]);
     }
 
     #[test]
@@ -2981,5 +3131,31 @@ mod tests {
             "D:20261327123045+02'00'",
             "2026-07-27T12:30:45+02:00"
         ));
+        assert!(dates_equivalent(
+            "D:20260727123045Z00",
+            "2026-07-27T12:30:45Z"
+        ));
+        assert!(dates_equivalent(
+            "D:20260727123045Z00'00'",
+            "2026-07-27T12:30:45Z"
+        ));
+        assert!(dates_equivalent(
+            "D:٢٠٢٦٠٧٢٧١٢٣٠٤٥Z",
+            "2026-07-27T12:30:45Z"
+        ));
+        assert!(!dates_equivalent(
+            "D:15000228000000Z",
+            "1500-02-28T00:00:00Z"
+        ));
+        assert!(dates_equivalent(
+            "D:15000228000000Z",
+            "1500-03-09T00:00:00Z"
+        ));
+        assert_eq!(
+            ParsedDate::from_xmp("2026-07-27T12:30:45.1234567890Z")
+                .expect("pinned long fraction")
+                .millisecond,
+            99
+        );
     }
 }

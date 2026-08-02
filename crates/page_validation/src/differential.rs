@@ -21,6 +21,7 @@ pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfA1b;
 pub const DEFAULT_TIMEOUT_MILLIS: u64 = 30_000;
 pub const DEFAULT_MAX_REPORT_BYTES: usize = 8 * 1024 * 1024;
 pub const DEFAULT_MAX_DIAGNOSTIC_BYTES: usize = 16 * 1024;
+pub const DEFAULT_BATCH_SIZE: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum ReferenceProfile {
@@ -56,6 +57,7 @@ pub struct ReferenceConfig {
     pub timeout_millis: u64,
     pub max_report_bytes: usize,
     pub max_diagnostic_bytes: usize,
+    pub batch_size: usize,
     pub coverage_gap_policy: CoverageGapPolicy,
 }
 
@@ -68,6 +70,7 @@ impl ReferenceConfig {
             timeout_millis: DEFAULT_TIMEOUT_MILLIS,
             max_report_bytes: DEFAULT_MAX_REPORT_BYTES,
             max_diagnostic_bytes: DEFAULT_MAX_DIAGNOSTIC_BYTES,
+            batch_size: DEFAULT_BATCH_SIZE,
             coverage_gap_policy: CoverageGapPolicy::AllowDuringDevelopment,
         }
     }
@@ -371,6 +374,91 @@ impl DifferentialRunner {
         }
     }
 
+    /// Compare explicit PDF paths in bounded veraPDF batches while preserving
+    /// input order and one [`DifferentialReport`] per path.
+    pub fn compare_files(
+        &self,
+        paths: &[PathBuf],
+        limits: &SafetyLimits,
+    ) -> Vec<DifferentialReport> {
+        let local_reports = paths
+            .iter()
+            .map(|path| validate_file(path, ValidationProfile::PdfA1b, limits))
+            .collect::<Vec<_>>();
+        let reference_indices = local_reports
+            .iter()
+            .enumerate()
+            .filter_map(|(index, report)| (!report.has_operational_failure()).then_some(index))
+            .collect::<Vec<_>>();
+        let mut reference_outcomes = vec![None; paths.len()];
+
+        for indices in reference_indices.chunks(self.config.batch_size.max(1)) {
+            let batch_paths = indices
+                .iter()
+                .map(|index| paths[*index].as_path())
+                .collect::<Vec<_>>();
+            match self.run_reference_batch(&batch_paths) {
+                Ok(outcomes) => {
+                    debug_assert_eq!(outcomes.len(), indices.len());
+                    for (index, outcome) in indices.iter().zip(outcomes) {
+                        reference_outcomes[*index] = Some(outcome);
+                    }
+                }
+                Err(failure) => {
+                    for index in indices {
+                        reference_outcomes[*index] = Some(Err(failure.clone()));
+                    }
+                }
+            }
+        }
+
+        paths
+            .iter()
+            .zip(local_reports)
+            .zip(reference_outcomes)
+            .map(|((path, local_report), reference_outcome)| {
+                if local_report.has_operational_failure() {
+                    return self.operational_report(
+                        path,
+                        local_report,
+                        OperationalFailure {
+                            kind: OperationalFailureKind::LocalOperational,
+                            message:
+                                "the local validator could not read or safely process the input"
+                                    .to_owned(),
+                            diagnostics: None,
+                        },
+                    );
+                }
+                match reference_outcome.expect("reference outcome for processable input") {
+                    Ok(reference_result) => {
+                        self.comparison_report(path, local_report, reference_result)
+                    }
+                    Err(failure) => self.operational_report(path, local_report, failure),
+                }
+            })
+            .collect()
+    }
+
+    fn comparison_report(
+        &self,
+        path: &Path,
+        local_report: ValidationReport,
+        reference_result: ReferenceResult,
+    ) -> DifferentialReport {
+        let classification = classify(&local_report, &reference_result);
+        DifferentialReport {
+            file: path.to_owned(),
+            reference_identity: self.identity.clone(),
+            classification,
+            acceptable: classification.is_acceptable_under(self.config.coverage_gap_policy),
+            summary: classification_summary(classification).to_owned(),
+            local_report,
+            reference_result: Some(reference_result),
+            operational_failure: None,
+        }
+    }
+
     fn operational_report(
         &self,
         path: &Path,
@@ -390,7 +478,16 @@ impl DifferentialRunner {
     }
 
     fn run_reference(&self, path: &Path) -> Result<ReferenceResult, OperationalFailure> {
-        let mut command = build_validation_command(&self.config, path);
+        self.run_reference_batch(&[path])?
+            .pop()
+            .expect("one requested veraPDF job")
+    }
+
+    fn run_reference_batch(
+        &self,
+        paths: &[&Path],
+    ) -> Result<Vec<Result<ReferenceResult, OperationalFailure>>, OperationalFailure> {
+        let mut command = build_validation_command(&self.config, paths);
         let captured = run_command_capped(
             &mut command,
             Duration::from_millis(self.config.timeout_millis),
@@ -410,11 +507,24 @@ impl DifferentialRunner {
                 diagnostics: Some(report_diagnostics),
             });
         }
-        parse_reference_report(
+        parse_reference_reports(
             &captured.stdout.bytes,
             &self.identity,
             report_diagnostics.clone(),
+            paths.len(),
         )
+        .map(|outcomes| {
+            outcomes
+                .into_iter()
+                .map(|outcome| {
+                    outcome.map_err(|message| OperationalFailure {
+                        kind: OperationalFailureKind::InvalidReferenceReport,
+                        message,
+                        diagnostics: Some(report_diagnostics.clone()),
+                    })
+                })
+                .collect()
+        })
         .map_err(|message| OperationalFailure {
             kind: OperationalFailureKind::InvalidReferenceReport,
             message,
@@ -489,7 +599,7 @@ pub fn aggregate_exit_code(reports: &[DifferentialReport]) -> i32 {
     }
 }
 
-fn build_validation_command(config: &ReferenceConfig, path: &Path) -> Command {
+fn build_validation_command(config: &ReferenceConfig, paths: &[&Path]) -> Command {
     let mut command = Command::new(&config.executable);
     command.args([
         "--loglevel",
@@ -499,7 +609,7 @@ fn build_validation_command(config: &ReferenceConfig, path: &Path) -> Command {
         "--flavour",
         config.profile.as_verapdf_flavour(),
     ]);
-    command.arg(path);
+    command.args(paths);
     command
 }
 
@@ -610,11 +720,23 @@ struct RawBatchSummary {
     vera_exceptions: u64,
 }
 
+#[cfg(test)]
 fn parse_reference_report(
     bytes: &[u8],
     expected_identity: &ReferenceIdentity,
     diagnostics: ReferenceDiagnostics,
 ) -> Result<ReferenceResult, String> {
+    parse_reference_reports(bytes, expected_identity, diagnostics, 1)?
+        .pop()
+        .expect("one requested veraPDF job")
+}
+
+fn parse_reference_reports(
+    bytes: &[u8],
+    expected_identity: &ReferenceIdentity,
+    diagnostics: ReferenceDiagnostics,
+    expected_jobs: usize,
+) -> Result<Vec<Result<ReferenceResult, String>>, String> {
     let raw: RawEnvelope =
         serde_json::from_slice(bytes).map_err(|error| format!("invalid veraPDF JSON: {error}"))?;
     let core = raw
@@ -625,13 +747,33 @@ fn parse_reference_report(
         .find(|detail| detail.id == "core")
         .ok_or_else(|| "veraPDF JSON has no core release detail".to_owned())?;
     verify_version(&core.version, &expected_identity.version)?;
-    if raw.report.jobs.len() != 1 {
+    if raw.report.jobs.len() != expected_jobs {
         return Err(format!(
-            "expected exactly one veraPDF job, found {}",
+            "expected {expected_jobs} veraPDF jobs, found {}",
             raw.report.jobs.len()
         ));
     }
-    let job = raw.report.jobs.into_iter().next().expect("length checked");
+    Ok(raw
+        .report
+        .jobs
+        .into_iter()
+        .map(|job| {
+            parse_reference_job(
+                job,
+                expected_identity,
+                diagnostics.clone(),
+                &raw.report.batch_summary,
+            )
+        })
+        .collect())
+}
+
+fn parse_reference_job(
+    job: RawJob,
+    expected_identity: &ReferenceIdentity,
+    diagnostics: ReferenceDiagnostics,
+    batch_summary: &RawBatchSummary,
+) -> Result<ReferenceResult, String> {
     match (job.validation_result, job.task_exception) {
         (Some(mut results), None) if results.len() == 1 => {
             let result = results.pop().expect("length checked");
@@ -672,11 +814,13 @@ fn parse_reference_report(
                     exception.exception_type
                 ));
             }
-            let parse_state = if raw.report.batch_summary.failed_encrypted_jobs > 0 {
+            let message_is_encrypted = exception
+                .exception_message
+                .to_ascii_lowercase()
+                .contains("encrypt");
+            let parse_state = if message_is_encrypted && batch_summary.failed_encrypted_jobs > 0 {
                 ReferenceParseState::RejectedEncrypted
-            } else if raw.report.batch_summary.failed_parsing_jobs > 0
-                || raw.report.batch_summary.vera_exceptions > 0
-            {
+            } else if batch_summary.failed_parsing_jobs > 0 || batch_summary.vera_exceptions > 0 {
                 ReferenceParseState::RejectedMalformed
             } else {
                 return Err(
@@ -962,6 +1106,29 @@ mod tests {
     }
 
     #[test]
+    fn parses_one_ordered_result_per_batched_job() {
+        let mut json: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../tests/reference-reports/compliant.json"))
+                .expect("fixture JSON");
+        let first_job = json["report"]["jobs"][0].clone();
+        json["report"]["jobs"]
+            .as_array_mut()
+            .expect("jobs array")
+            .push(first_job);
+        let reports = parse_reference_reports(
+            &serde_json::to_vec(&json).expect("serialize fixture JSON"),
+            &identity(),
+            diagnostics_fixture(),
+            2,
+        )
+        .expect("batch report");
+        assert_eq!(reports.len(), 2);
+        assert!(reports.into_iter().all(|result| {
+            result.is_ok_and(|report| report.parse_state == ReferenceParseState::Processed)
+        }));
+    }
+
+    #[test]
     fn parses_reference_parse_exception_structurally() {
         let parsed = parse_reference_report(
             include_bytes!("../tests/reference-reports/parse-error.json"),
@@ -1123,12 +1290,26 @@ mod tests {
         let config = ReferenceConfig::pinned("verapdf");
         let command = build_validation_command(
             &config,
-            Path::new("tests/fixtures/a directory/file name.pdf"),
+            &[Path::new("tests/fixtures/a directory/file name.pdf")],
         );
         let args = command.get_args().collect::<Vec<_>>();
         assert_eq!(
             args.last().copied(),
             Some(OsStr::new("tests/fixtures/a directory/file name.pdf"))
+        );
+    }
+
+    #[test]
+    fn batched_pdf_paths_are_distinct_process_arguments() {
+        let config = ReferenceConfig::pinned("verapdf");
+        let command = build_validation_command(
+            &config,
+            &[Path::new("first.pdf"), Path::new("second file.pdf")],
+        );
+        let args = command.get_args().collect::<Vec<_>>();
+        assert_eq!(
+            &args[args.len() - 2..],
+            &[OsStr::new("first.pdf"), OsStr::new("second file.pdf")]
         );
     }
 }

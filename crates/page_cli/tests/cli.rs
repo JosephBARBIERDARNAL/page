@@ -103,4 +103,5 @@ fn differential_help_keeps_its_own_client_contract() {
     assert!(stdout.contains("Usage: verapdf-diff"));
     assert!(stdout.contains("--verapdf"));
     assert!(stdout.contains("--expected-version"));
+    assert!(stdout.contains("--batch-size"));
 }

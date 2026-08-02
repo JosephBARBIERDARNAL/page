@@ -5,7 +5,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::limits::SafetyLimits;
-use crate::metadata::dates_equivalent;
+use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::report::{
     FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
@@ -313,7 +313,7 @@ fn validate_document(
     if xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
-            |value| value.parse::<i32>() == Ok(1),
+            |value| xmp_integer_value(value) == Some(1),
             "PDFA1B-ID-PART-001",
             "PDF/A part",
             "pdfaid:part",

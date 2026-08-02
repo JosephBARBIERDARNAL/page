@@ -179,6 +179,208 @@
       "rationale": "Only the first RDF package selected by the pinned XMP parser contributes properties."
     },
     {
+      "name": "empty_xmpmeta_stops_search",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-ID-SCHEMA-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001",
+        "PDFA1B-INFO-KEYWORDS-001",
+        "PDFA1B-INFO-CREATOR-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001"],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:1"],
+      "rationale": "The pinned root search stops at the first xmpmeta element even when that element contains no RDF package; a later sibling RDF package is not selected."
+    },
+    {
+      "name": "ix_changes_ignored",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "rationale": "A top-level resource-form property whose lexical QName is exactly iX:changes is discarded by the pinned XMP parser, including otherwise-invalid nested CDATA and undefined properties."
+    },
+    {
+      "name": "rdf_cdata_literal",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-ID-SCHEMA-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001",
+        "PDFA1B-INFO-KEYWORDS-001",
+        "PDFA1B-INFO-CREATOR-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Java DOM exposes CDATA separately from text, so the pinned RDF parser rejects CDATA in an ordinary literal property and invalidates the whole package."
+    },
+    {
+      "name": "rdf_comment_between_properties",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The pinned RDF parser ignores XML comments between property elements, so both validators preserve the valid metadata model."
+    },
+    {
+      "name": "localized_language_normalization",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "The XMP 2004 parser normalizes X_DEFAULT to x-DEFAULT; with no exact x-default item, getLocalizedText selects it as the sole generic x language item."
+    },
+    {
+      "name": "rdf_nbsp_between_descriptions",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-ID-SCHEMA-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001",
+        "PDFA1B-INFO-KEYWORDS-001",
+        "PDFA1B-INFO-CREATOR-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "U+00A0 is Unicode whitespace but not Java Character.isWhitespace, so it is an invalid non-element child between RDF node elements."
+    },
+    {
+      "name": "deprecated_dc_namespace",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4"
+      ],
+      "rationale": "The pinned parser maps the deprecated Dublin Core 1.1 namespace URI to the XMP 2004 DC namespace before property lookup, typing, and Info comparison."
+    },
+    {
+      "name": "lang_alt_partial_language",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
+      "rationale": "The pinned Lang Alt validator accepts an Alt array when any item carries xml:lang, even if another item is unqualified."
+    },
+    {
+      "name": "unknown_rdf_property",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001"],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:1"],
+      "rationale": "An RDF-namespace attribute that is not RDF syntax becomes an ordinary top-level XMP property and therefore requires an extension definition and matching declared type."
+    },
+    {
+      "name": "mismatched_rdf_about",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-ID-SCHEMA-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001",
+        "PDFA1B-INFO-KEYWORDS-001",
+        "PDFA1B-INFO-CREATOR-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Conflicting non-empty rdf:about values across top-level descriptions invalidate the complete XMP package."
+    },
+    {
+      "name": "rdf_resource_and_value",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-ID-SCHEMA-001",
+        "PDFA1B-INFO-TITLE-001",
+        "PDFA1B-INFO-AUTHOR-001",
+        "PDFA1B-INFO-SUBJECT-001",
+        "PDFA1B-INFO-KEYWORDS-001",
+        "PDFA1B-INFO-CREATOR-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "rdf:resource and rdf:value are mutually exclusive on an empty property element, so their combination invalidates the complete XMP package."
+    },
+    {
       "name": "duplicate_producer",
       "expected_local_failed_rule_ids": [
         "PDFA1B-XMP-001",
@@ -728,6 +930,60 @@
       "rationale": "Different offsets denote the same instants."
     },
     {
+      "name": "creation_date_pdf_z00_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "rationale": "The pinned PDF date parser accepts the extended zero-offset spelling Z00 and treats it as GMT."
+    },
+    {
+      "name": "creation_date_pdf_z00_00_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "rationale": "The pinned PDF date parser accepts zero timezone fields following Z when both hours and minutes are zero."
+    },
+    {
+      "name": "creation_date_pdf_unicode_digits_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "rationale": "PDF date fields use Java Character.isDigit and Integer.parseInt, so BMP Arabic-Indic decimal digits normalize to the same calendar fields as ASCII digits."
+    },
+    {
+      "name": "creation_date_historic_same_lexical",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Before Java GregorianCalendar's 1582 cutover, the PDF date uses the Julian calendar while XMP uses proleptic Gregorian, so identical lexical fields denote different instants."
+    },
+    {
+      "name": "creation_date_historic_shifted_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "rationale": "A Julian 1500-02-28 Info date and proleptic-Gregorian 1500-03-09 XMP date denote the same instant in the pinned calendars."
+    },
+    {
+      "name": "creation_date_long_fraction_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-CREATIONDATE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:1"
+      ],
+      "rationale": "The pinned XMP parser applies Java integer overflow/clamping and then reduces fractions longer than nine digits before Calendar truncates to milliseconds."
+    },
+    {
       "name": "creation_date_mismatch",
       "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
       "expected_local_passed_rule_ids": [],
@@ -934,6 +1190,14 @@
       "rationale": "The identification getter accepts leading zeroes in the integer lexical form."
     },
     {
+      "name": "id_part_unicode_digit",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ID-PART-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.11:2"],
+      "rationale": "Java Integer.parseInt accepts a BMP Arabic-Indic digit for the identification value, while the XMP 2004 Integer regex remains ASCII-only."
+    },
+    {
       "name": "id_conformance_alias",
       "expected_local_failed_rule_ids": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
       "expected_local_passed_rule_ids": [],
@@ -1094,6 +1358,20 @@
       ],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "A later extension schema for the same namespace replaces the earlier schema definition."
+    },
+    {
+      "name": "extension_duplicate_property_keeps_first",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "rationale": "Within one extension schema, the first definition of a duplicated property name remains registered; the later declared value type is ignored."
     },
     {
       "name": "extension_undefined_field",

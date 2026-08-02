@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -109,13 +109,42 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(0);
-    for case in manifest
+    let cases = manifest
         .cases
         .into_iter()
         .skip(case_offset)
         .take(case_limit.unwrap_or(usize::MAX))
-    {
-        let report = runner.compare_file(&case.path, &SafetyLimits::default());
+        .collect::<Vec<_>>();
+    let baseline_paths = cases
+        .iter()
+        .filter_map(|case| case.reference_baseline.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let baseline_ids = baseline_paths
+        .iter()
+        .cloned()
+        .zip(
+            runner
+                .compare_files(&baseline_paths, &SafetyLimits::default())
+                .into_iter()
+                .map(|report| {
+                    report
+                        .reference_result
+                        .expect("baseline reference result")
+                        .failed_rule_ids
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<BTreeSet<_>>()
+                }),
+        )
+        .collect::<BTreeMap<_, _>>();
+    let case_paths = cases
+        .iter()
+        .map(|case| case.path.clone())
+        .collect::<Vec<_>>();
+    let reports = runner.compare_files(&case_paths, &SafetyLimits::default());
+    for (case, report) in cases.into_iter().zip(reports) {
         assert_eq!(
             report.classification,
             case.expected_classification,
@@ -124,14 +153,6 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
             case.rationale
         );
         if let Some(baseline_path) = case.reference_baseline {
-            let baseline = runner.compare_file(&baseline_path, &SafetyLimits::default());
-            let baseline_ids = baseline
-                .reference_result
-                .expect("baseline reference result")
-                .failed_rule_ids
-                .iter()
-                .map(ToString::to_string)
-                .collect::<BTreeSet<_>>();
             let actual_ids = report
                 .reference_result
                 .as_ref()
@@ -144,7 +165,7 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
                 "veraPDF",
                 &case.path.display().to_string(),
                 &case.rationale,
-                &baseline_ids,
+                baseline_ids.get(&baseline_path).expect("baseline IDs"),
                 &actual_ids,
                 &case.expected_verapdf_added_rule_ids,
                 &[],
@@ -334,9 +355,33 @@ fn assert_atomic_cases(
     {
         return;
     }
+    let selected_cases = cases
+        .iter()
+        .filter(|case| {
+            !filter
+                .as_deref()
+                .and_then(|filter| filter.split_once(':'))
+                .is_some_and(|(_, selected_case)| {
+                    selected_case != "*" && selected_case != case.name
+                })
+        })
+        .collect::<Vec<_>>();
+    if selected_cases.is_empty() {
+        return;
+    }
     let baseline_path = temporary.join(format!("{prefix}-baseline.pdf"));
     fs::write(&baseline_path, fixture(baseline_name)).expect("write baseline PDF");
-    let baseline = runner.compare_file(&baseline_path, &SafetyLimits::default());
+    let mut paths = Vec::with_capacity(selected_cases.len() + 1);
+    paths.push(baseline_path);
+    for case in &selected_cases {
+        let path = temporary.join(format!("{prefix}-{}.pdf", case.name));
+        fs::write(&path, fixture(&case.name)).expect("write atomic PDF");
+        paths.push(path);
+    }
+    let mut reports = runner
+        .compare_files(&paths, &SafetyLimits::default())
+        .into_iter();
+    let baseline = reports.next().expect("baseline report");
     let baseline_local_ids = baseline
         .local_report
         .failures
@@ -351,18 +396,7 @@ fn assert_atomic_cases(
         .iter()
         .map(ToString::to_string)
         .collect::<BTreeSet<_>>();
-    for case in cases {
-        if filter
-            .as_deref()
-            .and_then(|filter| filter.split_once(':'))
-            .is_some_and(|(_, selected_case)| selected_case != "*" && selected_case != case.name)
-        {
-            continue;
-        }
-        let path = temporary.join(format!("{prefix}-{}.pdf", case.name));
-        fs::write(&path, fixture(&case.name)).expect("write atomic PDF");
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-
+    for (case, report) in selected_cases.into_iter().zip(reports) {
         let local_ids = report
             .local_report
             .failures

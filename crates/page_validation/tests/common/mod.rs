@@ -130,6 +130,81 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "</wrapper><?xpacket end=\"w\"?>",
             );
         }
+        "empty_xmpmeta_stops_search" => {
+            replace(
+                &mut xmp,
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">",
+                "<wrapper xmlns:x=\"adobe:ns:meta/\"><x:xmpmeta/>",
+            );
+            replace(&mut xmp, "</x:xmpmeta>", "</wrapper>");
+        }
+        "ix_changes_ignored" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:iX=\"http://ns.adobe.com/iX/1.0/\">",
+            );
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<iX:changes><rdf:Description><iX:unknown><![CDATA[ignored]]></iX:unknown></rdf:Description></iX:changes><dc:title>",
+            );
+        }
+        "rdf_cdata_literal" => {
+            replace(&mut xmp, " pdf:Producer=\"producer\"", "");
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<pdf:Producer><![CDATA[producer]]></pdf:Producer><dc:title>",
+            );
+        }
+        "rdf_comment_between_properties" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<!-- comments are RDF child nodes --><dc:title>",
+        ),
+        "localized_language_normalization" => replace(
+            &mut xmp,
+            "<rdf:li xml:lang=\"fr\">Titre</rdf:li>\n<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+            "<rdf:li xml:lang=\"fr\">Wrong title</rdf:li>\n<rdf:li xml:lang=\"X_DEFAULT\">Title</rdf:li>",
+        ),
+        "rdf_nbsp_between_descriptions" => replace(
+            &mut xmp,
+            "</rdf:Description>\n</rdf:RDF>",
+            "</rdf:Description>\u{a0}<rdf:Description/>\n</rdf:RDF>",
+        ),
+        "deprecated_dc_namespace" => replace(
+            &mut xmp,
+            "http://purl.org/dc/elements/1.1/",
+            "http://purl.org/dc/1.1/",
+        ),
+        "lang_alt_partial_language" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<dc:rights><rdf:Alt><rdf:li xml:lang=\"x-default\">Rights</rdf:li><rdf:li>Unqualified</rdf:li></rdf:Alt></dc:rights><dc:title>",
+        ),
+        "unknown_rdf_property" => replace(
+            &mut xmp,
+            "<rdf:Description pdfaid:part=",
+            "<rdf:Description rdf:unknown=\"value\" pdfaid:part=",
+        ),
+        "mismatched_rdf_about" => {
+            replace(
+                &mut xmp,
+                "<rdf:Description pdfaid:part=",
+                "<rdf:Description rdf:about=\"one\" pdfaid:part=",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description rdf:about=\"two\"/></rdf:RDF>",
+            );
+        }
+        "rdf_resource_and_value" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<xmp:Nickname rdf:resource=\"urn:value\" rdf:value=\"value\"/><dc:title>",
+        ),
         "duplicate_producer" => replace(
             &mut xmp,
             "</rdf:RDF>",
@@ -213,7 +288,11 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "Producer",
                 Object::String(vec![b'c', b'a', b'f', 0xE9], StringFormat::Literal),
             );
-            replace(&mut xmp, "pdf:Producer=\"producer\"", "pdf:Producer=\"caf~\"");
+            replace(
+                &mut xmp,
+                "pdf:Producer=\"producer\"",
+                "pdf:Producer=\"caf~\"",
+            );
             let marker = xmp.iter().position(|byte| *byte == b'~').expect("marker");
             xmp[marker] = 0xE9;
         }
@@ -273,6 +352,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
         "id_part_plus_one" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"+1\""),
         "id_part_leading_zero" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"01\""),
+        "id_part_unicode_digit" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"١\""),
         "id_conformance_alias" => replace(
             &mut xmp,
             "pdfaid:conformance=\"B\"",
@@ -381,6 +461,23 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 &mut xmp,
                 "</rdf:Bag></pdfaExtension:schemas>",
                 "<rdf:li rdf:parseType=\"Resource\">\n<pdfaSchema:schema>Replacement schema</pdfaSchema:schema>\n<pdfaSchema:namespaceURI>http://example.com/ns/</pdfaSchema:namespaceURI>\n<pdfaSchema:prefix>ex</pdfaSchema:prefix>\n<pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType=\"Resource\">\n<pdfaProperty:name>replacement</pdfaProperty:name>\n<pdfaProperty:valueType>Text</pdfaProperty:valueType>\n<pdfaProperty:category>external</pdfaProperty:category>\n<pdfaProperty:description>Replacement property</pdfaProperty:description>\n</rdf:li></rdf:Seq></pdfaSchema:property>\n</rdf:li></rdf:Bag></pdfaExtension:schemas>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:example>value</ex:example></rdf:Description></rdf:RDF>",
+            );
+        }
+        "extension_duplicate_property_keeps_first" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:li>\n</rdf:Seq></pdfaSchema:property>",
+                "</rdf:li>\n<rdf:li rdf:parseType=\"Resource\">\n<pdfaProperty:name>example</pdfaProperty:name>\n<pdfaProperty:valueType>Integer</pdfaProperty:valueType>\n<pdfaProperty:category>external</pdfaProperty:category>\n<pdfaProperty:description>Replacement property</pdfaProperty:description>\n</rdf:li>\n</rdf:Seq></pdfaSchema:property>",
             );
             replace(
                 &mut xmp,
@@ -798,6 +895,64 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "2026-07-27T12:30:45+02:00",
             "2026-07-27T10:30:45Z",
         ),
+        "creation_date_pdf_z00_equivalent" => {
+            info.set(
+                "CreationDate",
+                Object::string_literal("D:20260727103045Z00"),
+            );
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "2026-07-27T10:30:45Z",
+            );
+        }
+        "creation_date_pdf_z00_00_equivalent" => {
+            info.set(
+                "CreationDate",
+                Object::string_literal("D:20260727103045Z00'00'"),
+            );
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "2026-07-27T10:30:45Z",
+            );
+        }
+        "creation_date_pdf_unicode_digits_equivalent" => {
+            let mut encoded = vec![0xFE, 0xFF];
+            encoded.extend(
+                "D:٢٠٢٦٠٧٢٧١٢٣٠٤٥+٠٢'٠٠'"
+                    .encode_utf16()
+                    .flat_map(u16::to_be_bytes),
+            );
+            info.set(
+                "CreationDate",
+                Object::String(encoded, StringFormat::Literal),
+            );
+        }
+        "creation_date_historic_same_lexical" => {
+            info.set("CreationDate", Object::string_literal("D:15000228000000Z"));
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "1500-02-28T00:00:00Z",
+            );
+        }
+        "creation_date_historic_shifted_equivalent" => {
+            info.set("CreationDate", Object::string_literal("D:15000228000000Z"));
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "1500-03-09T00:00:00Z",
+            );
+        }
+        "creation_date_long_fraction_equivalent" => {
+            info.set("CreationDate", Object::string_literal("D:20260727103045Z"));
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "2026-07-27T10:30:45.0000000001Z",
+            );
+        }
         "creation_date_mismatch" => {
             replace_first(
                 &mut xmp,

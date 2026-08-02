@@ -784,8 +784,11 @@ mod tests {
     fn stringifies_non_string_info_values_like_verapdf() {
         assert_eq!(verapdf_object_string(&Object::Integer(42)), "42");
         assert_eq!(verapdf_object_string(&Object::Real(3.0)), "3.0");
-        assert_eq!(verapdf_object_string(&Object::Real(3.14)), "3.14");
-        assert_eq!(verapdf_object_string(&Object::Name(b"Foo".to_vec())), "/Foo");
+        assert_eq!(verapdf_object_string(&Object::Real(3.125)), "3.125");
+        assert_eq!(
+            verapdf_object_string(&Object::Name(b"Foo".to_vec())),
+            "/Foo"
+        );
         assert_eq!(
             verapdf_object_string(&Object::Array(vec![
                 Object::Integer(1),

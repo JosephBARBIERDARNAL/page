@@ -11,6 +11,82 @@ mod common;
 const CASES: &[(&str, &[&str])] = &[
     ("first_rdf_package", &[]),
     (
+        "empty_xmpmeta_stops_search",
+        &[
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    ("ix_changes_ignored", &[]),
+    (
+        "rdf_cdata_literal",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    ("rdf_comment_between_properties", &[]),
+    ("localized_language_normalization", &[]),
+    (
+        "rdf_nbsp_between_descriptions",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    ("deprecated_dc_namespace", &[]),
+    ("lang_alt_partial_language", &[]),
+    (
+        "unknown_rdf_property",
+        &[
+            "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+        ],
+    ),
+    (
+        "mismatched_rdf_about",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    (
+        "rdf_resource_and_value",
+        &[
+            "PDFA1B-XMP-001",
+            "PDFA1B-ID-SCHEMA-001",
+            "PDFA1B-INFO-TITLE-001",
+            "PDFA1B-INFO-AUTHOR-001",
+            "PDFA1B-INFO-SUBJECT-001",
+            "PDFA1B-INFO-KEYWORDS-001",
+            "PDFA1B-INFO-CREATOR-001",
+            "PDFA1B-INFO-PRODUCER-001",
+        ],
+    ),
+    (
         "duplicate_producer",
         &[
             "PDFA1B-XMP-001",
@@ -114,6 +190,10 @@ const CASES: &[(&str, &[&str])] = &[
     ("id_part_plus_one", &[]),
     ("id_part_leading_zero", &[]),
     (
+        "id_part_unicode_digit",
+        &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+    ),
+    (
         "id_conformance_alias",
         &["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
     ),
@@ -150,6 +230,7 @@ const CASES: &[(&str, &[&str])] = &[
             "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
         ],
     ),
+    ("extension_duplicate_property_keeps_first", &[]),
     ("extension_rational_value_type", &[]),
     (
         "extension_xpath_invalid",
@@ -308,6 +389,15 @@ const CASES: &[(&str, &[&str])] = &[
     ("producer_trailing_nul", &[]),
     ("producer_two_trailing_nuls", &["PDFA1B-INFO-PRODUCER-001"]),
     ("creation_date_mismatch", &["PDFA1B-INFO-CREATIONDATE-001"]),
+    ("creation_date_pdf_z00_equivalent", &[]),
+    ("creation_date_pdf_z00_00_equivalent", &[]),
+    ("creation_date_pdf_unicode_digits_equivalent", &[]),
+    (
+        "creation_date_historic_same_lexical",
+        &["PDFA1B-INFO-CREATIONDATE-001"],
+    ),
+    ("creation_date_historic_shifted_equivalent", &[]),
+    ("creation_date_long_fraction_equivalent", &[]),
     (
         "creation_date_invalid",
         &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
@@ -362,6 +452,13 @@ fn equivalent_rdf_serializations_match_pinned_verapdf_when_opted_in() {
         "xmp_utf32be_without_bom",
         "title_utf8_bom_equivalent",
         "title_utf16_odd_equivalent",
+        "localized_language_normalization",
+        "creation_date_pdf_z00_equivalent",
+        "creation_date_pdf_z00_00_equivalent",
+        "creation_date_pdf_unicode_digits_equivalent",
+        "creation_date_historic_shifted_equivalent",
+        "creation_date_long_fraction_equivalent",
+        "extension_duplicate_property_keeps_first",
     ] {
         let path = env::temp_dir().join(format!(
             "page-metadata-equivalent-{case}-{}.pdf",
@@ -395,6 +492,16 @@ fn equivalent_rdf_serializations_match_pinned_verapdf_when_opted_in() {
             "PDFA1B-XMP-EXTENSION-CONTAINER-001",
             "ISO 19005-1:2005:6.7.8:2",
         ),
+        (
+            "creation_date_historic_same_lexical",
+            "PDFA1B-INFO-CREATIONDATE-001",
+            "ISO 19005-1:2005:6.7.3:1",
+        ),
+        (
+            "id_part_unicode_digit",
+            "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+            "ISO 19005-1:2005:6.7.9:3",
+        ),
     ] {
         let path = env::temp_dir().join(format!(
             "page-metadata-equivalent-{case}-{}.pdf",
@@ -418,6 +525,105 @@ fn equivalent_rdf_serializations_match_pinned_verapdf_when_opted_in() {
                 .map(|rule| rule.to_string())
                 .collect::<BTreeSet<_>>(),
             [reference_rule.to_owned()].into(),
+            "{case}"
+        );
+        fs::remove_file(path).expect("remove metadata fixture");
+    }
+}
+
+#[test]
+fn rdf_parser_edge_cases_match_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    let empty_metadata_failures = [
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7",
+    ];
+    let malformed_metadata_failures = [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.11:1",
+        "ISO 19005-1:2005:6.7.3:2",
+        "ISO 19005-1:2005:6.7.3:3",
+        "ISO 19005-1:2005:6.7.3:4",
+        "ISO 19005-1:2005:6.7.3:5",
+        "ISO 19005-1:2005:6.7.3:6",
+        "ISO 19005-1:2005:6.7.3:7",
+    ];
+    for (case, expected_reference_failures) in [
+        (
+            "empty_xmpmeta_stops_search",
+            empty_metadata_failures.as_slice(),
+        ),
+        ("rdf_cdata_literal", malformed_metadata_failures.as_slice()),
+        ("rdf_comment_between_properties", &[]),
+        (
+            "rdf_nbsp_between_descriptions",
+            malformed_metadata_failures.as_slice(),
+        ),
+        (
+            "mismatched_rdf_about",
+            malformed_metadata_failures.as_slice(),
+        ),
+        (
+            "rdf_resource_and_value",
+            malformed_metadata_failures.as_slice(),
+        ),
+        (
+            "unknown_rdf_property",
+            &["ISO 19005-1:2005:6.7.9:2", "ISO 19005-1:2005:6.7.9:3"],
+        ),
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-metadata-rdf-edge-{case}-{}.pdf",
+            std::process::id()
+        ));
+        fs::write(&path, common::metadata_fixture(case)).expect("write metadata fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .into_iter()
+                .map(|rule| rule.to_string())
+                .collect::<BTreeSet<_>>(),
+            expected_reference_failures
+                .iter()
+                .map(|rule| (*rule).to_owned())
+                .collect(),
+            "{case}"
+        );
+        fs::remove_file(path).expect("remove metadata fixture");
+    }
+    for case in [
+        "ix_changes_ignored",
+        "deprecated_dc_namespace",
+        "lang_alt_partial_language",
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-metadata-rdf-edge-{case}-{}.pdf",
+            std::process::id()
+        ));
+        fs::write(&path, common::metadata_fixture(case)).expect("write metadata fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Agreement,
+            "{case}: {report:#?}"
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .is_empty(),
             "{case}"
         );
         fs::remove_file(path).expect("remove metadata fixture");

@@ -1,11 +1,13 @@
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
 use page_cli::output::{ReportFormat, emit_json};
 use page_validation::SafetyLimits;
 use page_validation::differential::{
-    CoverageGapPolicy, DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS, DifferentialRunner,
-    PINNED_VERAPDF_VERSION, ReferenceConfig, ReferenceProfile, aggregate_exit_code,
+    CoverageGapPolicy, DEFAULT_BATCH_SIZE, DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS,
+    DifferentialRunner, PINNED_VERAPDF_VERSION, ReferenceConfig, ReferenceProfile,
+    aggregate_exit_code,
 };
 
 #[derive(Debug, Parser)]
@@ -32,13 +34,17 @@ struct Cli {
     #[arg(long, value_enum, default_value_t = ReportFormat::Text)]
     format: ReportFormat,
 
-    /// Maximum veraPDF execution time per command.
+    /// Maximum veraPDF execution time per batched command.
     #[arg(long, default_value_t = DEFAULT_TIMEOUT_MILLIS)]
     timeout_millis: u64,
 
     /// Maximum captured veraPDF JSON size.
     #[arg(long, default_value_t = DEFAULT_MAX_REPORT_BYTES)]
     max_reference_report_bytes: usize,
+
+    /// Maximum number of PDFs passed to one veraPDF invocation.
+    #[arg(long, default_value_t = NonZeroUsize::new(DEFAULT_BATCH_SIZE).unwrap())]
+    batch_size: NonZeroUsize,
 
     /// One or more explicit PDF paths.
     #[arg(required = true, num_args = 1..)]
@@ -70,6 +76,7 @@ fn main() {
     config.profile = cli.profile.into();
     config.timeout_millis = cli.timeout_millis;
     config.max_report_bytes = cli.max_reference_report_bytes;
+    config.batch_size = cli.batch_size.get();
     if cli.require_complete {
         config.coverage_gap_policy = CoverageGapPolicy::RejectForCompleteProfile;
     }
@@ -91,11 +98,7 @@ fn main() {
     };
 
     let limits = SafetyLimits::default();
-    let reports = cli
-        .files
-        .iter()
-        .map(|file| runner.compare_file(file, &limits))
-        .collect::<Vec<_>>();
+    let reports = runner.compare_files(&cli.files, &limits);
     match cli.format {
         ReportFormat::Text => {
             for (index, report) in reports.iter().enumerate() {

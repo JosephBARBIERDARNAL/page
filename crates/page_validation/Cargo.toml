@@ -12,6 +12,7 @@ keywords = ["PDF", "profile", "validation", "verapdf"]
 
 [dependencies]
 chrono = "0.4"
+unicode-properties = "0.1"
 lopdf = "0.44"
 roxmltree = "0.21"
 serde = { version = "1", features = ["derive"] }

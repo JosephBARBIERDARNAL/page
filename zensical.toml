@@ -13,7 +13,8 @@ nav = [
     "api/python.md",
     "api/nodejs.md",
   ] },
-  { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] }
+  { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] },
+  { "FAQ" = ["faq.md"] }
 ]
 
 [project.theme]

@@ -77,6 +77,8 @@ Operational and parser failures are kept separate from metadata and conformance 
 
 ## Differential testing against veraPDF
 
+Entire source code of the veraPDF-library lives in `veraPDF-library/`, and it's exactly the one for 1.28.2. It's excluded from git tracking.
+
 The `verapdf-diff` binary compares the local subset with an explicitly pinned
 veraPDF installation:
 
@@ -89,7 +91,7 @@ cargo run -p page_cli --bin verapdf-diff -- \
   file.pdf another.pdf
 ```
 
-The reference is veraPDF `1.28.2`, flavour `1b`. The runner first verifies the executable's version, then invokes each PDF separately with `--loglevel 0`, `--format json`, and `--flavour 1b`. Disabling veraPDF logging is necessary because Java warning records can otherwise be inserted into its JSON stdout. All process arguments are passed directly with `std::process::Command`; no shell command string is constructed.
+The reference is veraPDF `1.28.2`, flavour `1b`. The runner first verifies the executable's version, then groups PDFs into bounded batches of 32 by default and invokes veraPDF with `--loglevel 0`, `--format json`, and `--flavour 1b`. Use `--batch-size` to tune the bound. Disabling veraPDF logging is necessary because Java warning records can otherwise be inserted into its JSON stdout. Every PDF path is passed as a separate argument directly through `std::process::Command`; no shell command string is constructed.
 
 The classifications are:
 

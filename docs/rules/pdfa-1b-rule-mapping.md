@@ -108,47 +108,47 @@ These checks support parsing or local model preconditions and do not map to a st
 | `PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001` | `ISO 19005-1:2005:6.6.2:1` | §6.6.2 | partial/proxy | For Widget annotations reached from page `/Annots`: `containsAA == false`; key presence is tested regardless of value type. |
 | `PDFA1B-FIELD-ADDITIONAL-ACTIONS-001` | `ISO 19005-1:2005:6.6.2:2` | §6.6.2 | partial/proxy | For dictionaries directly in AcroForm `/Fields` and named field descendants reached through `/Kids`: `containsAA == false`. |
 | `PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001` | `ISO 19005-1:2005:6.6.2:3` | §6.6.2 | exact | `containsAA == false` on the document catalog; key presence is tested regardless of value type. |
-| `PDFA1B-ID-SCHEMA-001` | `ISO 19005-1:2005:6.7.11:1` | §6.7.11 | partial/proxy | Common packages agree; veraPDF recovery differs for invalid duplicate packages. |
-| `PDFA1B-ID-PART-001` | `ISO 19005-1:2005:6.7.11:2` | §6.7.11 | partial/proxy | `part == 1`; common single-property packages agree. |
-| `PDFA1B-ID-CONFORMANCE-001` | `ISO 19005-1:2005:6.7.11:3` | §6.7.11 | partial/proxy | `conformance == "B" \|\| conformance == "A"`; common single-property packages agree. |
-| `PDFA1B-ID-PART-PREFIX-001` | `ISO 19005-1:2005:6.7.11:4` | §6.7.11 | partial/proxy | For the selected common identification property: `partPrefix == null \|\| partPrefix == "pdfaid"`; lexical prefixes are recovered from the XML source QName. |
-| `PDFA1B-ID-CONFORMANCE-PREFIX-001` | `ISO 19005-1:2005:6.7.11:5` | §6.7.11 | partial/proxy | `conformancePrefix == null \|\| conformancePrefix == "pdfaid"` for the selected common property. |
-| `PDFA1B-ID-AMD-PREFIX-001` | `ISO 19005-1:2005:6.7.11:6` | §6.7.11 | partial/proxy | `amdPrefix == null \|\| amdPrefix == "pdfaid"` for the selected common property; an absent `amd` is inapplicable and passes. |
+| `PDFA1B-ID-SCHEMA-001` | `ISO 19005-1:2005:6.7.11:1` | §6.7.11 | exact | Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.28.2 differential suite. |
+| `PDFA1B-ID-PART-001` | `ISO 19005-1:2005:6.7.11:2` | §6.7.11 | exact | Exact Java `Integer.parseInt` value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete `metadata:*` differential suite. |
+| `PDFA1B-ID-CONFORMANCE-001` | `ISO 19005-1:2005:6.7.11:3` | §6.7.11 | exact | Exact `A`/`B` value, multiplicity, duplicate-package, and applicability semantics are pinned by the complete `metadata:*` differential suite. |
+| `PDFA1B-ID-PART-PREFIX-001` | `ISO 19005-1:2005:6.7.11:4` | §6.7.11 | exact | `partPrefix == null \|\| partPrefix == "pdfaid"`; lexical source-QName selection and applicability match veraPDF 1.28.2. |
+| `PDFA1B-ID-CONFORMANCE-PREFIX-001` | `ISO 19005-1:2005:6.7.11:5` | §6.7.11 | exact | `conformancePrefix == null \|\| conformancePrefix == "pdfaid"`; lexical source-QName selection and applicability match veraPDF 1.28.2. |
+| `PDFA1B-ID-AMD-PREFIX-001` | `ISO 19005-1:2005:6.7.11:6` | §6.7.11 | exact | `amdPrefix == null \|\| amdPrefix == "pdfaid"`; lexical source-QName selection matches veraPDF, and absent `amd` is inapplicable. |
 | `PDFA1B-METADATA-STRUCTURE-001` | `ISO 19005-1:2005:6.7.2:1` | §6.7.2 | exact | `containsMetadata == true` |
 | `PDFA1B-METADATA-FILTER-001` | `ISO 19005-1:2005:6.7.2:2` | §6.7.2 | exact | `isCatalogMetadata == false \|\| Filter == null` |
-| `PDFA1B-INFO-CREATIONDATE-001` | `ISO 19005-1:2005:6.7.3:1` | §6.7.3 | partial/proxy | Common full dates are compared as instants; reduced-precision XMP forms are not implemented. |
-| `PDFA1B-INFO-TITLE-001` | `ISO 19005-1:2005:6.7.3:2` | §6.7.3 | partial/proxy | ASCII `dc:title` `rdf:Alt` `x-default` cases agree. |
-| `PDFA1B-INFO-AUTHOR-001` | `ISO 19005-1:2005:6.7.3:3` | §6.7.3 | partial/proxy | ASCII `dc:creator` `rdf:Seq` equality and one-item multiplicity agree. |
-| `PDFA1B-INFO-SUBJECT-001` | `ISO 19005-1:2005:6.7.3:4` | §6.7.3 | partial/proxy | ASCII `dc:description` `rdf:Alt` `x-default` cases agree. |
-| `PDFA1B-INFO-KEYWORDS-001` | `ISO 19005-1:2005:6.7.3:5` | §6.7.3 | partial/proxy | ASCII `pdf:Keywords` cases agree. |
-| `PDFA1B-INFO-CREATOR-001` | `ISO 19005-1:2005:6.7.3:6` | §6.7.3 | partial/proxy | ASCII `xmp:CreatorTool` cases agree. |
-| `PDFA1B-INFO-PRODUCER-001` | `ISO 19005-1:2005:6.7.3:7` | §6.7.3 | partial/proxy | ASCII `pdf:Producer` cases agree. |
-| `PDFA1B-INFO-MODDATE-001` | `ISO 19005-1:2005:6.7.3:8` | §6.7.3 | partial/proxy | Common full dates are compared as instants; reduced-precision XMP forms are not implemented. |
+| `PDFA1B-INFO-CREATIONDATE-001` | `ISO 19005-1:2005:6.7.3:1` | §6.7.3 | exact | Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison. |
+| `PDFA1B-INFO-TITLE-001` | `ISO 19005-1:2005:6.7.3:2` | §6.7.3 | exact | Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order. |
+| `PDFA1B-INFO-AUTHOR-001` | `ISO 19005-1:2005:6.7.3:3` | §6.7.3 | exact | Exact Info PDF-string decoding, ordered-array extraction, simple-item validation, and sole-entry multiplicity. |
+| `PDFA1B-INFO-SUBJECT-001` | `ISO 19005-1:2005:6.7.3:4` | §6.7.3 | exact | Exact Info PDF-string decoding and XMP 2004 localized-text selection, including normalized language qualifiers and fallback order. |
+| `PDFA1B-INFO-KEYWORDS-001` | `ISO 19005-1:2005:6.7.3:5` | §6.7.3 | exact | Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms. |
+| `PDFA1B-INFO-CREATOR-001` | `ISO 19005-1:2005:6.7.3:6` | §6.7.3 | exact | Exact Info PDF-string decoding and XMP simple-property extraction across compact, expanded, and qualified RDF forms. |
+| `PDFA1B-INFO-PRODUCER-001` | `ISO 19005-1:2005:6.7.3:7` | §6.7.3 | exact | Exact Info PDF-string decoding, including one trailing NUL removal, and XMP simple-property extraction. |
+| `PDFA1B-INFO-MODDATE-001` | `ISO 19005-1:2005:6.7.3:8` | §6.7.3 | exact | Exact PDF and XMP date parsing covers reduced precision, offsets, local-time/DST behavior, Java Gregorian cutover semantics, Unicode PDF digits, and millisecond comparison. |
 | `PDFA1B-XMP-PACKET-BYTES-001` | `ISO 19005-1:2005:6.7.5:1` | §6.7.5 | exact | On the last `xpacket` processing instruction encountered before the main RDF node: `bytes == null`, using veraPDF's case-sensitive, unanchored quoted-assignment matcher. |
 | `PDFA1B-XMP-PACKET-ENCODING-001` | `ISO 19005-1:2005:6.7.5:2` | §6.7.5 | exact | On the same selected packet header: `encoding == null`, using the corresponding case-sensitive, unanchored quoted-assignment matcher. |
-| `PDFA1B-XMP-EXTENSION-FIELDS-001` | `ISO 19005-1:2005:6.7.8:1` | §6.7.8 | partial/proxy | For bounded common extension objects: `containsUndefinedFields == false`, using the pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001` | `ISO 19005-1:2005:6.7.8:10` | §6.7.8 | partial/proxy | `isCategoryValidText == true && (category == "external" \|\| category == "internal") && categoryPrefix == "pdfaProperty"`. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:11` | §6.7.8 | partial/proxy | `isDescriptionValidText == true && descriptionPrefix == "pdfaProperty"`. |
-| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001` | `ISO 19005-1:2005:6.7.8:12` | §6.7.8 | partial/proxy | `isTypeValidText == true && typePrefix == "pdfaType"`. |
-| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001` | `ISO 19005-1:2005:6.7.8:13` | §6.7.8 | partial/proxy | `isNamespaceURIValidURI == true && namespaceURIPrefix == "pdfaType"`. |
-| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001` | `ISO 19005-1:2005:6.7.8:14` | §6.7.8 | partial/proxy | `isPrefixValidText == true && prefixPrefix == "pdfaType"`. |
-| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:15` | §6.7.8 | partial/proxy | `isDescriptionValidText == true && descriptionPrefix == "pdfaType"`. |
-| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001` | `ISO 19005-1:2005:6.7.8:16` | §6.7.8 | partial/proxy | `isFieldValidSeq == true && (fieldPrefix == null \|\| fieldPrefix == "pdfaType")`; absence is allowed. |
-| `PDFA1B-XMP-EXTENSION-FIELD-NAME-001` | `ISO 19005-1:2005:6.7.8:17` | §6.7.8 | partial/proxy | `isNameValidText == true && namePrefix == "pdfaField"`. |
-| `PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.8:18` | §6.7.8 | partial/proxy | `isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == "pdfaField"`. |
-| `PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:19` | §6.7.8 | partial/proxy | `isDescriptionValidText == true && descriptionPrefix == "pdfaField"`. |
-| `PDFA1B-XMP-EXTENSION-CONTAINER-001` | `ISO 19005-1:2005:6.7.8:2` | §6.7.8 | partial/proxy | For modeled `pdfaExtension:schemas`: `isValidBag == true && prefix == "pdfaExtension"`. |
-| `PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001` | `ISO 19005-1:2005:6.7.8:3` | §6.7.8 | partial/proxy | For modeled schema definitions: `isSchemaValidText == true && schemaPrefix == "pdfaSchema"`. |
-| `PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001` | `ISO 19005-1:2005:6.7.8:4` | §6.7.8 | partial/proxy | `isNamespaceURIValidURI == true && namespaceURIPrefix == "pdfaSchema"`; the pinned URI validator requires a simple XMP node. |
-| `PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001` | `ISO 19005-1:2005:6.7.8:5` | §6.7.8 | partial/proxy | `isPrefixValidText == true && prefixPrefix == "pdfaSchema"`. |
-| `PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001` | `ISO 19005-1:2005:6.7.8:6` | §6.7.8 | partial/proxy | `isPropertyValidSeq == true && (propertyPrefix == null \|\| propertyPrefix == "pdfaSchema")`; absence is allowed. |
-| `PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001` | `ISO 19005-1:2005:6.7.8:7` | §6.7.8 | partial/proxy | `isValueTypeValidSeq == true && (valueTypePrefix == null \|\| valueTypePrefix == "pdfaSchema")`; absence is allowed. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001` | `ISO 19005-1:2005:6.7.8:8` | §6.7.8 | partial/proxy | `isNameValidText == true && namePrefix == "pdfaProperty"`. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.8:9` | §6.7.8 | partial/proxy | `isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == "pdfaProperty"`. |
-| `PDFA1B-XMP-001` | `ISO 19005-1:2005:6.7.9:1` | §6.7.9 | partial/proxy | XML well-formedness is necessary, but does not implement the complete XMP 2004 serialization and extension-schema model. |
-| `PDFA1B-XMP-PREDEFINED-PROPERTY-001` | `ISO 19005-1:2005:6.7.9:2` | §6.7.9 | partial/proxy | Every element or attribute in a predefined XMP2004 namespace is a property that namespace defines, over the bounded `xmp2004_properties.txt` table. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001` | `ISO 19005-1:2005:6.7.9:2` | §6.7.9 | partial/proxy | Every property used in the XMP body outside the predefined namespaces is declared by the document's own extension schemas. |
-| `PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.9:3` | §6.7.9 | partial/proxy | Every predefined-namespace property's value matches its predefined value-type shape; pinned live by the opt-in `invalid_gps_coordinate_matches_pinned_verapdf_when_opted_in` case, which confirms veraPDF reports this same test for an invalid GPS coordinate. |
-| `PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001` | `ISO 19005-1:2005:6.7.9:3` | §6.7.9 | partial/proxy | Every used extension property's value matches its extension-schema-declared value type; pinned live by the opt-in `invalid_extension_xpath_matches_pinned_verapdf_when_opted_in` case, which confirms veraPDF reports this same test for an invalid extension property value. |
+| `PDFA1B-XMP-EXTENSION-FIELDS-001` | `ISO 19005-1:2005:6.7.8:1` | §6.7.8 | exact | `containsUndefinedFields == false`, using the complete pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001` | `ISO 19005-1:2005:6.7.8:10` | §6.7.8 | exact | `isCategoryValidText == true && (category == "external" \|\| category == "internal") && categoryPrefix == "pdfaProperty"`. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:11` | §6.7.8 | exact | `isDescriptionValidText == true && descriptionPrefix == "pdfaProperty"`. |
+| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001` | `ISO 19005-1:2005:6.7.8:12` | §6.7.8 | exact | `isTypeValidText == true && typePrefix == "pdfaType"`. |
+| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001` | `ISO 19005-1:2005:6.7.8:13` | §6.7.8 | exact | `isNamespaceURIValidURI == true && namespaceURIPrefix == "pdfaType"`. |
+| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001` | `ISO 19005-1:2005:6.7.8:14` | §6.7.8 | exact | `isPrefixValidText == true && prefixPrefix == "pdfaType"`. |
+| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:15` | §6.7.8 | exact | `isDescriptionValidText == true && descriptionPrefix == "pdfaType"`. |
+| `PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001` | `ISO 19005-1:2005:6.7.8:16` | §6.7.8 | exact | `isFieldValidSeq == true && (fieldPrefix == null \|\| fieldPrefix == "pdfaType")`; absence is allowed. |
+| `PDFA1B-XMP-EXTENSION-FIELD-NAME-001` | `ISO 19005-1:2005:6.7.8:17` | §6.7.8 | exact | `isNameValidText == true && namePrefix == "pdfaField"`. |
+| `PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.8:18` | §6.7.8 | exact | `isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == "pdfaField"`. |
+| `PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001` | `ISO 19005-1:2005:6.7.8:19` | §6.7.8 | exact | `isDescriptionValidText == true && descriptionPrefix == "pdfaField"`. |
+| `PDFA1B-XMP-EXTENSION-CONTAINER-001` | `ISO 19005-1:2005:6.7.8:2` | §6.7.8 | exact | For every selected `pdfaExtension:schemas`: `isValidBag == true && prefix == "pdfaExtension"`. |
+| `PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001` | `ISO 19005-1:2005:6.7.8:3` | §6.7.8 | exact | For every schema definition: `isSchemaValidText == true && schemaPrefix == "pdfaSchema"`. |
+| `PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001` | `ISO 19005-1:2005:6.7.8:4` | §6.7.8 | exact | `isNamespaceURIValidURI == true && namespaceURIPrefix == "pdfaSchema"`; the pinned URI validator requires a simple XMP node. |
+| `PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001` | `ISO 19005-1:2005:6.7.8:5` | §6.7.8 | exact | `isPrefixValidText == true && prefixPrefix == "pdfaSchema"`. |
+| `PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001` | `ISO 19005-1:2005:6.7.8:6` | §6.7.8 | exact | `isPropertyValidSeq == true && (propertyPrefix == null \|\| propertyPrefix == "pdfaSchema")`; absence is allowed. |
+| `PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001` | `ISO 19005-1:2005:6.7.8:7` | §6.7.8 | exact | `isValueTypeValidSeq == true && (valueTypePrefix == null \|\| valueTypePrefix == "pdfaSchema")`; absence is allowed. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001` | `ISO 19005-1:2005:6.7.8:8` | §6.7.8 | exact | `isNameValidText == true && namePrefix == "pdfaProperty"`. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.8:9` | §6.7.8 | exact | `isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == "pdfaProperty"`. |
+| `PDFA1B-XMP-001` | `ISO 19005-1:2005:6.7.9:1` | §6.7.9 | exact | Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.28.2. |
+| `PDFA1B-XMP-PREDEFINED-PROPERTY-001` | `ISO 19005-1:2005:6.7.9:2` | §6.7.9 | exact | Every top-level XMP property in a predefined namespace is checked against the complete 172-entry XMP 2004 table reflected from the pinned release. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001` | `ISO 19005-1:2005:6.7.9:2` | §6.7.9 | exact | Every top-level extension property is resolved against the exact current-package extension-schema registration and replacement semantics. |
+| `PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001` | `ISO 19005-1:2005:6.7.9:3` | §6.7.9 | exact | Every predefined property is checked with the pinned simple, array, LangAlt, date, XPath, GPS, and structured-type validators. |
+| `PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001` | `ISO 19005-1:2005:6.7.9:3` | §6.7.9 | exact | Every extension property is checked with the pinned declared simple, array, and structured field/value-type semantics. |
 | `PDFA1B-ACROFORM-NEED-APPEARANCES-001` | `ISO 19005-1:2005:6.9:1` | §6.9 | exact | For a modeled catalog AcroForm: `NeedAppearances == null \|\| NeedAppearances == false`; a present non-boolean value follows veraPDF's conservative true fallback and fails. |
 | `PDFA1B-WIDGET-APPEARANCE-001` | `ISO 19005-1:2005:6.9:2` | §6.9 | partial/proxy | For Widget annotations reached from page `/Annots`: `AP != null`; veraPDF exposes AP only when it resolves to a dictionary, so streams and scalar values fail while an empty dictionary passes. |

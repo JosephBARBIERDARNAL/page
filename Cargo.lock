@@ -693,6 +693,7 @@ dependencies = [
  "sxd-xpath",
  "thiserror",
  "ttf-parser",
+ "unicode-properties",
  "wait-timeout",
 ]
 
