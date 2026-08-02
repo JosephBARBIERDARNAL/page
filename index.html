@@ -749,7 +749,7 @@
 <p><code>page</code> is an experimental PDF/A and PDF/UA validator, written in Rust.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><code>page</code> is an experimental project and isn't already usable. Current focus is on validating PDF/A-1b.</p>
+<p><code>page</code> is an experimental project and isn't usable yet. The current focus is on validating PDF/A-1b.</p>
 </div>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <p>With Rust and Cargo installed:</p>
@@ -765,8 +765,17 @@
 </ul>
 <h2 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-1b (~95% done, current WIP)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-1a</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-1b (~95% done, current WIP)</p>
+<ul>
+<li>complete graphics and content-stream reachability</li>
+<li>complete colour-space, ICC, and output-intent validation</li>
+<li>complete annotations, actions, forms, and interactive-feature validation</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-1a</p>
+</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-2a</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-2b</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-2u</li>
@@ -780,14 +789,14 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/UA-2</li>
 </ul>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<p><code>page</code> is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:</p>
+<p><code>page</code> is still in a preliminary stage, but the current tests and benchmarks I ran (only on PDF/A-1b) show:</p>
 <table>
 <thead>
 <tr>
 <th>Metric</th>
 <th><code>page</code></th>
 <th><code>veraPDF</code></th>
-<th>ratio</th>
+<th>Ratio</th>
 </tr>
 </thead>
 <tbody>
@@ -805,7 +814,7 @@
 </tr>
 </tbody>
 </table>
-<p>Benchark code lives in <a href="https://github.com/JosephBARBIERDARNAL/page/tree/main/bench">bench</a>.</p>
+<p>Benchmark code lives in <a href="https://github.com/JosephBARBIERDARNAL/page/tree/main/bench">bench</a>.</p>
 
 
 
