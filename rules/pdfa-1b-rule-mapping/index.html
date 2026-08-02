@@ -1061,35 +1061,35 @@
 <td><code>ISO 19005-1:2005:6.2.3.2:1</code></td>
 <td>§6.2.3.2</td>
 <td>exact</td>
-<td>For safely decoded profiles reached by the documented bounded content paths: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr" \|\| deviceClass == "scnr" \|\| deviceClass == "spac") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY" \|\| colorSpace == "Lab ") &amp;&amp; version &lt; 3.0</code>.</td>
+<td>For safely decoded profiles reached through executed page, Form, Pattern, or annotation-appearance content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr" \|\| deviceClass == "scnr" \|\| deviceClass == "spac") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY" \|\| colorSpace == "Lab ") &amp;&amp; version &lt; 3.0</code>. Unselected resources, mask-only images, malformed direct profile streams, and an uncoloured Pattern's underlying space remain inapplicable exactly where veraPDF 1.28.2 omits their model objects.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ICCBASED-COMPONENTS-001</code></td>
 <td><code>ISO 19005-1:2005:6.2.3.2:2</code></td>
 <td>§6.2.3.2</td>
 <td>exact</td>
-<td>For safely decoded profiles reached by the documented bounded content paths: <code>N != null &amp;&amp; ((N == 1 &amp;&amp; colorSpace == "GRAY") \|\| (N == 3 &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "Lab ")) \|\| (N == 4 &amp;&amp; colorSpace == "CMYK"))</code>.</td>
+<td>For every safely decoded ICC profile reached through the same exact colour-source population as test 1: <code>N != null &amp;&amp; ((N == 1 &amp;&amp; colorSpace == "GRAY") \|\| (N == 3 &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "Lab ")) \|\| (N == 4 &amp;&amp; colorSpace == "CMYK"))</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-DEVICE-RGB-001</code></td>
 <td><code>ISO 19005-1:2005:6.2.3.3:1</code></td>
 <td>§6.2.3.3</td>
 <td>exact</td>
-<td>For DeviceRGB uses reached by the documented bounded content paths: <code>gOutputCS != null &amp;&amp; gOutputCS == "RGB "</code>.</td>
+<td>For DeviceRGB uses reached through executed page, Form, Pattern, or annotation-appearance content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: <code>gOutputCS != null &amp;&amp; gOutputCS == "RGB "</code>. The uncoloured Pattern underlying-space exclusion follows veraPDF 1.28.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-DEVICE-CMYK-001</code></td>
 <td><code>ISO 19005-1:2005:6.2.3.3:2</code></td>
 <td>§6.2.3.3</td>
 <td>exact</td>
-<td>For DeviceCMYK uses reached by the documented bounded content paths: <code>gOutputCS != null &amp;&amp; gOutputCS == "CMYK"</code>.</td>
+<td>For DeviceCMYK uses reached through the same bounded colour-source population and after DefaultCMYK substitution: <code>gOutputCS != null &amp;&amp; gOutputCS == "CMYK"</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-DEVICE-GRAY-001</code></td>
 <td><code>ISO 19005-1:2005:6.2.3.3:3</code></td>
 <td>§6.2.3.3</td>
 <td>exact</td>
-<td>For DeviceGray uses reached by the documented bounded content paths: <code>gOutputCS != null</code>.</td>
+<td>For DeviceGray uses reached through the same bounded colour-source population and after DefaultGray substitution: <code>gOutputCS != null</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-IMAGE-ALTERNATES-001</code></td>
@@ -1166,7 +1166,7 @@
 <td><code>ISO 19005-1:2005:6.2.9:1</code></td>
 <td>§6.2.9</td>
 <td>exact</td>
-<td>For rendering intents reached through executed <code>ri</code> and <code>gs</code> operators or invoked Image XObjects: the name is <code>RelativeColorimetric</code>, <code>AbsoluteColorimetric</code>, <code>Perceptual</code>, or <code>Saturation</code>.</td>
+<td>For rendering intents reached through executed page, Form, Pattern, or annotation-appearance <code>ri</code>/<code>gs</code> operators; invoked primary or alternate images; and inline-image Intent entries: the name is <code>RelativeColorimetric</code>, <code>AbsoluteColorimetric</code>, <code>Perceptual</code>, or <code>Saturation</code>. Non-name values and unexecuted resources remain inapplicable.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-FONT-TYPE-001</code></td>
