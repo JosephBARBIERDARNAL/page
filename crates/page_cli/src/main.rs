@@ -9,7 +9,7 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_file};
     name = "page",
     bin_name = "page",
     version,
-    about = "Experimental PDF/A validator"
+    about = "Experimental PDF/A and PDF/UA validator"
 )]
 struct Cli {
     /// PDF file to validate.
@@ -58,6 +58,16 @@ enum ProfileArg {
     PdfA3a,
     #[value(name = "a-3u")]
     PdfA3u,
+    #[value(name = "a-4")]
+    PdfA4,
+    #[value(name = "a-4e")]
+    PdfA4e,
+    #[value(name = "a-4f")]
+    PdfA4f,
+    #[value(name = "ua-1")]
+    PdfUa1,
+    #[value(name = "ua-2")]
+    PdfUa2,
 }
 
 impl From<ProfileArg> for ValidationProfile {
@@ -71,6 +81,11 @@ impl From<ProfileArg> for ValidationProfile {
             ProfileArg::PdfA3b => Self::PdfA3b,
             ProfileArg::PdfA3a => Self::PdfA3a,
             ProfileArg::PdfA3u => Self::PdfA3u,
+            ProfileArg::PdfA4 => Self::PdfA4,
+            ProfileArg::PdfA4e => Self::PdfA4e,
+            ProfileArg::PdfA4f => Self::PdfA4f,
+            ProfileArg::PdfUa1 => Self::PdfUa1,
+            ProfileArg::PdfUa2 => Self::PdfUa2,
         }
     }
 }
@@ -86,20 +101,31 @@ impl ProfileArg {
             Self::PdfA3b => "a-3b",
             Self::PdfA3a => "a-3a",
             Self::PdfA3u => "a-3u",
+            Self::PdfA4 => "a-4",
+            Self::PdfA4e => "a-4e",
+            Self::PdfA4f => "a-4f",
+            Self::PdfUa1 => "ua-1",
+            Self::PdfUa2 => "ua-2",
         }
     }
 }
 
 fn main() {
     let cli = Cli::parse();
+    let profile = cli.profile;
+    let validation_profile: ValidationProfile = profile.into();
+    if !validation_profile.is_implemented() {
+        eprintln!("error: validation profile {validation_profile} is not implemented yet");
+        std::process::exit(1);
+    }
+
     let limits = SafetyLimits {
         max_input_size: cli.max_input_size,
         max_decoded_stream_size: cli.max_decoded_stream_size,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
     };
-    let profile = cli.profile;
-    let report = validate_file(&cli.file, profile.into(), &limits);
+    let report = validate_file(&cli.file, validation_profile, &limits);
     let status = if let Some(failure) = report
         .failures
         .iter()

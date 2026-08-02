@@ -29,6 +29,16 @@ pub enum ValidationProfile {
     PdfA3a,
     #[serde(rename = "a-3u")]
     PdfA3u,
+    #[serde(rename = "a-4")]
+    PdfA4,
+    #[serde(rename = "a-4e")]
+    PdfA4e,
+    #[serde(rename = "a-4f")]
+    PdfA4f,
+    #[serde(rename = "ua-1")]
+    PdfUa1,
+    #[serde(rename = "ua-2")]
+    PdfUa2,
 }
 
 impl fmt::Display for ValidationProfile {
@@ -42,7 +52,18 @@ impl fmt::Display for ValidationProfile {
             Self::PdfA3b => formatter.write_str("PDF/A-3b"),
             Self::PdfA3a => formatter.write_str("PDF/A-3a"),
             Self::PdfA3u => formatter.write_str("PDF/A-3u"),
+            Self::PdfA4 => formatter.write_str("PDF/A-4"),
+            Self::PdfA4e => formatter.write_str("PDF/A-4e"),
+            Self::PdfA4f => formatter.write_str("PDF/A-4f"),
+            Self::PdfUa1 => formatter.write_str("PDF/UA-1"),
+            Self::PdfUa2 => formatter.write_str("PDF/UA-2"),
         }
+    }
+}
+
+impl ValidationProfile {
+    pub const fn is_implemented(self) -> bool {
+        matches!(self, Self::PdfA1b)
     }
 }
 
@@ -60,6 +81,10 @@ pub fn validate_file(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
+    if let Some(report) = validate_profile(profile) {
+        return report;
+    }
+
     let metadata = match fs::metadata(path) {
         Ok(metadata) => metadata,
         Err(error) => {
@@ -83,10 +108,6 @@ pub fn validate_file(
         );
     }
 
-    if let Some(report) = validate_profile(profile) {
-        return report;
-    }
-
     match fs::read(path) {
         Ok(bytes) => validate_bytes(&bytes, profile, limits),
         Err(error) => {
@@ -100,6 +121,10 @@ pub fn validate_bytes(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
+    if let Some(report) = validate_profile(profile) {
+        return report;
+    }
+
     let (document, inspections) = match PdfDocument::from_bytes_with_inspections(bytes, limits) {
         Ok(document) => document,
         Err(error) if error.is_safety_limit() => {
@@ -115,13 +140,14 @@ pub fn validate_bytes(
 }
 
 fn validate_profile(profile: ValidationProfile) -> Option<ValidationReport> {
-    match profile {
-        ValidationProfile::PdfA1b => None,
-        _ => Some(ValidationReport::operational_failure(
+    if profile.is_implemented() {
+        None
+    } else {
+        Some(ValidationReport::operational_failure(
             profile,
             "PROFILE-001",
-            format!("validation profile {profile} is not supported"),
-        )),
+            format!("validation profile {profile} is not implemented yet"),
+        ))
     }
 }
 
@@ -1483,6 +1509,35 @@ mod tests {
         let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
         assert!(report.checks_passed, "{:#?}", report.failures);
         assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
+    }
+
+    #[test]
+    fn rejects_every_unimplemented_profile_before_parsing() {
+        let profiles = [
+            ValidationProfile::PdfA1a,
+            ValidationProfile::PdfA2a,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfA2u,
+            ValidationProfile::PdfA3a,
+            ValidationProfile::PdfA3b,
+            ValidationProfile::PdfA3u,
+            ValidationProfile::PdfA4,
+            ValidationProfile::PdfA4e,
+            ValidationProfile::PdfA4f,
+            ValidationProfile::PdfUa1,
+            ValidationProfile::PdfUa2,
+        ];
+
+        for profile in profiles {
+            let report = validate_bytes(b"not a PDF", profile, &SafetyLimits::default());
+            assert_eq!(report.exit_code(), 1, "profile {profile}");
+            assert_eq!(report.failures.len(), 1, "profile {profile}");
+            assert_eq!(report.failures[0].rule_id, "PROFILE-001");
+            assert_eq!(
+                report.failures[0].message,
+                format!("validation profile {profile} is not implemented yet")
+            );
+        }
     }
 
     #[test]

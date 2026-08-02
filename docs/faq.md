@@ -21,7 +21,7 @@ This project is [veraPDF](https://verapdf.org/). It is, by far, the **best optio
 
 !!! warning
 
-      Some open source softwares suggest that they provide PDF validation, but it's often, if not all the time, not really true. Those tools often just check for a, very small, subset of all rules for a given profile.
+      Some open source softwares suggest that they provide PDF validation, but it's often, if not all the time, not really true. Those tools often just check for a very small subset of all rules for a given profile.
 
 ## How `page` compares to `veraPDF`?
 
@@ -33,9 +33,9 @@ In the long run, I hope that `page` will provide a veraPDF-compliant alternative
 
 !!! info
       
-      Reasons for those difference is that `page` is written in Rust and `veraPDF` in Java. It is likely that memory usage from `veraPDF` is due to the JVM.
+      Reason for those differences is that `page` is written in Rust and `veraPDF` in Java. Note that it is likely that a significant part of memory usage from `veraPDF` is due to the JVM, not `veraPDF` itself.
 
-      The reasons of choosing Rust for `page` are: speed, memory/type safety and downstream integration. Indeed, it's easier to integrat Rust-based programs in other languages like Python, Node.js and other languages with a C interface.
+      The reasons of choosing Rust for `page` are: speed, memory/type safety and downstream integration. Indeed, it's easier to integrat Rust-based programs in other languages like Python, Node.js and other languages with a C interface (even if that's also possible in Java).
 
 ## Why are there multiple PDF formats?
 

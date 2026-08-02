@@ -12,7 +12,46 @@ fn page_help_exposes_the_flat_validation_interface() {
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
     assert!(stdout.contains("Usage: page [OPTIONS] --profile <PROFILE> <FILE>"));
     assert!(stdout.contains("--json"));
-    assert!(stdout.contains("a-1b"));
+    assert!(
+        stdout.contains(
+            "a-1b, a-1a, a-2b, a-2a, a-2u, a-3b, a-3a, a-3u, a-4, a-4e, a-4f, ua-1, ua-2"
+        )
+    );
+}
+
+#[test]
+fn future_profiles_are_recognized_and_reported_as_unimplemented() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let profiles = [
+        ("a-1a", "PDF/A-1a"),
+        ("a-2a", "PDF/A-2a"),
+        ("a-2b", "PDF/A-2b"),
+        ("a-2u", "PDF/A-2u"),
+        ("a-3a", "PDF/A-3a"),
+        ("a-3b", "PDF/A-3b"),
+        ("a-3u", "PDF/A-3u"),
+        ("a-4", "PDF/A-4"),
+        ("a-4e", "PDF/A-4e"),
+        ("a-4f", "PDF/A-4f"),
+        ("ua-1", "PDF/UA-1"),
+        ("ua-2", "PDF/UA-2"),
+    ];
+
+    for (argument, display_name) in profiles {
+        let output = Command::new(env!("CARGO_BIN_EXE_page"))
+            .arg(&fixture)
+            .args(["--profile", argument])
+            .output()
+            .expect("run validation with a future profile");
+
+        assert_eq!(output.status.code(), Some(1), "profile {argument}");
+        assert!(output.stdout.is_empty(), "profile {argument}");
+        assert_eq!(
+            String::from_utf8(output.stderr).expect("UTF-8 error"),
+            format!("error: validation profile {display_name} is not implemented yet\n")
+        );
+    }
 }
 
 #[test]
