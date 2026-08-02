@@ -8,14 +8,44 @@ Validate one PDF (by default against the profile declared in its XMP metadata):
 page validate document.pdf
 ```
 
+```bash
+Profile : PDF/A-1b
+Result  : Conformant
+
+✓ PDF syntax
+✓ PDF/A-1b
+✓ Metadata
+✓ Color
+✓ Fonts
+✓ Images
+✓ Graphics
+✓ Interactive content
+✓ Structure
+
+Time    : 0.005s
+```
+
 If the document does not declare a profile, `page` exits with an explicit error. Use `--profile` to select a profile instead:
 
 ```sh
 page validate document.pdf --profile a-1b
 ```
 
-```sh
-PDF/A-1b: 1/134 implemented checks failed
+```bash
+Profile : PDF/A-1b
+Result  : Non-conformant
+
+✓ PDF syntax
+✓ PDF/A-1b
+✓ Metadata
+✓ Color
+✓ Fonts
+✓ Images
+✓ Graphics
+✓ Interactive content
+✗ Structure
+
+Time    : 0.005s
 ```
 
 <br>
@@ -23,24 +53,51 @@ PDF/A-1b: 1/134 implemented checks failed
 Add `--format details` to emit details about the failure:
 
 ```sh
-page validate document.pdf --profile a-1b --format details
+page validate document.pdf --format details
 ```
 
 ```sh
-Preliminary PDF/A validation
-Profile: PDF/A-1b
-Result: failed
-Checks: 133 passed, 1 failed, 134 total
-Document: PDF 1.4, 1 page(s), 62 object(s)
-[PDFA1B-TRAILER-ID-001]: the applicable document trailer does not contain an ID entry
+Profile : PDF/A-1b
+Result  : Non-conformant
+
+✗ PDF syntax
+✓ PDF/A-1b
+✗ Metadata
+✓ Color
+✓ Fonts
+✓ Images
+✓ Graphics
+✓ Interactive content
+✗ Structure
+
+Time    : 0.001s
+
+Checks: 123 passed, 11 failed, 134 total
+Document: PDF 1.4, 1 page(s), 4 object(s)
+[PDFA1B-HEADER-BINARY-COMMENT-001] Conformance: [.........]
+[PDFA1B-HEX-STRING-CHARACTERS-001] Conformance: [.........]
+[PDFA1B-ID-SCHEMA-001] Metadata: [.........]
+[PDFA1B-INFO-AUTHOR-001] Metadata: [.........]
+[PDFA1B-INFO-CREATOR-001] Metadata: [.........]
+[PDFA1B-INFO-KEYWORDS-001] Metadata: [.........]
+[PDFA1B-INFO-PRODUCER-001] Metadata: [.........]
+[PDFA1B-INFO-SUBJECT-001] Metadata: [.........]
+[PDFA1B-INFO-TITLE-001] Metadata: [.........]
+[PDFA1B-METADATA-STRUCTURE-001] Metadata: [.........]
+[PDFA1B-TRAILER-ID-001] Conformance: [.........]
 ```
+
+
+!!! note
+
+      [ . . . . . . . . . ] are just placeholders of the actual messages
 
 <br>
 
 Or use `--format json` to emit the details as JSON:
 
 ```sh
-page validate document.pdf --profile a-1b --format json
+page validate document.pdf --format json
 ```
 
 ```json

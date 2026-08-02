@@ -58,7 +58,9 @@ pub enum ValidationError {
     #[error("{0}")]
     Pdf(#[from] PdfError),
 
-    #[error("document does not declare a PDF/A or PDF/UA validation profile")]
+    #[error(
+        "document does not declare a PDF/A or PDF/UA validation profile, declare it with --profile"
+    )]
     MissingProfileDeclaration,
 
     #[error("document has an invalid validation profile declaration: {0}")]

@@ -3,6 +3,7 @@ use std::fmt::Write as _;
 use std::fs;
 use std::io::{self, IsTerminal};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use anstyle::{AnsiColor, Style};
 use clap::{Args, Parser, Subcommand, ValueEnum};
@@ -131,10 +132,10 @@ impl From<ProfileArg> for ValidationProfile {
     }
 }
 
-const EMPHASIS: Style = Style::new().bold();
-const SUCCESS: Style = AnsiColor::Green.on_default().bold();
 const FAILURE: Style = AnsiColor::Red.on_default().bold();
 const WARNING: Style = AnsiColor::Yellow.on_default().bold();
+const SUMMARY_SUCCESS: Style = AnsiColor::BrightGreen.on_default().bold();
+const SUMMARY_FAILURE: Style = AnsiColor::BrightRed.on_default().bold();
 
 fn selected_style(enabled: bool, style: Style) -> Style {
     if enabled { style } else { Style::new() }
@@ -149,73 +150,156 @@ fn print_error(message: impl fmt::Display, colors: bool) {
     eprintln!("{error}error:{error:#} {message}");
 }
 
-fn render_summary(report: &ValidationReport, colors: bool) -> String {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SummaryCategory {
+    PdfSyntax,
+    Profile,
+    Metadata,
+    Color,
+    Fonts,
+    Images,
+    Graphics,
+    InteractiveContent,
+    Structure,
+}
+
+const SUMMARY_CATEGORIES: [SummaryCategory; 9] = [
+    SummaryCategory::PdfSyntax,
+    SummaryCategory::Profile,
+    SummaryCategory::Metadata,
+    SummaryCategory::Color,
+    SummaryCategory::Fonts,
+    SummaryCategory::Images,
+    SummaryCategory::Graphics,
+    SummaryCategory::InteractiveContent,
+    SummaryCategory::Structure,
+];
+
+fn summary_category(failure: &page_validation::ValidationFailure) -> SummaryCategory {
+    let rule = failure.rule_id;
+
+    if failure.category == FailureCategory::Parser
+        || failure.category == FailureCategory::Operational
+        || rule.starts_with("PDFA1B-HEADER-")
+        || rule.starts_with("PDFA1B-POST-EOF-")
+        || rule.starts_with("PDFA1B-XREF-")
+        || rule.starts_with("PDFA1B-INDIRECT-OBJECT-SYNTAX-")
+        || rule.starts_with("PDFA1B-HEX-STRING-")
+        || rule.starts_with("PDFA1B-STREAM-EOL-")
+        || rule.starts_with("PDFA1B-STREAM-LENGTH-")
+    {
+        SummaryCategory::PdfSyntax
+    } else if failure.category == FailureCategory::Metadata || rule.starts_with("PDFA1B-INFO-") {
+        SummaryCategory::Metadata
+    } else if rule.contains("-OUTPUTINTENT-")
+        || rule.contains("-ICCBASED-")
+        || rule.contains("-DEVICE-")
+        || rule.contains("-DEVICEN-")
+    {
+        SummaryCategory::Color
+    } else if rule.contains("-FONT-")
+        || rule.contains("-TRUETYPE-")
+        || rule.contains("-TYPE0-")
+        || rule.contains("-TYPE1-")
+        || rule.contains("-CID-")
+        || rule.contains("-CIDTOGIDMAP-")
+        || rule.contains("-CMAP-")
+    {
+        SummaryCategory::Fonts
+    } else if rule.contains("-IMAGE-") {
+        SummaryCategory::Images
+    } else if rule.contains("-CONTENT-OPERATOR-")
+        || rule.contains("-EXTGSTATE-")
+        || rule.contains("-GRAPHICS-")
+        || rule.contains("-RENDERING-INTENT-")
+        || rule.contains("-TRANSPARENCY-")
+        || rule.contains("-XOBJECT-")
+    {
+        SummaryCategory::Graphics
+    } else if rule.contains("-ANNOTATION-")
+        || rule.contains("-ACTION-")
+        || rule.contains("-ACROFORM-")
+        || rule.contains("-FIELD-")
+        || rule.contains("-FORM-")
+        || rule.contains("-WIDGET-")
+    {
+        SummaryCategory::InteractiveContent
+    } else if rule.contains("-CATALOG-")
+        || rule.contains("-FILE-SPEC-")
+        || rule.contains("-NAMES-EMBEDDED-FILES-")
+        || rule.contains("-OPTIONAL-CONTENT-")
+        || rule.contains("-TRAILER-ID-")
+        || rule.contains("-STREAM-EXTERNAL-DATA-")
+        || rule.contains("-STREAM-LZW-")
+    {
+        SummaryCategory::Structure
+    } else {
+        SummaryCategory::Profile
+    }
+}
+
+fn category_label(category: SummaryCategory, report: &ValidationReport) -> String {
+    match category {
+        SummaryCategory::PdfSyntax => "PDF syntax".to_owned(),
+        SummaryCategory::Profile => report.profile.to_string(),
+        SummaryCategory::Metadata => "Metadata".to_owned(),
+        SummaryCategory::Color => "Color".to_owned(),
+        SummaryCategory::Fonts => "Fonts".to_owned(),
+        SummaryCategory::Images => "Images".to_owned(),
+        SummaryCategory::Graphics => "Graphics".to_owned(),
+        SummaryCategory::InteractiveContent => "Interactive content".to_owned(),
+        SummaryCategory::Structure => "Structure".to_owned(),
+    }
+}
+
+fn render_summary(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
     let mut output = String::new();
-    let profile = selected_style(colors, EMPHASIS);
-    if report.has_operational_failure() {
-        let result = selected_style(colors, WARNING);
-        writeln!(
-            output,
-            "{profile}{}{profile:#}: {result}validation could not be completed{result:#}",
-            report.profile
-        )
-        .expect("writing to a String cannot fail");
+    let (result_text, result_style) = if report.has_operational_failure() {
+        ("Incomplete", WARNING)
     } else if report
         .failures
         .iter()
         .any(|failure| failure.category == FailureCategory::Parser)
     {
-        let result = selected_style(colors, FAILURE);
-        writeln!(
-            output,
-            "{profile}{}{profile:#}: {result}input could not be parsed{result:#}",
-            report.profile
-        )
-        .expect("writing to a String cannot fail");
+        ("Invalid PDF", SUMMARY_FAILURE)
     } else if report.checks_passed {
-        let result = selected_style(colors, SUCCESS);
-        writeln!(
-            output,
-            "{profile}{}{profile:#}: {result}all {} implemented checks passed{result:#}",
-            report.profile, report.checks.total
-        )
-        .expect("writing to a String cannot fail");
+        ("Conformant", SUMMARY_SUCCESS)
     } else {
-        let result = selected_style(colors, FAILURE);
+        ("Non-conformant", SUMMARY_FAILURE)
+    };
+    let result = selected_style(colors, result_style);
+
+    writeln!(output, "Profile : {}", report.profile).expect("writing to a String cannot fail");
+    writeln!(output, "Result  : {result}{result_text}{result:#}")
+        .expect("writing to a String cannot fail");
+    output.push('\n');
+
+    for category in SUMMARY_CATEGORIES {
+        let failed = report
+            .failures
+            .iter()
+            .any(|failure| summary_category(failure) == category);
+        let (symbol, style) = if failed {
+            ('✗', selected_style(colors, SUMMARY_FAILURE))
+        } else {
+            ('✓', selected_style(colors, SUMMARY_SUCCESS))
+        };
         writeln!(
             output,
-            "{profile}{}{profile:#}: {result}{}/{} implemented checks failed{result:#}",
-            report.profile, report.checks.failed, report.checks.total
+            "{style}{symbol}{style:#} {}",
+            category_label(category, report)
         )
         .expect("writing to a String cannot fail");
     }
+
+    writeln!(output, "\nTime    : {:.3}s", elapsed.as_secs_f64())
+        .expect("writing to a String cannot fail");
     output
 }
 
-fn render_details(report: &ValidationReport, colors: bool) -> String {
-    let mut output = String::new();
-    let heading = selected_style(colors, EMPHASIS);
-    let result = selected_style(
-        colors,
-        if report.checks_passed {
-            SUCCESS
-        } else {
-            FAILURE
-        },
-    );
-    writeln!(output, "{heading}Preliminary PDF/A validation{heading:#}")
-        .expect("writing to a String cannot fail");
-    writeln!(output, "Profile: {}", report.profile).expect("writing to a String cannot fail");
-    writeln!(
-        output,
-        "Result: {result}{}{result:#}",
-        if report.checks_passed {
-            "no failures in implemented checks"
-        } else {
-            "failed"
-        }
-    )
-    .expect("writing to a String cannot fail");
+fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
+    let mut output = render_summary(report, elapsed, colors);
+    output.push('\n');
     writeln!(
         output,
         "Checks: {} passed, {} failed, {} total",
@@ -328,6 +412,7 @@ fn main() {
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
     };
+    let started_at = Instant::now();
     let report = match cli.profile {
         Some(profile) => {
             let validation_profile: ValidationProfile = profile.into();
@@ -355,6 +440,7 @@ fn main() {
             }
         },
     };
+    let elapsed = started_at.elapsed();
     let status = if let Some(failure) = report
         .failures
         .iter()
@@ -373,8 +459,8 @@ fn main() {
         match (cli.output.as_deref(), selected_format) {
             (Some(output), format) => {
                 let rendered = match format {
-                    SelectedFormat::Summary => Ok(render_summary(&report, false)),
-                    SelectedFormat::Details => Ok(render_details(&report, false)),
+                    SelectedFormat::Summary => Ok(render_summary(&report, elapsed, false)),
+                    SelectedFormat::Details => Ok(render_details(&report, elapsed, false)),
                     SelectedFormat::Json => {
                         let json = report.json_report();
                         serialize_json(&json).map_err(|error| {
@@ -407,11 +493,11 @@ fn main() {
                 }
             }
             (None, SelectedFormat::Details) => {
-                print!("{}", render_details(&report, stdout_colors));
+                print!("{}", render_details(&report, elapsed, stdout_colors));
                 report.exit_code()
             }
             (None, SelectedFormat::Summary) => {
-                print!("{}", render_summary(&report, stdout_colors));
+                print!("{}", render_summary(&report, elapsed, stdout_colors));
                 report.exit_code()
             }
         }
@@ -422,7 +508,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::colors_enabled;
+    use std::time::Duration;
+
+    use page_validation::{ValidationCounts, ValidationProfile, ValidationReport};
+
+    use super::{colors_enabled, render_summary};
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
@@ -430,5 +520,26 @@ mod tests {
         assert!(!colors_enabled(true, false, true));
         assert!(!colors_enabled(false, true, true));
         assert!(!colors_enabled(false, false, false));
+    }
+
+    #[test]
+    fn conformant_summary_uses_bright_green() {
+        let report = ValidationReport {
+            source: None,
+            profile: ValidationProfile::PdfA1b,
+            checks_passed: true,
+            preliminary: true,
+            checks: ValidationCounts {
+                total: 1,
+                passed: 1,
+                failed: 0,
+            },
+            document: None,
+            failures: Vec::new(),
+        };
+
+        let summary = render_summary(&report, Duration::ZERO, true);
+
+        assert!(summary.contains("92mConformant"));
     }
 }

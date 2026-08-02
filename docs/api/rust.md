@@ -10,7 +10,7 @@ The `page_validation` crate validates PDF files against a supported PDF/A or PDF
 
 ```toml
 [dependencies]
-page_validation = "0.1.0"
+page_validation = "0.1.2"
 ```
 
 ## Validate a PDF

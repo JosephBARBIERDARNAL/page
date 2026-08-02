@@ -100,8 +100,9 @@ fn txt_extension_writes_plain_summary_and_replaces_existing_output() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
     let contents = fs::read_to_string(report_path).expect("read text report");
-    assert_eq!(contents.lines().count(), 1);
-    assert!(contents.starts_with("PDF/A-1b: "));
+    assert!(contents.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\n"));
+    assert!(contents.contains("✓ PDF syntax\n"));
+    assert!(contents.contains("\nTime    : "));
     assert!(!contents.contains('\u{1b}'));
     assert_ne!(contents, "stale report");
 }
@@ -203,9 +204,18 @@ fn default_validation_output_is_a_compact_summary() {
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stderr.is_empty());
     let summary = String::from_utf8(output.stdout).expect("UTF-8 summary");
-    assert_eq!(summary.lines().count(), 1);
-    assert!(summary.starts_with("PDF/A-1b: "));
-    assert!(summary.ends_with(" implemented checks failed\n"));
+    assert!(summary.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\n\n"));
+    assert!(summary.contains("✓ PDF syntax\n"));
+    assert!(summary.contains("✓ PDF/A-1b\n"));
+    assert!(summary.contains("✓ Metadata\n"));
+    assert!(summary.contains("✓ Color\n"));
+    assert!(summary.contains("✓ Fonts\n"));
+    assert!(summary.contains("✓ Images\n"));
+    assert!(summary.contains("✓ Graphics\n"));
+    assert!(summary.contains("✓ Interactive content\n"));
+    assert!(summary.contains("✗ Structure\n"));
+    assert!(summary.contains("\nTime    : "));
+    assert!(summary.ends_with("s\n"));
     assert!(!summary.contains('['));
 }
 
@@ -223,7 +233,7 @@ fn missing_declared_profile_is_an_explicit_error() {
     assert!(output.stdout.is_empty());
     assert_eq!(
         String::from_utf8(output.stderr).expect("UTF-8 error"),
-        "error: document does not declare a PDF/A or PDF/UA validation profile\n"
+        "error: document does not declare a PDF/A or PDF/UA validation profile, declare it with --profile\n"
     );
 }
 
@@ -263,6 +273,12 @@ fn details_format_prints_every_failed_rule() {
     assert_eq!(details.status.code(), Some(2));
     assert!(details.stderr.is_empty());
     let details = String::from_utf8(details.stdout).expect("UTF-8 details");
+    assert!(details.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\n\n"));
+    let time = details.find("Time    : ").expect("summary duration");
+    let checks = details.find("Checks: ").expect("detailed check counts");
+    let first_failure = details.find('[').expect("first detailed failure");
+    assert!(time < checks);
+    assert!(checks < first_failure);
     let detailed_failure_count = details.lines().filter(|line| line.starts_with('[')).count();
     let json: serde_json::Value = serde_json::from_slice(&json.stdout).expect("validation JSON");
     assert_eq!(
