@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{collections::BTreeSet, env, fs};
 
 use page_validation::SafetyLimits;
 use page_validation::differential::{
@@ -26,6 +26,15 @@ const CASES: &[(&str, &[&str])] = &[
     ("predefined_structured_field", &[]),
     ("predefined_structured_attribute_fields", &[]),
     ("info_empty_property_value", &[]),
+    ("keywords_qualified_parse_type", &[]),
+    ("title_qualified_expanded", &[]),
+    ("keywords_default_element", &[]),
+    ("reordered_top_level_properties", &[]),
+    ("xmp_latin1_recovery", &[]),
+    ("xmp_ascii_control_reference_recovery", &[]),
+    ("xmp_del_reference_preserved", &["PDFA1B-INFO-PRODUCER-001"]),
+    ("xmp_utf16le_without_bom", &[]),
+    ("xmp_utf32be_without_bom", &[]),
     (
         "rdf_parse_type_literal",
         &[
@@ -102,6 +111,8 @@ const CASES: &[(&str, &[&str])] = &[
     ),
     ("id_alias_declaration_only", &[]),
     ("id_part_alias", &["PDFA1B-ID-PART-PREFIX-001"]),
+    ("id_part_plus_one", &[]),
+    ("id_part_leading_zero", &[]),
     (
         "id_conformance_alias",
         &["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
@@ -112,6 +123,33 @@ const CASES: &[(&str, &[&str])] = &[
     ("id_conformance_default_element", &[]),
     ("id_amd_default_element", &[]),
     ("extension_valid", &[]),
+    (
+        "extension_container_attribute",
+        &["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+    ),
+    ("extension_custom_simple_type", &[]),
+    (
+        "extension_unknown_declared_property_used",
+        &[
+            "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
+        ],
+    ),
+    (
+        "extension_namespace_whitespace",
+        &[
+            "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+        ],
+    ),
+    (
+        "extension_duplicate_namespace_replaces",
+        &[
+            "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+        ],
+    ),
     ("extension_rational_value_type", &[]),
     (
         "extension_xpath_invalid",
@@ -123,7 +161,10 @@ const CASES: &[(&str, &[&str])] = &[
     ),
     (
         "predefined_unknown_property",
-        &["PDFA1B-XMP-PREDEFINED-PROPERTY-001"],
+        &[
+            "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+            "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        ],
     ),
     (
         "extension_undefined_field",
@@ -249,17 +290,33 @@ const CASES: &[(&str, &[&str])] = &[
     ("title_mismatch", &["PDFA1B-INFO-TITLE-001"]),
     ("title_whitespace_equivalent", &[]),
     ("title_pdfdoc_equivalent", &[]),
+    ("title_utf16_equivalent", &[]),
+    ("title_utf8_bom_equivalent", &[]),
+    ("title_utf16_odd_equivalent", &[]),
+    ("title_fallback_first_alternative", &[]),
+    ("title_fallback_generic_x", &[]),
     ("author_mismatch", &["PDFA1B-INFO-AUTHOR-001"]),
+    (
+        "author_ordered_alt",
+        &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
+    ),
     ("subject_mismatch", &["PDFA1B-INFO-SUBJECT-001"]),
     ("keywords_mismatch", &["PDFA1B-INFO-KEYWORDS-001"]),
     ("keywords_xmp_whitespace", &["PDFA1B-INFO-KEYWORDS-001"]),
     ("creator_mismatch", &["PDFA1B-INFO-CREATOR-001"]),
     ("producer_mismatch", &["PDFA1B-INFO-PRODUCER-001"]),
+    ("producer_trailing_nul", &[]),
+    ("producer_two_trailing_nuls", &["PDFA1B-INFO-PRODUCER-001"]),
     ("creation_date_mismatch", &["PDFA1B-INFO-CREATIONDATE-001"]),
     (
         "creation_date_invalid",
         &["PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"],
     ),
+    (
+        "creation_date_reduced_mismatch",
+        &["PDFA1B-INFO-CREATIONDATE-001"],
+    ),
+    ("creation_date_submillisecond_equivalent", &[]),
     ("mod_date_mismatch", &["PDFA1B-INFO-MODDATE-001"]),
     ("author_multiple", &["PDFA1B-INFO-AUTHOR-001"]),
 ];
@@ -285,6 +342,85 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
             "{case}: {:#?}",
             report.failures
         );
+    }
+}
+
+#[test]
+fn equivalent_rdf_serializations_match_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let runner = DifferentialRunner::new(ReferenceConfig::pinned(executable)).expect("veraPDF");
+    for case in [
+        "keywords_qualified_parse_type",
+        "title_qualified_expanded",
+        "keywords_default_element",
+        "reordered_top_level_properties",
+        "xmp_latin1_recovery",
+        "xmp_ascii_control_reference_recovery",
+        "xmp_utf16le_without_bom",
+        "xmp_utf32be_without_bom",
+        "title_utf8_bom_equivalent",
+        "title_utf16_odd_equivalent",
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-metadata-equivalent-{case}-{}.pdf",
+            std::process::id()
+        ));
+        fs::write(&path, common::metadata_fixture(case)).expect("write metadata fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Agreement,
+            "{case}: {report:#?}"
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .is_empty(),
+            "{case}"
+        );
+        fs::remove_file(path).expect("remove metadata fixture");
+    }
+    for (case, local_rule, reference_rule) in [
+        (
+            "xmp_del_reference_preserved",
+            "PDFA1B-INFO-PRODUCER-001",
+            "ISO 19005-1:2005:6.7.3:7",
+        ),
+        (
+            "extension_container_attribute",
+            "PDFA1B-XMP-EXTENSION-CONTAINER-001",
+            "ISO 19005-1:2005:6.7.8:2",
+        ),
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-metadata-equivalent-{case}-{}.pdf",
+            std::process::id()
+        ));
+        let bytes = common::metadata_fixture(case);
+        fs::write(&path, &bytes).expect("write metadata fixture");
+        assert_eq!(common::failure_ids(&bytes), [local_rule.to_owned()].into());
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant,
+            "{case}: {report:#?}"
+        );
+        assert_eq!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .into_iter()
+                .map(|rule| rule.to_string())
+                .collect::<BTreeSet<_>>(),
+            [reference_rule.to_owned()].into(),
+            "{case}"
+        );
+        fs::remove_file(path).expect("remove metadata fixture");
     }
 }
 

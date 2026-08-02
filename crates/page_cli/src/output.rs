@@ -82,7 +82,7 @@ impl JsonValidationReport {
         Self {
             file,
             profile,
-            valid: report.implemented_checks_passed,
+            valid: report.checks_passed,
             failures,
             error,
         }

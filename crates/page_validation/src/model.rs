@@ -406,7 +406,11 @@ fn extract_info(
         b"Trapped",
     ] {
         if let Ok(value) = info.get(key)
-            && let Some(text) = object_text(value)
+            && let Ok(value) = resolve(document, value, limits.max_reference_depth)
+            && let Some(text) = object_text(
+                value,
+                !matches!(key, b"CreationDate" | b"ModDate" | b"Trapped"),
+            )
         {
             values.insert(String::from_utf8_lossy(key).into_owned(), text);
         }
@@ -415,11 +419,114 @@ fn extract_info(
     Ok((DocumentMetadata { values }, object_id))
 }
 
-fn object_text(object: &Object) -> Option<String> {
+fn object_text(object: &Object, stringify_non_string: bool) -> Option<String> {
     match object {
-        Object::String(_, _) => lopdf::decode_text_string(object).ok(),
-        Object::Name(bytes) => Some(String::from_utf8_lossy(bytes).into_owned()),
+        Object::String(bytes, _) => Some(decode_verapdf_pdf_string(bytes)).map(|mut value| {
+            if stringify_non_string && value.ends_with('\0') {
+                value.pop();
+            }
+            value
+        }),
+        Object::Null => None,
+        _ if stringify_non_string => Some(verapdf_object_string(object)),
         _ => None,
+    }
+}
+
+fn verapdf_object_string(object: &Object) -> String {
+    match object {
+        Object::Null => "null".to_owned(),
+        // COSBoolean inherits Object.toString(), so its value is an unstable
+        // identity string and can never be a portable XMP text equivalent.
+        Object::Boolean(_) => "org.verapdf.cos.COSBoolean@<identity>".to_owned(),
+        Object::Integer(value) => value.to_string(),
+        Object::Real(value) => {
+            let mut value = format!("{value:.6}");
+            while value.ends_with('0') && !value.ends_with(".0") {
+                value.pop();
+            }
+            value
+        }
+        Object::Name(name) => format!("/{}", String::from_utf8_lossy(name)),
+        Object::String(bytes, _) => decode_verapdf_pdf_string(bytes),
+        Object::Array(items) => format!(
+            "[{}]",
+            items
+                .iter()
+                .map(verapdf_object_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        Object::Dictionary(dictionary) => format!("dictionary(size = {})", dictionary.len()),
+        Object::Stream(stream) => format!("stream(size = {})", stream.content.len()),
+        Object::Reference((object, generation)) => format!("{object} {generation} R"),
+    }
+}
+
+fn decode_verapdf_pdf_string(bytes: &[u8]) -> String {
+    if let Some(bytes) = bytes.strip_prefix(&[0xFE, 0xFF]) {
+        let mut units = bytes
+            .chunks_exact(2)
+            .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+            .collect::<Vec<_>>();
+        if !bytes.len().is_multiple_of(2) {
+            units.push(0xFFFD);
+        }
+        return String::from_utf16_lossy(&units);
+    }
+    if let Some(bytes) = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
+        return String::from_utf8_lossy(bytes).into_owned();
+    }
+    bytes
+        .iter()
+        .map(|byte| char::from_u32(verapdf_pdfdoc_codepoint(*byte)).expect("valid code point"))
+        .collect()
+}
+
+fn verapdf_pdfdoc_codepoint(byte: u8) -> u32 {
+    match byte {
+        24 => 728,
+        25 => 711,
+        26 => 710,
+        27 => 729,
+        28 => 733,
+        29 => 731,
+        30 => 730,
+        31 => 732,
+        127 | 159 => 0xFFFD,
+        128 => 8226,
+        129 => 8224,
+        130 => 8225,
+        131 => 8230,
+        132 => 8212,
+        133 => 8211,
+        134 => 402,
+        135 => 8260,
+        136 => 8249,
+        137 => 8250,
+        138 => 8722,
+        139 => 8240,
+        140 => 8222,
+        141 => 8220,
+        142 => 8221,
+        143 => 8216,
+        144 => 8217,
+        145 => 8218,
+        146 => 8482,
+        147 => 64257,
+        148 => 64258,
+        149 => 321,
+        150 => 338,
+        151 => 352,
+        152 => 376,
+        153 => 381,
+        154 => 305,
+        155 => 322,
+        156 => 339,
+        157 => 353,
+        158 => 382,
+        160 => 8364,
+        _ => u32::from(byte),
     }
 }
 
@@ -671,6 +778,35 @@ mod tests {
         let (metadata, _) = extract_info(&document, &SafetyLimits::default()).expect("metadata");
 
         assert_eq!(metadata.values["Title"], "text‰");
+    }
+
+    #[test]
+    fn stringifies_non_string_info_values_like_verapdf() {
+        assert_eq!(verapdf_object_string(&Object::Integer(42)), "42");
+        assert_eq!(verapdf_object_string(&Object::Real(3.0)), "3.0");
+        assert_eq!(verapdf_object_string(&Object::Real(3.14)), "3.14");
+        assert_eq!(verapdf_object_string(&Object::Name(b"Foo".to_vec())), "/Foo");
+        assert_eq!(
+            verapdf_object_string(&Object::Array(vec![
+                Object::Integer(1),
+                Object::Name(b"Foo".to_vec()),
+            ])),
+            "[1, /Foo]"
+        );
+        assert_eq!(
+            verapdf_object_string(&Object::Dictionary(dictionary! { "A" => 1 })),
+            "dictionary(size = 1)"
+        );
+    }
+
+    #[test]
+    fn resolves_indirect_info_values_before_stringification() {
+        let mut document = Document::with_version("1.4");
+        let title = document.add_object(Object::Integer(42));
+        let info_id = document.add_object(dictionary! { "Title" => title });
+        document.trailer.set("Info", info_id);
+        let (metadata, _) = extract_info(&document, &SafetyLimits::default()).expect("metadata");
+        assert_eq!(metadata.values["Title"], "42");
     }
 
     #[test]

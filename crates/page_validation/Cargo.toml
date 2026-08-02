@@ -11,6 +11,7 @@ license = "MIT AND BSD-3-Clause"
 keywords = ["PDF", "profile", "validation", "verapdf"]
 
 [dependencies]
+chrono = "0.4"
 lopdf = "0.44"
 roxmltree = "0.21"
 serde = { version = "1", features = ["derive"] }

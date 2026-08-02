@@ -313,7 +313,7 @@ fn validate_document(
     if xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
-            |value| value == "1",
+            |value| value.parse::<i32>() == Ok(1),
             "PDFA1B-ID-PART-001",
             "PDF/A part",
             "pdfaid:part",
@@ -1401,7 +1401,7 @@ fn finish_report(
     let failed = failures.len();
     ValidationReport {
         profile,
-        implemented_checks_passed: failures.is_empty(),
+        checks_passed: failures.is_empty(),
         preliminary: true,
         checks: ValidationCounts {
             total: total_checks,
@@ -1481,7 +1481,7 @@ mod tests {
     fn accepts_all_implemented_checks() {
         let bytes = fixture(Some(VALID_XMP), true);
         let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
-        assert!(report.implemented_checks_passed, "{:#?}", report.failures);
+        assert!(report.checks_passed, "{:#?}", report.failures);
         assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
     }
 
@@ -1900,10 +1900,7 @@ mod tests {
             "fixture should parse: {:#?}",
             report.failures
         );
-        assert!(
-            !report.implemented_checks_passed,
-            "fixture intentionally has no XMP"
-        );
+        assert!(!report.checks_passed, "fixture intentionally has no XMP");
     }
 
     fn assert_rule(report: &ValidationReport, rule: &str) {

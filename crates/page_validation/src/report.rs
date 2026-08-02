@@ -41,7 +41,7 @@ pub struct ValidationCounts {
 #[derive(Clone, Debug, Serialize)]
 pub struct ValidationReport {
     pub profile: ValidationProfile,
-    pub implemented_checks_passed: bool,
+    pub checks_passed: bool,
     pub preliminary: bool,
     pub checks: ValidationCounts,
     pub document: Option<PdfDocument>,
@@ -69,7 +69,7 @@ impl ValidationReport {
     ) -> Self {
         Self {
             profile,
-            implemented_checks_passed: false,
+            checks_passed: false,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,
@@ -98,7 +98,7 @@ impl ValidationReport {
     pub fn exit_code(&self) -> i32 {
         if self.has_operational_failure() {
             1
-        } else if self.implemented_checks_passed {
+        } else if self.checks_passed {
             0
         } else {
             2
@@ -114,7 +114,7 @@ impl fmt::Display for ValidationReport {
         writeln!(
             output,
             "Result: {}",
-            if self.implemented_checks_passed {
+            if self.checks_passed {
                 "no failures in implemented checks"
             } else {
                 "failed"

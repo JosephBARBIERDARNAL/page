@@ -29,7 +29,7 @@ fn main() {
 
     println!("{report}");
 
-    if report.implemented_checks_passed {
+    if report.checks_passed {
         println!("The document passed all implemented checks.");
     } else {
         for failure in &report.failures {

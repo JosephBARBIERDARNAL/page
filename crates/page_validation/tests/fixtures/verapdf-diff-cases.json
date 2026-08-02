@@ -249,6 +249,126 @@
       "rationale": "An empty-property element with rdf:value is equivalent to a compact description attribute."
     },
     {
+      "name": "keywords_qualified_parse_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-KEYWORDS-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:5"
+      ],
+      "rationale": "A parseType Resource property with rdf:value and a qualifier normalizes to the same simple Keywords value."
+    },
+    {
+      "name": "title_qualified_expanded",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-TITLE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:2"
+      ],
+      "rationale": "An expanded rdf:Description with rdf:value normalizes a qualified language alternative before value typing and Info comparison."
+    },
+    {
+      "name": "keywords_default_element",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-KEYWORDS-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:5"
+      ],
+      "rationale": "A property element in the default PDF namespace is equivalent to the prefixed compact attribute form."
+    },
+    {
+      "name": "reordered_top_level_properties",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-001",
+        "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-PRODUCER-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "rationale": "Reordering a compact Producer attribute as the final expanded property element does not change the XMP data model."
+    },
+    {
+      "name": "xmp_latin1_recovery",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "rationale": "The pinned default XMP parse options recover an isolated Windows-1252 byte after the initial UTF-8 parse fails."
+    },
+    {
+      "name": "xmp_ascii_control_reference_recovery",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "rationale": "After XML rejects a numeric reference to an ASCII control, the pinned recovery reader substitutes a space."
+    },
+    {
+      "name": "xmp_del_reference_preserved",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:1"],
+      "rationale": "A DEL numeric reference is accepted by the initial XML parse, so veraPDF does not enter its control-repair retry."
+    },
+    {
+      "name": "xmp_utf16le_without_bom",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "rationale": "The alternating leading bytes identify UTF-16LE XMP even without a byte-order mark."
+    },
+    {
+      "name": "xmp_utf32be_without_bom",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-XMP-001", "PDFA1B-INFO-PRODUCER-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.3:7"
+      ],
+      "rationale": "The leading zero pattern identifies UTF-32BE XMP even without a byte-order mark."
+    },
+    {
       "name": "rdf_parse_type_literal",
       "expected_local_failed_rule_ids": [
         "PDFA1B-XMP-001",
@@ -504,6 +624,96 @@
       "rationale": "A PDFDocEncoding Info title and its UTF-8 XMP title have the same Unicode value."
     },
     {
+      "name": "title_utf16_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "A UTF-16BE Info title and its XML Unicode value compare as the same text."
+    },
+    {
+      "name": "title_utf8_bom_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "A UTF-8 BOM in a PDF Info string is removed before Unicode comparison."
+    },
+    {
+      "name": "title_utf16_odd_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "An incomplete final UTF-16BE code unit is decoded as the Unicode replacement character by the pinned COS string decoder."
+    },
+    {
+      "name": "title_fallback_first_alternative",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "Without x-default or a generic x language, localized-text selection falls back to the first alternative."
+    },
+    {
+      "name": "title_fallback_generic_x",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-TITLE-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:2"],
+      "rationale": "Without x-default, localized-text selection prefers the first generic x-language alternative."
+    },
+    {
+      "name": "author_ordered_alt",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-AUTHOR-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:3"],
+      "rationale": "The Info getter accepts any ordered creator array, while XMP 2004 still requires dc:creator to be a Seq."
+    },
+    {
+      "name": "producer_trailing_nul",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-INFO-PRODUCER-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.3:7"],
+      "rationale": "veraPDF removes exactly one terminal NUL from an Info text string before comparison."
+    },
+    {
+      "name": "producer_two_trailing_nuls",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-PRODUCER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:7"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Removing one of two terminal NUL characters still leaves a mismatch."
+    },
+    {
+      "name": "creation_date_reduced_mismatch",
+      "expected_local_failed_rule_ids": ["PDFA1B-INFO-CREATIONDATE-001"],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.3:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.7.9:3"],
+      "rationale": "A reduced-precision year-month is a valid XMP Date but does not equal the full Info CreationDate."
+    },
+    {
+      "name": "creation_date_submillisecond_equivalent",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+        "PDFA1B-INFO-CREATIONDATE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:3",
+        "ISO 19005-1:2005:6.7.3:1"
+      ],
+      "rationale": "The Calendar returned by veraPDF truncates XMP nanoseconds below one millisecond before Info comparison."
+    },
+    {
       "name": "creation_date_equivalent_offset",
       "expected_local_failed_rule_ids": [],
       "expected_local_passed_rule_ids": [
@@ -696,6 +906,34 @@
       "rationale": "The part attribute uses the correct namespace through a non-pdfaid lexical prefix."
     },
     {
+      "name": "id_part_plus_one",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-ID-PART-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.11:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "rationale": "The identification getter parses a signed decimal integer before comparing the part value with 1."
+    },
+    {
+      "name": "id_part_leading_zero",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-ID-PART-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.11:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "rationale": "The identification getter accepts leading zeroes in the integer lexical form."
+    },
+    {
       "name": "id_conformance_alias",
       "expected_local_failed_rule_ids": ["PDFA1B-ID-CONFORMANCE-PREFIX-001"],
       "expected_local_passed_rule_ids": [],
@@ -790,6 +1028,72 @@
         "ISO 19005-1:2005:6.7.8:19"
       ],
       "rationale": "A complete extension schema with one property and one structured value type satisfies every pinned predicate."
+    },
+    {
+      "name": "extension_container_attribute",
+      "expected_local_failed_rule_ids": ["PDFA1B-XMP-EXTENSION-CONTAINER-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.7.8:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A compact schemas attribute creates a simple extension container, which fails the required Bag shape."
+    },
+    {
+      "name": "extension_custom_simple_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:1",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "rationale": "A declared value type without fields registers as a simple Text validator."
+    },
+    {
+      "name": "extension_unknown_declared_property_used",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.8:9",
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A property whose declared type is unknown is not registered and is therefore also undefined when used."
+    },
+    {
+      "name": "extension_namespace_whitespace",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Extension schema namespace values are registered verbatim rather than trimmed."
+    },
+    {
+      "name": "extension_duplicate_namespace_replaces",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+        "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.7.9:2",
+        "ISO 19005-1:2005:6.7.9:3"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A later extension schema for the same namespace replaces the earlier schema definition."
     },
     {
       "name": "extension_undefined_field",
@@ -1081,7 +1385,10 @@
     },
     {
       "name": "predefined_unknown_property",
-      "expected_local_failed_rule_ids": ["PDFA1B-XMP-PREDEFINED-PROPERTY-001"],
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+        "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001"
+      ],
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": [
         "ISO 19005-1:2005:6.7.9:2",

@@ -96,6 +96,8 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
     let mut include_metadata = true;
     let mut info = complete_info();
     let mut compress_metadata = false;
+    let mut encode_xmp_utf16le = false;
+    let mut encode_xmp_utf32be = false;
 
     if case.starts_with("extension_") {
         let replacement = format!("{EXTENSION_SCHEMA_BLOCK}</rdf:RDF>");
@@ -165,6 +167,74 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "<pdf:Keywords rdf:value=\"rust,pdf\"/><dc:title>",
             );
         }
+        "keywords_qualified_parse_type" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:q=\"urn:qualifier\">",
+            );
+            replace(&mut xmp, " pdf:Keywords=\"rust,pdf\"", "");
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<pdf:Keywords rdf:parseType=\"Resource\"><rdf:value>rust,pdf</rdf:value><q:kind>qualified</q:kind></pdf:Keywords><dc:title>",
+            );
+        }
+        "title_qualified_expanded" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:q=\"urn:qualifier\">",
+            );
+            replace(
+                &mut xmp,
+                "<dc:title><rdf:Alt><rdf:li xml:lang=\"fr\">Titre</rdf:li>\n<rdf:li xml:lang=\"x-default\">Title</rdf:li></rdf:Alt></dc:title>",
+                "<dc:title><rdf:Description><rdf:value><rdf:Alt><rdf:li xml:lang=\"fr\">Titre</rdf:li>\n<rdf:li xml:lang=\"x-default\">Title</rdf:li></rdf:Alt></rdf:value><q:kind>qualified</q:kind></rdf:Description></dc:title>",
+            );
+        }
+        "keywords_default_element" => {
+            replace(&mut xmp, " pdf:Keywords=\"rust,pdf\"", "");
+            replace(
+                &mut xmp,
+                "<dc:title>",
+                "<Keywords xmlns=\"http://ns.adobe.com/pdf/1.3/\">rust,pdf</Keywords><dc:title>",
+            );
+        }
+        "reordered_top_level_properties" => {
+            replace(&mut xmp, " pdf:Producer=\"producer\"", "");
+            replace(
+                &mut xmp,
+                "</rdf:Alt></dc:description>",
+                "</rdf:Alt></dc:description><pdf:Producer>producer</pdf:Producer>",
+            );
+        }
+        "xmp_latin1_recovery" => {
+            info.set(
+                "Producer",
+                Object::String(vec![b'c', b'a', b'f', 0xE9], StringFormat::Literal),
+            );
+            replace(&mut xmp, "pdf:Producer=\"producer\"", "pdf:Producer=\"caf~\"");
+            let marker = xmp.iter().position(|byte| *byte == b'~').expect("marker");
+            xmp[marker] = 0xE9;
+        }
+        "xmp_ascii_control_reference_recovery" => {
+            info.set("Producer", Object::string_literal("a b"));
+            replace(
+                &mut xmp,
+                "pdf:Producer=\"producer\"",
+                "pdf:Producer=\"a&#x1;b\"",
+            );
+        }
+        "xmp_del_reference_preserved" => {
+            info.set("Producer", Object::string_literal("a b"));
+            replace(
+                &mut xmp,
+                "pdf:Producer=\"producer\"",
+                "pdf:Producer=\"a&#x7F;b\"",
+            );
+        }
+        "xmp_utf16le_without_bom" => encode_xmp_utf16le = true,
+        "xmp_utf32be_without_bom" => encode_xmp_utf32be = true,
         "rdf_parse_type_literal" => replace(
             &mut xmp,
             "<dc:title>",
@@ -201,6 +271,8 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         ),
         "id_alias_declaration_only" => {}
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
+        "id_part_plus_one" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"+1\""),
+        "id_part_leading_zero" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"01\""),
         "id_conformance_alias" => replace(
             &mut xmp,
             "pdfaid:conformance=\"B\"",
@@ -237,7 +309,85 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "<dc:title>",
             "<amd xmlns=\"http://www.aiim.org/pdfa/ns/id/\">1:2005</amd><dc:title>",
         ),
+        "extension_container_attribute" => replace(
+            &mut xmp,
+            EXTENSION_SCHEMA_BLOCK,
+            "<rdf:Description xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\" pdfaExtension:schemas=\"invalid\"/>",
+        ),
         "extension_valid" => {}
+        "extension_custom_simple_type" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaProperty:name>example</pdfaProperty:name>\n<pdfaProperty:valueType>Text</pdfaProperty:valueType>",
+                "<pdfaProperty:name>simple</pdfaProperty:name>\n<pdfaProperty:valueType>CustomType</pdfaProperty:valueType>",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaType:field><rdf:Seq>\n<rdf:li rdf:parseType=\"Resource\">\n<pdfaField:name>member</pdfaField:name>\n<pdfaField:valueType>Text</pdfaField:valueType>\n<pdfaField:description>Example member</pdfaField:description>\n</rdf:li>\n</rdf:Seq></pdfaType:field>\n",
+                "",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:simple>value</ex:simple></rdf:Description></rdf:RDF>",
+            );
+        }
+        "extension_unknown_declared_property_used" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaProperty:valueType>Text</pdfaProperty:valueType>",
+                "<pdfaProperty:valueType>UnknownType</pdfaProperty:valueType>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:example>value</ex:example></rdf:Description></rdf:RDF>",
+            );
+        }
+        "extension_namespace_whitespace" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "<pdfaSchema:namespaceURI>http://example.com/ns/</pdfaSchema:namespaceURI>",
+                "<pdfaSchema:namespaceURI> http://example.com/ns/ </pdfaSchema:namespaceURI>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:example>value</ex:example></rdf:Description></rdf:RDF>",
+            );
+        }
+        "extension_duplicate_namespace_replaces" => {
+            replace(
+                &mut xmp,
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">",
+                " xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n xmlns:ex=\"http://example.com/ns/\">",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:Bag></pdfaExtension:schemas>",
+                "<rdf:li rdf:parseType=\"Resource\">\n<pdfaSchema:schema>Replacement schema</pdfaSchema:schema>\n<pdfaSchema:namespaceURI>http://example.com/ns/</pdfaSchema:namespaceURI>\n<pdfaSchema:prefix>ex</pdfaSchema:prefix>\n<pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType=\"Resource\">\n<pdfaProperty:name>replacement</pdfaProperty:name>\n<pdfaProperty:valueType>Text</pdfaProperty:valueType>\n<pdfaProperty:category>external</pdfaProperty:category>\n<pdfaProperty:description>Replacement property</pdfaProperty:description>\n</rdf:li></rdf:Seq></pdfaSchema:property>\n</rdf:li></rdf:Bag></pdfaExtension:schemas>",
+            );
+            replace(
+                &mut xmp,
+                "</rdf:RDF>",
+                "<rdf:Description><ex:example>value</ex:example></rdf:Description></rdf:RDF>",
+            );
+        }
         "extension_rational_value_type" => {
             replace(
                 &mut xmp,
@@ -562,7 +712,70 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "<rdf:li xml:lang=\"x-default\">text‰</rdf:li>",
             );
         }
+        "title_utf16_equivalent" => {
+            info.set(
+                "Title",
+                Object::String(
+                    vec![0xFE, 0xFF, 0x00, b'C', 0x00, b'a', 0x00, b'f', 0x00, 0xE9],
+                    lopdf::StringFormat::Literal,
+                ),
+            );
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"x-default\">Café</rdf:li>",
+            );
+        }
+        "title_utf8_bom_equivalent" => {
+            info.set(
+                "Title",
+                Object::String(
+                    vec![0xEF, 0xBB, 0xBF, b'C', b'a', b'f', 0xC3, 0xA9],
+                    lopdf::StringFormat::Literal,
+                ),
+            );
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"x-default\">Café</rdf:li>",
+            );
+        }
+        "title_utf16_odd_equivalent" => {
+            info.set(
+                "Title",
+                Object::String(
+                    vec![0xFE, 0xFF, 0x00, b'A', 0x00],
+                    lopdf::StringFormat::Literal,
+                ),
+            );
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"x-default\">A�</rdf:li>",
+            );
+        }
+        "title_fallback_first_alternative" => {
+            info.set("Title", Object::string_literal("Titre"));
+            replace(
+                &mut xmp,
+                "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+                "<rdf:li xml:lang=\"en\">Title</rdf:li>",
+            );
+        }
+        "title_fallback_generic_x" => replace(
+            &mut xmp,
+            "<rdf:li xml:lang=\"x-default\">Title</rdf:li>",
+            "<rdf:li xml:lang=\"x-private\">Title</rdf:li>",
+        ),
         "author_mismatch" => info.set("Author", Object::string_literal("different")),
+        "author_ordered_alt" => {
+            replace(&mut xmp, "<dc:creator><rdf:Seq>", "<dc:creator><rdf:Alt>");
+            replace(
+                &mut xmp,
+                "</rdf:Seq></dc:creator>",
+                "</rdf:Alt></dc:creator>",
+            );
+        }
         "subject_mismatch" => info.set("Subject", Object::string_literal("different")),
         "keywords_mismatch" => info.set("Keywords", Object::string_literal("different")),
         "keywords_xmp_whitespace" => replace(
@@ -572,6 +785,14 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         ),
         "creator_mismatch" => info.set("Creator", Object::string_literal("different")),
         "producer_mismatch" => info.set("Producer", Object::string_literal("different")),
+        "producer_trailing_nul" => info.set(
+            "Producer",
+            Object::String(b"producer\0".to_vec(), lopdf::StringFormat::Literal),
+        ),
+        "producer_two_trailing_nuls" => info.set(
+            "Producer",
+            Object::String(b"producer\0\0".to_vec(), lopdf::StringFormat::Literal),
+        ),
         "creation_date_equivalent_offset" => replace(
             &mut xmp,
             "2026-07-27T12:30:45+02:00",
@@ -587,6 +808,16 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         "creation_date_invalid" => {
             replace_first(&mut xmp, "2026-07-27T12:30:45+02:00", "not-a-date");
         }
+        "creation_date_reduced_mismatch" => {
+            replace_first(&mut xmp, "2026-07-27T12:30:45+02:00", "2026-07");
+        }
+        "creation_date_submillisecond_equivalent" => {
+            replace_first(
+                &mut xmp,
+                "2026-07-27T12:30:45+02:00",
+                "2026-07-27T12:30:45.000000001+02:00",
+            );
+        }
         "mod_date_mismatch" => {
             replace_last(
                 &mut xmp,
@@ -600,6 +831,17 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "<rdf:li>Author</rdf:li><rdf:li>Second</rdf:li>",
         ),
         _ => panic!("unknown metadata fixture case {case}"),
+    }
+
+    if encode_xmp_utf16le || encode_xmp_utf32be {
+        let xml = String::from_utf8(xmp).expect("fixture XMP is UTF-8");
+        xmp = if encode_xmp_utf16le {
+            xml.encode_utf16().flat_map(u16::to_le_bytes).collect()
+        } else {
+            xml.chars()
+                .flat_map(|character| u32::from(character).to_be_bytes())
+                .collect()
+        };
     }
 
     let mut document = pdf_document();

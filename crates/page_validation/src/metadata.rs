@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use chrono::{Duration, Local, LocalResult, NaiveDate, TimeZone};
 use roxmltree::{Attribute, Document, Node, ParsingOptions};
 use serde::Serialize;
 use sxd_xpath::Factory as XPathFactory;
@@ -22,6 +23,8 @@ const XMP_RESOURCE_EVENT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Re
 const XMP_RESOURCE_REF_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
 const XMP_THUMBNAIL_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/g/img/";
 const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#";
+const MAX_XMP_XML_NODES: u32 = 100_000;
+const MAX_XMP_XML_DEPTH: usize = 128;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DocumentMetadata {
@@ -65,14 +68,22 @@ pub struct XmpMetadata {
 }
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
-    let xml = decode_xml(bytes)?;
-    let options = ParsingOptions {
-        allow_dtd: false,
-        nodes_limit: 100_000,
-        ..ParsingOptions::default()
-    };
-    let document =
-        Document::parse_with_options(&xml, options).map_err(|error| error.to_string())?;
+    let mut xml = decode_xml(bytes)?;
+    preflight_xml_depth(&xml)?;
+    if !xmp_xml_parses(&xml) {
+        repair_xml_controls(&mut xml);
+        preflight_xml_depth(&xml)?;
+    }
+    let document = Document::parse_with_options(
+        &xml,
+        ParsingOptions {
+            allow_dtd: false,
+            nodes_limit: MAX_XMP_XML_NODES,
+            ..ParsingOptions::default()
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    validate_xml_depth(&document)?;
     let Some((rdf, packet_header)) = select_xmp_root(&document) else {
         return Ok(XmpMetadata::default());
     };
@@ -90,13 +101,13 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let pdfa_identification_present = contains_namespace_property(rdf, PDFA_ID_NAMESPACE);
     let pdfa_parts = property_values(rdf, PDFA_ID_NAMESPACE, "part");
     let pdfa_conformances = property_values(rdf, PDFA_ID_NAMESPACE, "conformance");
-    let title_x_default = alt_values(rdf, DC_NAMESPACE, "title", "x-default");
+    let title_x_default = localized_text_values(rdf, DC_NAMESPACE, "title");
     let creator_nodes = property_nodes(rdf, DC_NAMESPACE, "creator");
     let creators = creator_nodes
         .iter()
-        .flat_map(|node| container_values(*node, "Seq", None))
+        .flat_map(|node| ordered_array_values(*node).unwrap_or_default())
         .collect();
-    let description_x_default = alt_values(rdf, DC_NAMESPACE, "description", "x-default");
+    let description_x_default = localized_text_values(rdf, DC_NAMESPACE, "description");
 
     Ok(XmpMetadata {
         pdfa_part: pdfa_parts.first().cloned(),
@@ -124,6 +135,100 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         invalid_extension_xmp_value_types,
         identification_prefix_failed_tests,
     })
+}
+
+fn xmp_xml_parses(xml: &str) -> bool {
+    Document::parse_with_options(
+        xml,
+        ParsingOptions {
+            allow_dtd: false,
+            nodes_limit: MAX_XMP_XML_NODES,
+            ..ParsingOptions::default()
+        },
+    )
+    .is_ok()
+}
+
+fn preflight_xml_depth(xml: &str) -> Result<(), String> {
+    let bytes = xml.as_bytes();
+    let mut position = 0_usize;
+    let mut depth = 0_usize;
+    while let Some(relative) = bytes[position..].iter().position(|byte| *byte == b'<') {
+        position += relative;
+        let tail = &bytes[position..];
+        if tail.starts_with(b"<!--") {
+            position = find_xml_delimiter(bytes, position + 4, b"-->")?;
+            continue;
+        }
+        if tail.starts_with(b"<![CDATA[") {
+            position = find_xml_delimiter(bytes, position + 9, b"]]>")?;
+            continue;
+        }
+        if tail.starts_with(b"<?") {
+            position = find_xml_delimiter(bytes, position + 2, b"?>")?;
+            continue;
+        }
+        if tail.starts_with(b"<!") {
+            return Err(
+                "DTD and XML declarations other than comments or CDATA are disabled".to_owned(),
+            );
+        }
+        let (end, self_closing) = find_xml_tag_end(bytes, position + 1)?;
+        if tail.starts_with(b"</") {
+            depth = depth.saturating_sub(1);
+        } else if !self_closing {
+            depth += 1;
+            if depth > MAX_XMP_XML_DEPTH {
+                return Err(format!("XMP XML nesting depth exceeds {MAX_XMP_XML_DEPTH}"));
+            }
+        }
+        position = end;
+    }
+    Ok(())
+}
+
+fn find_xml_delimiter(bytes: &[u8], start: usize, delimiter: &[u8]) -> Result<usize, String> {
+    bytes[start..]
+        .windows(delimiter.len())
+        .position(|window| window == delimiter)
+        .map(|relative| start + relative + delimiter.len())
+        .ok_or_else(|| "unterminated XML construct".to_owned())
+}
+
+fn find_xml_tag_end(bytes: &[u8], start: usize) -> Result<(usize, bool), String> {
+    let mut quote = None;
+    let mut position = start;
+    while let Some(byte) = bytes.get(position).copied() {
+        match (quote, byte) {
+            (Some(expected), actual) if expected == actual => quote = None,
+            (None, b'\'' | b'"') => quote = Some(byte),
+            (None, b'>') => {
+                let self_closing = bytes[start..position]
+                    .iter()
+                    .rev()
+                    .find(|byte| !byte.is_ascii_whitespace())
+                    == Some(&b'/');
+                return Ok((position + 1, self_closing));
+            }
+            _ => {}
+        }
+        position += 1;
+    }
+    Err("unterminated XML tag".to_owned())
+}
+
+fn validate_xml_depth(document: &Document<'_>) -> Result<(), String> {
+    let mut stack = vec![(document.root(), 0_usize)];
+    while let Some((node, depth)) = stack.pop() {
+        if depth > MAX_XMP_XML_DEPTH {
+            return Err(format!("XMP XML nesting depth exceeds {MAX_XMP_XML_DEPTH}"));
+        }
+        stack.extend(
+            node.children()
+                .map(|child| (child, depth + usize::from(child.is_element()))),
+        );
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -426,8 +531,8 @@ fn validate_resource_property(
         state.add_qualifier(XML_NAMESPACE, "lang")?;
     }
     if kind == RdfCompoundKind::Struct
-        && child.tag_name().namespace() != Some(RDF_NAMESPACE)
-        && child.tag_name().name() != "Description"
+        && !(child.tag_name().namespace() == Some(RDF_NAMESPACE)
+            && child.tag_name().name() == "Description")
     {
         state.add_qualifier(RDF_NAMESPACE, "type")?;
     }
@@ -621,6 +726,9 @@ fn inspect_predefined_xmp_value_type(properties: &mut BTreeSet<String>, property
         return;
     };
     let Some(value_type) = predefined_xmp2004_type(namespace, property.name()) else {
+        if predefined_xmp2004_namespace(namespace) {
+            properties.insert(format!("{{{namespace}}}{} (undefined)", property.name()));
+        }
         return;
     };
     if !predefined_value_type_matches(property, value_type) {
@@ -664,17 +772,19 @@ fn value_type_matches(
             value_type_matches(XmpProperty::Element(item), item_type, extension_types)
         });
     }
-    if let Some((namespace, fields)) = structured_xmp_type(item_type) {
-        return structured_xmp_value_matches(property, namespace, fields, extension_types);
+    if item_type == "any" {
+        return true;
     }
     if let Some(definition) = extension_types.and_then(|types| types.get(item_type)) {
-        return extension_structured_xmp_value_matches(property, definition, extension_types);
+        return extension_xmp_value_matches(property, definition, extension_types);
+    }
+    if let Some((namespace, fields)) = structured_xmp_type(item_type) {
+        return structured_xmp_value_matches(property, namespace, fields, extension_types);
     }
     property.is_simple()
         && matches!(
             item_type,
-            "any"
-                | "agentname"
+            "agentname"
                 | "boolean"
                 | "date"
                 | "gpscoordinate"
@@ -694,22 +804,38 @@ fn value_type_matches(
 }
 
 fn xmp_type_key(value_type: &str) -> String {
-    let mut value_type = value_type.trim().to_ascii_lowercase();
-    if let Some(rest) = value_type
-        .strip_prefix("open ")
-        .or_else(|| value_type.strip_prefix("closed "))
-    {
-        value_type = rest.to_owned();
+    let lower = value_type.to_lowercase();
+    let mut value_type = String::with_capacity(lower.len());
+    let mut copied = 0;
+    for (choice, _) in lower.match_indices("choice ") {
+        if choice < copied {
+            continue;
+        }
+        let start = if lower[..choice].ends_with("open ") {
+            choice - "open ".len()
+        } else if lower[..choice].ends_with("closed ") {
+            choice - "closed ".len()
+        } else {
+            choice
+        };
+        value_type.push_str(&lower[copied..start]);
+        let after_choice = choice + "choice ".len();
+        copied = after_choice
+            + usize::from(lower[after_choice..].starts_with("of ")) * "of ".len();
     }
-    if let Some(rest) = value_type.strip_prefix("choice ") {
-        value_type = rest.to_owned();
-    } else if value_type == "choice" {
-        value_type.clear();
+    value_type.push_str(&lower[copied..]);
+    if value_type.ends_with("choice") {
+        let choice = value_type.len() - "choice".len();
+        let start = if value_type[..choice].ends_with("open ") {
+            choice - "open ".len()
+        } else if value_type[..choice].ends_with("closed ") {
+            choice - "closed ".len()
+        } else {
+            choice
+        };
+        value_type.truncate(start);
     }
-    if let Some(rest) = value_type.strip_prefix("of ") {
-        value_type = rest.to_owned();
-    }
-    value_type = value_type.trim().to_owned();
+    let value_type = value_type.trim().to_owned();
     if value_type.is_empty() {
         return "text".to_owned();
     }
@@ -838,19 +964,22 @@ fn structured_xmp_value_matches(
     })
 }
 
-fn extension_structured_xmp_value_matches(
+fn extension_xmp_value_matches(
     property: XmpProperty<'_>,
     definition: &ExtensionTypeDefinition,
     extension_types: Option<&BTreeMap<String, ExtensionTypeDefinition>>,
 ) -> bool {
+    let ExtensionTypeDefinition::Structured { namespace, fields } = definition else {
+        return property.is_simple();
+    };
     let Some(fields_in_value) = structured_xmp_fields(property) else {
         return false;
     };
     fields_in_value.into_iter().all(|field| {
-        let Some(value_type) = definition.fields.get(&(
-            field.namespace().unwrap_or_default().to_owned(),
-            field.name().to_owned(),
-        )) else {
+        if field.namespace() != Some(namespace) {
+            return false;
+        }
+        let Some(value_type) = fields.get(field.name()) else {
             return false;
         };
         value_type_matches(field, value_type, extension_types)
@@ -858,6 +987,9 @@ fn extension_structured_xmp_value_matches(
 }
 
 fn structured_xmp_fields(property: XmpProperty<'_>) -> Option<Vec<XmpProperty<'_>>> {
+    if let Some(value) = property.qualified_value() {
+        return structured_xmp_fields(value);
+    }
     let XmpProperty::Element(node) = property else {
         return None;
     };
@@ -909,115 +1041,7 @@ fn gps_coordinate(value: &str) -> bool {
 }
 
 fn xmp_iso8601_date(value: &str) -> bool {
-    let bytes = value.as_bytes();
-    if bytes.is_empty() {
-        return true;
-    }
-    let mut position = usize::from(bytes.first() == Some(&b'-'));
-    let Some(year_end) = take_digits(bytes, position, 1) else {
-        return false;
-    };
-    position = year_end;
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) != Some(&b'-') {
-        return false;
-    }
-    position += 1;
-    let Some(month_end) = take_digits(bytes, position, 1) else {
-        return false;
-    };
-    position = month_end;
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) != Some(&b'-') {
-        return false;
-    }
-    position += 1;
-    let Some(day_end) = take_digits(bytes, position, 1) else {
-        return false;
-    };
-    position = day_end;
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) != Some(&b'T') {
-        return false;
-    }
-    position += 1;
-    let Some(hour_end) = take_digits(bytes, position, 1) else {
-        return false;
-    };
-    position = hour_end;
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) == Some(&b':') {
-        position += 1;
-        let Some(minute_end) = take_digits(bytes, position, 1) else {
-            return false;
-        };
-        position = minute_end;
-        if position == bytes.len() {
-            return true;
-        }
-        if !matches!(bytes.get(position), Some(b':' | b'Z' | b'+' | b'-')) {
-            return false;
-        }
-        if bytes.get(position) == Some(&b':') {
-            position += 1;
-            let Some(second_end) = take_digits(bytes, position, 1) else {
-                return false;
-            };
-            position = second_end;
-            if !matches!(bytes.get(position), None | Some(b'.' | b'Z' | b'+' | b'-')) {
-                return false;
-            }
-            if bytes.get(position) == Some(&b'.') {
-                position += 1;
-                let Some(fraction_end) = take_digits(bytes, position, 1) else {
-                    return false;
-                };
-                position = fraction_end;
-                if !matches!(bytes.get(position), None | Some(b'Z' | b'+' | b'-')) {
-                    return false;
-                }
-            }
-        }
-    }
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) == Some(&b'Z') {
-        return position + 1 == bytes.len();
-    }
-    if !matches!(bytes.get(position), Some(b'+' | b'-')) {
-        return false;
-    }
-    position += 1;
-    let Some(zone_hour_end) = take_digits(bytes, position, 1) else {
-        return false;
-    };
-    position = zone_hour_end;
-    if position == bytes.len() {
-        return true;
-    }
-    if bytes.get(position) != Some(&b':') {
-        return false;
-    }
-    position += 1;
-    take_digits(bytes, position, 1).is_some_and(|end| end == bytes.len())
-}
-
-fn take_digits(bytes: &[u8], start: usize, minimum: usize) -> Option<usize> {
-    let end = bytes[start..]
-        .iter()
-        .take_while(|byte| byte.is_ascii_digit())
-        .count()
-        + start;
-    (end - start >= minimum).then_some(end)
+    ParsedDate::from_xmp(value).is_some()
 }
 
 fn signed_decimal(value: &str, allow_decimal_point: bool) -> bool {
@@ -1049,10 +1073,19 @@ fn inspect_extension_xmp_value_types(
             let Some(namespace) = property.namespace() else {
                 continue;
             };
+            if predefined_xmp2004_namespace(namespace)
+                || matches!(
+                    namespace,
+                    RDF_NAMESPACE | XML_NAMESPACE | PDFA_EXTENSION_NAMESPACE
+                )
+            {
+                continue;
+            }
             let Some(value_type) = definitions
                 .properties
                 .get(&(namespace.to_owned(), property.name().to_owned()))
             else {
+                invalid.insert(format!("{{{namespace}}}{} (undefined)", property.name()));
                 continue;
             };
             if !value_type_matches(property, value_type, definitions.types.get(namespace)) {
@@ -1096,57 +1129,83 @@ fn extension_schema_property_definitions(rdf: Node<'_, '_>) -> ExtensionSchemaDe
             let Some(namespace) = field_value(schema, PDFA_SCHEMA_NAMESPACE, "namespaceURI") else {
                 continue;
             };
-            for property in fields(schema, PDFA_SCHEMA_NAMESPACE, "property") {
-                for property in property.array_items() {
-                    let (Some(name), Some(value_type)) = (
-                        field_value(property, PDFA_PROPERTY_NAMESPACE, "name"),
-                        field_value(property, PDFA_PROPERTY_NAMESPACE, "valueType"),
-                    ) else {
+            let Some(property_node) = fields(schema, PDFA_SCHEMA_NAMESPACE, "property")
+                .into_iter()
+                .rev()
+                .find(|property| property.array_kind().is_some())
+            else {
+                continue;
+            };
+
+            let mut extension_types = BTreeMap::new();
+            if let Some(value_type_node) = fields(schema, PDFA_SCHEMA_NAMESPACE, "valueType")
+                .into_iter()
+                .rev()
+                .find(|value_type| value_type.array_kind().is_some())
+            {
+                for definition in value_type_node.array_items() {
+                    let Some(name) = field_value(definition, PDFA_TYPE_NAMESPACE, "type") else {
                         continue;
                     };
-                    definitions.properties.insert(
-                        (namespace.trim().to_owned(), name.trim().to_owned()),
-                        value_type.trim().to_owned(),
-                    );
-                }
-            }
-            let extension_types = definitions
-                .types
-                .entry(namespace.trim().to_owned())
-                .or_default();
-            for value_type in fields(schema, PDFA_SCHEMA_NAMESPACE, "valueType") {
-                for definition in value_type.array_items() {
-                    let (Some(name), Some(type_namespace)) = (
-                        field_value(definition, PDFA_TYPE_NAMESPACE, "type"),
-                        field_value(definition, PDFA_TYPE_NAMESPACE, "namespaceURI"),
-                    ) else {
-                        continue;
-                    };
+                    let fields_node = fields(definition, PDFA_TYPE_NAMESPACE, "field")
+                        .into_iter()
+                        .rev()
+                        .find(|field| field.array_kind().is_some());
                     let mut field_definitions = BTreeMap::new();
-                    for field in fields(definition, PDFA_TYPE_NAMESPACE, "field") {
-                        for field in field.array_items() {
+                    if let Some(fields_node) = fields_node {
+                        for field in fields_node.array_items() {
                             let (Some(name), Some(value_type)) = (
                                 field_value(field, PDFA_FIELD_NAMESPACE, "name"),
                                 field_value(field, PDFA_FIELD_NAMESPACE, "valueType"),
                             ) else {
                                 continue;
                             };
-                            field_definitions.insert(
-                                (type_namespace.trim().to_owned(), name.trim().to_owned()),
-                                value_type.trim().to_owned(),
-                            );
+                            field_definitions.insert(name.to_owned(), value_type.to_owned());
                         }
                     }
-                    if !field_definitions.is_empty() {
-                        extension_types.insert(
-                            xmp_type_key(name),
-                            ExtensionTypeDefinition {
-                                fields: field_definitions,
-                            },
-                        );
-                    }
+                    let definition = if field_definitions.is_empty() {
+                        ExtensionTypeDefinition::Simple
+                    } else if let Some(type_namespace) =
+                        field_value(definition, PDFA_TYPE_NAMESPACE, "namespaceURI")
+                    {
+                        ExtensionTypeDefinition::Structured {
+                            namespace: type_namespace.to_owned(),
+                            fields: field_definitions,
+                        }
+                    } else {
+                        continue;
+                    };
+                    extension_types.insert(xmp_type_key(name), definition);
                 }
             }
+
+            let mut schema_properties = BTreeMap::new();
+            let known_types = extension_types
+                .keys()
+                .cloned()
+                .chain(base_xmp_types())
+                .collect::<BTreeSet<_>>();
+            for property in property_node.array_items() {
+                let (Some(name), Some(value_type)) = (
+                    field_value(property, PDFA_PROPERTY_NAMESPACE, "name"),
+                    field_value(property, PDFA_PROPERTY_NAMESPACE, "valueType"),
+                ) else {
+                    continue;
+                };
+                if xmp_type_is_known(value_type, &known_types) {
+                    schema_properties
+                        .entry((namespace.to_owned(), name.to_owned()))
+                        .or_insert_with(|| value_type.to_owned());
+                }
+            }
+
+            definitions
+                .properties
+                .retain(|(property_namespace, _), _| property_namespace != namespace);
+            definitions.properties.extend(schema_properties);
+            definitions
+                .types
+                .insert(namespace.to_owned(), extension_types);
         }
     }
     definitions
@@ -1158,8 +1217,12 @@ struct ExtensionSchemaDefinitions {
     types: BTreeMap<String, BTreeMap<String, ExtensionTypeDefinition>>,
 }
 
-struct ExtensionTypeDefinition {
-    fields: BTreeMap<(String, String), String>,
+enum ExtensionTypeDefinition {
+    Simple,
+    Structured {
+        namespace: String,
+        fields: BTreeMap<String, String>,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -1176,6 +1239,30 @@ enum ArrayKind {
 }
 
 impl<'a> XmpProperty<'a> {
+    fn qualified_value(self) -> Option<Self> {
+        let Self::Element(node) = self else {
+            return None;
+        };
+        if let Some(value) = node.children().find(|child| {
+            child.is_element()
+                && child.tag_name().namespace() == Some(RDF_NAMESPACE)
+                && child.tag_name().name() == "value"
+        }) {
+            return Some(Self::Element(value));
+        }
+        let mut node_elements = node.children().filter(|child| child.is_element());
+        let value_parent = node_elements.next()?;
+        node_elements.next().is_none().then_some(())?;
+        value_parent
+            .children()
+            .find(|child| {
+                child.is_element()
+                    && child.tag_name().namespace() == Some(RDF_NAMESPACE)
+                    && child.tag_name().name() == "value"
+            })
+            .map(Self::Element)
+    }
+
     fn namespace(self) -> Option<&'a str> {
         match self {
             Self::Element(node) => node.tag_name().namespace(),
@@ -1211,6 +1298,9 @@ impl<'a> XmpProperty<'a> {
         match self {
             Self::Attribute(_) => true,
             Self::Element(node) => {
+                if let Some(value) = self.qualified_value() {
+                    return value.is_simple();
+                }
                 node.attribute((RDF_NAMESPACE, "parseType")) != Some("Resource")
                     && !node.children().any(|child| child.is_element())
             }
@@ -1220,11 +1310,15 @@ impl<'a> XmpProperty<'a> {
     fn value(self) -> Option<&'a str> {
         match self {
             Self::Attribute(attribute) => Some(attribute.value()),
-            Self::Element(node) => node
-                .attribute((RDF_NAMESPACE, "value"))
-                .or_else(|| node.attribute((RDF_NAMESPACE, "resource")))
-                .or_else(|| node.text())
-                .or_else(|| (!node.children().any(|child| child.is_element())).then_some("")),
+            Self::Element(node) => {
+                if let Some(value) = self.qualified_value() {
+                    return value.value();
+                }
+                node.attribute((RDF_NAMESPACE, "value"))
+                    .or_else(|| node.attribute((RDF_NAMESPACE, "resource")))
+                    .or_else(|| node.text())
+                    .or_else(|| (!node.children().any(|child| child.is_element())).then_some(""))
+            }
         }
     }
 
@@ -1232,6 +1326,9 @@ impl<'a> XmpProperty<'a> {
         let Self::Element(node) = self else {
             return None;
         };
+        if let Some(value) = self.qualified_value() {
+            return value.array_kind();
+        }
         node.children().find_map(|child| {
             if !child.is_element() || child.tag_name().namespace() != Some(RDF_NAMESPACE) {
                 return None;
@@ -1249,6 +1346,9 @@ impl<'a> XmpProperty<'a> {
         let Self::Element(node) = self else {
             return Vec::new();
         };
+        if let Some(value) = self.qualified_value() {
+            return value.array_items();
+        }
         node.children()
             .find(|child| {
                 child.is_element()
@@ -1268,8 +1368,9 @@ impl<'a> XmpProperty<'a> {
 
 fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
     let mut failed = BTreeSet::new();
-    for container in property_nodes(rdf, PDFA_EXTENSION_NAMESPACE, "schemas") {
-        let container = XmpProperty::Element(container);
+    for container in top_level_properties(rdf).into_iter().filter(|property| {
+        property.namespace() == Some(PDFA_EXTENSION_NAMESPACE) && property.name() == "schemas"
+    }) {
         if container.array_kind() != Some(ArrayKind::Bag)
             || container.prefix(xml) != Some("pdfaExtension")
         {
@@ -1579,8 +1680,21 @@ fn field_item_is_valid(field: Node<'_, '_>) -> bool {
 }
 
 fn known_types(definition: Node<'_, '_>) -> BTreeSet<String> {
-    let mut known = [
+    let mut known = base_xmp_types().collect::<BTreeSet<_>>();
+    for value_type in fields(definition, PDFA_SCHEMA_NAMESPACE, "valueType") {
+        for item in value_type.array_items() {
+            if let Some(value) = field_value(item, PDFA_TYPE_NAMESPACE, "type") {
+                known.insert(xmp_type_key(value));
+            }
+        }
+    }
+    known
+}
+
+fn base_xmp_types() -> impl Iterator<Item = String> {
+    [
         "agentname",
+        "any",
         "boolean",
         "cfapattern",
         "date",
@@ -1609,15 +1723,6 @@ fn known_types(definition: Node<'_, '_>) -> BTreeSet<String> {
     ]
     .into_iter()
     .map(str::to_owned)
-    .collect::<BTreeSet<_>>();
-    for value_type in fields(definition, PDFA_SCHEMA_NAMESPACE, "valueType") {
-        for item in value_type.array_items() {
-            if let Some(value) = field_value(item, PDFA_TYPE_NAMESPACE, "type") {
-                known.insert(xmp_type_key(value));
-            }
-        }
-    }
-    known
 }
 
 fn xmp_type_is_known(value_type: &str, known_types: &BTreeSet<String>) -> bool {
@@ -1763,65 +1868,234 @@ fn property_values(rdf: Node<'_, '_>, namespace: &str, local_name: &str) -> Vec<
     values
 }
 
-fn alt_values(rdf: Node<'_, '_>, namespace: &str, local_name: &str, language: &str) -> Vec<String> {
+fn localized_text_values(rdf: Node<'_, '_>, namespace: &str, local_name: &str) -> Vec<String> {
     property_nodes(rdf, namespace, local_name)
         .into_iter()
-        .flat_map(|property| container_values(property, "Alt", Some(language)))
+        .filter_map(localized_text_value)
         .collect()
 }
 
-fn container_values(
-    property: Node<'_, '_>,
-    container_name: &str,
-    language: Option<&str>,
-) -> Vec<String> {
-    property
-        .children()
-        .filter(|node| {
-            node.is_element()
-                && node.tag_name().namespace() == Some(RDF_NAMESPACE)
-                && node.tag_name().name() == container_name
-        })
-        .flat_map(|container| {
-            container.children().filter_map(|item| {
-                if !item.is_element()
-                    || item.tag_name().namespace() != Some(RDF_NAMESPACE)
-                    || item.tag_name().name() != "li"
-                    || language.is_some_and(|language| {
-                        item.attribute((XML_NAMESPACE, "lang")) != Some(language)
-                    })
-                {
-                    return None;
-                }
-                XmpProperty::Element(item).value().map(str::to_owned)
+fn localized_text_value(property: Node<'_, '_>) -> Option<String> {
+    let property = XmpProperty::Element(property);
+    (property.array_kind() == Some(ArrayKind::Alt)).then_some(())?;
+    let items = property.array_items();
+    if items.iter().any(|item| {
+        item.tag_name().namespace() != Some(RDF_NAMESPACE)
+            || item.tag_name().name() != "li"
+            || !XmpProperty::Element(*item).is_simple()
+            || item.attribute((XML_NAMESPACE, "lang")).is_none()
+    }) {
+        return None;
+    }
+    items
+        .iter()
+        .find(|item| item.attribute((XML_NAMESPACE, "lang")) == Some("x-default"))
+        .or_else(|| {
+            items.iter().find(|item| {
+                item.attribute((XML_NAMESPACE, "lang"))
+                    .is_some_and(|language| language.starts_with('x'))
             })
+        })
+        .or_else(|| items.first())
+        .and_then(|item| XmpProperty::Element(*item).value())
+        .map(str::to_owned)
+}
+
+fn ordered_array_values(property: Node<'_, '_>) -> Option<Vec<String>> {
+    let property = XmpProperty::Element(property);
+    matches!(property.array_kind(), Some(ArrayKind::Seq | ArrayKind::Alt)).then_some(())?;
+    property
+        .array_items()
+        .into_iter()
+        .map(|item| {
+            let item = XmpProperty::Element(item);
+            item.is_simple()
+                .then(|| item.value().map(str::to_owned))
+                .flatten()
         })
         .collect()
 }
 
 fn decode_xml(bytes: &[u8]) -> Result<String, String> {
-    if let Some(bytes) = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
-        return String::from_utf8(bytes.to_vec()).map_err(|error| error.to_string());
-    }
-    if let Some(bytes) = bytes.strip_prefix(&[0xFE, 0xFF]) {
-        return decode_utf16(bytes, u16::from_be_bytes);
-    }
-    if let Some(bytes) = bytes.strip_prefix(&[0xFF, 0xFE]) {
-        return decode_utf16(bytes, u16::from_le_bytes);
-    }
-    String::from_utf8(bytes.to_vec()).map_err(|error| error.to_string())
+    let xml = if bytes.starts_with(&[0, 0, 0xFE, 0xFF])
+        || bytes.len() >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0
+    {
+        decode_utf32(bytes.strip_prefix(&[0, 0, 0xFE, 0xFF]).unwrap_or(bytes), true)
+    } else if bytes.starts_with(&[0xFF, 0xFE, 0, 0])
+        || bytes.len() >= 4 && bytes[0] != 0 && bytes[1] == 0 && bytes[2] == 0
+    {
+        decode_utf32(bytes.strip_prefix(&[0xFF, 0xFE, 0, 0]).unwrap_or(bytes), false)
+    } else if bytes.starts_with(&[0xFE, 0xFF])
+        || bytes.len() >= 2 && bytes[0] == 0 && bytes[1] != 0
+    {
+        decode_utf16_lossy(
+            bytes.strip_prefix(&[0xFE, 0xFF]).unwrap_or(bytes),
+            u16::from_be_bytes,
+        )
+    } else if bytes.starts_with(&[0xFF, 0xFE])
+        || bytes.len() >= 2 && bytes[0] != 0 && bytes[1] == 0
+    {
+        decode_utf16_lossy(
+            bytes.strip_prefix(&[0xFF, 0xFE]).unwrap_or(bytes),
+            u16::from_le_bytes,
+        )
+    } else {
+        let bytes = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
+        if let Ok(xml) = std::str::from_utf8(bytes) {
+            return Ok(xml.to_owned());
+        }
+        let repaired = repair_latin1_utf8(bytes);
+        let mut xml = String::from_utf8_lossy(&repaired).into_owned();
+        repair_xml_controls(&mut xml);
+        return Ok(xml);
+    };
+    Ok(xml)
 }
 
-fn decode_utf16(bytes: &[u8], convert: fn([u8; 2]) -> u16) -> Result<String, String> {
-    if !bytes.len().is_multiple_of(2) {
-        return Err("UTF-16 XML has an odd byte length".to_owned());
-    }
-    let units = bytes
+fn decode_utf16_lossy(bytes: &[u8], convert: fn([u8; 2]) -> u16) -> String {
+    let mut units = bytes
         .chunks_exact(2)
-        .map(|pair| convert([pair[0], pair[1]]));
-    std::char::decode_utf16(units)
-        .collect::<Result<String, _>>()
-        .map_err(|error| error.to_string())
+        .map(|pair| convert([pair[0], pair[1]]))
+        .collect::<Vec<_>>();
+    if !bytes.len().is_multiple_of(2) {
+        units.push(0xFFFD);
+    }
+    String::from_utf16_lossy(&units)
+}
+
+fn decode_utf32(bytes: &[u8], big_endian: bool) -> String {
+    let mut result = String::new();
+    let mut chunks = bytes.chunks_exact(4);
+    for bytes in &mut chunks {
+        let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
+        let value = if big_endian {
+            u32::from_be_bytes(bytes)
+        } else {
+            u32::from_le_bytes(bytes)
+        };
+        result.push(char::from_u32(value).unwrap_or('\u{FFFD}'));
+    }
+    if !chunks.remainder().is_empty() {
+        result.push('\u{FFFD}');
+    }
+    result
+}
+
+fn repair_latin1_utf8(bytes: &[u8]) -> Vec<u8> {
+    let mut result = Vec::with_capacity(bytes.len());
+    let mut position = 0;
+    while position < bytes.len() {
+        let byte = bytes[position];
+        if byte < 127 {
+            result.push(byte);
+            position += 1;
+            continue;
+        }
+        if byte >= 192 {
+            let continuation_count = byte.leading_ones().saturating_sub(1) as usize;
+            let end = position.saturating_add(continuation_count + 1);
+            if continuation_count > 0
+                && end <= bytes.len()
+                && bytes[position + 1..end]
+                    .iter()
+                    .all(|byte| byte & 0xC0 == 0x80)
+            {
+                result.extend_from_slice(&bytes[position..end]);
+                position = end;
+                continue;
+            }
+        }
+        push_cp1252_as_utf8(&mut result, byte);
+        position += 1;
+    }
+    result
+}
+
+fn push_cp1252_as_utf8(result: &mut Vec<u8>, byte: u8) {
+    let character = match byte {
+        0x80 => '\u{20AC}',
+        0x81 | 0x8D | 0x8F | 0x90 | 0x9D => ' ',
+        0x82 => '\u{201A}',
+        0x83 => '\u{0192}',
+        0x84 => '\u{201E}',
+        0x85 => '\u{2026}',
+        0x86 => '\u{2020}',
+        0x87 => '\u{2021}',
+        0x88 => '\u{02C6}',
+        0x89 => '\u{2030}',
+        0x8A => '\u{0160}',
+        0x8B => '\u{2039}',
+        0x8C => '\u{0152}',
+        0x8E => '\u{017D}',
+        0x91 => '\u{2018}',
+        0x92 => '\u{2019}',
+        0x93 => '\u{201C}',
+        0x94 => '\u{201D}',
+        0x95 => '\u{2022}',
+        0x96 => '\u{2013}',
+        0x97 => '\u{2014}',
+        0x98 => '\u{02DC}',
+        0x99 => '\u{2122}',
+        0x9A => '\u{0161}',
+        0x9B => '\u{203A}',
+        0x9C => '\u{0153}',
+        0x9E => '\u{017E}',
+        0x9F => '\u{0178}',
+        _ => char::from_u32(u32::from(byte)).expect("byte is a Unicode scalar"),
+    };
+    let mut encoded = [0; 4];
+    result.extend_from_slice(character.encode_utf8(&mut encoded).as_bytes());
+}
+
+fn repair_xml_controls(xml: &mut String) {
+    let characters = xml.chars().collect::<Vec<_>>();
+    let mut repaired = String::with_capacity(xml.len());
+    let mut position = 0;
+    while position < characters.len() {
+        if characters[position] == '&'
+            && characters.get(position + 1) == Some(&'#')
+            && let Some((end, value)) = numeric_character_reference(&characters, position)
+            && is_xmp_ascii_control(value)
+        {
+            repaired.push(' ');
+            position = end;
+            continue;
+        }
+        let character = characters[position];
+        repaired.push(if is_xmp_ascii_control(character as u32) {
+            ' '
+        } else {
+            character
+        });
+        position += 1;
+    }
+    *xml = repaired;
+}
+
+fn numeric_character_reference(characters: &[char], start: usize) -> Option<(usize, u32)> {
+    let mut position = start + 2;
+    let radix = if characters.get(position) == Some(&'x') {
+        position += 1;
+        16
+    } else {
+        10
+    };
+    let digit_start = position;
+    let maximum_digits = if radix == 16 { 4 } else { 5 };
+    let mut value = 0_u32;
+    while position < characters.len() && position - digit_start < maximum_digits {
+        let Some(digit) = characters[position].to_digit(radix) else {
+            break;
+        };
+        value = value * radix + digit;
+        position += 1;
+    }
+    (position > digit_start && characters.get(position) == Some(&';'))
+        .then_some((position + 1, value))
+}
+
+fn is_xmp_ascii_control(value: u32) -> bool {
+    value <= 31 && !matches!(value, 9 | 10 | 13) || value == 127
 }
 
 pub(crate) fn dates_equivalent(pdf: &str, xmp: &str) -> bool {
@@ -1831,126 +2105,174 @@ pub(crate) fn dates_equivalent(pdf: &str, xmp: &str) -> bool {
     let Some(xmp) = ParsedDate::from_xmp(xmp) else {
         return false;
     };
-    pdf.equivalent(xmp)
+    pdf.instant_millis()
+        .zip(xmp.instant_millis())
+        .is_some_and(|(pdf, xmp)| pdf == xmp)
 }
 
 #[derive(Clone, Copy, Debug)]
 struct ParsedDate {
     year: i32,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
-    offset_minutes: Option<i16>,
+    month_index: i32,
+    day: i32,
+    hour: i32,
+    minute: i32,
+    second: i32,
+    millisecond: i32,
+    zone: DateZone,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DateZone {
+    Fixed(i32),
+    Local,
 }
 
 impl ParsedDate {
     fn from_pdf(value: &str) -> Option<Self> {
-        let value = value.strip_prefix("D:")?;
-        if value.len() < 4 {
-            return None;
-        }
-        let year = digits(value, 0, 4)? as i32;
-        let month = optional_digits(value, 4, 2, 1)?;
-        let day = optional_digits(value, 6, 2, 1)?;
-        let hour = optional_digits(value, 8, 2, 0)?;
-        let minute = optional_digits(value, 10, 2, 0)?;
-        let second = optional_digits(value, 12, 2, 0)?;
-        let rest = value.get(value.len().min(14)..)?;
-        let offset_minutes = parse_pdf_offset(rest)?;
-        Self::checked(year, month, day, hour, minute, second, offset_minutes)
-    }
-
-    fn from_xmp(value: &str) -> Option<Self> {
-        if value.len() < 19
-            || value.as_bytes().get(4) != Some(&b'-')
-            || value.as_bytes().get(7) != Some(&b'-')
-            || value.as_bytes().get(10) != Some(&b'T')
-            || value.as_bytes().get(13) != Some(&b':')
-            || value.as_bytes().get(16) != Some(&b':')
-        {
-            return None;
-        }
-        let year = digits(value, 0, 4)? as i32;
-        let month = digits(value, 5, 2)? as u8;
-        let day = digits(value, 8, 2)? as u8;
-        let hour = digits(value, 11, 2)? as u8;
-        let minute = digits(value, 14, 2)? as u8;
-        let second = digits(value, 17, 2)? as u8;
-        let zone = &value[19..];
-        let offset_minutes = match zone {
-            "" => None,
-            "Z" => Some(0),
-            _ if zone.len() == 6
-                && matches!(zone.as_bytes()[0], b'+' | b'-')
-                && zone.as_bytes()[3] == b':' =>
-            {
-                let sign = if zone.as_bytes()[0] == b'-' { -1 } else { 1 };
-                let hours = digits(zone, 1, 2)? as i16;
-                let minutes = digits(zone, 4, 2)? as i16;
-                (hours <= 23 && minutes <= 59).then_some(sign * (hours * 60 + minutes))
+        let mut value = value.strip_prefix("D:")?;
+        if value.ends_with('\'') {
+            if value.ends_with("''") {
+                return None;
             }
-            _ => None?,
-        };
-        Self::checked(year, month, day, hour, minute, second, offset_minutes)
-    }
-
-    fn checked(
-        year: i32,
-        month: u8,
-        day: u8,
-        hour: u8,
-        minute: u8,
-        second: u8,
-        offset_minutes: Option<i16>,
-    ) -> Option<Self> {
-        if !(1..=12).contains(&month)
-            || day == 0
-            || day > days_in_month(year, month)
-            || hour > 23
-            || minute > 59
-            || second > 59
-        {
+            value = &value[..value.len() - 1];
+        }
+        if value.len() < 4 || value.len() > 20 {
             return None;
         }
+        let year = digits(value, 0, 4)? as i32;
+        let month_index = pdf_optional_pair(value, 4, 1)? - 1;
+        let day = pdf_optional_pair(value, 6, 1)?;
+        let hour = pdf_optional_pair(value, 8, 0)?;
+        let minute = pdf_optional_pair(value, 10, 0)?;
+        let second = pdf_optional_pair(value, 12, 0)?;
+        let timezone = value.get(value.len().min(14)..)?;
+        let offset_minutes = parse_pdf_offset(timezone)?;
         Some(Self {
             year,
-            month,
+            month_index,
             day,
             hour,
             minute,
             second,
-            offset_minutes,
+            millisecond: 0,
+            zone: DateZone::Fixed(offset_minutes),
         })
     }
 
-    fn equivalent(self, other: Self) -> bool {
-        match (self.offset_minutes, other.offset_minutes) {
-            (Some(left), Some(right)) => {
-                self.local_seconds() - i64::from(left) * 60
-                    == other.local_seconds() - i64::from(right) * 60
-            }
-            (None, None) => {
-                self.year == other.year
-                    && self.month == other.month
-                    && self.day == other.day
-                    && self.hour == other.hour
-                    && self.minute == other.minute
-                    && self.second == other.second
-            }
-            // A missing zone is interpreted using host defaults by some XMP
-            // stacks. Host-dependent validation is unsuitable here, so the
-            // local subset refuses to guess.
-            _ => false,
+    fn from_xmp(value: &str) -> Option<Self> {
+        if value.is_empty() {
+            return Some(Self::empty_xmp());
         }
+        let bytes = value.as_bytes();
+        let mut position = usize::from(bytes.first() == Some(&b'-'));
+        let negative = position == 1;
+        let year = gather_xmp_integer(bytes, &mut position, 9_999)?;
+        let year = if negative { year.abs() } else { year };
+        let mut result = Self {
+            year,
+            ..Self::empty_xmp()
+        };
+        if position == bytes.len() {
+            return Some(result);
+        }
+        take_byte(bytes, &mut position, b'-')?;
+        result.month_index = gather_xmp_integer(bytes, &mut position, 12)?.clamp(1, 12) - 1;
+        if position == bytes.len() {
+            return Some(result);
+        }
+        take_byte(bytes, &mut position, b'-')?;
+        result.day = gather_xmp_integer(bytes, &mut position, 31)?.clamp(1, 31);
+        if position == bytes.len() {
+            return Some(result);
+        }
+        take_byte(bytes, &mut position, b'T')?;
+        result.hour = gather_xmp_integer(bytes, &mut position, 23)?.clamp(0, 23);
+        if position == bytes.len() {
+            return Some(result);
+        }
+        if bytes[position] == b':' {
+            position += 1;
+            result.minute = gather_xmp_integer(bytes, &mut position, 59)?.clamp(0, 59);
+            if position == bytes.len() {
+                return Some(result);
+            }
+            if bytes[position] == b':' {
+                position += 1;
+                result.second = gather_xmp_integer(bytes, &mut position, 59)?.clamp(0, 59);
+                if position < bytes.len() && bytes[position] == b'.' {
+                    position += 1;
+                    let fraction_start = position;
+                    gather_xmp_integer(bytes, &mut position, 999_999_999)?;
+                    let fraction = &bytes[fraction_start..position];
+                    result.millisecond = fraction
+                        .iter()
+                        .take(3)
+                        .fold(0, |value, digit| value * 10 + i32::from(digit - b'0'))
+                        * 10_i32.pow(3_u32.saturating_sub(fraction.len().min(3) as u32));
+                }
+            } else if !matches!(bytes[position], b'Z' | b'+' | b'-') {
+                return None;
+            }
+        } else if !matches!(bytes[position], b'Z' | b'+' | b'-') {
+            return None;
+        }
+        if position == bytes.len() {
+            return Some(result);
+        }
+        if bytes[position] == b'Z' {
+            position += 1;
+            result.zone = DateZone::Fixed(0);
+        } else {
+            let sign = if bytes[position] == b'-' { -1 } else { 1 };
+            position += 1;
+            let zone_hour = gather_xmp_integer(bytes, &mut position, 23)?.clamp(0, 23);
+            let mut zone_minute = 0;
+            if position < bytes.len() {
+                take_byte(bytes, &mut position, b':')?;
+                zone_minute = gather_xmp_integer(bytes, &mut position, 59)?.clamp(0, 59);
+            }
+            result.zone = DateZone::Fixed(sign * (zone_hour * 60 + zone_minute));
+        }
+        (position == bytes.len()).then_some(result)
     }
 
-    fn local_seconds(self) -> i64 {
-        days_from_civil(self.year, self.month, self.day) * 86_400
-            + i64::from(self.hour) * 3_600
-            + i64::from(self.minute) * 60
-            + i64::from(self.second)
+    fn empty_xmp() -> Self {
+        Some(Self {
+            year: 0,
+            month_index: -1,
+            day: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            zone: DateZone::Local,
+        })
+        .expect("date literal")
+    }
+
+    fn instant_millis(self) -> Option<i64> {
+        let normalized_year = self.year + self.month_index.div_euclid(12);
+        let normalized_month = self.month_index.rem_euclid(12) as u32 + 1;
+        let naive = NaiveDate::from_ymd_opt(normalized_year, normalized_month, 1)?
+            .and_hms_opt(0, 0, 0)?
+            .checked_add_signed(Duration::days(i64::from(self.day - 1)))?
+            .checked_add_signed(Duration::seconds(
+                i64::from(self.hour) * 3_600 + i64::from(self.minute) * 60 + i64::from(self.second),
+            ))?
+            .checked_add_signed(Duration::milliseconds(i64::from(self.millisecond)))?;
+        let local_millis = naive.and_utc().timestamp_millis();
+        match self.zone {
+            DateZone::Fixed(offset) => Some(local_millis - i64::from(offset) * 60_000),
+            DateZone::Local => match Local.from_local_datetime(&naive) {
+                LocalResult::Single(value) => Some(value.timestamp_millis()),
+                LocalResult::Ambiguous(left, right) => {
+                    Some(left.timestamp_millis().max(right.timestamp_millis()))
+                }
+                LocalResult::None => local_offset_before(naive)
+                    .map(|offset| local_millis - i64::from(offset) * 1_000),
+            },
+        }
     }
 }
 
@@ -1958,58 +2280,75 @@ fn digits(value: &str, start: usize, length: usize) -> Option<u32> {
     value.get(start..start + length)?.parse().ok()
 }
 
-fn optional_digits(value: &str, start: usize, length: usize, default: u8) -> Option<u8> {
+fn pdf_optional_pair(value: &str, start: usize, default: i32) -> Option<i32> {
     if value.len() <= start {
         Some(default)
     } else {
-        digits(value, start, length).map(|value| value as u8)
+        digits(value, start, 2).map(|value| value as i32)
     }
 }
 
-fn parse_pdf_offset(value: &str) -> Option<Option<i16>> {
+fn parse_pdf_offset(value: &str) -> Option<i32> {
     if value.is_empty() {
-        return Some(Some(0));
+        return Some(0);
     }
-    if value == "Z" {
-        return Some(Some(0));
-    }
-    let sign = match value.as_bytes().first()? {
+    let sign = match value.as_bytes()[0] {
+        b'Z' => 0,
         b'+' => 1,
         b'-' => -1,
         _ => return None,
     };
-    let normalized = value[1..].replace('\'', "");
-    if normalized.len() != 4 {
+    if value.len() == 1 {
+        return Some(0);
+    }
+    if sign == 0 || !matches!(value.len(), 3 | 4 | 6) {
         return None;
     }
-    let hours = digits(&normalized, 0, 2)? as i16;
-    let minutes = digits(&normalized, 2, 2)? as i16;
-    (hours <= 23 && minutes <= 59).then_some(Some(sign * (hours * 60 + minutes)))
-}
-
-fn days_in_month(year: i32, month: u8) -> u8 {
-    match month {
-        4 | 6 | 9 | 11 => 30,
-        2 if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) => 29,
-        2 => 28,
-        _ => 31,
+    let hours = digits(value, 1, 2)? as i32;
+    let minutes = if value.len() > 3 {
+        if value.as_bytes().get(3) != Some(&b'\'') || value.len() != 6 {
+            return None;
+        }
+        digits(value, 4, 2)? as i32
+    } else {
+        0
+    };
+    if hours <= 23 && minutes <= 59 {
+        Some(sign * (hours * 60 + minutes))
+    } else {
+        // java.util.TimeZone silently falls back to GMT for malformed custom
+        // GMT offsets after the lexical PDF date checks have succeeded.
+        Some(0)
     }
 }
 
-// Howard Hinnant's proleptic-Gregorian civil-date conversion, translated to
-// Rust. Only equality matters, so the arbitrary epoch constant is omitted.
-fn days_from_civil(year: i32, month: u8, day: u8) -> i64 {
-    let adjusted_year = year - i32::from(month <= 2);
-    let era = if adjusted_year >= 0 {
-        adjusted_year
-    } else {
-        adjusted_year - 399
-    } / 400;
-    let year_of_era = adjusted_year - era * 400;
-    let shifted_month = i32::from(month) + if month > 2 { -3 } else { 9 };
-    let day_of_year = (153 * shifted_month + 2) / 5 + i32::from(day) - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    i64::from(era * 146_097 + day_of_era)
+fn gather_xmp_integer(bytes: &[u8], position: &mut usize, maximum: i32) -> Option<i32> {
+    let start = *position;
+    let mut value = 0_i64;
+    while bytes.get(*position).is_some_and(u8::is_ascii_digit) {
+        value = (value * 10 + i64::from(bytes[*position] - b'0')).min(i64::from(maximum));
+        *position += 1;
+    }
+    (*position > start).then_some(value as i32)
+}
+
+fn take_byte(bytes: &[u8], position: &mut usize, expected: u8) -> Option<()> {
+    (bytes.get(*position) == Some(&expected)).then(|| *position += 1)
+}
+
+fn local_offset_before(naive: chrono::NaiveDateTime) -> Option<i32> {
+    (1..=180).find_map(|minutes| {
+        let candidate = naive.checked_sub_signed(Duration::minutes(minutes))?;
+        match Local.from_local_datetime(&candidate) {
+            LocalResult::Single(value) => Some(value.offset().local_minus_utc()),
+            LocalResult::Ambiguous(left, right) => Some(
+                left.offset()
+                    .local_minus_utc()
+                    .min(right.offset().local_minus_utc()),
+            ),
+            LocalResult::None => None,
+        }
+    })
 }
 
 #[cfg(test)]
@@ -2070,6 +2409,23 @@ mod tests {
             parsed.invalid_predefined_xmp_value_types,
             BTreeSet::from(["{http://purl.org/dc/elements/1.1/}title (lang alt)".to_owned()])
         );
+    }
+
+    #[test]
+    fn normalizes_qualified_simple_and_array_properties() {
+        let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+          xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:q="urn:qualifier">
+          <rdf:Description>
+            <pdf:Keywords rdf:parseType="Resource"><rdf:value>key</rdf:value><q:kind>one</q:kind></pdf:Keywords>
+            <dc:title><rdf:Description><rdf:value><rdf:Alt>
+              <rdf:li xml:lang="x-default">Title</rdf:li>
+            </rdf:Alt></rdf:value><q:kind>two</q:kind></rdf:Description></dc:title>
+          </rdf:Description></rdf:RDF>"#;
+        let parsed = parse_xmp(xmp).expect("valid qualified XMP");
+        assert_eq!(parsed.keywords, ["key"]);
+        assert_eq!(parsed.title_x_default, ["Title"]);
+        assert!(parsed.invalid_predefined_xmp_value_types.is_empty());
     }
 
     #[test]
@@ -2156,14 +2512,20 @@ mod tests {
             parsed.undefined_extension_xmp_properties,
             BTreeSet::from(["{urn:custom}missing".to_owned()])
         );
-        assert!(parsed.invalid_extension_xmp_value_types.is_empty());
+        assert_eq!(
+            parsed.invalid_extension_xmp_value_types,
+            BTreeSet::from(["{urn:custom}missing (undefined)".to_owned()])
+        );
         let mismatched_xml = std::str::from_utf8(xmp)
             .expect("test XML is UTF-8")
             .replace("Text", "Lang Alt");
         let mismatched = parse_xmp(mismatched_xml.as_bytes()).expect("valid XMP");
         assert_eq!(
             mismatched.invalid_extension_xmp_value_types,
-            BTreeSet::from(["{urn:custom}defined (Lang Alt)".to_owned()])
+            BTreeSet::from([
+                "{urn:custom}defined (Lang Alt)".to_owned(),
+                "{urn:custom}missing (undefined)".to_owned(),
+            ])
         );
     }
 
@@ -2268,6 +2630,67 @@ mod tests {
     }
 
     #[test]
+    fn applies_pinned_latin1_and_ascii_control_recovery() {
+        let mut latin1 = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description pdf:Producer="caf"#
+            .to_vec();
+        latin1.push(0xE9);
+        latin1.extend_from_slice(br#""/></rdf:RDF>"#);
+        assert_eq!(parse_xmp(&latin1).expect("recovered Latin-1").producers, ["café"]);
+
+        let controls = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description pdf:Producer="a&#x1;b"/>
+          </rdf:RDF>"#;
+        assert_eq!(
+            parse_xmp(controls).expect("recovered control").producers,
+            ["a b"]
+        );
+        let del = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description pdf:Producer="a&#x7F;b"/>
+          </rdf:RDF>"#;
+        assert_eq!(
+            parse_xmp(del).expect("DEL is XML-valid").producers,
+            ["a\u{7f}b"]
+        );
+    }
+
+    #[test]
+    fn detects_utf16_and_utf32_xmp_without_requiring_a_bom() {
+        let xml = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" \
+          xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\"><rdf:Description pdf:Producer=\"ok\"/></rdf:RDF>";
+        let utf16le = xml.encode_utf16().flat_map(u16::to_le_bytes).collect::<Vec<_>>();
+        assert_eq!(
+            parse_xmp(&utf16le).expect("UTF-16LE").producers,
+            ["ok"]
+        );
+        let utf32be = xml
+            .chars()
+            .flat_map(|character| u32::from(character).to_be_bytes())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            parse_xmp(&utf32be).expect("UTF-32BE").producers,
+            ["ok"]
+        );
+    }
+
+    #[test]
+    fn bounds_xml_depth_before_recursive_xmp_selection() {
+        let mut xmp = "<x>".repeat(MAX_XMP_XML_DEPTH + 1);
+        xmp.push_str("<leaf/>");
+        xmp.push_str(&"</x>".repeat(MAX_XMP_XML_DEPTH + 1));
+        let error = parse_xmp(xmp.as_bytes()).expect_err("deep XML must be bounded");
+        assert!(error.contains("nesting depth"), "{error}");
+    }
+
+    #[test]
+    fn bounds_xml_node_allocations() {
+        let mut xmp = String::from("<x>");
+        xmp.push_str(&"<n/>".repeat(MAX_XMP_XML_NODES as usize));
+        xmp.push_str("</x>");
+        assert!(parse_xmp(xmp.as_bytes()).is_err());
+    }
+
+    #[test]
     fn rejects_unqualified_rdf_description_attributes() {
         let xmp = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
@@ -2293,6 +2716,8 @@ mod tests {
         ] {
             assert!(xmp_type_is_known(value_type, &known), "{value_type}");
         }
+        assert_eq!(xmp_type_key("prefix Choice of Rational"), "prefix rational");
+        assert_eq!(xmp_type_key("Closed Choice"), "text");
         assert!(!xmp_type_is_known("Undefined", &known));
     }
 

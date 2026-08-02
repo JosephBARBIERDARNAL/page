@@ -271,7 +271,7 @@ impl fmt::Display for DifferentialReport {
         writeln!(
             formatter,
             "Local implemented checks passed: {}",
-            self.local_report.implemented_checks_passed
+            self.local_report.checks_passed
         )?;
         if self.classification == ComparisonClassification::CoverageGap {
             writeln!(
@@ -460,7 +460,7 @@ pub fn classify(local: &ValidationReport, reference: &ReferenceResult) -> Compar
             if local_parser_rejected {
                 ComparisonClassification::LocalParserDiscrepancy
             } else {
-                match (reference.compliant, local.implemented_checks_passed) {
+                match (reference.compliant, local.checks_passed) {
                     (Some(true), true) => ComparisonClassification::Agreement,
                     (Some(true), false) => ComparisonClassification::LocalFalseNegative,
                     (Some(false), true) => ComparisonClassification::CoverageGap,
@@ -886,7 +886,7 @@ mod tests {
     fn local_report(passed: bool, category: FailureCategory) -> ValidationReport {
         ValidationReport {
             profile: ValidationProfile::PdfA1b,
-            implemented_checks_passed: passed,
+            checks_passed: passed,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,

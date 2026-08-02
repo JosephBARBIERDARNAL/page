@@ -221,7 +221,7 @@ fn gap_4_no_logical_structure_predicates_exist_in_the_pinned_1b_profile() {
 fn gap_5_catalog_level_indirect_null_wrong_type_recovery() {
     let direct_root = common::validate(&common::document_feature_fixture("baseline"));
     assert!(
-        direct_root.implemented_checks_passed,
+        direct_root.checks_passed,
         "sanity: baseline catalog fixture should be fully compliant"
     );
 
