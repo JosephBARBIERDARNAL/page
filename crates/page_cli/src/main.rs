@@ -100,17 +100,7 @@ fn main() {
     };
     let profile = cli.profile;
     let report = validate_file(&cli.file, profile.into(), &limits);
-    let status = if cli.json {
-        let json = JsonValidationReport::from_report(
-            cli.file.display().to_string(),
-            profile.as_str(),
-            &report,
-        );
-        match emit_json(&json, "validation report") {
-            0 => report.exit_code(),
-            status => status,
-        }
-    } else if let Some(failure) = report
+    let status = if let Some(failure) = report
         .failures
         .iter()
         .find(|failure| failure.rule_id == "INPUT-IO-001")
@@ -121,6 +111,16 @@ fn main() {
             failure.message
         );
         report.exit_code()
+    } else if cli.json {
+        let json = JsonValidationReport::from_report(
+            cli.file.display().to_string(),
+            profile.as_str(),
+            &report,
+        );
+        match emit_json(&json, "validation report") {
+            0 => report.exit_code(),
+            status => status,
+        }
     } else {
         print!("{report}");
         report.exit_code()

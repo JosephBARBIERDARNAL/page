@@ -42,7 +42,7 @@ fn validation_json_uses_the_stable_public_schema() {
 }
 
 #[test]
-fn validation_json_reports_parser_and_operational_errors_separately() {
+fn validation_json_reports_parser_errors_separately() {
     let validation = Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation");
     let malformed = validation.join("tests/fixtures/malformed.pdf");
     let parser = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -55,40 +55,36 @@ fn validation_json_reports_parser_and_operational_errors_separately() {
     assert_eq!(parser["valid"], false);
     assert_eq!(parser["failures"], serde_json::json!([]));
     assert_eq!(parser["error"]["kind"], "parser");
-
-    let missing = Command::new(env!("CARGO_BIN_EXE_page"))
-        .arg(validation.join("tests/fixtures/missing.pdf"))
-        .args(["--profile", "a-1b", "--json"])
-        .output()
-        .expect("run missing PDF validation");
-    assert_eq!(missing.status.code(), Some(1));
-    let missing: serde_json::Value = serde_json::from_slice(&missing.stdout).expect("missing JSON");
-    assert_eq!(missing["valid"], false);
-    assert_eq!(missing["failures"], serde_json::json!([]));
-    assert_eq!(missing["error"]["kind"], "operational");
 }
 
 #[test]
-fn missing_input_reports_a_direct_error_without_validation_output() {
+fn missing_input_ignores_json_and_reports_a_direct_error() {
     let missing =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation/tests/fixtures/missing.pdf");
-    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+    let without_json = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&missing)
         .args(["--profile", "a-1b"])
         .output()
         .expect("run missing PDF validation");
+    let with_json = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&missing)
+        .args(["--profile", "a-1b", "--json"])
+        .output()
+        .expect("run missing PDF validation with --json");
 
-    assert_eq!(output.status.code(), Some(1));
-    assert!(output.stdout.is_empty());
-    let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
+    assert_eq!(with_json.status.code(), Some(1));
+    assert!(with_json.stdout.is_empty());
     let missing_file_error = std::io::Error::from_raw_os_error(2);
     assert_eq!(
-        stderr,
+        std::str::from_utf8(&with_json.stderr).expect("UTF-8 error"),
         format!(
             "error: could not read '{}': {missing_file_error}\n",
             missing.display(),
         )
     );
+    assert_eq!(with_json.status, without_json.status);
+    assert_eq!(with_json.stdout, without_json.stdout);
+    assert_eq!(with_json.stderr, without_json.stderr);
 }
 
 #[test]
