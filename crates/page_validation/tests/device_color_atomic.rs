@@ -6,6 +6,10 @@ const CASES: &[(&str, &[&str])] = &[
     ("cmyk_operator", &["PDFA1B-DEVICE-CMYK-001"]),
     ("gray_operator", &[]),
     ("rgb_with_cmyk_output", &["PDFA1B-DEVICE-RGB-001"]),
+    (
+        "rgb_wrong_arity_with_cmyk_output",
+        &["PDFA1B-DEVICE-RGB-001"],
+    ),
     ("cmyk_with_cmyk_output", &[]),
     ("gray_with_cmyk_output", &[]),
     ("rgb_without_output", &["PDFA1B-DEVICE-RGB-001"]),

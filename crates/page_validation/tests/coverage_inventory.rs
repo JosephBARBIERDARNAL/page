@@ -970,7 +970,11 @@ fn generated_low_level_syntax_matrix(inventory: &Value) -> Value {
 }
 
 fn generated_graphical_content_matrix(inventory: &Value) -> Value {
-    let shared = BTreeSet::from(["ISO 19005-1:2005:6.1.10:2", "ISO 19005-1:2005:6.1.12:9"]);
+    let shared = BTreeSet::from([
+        "ISO 19005-1:2005:6.1.10:2",
+        "ISO 19005-1:2005:6.1.12:8",
+        "ISO 19005-1:2005:6.1.12:9",
+    ]);
     let mut entries = array(&inventory["predicates"], "predicates")
         .iter()
         .filter(|predicate| {
@@ -1004,14 +1008,14 @@ fn generated_graphical_content_matrix(inventory: &Value) -> Value {
         string(&left["verapdf_rule_id"], "left rule id")
             .cmp(string(&right["verapdf_rule_id"], "right rule id"))
     });
-    assert_eq!(entries.len(), 21, "graphical-content predicate count");
+    assert_eq!(entries.len(), 22, "graphical-content predicate count");
     json!({
         "status": "complete",
         "source": "veraPDF 1.28.2 PDF/A-1B profile",
         "clause_6_2_predicate_count": 19,
-        "shared_clause_6_1_predicate_count": 2,
-        "exact_predicate_count": 21,
-        "policy": "One bounded page/Form execution model supplies every clause 6.2 graphical-content population plus inline-image LZW and DeviceN component evidence.",
+        "shared_clause_6_1_predicate_count": 3,
+        "exact_predicate_count": 22,
+        "policy": "One bounded content executor covers page, Form, appearance, selected Pattern, and rendered Type3 paths and supplies every clause 6.2 graphical-content population plus inline-image LZW, graphics-state nesting, and DeviceN component evidence.",
         "predicates": entries,
     })
 }
@@ -1163,23 +1167,23 @@ fn font_predicate_rule_ids() -> BTreeSet<&'static str> {
     ])
 }
 
-/// The content-discovery routes that populate `font_embedding::Scanner::uses`
-/// (the shared population every font predicate below except
-/// `CMAP-MAX-CID-001` evaluates against): page content, Form XObjects
+/// The shared content-execution routes that populate
+/// `ContentExecutionSummary::fonts` (the population every font predicate
+/// below except `CMAP-MAX-CID-001` evaluates against): page content, Form XObjects
 /// invoked via `Do` (including the first used Type0 descendant), annotation
 /// `/AP`/`/N` appearance streams (every button-Widget appearance state, not
 /// only the `/AS`-selected one), tiling Pattern content selected via
 /// `cs`/`scn`, and Type3 `/CharProcs` glyph descriptions for rendered
-/// glyphs. The three non-page/Form routes were each confirmed live against
+/// glyphs. The three additional source families were each confirmed live against
 /// veraPDF 1.28.2 (a font used only there still populates a `PDFont`
 /// object) before this milestone added them; see the
 /// `font_content_source_*` atomic and differential cases.
 const FONT_CONTENT_SOURCES: &[&str] = &[
-    "page content (font_embedding::Scanner::scan_page)",
-    "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-    "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-    "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-    "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)",
+    "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+    "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+    "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+    "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+    "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)",
 ];
 
 fn font_predicate_content_sources(rule_id: &str) -> &'static [&'static str] {
@@ -1200,7 +1204,8 @@ fn font_predicate_content_sources(rule_id: &str) -> &'static [&'static str] {
 /// every veraPDF-recognized page, Form, appearance, Pattern, and Type3
 /// content path" precisely, rather than by assertion: every pinned font
 /// predicate is listed with the exact set of content-discovery routes that
-/// feed the `Scanner::uses` population it evaluates against.
+/// feed the shared `ContentExecutionSummary::fonts` population it evaluates
+/// against.
 fn generated_font_matrix(inventory: &Value) -> Value {
     let rule_ids = font_predicate_rule_ids();
     let mut entries = array(&inventory["predicates"], "predicates")
@@ -1371,10 +1376,8 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-EXTGSTATE-STROKE-ALPHA-001"
         | "PDFA1B-EXTGSTATE-FILL-ALPHA-001" => "graphics",
 
-        // content: bounded page/Form content-stream execution facts
-        // (content_support.rs), including graphics-state nesting depth
-        // even though it happens to be counted inside font_embedding.rs's
-        // content scanner rather than content_support.rs itself.
+        // content: facts from the one bounded executor shared by page, Form,
+        // annotation-appearance, selected Pattern, and rendered Type3 paths.
         "PDFA1B-CONTENT-OPERATOR-001"
         | "PDFA1B-INLINE-IMAGE-LZW-001"
         | "PDFA1B-GRAPHICS-STATE-NESTING-001" => "content",

@@ -190,9 +190,8 @@ impl PdfDocument {
                 Some(catalog) => page_tree::collect_pages(&document, catalog.dictionary, limits)?,
                 None => BTreeMap::new(),
             };
-            // Shared so icc_based and font_embedding, which both execute
-            // page/Form content streams, decompress each stream once between
-            // them instead of separately.
+            // One shared execution establishes the exact resource population
+            // used by colour, XObject, graphics, and font rule predicates.
             let mut content_cache = crate::content_support::ContentCache::new();
             let content = crate::content_support::execute_content(
                 &document,
@@ -201,7 +200,7 @@ impl PdfDocument {
                 limits,
             )?;
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &content);
+            let xobjects = crate::xobject::inspect(&document, &content, limits)?;
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
             let annotations = crate::annotations::inspect(&document, &pages, limits)?;
             let actions = crate::actions::inspect(&document, &pages, limits)?;
@@ -209,15 +208,11 @@ impl PdfDocument {
             let document_features = crate::document_features::inspect(&document, limits)?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+            let font_embedding = font_embedding::inspect(&document, &content, limits)?;
             InspectionSummary {
                 header,
                 content,
-                font_embedding: font_embedding::inspect(
-                    &document,
-                    &pages,
-                    &mut content_cache,
-                    limits,
-                )?,
+                font_embedding,
                 icc_based,
                 xobjects,
                 graphics,

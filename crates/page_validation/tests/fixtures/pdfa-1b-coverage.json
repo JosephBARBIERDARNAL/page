@@ -896,11 +896,11 @@
           "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object. `/Type` is resolved through indirection before this check."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -951,11 +951,11 @@
           "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both). `/Subtype` itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. `/TrueType`, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1001,11 +1001,11 @@
           "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally. `/BaseFont` is resolved through indirection before this check and before every other `/BaseFont`-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for `TYPE1-SUBSET-CHARSET-001`/`CID-SUBSET-CIDSET-001`)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1056,11 +1056,11 @@
           "For modeled simple fonts: `isStandard == true || FirstChar != null`. `isStandard` (the standard-14-fonts exemption) is confirmed live to apply only to `Type1`/`MMType1`; a `TrueType` or `Type3` font whose `/BaseFont` matches a standard-14 name is not exempt."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1115,11 +1115,11 @@
           "For modeled simple fonts: `isStandard == true || LastChar != null`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1174,11 +1174,11 @@
           "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`. `/Widths` is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1249,11 +1249,11 @@
           "For embedded font streams reached through modeled fonts: `fontFileSubtype == null || fontFileSubtype == \"Type1C\" || fontFileSubtype == \"CIDFontType0C\"`. Confirmed live for both a simple font's own `/FontDescriptor` and a Type0 font's first descendant's `/FontDescriptor` (the recursive `record_font` call applies the same dictionary check to the descendant). The `/FontFile3` stream's own `/Subtype` is resolved through indirection before this comparison."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1300,11 +1300,11 @@
           "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1371,11 +1371,11 @@
           "For used first descendants: `Subtype != \"CIDFontType2\" || CIDToGIDMap != null || renderingMode == 3`; a modeled map is `Identity` or a stream, resolved through indirection first (confirmed live: an *indirect* reference to the name `/Identity` is accepted exactly like a direct one). The descendant's own `/Subtype` is also resolved through indirection before this predicate's applicability check runs at all (confirmed live: an indirect reference to `/CIDFontType2` is recognized exactly like a direct one, so a missing `/CIDToGIDMap` is still caught rather than the check being silently skipped)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1442,11 +1442,11 @@
           "For Type0 fonts reached by bounded text-show paths: `CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || containsEmbeddedFile == true`. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). The embedded CMap stream's own `/CMapName` entry (checked when `/Encoding` resolves to a stream rather than a name) is likewise resolved through indirection first. Reaching a resolved stream unconditionally satisfies `containsEmbeddedFile`, independent of that stream's own `/CMapName` -- so, unlike `TYPE0-CID-SYSTEM-INFO-001`, this predicate never needs to decode a predefined (non-embedded, named) CMap's contents, only detect its name-vs-stream shape; a named non-Identity CMap that is not embedded is confirmed live to fail exactly like the local `unembedded_cmaps` check (`composite_named_cmap`)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1509,11 +1509,11 @@
           "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1577,14 +1577,14 @@
       },
       {
         "applicability": [
-          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced Form XObject's own `/Subtype` (`scan_form`'s `== \"Form\"` gate, guarding every content source this predicate depends on) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
+          "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page, Form, annotation appearance, selected Pattern, and rendered Type3 text-show paths, including used Type0 descendants and every button Widget appearance state rather than only the `/AS`-selected one. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced XObject's own `/Subtype` (`ContentExecutor::execute_xobject`'s `== \"Form\"` gate) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1732,11 +1732,11 @@
           "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -1920,11 +1920,11 @@
           "For a subset Type1/MMType1/Type1C font (`BaseFont` with a six-uppercase-letter subset tag): the descriptor `/CharSet` names every rendered embedded glyph selected by the PDF `/Encoding`. `/BaseFont`, `/Encoding`, `/BaseEncoding`, `/Differences` codes/names, and the embedded stream subtype are resolved through bounded indirection. Matching veraPDF's `GFGlyph.name`, this predicate deliberately does not fall back to the Type1 or Type1C program encoding when the PDF encoding supplies no name; real StandardSymL and minimal Type1C cases pin complete, incomplete, and program-encoding-ignored outcomes live."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2007,11 +2007,11 @@
           "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2074,11 +2074,11 @@
           "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph a program width of zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` single entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2237,11 +2237,11 @@
           "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.28.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2316,11 +2316,11 @@
           "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2371,11 +2371,11 @@
           "For recognized embedded symbolic TrueType programs: `nrCmaps == 1`, read from the bounded SFNT `cmap` table header via `ttf_parser::RawFace` (confirmed live: this holds even when the rest of the font -- `maxp`, `hhea`, ... -- is malformed enough that a full `ttf_parser::Face::parse` fails)."
         ],
         "content_sources": [
-          "page content (font_embedding::Scanner::scan_page)",
-          "Form XObjects invoked via Do, including the first used Type0 descendant (Scanner::scan_contents/scan_form)",
-          "annotation /AP /N appearance streams, including every button Widget appearance state (Scanner::scan_annotation_appearances)",
-          "tiling Pattern content selected via cs/scn and actually painted (Scanner::scan_contents's scn/SCN handling -> scan_form_like_stream_once)",
-          "Type3 /CharProcs glyph descriptions for rendered glyphs (Scanner::scan_type3_charproc_fonts)"
+          "page content (content_support::ContentExecutor::execute_page/execute_contents)",
+          "Form XObjects invoked via Do, including the first used Type0 descendant (ContentExecutor::execute_xobject)",
+          "annotation /AP /N, /R, and /D appearance streams, including every appearance state (ContentExecutor::execute_annotation_appearances)",
+          "tiling Pattern content selected via cs/scn and actually painted (ContentExecutor::execute_pattern)",
+          "Type3 /CharProcs glyph descriptions for rendered glyphs (ContentExecutor::execute_type3_glyphs)"
         ],
         "coverage": {
           "applicable_fail": {
@@ -2431,12 +2431,12 @@
   },
   "graphical_content": {
     "clause_6_2_predicate_count": 19,
-    "exact_predicate_count": 21,
-    "policy": "One bounded page/Form execution model supplies every clause 6.2 graphical-content population plus inline-image LZW and DeviceN component evidence.",
+    "exact_predicate_count": 22,
+    "policy": "One bounded content executor covers page, Form, appearance, selected Pattern, and rendered Type3 paths and supplies every clause 6.2 graphical-content population plus inline-image LZW, graphics-state nesting, and DeviceN component evidence.",
     "predicates": [
       {
         "applicability": [
-          "No inline image in bounded executed page/Form content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
+          "No inline image in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
         ],
         "coverage": {
           "applicable_fail": {
@@ -2451,6 +2451,26 @@
               },
               {
                 "case": "graphics:inline_image_lzw_escaped",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:inline_image_unterminated_lzw",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_inline_lzw",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_inline_lzw",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_inline_lzw",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_inline_lzw",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2468,6 +2488,10 @@
               },
               {
                 "case": "graphics:inline_image_tokens_in_string",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_inline_lzw",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2493,6 +2517,70 @@
         "object": "CosIIFilter",
         "predicate": "internalRepresentation != \"LZWDecode\" && internalRepresentation != \"LZW\"",
         "verapdf_rule_id": "ISO 19005-1:2005:6.1.10:2"
+      },
+      {
+        "applicability": [
+          "Bounded executed page, Form, annotation-appearance, selected tiling-Pattern, and rendered-Type3 content maintains at most 28 saved graphics states; each nested content container starts its own graphics-state stack."
+        ],
+        "coverage": {
+          "applicable_fail": {
+            "evidence": [
+              {
+                "case": "graphics:graphics_state_nesting_29",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_nesting_29",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_nesting_29",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_nesting_29",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_nesting_29",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "applicable_pass": {
+            "evidence": [
+              {
+                "case": "graphics:graphics_state_nesting_28",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_nesting_29",
+                "kind": "verapdf_delta"
+              }
+            ],
+            "representable": true
+          },
+          "inapplicable": {
+            "evidence": [
+              {
+                "case": "corpus:typst-pdfa-1b.pdf",
+                "kind": "fixture",
+                "note": "The profile object is absent or outside the selected object graph."
+              }
+            ],
+            "representable": true
+          }
+        },
+        "implementation_path": [
+          "PDFA1B-GRAPHICS-STATE-NESTING-001"
+        ],
+        "implementation_strength": [
+          "exact"
+        ],
+        "object": "Op_q_gsave",
+        "predicate": "nestingLevel <= 28",
+        "verapdf_rule_id": "ISO 19005-1:2005:6.1.12:8"
       },
       {
         "applicability": [
@@ -2540,11 +2628,47 @@
       },
       {
         "applicability": [
-          "No undefined operator occurs in bounded executed page or Form content, including compatibility sections delimited by `BX` and `EX`."
+          "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.28.2 does not create content-operation model objects for it."
         ],
         "coverage": {
           "applicable_fail": {
             "evidence": [
+              {
+                "case": "graphics:path_appearance_missing_subtype_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_inherited_pattern_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_invisible_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_malformed_text_show_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:undefined_appearance",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "graphics:undefined_form",
                 "kind": "verapdf_delta"
@@ -2555,6 +2679,14 @@
               },
               {
                 "case": "graphics:undefined_operator",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:undefined_pattern",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:undefined_type3",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2575,7 +2707,55 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "graphics:malformed_pattern_colorspace",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:malformed_pattern_leading_name",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:malformed_pattern_trailing_number",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:malformed_string_before_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_nested_state_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:undefined_before_malformed_array",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:undefined_soft_mask_group",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:unused_appearance_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "graphics:unused_form_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:unused_pattern_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:unused_soft_mask_group_undefined",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:unused_type3_undefined",
                 "kind": "verapdf_delta"
               }
             ],
@@ -2904,7 +3084,7 @@
       },
       {
         "applicability": [
-          "For safely decoded profiles reached through executed page, Form, Pattern, or annotation-appearance content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, and an uncoloured Pattern's underlying space remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
+          "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
         ],
         "coverage": {
           "applicable_fail": {
@@ -2939,6 +3119,14 @@
               },
               {
                 "case": "color_path:icc_separation_alternate",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "color_path:icc_shading_pattern_direct",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "color_path:icc_shading_pattern_indirect",
                 "kind": "verapdf_delta"
               },
               {
@@ -3072,6 +3260,14 @@
               },
               {
                 "case": "color_path:icc_separation_valid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "color_path:icc_shading_pattern_unused",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "color_path:icc_soft_mask_group",
                 "kind": "verapdf_delta"
               },
               {
@@ -3304,7 +3500,7 @@
       },
       {
         "applicability": [
-          "For DeviceRGB uses reached through executed page, Form, Pattern, or annotation-appearance content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space exclusion follows veraPDF 1.28.2."
+          "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.28.2."
         ],
         "coverage": {
           "applicable_fail": {
@@ -3374,6 +3570,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "device_color:rgb_wrong_arity_with_cmyk_output",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "device_color:rgb_wrong_s",
                 "kind": "verapdf_delta"
               },
@@ -3436,6 +3636,10 @@
               },
               {
                 "case": "color_path:device_separation_default",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "color_path:device_soft_mask_group",
                 "kind": "verapdf_delta"
               },
               {
@@ -3702,6 +3906,10 @@
           "applicable_fail": {
             "evidence": [
               {
+                "case": "xobject:image_interpolate_indirect_true",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "xobject:image_interpolate_true",
                 "kind": "verapdf_delta"
               }
@@ -3746,7 +3954,55 @@
           "applicable_fail": {
             "evidence": [
               {
+                "case": "graphics:path_appearance_appearance_and_painted_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:direct_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "xobject:image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:image_bpc_indirect_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:image_mask_indirect_true_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:image_subtype_indirect_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:indirect_xobject_dictionary_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:inherited_xobject_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:shared_painted_explicit_mask_bpc_16",
                 "kind": "verapdf_delta"
               },
               {
@@ -3758,6 +4014,14 @@
           },
           "applicable_pass": {
             "evidence": [
+              {
+                "case": "graphics:path_appearance_image_subtype_bpc_16",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_image_bpc_16",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "xobject:image_bpc_missing",
                 "kind": "verapdf_delta"
@@ -3807,6 +4071,10 @@
               },
               {
                 "case": "xobject:explicit_mask_bpc_8",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:shared_painted_explicit_mask_bpc_16",
                 "kind": "verapdf_delta"
               }
             ],
@@ -3858,6 +4126,10 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "xobject:form_subtype2_indirect_ps",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "xobject:form_subtype2_ps",
                 "kind": "verapdf_delta"
               }
@@ -3901,6 +4173,14 @@
         "coverage": {
           "applicable_fail": {
             "evidence": [
+              {
+                "case": "graphics:path_appearance_missing_subtype_form_ref",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:direct_form_ref",
+                "kind": "verapdf_delta"
+              },
               {
                 "case": "xobject:form_ref",
                 "kind": "verapdf_delta"
@@ -3946,6 +4226,14 @@
           "applicable_fail": {
             "evidence": [
               {
+                "case": "xobject:direct_postscript_xobject",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "xobject:postscript_subtype_indirect",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "xobject:postscript_xobject",
                 "kind": "verapdf_delta"
               }
@@ -3984,7 +4272,7 @@
       },
       {
         "applicability": [
-          "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR == false`."
+          "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR == false`."
         ],
         "coverage": {
           "applicable_fail": {
@@ -3996,6 +4284,66 @@
               {
                 "case": "graphics:extgstate_tr",
                 "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:extgstate_tr_indirect_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:indirect_extgstate_resource_dictionary",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:inherited_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_appearance_missing_resources_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_missing_resources_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_missing_resources_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_missing_resources_fallback_extgstate_tr",
+                "kind": "verapdf_delta"
               }
             ],
             "representable": true
@@ -4003,7 +4351,51 @@
           "applicable_pass": {
             "evidence": [
               {
+                "case": "graphics:direct_shading_pattern_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "graphics:extgstate_tr_null",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:gs_extra_operand",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:gs_wrong_operand",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_missing_resources_parent_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_parent_only_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_empty_resources_parent_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_missing_resources_parent_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_empty_resources_parent_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_missing_resources_parent_extgstate_tr",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:shading_pattern_extgstate_tr",
                 "kind": "verapdf_delta"
               },
               {
@@ -4040,7 +4432,7 @@
       },
       {
         "applicability": [
-          "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR2 == false || TR2NameValue == \"Default\"`."
+          "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR2 == false || TR2NameValue == \"Default\"`."
         ],
         "coverage": {
           "applicable_fail": {
@@ -4088,7 +4480,7 @@
       },
       {
         "applicability": [
-          "For rendering intents reached through executed page, Form, Pattern, or annotation-appearance `ri`/`gs` operators; invoked primary or alternate images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values and unexecuted resources remain inapplicable."
+          "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.28.2."
         ],
         "coverage": {
           "applicable_fail": {
@@ -4126,7 +4518,27 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "graphics:path_appearance_invalid_intent",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_form_invalid_intent",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_pattern_invalid_intent",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_type3_invalid_intent",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "graphics:ri_invalid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:soft_mask_image_intent_invalid",
                 "kind": "verapdf_delta"
               }
             ],
@@ -4159,7 +4571,19 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "color_path:intent_soft_mask_group",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:explicit_mask_image_intent_invalid",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "graphics:image_intent_valid",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "graphics:path_soft_mask_invalid_intent",
                 "kind": "verapdf_delta"
               },
               {
@@ -4191,7 +4615,7 @@
         "verapdf_rule_id": "ISO 19005-1:2005:6.2.9:1"
       }
     ],
-    "shared_clause_6_1_predicate_count": 2,
+    "shared_clause_6_1_predicate_count": 3,
     "source": "veraPDF 1.28.2 PDF/A-1B profile",
     "status": "complete"
   },
@@ -4270,7 +4694,7 @@
       },
       {
         "applicability": [
-          "No inline image in bounded executed page/Form content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
+          "No inline image in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
         ],
         "implementation_path": [
           "PDFA1B-INLINE-IMAGE-LZW-001"
@@ -4457,7 +4881,7 @@
       },
       {
         "applicability": [
-          "Bounded invoked page/Form content maintains at most 28 saved graphics states; Form invocation starts a separate graphics-state stack."
+          "Bounded executed page, Form, annotation-appearance, selected tiling-Pattern, and rendered-Type3 content maintains at most 28 saved graphics states; each nested content container starts its own graphics-state stack."
         ],
         "implementation_path": [
           "PDFA1B-GRAPHICS-STATE-NESTING-001"
@@ -5009,6 +5433,26 @@
             {
               "case": "graphics:inline_image_lzw_escaped",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:inline_image_unterminated_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_inline_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_inline_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_inline_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_inline_lzw",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -5025,6 +5469,10 @@
             },
             {
               "case": "graphics:inline_image_tokens_in_string",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_inline_lzw",
               "kind": "verapdf_delta"
             }
           ],
@@ -5049,7 +5497,7 @@
         "PDFA1B-INLINE-IMAGE-LZW-001"
       ],
       "mapping_notes": [
-        "No inline image in bounded executed page/Form content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
+        "No inline image in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content declares `internalRepresentation == \"LZWDecode\"` (or the inline-image-only `LZW` spelling)."
       ],
       "object": "CosIIFilter",
       "predicate": "internalRepresentation != \"LZWDecode\" && internalRepresentation != \"LZW\"",
@@ -5683,6 +6131,22 @@
             {
               "case": "graphics:graphics_state_nesting_29",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_nesting_29",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_nesting_29",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_nesting_29",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_nesting_29",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -5691,6 +6155,10 @@
           "evidence": [
             {
               "case": "graphics:graphics_state_nesting_28",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_nesting_29",
               "kind": "verapdf_delta"
             }
           ],
@@ -5715,7 +6183,7 @@
         "PDFA1B-GRAPHICS-STATE-NESTING-001"
       ],
       "mapping_notes": [
-        "Bounded invoked page/Form content maintains at most 28 saved graphics states; Form invocation starts a separate graphics-state stack."
+        "Bounded executed page, Form, annotation-appearance, selected tiling-Pattern, and rendered-Type3 content maintains at most 28 saved graphics states; each nested content container starts its own graphics-state stack."
       ],
       "object": "Op_q_gsave",
       "predicate": "nestingLevel <= 28",
@@ -6518,6 +6986,42 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "graphics:path_appearance_missing_subtype_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_inherited_pattern_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_invisible_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_malformed_text_show_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_appearance",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "graphics:undefined_form",
               "kind": "verapdf_delta"
             },
@@ -6527,6 +7031,14 @@
             },
             {
               "case": "graphics:undefined_operator",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_pattern",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_type3",
               "kind": "verapdf_delta"
             }
           ],
@@ -6547,7 +7059,55 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "graphics:malformed_pattern_colorspace",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:malformed_pattern_leading_name",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:malformed_pattern_trailing_number",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:malformed_string_before_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_nested_state_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_before_malformed_array",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:unused_appearance_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "graphics:unused_form_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:unused_pattern_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:unused_soft_mask_group_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:unused_type3_undefined",
               "kind": "verapdf_delta"
             }
           ],
@@ -6572,7 +7132,7 @@
         "PDFA1B-CONTENT-OPERATOR-001"
       ],
       "mapping_notes": [
-        "No undefined operator occurs in bounded executed page or Form content, including compatibility sections delimited by `BX` and `EX`."
+        "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.28.2 does not create content-operation model objects for it."
       ],
       "object": "Op_Undefined",
       "predicate": "false",
@@ -6917,6 +7477,14 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "color_path:icc_shading_pattern_direct",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:icc_shading_pattern_indirect",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "icc_based:cyclic_form",
               "kind": "verapdf_delta"
             },
@@ -7050,6 +7618,14 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "color_path:icc_shading_pattern_unused",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:icc_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "icc_based:baseline",
               "kind": "verapdf_delta"
             },
@@ -7175,7 +7751,7 @@
         "PDFA1B-ICCBASED-001"
       ],
       "mapping_notes": [
-        "For safely decoded profiles reached through executed page, Form, Pattern, or annotation-appearance content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, and an uncoloured Pattern's underlying space remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
+        "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
       ],
       "object": "ICCInputProfile",
       "predicate": "(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0",
@@ -7351,6 +7927,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "device_color:rgb_wrong_arity_with_cmyk_output",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "device_color:rgb_wrong_s",
               "kind": "verapdf_delta"
             },
@@ -7416,6 +7996,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "color_path:device_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "device_color:default_rgb_override",
               "kind": "verapdf_delta"
             },
@@ -7453,7 +8037,7 @@
         "PDFA1B-DEVICE-RGB-001"
       ],
       "mapping_notes": [
-        "For DeviceRGB uses reached through executed page, Form, Pattern, or annotation-appearance content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space exclusion follows veraPDF 1.28.2."
+        "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.28.2."
       ],
       "object": "PDDeviceRGB",
       "predicate": "gOutputCS != null && gOutputCS == \"RGB \"",
@@ -7684,6 +8268,10 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "xobject:image_interpolate_indirect_true",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "xobject:image_interpolate_true",
               "kind": "verapdf_delta"
             }
@@ -7729,7 +8317,55 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "graphics:path_appearance_appearance_and_painted_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:direct_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "xobject:image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:image_bpc_indirect_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:image_mask_indirect_true_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:image_subtype_indirect_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:indirect_xobject_dictionary_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:inherited_xobject_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:shared_painted_explicit_mask_bpc_16",
               "kind": "verapdf_delta"
             },
             {
@@ -7741,6 +8377,14 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "graphics:path_appearance_image_subtype_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "xobject:image_bpc_missing",
               "kind": "verapdf_delta"
@@ -7791,6 +8435,10 @@
             },
             {
               "case": "xobject:explicit_mask_bpc_8",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:shared_painted_explicit_mask_bpc_16",
               "kind": "verapdf_delta"
             }
           ],
@@ -7843,6 +8491,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "xobject:form_subtype2_indirect_ps",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "xobject:form_subtype2_ps",
               "kind": "verapdf_delta"
             }
@@ -7888,6 +8540,14 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "graphics:path_appearance_missing_subtype_form_ref",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:direct_form_ref",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "xobject:form_ref",
               "kind": "verapdf_delta"
             }
@@ -7932,6 +8592,14 @@
       "coverage": {
         "applicable_fail": {
           "evidence": [
+            {
+              "case": "xobject:direct_postscript_xobject",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "xobject:postscript_subtype_indirect",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "xobject:postscript_xobject",
               "kind": "verapdf_delta"
@@ -7984,6 +8652,66 @@
             {
               "case": "graphics:extgstate_tr",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:extgstate_tr_indirect_null",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:indirect_extgstate_resource_dictionary",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:inherited_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_missing_resources_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_missing_resources_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_missing_resources_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_missing_resources_fallback_extgstate_tr",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -7991,7 +8719,51 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "graphics:direct_shading_pattern_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "graphics:extgstate_tr_null",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:gs_extra_operand",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:gs_wrong_operand",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_missing_resources_parent_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_parent_only_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_empty_resources_parent_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_missing_resources_parent_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_empty_resources_parent_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_missing_resources_parent_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:shading_pattern_extgstate_tr",
               "kind": "verapdf_delta"
             },
             {
@@ -8024,7 +8796,7 @@
         "PDFA1B-EXTGSTATE-TR-001"
       ],
       "mapping_notes": [
-        "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR == false`."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR == false`."
       ],
       "object": "PDExtGState",
       "predicate": "containsTR == false",
@@ -8073,7 +8845,7 @@
         "PDFA1B-EXTGSTATE-TR2-001"
       ],
       "mapping_notes": [
-        "For indirect ExtGState dictionaries selected by executed `gs` operators: `containsTR2 == false || TR2NameValue == \"Default\"`."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR2 == false || TR2NameValue == \"Default\"`."
       ],
       "object": "PDExtGState",
       "predicate": "containsTR2 == false || TR2NameValue == \"Default\"",
@@ -8116,7 +8888,27 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "graphics:path_appearance_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_form_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_pattern_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_type3_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "graphics:ri_invalid",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:soft_mask_image_intent_invalid",
               "kind": "verapdf_delta"
             }
           ],
@@ -8149,7 +8941,19 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "color_path:intent_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:explicit_mask_image_intent_invalid",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "graphics:image_intent_valid",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_invalid_intent",
               "kind": "verapdf_delta"
             },
             {
@@ -8178,7 +8982,7 @@
         "PDFA1B-RENDERING-INTENT-001"
       ],
       "mapping_notes": [
-        "For rendering intents reached through executed page, Form, Pattern, or annotation-appearance `ri`/`gs` operators; invoked primary or alternate images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values and unexecuted resources remain inapplicable."
+        "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.28.2."
       ],
       "object": "CosRenderingIntent",
       "predicate": "internalRepresentation == \"RelativeColorimetric\" || internalRepresentation == \"AbsoluteColorimetric\" || internalRepresentation == \"Perceptual\" || internalRepresentation == \"Saturation\"",
@@ -8941,7 +9745,7 @@
         "PDFA1B-FONT-EMBEDDING-001"
       ],
       "mapping_notes": [
-        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page/Form text-show paths, used Type0 descendants, annotation `/AP`/`/N` appearance streams (including every button Widget appearance state, not only the `/AS`-selected one), Pattern content streams, and Type3 `/CharProcs` glyph descriptions. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced Form XObject's own `/Subtype` (`scan_form`'s `== \"Form\"` gate, guarding every content source this predicate depends on) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
+        "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page, Form, annotation appearance, selected Pattern, and rendered Type3 text-show paths, including used Type0 descendants and every button Widget appearance state rather than only the `/AS`-selected one. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced XObject's own `/Subtype` (`ContentExecutor::execute_xobject`'s `== \"Form\"` gate) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF)."
       ],
       "object": "PDFont",
       "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true",
@@ -9609,7 +10413,51 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "color_path:device_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:icc_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:intent_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_inline_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_nesting_29",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "transparency:extgstate_smask_dictionary",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "transparency:extgstate_smask_indirect_null",
               "kind": "verapdf_delta"
             },
             {
@@ -9621,6 +10469,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "graphics:unused_soft_mask_group_undefined",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "transparency:extgstate_smask_none",
               "kind": "verapdf_delta"
@@ -9645,13 +10497,13 @@
       },
       "description": "If an SMask key appears in an ExtGState dictionary, its value shall be None",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-EXTGSTATE-SMASK-001"
       ],
       "mapping_notes": [
-        "For indirect ExtGState dictionaries selected by executed `gs`: `containsSMask == false || SMaskNameValue == \"None\"`."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsSMask == false || SMaskNameValue == \"None\"`."
       ],
       "object": "PDExtGState",
       "predicate": "containsSMask == false || SMaskNameValue == \"None\"",
@@ -9662,11 +10514,19 @@
         "applicable_fail": {
           "evidence": [
             {
+              "case": "graphics:soft_mask_image_intent_invalid",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "icc_based:image_smask_used",
               "kind": "verapdf_delta"
             },
             {
               "case": "transparency:xobject_smask",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "transparency:xobject_smask_indirect_null",
               "kind": "verapdf_delta"
             }
           ],
@@ -9698,13 +10558,13 @@
       },
       "description": "An XObject dictionary shall not contain the SMask key",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-XOBJECT-SMASK-001"
       ],
       "mapping_notes": [
-        "For XObjects in the bounded invoked graph: `containsSMask == false`."
+        "For direct or indirect XObjects reached through `Do`, appearances, image masks, soft masks, or alternates in the bounded invoked graph: `containsSMask == false`."
       ],
       "object": "PDXObject",
       "predicate": "containsSMask == false",
@@ -9756,6 +10616,50 @@
         "applicable_pass": {
           "evidence": [
             {
+              "case": "color_path:device_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:icc_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "color_path:intent_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_extgstate_tr",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_image_bpc_16",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_inline_lzw",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_invalid_intent",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_nesting_29",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_soft_mask_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:undefined_soft_mask_group",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:unused_soft_mask_group_undefined",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "transparency:page_nontransparency_group",
               "kind": "verapdf_delta"
             },
@@ -9779,13 +10683,13 @@
       },
       "description": "A Group object with an S key with a value of Transparency shall not be included in a form XObject. A Group object with an S key with a value of Transparency shall not be included in a page dictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TRANSPARENCY-GROUP-001"
       ],
       "mapping_notes": [
-        "For page Groups and bounded invoked-Form Groups: `S != \"Transparency\"`."
+        "For page Groups and all Form Groups reached through veraPDF's bounded invoked graph, including appearances: `S != \"Transparency\"`. A soft-mask `/G` Form is deliberately excluded because veraPDF 1.28.2 does not expose its Group model."
       ],
       "object": "PDGroup",
       "predicate": "S != \"Transparency\"",
@@ -9835,7 +10739,7 @@
         "PDFA1B-EXTGSTATE-BLEND-MODE-001"
       ],
       "mapping_notes": [
-        "For indirect ExtGState dictionaries selected by executed `gs`: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`. Still `partial/proxy`: the minimal `transparency:extgstate_bm_multiply` fixture makes veraPDF 1.28.2 abort with a `VALIDATE` task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure."
       ],
       "object": "PDExtGState",
       "predicate": "containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"",
@@ -9874,13 +10778,13 @@
       },
       "description": "If a CA key is present in an ExtGState object, its value shall be 1.0",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-EXTGSTATE-STROKE-ALPHA-001"
       ],
       "mapping_notes": [
-        "For modeled numeric values in used indirect ExtGState dictionaries: `CA == null || abs(CA - 1.0) < 0.000001`."
+        "For modeled numeric values in direct or indirect ExtGState dictionaries selected in any veraPDF-executed content source: `CA == null || abs(CA - 1.0) < 0.000001`."
       ],
       "object": "PDExtGState",
       "predicate": "CA == null || CA - 1.0 < 0.000001 && CA - 1.0 > -0.000001",
@@ -9919,13 +10823,13 @@
       },
       "description": "If a ca key is present in an ExtGState object, its value shall be 1.0",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-EXTGSTATE-FILL-ALPHA-001"
       ],
       "mapping_notes": [
-        "For modeled numeric values in used indirect ExtGState dictionaries: `ca == null || abs(ca - 1.0) < 0.000001`."
+        "For modeled numeric values in direct or indirect ExtGState dictionaries selected in any veraPDF-executed content source: `ca == null || abs(ca - 1.0) < 0.000001`."
       ],
       "object": "PDExtGState",
       "predicate": "ca == null || ca - 1.0 < 0.000001 && ca - 1.0 > -0.000001",
@@ -10263,6 +11167,10 @@
           "evidence": [
             {
               "case": "annotation:appearance_n_dictionary",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "graphics:path_appearance_nested_state_undefined",
               "kind": "verapdf_delta"
             }
           ],

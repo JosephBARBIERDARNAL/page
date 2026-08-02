@@ -2617,6 +2617,14 @@
       ],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "An executed DeviceN colour space has nine components and an RGB alternate without a matching output intent."
+    },
+    {
+      "name": "rgb_wrong_arity_with_cmyk_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF still exposes DeviceRGB use from an rg operator with too few operands."
     }
   ],
   "atomic_xobject_cases": [
@@ -2719,6 +2727,20 @@
       "rationale": "An image referenced through another Image dictionary's Mask key is modeled as a mask and must use one bit per component."
     },
     {
+      "name": "shared_painted_explicit_mask_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001",
+        "PDFA1B-IMAGE-MASK-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4",
+        "ISO 19005-1:2005:6.2.4:5"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "One Image object is both painted normally and reused as an explicit Mask, so veraPDF creates both applicable image roles and evaluates both BitsPerComponent predicates."
+    },
+    {
       "name": "form_ps_key",
       "expected_local_failed_rule_ids": ["PDFA1B-FORM-POSTSCRIPT-001"],
       "expected_local_passed_rule_ids": [],
@@ -2787,6 +2809,138 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Two invalid Image XObjects aggregate into one local rule failure while veraPDF reports the same failed rule identifier."
+    },
+    {
+      "name": "direct_image_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A directly embedded XObject resource dictionary is modeled as an invoked Image and fails its BitsPerComponent predicate."
+    },
+    {
+      "name": "indirect_xobject_dictionary_image_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect XObject resource-category dictionary resolves before the named Image resource is invoked."
+    },
+    {
+      "name": "inherited_xobject_image_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page inherits its XObject resource category from the page tree and invokes the invalid Image."
+    },
+    {
+      "name": "image_interpolate_indirect_true",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-INTERPOLATE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:3"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The Image Interpolate boolean is an indirect true value and is resolved by veraPDF."
+    },
+    {
+      "name": "image_bpc_indirect_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The Image BitsPerComponent integer is an indirect value outside the PDF/A-1 set."
+    },
+    {
+      "name": "image_subtype_indirect_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect Image subtype name still creates the Image validation-model object."
+    },
+    {
+      "name": "image_mask_indirect_true_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF does not treat an indirect true ImageMask value as its direct isMask flag, so the ordinary Image BPC predicate applies."
+    },
+    {
+      "name": "direct_form_ref",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-FORM-REFERENCE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.6:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A directly embedded Form-shaped XObject resource dictionary contains the forbidden Ref key."
+    },
+    {
+      "name": "form_subtype2_indirect_ps",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-FORM-POSTSCRIPT-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.5:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form resolves an indirect PS name in Subtype2."
+    },
+    {
+      "name": "direct_postscript_xobject",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XOBJECT-POSTSCRIPT-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.7:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A directly embedded XObject resource dictionary with Subtype PS is forbidden."
+    },
+    {
+      "name": "postscript_subtype_indirect",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XOBJECT-POSTSCRIPT-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.7:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect PS subtype name still creates the forbidden PostScript XObject model."
     }
   ],
   "atomic_graphics_cases": [
@@ -2895,6 +3049,28 @@
       "rationale": "An invoked image contains a non-standard Intent name."
     },
     {
+      "name": "explicit_mask_image_intent_invalid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "An Image reached only through another Image's Mask entry does not expose its Intent as a rendering-intent model object in veraPDF 1.28.2."
+    },
+    {
+      "name": "soft_mask_image_intent_invalid",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-RENDERING-INTENT-001",
+        "PDFA1B-XOBJECT-SMASK-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.9:1",
+        "ISO 19005-1:2005:6.4:2"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image reached through SMask still exposes its non-standard Intent, while the primary Image's forbidden SMask entry independently remains applicable."
+    },
+    {
       "name": "undefined_operator",
       "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
       "expected_local_passed_rule_ids": [],
@@ -2949,6 +3125,70 @@
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
       "rationale": "Content in an uninvoked Form is outside veraPDF's modeled content graph."
+    },
+    {
+      "name": "undefined_appearance",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An undefined operator in a referenced annotation appearance is executed by veraPDF."
+    },
+    {
+      "name": "unused_appearance_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "An appearance belonging only to an unreferenced annotation is outside the modeled content graph."
+    },
+    {
+      "name": "undefined_pattern",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An undefined operator in a selected tiling Pattern is executed by veraPDF."
+    },
+    {
+      "name": "unused_pattern_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "A declared but unselected tiling Pattern is outside the modeled content graph."
+    },
+    {
+      "name": "undefined_type3",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An undefined operator in the rendered glyph CharProc of a used Type3 font is executed by veraPDF."
+    },
+    {
+      "name": "unused_type3_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "A Type3 CharProc is inapplicable until its font and glyph are rendered."
+    },
+    {
+      "name": "undefined_soft_mask_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected ExtGState SMask but does not expose the SMask/G Form's operators or Group as validation-model objects."
+    },
+    {
+      "name": "unused_soft_mask_group_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001", "PDFA1B-CONTENT-OPERATOR-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:1", "ISO 19005-1:2005:6.2.10:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "An unselected ExtGState and its SMask/G Form remain entirely outside veraPDF's modeled graph."
     },
     {
       "name": "inline_image_lzw",
@@ -3009,6 +3249,600 @@
         "ISO 19005-1:2005:6.2.10:1"
       ],
       "rationale": "BI, ID, EI, and LZW-looking text inside a literal string is not executable inline-image syntax."
+    },
+    {
+      "name": "indirect_extgstate_resource_dictionary",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The ExtGState resource-category dictionary is indirect and resolves before gs selects its entry."
+    },
+    {
+      "name": "inherited_extgstate_tr",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page inherits and selects its ExtGState from the page tree."
+    },
+    {
+      "name": "extgstate_tr_indirect_null",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect reference to null remains a meaningfully present TR entry in veraPDF 1.28.2."
+    },
+    {
+      "name": "undefined_before_malformed_array",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-CONTENT-OPERATOR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.10:1"
+      ],
+      "rationale": "veraPDF discards the content operation population when the stream ends inside an unterminated array."
+    },
+    {
+      "name": "malformed_string_before_undefined",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-CONTENT-OPERATOR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.10:1"
+      ],
+      "rationale": "veraPDF creates no undefined-operator model when an unterminated literal string consumes the remaining bytes."
+    },
+    {
+      "name": "gs_wrong_operand",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "rationale": "A gs operation with a non-name operand does not select an ExtGState resource."
+    },
+    {
+      "name": "gs_extra_operand",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "rationale": "A gs operation with extra operands does not select an ExtGState resource."
+    },
+    {
+      "name": "inline_image_unterminated_lzw",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-INLINE-IMAGE-LZW-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.1.10:2"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An unterminated inline image still exposes its LZW filter to veraPDF."
+    },
+    {
+      "name": "shading_pattern_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "rationale": "veraPDF models a selected shading Pattern and its Shading but does not expose the Pattern ExtGState entry as a PDExtGState."
+    },
+    {
+      "name": "direct_shading_pattern_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "rationale": "The omission of a shading Pattern ExtGState also applies when the Pattern dictionary is direct."
+    },
+    {
+      "name": "path_form_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Form executes its undefined operators."
+    },
+    {
+      "name": "path_form_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Form resolves and validates an ExtGState from its own resources."
+    },
+    {
+      "name": "path_form_image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image invoked only from a Form enters the XObject population."
+    },
+    {
+      "name": "path_form_nesting_29",
+      "expected_local_failed_rule_ids": ["PDFA1B-GRAPHICS-STATE-NESTING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:8"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Graphics-state nesting is counted inside an invoked Form."
+    },
+    {
+      "name": "path_form_inline_lzw",
+      "expected_local_failed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An inline image in an invoked Form enters the inline-image model."
+    },
+    {
+      "name": "path_form_invalid_intent",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendering intent selected inside an invoked Form is validated."
+    },
+    {
+      "name": "path_form_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form resolves a missing ExtGState category through the containing page resources."
+    },
+    {
+      "name": "path_form_missing_resources_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Form with no Resources entry resolves an ExtGState through its page resources."
+    },
+    {
+      "name": "path_form_parent_only_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "A nested Form with no matching resource does not inherit an ExtGState that exists only in its invoking Form; veraPDF's fallback context is the page resources."
+    },
+    {
+      "name": "path_form_missing_resources_parent_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "A nested Form with no Resources entry still falls back to the page, not to an ExtGState that exists only in its invoking Form."
+    },
+    {
+      "name": "path_appearance_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance executes its undefined operators."
+    },
+    {
+      "name": "path_appearance_missing_subtype_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance stream without an explicit Form subtype is still reached through veraPDF 1.28.2's annotation appearance model."
+    },
+    {
+      "name": "path_appearance_missing_subtype_form_ref",
+      "expected_local_failed_rule_ids": ["PDFA1B-FORM-REFERENCE-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.6:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance stream without an explicit Form subtype is still modeled as a Form XObject, including its forbidden Ref entry."
+    },
+    {
+      "name": "path_appearance_image_subtype_bpc_16",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "rationale": "A stream reached only as an annotation appearance remains a Form-role object in veraPDF 1.28.2 even when its malformed dictionary declares Subtype Image."
+    },
+    {
+      "name": "path_appearance_appearance_and_painted_image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The same malformed stream is both an annotation appearance Form and an Image invoked by Do; veraPDF retains both roles and applies the Image BitsPerComponent predicate only because of the ordinary invocation."
+    },
+    {
+      "name": "path_appearance_nested_state_undefined",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"
+      ],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.5.3:6"
+      ],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "veraPDF reports the malformed normal appearance but stops after the one permitted state-dictionary layer, so it does not reach a stream nested inside another dictionary."
+    },
+    {
+      "name": "path_appearance_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance resolves and validates an ExtGState from its own resources."
+    },
+    {
+      "name": "path_appearance_nesting_29",
+      "expected_local_failed_rule_ids": ["PDFA1B-GRAPHICS-STATE-NESTING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:8"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Graphics-state nesting is counted inside an annotation appearance."
+    },
+    {
+      "name": "path_appearance_inline_lzw",
+      "expected_local_failed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An inline image in an annotation appearance enters the inline-image model."
+    },
+    {
+      "name": "path_appearance_invalid_intent",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendering intent selected inside an annotation appearance is validated."
+    },
+    {
+      "name": "path_appearance_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance resolves a missing ExtGState category through its page resources."
+    },
+    {
+      "name": "path_appearance_missing_resources_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An annotation appearance with no Resources entry resolves an ExtGState through its page resources."
+    },
+    {
+      "name": "path_pattern_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected tiling Pattern executes its undefined operators."
+    },
+    {
+      "name": "path_pattern_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected tiling Pattern resolves and validates an ExtGState from its own resources."
+    },
+    {
+      "name": "path_pattern_image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image invoked only from a selected tiling Pattern enters the XObject population."
+    },
+    {
+      "name": "path_pattern_inline_lzw",
+      "expected_local_failed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An inline image in a selected tiling Pattern enters the inline-image model."
+    },
+    {
+      "name": "path_pattern_invalid_intent",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendering intent selected inside a tiling Pattern is validated."
+    },
+    {
+      "name": "path_pattern_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A tiling Pattern resolves a missing ExtGState category through the containing page resources."
+    },
+    {
+      "name": "path_pattern_missing_resources_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A tiling Pattern with no Resources entry resolves an ExtGState through its page resources."
+    },
+    {
+      "name": "path_pattern_missing_resources_parent_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "A selected tiling Pattern with no Resources entry does not inherit the invoking Form context; unresolved names fall back only to page resources."
+    },
+    {
+      "name": "path_pattern_empty_resources_parent_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "An explicit empty Resources dictionary on a tiling Pattern resets the invoking Form context; unresolved names then fall back only to page resources."
+    },
+    {
+      "name": "path_type3_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendered Type3 glyph CharProc executes its undefined operators."
+    },
+    {
+      "name": "path_type3_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendered Type3 glyph CharProc resolves and validates an ExtGState from its font resources."
+    },
+    {
+      "name": "path_type3_image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image invoked only from a rendered Type3 glyph CharProc enters the XObject population."
+    },
+    {
+      "name": "path_type3_nesting_29",
+      "expected_local_failed_rule_ids": ["PDFA1B-GRAPHICS-STATE-NESTING-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.12:8"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Graphics-state nesting is counted inside a rendered Type3 glyph CharProc."
+    },
+    {
+      "name": "path_type3_invalid_intent",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendering intent selected inside a rendered Type3 glyph CharProc is validated."
+    },
+    {
+      "name": "path_soft_mask_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected SMask but does not expose its G Form's undefined operator or transparency Group."
+    },
+    {
+      "name": "path_soft_mask_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected SMask but does not expose its G Form's ExtGState or transparency Group."
+    },
+    {
+      "name": "path_soft_mask_image_bpc_16",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected SMask but does not expose its G Form's invoked Image or transparency Group."
+    },
+    {
+      "name": "path_soft_mask_nesting_29",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-GRAPHICS-STATE-NESTING-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.12:8", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected SMask but does not execute its G Form graphics-state stack or expose its transparency Group."
+    },
+    {
+      "name": "path_soft_mask_inline_lzw",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-INLINE-IMAGE-LZW-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.1.10:2", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the selected SMask but does not expose its G Form's inline image or transparency Group."
+    },
+    {
+      "name": "path_appearance_image_bpc_16",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-IMAGE-BPC-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.4:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An Image invoked only from an annotation appearance is in the veraPDF XObject population."
+    },
+    {
+      "name": "path_pattern_nesting_29",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-GRAPHICS-STATE-NESTING-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.1.12:8"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Graphics-state nesting is counted inside a selected tiling Pattern."
+    },
+    {
+      "name": "path_type3_inline_lzw",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-INLINE-IMAGE-LZW-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.1.10:2"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An inline image in a rendered Type3 glyph CharProc enters the inline-image model."
+    },
+    {
+      "name": "path_type3_invisible_undefined",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-CONTENT-OPERATOR-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.10:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF executes a rendered Type3 CharProc for content rules even when the outer text rendering mode is 3."
+    },
+    {
+      "name": "path_type3_malformed_text_show_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "veraPDF still executes the Type3 CharProc selected by a Tj operation with extra operands."
+    },
+    {
+      "name": "path_type3_inherited_pattern_undefined",
+      "expected_local_failed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A rendered Type3 CharProc inherits the caller's selected Pattern color space and executes the named Pattern."
+    },
+    {
+      "name": "path_type3_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-TR-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.8:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Type3 CharProc resolves a missing ExtGState category through the containing page resources, matching veraPDF."
+    },
+    {
+      "name": "path_type3_missing_resources_fallback_extgstate_tr",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A Type3 font with no Resources entry resolves a CharProc ExtGState through its page resources."
+    },
+    {
+      "name": "path_type3_missing_resources_parent_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "A Type3 font with no Resources entry does not inherit an ExtGState that exists only in its invoking Form; CharProc fallback is page-scoped."
+    },
+    {
+      "name": "path_type3_empty_resources_parent_extgstate_tr",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-EXTGSTATE-TR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.8:1"],
+      "rationale": "An explicit empty Type3 Resources dictionary likewise prevents an invoking Form-only ExtGState from entering the CharProc resource context."
+    },
+    {
+      "name": "path_soft_mask_invalid_intent",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-SMASK-001"
+      ],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-RENDERING-INTENT-001",
+        "PDFA1B-TRANSPARENCY-GROUP-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.4:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.9:1",
+        "ISO 19005-1:2005:6.4:3"
+      ],
+      "rationale": "veraPDF rejects the selected SMask but does not execute the soft-mask G Form invalid rendering intent."
+    },
+    {
+      "name": "malformed_pattern_leading_name",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "Only the final name operand of scn selects a Pattern; an earlier name does not execute that resource."
+    },
+    {
+      "name": "malformed_pattern_trailing_number",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "A non-name final scn operand does not select the earlier named Pattern resource."
+    },
+    {
+      "name": "malformed_pattern_colorspace",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-CONTENT-OPERATOR-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
+      "rationale": "A cs operator with extra operands does not select Pattern color space, so the following scn does not execute the Pattern."
     }
   ],
   "atomic_font_cases": [
@@ -4251,6 +5085,30 @@
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
       "rationale": "A Form resource that is never invoked creates no PDGroup model object."
+    },
+    {
+      "name": "extgstate_smask_indirect_null",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-EXTGSTATE-SMASK-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.4:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect reference to null remains a present SMask value rather than the permitted name None."
+    },
+    {
+      "name": "xobject_smask_indirect_null",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-XOBJECT-SMASK-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.4:2"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An indirect reference to null remains a present XObject SMask entry in veraPDF 1.28.2."
     }
   ],
   "atomic_annotation_cases": [
@@ -6069,6 +6927,66 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:1", "ISO 19005-1:2005:6.2.9:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "An invoked image traverses an alternate image and validates its Intent independently of the Alternates prohibition."
+    },
+    {
+      "name": "icc_soft_mask_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the used SMask but does not expose an ICCBased colour space or PDGroup from its G Form."
+    },
+    {
+      "name": "device_soft_mask_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the used SMask but does not expose DeviceRGB use or a PDGroup from its G Form."
+    },
+    {
+      "name": "intent_soft_mask_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-SMASK-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1", "ISO 19005-1:2005:6.4:3"],
+      "rationale": "veraPDF rejects the used SMask but does not expose rendering-intent or PDGroup model objects from its G Form."
+    },
+    {
+      "name": "icc_shading_pattern_direct",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-ICCBASED-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.3.2:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected direct shading Pattern exposes its Shading ColorSpace."
+    },
+    {
+      "name": "icc_shading_pattern_indirect",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-ICCBASED-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.2.3.2:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected indirect shading Pattern exposes its Shading ColorSpace."
+    },
+    {
+      "name": "icc_shading_pattern_unused",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": [
+        "PDFA1B-ICCBASED-001"
+      ],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": [
+        "ISO 19005-1:2005:6.2.3.2:1"
+      ],
+      "rationale": "An unselected shading Pattern does not expose its Shading ColorSpace."
     }
   ]
 }

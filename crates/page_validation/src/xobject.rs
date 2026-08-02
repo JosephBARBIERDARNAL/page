@@ -3,8 +3,13 @@ use std::collections::BTreeMap;
 use lopdf::{Document, Object};
 
 use crate::content_support::{ContentExecutionSummary, XObjectUseKind};
+use crate::error::PdfError;
+use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{ResourceKey, contains_key};
+use crate::object_resolution::{
+    ResourceKey, contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
+    resolved_name,
+};
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -19,45 +24,61 @@ pub(crate) struct XObjectSummary {
     pub(crate) postscript_xobject: Vec<RuleFailure>,
 }
 
-pub(crate) fn inspect(document: &Document, execution: &ContentExecutionSummary) -> XObjectSummary {
+pub(crate) fn inspect(
+    document: &Document,
+    execution: &ContentExecutionSummary,
+    limits: &SafetyLimits,
+) -> Result<XObjectSummary, PdfError> {
     let mut summary = XObjectSummary::default();
-    let mut uses = BTreeMap::<ResourceKey, (&Object, bool)>::new();
+    let mut uses = BTreeMap::<ResourceKey, (&Object, bool, bool, bool)>::new();
     for use_ in &execution.xobjects {
         let entry = uses
             .entry(use_.key.clone())
-            .or_insert((&use_.object, false));
-        entry.1 |= use_.kind == XObjectUseKind::ExplicitMask;
+            .or_insert((&use_.object, false, false, false));
+        match use_.kind {
+            XObjectUseKind::Appearance => entry.3 = true,
+            XObjectUseKind::ExplicitMask => entry.2 = true,
+            _ => entry.1 = true,
+        }
     }
-    for (key, (object, is_explicit_mask)) in uses {
-        let Object::Stream(stream) = object else {
+    for (key, (object, is_ordinary_image, is_explicit_mask, is_appearance)) in uses {
+        let Some(dictionary) = dictionary_based(object) else {
             continue;
         };
         let object_id = key.object_id();
-        let subtype = stream
-            .dict
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok());
-        match subtype {
-            Some(b"Image") => {
-                inspect_common_xobject(&stream.dict, object_id, "image", &mut summary);
-                inspect_image(&stream.dict, object_id, is_explicit_mask, &mut summary);
-            }
-            Some(b"Form") => {
-                inspect_common_xobject(&stream.dict, object_id, "Form", &mut summary);
-                inspect_form(document, &stream.dict, object_id, &mut summary);
-            }
-            Some(b"PS") => {
-                inspect_common_xobject(&stream.dict, object_id, "PostScript XObject", &mut summary);
-                summary.postscript_xobject.push(RuleFailure {
-                    object_id,
-                    description: "XObject has /Subtype /PS".to_owned(),
-                });
-            }
-            _ => {}
+        let subtype = resolved_name(document, dictionary, b"Subtype", limits.max_reference_depth)?;
+        if subtype.is_some() || is_appearance {
+            let kind = if is_appearance {
+                "appearance Form"
+            } else {
+                "XObject"
+            };
+            inspect_common_xobject(dictionary, object_id, kind, &mut summary);
+        }
+        if subtype == Some(b"Image".as_slice()) && (is_ordinary_image || is_explicit_mask) {
+            inspect_image(
+                document,
+                dictionary,
+                object_id,
+                is_ordinary_image,
+                is_explicit_mask,
+                limits,
+                &mut summary,
+            )?;
+        }
+        if (subtype == Some(b"Form".as_slice()) && (is_ordinary_image || is_explicit_mask))
+            || is_appearance
+        {
+            inspect_form(document, dictionary, object_id, limits, &mut summary)?;
+        }
+        if subtype == Some(b"PS".as_slice()) && (is_ordinary_image || is_explicit_mask) {
+            summary.postscript_xobject.push(RuleFailure {
+                object_id,
+                description: "XObject has /Subtype /PS".to_owned(),
+            });
         }
     }
-    summary
+    Ok(summary)
 }
 
 fn inspect_common_xobject(
@@ -75,11 +96,14 @@ fn inspect_common_xobject(
 }
 
 fn inspect_image(
+    document: &Document,
     dictionary: &lopdf::Dictionary,
     object_id: Option<PdfObjectId>,
+    is_ordinary_image: bool,
     is_explicit_mask: bool,
+    limits: &SafetyLimits,
     summary: &mut XObjectSummary,
-) {
+) -> Result<(), PdfError> {
     if contains_key(dictionary, b"Alternates") {
         summary.image_alternates.push(RuleFailure {
             object_id,
@@ -87,11 +111,12 @@ fn inspect_image(
         });
     }
     if contains_key(dictionary, b"Interpolate")
-        && dictionary
-            .get(b"Interpolate")
-            .ok()
-            .and_then(|value| value.as_bool().ok())
-            != Some(false)
+        && resolved_bool(
+            document,
+            dictionary,
+            b"Interpolate",
+            limits.max_reference_depth,
+        )? != Some(false)
     {
         summary.image_interpolate.push(RuleFailure {
             object_id,
@@ -99,25 +124,29 @@ fn inspect_image(
         });
     }
 
-    let bits_per_component = dictionary
-        .get(b"BitsPerComponent")
-        .ok()
-        .and_then(|value| value.as_i64().ok());
+    let bits_per_component = resolved_integer(
+        document,
+        dictionary,
+        b"BitsPerComponent",
+        limits.max_reference_depth,
+    )?;
+    // veraPDF 1.28.2's `isMask` getter reads only a direct boolean. An
+    // indirect `true` is therefore modeled as an ordinary image.
     let is_stencil_mask = dictionary
         .get(b"ImageMask")
         .ok()
         .and_then(|value| value.as_bool().ok())
         == Some(true);
-    if is_explicit_mask {
-        if bits_per_component.is_some_and(|value| value != 1) {
-            summary.mask_bits_per_component.push(RuleFailure {
-                object_id,
-                description: format!(
-                    "image mask dictionary has /BitsPerComponent {bits_per_component:?}"
-                ),
-            });
-        }
-    } else if !is_stencil_mask
+    if is_explicit_mask && bits_per_component.is_some_and(|value| value != 1) {
+        summary.mask_bits_per_component.push(RuleFailure {
+            object_id,
+            description: format!(
+                "image mask dictionary has /BitsPerComponent {bits_per_component:?}"
+            ),
+        });
+    }
+    if is_ordinary_image
+        && !is_stencil_mask
         && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8))
     {
         summary.image_bits_per_component.push(RuleFailure {
@@ -125,27 +154,27 @@ fn inspect_image(
             description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
         });
     }
+    Ok(())
 }
 
 fn inspect_form(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
     summary: &mut XObjectSummary,
-) {
-    let subtype2_is_ps = dictionary
-        .get(b"Subtype2")
-        .ok()
-        .and_then(|value| value.as_name().ok())
-        == Some(b"PS".as_slice());
-    let contains_modeled_ps = dictionary.get(b"PS").ok().is_some_and(|value| match value {
-        Object::Stream(_) => true,
-        Object::Reference(id) => document
-            .objects
-            .get(id)
+) -> Result<(), PdfError> {
+    let subtype2_is_ps = resolved_name(
+        document,
+        dictionary,
+        b"Subtype2",
+        limits.max_reference_depth,
+    )? == Some(b"PS".as_slice());
+    let contains_modeled_ps = match dictionary.get(b"PS") {
+        Ok(value) => resolve_optional(document, value, limits.max_reference_depth)?
             .is_some_and(|object| matches!(object, Object::Stream(_))),
-        _ => false,
-    });
+        Err(_) => false,
+    };
     if subtype2_is_ps || contains_modeled_ps {
         summary.form_postscript.push(RuleFailure {
             object_id,
@@ -158,4 +187,5 @@ fn inspect_form(
             description: "Form dictionary contains /Ref".to_owned(),
         });
     }
+    Ok(())
 }

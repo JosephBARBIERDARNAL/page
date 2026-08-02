@@ -1,19 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;
 
-use lopdf::content::Content;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 
-use crate::content_support::{
-    ContentCache, decode_content_stream_cached, for_each_page_annotation, inherited_page_resources,
-    resource_once,
-};
+use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
 use crate::font_encodings::{self, PredefinedEncoding};
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{ResourceKey, contains_key, resolve_optional};
-use crate::page_tree::PageEntry;
 use crate::predefined_cmaps;
 use crate::report::RuleFailure;
 
@@ -53,12 +48,6 @@ struct SelectedFont {
     description: String,
 }
 
-#[derive(Clone, Default)]
-struct GraphicsState {
-    font: Option<SelectedFont>,
-    rendering_mode: i64,
-}
-
 #[derive(Clone)]
 struct FontUse {
     object: Object,
@@ -73,19 +62,12 @@ struct FontUse {
 struct Scanner<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
-    cache: &'a mut ContentCache,
     /// Embedded CMaps parsed once per indirect object and reused across the
     /// several checks that otherwise each independently decode and
     /// re-tokenize the same CMap stream for the same font.
     cmap_decoders: HashMap<ObjectId, Rc<CmapDecoder>>,
     uses: BTreeMap<ResourceKey, FontUse>,
     active_descendant_fonts: BTreeSet<ResourceKey>,
-    /// Indirect annotation-appearance, Pattern, and Type3 CharProc streams
-    /// already scanned once, so a Pattern painted repeatedly (or the same
-    /// appearance stream shared by two annotations) is not re-parsed for
-    /// every occurrence -- these streams take no per-invocation parameters,
-    /// so a second scan can only ever repeat the first one's findings.
-    scanned_standalone_streams: BTreeSet<ObjectId>,
     invalid_types: Vec<RuleFailure>,
     invalid_subtypes: Vec<RuleFailure>,
     invalid_base_fonts: Vec<RuleFailure>,
@@ -112,18 +94,15 @@ struct Scanner<'a> {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
-    cache: &mut ContentCache,
+    execution: &ContentExecutionSummary,
     limits: &SafetyLimits,
 ) -> Result<FontEmbeddingSummary, PdfError> {
     let mut scanner = Scanner {
         document,
         limits,
-        cache,
         cmap_decoders: HashMap::new(),
         uses: BTreeMap::new(),
         active_descendant_fonts: BTreeSet::new(),
-        scanned_standalone_streams: BTreeSet::new(),
         invalid_types: Vec::new(),
         invalid_subtypes: Vec::new(),
         invalid_base_fonts: Vec::new(),
@@ -145,16 +124,19 @@ pub(crate) fn inspect(
         missing_truetype_glyphs: Vec::new(),
         missing_type1_glyphs: Vec::new(),
         inconsistent_truetype_widths: Vec::new(),
-        excessive_graphics_state_nesting: Vec::new(),
+        excessive_graphics_state_nesting: execution.excessive_graphics_state_nesting.clone(),
     };
-    for (&page_number, page_entry) in pages {
-        let page = page_entry
-            .resolve(document)
-            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
-        scanner.scan_page(page_number, page)?;
+    for usage in &execution.fonts {
+        scanner.record_font(
+            &SelectedFont {
+                key: usage.key.clone(),
+                object: usage.object.clone(),
+                description: usage.description.clone(),
+            },
+            usage.rendering_mode,
+            &usage.shown_bytes,
+        )?;
     }
-    scanner.scan_annotation_appearances(pages)?;
-    scanner.scan_type3_charproc_fonts()?;
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
         left.object_id
@@ -237,438 +219,6 @@ fn inspect_all_embedded_cmap_cids(
 }
 
 impl Scanner<'_> {
-    fn scan_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
-        let resources = inherited_page_resources(self.document, page, self.limits)?;
-        let mut state = GraphicsState::default();
-        let mut stack = Vec::new();
-        let mut active_forms = BTreeSet::new();
-        let mut decoded_bytes = 0usize;
-        if let Ok(contents) = page.get(b"Contents") {
-            self.scan_contents(
-                contents,
-                resources,
-                &mut state,
-                &mut stack,
-                &mut active_forms,
-                &mut decoded_bytes,
-                &format!("page {page_number}"),
-                0,
-            )?;
-        }
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn scan_contents(
-        &mut self,
-        contents: &Object,
-        resources: Option<&Dictionary>,
-        state: &mut GraphicsState,
-        stack: &mut Vec<GraphicsState>,
-        active_forms: &mut BTreeSet<ObjectId>,
-        decoded_bytes: &mut usize,
-        context: &str,
-        depth: usize,
-    ) -> Result<(), PdfError> {
-        if depth > self.limits.max_reference_depth {
-            return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
-        }
-        let content_id = contents.as_reference().ok();
-        let Some(contents) =
-            resolve_optional(self.document, contents, self.limits.max_reference_depth)?
-        else {
-            return Ok(());
-        };
-        if let Ok(array) = contents.as_array() {
-            for item in array {
-                self.scan_contents(
-                    item,
-                    resources,
-                    state,
-                    stack,
-                    active_forms,
-                    decoded_bytes,
-                    context,
-                    depth + 1,
-                )?;
-            }
-            return Ok(());
-        }
-        let Ok(stream) = contents.as_stream() else {
-            return Ok(());
-        };
-        let bytes = decode_content_stream_cached(
-            stream,
-            content_id,
-            self.cache,
-            self.limits,
-            decoded_bytes,
-        )?;
-        let content_bytes = crate::content_support::content_without_inline_images(&bytes);
-        let Ok(content) = Content::decode(&content_bytes) else {
-            return Ok(());
-        };
-        for operation in content.operations {
-            match operation.operator.as_str() {
-                "q" => {
-                    if stack.len() >= self.limits.max_reference_depth {
-                        return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
-                    }
-                    stack.push(state.clone());
-                    if stack.len() > 28 {
-                        self.excessive_graphics_state_nesting.push(RuleFailure {
-                            object_id: None,
-                            description: format!(
-                                "{context} reaches graphics-state nesting depth {}",
-                                stack.len()
-                            ),
-                        });
-                    }
-                }
-                "Q" => {
-                    if let Some(saved) = stack.pop() {
-                        *state = saved;
-                    }
-                }
-                "Tf" => {
-                    let name = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok());
-                    state.font = match name {
-                        Some(name) => {
-                            resource_once(self.document, self.limits, resources, b"Font", name)?
-                                .map(|object| SelectedFont {
-                                    key: object_key(object, context, operation.operands.first()),
-                                    object: object.clone(),
-                                    description: describe_font(
-                                        object,
-                                        context,
-                                        operation.operands.first(),
-                                    ),
-                                })
-                        }
-                        None => None,
-                    };
-                }
-                "Tr" => {
-                    if let Some(mode) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_i64().ok())
-                    {
-                        state.rendering_mode = mode;
-                    }
-                }
-                "Tj" | "TJ" | "'" | "\"" if shows_text(&operation.operands) => {
-                    if let Some(font) = state.font.clone() {
-                        self.record_font(
-                            &font,
-                            state.rendering_mode,
-                            &shown_text_bytes(&operation.operands),
-                        )?;
-                    }
-                }
-                "Do" => {
-                    let Some(name) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok())
-                    else {
-                        continue;
-                    };
-                    let Some(object) =
-                        resource_once(self.document, self.limits, resources, b"XObject", name)?
-                    else {
-                        continue;
-                    };
-                    let form_id = object.as_reference().ok();
-                    if form_id.is_some_and(|id| !active_forms.insert(id)) {
-                        continue;
-                    }
-                    let result = self.scan_form(
-                        object,
-                        resources,
-                        state,
-                        active_forms,
-                        decoded_bytes,
-                        &format!("{context}/Form /{}", String::from_utf8_lossy(name)),
-                        depth + 1,
-                    );
-                    if let Some(id) = form_id {
-                        active_forms.remove(&id);
-                    }
-                    result?;
-                }
-                "scn" | "SCN" => {
-                    let Some(name) = operation
-                        .operands
-                        .last()
-                        .and_then(|operand| operand.as_name().ok())
-                    else {
-                        continue;
-                    };
-                    let Some(pattern) =
-                        resource_once(self.document, self.limits, resources, b"Pattern", name)?
-                    else {
-                        continue;
-                    };
-                    self.scan_form_like_stream_once(
-                        pattern,
-                        None,
-                        &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
-                    )?;
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn scan_form(
-        &mut self,
-        object: &Object,
-        parent_resources: Option<&Dictionary>,
-        state: &GraphicsState,
-        active_forms: &mut BTreeSet<ObjectId>,
-        decoded_bytes: &mut usize,
-        context: &str,
-        depth: usize,
-    ) -> Result<(), PdfError> {
-        let Some(form) = resolve_optional(self.document, object, self.limits.max_reference_depth)?
-            .and_then(|object| object.as_stream().ok())
-        else {
-            return Ok(());
-        };
-        if resolved_name(self.document, &form.dict, b"Subtype", self.limits)?
-            != Some(b"Form".as_slice())
-        {
-            return Ok(());
-        }
-        let resources = match form.dict.get(b"Resources") {
-            Ok(entry) => resolve_optional(self.document, entry, self.limits.max_reference_depth)?
-                .and_then(|object| object.as_dict().ok()),
-            Err(_) => parent_resources,
-        };
-        let mut form_state = state.clone();
-        let mut stack = Vec::new();
-        self.scan_contents(
-            object,
-            resources,
-            &mut form_state,
-            &mut stack,
-            active_forms,
-            decoded_bytes,
-            context,
-            depth,
-        )
-    }
-
-    /// Scans every page annotation's `/AP` `/N` appearance stream for font
-    /// use, confirmed live against veraPDF 1.28.2: a font referenced only
-    /// from an annotation appearance (never from the page's own content)
-    /// still populates a `PDFont` object and is still checked for embedding.
-    /// A button Widget's `/N` is a subdictionary of named states (e.g.
-    /// `Off`/`Yes`); veraPDF walks every state's stream, not just the one
-    /// selected by `/AS` (also confirmed live), so every value is scanned.
-    fn scan_annotation_appearances(
-        &mut self,
-        pages: &BTreeMap<u32, PageEntry>,
-    ) -> Result<(), PdfError> {
-        let mut inspected = BTreeSet::new();
-        let mut annotations = Vec::new();
-        for_each_page_annotation(
-            self.document,
-            pages,
-            self.limits,
-            &mut inspected,
-            |page_number, index, _object_id, annotation| {
-                if let Ok(dictionary) = annotation.as_dict() {
-                    annotations.push((page_number, index, dictionary.clone()));
-                }
-                Ok(())
-            },
-        )?;
-        for (page_number, index, annotation) in annotations {
-            let Ok(appearance) = annotation.get(b"AP") else {
-                continue;
-            };
-            let Some(appearance) =
-                resolve_optional(self.document, appearance, self.limits.max_reference_depth)?
-                    .and_then(|object| object.as_dict().ok())
-            else {
-                continue;
-            };
-            // Confirmed live against veraPDF 1.28.2: /D (down) and /R
-            // (rollover) appearance streams are walked for font use exactly
-            // like /N, even though their mere presence already fails
-            // PDFA1B-ANNOTATION-AP-ENTRIES-001 on its own (a compliant file
-            // never has them, but veraPDF still evaluates every other
-            // predicate against the same object graph regardless).
-            for key in [b"N".as_slice(), b"D".as_slice(), b"R".as_slice()] {
-                let Ok(entry) = appearance.get(key) else {
-                    continue;
-                };
-                let Some(resolved_entry) =
-                    resolve_optional(self.document, entry, self.limits.max_reference_depth)?
-                else {
-                    continue;
-                };
-                let context = format!(
-                    "page {page_number} annotation {index}/AP/{}",
-                    String::from_utf8_lossy(key)
-                );
-                if resolved_entry.as_stream().is_ok() {
-                    self.scan_form_like_stream_once(entry, None, &context)?;
-                } else if let Ok(states) = resolved_entry.as_dict() {
-                    for (state, value) in states.iter() {
-                        let state_context = format!("{context}/{}", String::from_utf8_lossy(state));
-                        self.scan_form_like_stream_once(value, None, &state_context)?;
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Scans a Pattern or Type3 CharProc content stream (or an annotation
-    /// appearance stream) exactly once, deduplicating indirect streams via
-    /// `scanned_standalone_streams` -- unlike a page/Form invocation, these
-    /// streams take no per-invocation parameters, so a repeat scan can only
-    /// ever repeat the first scan's findings.
-    fn scan_form_like_stream_once(
-        &mut self,
-        object: &Object,
-        fallback_resources: Option<&Dictionary>,
-        context: &str,
-    ) -> Result<(), PdfError> {
-        if let Ok(id) = object.as_reference()
-            && !self.scanned_standalone_streams.insert(id)
-        {
-            return Ok(());
-        }
-        self.scan_form_like_stream(object, fallback_resources, context, 0)
-    }
-
-    /// Executes a standalone content stream that is shaped like a Form
-    /// XObject (its own optional `/Resources`, otherwise `fallback_resources`)
-    /// but is reached by a route other than a page/Form `Do` invocation: an
-    /// annotation appearance, a Pattern's content, or a Type3 glyph
-    /// CharProc. Reuses `scan_contents` unchanged, so every existing font
-    /// check (embedding, widths, CMaps, glyph presence, ...) applies to
-    /// fonts discovered this way exactly as it does for page/Form fonts.
-    fn scan_form_like_stream(
-        &mut self,
-        object: &Object,
-        fallback_resources: Option<&Dictionary>,
-        context: &str,
-        depth: usize,
-    ) -> Result<(), PdfError> {
-        let Some(resolved) =
-            resolve_optional(self.document, object, self.limits.max_reference_depth)?
-        else {
-            return Ok(());
-        };
-        let Ok(stream) = resolved.as_stream() else {
-            return Ok(());
-        };
-        let resources = match stream.dict.get(b"Resources") {
-            Ok(entry) => resolve_optional(self.document, entry, self.limits.max_reference_depth)?
-                .and_then(|object| object.as_dict().ok()),
-            Err(_) => fallback_resources,
-        };
-        let mut state = GraphicsState::default();
-        let mut stack = Vec::new();
-        let mut active_forms = BTreeSet::new();
-        let mut decoded_bytes = 0usize;
-        self.scan_contents(
-            object,
-            resources,
-            &mut state,
-            &mut stack,
-            &mut active_forms,
-            &mut decoded_bytes,
-            context,
-            depth,
-        )
-    }
-
-    /// Scans the `/CharProcs` glyph stream for every byte actually rendered
-    /// through a used Type3 font, confirmed live against veraPDF 1.28.2 to
-    /// populate a `PDFont` object for a font shown only from inside a Type3
-    /// glyph description. Falls back to the Type3 font's own `/Resources`
-    /// per PDF32000 9.6.5.2 when a CharProc stream has none of its own.
-    /// Loops to a fixed point (bounded by `max_reference_depth` rounds)
-    /// since scanning a CharProc can itself discover a further Type3 font
-    /// whose own CharProcs have not yet been scanned.
-    fn scan_type3_charproc_fonts(&mut self) -> Result<(), PdfError> {
-        for _ in 0..=self.limits.max_reference_depth {
-            let before = self.uses.len();
-            let uses: Vec<_> = self.uses.values().cloned().collect();
-            for usage in uses {
-                if !usage.visible
-                    || usage.subtype.as_deref() != Some("Type3")
-                    || usage.shown_bytes.is_empty()
-                {
-                    continue;
-                }
-                let Some(object) = resolve_optional(
-                    self.document,
-                    &usage.object,
-                    self.limits.max_reference_depth,
-                )?
-                else {
-                    continue;
-                };
-                let Ok(font) = object.as_dict() else {
-                    continue;
-                };
-                let Some(char_procs) = font
-                    .get(b"CharProcs")
-                    .ok()
-                    .map(|value| {
-                        resolve_optional(self.document, value, self.limits.max_reference_depth)
-                    })
-                    .transpose()?
-                    .flatten()
-                    .and_then(|value| value.as_dict().ok())
-                else {
-                    continue;
-                };
-                let encoding = simple_font_encoding(self.document, font, self.limits)?;
-                let fallback_resources = font
-                    .get(b"Resources")
-                    .ok()
-                    .map(|value| {
-                        resolve_optional(self.document, value, self.limits.max_reference_depth)
-                    })
-                    .transpose()?
-                    .flatten()
-                    .and_then(|value| value.as_dict().ok())
-                    .cloned();
-                for byte in usage.shown_bytes.iter().copied().collect::<BTreeSet<_>>() {
-                    let Some(name) = encoding.glyph_name(byte) else {
-                        continue;
-                    };
-                    let Ok(charproc) = char_procs.get(name.as_bytes()) else {
-                        continue;
-                    };
-                    let context = format!("{}/CharProc /{name}", usage.description);
-                    self.scan_form_like_stream_once(
-                        charproc,
-                        fallback_resources.as_ref(),
-                        &context,
-                    )?;
-                }
-            }
-            if self.uses.len() == before {
-                return Ok(());
-            }
-        }
-        Err(PdfError::ReferenceDepth(self.limits.max_reference_depth))
-    }
-
     fn record_font(
         &mut self,
         selected: &SelectedFont,
@@ -3703,20 +3253,6 @@ fn object_key(object: &Object, context: &str, name: Option<&Object>) -> Resource
     }
 }
 
-fn describe_font(object: &Object, context: &str, name: Option<&Object>) -> String {
-    match object {
-        Object::Reference((number, generation)) => {
-            format!("font object {number} {generation}")
-        }
-        _ => format!(
-            "direct font {} in {context}",
-            name.and_then(|value| value.as_name().ok())
-                .map(|value| format!("/{}", String::from_utf8_lossy(value)))
-                .unwrap_or_else(|| "(unnamed)".to_owned())
-        ),
-    }
-}
-
 fn describe_descendant(object: &Object, parent: &str) -> String {
     match object {
         Object::Reference((number, generation)) => {
@@ -3726,18 +3262,26 @@ fn describe_descendant(object: &Object, parent: &str) -> String {
     }
 }
 
-fn shows_text(operands: &[Object]) -> bool {
-    operands.iter().any(|operand| match operand {
-        Object::String(bytes, _) => !bytes.is_empty(),
-        Object::Array(items) => shows_text(items),
-        _ => false,
-    })
-}
-
-fn shown_text_bytes(operands: &[Object]) -> Vec<u8> {
+pub(crate) fn shown_text_bytes(operands: &[Object]) -> Vec<u8> {
     let mut bytes = Vec::new();
     collect_shown_text_bytes(operands, &mut bytes);
     bytes
+}
+
+pub(crate) fn type3_glyph_names(
+    document: &Document,
+    font: &Dictionary,
+    shown_bytes: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Vec<String>, PdfError> {
+    let encoding = simple_font_encoding(document, font, limits)?;
+    Ok(shown_bytes
+        .iter()
+        .copied()
+        .filter_map(|byte| encoding.glyph_name(byte).map(ToOwned::to_owned))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect())
 }
 
 fn collect_shown_text_bytes(operands: &[Object], bytes: &mut Vec<u8>) {

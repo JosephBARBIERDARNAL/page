@@ -118,6 +118,42 @@ pub(crate) fn contains_key(dictionary: &Dictionary, key: &[u8]) -> bool {
         .is_ok_and(|value| !matches!(value, Object::Null))
 }
 
+pub(crate) fn resolved_name<'a>(
+    document: &'a Document,
+    dictionary: &'a Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<Option<&'a [u8]>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(resolve_optional(document, value, maximum_depth)?.and_then(|value| value.as_name().ok()))
+}
+
+pub(crate) fn resolved_bool(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<Option<bool>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(resolve_optional(document, value, maximum_depth)?.and_then(|value| value.as_bool().ok()))
+}
+
+pub(crate) fn resolved_integer(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<Option<i64>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(resolve_optional(document, value, maximum_depth)?.and_then(|value| value.as_i64().ok()))
+}
+
 /// Identifies a discovered resource (an ICCBased profile, a used font, ...)
 /// either by its indirect object id or, for a direct value with no id of
 /// its own, by a caller-chosen description used only for deduplication.

@@ -1662,8 +1662,16 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline" => {}
-        "rgb_operator" | "rgb_with_cmyk_output" | "rgb_without_output" | "rgb_wrong_s" => {
-            contents = b"0 0 0 rg\n0 0 0 RG\n".to_vec();
+        "rgb_operator"
+        | "rgb_with_cmyk_output"
+        | "rgb_without_output"
+        | "rgb_wrong_s"
+        | "rgb_wrong_arity_with_cmyk_output" => {
+            contents = if case == "rgb_wrong_arity_with_cmyk_output" {
+                b"0 0 rg\n".to_vec()
+            } else {
+                b"0 0 0 rg\n0 0 0 RG\n".to_vec()
+            };
         }
         "cmyk_operator" | "cmyk_with_cmyk_output" | "cmyk_without_output" => {
             contents = b"0 0 0 0 k\n0 0 0 0 K\n".to_vec();
@@ -1841,6 +1849,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
         let output_bytes = if matches!(
             case,
             "rgb_with_cmyk_output"
+                | "rgb_wrong_arity_with_cmyk_output"
                 | "cmyk_with_cmyk_output"
                 | "gray_with_cmyk_output"
                 | "unused_resource_rgb"
@@ -2007,6 +2016,36 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
             ));
             resources.set("XObject", dictionary! {"Fm" => form});
             contents = b"/Fm Do\n".to_vec();
+        }
+        "icc_soft_mask_group" | "device_soft_mask_group" | "intent_soft_mask_group" => {
+            let (group_resources, group_contents) = match case {
+                "icc_soft_mask_group" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n".to_vec(),
+                ),
+                "device_soft_mask_group" => (Dictionary::new(), b"0 0 0 rg\n".to_vec()),
+                _ => (Dictionary::new(), b"/MaiIntent ri\n".to_vec()),
+            };
+            let form = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => group_resources,
+                    "Group" => dictionary! {
+                        "Type" => "Group",
+                        "S" => "Transparency",
+                        "CS" => "DeviceGray",
+                    },
+                },
+                group_contents,
+            ));
+            let state = document.add_object(dictionary! {
+                "Type" => "ExtGState",
+                "SMask" => dictionary! {"S" => "Alpha", "G" => form},
+            });
+            resources.set("ExtGState", dictionary! {"GS1" => state});
+            contents = b"/GS1 gs\n".to_vec();
         }
         "icc_annotation_appearance"
         | "icc_annotation_appearance_valid"
@@ -2184,6 +2223,41 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
             );
             resources.set("Pattern", dictionary! {"P1" => pattern});
             contents = b"/CS1 cs\n0 0 0 /P1 scn\n0 0 10 10 re f\n".to_vec();
+        }
+        "icc_shading_pattern_direct"
+        | "icc_shading_pattern_indirect"
+        | "icc_shading_pattern_unused" => {
+            let shading = dictionary! {
+                "ShadingType" => 2,
+                "ColorSpace" => invalid_icc.clone(),
+                "Coords" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "Function" => dictionary! {
+                    "FunctionType" => 2,
+                    "Domain" => vec![0.into(), 1.into()],
+                    "C0" => vec![0.into(), 0.into(), 0.into()],
+                    "C1" => vec![1.into(), 1.into(), 1.into()],
+                    "N" => 1,
+                },
+                "Extend" => vec![Object::Boolean(true), Object::Boolean(true)],
+            };
+            let pattern = dictionary! {
+                "Type" => "Pattern",
+                "PatternType" => 2,
+                "Shading" => if case == "icc_shading_pattern_indirect" {
+                    Object::Reference(document.add_object(shading))
+                } else {
+                    Object::Dictionary(shading)
+                },
+            };
+            let pattern = if case == "icc_shading_pattern_direct" {
+                Object::Dictionary(pattern)
+            } else {
+                Object::Reference(document.add_object(pattern))
+            };
+            resources.set("Pattern", dictionary! {"P1" => pattern});
+            if case != "icc_shading_pattern_unused" {
+                contents = b"/Pattern cs\n/P1 scn\n".to_vec();
+            }
         }
         "device_page_group" => {
             group = Some(dictionary! {
@@ -2477,6 +2551,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
     let mut resources = Dictionary::new();
     let mut contents = b"/XO Do\n".to_vec();
     let mut include_resource = true;
+    let inherit_resources = case == "inherited_xobject_image_bpc_16";
     let explicit_mask_id = (case == "explicit_mask_bpc_8").then(|| {
         document.add_object(Stream::new(
             dictionary! {
@@ -2512,8 +2587,16 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
         | "image_opi"
         | "image_opi_null"
         | "image_interpolate_true"
+        | "image_interpolate_indirect_true"
         | "image_interpolate_null"
         | "image_bpc_16"
+        | "image_bpc_indirect_16"
+        | "image_subtype_indirect_bpc_16"
+        | "image_mask_indirect_true_bpc_16"
+        | "direct_image_bpc_16"
+        | "indirect_xobject_dictionary_image_bpc_16"
+        | "inherited_xobject_image_bpc_16"
+        | "shared_painted_explicit_mask_bpc_16"
         | "unused_resource_invalid_image"
         | "unreferenced_invalid_image"
         | "two_invalid_images" => {
@@ -2531,12 +2614,34 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 "image_opi" => dictionary.set("OPI", Dictionary::new()),
                 "image_opi_null" => dictionary.set("OPI", Object::Null),
                 "image_interpolate_true" => dictionary.set("Interpolate", true),
+                "image_interpolate_indirect_true" => {
+                    dictionary.set("Interpolate", document.add_object(Object::Boolean(true)))
+                }
                 "image_interpolate_null" => dictionary.set("Interpolate", Object::Null),
                 "image_bpc_16"
+                | "image_bpc_indirect_16"
+                | "image_subtype_indirect_bpc_16"
+                | "image_mask_indirect_true_bpc_16"
+                | "direct_image_bpc_16"
+                | "indirect_xobject_dictionary_image_bpc_16"
+                | "inherited_xobject_image_bpc_16"
+                | "shared_painted_explicit_mask_bpc_16"
                 | "unused_resource_invalid_image"
                 | "unreferenced_invalid_image"
                 | "two_invalid_images" => dictionary.set("BitsPerComponent", 16),
                 _ => unreachable!(),
+            }
+            if case == "image_bpc_indirect_16" {
+                dictionary.set("BitsPerComponent", document.add_object(Object::Integer(16)));
+            }
+            if case == "image_subtype_indirect_bpc_16" {
+                dictionary.set(
+                    "Subtype",
+                    document.add_object(Object::Name(b"Image".to_vec())),
+                );
+            }
+            if case == "image_mask_indirect_true_bpc_16" {
+                dictionary.set("ImageMask", document.add_object(Object::Boolean(true)));
             }
             if case == "unused_resource_invalid_image" {
                 contents.clear();
@@ -2571,8 +2676,15 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             },
             vec![0, 0, 0],
         ),
-        "form_opi" | "form_opi_null" | "form_ps_key" | "form_ps_null" | "form_subtype2_ps"
-        | "form_ref" | "form_ref_null" => {
+        "form_opi"
+        | "form_opi_null"
+        | "form_ps_key"
+        | "form_ps_null"
+        | "form_subtype2_ps"
+        | "form_subtype2_indirect_ps"
+        | "form_ref"
+        | "direct_form_ref"
+        | "form_ref_null" => {
             let mut dictionary = dictionary! {
                 "Type" => "XObject",
                 "Subtype" => "Form",
@@ -2588,24 +2700,38 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 }
                 "form_ps_null" => dictionary.set("PS", Object::Null),
                 "form_subtype2_ps" => dictionary.set("Subtype2", "PS"),
-                "form_ref" => dictionary.set("Ref", Dictionary::new()),
+                "form_subtype2_indirect_ps" => dictionary.set(
+                    "Subtype2",
+                    document.add_object(Object::Name(b"PS".to_vec())),
+                ),
+                "form_ref" | "direct_form_ref" => dictionary.set("Ref", Dictionary::new()),
                 "form_ref_null" => dictionary.set("Ref", Object::Null),
                 _ => unreachable!(),
             }
             Stream::new(dictionary, Vec::new())
         }
-        "postscript_xobject" => Stream::new(
-            dictionary! {
+        "postscript_xobject" | "direct_postscript_xobject" | "postscript_subtype_indirect" => {
+            let mut dictionary = dictionary! {
                 "Type" => "XObject",
                 "Subtype" => "PS",
-            },
-            b"%!PS\n".to_vec(),
-        ),
+            };
+            if case == "postscript_subtype_indirect" {
+                dictionary.set("Subtype", document.add_object(Object::Name(b"PS".to_vec())));
+            }
+            Stream::new(dictionary, b"%!PS\n".to_vec())
+        }
         _ => panic!("unknown XObject fixture case {case}"),
     };
-    let xobject = Object::Reference(document.add_object(xobject));
+    let xobject = if matches!(
+        case,
+        "direct_image_bpc_16" | "direct_form_ref" | "direct_postscript_xobject"
+    ) {
+        Object::Dictionary(xobject.dict)
+    } else {
+        Object::Reference(document.add_object(xobject))
+    };
     if include_resource {
-        let mut xobjects = dictionary! {"XO" => xobject};
+        let mut xobjects = dictionary! {"XO" => xobject.clone()};
         if case == "two_invalid_images" {
             let second_id = document.add_object(Stream::new(
                 dictionary! {
@@ -2621,18 +2747,53 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
             xobjects.set("XO2", second_id);
             contents = b"/XO Do\n/XO2 Do\n".to_vec();
         }
-        resources.set("XObject", xobjects);
+        if case == "shared_painted_explicit_mask_bpc_16" {
+            let primary = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => "DeviceRGB",
+                    "Mask" => xobject.clone(),
+                },
+                vec![0, 0, 0],
+            ));
+            xobjects.set("Primary", primary);
+            contents = b"/XO Do\n/Primary Do\n".to_vec();
+        }
+        if case == "indirect_xobject_dictionary_image_bpc_16" {
+            resources.set("XObject", document.add_object(xobjects));
+        } else {
+            resources.set("XObject", xobjects);
+        }
     }
 
     let contents_id = document.add_object(Stream::new(Dictionary::new(), contents));
-    let page_id = document.add_object(dictionary! {
+    let mut page = dictionary! {
         "Type" => "Page",
         "Parent" => pages_id,
         "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-        "Resources" => resources,
         "Contents" => contents_id,
-    });
-    wrap_pages(&mut document, pages_id, page_id);
+    };
+    if !inherit_resources {
+        page.set("Resources", resources.clone());
+    }
+    let page_id = document.add_object(page);
+    if inherit_resources {
+        document.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Reference(page_id)],
+                "Count" => 1,
+                "Resources" => resources,
+            }),
+        );
+    } else {
+        wrap_pages(&mut document, pages_id, page_id);
+    }
     let metadata_id = standard_metadata_stream(&mut document);
     let output_intents = single_profile_intent(
         &mut document,
@@ -2654,20 +2815,28 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn graphics_fixture(case: &str) -> Vec<u8> {
+    if case.starts_with("path_") {
+        return graphics_content_path_fixture(case);
+    }
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let mut resources = Dictionary::new();
     let mut contents = Vec::new();
     let mut page_group = None;
+    let mut annotations = Vec::new();
+    let mut inherit_resources = false;
 
     match case {
         "baseline" => {}
         "extgstate_tr"
         | "direct_extgstate_tr"
         | "extgstate_tr_null"
+        | "extgstate_tr_indirect_null"
         | "extgstate_tr2_default"
         | "extgstate_tr2_other"
         | "extgstate_tr2_null"
+        | "indirect_extgstate_resource_dictionary"
+        | "inherited_extgstate_tr"
         | "extgstate_ri_invalid"
         | "unused_extgstate_tr"
         | "unreferenced_extgstate_tr"
@@ -2675,6 +2844,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         | "extgstate_smask_other"
         | "extgstate_smask_dictionary"
         | "extgstate_smask_null"
+        | "extgstate_smask_indirect_null"
         | "extgstate_bm_normal"
         | "extgstate_bm_compatible"
         | "extgstate_bm_multiply"
@@ -2688,11 +2858,14 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
             match case {
                 "extgstate_tr"
                 | "direct_extgstate_tr"
+                | "indirect_extgstate_resource_dictionary"
+                | "inherited_extgstate_tr"
                 | "unused_extgstate_tr"
                 | "unreferenced_extgstate_tr" => {
                     state.set("TR", "Identity");
                 }
                 "extgstate_tr_null" => state.set("TR", Object::Null),
+                "extgstate_tr_indirect_null" => state.set("TR", document.add_object(Object::Null)),
                 "extgstate_tr2_default" => state.set("TR2", "Default"),
                 "extgstate_tr2_other" => state.set("TR2", "Identity"),
                 "extgstate_tr2_null" => state.set("TR2", Object::Null),
@@ -2703,6 +2876,9 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 }
                 "extgstate_smask_dictionary" => state.set("SMask", Dictionary::new()),
                 "extgstate_smask_null" => state.set("SMask", Object::Null),
+                "extgstate_smask_indirect_null" => {
+                    state.set("SMask", document.add_object(Object::Null))
+                }
                 "extgstate_bm_normal" => state.set("BM", "Normal"),
                 "extgstate_bm_compatible" => state.set("BM", "Compatible"),
                 "extgstate_bm_multiply" => state.set("BM", "Multiply"),
@@ -2719,8 +2895,14 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 Object::Reference(document.add_object(state))
             };
             if case != "unreferenced_extgstate_tr" {
-                resources.set("ExtGState", dictionary! {"GS1" => state});
+                let states = dictionary! {"GS1" => state};
+                if case == "indirect_extgstate_resource_dictionary" {
+                    resources.set("ExtGState", document.add_object(states));
+                } else {
+                    resources.set("ExtGState", states);
+                }
             }
+            inherit_resources = case == "inherited_extgstate_tr";
             if !matches!(
                 case,
                 "unused_extgstate_tr"
@@ -2734,29 +2916,66 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
             contents = b"/RelativeColorimetric ri\n/AbsoluteColorimetric ri\n/Perceptual ri\n/Saturation ri\n".to_vec();
         }
         "ri_invalid" => contents = b"/MaiIntent ri\n".to_vec(),
-        "image_intent_valid" | "image_intent_invalid" => {
+        "image_intent_valid"
+        | "image_intent_invalid"
+        | "explicit_mask_image_intent_invalid"
+        | "soft_mask_image_intent_invalid" => {
             let intent = if case == "image_intent_valid" {
                 "Perceptual"
             } else {
                 "MaiIntent"
             };
-            let image_id = document.add_object(Stream::new(
+            let image = document.add_object(Stream::new(
                 dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => if case == "explicit_mask_image_intent_invalid" { 1 } else { 8 },
+                    "ColorSpace" => "DeviceRGB",
+                    "Intent" => intent,
+                },
+                vec![0, 0, 0],
+            ));
+            let image_id = if matches!(
+                case,
+                "explicit_mask_image_intent_invalid" | "soft_mask_image_intent_invalid"
+            ) {
+                let key = if case == "explicit_mask_image_intent_invalid" {
+                    "Mask"
+                } else {
+                    "SMask"
+                };
+                let mut dictionary = dictionary! {
                     "Type" => "XObject",
                     "Subtype" => "Image",
                     "Width" => 1,
                     "Height" => 1,
                     "BitsPerComponent" => 8,
                     "ColorSpace" => "DeviceRGB",
-                    "Intent" => intent,
-                },
-                vec![0, 0, 0],
-            ));
+                };
+                dictionary.set(key, image);
+                document.add_object(Stream::new(dictionary, vec![0, 0, 0]))
+            } else {
+                image
+            };
             resources.set("XObject", dictionary! {"Im" => image_id});
             contents = b"/Im Do\n".to_vec();
         }
         "undefined_operator" => contents = b"1 2 MaiUnknown\n".to_vec(),
         "undefined_in_bx" => contents = b"BX\nMaiUnknown\nEX\n".to_vec(),
+        "undefined_before_malformed_array" => contents = b"MaiUnknown\n[1 2\n".to_vec(),
+        "malformed_string_before_undefined" => contents = b"(unterminated\nMaiUnknown\n".to_vec(),
+        "unmatched_graphics_restore" => contents = b"Q\n".to_vec(),
+        "gs_wrong_operand" | "gs_extra_operand" => {
+            let state = document.add_object(dictionary! {"TR" => "Identity"});
+            resources.set("ExtGState", dictionary! {"GS1" => state});
+            contents = if case == "gs_wrong_operand" {
+                b"1 gs\n".to_vec()
+            } else {
+                b"/GS1 1 gs\n".to_vec()
+            };
+        }
         "inline_image_lzw" => contents = b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x EI\n".to_vec(),
         "inline_image_lzw_array" => {
             contents = b"BI /W 1 /H 1 /BPC 8 /Filter [/AHx /LZWDecode] ID x EI\n".to_vec()
@@ -2764,6 +2983,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "inline_image_lzw_escaped" => {
             contents = b"BI /W 1 /H 1 /BPC 8 /F /LZW#44ecode ID x EI\n".to_vec()
         }
+        "inline_image_unterminated_lzw" => contents = b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x".to_vec(),
         "inline_image_ascii_hex" => contents = b"BI /W 1 /H 1 /BPC 8 /F /AHx ID 00> EI\n".to_vec(),
         "inline_image_false_ei" => contents = b"BI /W 1 /H 1 /BPC 8 ID xEIx y EI\n".to_vec(),
         "inline_image_tokens_in_string" => contents = b"(BI /F /LZW ID x EI) Tj\n".to_vec(),
@@ -2788,7 +3008,167 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 contents = b"/Fm Do\n".to_vec();
             }
         }
-        "xobject_smask" | "unused_xobject_smask" | "xobject_smask_null" => {
+        "undefined_appearance" | "unused_appearance_undefined" => {
+            let appearance = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                },
+                b"MaiUnknown\n".to_vec(),
+            ));
+            let annotation = document.add_object(dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "Text",
+                "Rect" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "F" => 4,
+                "AP" => dictionary! {"N" => appearance},
+            });
+            if case == "undefined_appearance" {
+                annotations.push(Object::Reference(annotation));
+            }
+        }
+        "undefined_pattern" | "unused_pattern_undefined" => {
+            let pattern = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "XStep" => 10,
+                    "YStep" => 10,
+                },
+                b"MaiUnknown\n".to_vec(),
+            ));
+            resources.set("Pattern", dictionary! {"P1" => pattern});
+            if case == "undefined_pattern" {
+                contents = b"/Pattern cs\n/P1 scn\n".to_vec();
+            }
+        }
+        "malformed_pattern_leading_name"
+        | "malformed_pattern_trailing_number"
+        | "malformed_pattern_colorspace" => {
+            let invalid = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                },
+                b"MaiUnknown\n".to_vec(),
+            ));
+            let valid = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                },
+                Vec::new(),
+            ));
+            resources.set(
+                "Pattern",
+                dictionary! {"Invalid" => invalid, "Valid" => valid},
+            );
+            contents = match case {
+                "malformed_pattern_leading_name" => b"/Pattern cs\n/Invalid /Valid scn\n".to_vec(),
+                "malformed_pattern_trailing_number" => b"/Pattern cs\n/Invalid 1 scn\n".to_vec(),
+                _ => b"/Pattern 1 cs\n/Invalid scn\n".to_vec(),
+            };
+        }
+        "shading_pattern_extgstate_tr"
+        | "direct_shading_pattern_extgstate_tr"
+        | "unused_shading_pattern_extgstate_tr" => {
+            let pattern = dictionary! {
+                "Type" => "Pattern",
+                "PatternType" => 2,
+                "Shading" => dictionary! {
+                    "ShadingType" => 2,
+                    "ColorSpace" => "DeviceRGB",
+                    "Coords" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Function" => dictionary! {
+                        "FunctionType" => 2,
+                        "Domain" => vec![0.into(), 1.into()],
+                        "C0" => vec![0.into(), 0.into(), 0.into()],
+                        "C1" => vec![1.into(), 1.into(), 1.into()],
+                        "N" => 1,
+                    },
+                    "Extend" => vec![Object::Boolean(true), Object::Boolean(true)],
+                },
+                "ExtGState" => dictionary! {"TR" => "Identity"},
+            };
+            let pattern = if case == "direct_shading_pattern_extgstate_tr" {
+                Object::Dictionary(pattern)
+            } else {
+                Object::Reference(document.add_object(pattern))
+            };
+            resources.set("Pattern", dictionary! {"P1" => pattern});
+            if case != "unused_shading_pattern_extgstate_tr" {
+                contents = b"/Pattern cs\n/P1 scn\n".to_vec();
+            }
+        }
+        "undefined_type3" | "unused_type3_undefined" => {
+            let char_proc = document.add_object(Stream::new(
+                Dictionary::new(),
+                b"1000 0 d0\nMaiUnknown\n".to_vec(),
+            ));
+            let font = document.add_object(dictionary! {
+                "Type" => "Font",
+                "Subtype" => "Type3",
+                "Name" => "T3",
+                "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+                "FontMatrix" => vec![
+                    0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+                ],
+                "CharProcs" => dictionary! {"g1" => char_proc},
+                "Encoding" => dictionary! {
+                    "Type" => "Encoding",
+                    "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+                },
+                "FirstChar" => 65,
+                "LastChar" => 65,
+                "Widths" => vec![1000.into()],
+            });
+            resources.set("Font", dictionary! {"T3" => font});
+            if case == "undefined_type3" {
+                contents = b"BT\n/T3 12 Tf\n(A) Tj\nET\n".to_vec();
+            }
+        }
+        "undefined_soft_mask_group" | "unused_soft_mask_group_undefined" => {
+            let group = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => Dictionary::new(),
+                    "Group" => dictionary! {
+                        "Type" => "Group",
+                        "S" => "Transparency",
+                        "CS" => "DeviceGray",
+                    },
+                },
+                b"MaiUnknown\n".to_vec(),
+            ));
+            let state = document.add_object(dictionary! {
+                "Type" => "ExtGState",
+                "SMask" => dictionary! {"S" => "Alpha", "G" => group},
+            });
+            resources.set("ExtGState", dictionary! {"GS1" => state});
+            if case == "undefined_soft_mask_group" {
+                contents = b"/GS1 gs\n".to_vec();
+            }
+        }
+        "xobject_smask"
+        | "unused_xobject_smask"
+        | "xobject_smask_null"
+        | "xobject_smask_indirect_null" => {
             let soft_mask = document.add_object(Stream::new(
                 dictionary! {
                     "Type" => "XObject",
@@ -2800,6 +3180,13 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 },
                 vec![0],
             ));
+            let soft_mask_value = if case == "xobject_smask_null" {
+                Object::Null
+            } else if case == "xobject_smask_indirect_null" {
+                Object::Reference(document.add_object(Object::Null))
+            } else {
+                Object::Reference(soft_mask)
+            };
             let image = document.add_object(Stream::new(
                 dictionary! {
                     "Type" => "XObject",
@@ -2808,11 +3195,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                     "Height" => 1,
                     "BitsPerComponent" => 8,
                     "ColorSpace" => "DeviceRGB",
-                    "SMask" => if case == "xobject_smask_null" {
-                        Object::Null
-                    } else {
-                        Object::Reference(soft_mask)
-                    },
+                    "SMask" => soft_mask_value,
                 },
                 vec![0, 0, 0],
             ));
@@ -2857,11 +3240,366 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         "Type" => "Page",
         "Parent" => pages_id,
         "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-        "Resources" => resources,
         "Contents" => contents_id,
     };
+    if !inherit_resources {
+        page.set("Resources", resources.clone());
+    }
+    if !annotations.is_empty() {
+        page.set("Annots", annotations);
+    }
     if let Some(group) = page_group {
         page.set("Group", group);
+    }
+    let page_id = document.add_object(page);
+    if inherit_resources {
+        document.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Reference(page_id)],
+                "Count" => 1,
+                "Resources" => resources,
+            }),
+        );
+    } else {
+        wrap_pages(&mut document, pages_id, page_id);
+    }
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document.save_to(&mut bytes).expect("save graphics fixture");
+    bytes
+}
+
+fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
+    let (source, violation) = ["form", "appearance", "pattern", "type3", "soft_mask"]
+        .into_iter()
+        .find_map(|source| {
+            case.strip_prefix(&format!("path_{source}_"))
+                .map(|violation| (source, violation))
+        })
+        .unwrap_or_else(|| panic!("unknown graphics content-path fixture case {case}"));
+
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let mut inner_resources = Dictionary::new();
+    let mut fallback_resources = Dictionary::new();
+    let inner_contents = match violation {
+        "undefined"
+        | "invisible_undefined"
+        | "malformed_text_show_undefined"
+        | "missing_subtype_undefined"
+        | "nested_state_undefined" => b"MaiUnknown\n".to_vec(),
+        "missing_subtype_form_ref"
+        | "image_subtype_bpc_16"
+        | "appearance_and_painted_image_bpc_16" => Vec::new(),
+        "extgstate_tr" => {
+            let state = document.add_object(dictionary! {"TR" => "Identity"});
+            inner_resources.set("ExtGState", dictionary! {"GS1" => state});
+            b"/GS1 gs\n".to_vec()
+        }
+        "fallback_extgstate_tr" | "missing_resources_fallback_extgstate_tr" => {
+            let state = document.add_object(dictionary! {"TR" => "Identity"});
+            fallback_resources.set("ExtGState", dictionary! {"GS1" => state});
+            b"/GS1 gs\n".to_vec()
+        }
+        "parent_only_extgstate_tr"
+        | "missing_resources_parent_extgstate_tr"
+        | "empty_resources_parent_extgstate_tr" => b"/GS1 gs\n".to_vec(),
+        "image_bpc_16" => {
+            let image = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 16,
+                    "ColorSpace" => "DeviceRGB",
+                },
+                vec![0, 0, 0],
+            ));
+            inner_resources.set("XObject", dictionary! {"Im" => image});
+            b"/Im Do\n".to_vec()
+        }
+        "inherited_pattern_undefined" => {
+            let pattern = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                },
+                b"MaiUnknown\n".to_vec(),
+            ));
+            inner_resources.set("Pattern", dictionary! {"Inner" => pattern});
+            b"/Inner scn\n".to_vec()
+        }
+        "nesting_29" => [b"q\n".repeat(29), b"Q\n".repeat(29)].concat(),
+        "inline_lzw" => b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x EI\n".to_vec(),
+        "invalid_intent" => b"/MaiIntent ri\n".to_vec(),
+        _ => panic!("unknown graphics content-path violation {violation}"),
+    };
+
+    let mut page_resources = fallback_resources;
+    let mut page_contents = Vec::new();
+    let mut annotations = Vec::new();
+    match source {
+        "form" => {
+            let form = if matches!(
+                violation,
+                "parent_only_extgstate_tr" | "missing_resources_parent_extgstate_tr"
+            ) {
+                let mut inner_dictionary = dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                };
+                if violation == "parent_only_extgstate_tr" {
+                    inner_dictionary.set("Resources", Dictionary::new());
+                }
+                let inner = document.add_object(Stream::new(inner_dictionary, inner_contents));
+                let state = document.add_object(dictionary! {"TR" => "Identity"});
+                document.add_object(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                        "Resources" => dictionary! {
+                            "XObject" => dictionary! {"Inner" => inner},
+                            "ExtGState" => dictionary! {"GS1" => state},
+                        },
+                    },
+                    b"/Inner Do\n".to_vec(),
+                ))
+            } else {
+                let mut dictionary = dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                };
+                if violation != "missing_resources_fallback_extgstate_tr" {
+                    dictionary.set("Resources", inner_resources);
+                }
+                document.add_object(Stream::new(dictionary, inner_contents))
+            };
+            page_resources.set("XObject", dictionary! {"Container" => form});
+            page_contents = b"/Container Do\n".to_vec();
+        }
+        "appearance" => {
+            let mut dictionary = dictionary! {
+                "Type" => "XObject",
+                "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+            };
+            if !matches!(
+                violation,
+                "missing_subtype_undefined" | "missing_subtype_form_ref"
+            ) {
+                dictionary.set("Subtype", "Form");
+            }
+            if violation == "missing_subtype_form_ref" {
+                dictionary.set("Ref", Dictionary::new());
+            }
+            if matches!(
+                violation,
+                "image_subtype_bpc_16" | "appearance_and_painted_image_bpc_16"
+            ) {
+                dictionary.set("Subtype", "Image");
+                dictionary.set("Width", 1);
+                dictionary.set("Height", 1);
+                dictionary.set("BitsPerComponent", 16);
+                dictionary.set("ColorSpace", "DeviceRGB");
+            }
+            if violation != "missing_resources_fallback_extgstate_tr" {
+                dictionary.set("Resources", inner_resources);
+            }
+            let appearance = document.add_object(Stream::new(dictionary, inner_contents));
+            let normal_appearance = if violation == "nested_state_undefined" {
+                Object::Dictionary(dictionary! {
+                    "Outer" => dictionary! {"Inner" => appearance},
+                })
+            } else {
+                Object::Reference(appearance)
+            };
+            let annotation = document.add_object(dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "Text",
+                "Rect" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "F" => 4,
+                "AP" => dictionary! {"N" => normal_appearance},
+            });
+            annotations.push(Object::Reference(annotation));
+            if violation == "appearance_and_painted_image_bpc_16" {
+                page_resources.set("XObject", dictionary! {"Im" => appearance});
+                page_contents = b"/Im Do\n".to_vec();
+            }
+        }
+        "pattern" => {
+            if matches!(
+                violation,
+                "missing_resources_parent_extgstate_tr" | "empty_resources_parent_extgstate_tr"
+            ) {
+                let mut pattern_dictionary = dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "XStep" => 10,
+                    "YStep" => 10,
+                };
+                if violation == "empty_resources_parent_extgstate_tr" {
+                    pattern_dictionary.set("Resources", Dictionary::new());
+                }
+                let pattern = document.add_object(Stream::new(pattern_dictionary, inner_contents));
+                let state = document.add_object(dictionary! {"TR" => "Identity"});
+                let outer = document.add_object(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                        "Resources" => dictionary! {
+                            "Pattern" => dictionary! {"Container" => pattern},
+                            "ExtGState" => dictionary! {"GS1" => state},
+                        },
+                    },
+                    b"/Pattern cs\n/Container scn\n".to_vec(),
+                ));
+                page_resources.set("XObject", dictionary! {"Outer" => outer});
+                page_contents = b"/Outer Do\n".to_vec();
+            } else {
+                let mut dictionary = dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "XStep" => 10,
+                    "YStep" => 10,
+                };
+                if violation != "missing_resources_fallback_extgstate_tr" {
+                    dictionary.set("Resources", inner_resources);
+                }
+                let pattern = document.add_object(Stream::new(dictionary, inner_contents));
+                page_resources.set("Pattern", dictionary! {"Container" => pattern});
+                page_contents = b"/Pattern cs\n/Container scn\n".to_vec();
+            }
+        }
+        "type3" => {
+            let char_proc = document.add_object(Stream::new(
+                Dictionary::new(),
+                [b"1000 0 d0\n".as_slice(), inner_contents.as_slice()].concat(),
+            ));
+            let mut font_dictionary = dictionary! {
+                "Type" => "Font",
+                "Subtype" => "Type3",
+                "Name" => "T3",
+                "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+                "FontMatrix" => vec![
+                    0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+                ],
+                "CharProcs" => dictionary! {"g1" => char_proc},
+                "Encoding" => dictionary! {
+                    "Type" => "Encoding",
+                    "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+                },
+                "FirstChar" => 65,
+                "LastChar" => 65,
+                "Widths" => vec![1000.into()],
+            };
+            if violation == "empty_resources_parent_extgstate_tr" {
+                font_dictionary.set("Resources", Dictionary::new());
+            } else if !matches!(
+                violation,
+                "missing_resources_parent_extgstate_tr" | "missing_resources_fallback_extgstate_tr"
+            ) {
+                font_dictionary.set("Resources", inner_resources);
+            }
+            let font = document.add_object(font_dictionary);
+            let text_contents = if violation == "invisible_undefined" {
+                b"BT\n/T3 12 Tf\n3 Tr\n(A) Tj\nET\n".to_vec()
+            } else if violation == "malformed_text_show_undefined" {
+                b"BT\n/T3 12 Tf\n(A) 1 Tj\nET\n".to_vec()
+            } else if violation == "inherited_pattern_undefined" {
+                b"/Pattern cs\nBT\n/T3 12 Tf\n(A) Tj\nET\n".to_vec()
+            } else {
+                b"BT\n/T3 12 Tf\n(A) Tj\nET\n".to_vec()
+            };
+            if matches!(
+                violation,
+                "missing_resources_parent_extgstate_tr" | "empty_resources_parent_extgstate_tr"
+            ) {
+                let state = document.add_object(dictionary! {"TR" => "Identity"});
+                let outer = document.add_object(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                        "Resources" => dictionary! {
+                            "Font" => dictionary! {"T3" => font},
+                            "ExtGState" => dictionary! {"GS1" => state},
+                        },
+                    },
+                    text_contents,
+                ));
+                page_resources.set("XObject", dictionary! {"Outer" => outer});
+                page_contents = b"/Outer Do\n".to_vec();
+            } else {
+                page_resources.set("Font", dictionary! {"T3" => font});
+                page_contents = text_contents;
+            }
+        }
+        "soft_mask" => {
+            let group = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => inner_resources,
+                    "Group" => dictionary! {
+                        "Type" => "Group",
+                        "S" => "Transparency",
+                        "CS" => "DeviceGray",
+                    },
+                },
+                inner_contents,
+            ));
+            let state = document.add_object(dictionary! {
+                "Type" => "ExtGState",
+                "SMask" => dictionary! {"S" => "Alpha", "G" => group},
+            });
+            page_resources.set("ExtGState", dictionary! {"GS1" => state});
+            page_contents = b"/GS1 gs\n".to_vec();
+        }
+        _ => unreachable!(),
+    }
+
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), page_contents));
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Resources" => page_resources,
+        "Contents" => contents_id,
+    };
+    if !annotations.is_empty() {
+        page.set("Annots", annotations);
     }
     let page_id = document.add_object(page);
     wrap_pages(&mut document, pages_id, page_id);
@@ -2881,7 +3619,9 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
     document.trailer.set("Root", catalog_id);
     document.trailer.set("Info", info_id);
     let mut bytes = Vec::new();
-    document.save_to(&mut bytes).expect("save graphics fixture");
+    document
+        .save_to(&mut bytes)
+        .expect("save graphics content-path fixture");
     bytes
 }
 
@@ -5263,9 +6003,8 @@ fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
 /// Widget's non-selected state), a Pattern's own content, or a Type3 glyph
 /// CharProc. Each was confirmed live against veraPDF 1.28.2 to still
 /// populate a `PDFont` object for a font used only there, so it must still
-/// be checked for embedding (see `font_embedding.rs`'s
-/// `scan_annotation_appearances`/`scan_form_like_stream`/
-/// `scan_type3_charproc_fonts`).
+/// be checked for embedding (see `content_support::ContentExecutor`'s shared
+/// appearance, Pattern, and Type3 execution paths).
 pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();

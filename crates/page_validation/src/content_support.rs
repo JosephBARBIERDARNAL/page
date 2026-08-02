@@ -7,8 +7,11 @@ use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{ResourceKey, resolve_optional, walk_inherited};
+use crate::object_resolution::{
+    ResourceKey, resolve_optional, resolved_integer, resolved_name, walk_inherited,
+};
 use crate::page_tree::PageEntry;
+use crate::report::RuleFailure;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SelectedColorSpace {
@@ -26,6 +29,7 @@ pub(crate) struct XObjectUse {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum XObjectUseKind {
     Painted,
+    Appearance,
     Alternate,
     ExplicitMask,
     SoftMask,
@@ -37,14 +41,26 @@ pub(crate) struct ExtGStateUse {
     pub(crate) dictionary: Dictionary,
 }
 
-/// Deterministic discoveries made while executing the bounded page/Form
-/// content graph. Consumers apply their own rule predicates to this one shared
-/// population instead of maintaining subtly different reachability walkers.
+#[derive(Clone, Debug)]
+pub(crate) struct FontUse {
+    pub(crate) key: ResourceKey,
+    pub(crate) object: Object,
+    pub(crate) description: String,
+    pub(crate) rendering_mode: i64,
+    pub(crate) shown_bytes: Vec<u8>,
+}
+
+/// Deterministic discoveries made while executing the bounded page, Form,
+/// annotation-appearance, tiling-Pattern, and rendered-Type3 content graph.
+/// Consumers apply their own rule predicates to this one shared population
+/// instead of maintaining subtly different reachability walkers.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ContentExecutionSummary {
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
     pub(crate) xobjects: Vec<XObjectUse>,
     pub(crate) extgstates: Vec<ExtGStateUse>,
+    pub(crate) fonts: Vec<FontUse>,
+    pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
     pub(crate) inline_image_lzw_context: Option<String>,
@@ -83,10 +99,9 @@ pub(crate) fn decode_content_stream(
     Ok(bytes)
 }
 
-/// A page/Form content-stream decode cache keyed by the stream's own
-/// indirect object id, shared across the several inspectors that otherwise
-/// each independently decompress and re-tokenize the same page and Form
-/// content.
+/// A content-stream decode cache keyed by the stream's own indirect object id.
+/// Repeated invocations in the shared executor reuse decoded bytes while each
+/// invocation still applies its own graphics state and resource context.
 pub(crate) type ContentCache = HashMap<ObjectId, Rc<[u8]>>;
 
 /// Decodes `stream`'s content like [`decode_content_stream`], reusing a
@@ -237,10 +252,18 @@ struct ContentExecutor<'a> {
 }
 
 #[derive(Clone, Debug, Default)]
-struct ColorState {
+struct GraphicsState {
     stroking_pattern: bool,
     nonstroking_pattern: bool,
-    stack: Vec<(bool, bool)>,
+    font: Option<SelectedFont>,
+    rendering_mode: i64,
+}
+
+#[derive(Clone, Debug)]
+struct SelectedFont {
+    key: ResourceKey,
+    object: Object,
+    description: String,
 }
 
 impl ContentExecutor<'_> {
@@ -248,7 +271,8 @@ impl ContentExecutor<'_> {
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let mut active_forms = BTreeSet::new();
         let mut decoded_bytes = 0usize;
-        let mut color_state = ColorState::default();
+        let mut graphics_state = GraphicsState::default();
+        let mut graphics_stack = Vec::new();
         self.record_group_color_space(
             page,
             resources.as_ref(),
@@ -260,7 +284,8 @@ impl ContentExecutor<'_> {
                 contents,
                 resources.as_ref(),
                 resources.as_ref(),
-                &mut color_state,
+                &mut graphics_state,
+                &mut graphics_stack,
                 &mut active_forms,
                 &mut decoded_bytes,
                 &format!("page {page_number}"),
@@ -348,18 +373,21 @@ impl ContentExecutor<'_> {
             return Ok(());
         };
         if resolved.as_stream().is_ok() {
-            let color_state = ColorState::default();
+            let graphics_state = GraphicsState::default();
             return self.execute_xobject(
                 entry,
-                XObjectUseKind::Painted,
+                XObjectUseKind::Appearance,
                 page_resources,
                 page_resources,
-                &color_state,
+                &graphics_state,
                 active_forms,
                 decoded_bytes,
                 context,
                 depth + 1,
             );
+        }
+        if depth > 0 {
+            return Ok(());
         }
         let Ok(states) = resolved.as_dict() else {
             return Ok(());
@@ -383,7 +411,8 @@ impl ContentExecutor<'_> {
         contents: &Object,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
-        color_state: &mut ColorState,
+        graphics_state: &mut GraphicsState,
+        graphics_stack: &mut Vec<GraphicsState>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -404,7 +433,8 @@ impl ContentExecutor<'_> {
                     item,
                     resources,
                     page_resources,
-                    color_state,
+                    graphics_state,
+                    graphics_stack,
                     active_forms,
                     decoded_bytes,
                     context,
@@ -449,7 +479,12 @@ impl ContentExecutor<'_> {
             }
         }
 
-        let Ok(content) = Content::decode(&inline_images.ordinary_content) else {
+        if !content_syntax_is_balanced(&inline_images.ordinary_content) {
+            return Ok(());
+        }
+        let normalized_content =
+            normalize_digit_suffixed_operators(&inline_images.ordinary_content);
+        let Ok(content) = Content::decode(&normalized_content) else {
             return Ok(());
         };
         for operation in content.operations {
@@ -460,29 +495,45 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
-                "q" => color_state.stack.push((
-                    color_state.stroking_pattern,
-                    color_state.nonstroking_pattern,
-                )),
-                "Q" => {
-                    if let Some((stroking, nonstroking)) = color_state.stack.pop() {
-                        color_state.stroking_pattern = stroking;
-                        color_state.nonstroking_pattern = nonstroking;
+                "q" if operation.operands.is_empty() => {
+                    if graphics_stack.len() >= self.limits.max_reference_depth {
+                        return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
+                    }
+                    graphics_stack.push(graphics_state.clone());
+                    if graphics_stack.len() > 28 {
+                        self.summary
+                            .excessive_graphics_state_nesting
+                            .push(RuleFailure {
+                                object_id: None,
+                                description: format!(
+                                    "{context} reaches graphics-state nesting depth {}",
+                                    graphics_stack.len()
+                                ),
+                            });
+                    }
+                }
+                "Q" if operation.operands.is_empty() => {
+                    if let Some(saved) = graphics_stack.pop() {
+                        *graphics_state = saved;
                     }
                 }
                 "CS" | "cs" => {
-                    if let Some(value) = operation.operands.first() {
-                        let pattern = self.record_color_space(
-                            value.clone(),
-                            resources,
-                            page_resources,
-                            format!("{context}/{}", operation.operator),
-                        )?;
-                        if operation.operator == "CS" {
-                            color_state.stroking_pattern = pattern;
-                        } else {
-                            color_state.nonstroking_pattern = pattern;
-                        }
+                    let [value] = operation.operands.as_slice() else {
+                        continue;
+                    };
+                    let Ok(_name) = value.as_name() else {
+                        continue;
+                    };
+                    let pattern = self.record_color_space(
+                        value.clone(),
+                        resources,
+                        page_resources,
+                        format!("{context}/{}", operation.operator),
+                    )?;
+                    if operation.operator == "CS" {
+                        graphics_state.stroking_pattern = pattern;
+                    } else {
+                        graphics_state.nonstroking_pattern = pattern;
                     }
                 }
                 "g" | "G" => {
@@ -494,9 +545,9 @@ impl ContentExecutor<'_> {
                         context,
                     )?;
                     if operation.operator == "G" {
-                        color_state.stroking_pattern = false;
+                        graphics_state.stroking_pattern = false;
                     } else {
-                        color_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_pattern = false;
                     }
                 }
                 "rg" | "RG" => {
@@ -508,9 +559,9 @@ impl ContentExecutor<'_> {
                         context,
                     )?;
                     if operation.operator == "RG" {
-                        color_state.stroking_pattern = false;
+                        graphics_state.stroking_pattern = false;
                     } else {
-                        color_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_pattern = false;
                     }
                 }
                 "k" | "K" => {
@@ -522,16 +573,14 @@ impl ContentExecutor<'_> {
                         context,
                     )?;
                     if operation.operator == "K" {
-                        color_state.stroking_pattern = false;
+                        graphics_state.stroking_pattern = false;
                     } else {
-                        color_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_pattern = false;
                     }
                 }
                 "ri" => {
-                    if let Some(name) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok())
+                    if let [operand] = operation.operands.as_slice()
+                        && let Ok(name) = operand.as_name()
                     {
                         let name = String::from_utf8_lossy(name).into_owned();
                         if !is_standard_rendering_intent(&name) {
@@ -543,11 +592,10 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "gs" => {
-                    let Some(name) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok())
-                    else {
+                    let [operand] = operation.operands.as_slice() else {
+                        continue;
+                    };
+                    let Ok(name) = operand.as_name() else {
                         continue;
                     };
                     let Some(value) = resource(
@@ -573,12 +621,63 @@ impl ContentExecutor<'_> {
                         dictionary: dictionary.clone(),
                     });
                 }
+                "Tf" => {
+                    let name = match operation.operands.as_slice() {
+                        [name, _size] => name.as_name().ok(),
+                        _ => None,
+                    };
+                    graphics_state.font = match name {
+                        Some(name) => resource(
+                            self.document,
+                            self.limits,
+                            resources,
+                            page_resources,
+                            b"Font",
+                            name,
+                        )?
+                        .map(|object| SelectedFont {
+                            key: resource_key(object, &format!("{context}/Font")),
+                            object: object.clone(),
+                            description: describe_font(object, context, name),
+                        }),
+                        None => None,
+                    };
+                }
+                "Tr" => {
+                    if let [operand] = operation.operands.as_slice()
+                        && let Ok(mode) = operand.as_i64()
+                    {
+                        graphics_state.rendering_mode = mode;
+                    }
+                }
+                "Tj" | "TJ" | "'" | "\"" => {
+                    let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
+                    if !shown_bytes.is_empty()
+                        && let Some(font) = graphics_state.font.clone()
+                    {
+                        self.summary.fonts.push(FontUse {
+                            key: font.key.clone(),
+                            object: font.object.clone(),
+                            description: font.description.clone(),
+                            rendering_mode: graphics_state.rendering_mode,
+                            shown_bytes: shown_bytes.clone(),
+                        });
+                        self.execute_type3_glyphs(
+                            &font,
+                            &shown_bytes,
+                            page_resources,
+                            graphics_state,
+                            active_forms,
+                            decoded_bytes,
+                            depth + 1,
+                        )?;
+                    }
+                }
                 "Do" => {
-                    let Some(name) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok())
-                    else {
+                    let [operand] = operation.operands.as_slice() else {
+                        continue;
+                    };
+                    let Ok(name) = operand.as_name() else {
                         continue;
                     };
                     let Some(value) = resource(
@@ -597,7 +696,7 @@ impl ContentExecutor<'_> {
                         XObjectUseKind::Painted,
                         resources,
                         page_resources,
-                        color_state,
+                        graphics_state,
                         active_forms,
                         decoded_bytes,
                         &format!("{context}/XObject /{}", String::from_utf8_lossy(name)),
@@ -605,11 +704,10 @@ impl ContentExecutor<'_> {
                     )?;
                 }
                 "sh" => {
-                    let Some(name) = operation
-                        .operands
-                        .first()
-                        .and_then(|operand| operand.as_name().ok())
-                    else {
+                    let [operand] = operation.operands.as_slice() else {
+                        continue;
+                    };
+                    let Ok(name) = operand.as_name() else {
                         continue;
                     };
                     let Some(shading) = resource(
@@ -640,40 +738,41 @@ impl ContentExecutor<'_> {
                 }
                 "scn" | "SCN" => {
                     let pattern_selected = if operation.operator == "SCN" {
-                        color_state.stroking_pattern
+                        graphics_state.stroking_pattern
                     } else {
-                        color_state.nonstroking_pattern
+                        graphics_state.nonstroking_pattern
                     };
                     if !pattern_selected {
                         continue;
                     }
-                    for name in operation
+                    let Some(name) = operation
                         .operands
-                        .iter()
-                        .filter_map(|operand| operand.as_name().ok())
-                    {
-                        let Some(pattern) = resource(
-                            self.document,
-                            self.limits,
-                            resources,
-                            page_resources,
-                            b"Pattern",
-                            name,
-                        )?
-                        else {
-                            continue;
-                        };
-                        self.execute_pattern(
-                            pattern,
-                            resources,
-                            page_resources,
-                            color_state,
-                            active_forms,
-                            decoded_bytes,
-                            &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
-                            depth + 1,
-                        )?;
-                    }
+                        .last()
+                        .and_then(|operand| operand.as_name().ok())
+                    else {
+                        continue;
+                    };
+                    let Some(pattern) = resource(
+                        self.document,
+                        self.limits,
+                        resources,
+                        page_resources,
+                        b"Pattern",
+                        name,
+                    )?
+                    else {
+                        continue;
+                    };
+                    self.execute_pattern(
+                        pattern,
+                        resources,
+                        page_resources,
+                        graphics_state,
+                        active_forms,
+                        decoded_bytes,
+                        &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
+                        depth + 1,
+                    )?;
                 }
                 _ => {}
             }
@@ -688,7 +787,7 @@ impl ContentExecutor<'_> {
         kind: XObjectUseKind,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
-        color_state: &ColorState,
+        graphics_state: &GraphicsState,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -709,25 +808,31 @@ impl ContentExecutor<'_> {
             object: resolved.clone(),
             kind,
         });
-        let Ok(stream) = resolved.as_stream() else {
+        let Some(dictionary) = crate::object_resolution::dictionary_based(resolved) else {
             return Ok(());
         };
-        match stream
-            .dict
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
+        let declared_subtype = resolved_name(
+            self.document,
+            dictionary,
+            b"Subtype",
+            self.limits.max_reference_depth,
+        )?;
+        let modeled_subtype = if kind == XObjectUseKind::Appearance && resolved.as_stream().is_ok()
         {
+            Some(b"Form".as_slice())
+        } else {
+            declared_subtype
+        };
+        match modeled_subtype {
             Some(b"Image") => {
-                let is_stencil = stream
-                    .dict
+                let is_stencil = dictionary
                     .get(b"ImageMask")
                     .ok()
                     .and_then(|value| value.as_bool().ok())
                     == Some(true);
                 if matches!(kind, XObjectUseKind::Painted | XObjectUseKind::Alternate)
                     && !is_stencil
-                    && let Ok(value) = stream.dict.get(b"ColorSpace")
+                    && let Ok(value) = dictionary.get(b"ColorSpace")
                 {
                     let _ = self.record_color_space(
                         value.clone(),
@@ -740,13 +845,13 @@ impl ContentExecutor<'_> {
                     (b"Mask".as_slice(), XObjectUseKind::ExplicitMask),
                     (b"SMask".as_slice(), XObjectUseKind::SoftMask),
                 ] {
-                    if let Ok(dependent) = stream.dict.get(key) {
+                    if let Ok(dependent) = dictionary.get(key) {
                         self.execute_xobject(
                             dependent,
                             dependent_kind,
                             resources,
                             page_resources,
-                            color_state,
+                            graphics_state,
                             active_forms,
                             decoded_bytes,
                             &format!("{context}/{}", String::from_utf8_lossy(key)),
@@ -754,7 +859,7 @@ impl ContentExecutor<'_> {
                         )?;
                     }
                 }
-                if let Ok(alternates) = stream.dict.get(b"Alternates")
+                if let Ok(alternates) = dictionary.get(b"Alternates")
                     && let Some(alternates) = resolve_optional(
                         self.document,
                         alternates,
@@ -777,7 +882,7 @@ impl ContentExecutor<'_> {
                                 XObjectUseKind::Alternate,
                                 resources,
                                 page_resources,
-                                color_state,
+                                graphics_state,
                                 active_forms,
                                 decoded_bytes,
                                 &format!("{context}/Alternate {index}"),
@@ -791,7 +896,7 @@ impl ContentExecutor<'_> {
                 if object_id.is_some_and(|id| !active_forms.insert(id)) {
                     return Ok(());
                 }
-                let form_resources = match stream.dict.get(b"Resources") {
+                let form_resources = match dictionary.get(b"Resources") {
                     Ok(entry) => {
                         resolve_optional(self.document, entry, self.limits.max_reference_depth)?
                             .and_then(|object| object.as_dict().ok())
@@ -800,23 +905,28 @@ impl ContentExecutor<'_> {
                     Err(_) => None,
                 };
                 self.record_group_color_space(
-                    &stream.dict,
+                    dictionary,
                     form_resources.as_ref(),
                     page_resources,
                     &format!("{context}/Group"),
                 )?;
-                let mut form_color_state = color_state.clone();
-                form_color_state.stack.clear();
-                let result = self.execute_contents(
-                    object,
-                    form_resources.as_ref(),
-                    page_resources,
-                    &mut form_color_state,
-                    active_forms,
-                    decoded_bytes,
-                    context,
-                    depth,
-                );
+                let result = if resolved.as_stream().is_ok() {
+                    let mut form_graphics_state = graphics_state.clone();
+                    let mut form_graphics_stack = Vec::new();
+                    self.execute_contents(
+                        object,
+                        form_resources.as_ref(),
+                        page_resources,
+                        &mut form_graphics_state,
+                        &mut form_graphics_stack,
+                        active_forms,
+                        decoded_bytes,
+                        context,
+                        depth,
+                    )
+                } else {
+                    Ok(())
+                };
                 if let Some(id) = object_id {
                     active_forms.remove(&id);
                 }
@@ -833,7 +943,7 @@ impl ContentExecutor<'_> {
         object: &Object,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
-        color_state: &ColorState,
+        graphics_state: &GraphicsState,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -846,28 +956,46 @@ impl ContentExecutor<'_> {
         if object_id.is_some_and(|id| !active_forms.insert(id)) {
             return Ok(());
         }
-        let Some(stream) =
+        let Some(resolved) =
             resolve_optional(self.document, object, self.limits.max_reference_depth)?
-                .and_then(|object| object.as_stream().ok())
         else {
             if let Some(id) = object_id {
                 active_forms.remove(&id);
             }
             return Ok(());
         };
-        if stream
-            .dict
-            .get(b"PatternType")
-            .ok()
-            .and_then(|value| value.as_i64().ok())
-            != Some(1)
-        {
+        let Some(dictionary) = crate::object_resolution::dictionary_based(resolved) else {
+            if let Some(id) = object_id {
+                active_forms.remove(&id);
+            }
+            return Ok(());
+        };
+        let pattern_type = resolved_integer(
+            self.document,
+            dictionary,
+            b"PatternType",
+            self.limits.max_reference_depth,
+        )?;
+        if pattern_type == Some(2) {
+            self.execute_shading_pattern(dictionary, resources, page_resources, context)?;
             if let Some(id) = object_id {
                 active_forms.remove(&id);
             }
             return Ok(());
         }
-        let pattern_resources = match stream.dict.get(b"Resources") {
+        let Ok(_stream) = resolved.as_stream() else {
+            if let Some(id) = object_id {
+                active_forms.remove(&id);
+            }
+            return Ok(());
+        };
+        if pattern_type != Some(1) {
+            if let Some(id) = object_id {
+                active_forms.remove(&id);
+            }
+            return Ok(());
+        }
+        let pattern_resources = match dictionary.get(b"Resources") {
             Ok(entry) => resolve_optional(self.document, entry, self.limits.max_reference_depth)?
                 .and_then(|object| object.as_dict().ok())
                 .cloned(),
@@ -875,13 +1003,10 @@ impl ContentExecutor<'_> {
         };
         let result = self.execute_contents(
             object,
-            pattern_resources.as_ref().or(resources),
+            pattern_resources.as_ref(),
             page_resources,
-            &mut {
-                let mut pattern_color_state = color_state.clone();
-                pattern_color_state.stack.clear();
-                pattern_color_state
-            },
+            &mut graphics_state.clone(),
+            &mut Vec::new(),
             active_forms,
             decoded_bytes,
             context,
@@ -891,6 +1016,140 @@ impl ContentExecutor<'_> {
             active_forms.remove(&id);
         }
         result
+    }
+
+    fn execute_shading_pattern(
+        &mut self,
+        pattern: &Dictionary,
+        resources: Option<&Dictionary>,
+        page_resources: Option<&Dictionary>,
+        context: &str,
+    ) -> Result<(), PdfError> {
+        if let Ok(shading) = pattern.get(b"Shading")
+            && let Some(shading) =
+                resolve_optional(self.document, shading, self.limits.max_reference_depth)?
+                    .and_then(crate::object_resolution::dictionary_based)
+            && let Ok(color_space) = shading.get(b"ColorSpace")
+        {
+            let _ = self.record_color_space(
+                color_space.clone(),
+                resources,
+                page_resources,
+                format!("{context}/Shading"),
+            )?;
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_type3_glyphs(
+        &mut self,
+        selected: &SelectedFont,
+        shown_bytes: &[u8],
+        page_resources: Option<&Dictionary>,
+        graphics_state: &GraphicsState,
+        active_forms: &mut BTreeSet<ObjectId>,
+        decoded_bytes: &mut usize,
+        depth: usize,
+    ) -> Result<(), PdfError> {
+        let Some(font) = resolve_optional(
+            self.document,
+            &selected.object,
+            self.limits.max_reference_depth,
+        )?
+        .and_then(|object| object.as_dict().ok()) else {
+            return Ok(());
+        };
+        let subtype = resolved_name(
+            self.document,
+            font,
+            b"Subtype",
+            self.limits.max_reference_depth,
+        )?;
+        if subtype != Some(b"Type3".as_slice()) {
+            return Ok(());
+        }
+        let Some(char_procs) = font
+            .get(b"CharProcs")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_dict().ok())
+        else {
+            return Ok(());
+        };
+        let font_resources = font
+            .get(b"Resources")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_dict().ok())
+            .cloned();
+        for glyph_name in
+            crate::font_embedding::type3_glyph_names(self.document, font, shown_bytes, self.limits)?
+        {
+            let Ok(char_proc) = char_procs.get(glyph_name.as_bytes()) else {
+                continue;
+            };
+            let object_id = char_proc.as_reference().ok();
+            if object_id.is_some_and(|id| !active_forms.insert(id)) {
+                continue;
+            }
+            let result = self.execute_standalone_stream(
+                char_proc,
+                font_resources.as_ref(),
+                page_resources,
+                graphics_state,
+                active_forms,
+                decoded_bytes,
+                &format!("{}/CharProc /{glyph_name}", selected.description),
+                depth,
+            );
+            if let Some(id) = object_id {
+                active_forms.remove(&id);
+            }
+            result?;
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_standalone_stream(
+        &mut self,
+        object: &Object,
+        fallback_resources: Option<&Dictionary>,
+        page_resources: Option<&Dictionary>,
+        graphics_state: &GraphicsState,
+        active_forms: &mut BTreeSet<ObjectId>,
+        decoded_bytes: &mut usize,
+        context: &str,
+        depth: usize,
+    ) -> Result<(), PdfError> {
+        let Some(stream) =
+            resolve_optional(self.document, object, self.limits.max_reference_depth)?
+                .and_then(|object| object.as_stream().ok())
+        else {
+            return Ok(());
+        };
+        let resources = match stream.dict.get(b"Resources") {
+            Ok(value) => resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                .and_then(|object| object.as_dict().ok())
+                .cloned(),
+            Err(_) => fallback_resources.cloned(),
+        };
+        self.execute_contents(
+            object,
+            resources.as_ref(),
+            page_resources,
+            &mut graphics_state.clone(),
+            &mut Vec::new(),
+            active_forms,
+            decoded_bytes,
+            context,
+            depth,
+        )
     }
 
     fn record_group_color_space(
@@ -1063,6 +1322,16 @@ fn resource_key(object: &Object, context: &str) -> ResourceKey {
     )
 }
 
+fn describe_font(object: &Object, context: &str, name: &[u8]) -> String {
+    match object {
+        Object::Reference((number, generation)) => format!("font object {number} {generation}"),
+        _ => format!(
+            "direct font /{} in {context}",
+            String::from_utf8_lossy(name)
+        ),
+    }
+}
+
 fn resource<'a>(
     document: &'a Document,
     limits: &SafetyLimits,
@@ -1194,7 +1463,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
     let mut array_depth = 0usize;
     while cursor < bytes.len() {
         let token_start = cursor;
-        let Some((token, next)) = next_content_token(bytes, cursor) else {
+        let Some((token, _, next)) = next_content_token(bytes, cursor) else {
             break;
         };
         cursor = next;
@@ -1207,7 +1476,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                 let mut rendering_intent_value = false;
                 let mut filter_value = false;
                 let mut filter_array_depth = None;
-                while let Some((token, next)) = next_content_token(bytes, cursor) {
+                while let Some((token, _, next)) = next_content_token(bytes, cursor) {
                     cursor = next;
                     match token {
                         ContentToken::Bare(token) if token == b"ID" => {
@@ -1268,17 +1537,81 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
     result
 }
 
-/// Removes inline-image dictionaries and data before lopdf parses ordinary
-/// content operations. Kept crate-private for the independent font walker.
-pub(crate) fn content_without_inline_images(bytes: &[u8]) -> Vec<u8> {
-    tokenize_inline_images(bytes).ordinary_content
-}
-
 fn is_lzw_filter(name: &[u8]) -> bool {
     matches!(name, b"LZW" | b"LZWDecode")
 }
 
-fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, usize)> {
+fn content_syntax_is_balanced(bytes: &[u8]) -> bool {
+    let mut cursor = 0usize;
+    let mut arrays = 0usize;
+    let mut dictionaries = 0usize;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'%' => {
+                while cursor < bytes.len() && !matches!(bytes[cursor], b'\n' | b'\r') {
+                    cursor += 1;
+                }
+            }
+            b'(' => {
+                cursor += 1;
+                let mut depth = 1usize;
+                while cursor < bytes.len() && depth > 0 {
+                    match bytes[cursor] {
+                        b'\\' => cursor = cursor.saturating_add(2),
+                        b'(' => {
+                            depth += 1;
+                            cursor += 1;
+                        }
+                        b')' => {
+                            depth -= 1;
+                            cursor += 1;
+                        }
+                        _ => cursor += 1,
+                    }
+                }
+                if depth != 0 {
+                    return false;
+                }
+            }
+            b'<' if bytes.get(cursor + 1) == Some(&b'<') => {
+                dictionaries += 1;
+                cursor += 2;
+            }
+            b'>' if bytes.get(cursor + 1) == Some(&b'>') => {
+                if dictionaries == 0 {
+                    return false;
+                }
+                dictionaries -= 1;
+                cursor += 2;
+            }
+            b'<' => {
+                cursor += 1;
+                while cursor < bytes.len() && bytes[cursor] != b'>' {
+                    cursor += 1;
+                }
+                if cursor == bytes.len() {
+                    return false;
+                }
+                cursor += 1;
+            }
+            b'[' => {
+                arrays += 1;
+                cursor += 1;
+            }
+            b']' => {
+                if arrays == 0 {
+                    return false;
+                }
+                arrays -= 1;
+                cursor += 1;
+            }
+            _ => cursor += 1,
+        }
+    }
+    arrays == 0 && dictionaries == 0
+}
+
+fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, usize, usize)> {
     loop {
         while cursor < bytes.len() && is_pdf_whitespace(bytes[cursor]) {
             cursor += 1;
@@ -1291,6 +1624,7 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
         }
         break;
     }
+    let token_start = cursor;
     let byte = *bytes.get(cursor)?;
     match byte {
         b'/' => {
@@ -1301,11 +1635,12 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
             }
             Some((
                 ContentToken::Name(decode_pdf_name(&bytes[start..cursor])),
+                token_start,
                 cursor,
             ))
         }
-        b'[' => Some((ContentToken::OpenArray, cursor + 1)),
-        b']' => Some((ContentToken::CloseArray, cursor + 1)),
+        b'[' => Some((ContentToken::OpenArray, token_start, cursor + 1)),
+        b']' => Some((ContentToken::CloseArray, token_start, cursor + 1)),
         b'(' => {
             cursor += 1;
             let mut depth = 1usize;
@@ -1323,24 +1658,57 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
                     _ => cursor += 1,
                 }
             }
-            Some((ContentToken::Other, cursor.min(bytes.len())))
+            Some((ContentToken::Other, token_start, cursor.min(bytes.len())))
         }
         b'<' if bytes.get(cursor + 1) != Some(&b'<') => {
             cursor += 1;
             while cursor < bytes.len() && bytes[cursor] != b'>' {
                 cursor += 1;
             }
-            Some((ContentToken::Other, (cursor + 1).min(bytes.len())))
+            Some((
+                ContentToken::Other,
+                token_start,
+                (cursor + 1).min(bytes.len()),
+            ))
         }
-        byte if is_pdf_delimiter_or_whitespace(byte) => Some((ContentToken::Other, cursor + 1)),
+        byte if is_pdf_delimiter_or_whitespace(byte) => {
+            Some((ContentToken::Other, token_start, cursor + 1))
+        }
         _ => {
             let start = cursor;
             while cursor < bytes.len() && !is_pdf_delimiter_or_whitespace(bytes[cursor]) {
                 cursor += 1;
             }
-            Some((ContentToken::Bare(bytes[start..cursor].to_vec()), cursor))
+            Some((
+                ContentToken::Bare(bytes[start..cursor].to_vec()),
+                token_start,
+                cursor,
+            ))
         }
     }
+}
+
+/// lopdf's content decoder tokenizes `d0` and `d1` as the line-dash operator
+/// `d` followed by a numeric operand. They are distinct Type3 glyph-metrics
+/// operators in PDF 1.4. The executor does not need their metric side effects,
+/// so replace only those exact bare tokens with the operand-free no-op `n`
+/// before decoding. Names, strings, hexadecimal strings, and comments are
+/// preserved because `next_content_token` reports their complete spans.
+fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Vec<u8> {
+    let mut normalized = Vec::with_capacity(bytes.len());
+    let mut cursor = 0usize;
+    let mut copied = 0usize;
+    while let Some((token, start, next)) = next_content_token(bytes, cursor) {
+        if matches!(token, ContentToken::Bare(ref value) if matches!(value.as_slice(), b"d0" | b"d1"))
+        {
+            normalized.extend_from_slice(&bytes[copied..start]);
+            normalized.push(b'n');
+            copied = next;
+        }
+        cursor = next;
+    }
+    normalized.extend_from_slice(&bytes[copied..]);
+    normalized
 }
 
 fn find_inline_image_end(bytes: &[u8], cursor: usize) -> Option<usize> {
@@ -1396,7 +1764,7 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{
-        ContentCache, content_without_inline_images, execute_content, is_pdf_boundary,
+        ContentCache, execute_content, is_pdf_boundary, normalize_digit_suffixed_operators,
         tokenize_inline_images,
     };
     use crate::SafetyLimits;
@@ -1419,6 +1787,16 @@ mod tests {
     #[test]
     fn an_ordinary_letter_is_not_a_pdf_boundary() {
         assert!(!is_pdf_boundary(Some(b'a')));
+    }
+
+    #[test]
+    fn type3_metric_operators_are_normalized_without_touching_data() {
+        assert_eq!(
+            normalize_digit_suffixed_operators(
+                b"1000 0 d0\n1 2 3 4 5 6 d1\n/d0 (d1) <6430> % d1\n"
+            ),
+            b"1000 0 n\n1 2 3 4 5 6 n\n/d0 (d1) <6430> % d1\n"
+        );
     }
 
     #[test]
@@ -1451,7 +1829,8 @@ mod tests {
     #[test]
     fn ordinary_operation_parsing_resumes_after_each_inline_image() {
         assert_eq!(
-            content_without_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do"),
+            tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
+                .ordinary_content,
             b"q  Q  /Im Do"
         );
     }
@@ -1459,7 +1838,7 @@ mod tests {
     #[test]
     fn inline_image_ei_accepts_delimiter_boundaries() {
         assert_eq!(
-            content_without_inline_images(b"BI /W 1 /H 1 ID x EI/Q"),
+            tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q").ordinary_content,
             b" /Q"
         );
     }
@@ -1566,6 +1945,221 @@ mod tests {
             4,
             "two ordinary invocations and their two cycle-edge observations remain visible"
         );
+    }
+
+    #[test]
+    fn active_pattern_cycle_terminates() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let pattern_id = document.new_object_id();
+        document.objects.insert(
+            pattern_id,
+            Object::Stream(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                    "Resources" => dictionary! {
+                        "Pattern" => dictionary! {"Self" => pattern_id},
+                    },
+                },
+                b"/Pattern cs\n/Self scn\nMaiUnknown\n".to_vec(),
+            )),
+        );
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"/Pattern cs\n/P1 scn\n".to_vec(),
+        ));
+        let page = document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {"Pattern" => dictionary! {"P1" => pattern_id}},
+        );
+        page.set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute cyclic Pattern");
+        assert_eq!(summary.undefined_operators.len(), 1);
+        assert!(summary.undefined_operators.contains_key("MaiUnknown"));
+    }
+
+    #[test]
+    fn cyclic_appearance_state_dictionary_terminates_at_the_single_state_layer() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let states_id = document.new_object_id();
+        document.objects.insert(
+            states_id,
+            Object::Dictionary(dictionary! {"Self" => states_id}),
+        );
+        let annotation = document.add_object(dictionary! {
+            "Type" => "Annot",
+            "Subtype" => "Text",
+            "Rect" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+            "AP" => dictionary! {"N" => states_id},
+        });
+        document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page")
+            .set("Annots", vec![Object::Reference(annotation)]);
+        let summary = execute_content(
+            &document,
+            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &mut ContentCache::new(),
+            &SafetyLimits::default(),
+        )
+        .expect("cyclic nested appearance states stop after one state layer");
+        assert!(summary.undefined_operators.is_empty());
+    }
+
+    #[test]
+    fn cyclic_linked_image_graph_hits_the_reference_depth_limit() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let image_id = document.new_object_id();
+        document.objects.insert(
+            image_id,
+            Object::Stream(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 1,
+                    "ImageMask" => true,
+                    "Mask" => image_id,
+                },
+                vec![0],
+            )),
+        );
+        let contents = document.add_object(Stream::new(Dictionary::new(), b"/Im Do\n".to_vec()));
+        let page = document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {"XObject" => dictionary! {"Im" => image_id}},
+        );
+        page.set("Contents", contents);
+        let limits = SafetyLimits {
+            max_reference_depth: 3,
+            ..SafetyLimits::default()
+        };
+
+        let error = execute_content(
+            &document,
+            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &mut ContentCache::new(),
+            &limits,
+        )
+        .expect_err("cyclic linked images must be bounded");
+        assert!(matches!(error, crate::PdfError::ReferenceDepth(3)));
+    }
+
+    #[test]
+    fn active_type3_charproc_cycle_terminates() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let font_id = document.new_object_id();
+        let char_proc_id = document.new_object_id();
+        document.objects.insert(
+            char_proc_id,
+            Object::Stream(Stream::new(
+                Dictionary::new(),
+                b"1000 0 d0\nBT\n/Self 12 Tf\n(A) Tj\nET\n".to_vec(),
+            )),
+        );
+        document.objects.insert(
+            font_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Font",
+                "Subtype" => "Type3",
+                "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+                "FontMatrix" => vec![
+                    0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+                ],
+                "CharProcs" => dictionary! {"g1" => char_proc_id},
+                "Encoding" => dictionary! {
+                    "Type" => "Encoding",
+                    "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+                },
+                "FirstChar" => 65,
+                "LastChar" => 65,
+                "Widths" => vec![1000.into()],
+                "Resources" => dictionary! {"Font" => dictionary! {"Self" => font_id}},
+            }),
+        );
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"BT\n/T3 12 Tf\n(A) Tj\nET\n".to_vec(),
+        ));
+        let page = document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {"Font" => dictionary! {"T3" => font_id}},
+        );
+        page.set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute cyclic Type3");
+        assert_eq!(summary.fonts.len(), 2);
+    }
+
+    #[test]
+    fn deeply_nested_content_graph_obeys_the_reference_depth_limit() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let mut child = None;
+        for _ in 0..6 {
+            let resources = child.map_or_else(Dictionary::new, |child| {
+                dictionary! {"XObject" => dictionary! {"Next" => child}}
+            });
+            child = Some(document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "Resources" => resources,
+                },
+                if child.is_some() {
+                    b"/Next Do\n".to_vec()
+                } else {
+                    Vec::new()
+                },
+            )));
+        }
+        let contents = document.add_object(Stream::new(Dictionary::new(), b"/Root Do\n".to_vec()));
+        let page = document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {"XObject" => dictionary! {"Root" => child.expect("form chain")}},
+        );
+        page.set("Contents", contents);
+        let limits = SafetyLimits {
+            max_reference_depth: 3,
+            ..SafetyLimits::default()
+        };
+        let error = execute_content(
+            &document,
+            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &mut ContentCache::new(),
+            &limits,
+        )
+        .expect_err("content graph depth limit");
+        assert!(matches!(error, crate::PdfError::ReferenceDepth(3)));
     }
 
     #[test]

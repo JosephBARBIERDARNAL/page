@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 use page_validation::SafetyLimits;
 use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
-    ReferenceConfig,
+    ComparisonClassification, DifferentialRunner, OperationalFailureKind, PINNED_VERAPDF_PROFILE,
+    PINNED_VERAPDF_VERSION, ReferenceConfig,
 };
 use serde::Deserialize;
 
@@ -346,7 +346,33 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         &manifest.atomic_syntax_cases,
         common::syntax_fixture,
     );
+    assert_blend_mode_upstream_repro(&runner, &temporary);
     fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
+}
+
+fn assert_blend_mode_upstream_repro(runner: &DifferentialRunner, temporary: &Path) {
+    let path = temporary.join("transparency-extgstate-bm-multiply.pdf");
+    fs::write(&path, common::graphics_fixture("extgstate_bm_multiply"))
+        .expect("write blend-mode upstream repro");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    assert!(
+        report
+            .local_report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA1B-EXTGSTATE-BLEND-MODE-001"),
+        "the minimal repro must exercise the local blend-mode predicate"
+    );
+    assert_eq!(report.classification, ComparisonClassification::Operational);
+    let failure = report
+        .operational_failure
+        .expect("veraPDF VALIDATE exception must be reported operationally");
+    assert_eq!(failure.kind, OperationalFailureKind::InvalidReferenceReport);
+    assert!(
+        failure.message.contains("VALIDATE"),
+        "unexpected veraPDF failure for blend-mode repro: {}",
+        failure.message
+    );
 }
 
 fn assert_atomic_cases(
