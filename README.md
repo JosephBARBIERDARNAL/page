@@ -105,9 +105,7 @@ Document: PDF 1.4, 1 page(s), 4 object(s)
 ```
 
 
-!!! note
-
-      [ . . . . . . . . . ] are just placeholders of the actual messages
+> [.........] are just placeholders of the actual messages
 
 <br>
 
