@@ -12,6 +12,7 @@ nav = [
     "api/rust.md",
     "api/python.md",
     "api/nodejs.md",
+    "api/web-assembly.md",
   ] },
   { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] },
   { "FAQ" = ["faq.md"] }
