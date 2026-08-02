@@ -92,7 +92,7 @@ pub fn validate_file(
     }
 
     let bytes = fs::read(path)?;
-    validate_bytes(&bytes, limits)
+    validate_bytes(&bytes, limits).map(|report| report.with_source(path))
 }
 
 /// Validates a file against an explicitly selected profile.
@@ -102,7 +102,7 @@ pub fn validate_file_with_profile(
     limits: &SafetyLimits,
 ) -> ValidationReport {
     if let Some(report) = validate_profile(profile) {
-        return report;
+        return report.with_source(path);
     }
 
     let metadata = match fs::metadata(path) {
@@ -112,7 +112,8 @@ pub fn validate_file_with_profile(
                 profile,
                 "INPUT-IO-001",
                 error.to_string(),
-            );
+            )
+            .with_source(path);
         }
     };
 
@@ -125,15 +126,17 @@ pub fn validate_file_with_profile(
                 metadata.len(),
                 limits.max_input_size
             ),
-        );
+        )
+        .with_source(path);
     }
 
-    match fs::read(path) {
+    let report = match fs::read(path) {
         Ok(bytes) => validate_bytes_with_profile(&bytes, profile, limits),
         Err(error) => {
             ValidationReport::operational_failure(profile, "INPUT-IO-001", error.to_string())
         }
-    }
+    };
+    report.with_source(path)
 }
 
 /// Validates PDF bytes against the profile declared in their XMP metadata.
@@ -1547,6 +1550,7 @@ fn finish_report(
     failures.sort_by_key(|failure| failure.rule_id);
     let failed = failures.len();
     ValidationReport {
+        source: None,
         profile,
         checks_passed: failures.is_empty(),
         preliminary: true,
@@ -2090,11 +2094,10 @@ mod tests {
 
     #[test]
     fn missing_input_is_an_operational_failure() {
-        let report = validate_file_with_profile(
-            Path::new("tests/fixtures/definitely-not-present.pdf"),
-            ValidationProfile::PdfA1b,
-            &SafetyLimits::default(),
-        );
+        let path = Path::new("tests/fixtures/definitely-not-present.pdf");
+        let report =
+            validate_file_with_profile(path, ValidationProfile::PdfA1b, &SafetyLimits::default());
+        assert_eq!(report.source.as_deref(), Some(path));
         assert_rule(&report, "INPUT-IO-001");
         assert_eq!(report.failures[0].category, FailureCategory::Operational);
         assert_eq!(report.exit_code(), 1);

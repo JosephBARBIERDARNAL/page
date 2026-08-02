@@ -362,7 +362,7 @@ fn main() {
                     SelectedFormat::Summary => Ok(render_summary(&report, false)),
                     SelectedFormat::Details => Ok(render_details(&report, false)),
                     SelectedFormat::Json => {
-                        let json = report.json_report(cli.file.display().to_string());
+                        let json = report.json_report();
                         serialize_json(&json).map_err(|error| {
                             format!("could not serialize validation report: {error}")
                         })
@@ -386,7 +386,7 @@ fn main() {
                 }
             }
             (None, SelectedFormat::Json) => {
-                let json = report.json_report(cli.file.display().to_string());
+                let json = report.json_report();
                 match emit_json(&json, "validation report") {
                     0 => report.exit_code(),
                     status => status,

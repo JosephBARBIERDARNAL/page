@@ -1031,6 +1031,7 @@ mod tests {
 
     fn local_report(passed: bool, category: FailureCategory) -> ValidationReport {
         ValidationReport {
+            source: None,
             profile: ValidationProfile::PdfA1b,
             checks_passed: passed,
             preliminary: true,

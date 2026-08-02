@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::Write;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -40,6 +41,7 @@ pub struct ValidationCounts {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ValidationReport {
+    pub source: Option<PathBuf>,
     pub profile: ValidationProfile,
     pub checks_passed: bool,
     pub preliminary: bool,
@@ -49,6 +51,11 @@ pub struct ValidationReport {
 }
 
 impl ValidationReport {
+    pub(crate) fn with_source(mut self, source: &Path) -> Self {
+        self.source = Some(source.to_path_buf());
+        self
+    }
+
     pub(crate) fn parse_failure(profile: ValidationProfile, message: impl Into<String>) -> Self {
         Self::single_failure(profile, "PDF-PARSE-001", message, FailureCategory::Parser)
     }
@@ -68,6 +75,7 @@ impl ValidationReport {
         category: FailureCategory,
     ) -> Self {
         Self {
+            source: None,
             profile,
             checks_passed: false,
             preliminary: true,

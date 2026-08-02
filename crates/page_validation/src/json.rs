@@ -5,7 +5,8 @@ use crate::{FailureCategory, ValidationProfile, ValidationReport};
 /// Stable, serializable representation of a validation report.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct JsonValidationReport {
-    pub file: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
     pub profile: ValidationProfile,
     pub valid: bool,
     pub failures: Vec<JsonFailure>,
@@ -35,7 +36,7 @@ pub enum JsonErrorKind {
 
 impl ValidationReport {
     /// Returns the stable, serializable JSON representation of this report.
-    pub fn json_report(&self, file: impl Into<String>) -> JsonValidationReport {
+    pub fn json_report(&self) -> JsonValidationReport {
         let error = self
             .failures
             .iter()
@@ -65,7 +66,10 @@ impl ValidationReport {
         };
 
         JsonValidationReport {
-            file: file.into(),
+            file: self
+                .source
+                .as_ref()
+                .map(|source| source.display().to_string()),
             profile: self.profile,
             valid: self.checks_passed,
             failures,
@@ -84,6 +88,7 @@ mod tests {
     #[test]
     fn json_report_uses_the_stable_schema() {
         let report = ValidationReport {
+            source: Some("document.pdf".into()),
             profile: ValidationProfile::PdfA1b,
             checks_passed: false,
             preliminary: true,
@@ -101,7 +106,7 @@ mod tests {
             }],
         };
 
-        let json = report.json_report("document.pdf");
+        let json = report.json_report();
         let value = serde_json::to_value(json).expect("serialize JSON report");
 
         assert_eq!(value["file"], "document.pdf");
@@ -114,6 +119,7 @@ mod tests {
     #[test]
     fn json_report_separates_parser_errors_from_failures() {
         let report = ValidationReport {
+            source: None,
             profile: ValidationProfile::PdfA1b,
             checks_passed: false,
             preliminary: true,
@@ -131,12 +137,33 @@ mod tests {
             }],
         };
 
-        let json: JsonValidationReport = report.json_report("document.pdf");
+        let json: JsonValidationReport = report.json_report();
 
         assert!(json.failures.is_empty());
         assert_eq!(
             json.error.expect("parser error").kind,
             JsonErrorKind::Parser
         );
+    }
+
+    #[test]
+    fn json_report_omits_the_file_for_byte_input() {
+        let report = ValidationReport {
+            source: None,
+            profile: ValidationProfile::PdfA1b,
+            checks_passed: true,
+            preliminary: true,
+            checks: ValidationCounts {
+                total: 1,
+                passed: 1,
+                failed: 0,
+            },
+            document: None,
+            failures: Vec::new(),
+        };
+
+        let value = serde_json::to_value(report.json_report()).expect("serialize JSON report");
+
+        assert!(value.get("file").is_none());
     }
 }

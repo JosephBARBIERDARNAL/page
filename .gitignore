@@ -17,3 +17,4 @@ crates/page_validation/tests/fixtures/not-compliant-1.pdf
 crates/page_validation/tests/fixtures/proposal.pdf
 
 veraPDF-library
+page-brand-guideline.typ
