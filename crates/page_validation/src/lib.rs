@@ -16,6 +16,7 @@ mod font_encodings;
 mod forms;
 mod graphics;
 mod icc_based;
+mod json;
 mod limits;
 mod metadata;
 mod model;
@@ -30,6 +31,7 @@ mod validation;
 mod xobject;
 
 pub use error::{PdfError, ValidationError};
+pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use metadata::{DocumentMetadata, XmpMetadata};
 pub use model::{

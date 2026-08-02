@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use anstyle::{AnsiColor, Style};
 use clap::{Parser, ValueEnum};
-use page_cli::output::{JsonValidationReport, emit_json};
+use page_cli::output::emit_json;
 use page_validation::{
     FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
     validate_file, validate_file_with_profile,
@@ -103,24 +103,6 @@ impl From<ProfileArg> for ValidationProfile {
             ProfileArg::PdfUa1 => Self::PdfUa1,
             ProfileArg::PdfUa2 => Self::PdfUa2,
         }
-    }
-}
-
-const fn profile_id(profile: ValidationProfile) -> &'static str {
-    match profile {
-        ValidationProfile::PdfA1b => "a-1b",
-        ValidationProfile::PdfA1a => "a-1a",
-        ValidationProfile::PdfA2b => "a-2b",
-        ValidationProfile::PdfA2a => "a-2a",
-        ValidationProfile::PdfA2u => "a-2u",
-        ValidationProfile::PdfA3b => "a-3b",
-        ValidationProfile::PdfA3a => "a-3a",
-        ValidationProfile::PdfA3u => "a-3u",
-        ValidationProfile::PdfA4 => "a-4",
-        ValidationProfile::PdfA4e => "a-4e",
-        ValidationProfile::PdfA4f => "a-4f",
-        ValidationProfile::PdfUa1 => "ua-1",
-        ValidationProfile::PdfUa2 => "ua-2",
     }
 }
 
@@ -273,11 +255,7 @@ fn main() {
     } else {
         match cli.format {
             Some(FormatArg::Json) => {
-                let json = JsonValidationReport::from_report(
-                    cli.file.display().to_string(),
-                    profile_id(report.profile),
-                    &report,
-                );
+                let json = report.json_report(cli.file.display().to_string());
                 match emit_json(&json, "validation report") {
                     0 => report.exit_code(),
                     status => status,
