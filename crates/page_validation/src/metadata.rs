@@ -9,6 +9,7 @@ use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 const PDFA_ID_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/id/";
+const PDFUA_ID_NAMESPACE: &str = "http://www.aiim.org/pdfua/ns/id/";
 const DC_NAMESPACE: &str = "http://purl.org/dc/elements/1.1/";
 const DC_DEPRECATED_NAMESPACE: &str = "http://purl.org/dc/1.1/";
 const PDF_NAMESPACE: &str = "http://ns.adobe.com/pdf/1.3/";
@@ -42,6 +43,8 @@ pub struct XmpMetadata {
     pub pdfa_identification_present: bool,
     pub pdfa_parts: Vec<String>,
     pub pdfa_conformances: Vec<String>,
+    pub pdfua_identification_present: bool,
+    pub pdfua_parts: Vec<String>,
     pub title_x_default: Vec<String>,
     pub creators: Vec<String>,
     pub creator_container_count: usize,
@@ -103,6 +106,8 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let pdfa_identification_present = contains_namespace_property(rdf, &xml, PDFA_ID_NAMESPACE);
     let pdfa_parts = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "part");
     let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
+    let pdfua_identification_present = contains_namespace_property(rdf, &xml, PDFUA_ID_NAMESPACE);
+    let pdfua_parts = property_values(rdf, &xml, PDFUA_ID_NAMESPACE, "part");
     let title_x_default = localized_text_values(rdf, DC_NAMESPACE, "title");
     let creator_nodes = property_nodes(rdf, DC_NAMESPACE, "creator");
     let creators = creator_nodes
@@ -117,6 +122,8 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         pdfa_identification_present,
         pdfa_parts,
         pdfa_conformances,
+        pdfua_identification_present,
+        pdfua_parts,
         title_x_default,
         creators,
         creator_container_count: creator_nodes.len(),

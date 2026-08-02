@@ -1,8 +1,8 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 #[test]
 fn typst_pdfa_1b_fixture_passes_all_implemented_checks() {
-    let report = validate_bytes(
+    let report = validate_bytes_with_profile(
         include_bytes!("fixtures/typst-pdfa-1b.pdf"),
         ValidationProfile::PdfA1b,
         &SafetyLimits::default(),

@@ -6,11 +6,12 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    FailureCategory, PdfDocument, SafetyLimits, ValidationProfile, validate_bytes,
+    FailureCategory, PdfDocument, SafetyLimits, ValidationProfile, validate_bytes_with_profile,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {
-    let report = validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+    let report =
+        validate_bytes_with_profile(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
     assert_eq!(
         report.exit_code(),
         1,

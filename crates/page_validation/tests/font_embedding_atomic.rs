@@ -4,7 +4,7 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig,
 };
-use page_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 #[allow(dead_code)]
 mod common;
@@ -496,7 +496,7 @@ fn decoded_content_limit_is_an_operational_failure() {
     let bytes = common::font_fixture("large_content");
     PdfDocument::from_bytes(&bytes, &limits)
         .expect("public normalization does not run private font content traversal");
-    let report = validate_bytes(&bytes, ValidationProfile::PdfA1b, &limits);
+    let report = validate_bytes_with_profile(&bytes, ValidationProfile::PdfA1b, &limits);
     assert_eq!(report.exit_code(), 1);
     assert_eq!(report.failures.len(), 1);
     assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
@@ -508,7 +508,7 @@ fn graphics_state_stack_is_bounded() {
         max_reference_depth: 4,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes(
+    let report = validate_bytes_with_profile(
         &common::font_fixture("deep_graphics_state"),
         ValidationProfile::PdfA1b,
         &limits,

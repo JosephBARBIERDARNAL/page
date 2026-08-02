@@ -10,7 +10,7 @@ fn page_help_exposes_the_flat_validation_interface() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("Usage: page [OPTIONS] --profile <PROFILE> <FILE>"));
+    assert!(stdout.contains("Usage: page [OPTIONS] <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
     assert!(stdout.contains("details, json"));
     assert!(stdout.contains("--no-color"));
@@ -25,10 +25,9 @@ fn page_help_exposes_the_flat_validation_interface() {
 #[test]
 fn default_validation_output_is_a_compact_summary() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../page_validation/tests/fixtures/structural.pdf");
+        .join("../page_validation/tests/fixtures/trailer-id-missing.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&fixture)
-        .args(["--profile", "a-1b"])
         .output()
         .expect("run PDF validation");
 
@@ -39,6 +38,23 @@ fn default_validation_output_is_a_compact_summary() {
     assert!(summary.starts_with("PDF/A-1b: "));
     assert!(summary.ends_with(" implemented checks failed\n"));
     assert!(!summary.contains('['));
+}
+
+#[test]
+fn missing_declared_profile_is_an_explicit_error() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .output()
+        .expect("run PDF validation without a declared profile");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(output.stderr).expect("UTF-8 error"),
+        "error: document does not declare a PDF/A or PDF/UA validation profile\n"
+    );
 }
 
 #[test]
@@ -121,10 +137,10 @@ fn future_profiles_are_recognized_and_reported_as_unimplemented() {
 #[test]
 fn validation_json_uses_the_stable_public_schema() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../page_validation/tests/fixtures/structural.pdf");
+        .join("../page_validation/tests/fixtures/trailer-id-missing.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&fixture)
-        .args(["--profile", "a-1b", "--format", "json"])
+        .args(["--format", "json"])
         .output()
         .expect("run PDF validation");
 

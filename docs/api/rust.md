@@ -18,14 +18,10 @@ page_validation = "0.1.0"
 ```rust
 use std::path::Path;
 
-use page_validation::{SafetyLimits, ValidationProfile, validate_file};
+use page_validation::{SafetyLimits, validate_file};
 
-fn main() {
-    let report = validate_file(
-        Path::new("document.pdf"),
-        ValidationProfile::PdfA1b,
-        &SafetyLimits::default(),
-    );
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let report = validate_file(Path::new("document.pdf"), &SafetyLimits::default())?;
 
     println!("{report}");
 
@@ -40,16 +36,17 @@ fn main() {
             );
         }
     }
+
+    Ok(())
 }
 ```
 
 `validate_file` takes:
 
 - The path to the PDF.
-- A `ValidationProfile`, such as `ValidationProfile::PdfA1b`.
 - A reference to [`SafetyLimits`](#configure-safety-limits).
 
-It returns a `ValidationReport`. Printing the report produces output like this:
+It reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<ValidationReport, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`. Printing a successful report produces output like this:
 
 ```
 Preliminary PDF/A validation
@@ -57,6 +54,49 @@ Profile: PDF/A-1b
 Result: failed
 Checks: 124 passed, 10 failed, 134 total
 Document: PDF 1.5, 13 page(s), 128 object(s)
+```
+
+## Select a profile explicitly
+
+Use `validate_file_with_profile` when the caller, rather than the document, selects the validation profile:
+
+```rust
+use std::path::Path;
+
+use page_validation::{
+    SafetyLimits, ValidationProfile, validate_file_with_profile,
+};
+
+let report = validate_file_with_profile(
+    Path::new("document.pdf"),
+    ValidationProfile::PdfA1b,
+    &SafetyLimits::default(),
+);
+```
+
+The explicit-profile function returns a `ValidationReport` directly. Unlike
+profile inference, it does not require the document to contain a usable profile
+declaration. The declaration can still fail the selected profile's metadata
+rules.
+
+## Validate bytes
+
+`validate_bytes` and `validate_bytes_with_profile` provide the same inferred and
+explicit behaviors for an in-memory PDF:
+
+```rust
+use page_validation::{
+    SafetyLimits, ValidationProfile, validate_bytes, validate_bytes_with_profile,
+};
+
+let bytes = std::fs::read("document.pdf")?;
+let inferred_report = validate_bytes(&bytes, &SafetyLimits::default())?;
+let explicit_report = validate_bytes_with_profile(
+    &bytes,
+    ValidationProfile::PdfA1b,
+    &SafetyLimits::default(),
+);
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
 ## Configure safety limits

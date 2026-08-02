@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::validation::ValidationProfile;
+
 #[derive(Debug, Error)]
 pub enum PdfError {
     #[error("input is {actual} bytes, exceeding the {limit}-byte limit")]
@@ -46,4 +48,22 @@ impl PdfError {
                 ))
         )
     }
+}
+
+#[derive(Debug, Error)]
+pub enum ValidationError {
+    #[error("could not read input: {0}")]
+    InputIo(#[from] std::io::Error),
+
+    #[error("{0}")]
+    Pdf(#[from] PdfError),
+
+    #[error("document does not declare a PDF/A or PDF/UA validation profile")]
+    MissingProfileDeclaration,
+
+    #[error("document has an invalid validation profile declaration: {0}")]
+    InvalidProfileDeclaration(String),
+
+    #[error("validation profile {0} is not implemented yet")]
+    UnsupportedProfile(ValidationProfile),
 }

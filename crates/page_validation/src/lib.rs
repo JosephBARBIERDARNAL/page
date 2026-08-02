@@ -29,11 +29,14 @@ mod syntax;
 mod validation;
 mod xobject;
 
-pub use error::PdfError;
+pub use error::{PdfError, ValidationError};
 pub use limits::SafetyLimits;
 pub use metadata::{DocumentMetadata, XmpMetadata};
 pub use model::{
     FontSummary, IccHeader, OutputIntentSummary, OutputIntentsSummary, PdfDocument, PdfObjectId,
 };
 pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
-pub use validation::{ValidationProfile, validate_bytes, validate_file};
+pub use validation::{
+    ValidationProfile, validate_bytes, validate_bytes_with_profile, validate_file,
+    validate_file_with_profile,
+};

@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 #[allow(dead_code)]
 mod common;
@@ -87,7 +87,7 @@ fn oversized_decoded_icc_profile_is_an_operational_failure() {
         max_decoded_stream_size: 2048,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes(
+    let report = validate_bytes_with_profile(
         &common::output_intent_fixture("large_compressed_profile"),
         ValidationProfile::PdfA1b,
         &limits,

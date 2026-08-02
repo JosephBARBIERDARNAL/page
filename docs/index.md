@@ -30,6 +30,7 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
       - complete graphics and content-stream reachability
       - complete colour-space, ICC, and output-intent validation
       - complete annotations, actions, forms, and interactive-feature validation
+
 - [ ] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b

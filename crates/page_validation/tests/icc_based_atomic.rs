@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 #[allow(dead_code)]
 mod common;
@@ -111,7 +111,7 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
         max_decoded_stream_size: 2048,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes(
+    let report = validate_bytes_with_profile(
         &common::icc_based_fixture("large_compressed_profile"),
         ValidationProfile::PdfA1b,
         &limits,
@@ -128,7 +128,7 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         ..SafetyLimits::default()
     };
     for case in ["cyclic_indexed", "deep_indexed"] {
-        let report = validate_bytes(
+        let report = validate_bytes_with_profile(
             &common::icc_based_fixture(case),
             ValidationProfile::PdfA1b,
             &limits,

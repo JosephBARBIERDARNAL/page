@@ -6,7 +6,8 @@ use anstyle::{AnsiColor, Style};
 use clap::{Parser, ValueEnum};
 use page_cli::output::{JsonValidationReport, emit_json};
 use page_validation::{
-    FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file,
+    FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
+    validate_file, validate_file_with_profile,
 };
 
 #[derive(Debug, Parser)]
@@ -20,9 +21,9 @@ struct Cli {
     /// PDF file to validate.
     file: PathBuf,
 
-    /// Validation profile.
+    /// Validation profile; defaults to the profile declared in XMP metadata.
     #[arg(long, value_enum)]
-    profile: ProfileArg,
+    profile: Option<ProfileArg>,
 
     /// Select detailed text or JSON output instead of the compact summary.
     #[arg(long, value_enum)]
@@ -105,23 +106,21 @@ impl From<ProfileArg> for ValidationProfile {
     }
 }
 
-impl ProfileArg {
-    const fn as_str(self) -> &'static str {
-        match self {
-            Self::PdfA1b => "a-1b",
-            Self::PdfA1a => "a-1a",
-            Self::PdfA2b => "a-2b",
-            Self::PdfA2a => "a-2a",
-            Self::PdfA2u => "a-2u",
-            Self::PdfA3b => "a-3b",
-            Self::PdfA3a => "a-3a",
-            Self::PdfA3u => "a-3u",
-            Self::PdfA4 => "a-4",
-            Self::PdfA4e => "a-4e",
-            Self::PdfA4f => "a-4f",
-            Self::PdfUa1 => "ua-1",
-            Self::PdfUa2 => "ua-2",
-        }
+const fn profile_id(profile: ValidationProfile) -> &'static str {
+    match profile {
+        ValidationProfile::PdfA1b => "a-1b",
+        ValidationProfile::PdfA1a => "a-1a",
+        ValidationProfile::PdfA2b => "a-2b",
+        ValidationProfile::PdfA2a => "a-2a",
+        ValidationProfile::PdfA2u => "a-2u",
+        ValidationProfile::PdfA3b => "a-3b",
+        ValidationProfile::PdfA3a => "a-3a",
+        ValidationProfile::PdfA3u => "a-3u",
+        ValidationProfile::PdfA4 => "a-4",
+        ValidationProfile::PdfA4e => "a-4e",
+        ValidationProfile::PdfA4f => "a-4f",
+        ValidationProfile::PdfUa1 => "ua-1",
+        ValidationProfile::PdfUa2 => "ua-2",
     }
 }
 
@@ -224,23 +223,39 @@ fn main() {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
     let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
     let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
-    let profile = cli.profile;
-    let validation_profile: ValidationProfile = profile.into();
-    if !validation_profile.is_implemented() {
-        print_error(
-            format_args!("validation profile {validation_profile} is not implemented yet"),
-            stderr_colors,
-        );
-        std::process::exit(1);
-    }
-
     let limits = SafetyLimits {
         max_input_size: cli.max_input_size,
         max_decoded_stream_size: cli.max_decoded_stream_size,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
     };
-    let report = validate_file(&cli.file, validation_profile, &limits);
+    let report = match cli.profile {
+        Some(profile) => {
+            let validation_profile: ValidationProfile = profile.into();
+            if !validation_profile.is_implemented() {
+                print_error(
+                    format_args!("validation profile {validation_profile} is not implemented yet"),
+                    stderr_colors,
+                );
+                std::process::exit(1);
+            }
+            validate_file_with_profile(&cli.file, validation_profile, &limits)
+        }
+        None => match validate_file(&cli.file, &limits) {
+            Ok(report) => report,
+            Err(ValidationError::InputIo(error)) => {
+                print_error(
+                    format_args!("could not read '{}': {error}", cli.file.display()),
+                    stderr_colors,
+                );
+                std::process::exit(1);
+            }
+            Err(error) => {
+                print_error(error, stderr_colors);
+                std::process::exit(1);
+            }
+        },
+    };
     let status = if let Some(failure) = report
         .failures
         .iter()
@@ -260,7 +275,7 @@ fn main() {
             Some(FormatArg::Json) => {
                 let json = JsonValidationReport::from_report(
                     cli.file.display().to_string(),
-                    profile.as_str(),
+                    profile_id(report.profile),
                     &report,
                 );
                 match emit_json(&json, "validation report") {

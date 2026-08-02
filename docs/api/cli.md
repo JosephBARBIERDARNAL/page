@@ -2,7 +2,13 @@
 title: "CLI"
 ---
 
-Validate one PDF against a profile:
+Validate one PDF (by default against the profile declared in its XMP metadata):
+
+```sh
+page document.pdf
+```
+
+If the document does not declare a profile, `page` exits with an explicit error. Use `--profile` to select a profile instead:
 
 ```sh
 page document.pdf --profile a-1b

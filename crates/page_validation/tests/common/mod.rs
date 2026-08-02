@@ -5,7 +5,8 @@ use lopdf::content::{Content, Operation};
 use lopdf::xref::XrefType;
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
 use page_validation::{
-    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_bytes,
+    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport,
+    validate_bytes_with_profile,
 };
 
 mod sfnt;
@@ -35,7 +36,7 @@ pub fn rule_delta<T: Ord + Clone>(
 }
 
 pub fn validate(bytes: &[u8]) -> ValidationReport {
-    validate_bytes(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
+    validate_bytes_with_profile(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default())
 }
 
 pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {

@@ -23,7 +23,7 @@ const PROFILE_PATH: &str = "tests/fixtures/PDFA-1B-1.28.xml";
 /// Gap 1: "recursive or malformed name trees." Two independent shapes are
 /// covered: a name-tree node whose own `Kids` loops back to itself (a
 /// one-hop self-reference at the tree's root, not just a multi-hop cycle),
-/// and — end to end, through `validate_bytes` rather than the unit-level
+/// and — end to end, through `validate_bytes_with_profile` rather than the unit-level
 /// `document_features::inspect` — a document whose EmbeddedFiles tree is
 /// malformed enough to be unresolvable.
 #[test]
@@ -47,7 +47,7 @@ fn gap_1_recursive_name_trees_are_bounded_not_silently_truncated() {
         .save_to(&mut bytes)
         .expect("save cyclic name tree fixture");
 
-    let report = page_validation::validate_bytes(
+    let report = page_validation::validate_bytes_with_profile(
         &bytes,
         page_validation::ValidationProfile::PdfA1b,
         &page_validation::SafetyLimits::default(),
@@ -90,7 +90,7 @@ fn gap_1b_duplicate_non_cyclic_name_tree_references_are_not_treated_as_cycles() 
         .save_to(&mut bytes)
         .expect("save shared-name-tree-leaf fixture");
 
-    let report = page_validation::validate_bytes(
+    let report = page_validation::validate_bytes_with_profile(
         &bytes,
         page_validation::ValidationProfile::PdfA1b,
         &page_validation::SafetyLimits::default(),
@@ -169,7 +169,7 @@ fn gap_3b_duplicate_non_cyclic_page_references_are_not_treated_as_cycles() {
         .save_to(&mut bytes)
         .expect("save shared-page-reference fixture");
 
-    let report = page_validation::validate_bytes(
+    let report = page_validation::validate_bytes_with_profile(
         &bytes,
         page_validation::ValidationProfile::PdfA1b,
         &page_validation::SafetyLimits::default(),
