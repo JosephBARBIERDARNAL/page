@@ -30,6 +30,7 @@ const CASES: &[(&str, &[&str])] = &[
     ("missing_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
     ("wrong_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
     ("non_integer_n", &["PDFA1B-ICCBASED-COMPONENTS-001"]),
+    ("direct_profile", &[]),
     ("unused_resource", &[]),
     ("default_gray", &["PDFA1B-ICCBASED-001"]),
     ("default_rgb", &["PDFA1B-ICCBASED-001"]),

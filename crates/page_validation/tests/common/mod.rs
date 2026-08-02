@@ -1880,6 +1880,597 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+/// Focused fixtures for colour-source applicability probes that are shared by
+/// ICCBased, device-colour, and rendering-intent validation. These deliberately
+/// keep the source shape atomic so the pinned veraPDF rule-ID delta identifies
+/// whether that source enters the corresponding model population.
+pub fn color_path_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let rgb_profile = icc_header(*b"mntr", *b"RGB ", 2, 1);
+    let cmyk_profile = icc_header(*b"mntr", *b"CMYK", 2, 1);
+    let invalid_profile = profile_reference(&mut document, icc_header(*b"link", *b"RGB ", 2, 1));
+    let invalid_icc = Object::Array(vec![Object::Name(b"ICCBased".to_vec()), invalid_profile]);
+    let valid_icc_profile = profile_reference(&mut document, rgb_profile.clone());
+    let valid_icc = Object::Array(vec![Object::Name(b"ICCBased".to_vec()), valid_icc_profile]);
+    let valid_default_profile = profile_reference(&mut document, rgb_profile.clone());
+    let valid_default_rgb = Object::Array(vec![
+        Object::Name(b"ICCBased".to_vec()),
+        valid_default_profile,
+    ]);
+    let valid_default_cmyk_profile = profile_reference(&mut document, cmyk_profile.clone());
+    let valid_default_cmyk = Object::Array(vec![
+        Object::Name(b"ICCBased".to_vec()),
+        valid_default_cmyk_profile,
+    ]);
+    let valid_default_gray_profile =
+        profile_reference(&mut document, icc_header(*b"mntr", *b"GRAY", 2, 1));
+    let valid_default_gray = Object::Array(vec![
+        Object::Name(b"ICCBased".to_vec()),
+        valid_default_gray_profile,
+    ]);
+
+    let mut resources = Dictionary::new();
+    let mut contents = Vec::new();
+    let mut group = None;
+    let mut annotations = Vec::new();
+    let mut output_intents_override = None;
+    let mut inherit_page_resources = false;
+    let mut omit_output_intents = false;
+
+    let tint_transform = || {
+        Object::Dictionary(dictionary! {
+            "FunctionType" => 2,
+            "Domain" => vec![0.into(), 1.into()],
+            "C0" => vec![0.into(), 0.into(), 0.into()],
+            "C1" => vec![1.into(), 1.into(), 1.into()],
+            "N" => 1,
+        })
+    };
+    let separation = |alternate: Object| {
+        Object::Array(vec![
+            Object::Name(b"Separation".to_vec()),
+            Object::Name(b"Spot".to_vec()),
+            alternate,
+            tint_transform(),
+        ])
+    };
+    let devicen = |alternate: Object| {
+        Object::Array(vec![
+            Object::Name(b"DeviceN".to_vec()),
+            Object::Array(vec![Object::Name(b"Spot".to_vec())]),
+            alternate,
+            tint_transform(),
+        ])
+    };
+
+    match case {
+        "icc_baseline" | "device_baseline" | "intent_baseline" => {}
+        "icc_separation_alternate" | "icc_separation_valid" => {
+            let alternate = if case == "icc_separation_valid" {
+                valid_icc.clone()
+            } else {
+                invalid_icc.clone()
+            };
+            resources.set("ColorSpace", dictionary! {"CS1" => separation(alternate)});
+            contents = b"/CS1 cs\n".to_vec();
+        }
+        "icc_devicen_alternate" | "icc_devicen_valid" | "icc_devicen_wrong_n" => {
+            let alternate = if case == "icc_devicen_valid" {
+                valid_icc.clone()
+            } else if case == "icc_devicen_wrong_n" {
+                let profile =
+                    document.add_object(Stream::new(dictionary! {"N" => 4}, rgb_profile.clone()));
+                Object::Array(vec![
+                    Object::Name(b"ICCBased".to_vec()),
+                    Object::Reference(profile),
+                ])
+            } else {
+                invalid_icc.clone()
+            };
+            resources.set("ColorSpace", dictionary! {"CS1" => devicen(alternate)});
+            contents = b"/CS1 cs\n".to_vec();
+        }
+        "icc_page_group"
+        | "icc_page_group_valid"
+        | "icc_page_group_wrong_type"
+        | "icc_page_group_inherited" => {
+            let color_space = match case {
+                "icc_page_group_valid" => valid_icc.clone(),
+                "icc_page_group_wrong_type" => Object::Integer(7),
+                "icc_page_group_inherited" => {
+                    resources.set("ColorSpace", dictionary! {"CS1" => invalid_icc.clone()});
+                    inherit_page_resources = true;
+                    Object::Name(b"CS1".to_vec())
+                }
+                _ => invalid_icc.clone(),
+            };
+            group = Some(dictionary! {
+                "Type" => "Group",
+                "S" => "Transparency",
+                "CS" => color_space,
+            });
+        }
+        "icc_form_group" => {
+            let form = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Group" => dictionary! {
+                        "Type" => "Group",
+                        "S" => "Transparency",
+                        "CS" => invalid_icc.clone(),
+                    },
+                },
+                Vec::new(),
+            ));
+            resources.set("XObject", dictionary! {"Fm" => form});
+            contents = b"/Fm Do\n".to_vec();
+        }
+        "icc_annotation_appearance"
+        | "icc_annotation_appearance_valid"
+        | "icc_annotation_state"
+        | "icc_annotation_unreferenced"
+        | "device_annotation_appearance"
+        | "device_annotation_unreferenced"
+        | "intent_annotation_appearance"
+        | "intent_annotation_valid"
+        | "intent_annotation_state"
+        | "intent_annotation_down"
+        | "intent_annotation_unreferenced" => {
+            let (appearance_resources, appearance_contents) = match case {
+                "icc_annotation_appearance" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n".to_vec(),
+                ),
+                "icc_annotation_appearance_valid" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => valid_icc.clone()}},
+                    b"/CS1 cs\n".to_vec(),
+                ),
+                "icc_annotation_state" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n".to_vec(),
+                ),
+                "icc_annotation_unreferenced" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n".to_vec(),
+                ),
+                "device_annotation_appearance" | "device_annotation_unreferenced" => {
+                    (Dictionary::new(), b"0 0 0 rg\n".to_vec())
+                }
+                "intent_annotation_valid" => (Dictionary::new(), b"/Perceptual ri\n".to_vec()),
+                _ => (Dictionary::new(), b"/MaiIntent ri\n".to_vec()),
+            };
+            let appearance = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Resources" => appearance_resources,
+                },
+                appearance_contents,
+            ));
+            let mut annotation = dictionary! {
+                "Type" => "Annot",
+                "Subtype" => "Text",
+                "Rect" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "F" => 4,
+                "AP" => dictionary! {"N" => appearance},
+            };
+            if matches!(case, "icc_annotation_state" | "intent_annotation_state") {
+                let selected = document.add_object(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    },
+                    Vec::new(),
+                ));
+                annotation.set("Subtype", "Widget");
+                annotation.set("FT", "Btn");
+                annotation.set("AS", "On");
+                annotation.set(
+                    "AP",
+                    dictionary! {
+                        "N" => dictionary! {
+                            "On" => selected,
+                            "Off" => appearance,
+                        },
+                    },
+                );
+            } else if case == "intent_annotation_down" {
+                let normal = document.add_object(Stream::new(
+                    dictionary! {
+                        "Type" => "XObject",
+                        "Subtype" => "Form",
+                        "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    },
+                    Vec::new(),
+                ));
+                annotation.set(
+                    "AP",
+                    dictionary! {
+                        "N" => normal,
+                        "D" => appearance,
+                    },
+                );
+            }
+            let annotation = Object::Reference(document.add_object(annotation));
+            if !case.ends_with("_unreferenced") {
+                annotations.push(annotation);
+            }
+        }
+        "icc_pattern_content"
+        | "icc_pattern_content_valid"
+        | "icc_pattern_unused"
+        | "icc_pattern_without_selection"
+        | "device_pattern_content"
+        | "device_pattern_unused"
+        | "intent_pattern_content"
+        | "intent_pattern_valid"
+        | "intent_pattern_unused" => {
+            let (pattern_resources, pattern_contents) = match case {
+                "icc_pattern_content" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n0 0 1 1 re f\n".to_vec(),
+                ),
+                "icc_pattern_content_valid" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => valid_icc.clone()}},
+                    b"/CS1 cs\n0 0 1 1 re f\n".to_vec(),
+                ),
+                "icc_pattern_unused" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n0 0 1 1 re f\n".to_vec(),
+                ),
+                "icc_pattern_without_selection" => (
+                    dictionary! {"ColorSpace" => dictionary! {"CS1" => invalid_icc.clone()}},
+                    b"/CS1 cs\n0 0 1 1 re f\n".to_vec(),
+                ),
+                "device_pattern_content" | "device_pattern_unused" => {
+                    (Dictionary::new(), b"0 0 0 rg\n0 0 1 1 re f\n".to_vec())
+                }
+                "intent_pattern_valid" => (
+                    Dictionary::new(),
+                    b"/Perceptual ri\n0 0 1 1 re f\n".to_vec(),
+                ),
+                _ => (Dictionary::new(), b"/MaiIntent ri\n0 0 1 1 re f\n".to_vec()),
+            };
+            let pattern = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 1,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                    "Resources" => pattern_resources,
+                },
+                pattern_contents,
+            ));
+            resources.set("Pattern", dictionary! {"P1" => pattern});
+            if case == "icc_pattern_without_selection" {
+                contents = b"/P1 scn\n0 0 10 10 re f\n".to_vec();
+            } else if !matches!(
+                case,
+                "icc_pattern_unused" | "device_pattern_unused" | "intent_pattern_unused"
+            ) {
+                contents = b"/Pattern cs\n/P1 scn\n0 0 10 10 re f\n".to_vec();
+            }
+        }
+        "icc_pattern_underlying" => {
+            let pattern = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "Pattern",
+                    "PatternType" => 1,
+                    "PaintType" => 2,
+                    "TilingType" => 1,
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "XStep" => 1,
+                    "YStep" => 1,
+                    "Resources" => Dictionary::new(),
+                },
+                b"0 0 1 1 re f\n".to_vec(),
+            ));
+            resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![
+                        Object::Name(b"Pattern".to_vec()),
+                        invalid_icc.clone(),
+                    ]),
+                },
+            );
+            resources.set("Pattern", dictionary! {"P1" => pattern});
+            contents = b"/CS1 cs\n0 0 0 /P1 scn\n0 0 10 10 re f\n".to_vec();
+        }
+        "device_page_group" => {
+            group = Some(dictionary! {
+                "Type" => "Group",
+                "S" => "Transparency",
+                "CS" => "DeviceRGB",
+            });
+        }
+        "device_form_group" => {
+            let form = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "Group" => dictionary! {
+                        "Type" => "Group",
+                        "S" => "Transparency",
+                        "CS" => "DeviceRGB",
+                    },
+                },
+                Vec::new(),
+            ));
+            resources.set("XObject", dictionary! {"Fm" => form});
+            contents = b"/Fm Do\n".to_vec();
+        }
+        "device_image_default"
+        | "device_image_inherited_default"
+        | "device_image_default_wrong_type"
+        | "device_inline_default"
+        | "device_indexed_default"
+        | "device_separation_default"
+        | "device_devicen_default" => {
+            let default_rgb = if case == "device_image_default_wrong_type" {
+                Object::Integer(7)
+            } else {
+                valid_default_rgb.clone()
+            };
+            resources.set("ColorSpace", dictionary! {"DefaultRGB" => default_rgb});
+            match case {
+                "device_image_default"
+                | "device_image_inherited_default"
+                | "device_image_default_wrong_type" => {
+                    inherit_page_resources = case == "device_image_inherited_default";
+                    let image = document.add_object(Stream::new(
+                        dictionary! {
+                            "Type" => "XObject",
+                            "Subtype" => "Image",
+                            "Width" => 1,
+                            "Height" => 1,
+                            "BitsPerComponent" => 8,
+                            "ColorSpace" => "DeviceRGB",
+                        },
+                        vec![0, 0, 0],
+                    ));
+                    resources.set("XObject", dictionary! {"Im" => image});
+                    contents = b"/Im Do\n".to_vec();
+                }
+                "device_inline_default" => {
+                    contents = b"BI /W 1 /H 1 /BPC 8 /CS /RGB ID \x00\x00\x00 EI\n".to_vec();
+                }
+                "device_indexed_default" => {
+                    resources
+                        .get_mut(b"ColorSpace")
+                        .expect("ColorSpace")
+                        .as_dict_mut()
+                        .expect("dictionary")
+                        .set(
+                            "CS1",
+                            Object::Array(vec![
+                                Object::Name(b"Indexed".to_vec()),
+                                Object::Name(b"DeviceRGB".to_vec()),
+                                Object::Integer(1),
+                                Object::String(vec![0; 6], StringFormat::Hexadecimal),
+                            ]),
+                        );
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "device_separation_default" => {
+                    resources
+                        .get_mut(b"ColorSpace")
+                        .expect("ColorSpace")
+                        .as_dict_mut()
+                        .expect("dictionary")
+                        .set("CS1", separation(Object::Name(b"DeviceRGB".to_vec())));
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "device_devicen_default" => {
+                    resources
+                        .get_mut(b"ColorSpace")
+                        .expect("ColorSpace")
+                        .as_dict_mut()
+                        .expect("dictionary")
+                        .set("CS1", devicen(Object::Name(b"DeviceRGB".to_vec())));
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                _ => unreachable!(),
+            }
+        }
+        "device_output_invalid_rgb" => {
+            contents = b"0 0 0 rg\n".to_vec();
+            output_intents_override = single_profile_intent(
+                &mut document,
+                icc_header(*b"link", *b"RGB ", 2, 1),
+                Some("GTS_PDFA1"),
+            );
+        }
+        "device_output_truncated" => {
+            contents = b"0 0 0 rg\n".to_vec();
+            output_intents_override =
+                single_profile_intent(&mut document, vec![0; 19], Some("GTS_PDFA1"));
+        }
+        "device_output_rgb_then_cmyk" | "device_output_cmyk_then_rgb" => {
+            contents = b"0 0 0 rg\n".to_vec();
+            let rgb = profile_reference(&mut document, rgb_profile.clone());
+            let cmyk = profile_reference(&mut document, cmyk_profile.clone());
+            output_intents_override = if case == "device_output_rgb_then_cmyk" {
+                two_intents(&mut document, rgb, cmyk)
+            } else {
+                two_intents(&mut document, cmyk, rgb)
+            };
+        }
+        "device_output_pdfa_rgb_then_wrong_s_cmyk" => {
+            contents = b"0 0 0 rg\n".to_vec();
+            let rgb = profile_reference(&mut document, rgb_profile.clone());
+            let cmyk = profile_reference(&mut document, cmyk_profile.clone());
+            let first = document.add_object(output_intent_dictionary(Some(rgb), Some("GTS_PDFA1")));
+            let second =
+                document.add_object(output_intent_dictionary(Some(cmyk), Some("GTS_PDFX")));
+            output_intents_override = Some(Object::Array(vec![
+                Object::Reference(first),
+                Object::Reference(second),
+            ]));
+        }
+        "device_cmyk_image_rgb_output"
+        | "device_cmyk_image_default"
+        | "device_gray_image_no_output"
+        | "device_gray_image_default" => {
+            let (device_space, default_name, default_space) = match case {
+                "device_cmyk_image_rgb_output" => ("DeviceCMYK", None, None),
+                "device_cmyk_image_default" => (
+                    "DeviceCMYK",
+                    Some("DefaultCMYK"),
+                    Some(valid_default_cmyk.clone()),
+                ),
+                "device_gray_image_no_output" => ("DeviceGray", None, None),
+                _ => (
+                    "DeviceGray",
+                    Some("DefaultGray"),
+                    Some(valid_default_gray.clone()),
+                ),
+            };
+            if let (Some(default_name), Some(default_space)) = (default_name, default_space) {
+                resources.set(
+                    "ColorSpace",
+                    Dictionary::from_iter([(default_name.as_bytes(), default_space)]),
+                );
+            }
+            let image = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => Object::Name(device_space.as_bytes().to_vec()),
+                },
+                if device_space == "DeviceCMYK" {
+                    vec![0, 0, 0, 0]
+                } else {
+                    vec![0]
+                },
+            ));
+            resources.set("XObject", dictionary! {"Im" => image});
+            contents = b"/Im Do\n".to_vec();
+            if device_space == "DeviceCMYK" {
+                output_intents_override =
+                    single_profile_intent(&mut document, rgb_profile.clone(), Some("GTS_PDFA1"));
+            } else {
+                omit_output_intents = true;
+            }
+        }
+        "intent_inline_image" | "intent_inline_valid" | "intent_inline_wrong_type" => {
+            contents = match case {
+                "intent_inline_valid" => {
+                    b"BI /W 1 /H 1 /BPC 8 /CS /RGB /Intent /Perceptual ID \x00\x00\x00 EI\n"
+                        .to_vec()
+                }
+                "intent_inline_wrong_type" => {
+                    b"BI /W 1 /H 1 /BPC 8 /CS /RGB /Intent 7 ID \x00\x00\x00 EI\n".to_vec()
+                }
+                _ => {
+                    b"BI /W 1 /H 1 /BPC 8 /CS /RGB /Intent /MaiIntent ID \x00\x00\x00 EI\n".to_vec()
+                }
+            };
+        }
+        "intent_alternate_image" => {
+            let alternate = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => "DeviceRGB",
+                    "Intent" => "MaiIntent",
+                },
+                vec![0, 0, 0],
+            ));
+            let primary = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "ColorSpace" => "DeviceRGB",
+                    "Alternates" => vec![Object::Dictionary(dictionary! {
+                        "Image" => alternate,
+                        "DefaultForPrinting" => true,
+                    })],
+                },
+                vec![0, 0, 0],
+            ));
+            resources.set("XObject", dictionary! {"Im" => primary});
+            contents = b"/Im Do\n".to_vec();
+        }
+        _ => panic!("unknown colour-path fixture case {case}"),
+    }
+
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), contents));
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "Contents" => contents_id,
+    };
+    if !inherit_page_resources {
+        page.set("Resources", resources.clone());
+    }
+    if let Some(group) = group {
+        page.set("Group", group);
+    }
+    if !annotations.is_empty() {
+        page.set("Annots", Object::Array(annotations));
+    }
+    let page_id = document.add_object(page);
+    if inherit_page_resources {
+        document.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Reference(page_id)],
+                "Count" => 1,
+                "Resources" => resources,
+            }),
+        );
+    } else {
+        wrap_pages(&mut document, pages_id, page_id);
+    }
+
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_profile = if case.starts_with("device_") {
+        cmyk_profile
+    } else {
+        rgb_profile
+    };
+    let mut catalog = dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+    };
+    if !omit_output_intents {
+        let output_intents = output_intents_override
+            .or_else(|| single_profile_intent(&mut document, output_profile, Some("GTS_PDFA1")));
+        catalog.set("OutputIntents", output_intents.expect("output intent"));
+    }
+    let catalog_id = document.add_object(catalog);
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save colour-path fixture");
+    bytes
+}
+
 pub fn xobject_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();

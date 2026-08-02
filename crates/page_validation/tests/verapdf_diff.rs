@@ -26,6 +26,8 @@ struct Manifest {
     #[serde(default)]
     atomic_device_color_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
+    atomic_color_path_cases: Vec<AtomicRuleCase>,
+    #[serde(default)]
     atomic_xobject_cases: Vec<AtomicRuleCase>,
     #[serde(default)]
     atomic_graphics_cases: Vec<AtomicRuleCase>,
@@ -223,6 +225,14 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
         "baseline",
         &manifest.atomic_device_color_cases,
         common::device_color_fixture,
+    );
+    assert_atomic_cases(
+        &runner,
+        &temporary,
+        "color-path",
+        "icc_baseline",
+        &manifest.atomic_color_path_cases,
+        common::color_path_fixture,
     );
     assert_atomic_cases(
         &runner,

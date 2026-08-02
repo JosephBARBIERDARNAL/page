@@ -180,6 +180,16 @@ impl Inspector<'_> {
                 }
                 return Ok(());
             }
+            Some(b"Separation") | Some(b"DeviceN") => {
+                if let Some(alternate) = items.get(2) {
+                    self.inspect_icc_color_space_at_depth(
+                        alternate,
+                        &format!("{context}/alternate"),
+                        depth + 1,
+                    )?;
+                }
+                return Ok(());
+            }
             Some(b"ICCBased") => {}
             _ => return Ok(()),
         }

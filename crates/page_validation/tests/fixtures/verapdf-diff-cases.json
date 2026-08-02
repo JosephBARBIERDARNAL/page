@@ -2417,6 +2417,14 @@
       ],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Two distinct selected invalid profiles aggregate into one local failure; the XYZ profile also fails adjacent test 2."
+    },
+    {
+      "name": "direct_profile",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A directly embedded stream is malformed in this position; veraPDF 1.28.2 creates no ICCInputProfile model object, and the local parser likewise leaves the predicate inapplicable."
     }
   ],
   "atomic_device_color_cases": [
@@ -5635,6 +5643,432 @@
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.10:1"],
       "expected_verapdf_passed_rule_ids": [],
       "rationale": "Name escapes are decoded before the LZW filter internal representation is compared."
+    }
+  ],
+  "atomic_color_path_cases": [
+    {
+      "name": "icc_separation_alternate",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected Separation models the ICCBased profile in its alternate colour space."
+    },
+    {
+      "name": "icc_separation_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "A selected Separation models and accepts a valid ICCBased alternate with matching N."
+    },
+    {
+      "name": "icc_devicen_alternate",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A selected DeviceN models the ICCBased profile in its alternate colour space."
+    },
+    {
+      "name": "icc_devicen_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "A selected DeviceN models and accepts a valid ICCBased alternate with matching N."
+    },
+    {
+      "name": "icc_devicen_wrong_n",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "The ICCBased alternate of a selected DeviceN validates N against the embedded profile colour space."
+    },
+    {
+      "name": "icc_page_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page transparency Group models its ICCBased CS independently of the adjacent transparency prohibition."
+    },
+    {
+      "name": "icc_page_group_valid",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "A page Group accepts a valid ICCBased CS while independently failing the PDF/A-1 transparency prohibition."
+    },
+    {
+      "name": "icc_page_group_wrong_type",
+      "expected_local_failed_rule_ids": ["PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "A wrong-type Group CS creates no ICCInputProfile object; the Group remains independently forbidden."
+    },
+    {
+      "name": "icc_page_group_inherited",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page Group resolves a named ICCBased CS through inherited page-tree resources."
+    },
+    {
+      "name": "icc_form_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Form transparency Group models its ICCBased CS independently of the adjacent transparency prohibition."
+    },
+    {
+      "name": "icc_annotation_appearance",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A colour space selected in a page annotation appearance stream models its ICC profile."
+    },
+    {
+      "name": "icc_annotation_appearance_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "A valid ICCBased selection in an annotation appearance satisfies both profile predicates."
+    },
+    {
+      "name": "icc_annotation_state",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Every normal Widget appearance state is traversed, including an invalid ICCBased state not selected by AS."
+    },
+    {
+      "name": "icc_annotation_unreferenced",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "An appearance on an annotation outside every page Annots array remains inapplicable to ICCBased validation."
+    },
+    {
+      "name": "icc_pattern_content",
+      "expected_local_failed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Painting a tiling Pattern traverses ICCBased selections in the Pattern content stream."
+    },
+    {
+      "name": "icc_pattern_content_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001", "PDFA1B-ICCBASED-COMPONENTS-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1", "ISO 19005-1:2005:6.2.3.2:2"],
+      "rationale": "A valid ICCBased selection in painted Pattern content satisfies both profile predicates."
+    },
+    {
+      "name": "icc_pattern_unused",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "An unpainted Pattern resource and its invalid ICCBased content remain outside the modeled content graph."
+    },
+    {
+      "name": "icc_pattern_without_selection",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "Probe: a Pattern resource name supplied to scn without first selecting a Pattern colour space is not painted by veraPDF."
+    },
+    {
+      "name": "icc_pattern_underlying",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
+      "rationale": "veraPDF 1.28.2 deliberately does not expose the underlying ICCBased space of an uncoloured Pattern."
+    },
+    {
+      "name": "device_page_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1", "ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A page transparency Group exposes its DeviceRGB CS against the CMYK output intent."
+    },
+    {
+      "name": "device_form_group",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001", "PDFA1B-TRANSPARENCY-GROUP-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1", "ISO 19005-1:2005:6.4:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked Form transparency Group exposes its DeviceRGB CS against the CMYK output intent."
+    },
+    {
+      "name": "device_annotation_appearance",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceRGB used in an annotation appearance conflicts with the CMYK output intent."
+    },
+    {
+      "name": "device_annotation_unreferenced",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DeviceRGB in an appearance on an unreferenced annotation remains outside the modeled colour graph."
+    },
+    {
+      "name": "device_pattern_content",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "DeviceRGB used in painted Pattern content conflicts with the CMYK output intent."
+    },
+    {
+      "name": "device_pattern_unused",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DeviceRGB in an unpainted Pattern resource remains outside the modeled colour graph."
+    },
+    {
+      "name": "device_image_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DefaultRGB replaces DeviceRGB in an invoked image before device-colour validation."
+    },
+    {
+      "name": "device_image_inherited_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "An inherited DefaultRGB replaces DeviceRGB in an invoked image."
+    },
+    {
+      "name": "device_image_default_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "A wrong-type DefaultRGB suppresses the invoked image's DeviceRGB without creating another modeled colour space."
+    },
+    {
+      "name": "device_inline_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DefaultRGB replaces the RGB abbreviation in an inline image before device-colour validation."
+    },
+    {
+      "name": "device_indexed_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DefaultRGB replaces DeviceRGB in the base of a selected Indexed space."
+    },
+    {
+      "name": "device_separation_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DefaultRGB replaces DeviceRGB in the alternate of a selected Separation."
+    },
+    {
+      "name": "device_devicen_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "DefaultRGB replaces DeviceRGB in the alternate of a selected DeviceN."
+    },
+    {
+      "name": "device_output_invalid_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-OUTPUTINTENT-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.2:1"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "The global output-colour fold observes RGB even when the matching PDF/A-1 profile has an invalid device class."
+    },
+    {
+      "name": "device_output_truncated",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001", "PDFA1B-OUTPUTINTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.2:1", "ISO 19005-1:2005:6.2.3.2:2", "ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A matching PDF/A-1 profile without a readable colour-space header sets the global output colour to null."
+    },
+    {
+      "name": "device_output_rgb_then_cmyk",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-RGB-001", "PDFA1B-OUTPUTINTENT-IDENTITY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.2:2", "ISO 19005-1:2005:6.2.3.3:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "The last matching PDF/A-1 output profile wins the global fold, so a trailing CMYK profile conflicts with DeviceRGB."
+    },
+    {
+      "name": "device_output_cmyk_then_rgb",
+      "expected_local_failed_rule_ids": ["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "The last matching PDF/A-1 output profile wins the global fold, so a trailing RGB profile satisfies DeviceRGB."
+    },
+    {
+      "name": "device_output_pdfa_rgb_then_wrong_s_cmyk",
+      "expected_local_failed_rule_ids": ["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.2:2"],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
+      "rationale": "A later profile whose S is not GTS_PDFA1 leaves the previously folded RGB output colour unchanged."
+    },
+    {
+      "name": "device_cmyk_image_rgb_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-CMYK-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:2"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked DeviceCMYK image conflicts with an RGB PDF/A-1 output profile."
+    },
+    {
+      "name": "device_cmyk_image_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-CMYK-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:2"],
+      "rationale": "DefaultCMYK replaces DeviceCMYK in an invoked image before device-colour validation."
+    },
+    {
+      "name": "device_gray_image_no_output",
+      "expected_local_failed_rule_ids": ["PDFA1B-DEVICE-GRAY-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:3"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked DeviceGray image requires a PDF/A-1 output colour space."
+    },
+    {
+      "name": "device_gray_image_default",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-GRAY-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:3"],
+      "rationale": "DefaultGray replaces DeviceGray in an invoked image, so no uncalibrated colour-space object is exposed even without an output intent."
+    },
+    {
+      "name": "intent_annotation_appearance",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-standard ri operand in an annotation appearance is validated."
+    },
+    {
+      "name": "intent_annotation_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "A standard rendering intent in an annotation appearance is accepted."
+    },
+    {
+      "name": "intent_annotation_state",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "Every normal Widget appearance state is traversed for rendering intents, not only the state selected by AS."
+    },
+    {
+      "name": "intent_annotation_down",
+      "expected_local_failed_rule_ids": ["PDFA1B-ANNOTATION-AP-ENTRIES-001", "PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1", "ISO 19005-1:2005:6.5.3:4"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A down appearance is traversed for rendering intent even though the D entry independently violates the annotation AP predicate."
+    },
+    {
+      "name": "intent_annotation_unreferenced",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "An invalid rendering intent in an appearance on an unreferenced annotation remains inapplicable."
+    },
+    {
+      "name": "intent_pattern_content",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-standard ri operand in painted Pattern content is validated."
+    },
+    {
+      "name": "intent_pattern_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "A standard rendering intent in painted Pattern content is accepted."
+    },
+    {
+      "name": "intent_pattern_unused",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "An unpainted Pattern resource does not expose the invalid rendering intent in its content."
+    },
+    {
+      "name": "intent_inline_image",
+      "expected_local_failed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "A non-standard Intent name in an executed inline image is validated."
+    },
+    {
+      "name": "intent_inline_valid",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "A standard Intent name in an executed inline image is accepted."
+    },
+    {
+      "name": "intent_inline_wrong_type",
+      "expected_local_failed_rule_ids": [],
+      "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
+      "expected_verapdf_failed_rule_ids": [],
+      "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
+      "rationale": "A non-name inline-image Intent creates no CosRenderingIntent model object."
+    },
+    {
+      "name": "intent_alternate_image",
+      "expected_local_failed_rule_ids": ["PDFA1B-IMAGE-ALTERNATES-001", "PDFA1B-RENDERING-INTENT-001"],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.4:1", "ISO 19005-1:2005:6.2.9:1"],
+      "expected_verapdf_passed_rule_ids": [],
+      "rationale": "An invoked image traverses an alternate image and validates its Intent independently of the Alternates prohibition."
     }
   ]
 }
