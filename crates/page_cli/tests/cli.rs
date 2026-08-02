@@ -33,15 +33,25 @@ fn noncompliant_fixture() -> PathBuf {
 }
 
 #[test]
-fn page_help_exposes_the_flat_validation_interface() {
-    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+fn page_help_exposes_the_validate_command() {
+    let root = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg("--help")
         .output()
         .expect("run page --help");
 
+    assert!(root.status.success());
+    let root_stdout = String::from_utf8(root.stdout).expect("UTF-8 root help");
+    assert!(root_stdout.contains("Usage: page <COMMAND>"));
+    assert!(root_stdout.contains("validate"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .args(["validate", "--help"])
+        .output()
+        .expect("run page validate --help");
+
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("Usage: page [OPTIONS] <FILE>"));
+    assert!(stdout.contains("Usage: page validate [OPTIONS] <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
     assert!(stdout.contains("details, json"));
     assert!(stdout.contains("--output <FILE>"));
@@ -59,6 +69,7 @@ fn json_extension_infers_json_file_output() {
     let temporary = TempDirectory::new();
     let report_path = temporary.join("report.JSON");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(noncompliant_fixture())
         .args(["--output", report_path.to_str().expect("UTF-8 report path")])
         .output()
@@ -79,6 +90,7 @@ fn txt_extension_writes_plain_summary_and_replaces_existing_output() {
     let report_path = temporary.join("report.txt");
     fs::write(&report_path, "stale report").expect("seed existing report");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(noncompliant_fixture())
         .args(["--output", report_path.to_str().expect("UTF-8 report path")])
         .output()
@@ -99,6 +111,7 @@ fn explicit_json_format_allows_an_extensionless_output() {
     let temporary = TempDirectory::new();
     let report_path = temporary.join("report");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(noncompliant_fixture())
         .args([
             "--format",
@@ -132,6 +145,7 @@ fn recognized_extensions_reject_a_conflicting_explicit_format() {
     for (format, file_name, expected_error) in cases {
         let report_path = temporary.join(file_name);
         let output = Command::new(env!("CARGO_BIN_EXE_page"))
+            .arg("validate")
             .arg(noncompliant_fixture())
             .args([
                 "--format",
@@ -158,6 +172,7 @@ fn output_cannot_replace_the_input_pdf() {
     let fixture = noncompliant_fixture();
     let original = fs::read(&fixture).expect("read fixture before validation");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .args(["--output", fixture.to_str().expect("UTF-8 fixture path")])
         .output()
@@ -180,6 +195,7 @@ fn default_validation_output_is_a_compact_summary() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/trailer-id-missing.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .output()
         .expect("run PDF validation");
@@ -198,6 +214,7 @@ fn missing_declared_profile_is_an_explicit_error() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .output()
         .expect("run PDF validation without a declared profile");
@@ -215,6 +232,7 @@ fn no_color_flag_preserves_plain_human_output() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .args(["--profile", "a-1b", "--format", "details", "--no-color"])
         .output()
@@ -230,11 +248,13 @@ fn details_format_prints_every_failed_rule() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let details = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .args(["--profile", "a-1b", "--format", "details"])
         .output()
         .expect("run detailed PDF validation");
     let json = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .args(["--profile", "a-1b", "--format", "json"])
         .output()
@@ -273,6 +293,7 @@ fn future_profiles_are_recognized_and_reported_as_unimplemented() {
 
     for (argument, display_name) in profiles {
         let output = Command::new(env!("CARGO_BIN_EXE_page"))
+            .arg("validate")
             .arg(&fixture)
             .args(["--profile", argument])
             .output()
@@ -292,6 +313,7 @@ fn validation_json_uses_the_stable_public_schema() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/trailer-id-missing.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&fixture)
         .args(["--format", "json"])
         .output()
@@ -318,6 +340,7 @@ fn validation_json_reports_parser_errors_separately() {
     let validation = Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation");
     let malformed = validation.join("tests/fixtures/malformed.pdf");
     let parser = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(malformed)
         .args(["--profile", "a-1b", "--format", "json"])
         .output()
@@ -334,11 +357,13 @@ fn missing_input_ignores_json_format_and_reports_a_direct_error() {
     let missing =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation/tests/fixtures/missing.pdf");
     let without_json = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&missing)
         .args(["--profile", "a-1b"])
         .output()
         .expect("run missing PDF validation");
     let with_json = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg("validate")
         .arg(&missing)
         .args(["--profile", "a-1b", "--format", "json"])
         .output()

@@ -24,13 +24,13 @@ cargo install --git https://github.com/page-pdf/page.git page_cli --bin page
 Validate one PDF (by default against the profile declared in its XMP metadata):
 
 ```sh
-page document.pdf
+page validate document.pdf
 ```
 
 If the document does not declare a profile, `page` exits with an explicit error. Use `--profile` to select a profile instead:
 
 ```sh
-page document.pdf --profile a-1b
+page validate document.pdf --profile a-1b
 ```
 
 ```sh
@@ -42,7 +42,7 @@ PDF/A-1b: 1/134 implemented checks failed
 Add `--format details` to emit details about the failure:
 
 ```sh
-page document.pdf --profile a-1b --format details
+page validate document.pdf --profile a-1b --format details
 ```
 
 ```sh
@@ -59,7 +59,7 @@ Document: PDF 1.4, 1 page(s), 62 object(s)
 Or use `--format json` to emit the details as JSON:
 
 ```sh
-page document.pdf --profile a-1b --format json
+page validate document.pdf --profile a-1b --format json
 ```
 
 ```json
@@ -79,8 +79,8 @@ page document.pdf --profile a-1b --format json
 Write the report to a file with `--output`. A `.json` extension selects JSON automatically; use `--format details` for a detailed text report:
 
 ```sh
-page document.pdf --output report.json
-page document.pdf --format details --output report.txt
+page validate document.pdf --output report.json
+page validate document.pdf --format details --output report.txt
 ```
 
 Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.

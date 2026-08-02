@@ -5,7 +5,7 @@ use std::io::{self, IsTerminal};
 use std::path::{Path, PathBuf};
 
 use anstyle::{AnsiColor, Style};
-use clap::{Parser, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_validation::{
     FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
@@ -20,6 +20,18 @@ use page_validation::{
     about = "Experimental PDF/A and PDF/UA validator"
 )]
 struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Validate a PDF document.
+    Validate(ValidateArgs),
+}
+
+#[derive(Debug, Args)]
+struct ValidateArgs {
     /// PDF file to validate.
     file: PathBuf,
 
@@ -288,7 +300,9 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let Cli {
+        command: Command::Validate(cli),
+    } = Cli::parse();
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
     let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
     let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());

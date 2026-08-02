@@ -25,10 +25,8 @@ cargo install --git https://github.com/page-pdf/page.git page_cli --bin page
 
 ## Roadmap
 
-- [ ] PDF/A-1b (~95% done, current WIP)
+- [ ] PDF/A-1b (~99% done)
       
-      - complete graphics and content-stream reachability
-      - complete colour-space, ICC, and output-intent validation
       - complete annotations, actions, forms, and interactive-feature validation
 
 - [ ] PDF/A-1a
