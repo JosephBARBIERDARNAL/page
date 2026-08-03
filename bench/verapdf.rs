@@ -36,7 +36,7 @@ struct Cli {
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
-    #[arg(long, default_value_t = 1)]
+    #[arg(long, default_value_t = 2)]
     warmup: usize,
 }
 
