@@ -563,7 +563,7 @@
       },
       {
         "applicability": [
-          "For dictionaries directly in AcroForm `/Fields` and named field descendants reached through `/Kids`: `containsAA == false`."
+          "For dictionary- or stream-backed objects directly in a dictionary-based catalog AcroForm `/Fields`, plus dictionary-based `/Kids` descendants having a non-null `/T`: `containsAA == false`. Top-level objects remain fields without `/T`; unnamed child encounters do not suppress a later top-level occurrence; field, child, and action graphs are cycle- and depth-bounded."
         ],
         "coverage": {
           "applicable_fail": {
@@ -589,7 +589,27 @@
                 "kind": "verapdf_delta"
               },
               {
+                "case": "action:stream_acroform_field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:stream_child_field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:stream_field_aa_javascript",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:stream_field_additional_actions",
+                "kind": "verapdf_delta"
+              },
+              {
                 "case": "action:top_field_without_t",
+                "kind": "verapdf_delta"
+              },
+              {
+                "case": "action:unnamed_child_reused_as_top_field",
                 "kind": "verapdf_delta"
               }
             ],
@@ -627,7 +647,7 @@
           "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDFormField",
         "predicate": "containsAA == false",
@@ -10852,6 +10872,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "annotation:subtype_indirect",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "annotation:subtype_missing",
               "kind": "verapdf_delta"
             }
@@ -10860,6 +10884,10 @@
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "annotation:stream_annotation_ignored",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "annotation:unreferenced_invalid_annotation",
               "kind": "verapdf_delta"
@@ -10880,13 +10908,13 @@
       },
       "description": "Annotation types not defined in PDF Reference shall not be permitted. Additionally, the FileAttachment, Sound and Movie types shall not be permitted",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-SUBTYPE-001"
       ],
       "mapping_notes": [
-        "For page `/Annots` entries resolving to dictionaries: `Subtype` is `Text`, `Link`, `FreeText`, `Line`, `Square`, `Circle`, `Highlight`, `Underline`, `Squiggly`, `StrikeOut`, `Stamp`, `Ink`, `Popup`, `Widget`, `PrinterMark`, or `TrapNet`."
+        "For direct or indirect page `/Annots` entries resolving specifically to COS dictionaries (not streams): the resolved `Subtype` is `Text`, `Link`, `FreeText`, `Line`, `Square`, `Circle`, `Highlight`, `Underline`, `Squiggly`, `StrikeOut`, `Stamp`, `Ink`, `Popup`, `Widget`, `PrinterMark`, or `TrapNet`; unreferenced and stream-backed annotation-looking objects are inapplicable."
       ],
       "object": "PDAnnot",
       "predicate": "Subtype == \"Text\" || Subtype == \"Link\" || Subtype == \"FreeText\" || Subtype == \"Line\" || Subtype == \"Square\" || Subtype == \"Circle\" || Subtype == \"Highlight\" || Subtype == \"Underline\" || Subtype == \"Squiggly\" || Subtype == \"StrikeOut\" || Subtype == \"Stamp\" || Subtype == \"Ink\" || Subtype == \"Popup\" || Subtype == \"Widget\" || Subtype == \"PrinterMark\" || Subtype == \"TrapNet\"",
@@ -10898,6 +10926,10 @@
           "evidence": [
             {
               "case": "annotation:opacity_zero",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:opacity_zero_indirect",
               "kind": "verapdf_delta"
             }
           ],
@@ -10925,13 +10957,13 @@
       },
       "description": "An annotation dictionary shall not contain the CA key with a value other than 1.0",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-OPACITY-001"
       ],
       "mapping_notes": [
-        "For modeled numeric annotation values: `CA == null || CA == 1.0`."
+        "For page-annotation COS dictionaries, direct or indirect numeric `CA` is resolved before applying `CA == null || CA == 1.0`; missing and nonnumeric values are exposed as null."
       ],
       "object": "PDAnnot",
       "predicate": "CA == null || CA == 1.0",
@@ -10943,6 +10975,10 @@
           "evidence": [
             {
               "case": "annotation:flags_invisible",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:flags_invisible_indirect",
               "kind": "verapdf_delta"
             },
             {
@@ -10974,13 +11010,13 @@
       },
       "description": "An annotation dictionary shall contain the F key. The F key’s Print flag bit shall be set to 1 and its Hidden, Invisible and NoView flag bits shall be set to 0",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-FLAGS-001"
       ],
       "mapping_notes": [
-        "`F != null && (F & 4) == 4 && (F & 1) == 0 && (F & 2) == 0 && (F & 32) == 0`."
+        "For page-annotation COS dictionaries, direct or indirect integer `F` is resolved before applying `F != null && (F & 4) == 4 && (F & 1) == 0 && (F & 2) == 0 && (F & 32) == 0`; missing and noninteger values fail."
       ],
       "object": "PDAnnot",
       "predicate": "F != null && (F & 4) == 4 && (F & 1) == 0 && (F & 2) == 0 && (F & 32) == 0",
@@ -10992,6 +11028,10 @@
           "evidence": [
             {
               "case": "annotation:color_c_cmyk",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:color_c_indirect_array",
               "kind": "verapdf_delta"
             },
             {
@@ -11009,6 +11049,10 @@
             },
             {
               "case": "annotation:color_c_rgb",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:color_c_wrong_type",
               "kind": "verapdf_delta"
             },
             {
@@ -11031,13 +11075,13 @@
       },
       "description": "An annotation dictionary shall not contain the C array or the IC array unless the colour space of the DestOutputProfile in the PDF/A-1 OutputIntent dictionary, defined in 6.2.2, is RGB",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-COLOR-001"
       ],
       "mapping_notes": [
-        "`(containsC == false && containsIC == false) || gOutputCS == \"RGB \"`, using the pinned PDF/A-1 output-colour fold."
+        "For page-annotation COS dictionaries, `containsC`/`containsIC` are true only when the resolved value is an array (scalar, null, and missing values are false); `(containsC == false && containsIC == false) || gOutputCS == \"RGB \"` then uses the pinned PDF/A-1 output-colour fold."
       ],
       "object": "PDAnnot",
       "predicate": "(containsC == false && containsIC == false) || gOutputCS == \"RGB \"",
@@ -11096,13 +11140,13 @@
       },
       "description": "For all annotation dictionaries containing an AP key, the appearance dictionary that it defines as its value shall contain only the N key",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-AP-ENTRIES-001"
       ],
       "mapping_notes": [
-        "A resolved annotation appearance dictionary is absent or contains exactly the `N` key."
+        "For page-annotation COS dictionaries, `AP` is exposed only when it resolves specifically to a COS dictionary; absent, scalar, and stream values are null, while a modeled appearance dictionary passes only when its joined key set is exactly `N`."
       ],
       "object": "PDAnnot",
       "predicate": "AP == null || AP == \"N\"",
@@ -11114,6 +11158,10 @@
           "evidence": [
             {
               "case": "annotation:widget_button_empty_dictionary",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:widget_button_scalar_state",
               "kind": "verapdf_delta"
             },
             {
@@ -11132,6 +11180,10 @@
             {
               "case": "annotation:widget_inherited_button_dictionary",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "annotation:widget_inherited_button_stream_parent",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -11149,13 +11201,13 @@
       },
       "description": "If an annotation dictionary's Subtype key has a value of Widget and its FT key has a value of Btn, the value of the N key shall be an appearance subdictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-WIDGET-BUTTON-APPEARANCE-001"
       ],
       "mapping_notes": [
-        "When `AP == \"N\"`, `Subtype == \"Widget\"`, and direct or inherited `FT == \"Btn\"`, `N` is a nonempty appearance subdictionary."
+        "When `AP == \"N\"`, resolved `Subtype == \"Widget\"`, and direct or inherited `FT == \"Btn\"` (walking dictionary- and stream-backed parents with bounded cycle detection), `N_type == \"Dict\"` and its state dictionary contains at least one resolved appearance stream; scalar-only or empty state dictionaries fail."
       ],
       "object": "PDAnnot",
       "predicate": "AP != \"N\" || Subtype != \"Widget\" || FT != \"Btn\" || (N_type == \"Dict\" && containsAppearances == true)",
@@ -11202,13 +11254,13 @@
       },
       "description": "If an annotation dictionary's Subtype key has value other than Widget, or if FT key associated with Widget annotation has value other than Btn, the value of the N key shall be an appearance stream",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"
       ],
       "mapping_notes": [
-        "When `AP == \"N\"` and the annotation is not a button Widget, `N` resolves to an appearance stream."
+        "When `AP == \"N\"` and the annotation is not a resolved button Widget, the resolved `N` entry is dictionary-based and specifically stream-backed (`N_type == \"Stream\"`); missing, scalar, and state-dictionary values fail."
       ],
       "object": "PDAnnot",
       "predicate": "AP != \"N\" || (Subtype == \"Widget\" && FT == \"Btn\") || N_type == \"Stream\"",
@@ -11243,6 +11295,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:open_indirect_subtype",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:open_javascript",
               "kind": "verapdf_delta"
             },
@@ -11255,7 +11311,19 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:outline_stream_action",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:outline_stream_node_action",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:page_additional_action",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:stream_field_aa_javascript",
               "kind": "verapdf_delta"
             },
             {
@@ -11296,11 +11364,23 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:named_indirect_forbidden",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:named_missing",
               "kind": "verapdf_delta"
             },
             {
               "case": "action:named_wrong_type",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:next_action_cycle",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:next_stream_action_ignored",
               "kind": "verapdf_delta"
             },
             {
@@ -11339,13 +11419,13 @@
       },
       "description": "The Launch, Sound, Movie, ResetForm, ImportData and JavaScript actions shall not be permitted. Additionally, the deprecated set-state and no-op actions shall not be permitted. The Hide action shall not be permitted (Corrigendum 2)",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-ACTION-TYPE-001"
       ],
       "mapping_notes": [
-        "For actions reached through the bounded pinned-model graph: `S == \"GoTo\" || S == \"GoToR\" || S == \"Thread\" || S == \"URI\" || S == \"Named\" || S == \"SubmitForm\"`."
+        "For actions reached from catalog OpenAction, the five catalog AA triggers, page O/C triggers, annotation A and ten AA triggers, field K/F/V/C triggers, outline A, and dictionary/array `Next` chains: the resolved `S` is `GoTo`, `GoToR`, `Thread`, `URI`, `Named`, or `SubmitForm`. Source-specific COS-dictionary versus dictionary-based shape gates match veraPDF, including stream-backed outline actions but not stream-backed OpenAction, annotation action, AA action, or `Next` entries."
       ],
       "object": "PDAction",
       "predicate": "S == \"GoTo\" || S == \"GoToR\" || S == \"Thread\" || S == \"URI\" || S == \"Named\" || S == \"SubmitForm\"",
@@ -11357,6 +11437,10 @@
           "evidence": [
             {
               "case": "action:named_forbidden",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:named_indirect_forbidden",
               "kind": "verapdf_delta"
             },
             {
@@ -11396,13 +11480,13 @@
       },
       "description": "Named actions other than NextPage, PrevPage, FirstPage, and LastPage shall not be permitted",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-NAMED-ACTION-001"
       ],
       "mapping_notes": [
-        "For reached actions with `S == \"Named\"`: `N == \"NextPage\" || N == \"PrevPage\" || N == \"FirstPage\" || N == \"LastPage\"`."
+        "For every reached action whose resolved `S == \"Named\"`, direct or indirect `N` resolves to `NextPage`, `PrevPage`, `FirstPage`, or `LastPage`; missing, wrong-type, and other names fail."
       ],
       "object": "PDNamedAction",
       "predicate": "N == \"NextPage\" || N == \"PrevPage\" || N == \"FirstPage\" || N == \"LastPage\"",
@@ -11419,12 +11503,20 @@
             {
               "case": "action:widget_action_wrong_type",
               "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:widget_indirect_subtype_action",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
         },
         "applicable_pass": {
           "evidence": [
+            {
+              "case": "action:stream_widget_action_ignored",
+              "kind": "verapdf_delta"
+            },
             {
               "case": "action:widget_a_null",
               "kind": "verapdf_delta"
@@ -11449,13 +11541,13 @@
       },
       "description": "Interactive form fields shall not perform actions of any type",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-WIDGET-ACTION-001"
       ],
       "mapping_notes": [
-        "For Widget annotations reached from page `/Annots`: `containsA == false`; key presence is tested regardless of value type."
+        "For COS-dictionary Widget annotations created from page `/Annots` after resolving `Subtype`: `containsA == false`; non-null key presence fails regardless of value type, direct null is empty, and stream-backed or field-only Widget-looking objects are inapplicable."
       ],
       "object": "PDWidgetAnnot",
       "predicate": "containsA == false",
@@ -11506,13 +11598,13 @@
       },
       "description": "A Widget annotation dictionary shall not include an AA entry for an additional-actions dictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001"
       ],
       "mapping_notes": [
-        "For Widget annotations reached from page `/Annots`: `containsAA == false`; key presence is tested regardless of value type."
+        "For COS-dictionary Widget annotations created from page `/Annots` after resolving `Subtype`: `containsAA == false`; non-null key presence fails regardless of value type, direct null is empty, and stream-backed or field-only Widget-looking objects are inapplicable."
       ],
       "object": "PDWidgetAnnot",
       "predicate": "containsAA == false",
@@ -11543,7 +11635,27 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "action:stream_acroform_field_additional_actions",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:stream_child_field_additional_actions",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:stream_field_aa_javascript",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:stream_field_additional_actions",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "action:top_field_without_t",
+              "kind": "verapdf_delta"
+            },
+            {
+              "case": "action:unnamed_child_reused_as_top_field",
               "kind": "verapdf_delta"
             }
           ],
@@ -11579,13 +11691,13 @@
       },
       "description": "A Field dictionary shall not include an AA entry for an additional-actions dictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001"
       ],
       "mapping_notes": [
-        "For dictionaries directly in AcroForm `/Fields` and named field descendants reached through `/Kids`: `containsAA == false`."
+        "For dictionary- or stream-backed objects directly in a dictionary-based catalog AcroForm `/Fields`, plus dictionary-based `/Kids` descendants having a non-null `/T`: `containsAA == false`. Top-level objects remain fields without `/T`; unnamed child encounters do not suppress a later top-level occurrence; field, child, and action graphs are cycle- and depth-bounded."
       ],
       "object": "PDFormField",
       "predicate": "containsAA == false",
@@ -14378,6 +14490,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "form:widget_indirect_subtype_missing_ap",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "form:widget_missing_ap",
               "kind": "verapdf_delta"
             },
@@ -14411,6 +14527,10 @@
               "kind": "verapdf_delta"
             },
             {
+              "case": "form:stream_widget_missing_ap",
+              "kind": "verapdf_delta"
+            },
+            {
               "case": "form:unreferenced_widget_missing_ap",
               "kind": "verapdf_delta"
             },
@@ -14438,13 +14558,13 @@
       },
       "description": "Every form field shall have an appearance dictionary associated with the field's data",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-WIDGET-APPEARANCE-001"
       ],
       "mapping_notes": [
-        "For Widget annotations reached from page `/Annots`: `AP != null`; veraPDF exposes AP only when it resolves to a dictionary, so streams and scalar values fail while an empty dictionary passes."
+        "For COS-dictionary Widget annotations created from page `/Annots` after resolving `Subtype`: `AP != null`; veraPDF exposes AP only when it resolves specifically to a COS dictionary, so missing, stream, and scalar values fail while an empty or indirect dictionary passes; AP is not inherited and field-only, unreferenced, and stream-backed Widget-looking objects are inapplicable."
       ],
       "object": "PDWidgetAnnot",
       "predicate": "AP != null",
@@ -14462,11 +14582,20 @@
   "schema_version": 1,
   "variant_matrix": {
     "cyclic": [
+      "action:field_cycle",
+      "action:next_action_cycle",
       "font:cyclic_form",
       "icc_based:cyclic_form"
     ],
     "direct_indirect": [
+      "action:named_indirect_forbidden",
+      "action:open_indirect_subtype",
+      "action:widget_indirect_subtype_action",
+      "annotation:color_c_indirect_array",
       "annotation:direct_invalid_annotation",
+      "annotation:flags_invisible_indirect",
+      "annotation:opacity_zero_indirect",
+      "annotation:subtype_indirect",
       "document_feature:file_spec_indirect_with_ef",
       "document_feature:names_embedded_files_indirect_null",
       "document_feature:names_indirect_dictionary",
@@ -14479,6 +14608,7 @@
       "form:need_appearances_false_indirect",
       "form:need_appearances_true_indirect",
       "form:widget_indirect_ap",
+      "form:widget_indirect_subtype_missing_ap",
       "graphics:direct_extgstate_tr",
       "output_intent:direct_intent_dictionary",
       "output_intent:direct_wrong_type_profile",
@@ -14491,12 +14621,19 @@
     ],
     "inherited": [
       "annotation:widget_inherited_button_dictionary",
+      "annotation:widget_inherited_button_stream_parent",
       "font:inherited_resources",
       "icc_based:inherited_resources"
     ],
     "malformed": [
+      "action:next_stream_action_ignored",
+      "action:outline_stream_action",
+      "action:outline_stream_node_action",
+      "action:stream_widget_action_ignored",
       "annotation:direct_invalid_annotation",
+      "annotation:stream_annotation_ignored",
       "annotation:unreferenced_invalid_annotation",
+      "annotation:widget_button_scalar_state",
       "composite_font:composite_cidmap_invalid_name",
       "corpus:parser-local-discrepancy-invalid-hex.pdf",
       "font:font_basefont_invalid",
@@ -14518,6 +14655,7 @@
       "metadata:malformed_xmp",
       "output_intent:truncated_profile",
       "output_intent:two_shared_invalid_profiles",
+      "form:stream_widget_missing_ap",
       "truetype:tt_nonsymbolic_invalid_encoding",
       "xobject:two_invalid_images",
       "xobject:unreferenced_invalid_image",
@@ -14526,6 +14664,8 @@
     "nested": [
       "action:child_field_additional_actions",
       "action:child_without_t",
+      "action:stream_child_field_additional_actions",
+      "action:unnamed_child_reused_as_top_field",
       "document_feature:embedded_files_kids_with_ef",
       "icc_based:nested_form_page_fallback",
       "icc_based:nested_form_used"
@@ -14537,6 +14677,7 @@
       "action:open_missing_subtype",
       "action:widget_action_wrong_type",
       "annotation:appearance_wrong_type",
+      "annotation:color_c_wrong_type",
       "annotation:flags_missing",
       "annotation:opacity_wrong_type",
       "annotation:subtype_missing",

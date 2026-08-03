@@ -6,7 +6,7 @@ use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{contains_key, resolve_optional, walk_inherited};
+use crate::object_resolution::{resolve_optional, resolved_integer, resolved_name, walk_inherited};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -58,10 +58,7 @@ fn inspect_annotation(
     limits: &SafetyLimits,
     summary: &mut AnnotationSummary,
 ) -> Result<(), PdfError> {
-    let subtype = annotation
-        .get(b"Subtype")
-        .ok()
-        .and_then(|value| value.as_name().ok());
+    let subtype = resolved_name(document, annotation, b"Subtype", limits.max_reference_depth)?;
     if !matches!(
         subtype,
         Some(
@@ -93,6 +90,9 @@ fn inspect_annotation(
     if annotation
         .get(b"CA")
         .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
         .and_then(|value| value.as_float().ok())
         .is_some_and(|value| value != 1.0)
     {
@@ -103,10 +103,7 @@ fn inspect_annotation(
         ));
     }
 
-    let flags = annotation
-        .get(b"F")
-        .ok()
-        .and_then(|value| value.as_i64().ok());
+    let flags = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?;
     if !flags
         .is_some_and(|flags| flags & 4 == 4 && flags & 1 == 0 && flags & 2 == 0 && flags & 32 == 0)
     {
@@ -117,7 +114,9 @@ fn inspect_annotation(
         ));
     }
 
-    if contains_key(annotation, b"C") || contains_key(annotation, b"IC") {
+    if contains_array(document, annotation, b"C", limits)?
+        || contains_array(document, annotation, b"IC", limits)?
+    {
         summary
             .color_uses
             .push(annotation_failure(object_id, context, "contains /C or /IC"));
@@ -150,7 +149,9 @@ fn inspect_annotation(
     if subtype == Some(b"Widget".as_slice()) && field_type == Some(b"Btn".as_slice()) {
         if normal
             .and_then(|object| object.as_dict().ok())
-            .is_none_or(Dictionary::is_empty)
+            .map(|states| contains_appearance_stream(document, states, limits))
+            .transpose()?
+            .is_none_or(|contains_stream| !contains_stream)
         {
             summary.invalid_button_appearances.push(annotation_failure(
                 object_id,
@@ -174,8 +175,41 @@ fn inherited_field_type<'a>(
     limits: &SafetyLimits,
 ) -> Result<Option<&'a [u8]>, PdfError> {
     walk_inherited(document, dictionary, limits, b"FT", |_, value, _| {
-        Ok(value.as_name().ok())
+        Ok(
+            resolve_optional(document, value, limits.max_reference_depth)?
+                .and_then(|value| value.as_name().ok()),
+        )
     })
+}
+
+fn contains_array(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(false);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .is_some_and(|value| value.as_array().is_ok()),
+    )
+}
+
+fn contains_appearance_stream(
+    document: &Document,
+    states: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    for (_, value) in states.iter() {
+        if resolve_optional(document, value, limits.max_reference_depth)?
+            .is_some_and(|value| value.as_stream().is_ok())
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn annotation_failure(object_id: Option<PdfObjectId>, context: &str, detail: &str) -> RuleFailure {
