@@ -146,9 +146,8 @@ Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR`
 
 ## Roadmap
 
-- [ ] PDF/A-1b. Missing implementations are:
-  - complete annotations, actions, forms, and interactive-feature validation
-- [ ] PDF/A-1a
+- [x] PDF/A-1b
+- [ ] PDF/A-1a (current focus)
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
 - [ ] PDF/A-2u
