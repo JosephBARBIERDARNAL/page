@@ -25,6 +25,11 @@ const CASES: &[(&str, &[&str])] = &[
         &["PDFA1B-ACROFORM-NEED-APPEARANCES-001"],
     ),
     ("widget_missing_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
+    (
+        "widget_indirect_subtype_missing_ap",
+        &["PDFA1B-WIDGET-APPEARANCE-001"],
+    ),
+    ("stream_widget_missing_ap", &[]),
     ("widget_empty_ap", &["PDFA1B-ANNOTATION-AP-ENTRIES-001"]),
     ("widget_wrong_type_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),
     ("widget_stream_ap", &["PDFA1B-WIDGET-APPEARANCE-001"]),

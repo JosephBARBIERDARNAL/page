@@ -3645,6 +3645,7 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
     let mut include_annotation = true;
     let mut direct_annotation = false;
     let mut direct_page = false;
+    let mut stream_annotation = false;
     let mut output_color_space = Some(*b"RGB ");
 
     match case {
@@ -3657,6 +3658,15 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         }
         "subtype_missing" => {
             annotation.remove(b"Subtype");
+        }
+        "subtype_indirect" => {
+            let subtype = document.add_object(Object::Name(b"FileAttachment".to_vec()));
+            annotation.set("Subtype", subtype);
+        }
+        "stream_annotation_ignored" => {
+            annotation.set("Subtype", "FileAttachment");
+            annotation.remove(b"F");
+            stream_annotation = true;
         }
         "direct_invalid_annotation" => {
             annotation.set("Subtype", "MaiAnnot");
@@ -3671,6 +3681,10 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         }
         "opacity_one" => annotation.set("CA", 1),
         "opacity_zero" => annotation.set("CA", 0),
+        "opacity_zero_indirect" => {
+            let opacity = document.add_object(Object::Integer(0));
+            annotation.set("CA", opacity);
+        }
         "opacity_wrong_type" => annotation.set("CA", "Opaque"),
         "flags_missing" => {
             annotation.remove(b"F");
@@ -3679,9 +3693,22 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
         "flags_invisible" => annotation.set("F", 5),
         "flags_hidden" => annotation.set("F", 6),
         "flags_no_view" => annotation.set("F", 36),
+        "flags_invisible_indirect" => {
+            let flags = document.add_object(Object::Integer(5));
+            annotation.set("F", flags);
+        }
         "color_c_rgb" => annotation.set("C", vec![1.into(), 0.into(), 0.into()]),
         "color_c_null" => {
             annotation.set("C", Object::Null);
+            output_color_space = Some(*b"CMYK");
+        }
+        "color_c_wrong_type" => {
+            annotation.set("C", 42);
+            output_color_space = Some(*b"CMYK");
+        }
+        "color_c_indirect_array" => {
+            let color = document.add_object(Object::Array(vec![1.into(), 0.into(), 0.into()]));
+            annotation.set("C", color);
             output_color_space = Some(*b"CMYK");
         }
         "color_ic_rgb" => annotation.set("IC", vec![1.into(), 0.into(), 0.into()]),
@@ -3731,6 +3758,11 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
             annotation.set("FT", "Btn");
             annotation.set("AP", dictionary! {"N" => appearance_stream});
         }
+        "widget_button_scalar_state" => {
+            annotation.set("Subtype", "Widget");
+            annotation.set("FT", "Btn");
+            annotation.set("AP", dictionary! {"N" => dictionary! {"Yes" => 42}});
+        }
         "widget_text_stream" => {
             annotation.set("Subtype", "Widget");
             annotation.set("FT", "Tx");
@@ -3749,13 +3781,26 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "widget_inherited_button_stream_parent" => {
+            let parent = document.add_object(Stream::new(dictionary! {"FT" => "Btn"}, Vec::new()));
+            annotation.set("Subtype", "Widget");
+            annotation.set("Parent", parent);
+            annotation.set(
+                "AP",
+                dictionary! {
+                    "N" => dictionary! {"Yes" => appearance_stream},
+                },
+            );
+        }
         _ => panic!("unknown annotation fixture case {case}"),
     }
 
     if case == "unreferenced_invalid_annotation" {
         include_annotation = false;
     }
-    let annotation_object = if direct_annotation {
+    let annotation_object = if stream_annotation {
+        Object::Reference(document.add_object(Stream::new(annotation, Vec::new())))
+    } else if direct_annotation {
         Object::Dictionary(annotation)
     } else {
         Object::Reference(document.add_object(annotation))
@@ -3832,6 +3877,7 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
     };
     let mut annotations = Vec::new();
     let mut fields = Vec::new();
+    let mut stream_acro_form = false;
 
     match case {
         "baseline" => {}
@@ -3877,6 +3923,10 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
                 "OpenAction",
                 dictionary! {"S" => Object::string_literal("GoTo")},
             );
+        }
+        "open_indirect_subtype" => {
+            let subtype = document.add_object(Object::Name(b"JavaScript".to_vec()));
+            catalog.set("OpenAction", dictionary! {"S" => subtype});
         }
         "open_destination_array" => {
             catalog.set(
@@ -3926,6 +3976,36 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             );
             catalog.set("Outlines", outlines_id);
         }
+        "outline_stream_action" | "outline_stream_node_action" => {
+            let outlines_id = document.new_object_id();
+            let action_value = if case == "outline_stream_action" {
+                Object::Reference(
+                    document.add_object(Stream::new(dictionary! {"S" => "JavaScript"}, Vec::new())),
+                )
+            } else {
+                action("JavaScript")
+            };
+            let outline_dictionary = dictionary! {
+                "Title" => Object::string_literal("Page outline"),
+                "Parent" => outlines_id,
+                "A" => action_value,
+            };
+            let outline_id = if case == "outline_stream_node_action" {
+                document.add_object(Stream::new(outline_dictionary, Vec::new()))
+            } else {
+                document.add_object(outline_dictionary)
+            };
+            document.objects.insert(
+                outlines_id,
+                Object::Dictionary(dictionary! {
+                    "Type" => "Outlines",
+                    "First" => outline_id,
+                    "Last" => outline_id,
+                    "Count" => 1,
+                }),
+            );
+            catalog.set("Outlines", outlines_id);
+        }
         "next_action" => {
             let mut first = action_dictionary("GoTo");
             first.set("Next", action("JavaScript"));
@@ -3935,6 +4015,24 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             let mut first = action_dictionary("GoTo");
             first.set("Next", vec![action("URI"), action("JavaScript"), 42.into()]);
             catalog.set("OpenAction", first);
+        }
+        "next_stream_action_ignored" => {
+            let next =
+                document.add_object(Stream::new(dictionary! {"S" => "JavaScript"}, Vec::new()));
+            let mut first = action_dictionary("GoTo");
+            first.set("Next", next);
+            catalog.set("OpenAction", first);
+        }
+        "next_action_cycle" => {
+            let action_id = document.new_object_id();
+            document.objects.insert(
+                action_id,
+                Object::Dictionary(dictionary! {
+                    "S" => "GoTo",
+                    "Next" => action_id,
+                }),
+            );
+            catalog.set("OpenAction", action_id);
         }
         "named_next_page" => {
             let mut named = action_dictionary("Named");
@@ -3967,6 +4065,12 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             named.set("N", Object::string_literal("NextPage"));
             catalog.set("OpenAction", named);
         }
+        "named_indirect_forbidden" => {
+            let name = document.add_object(Object::Name(b"Print".to_vec()));
+            let mut named = action_dictionary("Named");
+            named.set("N", name);
+            catalog.set("OpenAction", named);
+        }
         "non_named_with_forbidden_n" => {
             let mut uri = action_dictionary("URI");
             uri.set("N", "Print");
@@ -3992,6 +4096,25 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
             widget.set("AP", dictionary! {"N" => widget_appearance});
             widget.set("A", Object::Null);
             annotations.push(Object::Reference(document.add_object(widget)));
+        }
+        "widget_indirect_subtype_action" => {
+            let subtype = document.add_object(Object::Name(b"Widget".to_vec()));
+            let mut widget = valid_annotation("Text");
+            widget.set("Subtype", subtype);
+            widget.set("FT", "Tx");
+            widget.set("AP", dictionary! {"N" => widget_appearance});
+            widget.set("A", action("URI"));
+            annotations.push(Object::Reference(document.add_object(widget)));
+        }
+        "stream_widget_action_ignored" => {
+            let mut widget = valid_annotation("Widget");
+            widget.remove(b"F");
+            widget.set("FT", "Tx");
+            widget.set("AP", dictionary! {"N" => widget_appearance});
+            widget.set("A", action("URI"));
+            annotations.push(Object::Reference(
+                document.add_object(Stream::new(widget, Vec::new())),
+            ));
         }
         "widget_additional_actions" => {
             let mut widget = valid_annotation("Widget");
@@ -4049,6 +4172,36 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
                 "AA" => dictionary! {"K" => action("JavaScript")},
             })));
         }
+        "stream_acroform_field_additional_actions" => {
+            fields.push(Object::Reference(document.add_object(dictionary! {
+                "T" => Object::string_literal("field"),
+                "FT" => "Tx",
+                "AA" => Dictionary::new(),
+            })));
+            stream_acro_form = true;
+        }
+        "stream_field_additional_actions" => {
+            let field = Stream::new(
+                dictionary! {
+                    "T" => Object::string_literal("field"),
+                    "FT" => "Tx",
+                    "AA" => Dictionary::new(),
+                },
+                Vec::new(),
+            );
+            fields.push(Object::Reference(document.add_object(field)));
+        }
+        "stream_field_aa_javascript" => {
+            let aa = document.add_object(Stream::new(
+                dictionary! {"K" => action("JavaScript")},
+                Vec::new(),
+            ));
+            fields.push(Object::Reference(document.add_object(dictionary! {
+                "T" => Object::string_literal("field"),
+                "FT" => "Tx",
+                "AA" => aa,
+            })));
+        }
         "child_field_additional_actions" | "child_without_t" => {
             let mut child = dictionary! {
                 "T" => Object::string_literal("child"),
@@ -4063,6 +4216,42 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
                 "FT" => "Tx",
                 "Kids" => vec![Object::Reference(child_id)],
             })));
+        }
+        "stream_child_field_additional_actions" => {
+            let child_id = document.add_object(Stream::new(
+                dictionary! {
+                    "T" => Object::string_literal("child"),
+                    "AA" => Dictionary::new(),
+                },
+                Vec::new(),
+            ));
+            fields.push(Object::Reference(document.add_object(dictionary! {
+                "T" => Object::string_literal("parent"),
+                "FT" => "Tx",
+                "Kids" => vec![Object::Reference(child_id)],
+            })));
+        }
+        "unnamed_child_reused_as_top_field" => {
+            let reused = document.add_object(dictionary! {"AA" => Dictionary::new()});
+            fields.push(Object::Reference(document.add_object(dictionary! {
+                "T" => Object::string_literal("parent"),
+                "FT" => "Tx",
+                "Kids" => vec![Object::Reference(reused)],
+            })));
+            fields.push(Object::Reference(reused));
+        }
+        "field_cycle" => {
+            let field_id = document.new_object_id();
+            document.objects.insert(
+                field_id,
+                Object::Dictionary(dictionary! {
+                    "T" => Object::string_literal("field"),
+                    "FT" => "Tx",
+                    "AA" => Dictionary::new(),
+                    "Kids" => vec![Object::Reference(field_id)],
+                }),
+            );
+            fields.push(Object::Reference(field_id));
         }
         "unreferenced_field_additional_actions" => {
             document.add_object(dictionary! {
@@ -4094,7 +4283,13 @@ pub fn action_fixture(case: &str) -> Vec<u8> {
     }
 
     if !fields.is_empty() {
-        catalog.set("AcroForm", dictionary! {"Fields" => fields});
+        let acro_form = dictionary! {"Fields" => fields};
+        if stream_acro_form {
+            let acro_form = document.add_object(Stream::new(acro_form, Vec::new()));
+            catalog.set("AcroForm", acro_form);
+        } else {
+            catalog.set("AcroForm", acro_form);
+        }
     }
     if !annotations.is_empty() {
         page.set("Annots", annotations);
@@ -4138,6 +4333,7 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
     let mut include_on_page = true;
     let mut include_as_field = true;
     let mut direct_widget = false;
+    let mut stream_widget = false;
     let mut include_acro_form = true;
     let mut acro_form = dictionary! {
         "NeedAppearances" => false,
@@ -4174,6 +4370,17 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
         }
         "widget_missing_ap" => {
             widget.remove(b"AP");
+        }
+        "widget_indirect_subtype_missing_ap" => {
+            let subtype = document.add_object(Object::Name(b"Widget".to_vec()));
+            widget.set("Subtype", subtype);
+            widget.remove(b"AP");
+        }
+        "stream_widget_missing_ap" => {
+            widget.remove(b"AP");
+            widget.remove(b"F");
+            stream_widget = true;
+            include_as_field = false;
         }
         "widget_empty_ap" => widget.set("AP", Dictionary::new()),
         "widget_wrong_type_ap" => widget.set("AP", 42),
@@ -4213,7 +4420,9 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown form fixture case {case}"),
     }
 
-    let widget_value = if direct_widget {
+    let widget_value = if stream_widget {
+        Object::Reference(document.add_object(Stream::new(widget, Vec::new())))
+    } else if direct_widget {
         Object::Dictionary(widget)
     } else {
         Object::Reference(document.add_object(widget))

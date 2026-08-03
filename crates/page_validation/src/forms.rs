@@ -6,7 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::object_resolution::{dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -75,13 +75,10 @@ fn inspect_page_widgets(
         limits,
         &mut inspected,
         |page_number, index, object_id, value| {
-            let Some(annotation) = dictionary_based(value) else {
+            let Ok(annotation) = value.as_dict() else {
                 return Ok(());
             };
-            if annotation
-                .get(b"Subtype")
-                .ok()
-                .and_then(|value| value.as_name().ok())
+            if resolved_name(document, annotation, b"Subtype", limits.max_reference_depth)?
                 != Some(b"Widget".as_slice())
             {
                 return Ok(());

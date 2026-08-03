@@ -6,7 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
-use crate::object_resolution::{contains_key, resolve_optional};
+use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -66,6 +66,7 @@ pub(crate) fn inspect(
         CATALOG_ACTION_KEYS,
         "catalog /AA",
         0,
+        false,
     )?;
     inspector.inspect_outlines(catalog.get(b"Outlines").ok())?;
     inspector.inspect_pages()?;
@@ -101,6 +102,7 @@ impl Inspector<'_> {
                 PAGE_ACTION_KEYS,
                 &format!("page {page_number} /AA"),
                 0,
+                false,
             )?;
             let Some(annotations) = page
                 .get(b"Annots")
@@ -126,21 +128,22 @@ impl Inspector<'_> {
 
     fn inspect_annotation(&mut self, value: &Object, context: &str) -> Result<(), PdfError> {
         let object_id = value.as_reference().ok();
-        if object_id.is_some_and(|id| !self.seen_annotations.insert(id)) {
-            return Ok(());
-        }
         let Some(annotation) =
             resolve_optional(self.document, value, self.limits.max_reference_depth)?
                 .and_then(|object| object.as_dict().ok())
         else {
             return Ok(());
         };
+        if object_id.is_some_and(|id| !self.seen_annotations.insert(id)) {
+            return Ok(());
+        }
         let failure_id = object_id.map(Into::into);
-        let is_widget = annotation
-            .get(b"Subtype")
-            .ok()
-            .and_then(|value| value.as_name().ok())
-            == Some(b"Widget".as_slice());
+        let is_widget = resolved_name(
+            self.document,
+            annotation,
+            b"Subtype",
+            self.limits.max_reference_depth,
+        )? == Some(b"Widget".as_slice());
         if is_widget && contains_key(annotation, b"A") {
             self.summary.widgets_with_actions.push(RuleFailure {
                 object_id: failure_id,
@@ -163,6 +166,7 @@ impl Inspector<'_> {
             ANNOTATION_ACTION_KEYS,
             &format!("{context} /AA"),
             0,
+            false,
         )
     }
 
@@ -171,7 +175,7 @@ impl Inspector<'_> {
             .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
             .transpose()?
             .flatten()
-            .and_then(|object| object.as_dict().ok())
+            .and_then(dictionary_based)
         else {
             return Ok(());
         };
@@ -200,18 +204,18 @@ impl Inspector<'_> {
     ) -> Result<(), PdfError> {
         self.ensure_depth(depth)?;
         let object_id = value.as_reference().ok();
-        if object_id.is_some_and(|id| !self.seen_fields.insert(id)) {
-            return Ok(());
-        }
         let Some(field) = resolve_optional(self.document, value, self.limits.max_reference_depth)?
-            .and_then(|object| object.as_dict().ok())
+            .and_then(dictionary_based)
         else {
             return Ok(());
         };
         // veraPDF accepts every dictionary in AcroForm /Fields as a top-level
         // form field, while child /Kids entries instantiate a field only when
         // the dictionary contains /T.
-        if !top_level && !field.has(b"T") {
+        if !top_level && !contains_key(field, b"T") {
+            return Ok(());
+        }
+        if object_id.is_some_and(|id| !self.seen_fields.insert(id)) {
             return Ok(());
         }
         if contains_key(field, b"AA") {
@@ -227,6 +231,7 @@ impl Inspector<'_> {
             FIELD_ACTION_KEYS,
             &format!("{context} /AA"),
             depth,
+            true,
         )?;
         let Some(kids) = field
             .get(b"Kids")
@@ -249,7 +254,7 @@ impl Inspector<'_> {
             .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
             .transpose()?
             .flatten()
-            .and_then(|object| object.as_dict().ok())
+            .and_then(dictionary_based)
         else {
             return Ok(());
         };
@@ -267,17 +272,17 @@ impl Inspector<'_> {
     ) -> Result<(), PdfError> {
         self.ensure_depth(depth)?;
         let object_id = value.as_reference().ok();
-        if object_id.is_some_and(|id| !self.seen_outlines.insert(id)) {
-            return Ok(());
-        }
         let Some(outline) =
             resolve_optional(self.document, value, self.limits.max_reference_depth)?
-                .and_then(|object| object.as_dict().ok())
+                .and_then(dictionary_based)
         else {
             return Ok(());
         };
+        if object_id.is_some_and(|id| !self.seen_outlines.insert(id)) {
+            return Ok(());
+        }
         if let Ok(action) = outline.get(b"A") {
-            self.inspect_action_value(action, &format!("{context} /A"), depth)?;
+            self.inspect_action_value_with_shape(action, &format!("{context} /A"), depth, true)?;
         }
         if let Ok(first) = outline.get(b"First") {
             self.inspect_outline(first, &format!("{context} child"), depth + 1)?;
@@ -294,12 +299,19 @@ impl Inspector<'_> {
         action_keys: &[&[u8]],
         context: &str,
         depth: usize,
+        dictionary_based_source: bool,
     ) -> Result<(), PdfError> {
         let Some(actions) = value
             .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
             .transpose()?
             .flatten()
-            .and_then(|object| object.as_dict().ok())
+            .and_then(|object| {
+                if dictionary_based_source {
+                    dictionary_based(object)
+                } else {
+                    object.as_dict().ok()
+                }
+            })
         else {
             return Ok(());
         };
@@ -321,18 +333,34 @@ impl Inspector<'_> {
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        self.inspect_action_value_with_shape(value, context, depth, false)
+    }
+
+    fn inspect_action_value_with_shape(
+        &mut self,
+        value: &Object,
+        context: &str,
+        depth: usize,
+        dictionary_based_source: bool,
+    ) -> Result<(), PdfError> {
         self.ensure_depth(depth)?;
         let object_id = value.as_reference().ok();
-        if object_id.is_some_and(|id| !self.seen_actions.insert(id)) {
-            return Ok(());
-        }
         let Some(action) = resolve_optional(self.document, value, self.limits.max_reference_depth)?
-            .and_then(|object| object.as_dict().ok())
+            .and_then(|object| {
+                if dictionary_based_source {
+                    dictionary_based(object)
+                } else {
+                    object.as_dict().ok()
+                }
+            })
         else {
             return Ok(());
         };
+        if object_id.is_some_and(|id| !self.seen_actions.insert(id)) {
+            return Ok(());
+        }
         let failure_id = object_id.map(Into::into);
-        let subtype = action.get(b"S").ok().and_then(|value| value.as_name().ok());
+        let subtype = resolved_name(self.document, action, b"S", self.limits.max_reference_depth)?;
         if !matches!(
             subtype,
             Some(b"GoTo" | b"GoToR" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
@@ -344,7 +372,7 @@ impl Inspector<'_> {
         }
         if subtype == Some(b"Named".as_slice())
             && !matches!(
-                action.get(b"N").ok().and_then(|value| value.as_name().ok()),
+                resolved_name(self.document, action, b"N", self.limits.max_reference_depth,)?,
                 Some(b"NextPage" | b"PrevPage" | b"FirstPage" | b"LastPage")
             )
         {

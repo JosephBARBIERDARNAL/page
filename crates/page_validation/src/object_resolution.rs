@@ -199,7 +199,7 @@ pub(crate) fn walk_inherited<'a, T>(
         let Some(parent) = resolve_optional(document, parent, limits.max_reference_depth)? else {
             return Ok(None);
         };
-        let Ok(parent) = parent.as_dict() else {
+        let Some(parent) = dictionary_based(parent) else {
             return Ok(None);
         };
         node = parent;
