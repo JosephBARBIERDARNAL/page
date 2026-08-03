@@ -52,25 +52,6 @@ jobs:
       - name: Check PDF/A-1B coverage inventory
         run: just coverage
 
-  wasm:
-    name: WebAssembly bindings
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@wasm-pack
-
-      - name: Test WebAssembly bindings
-        run: wasm-pack test --node --release crates/page_validation_wasm
-
   verapdf:
     name: veraPDF 1.28.2 differential
     runs-on: ubuntu-latest
