@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
-const BENCHMARK_PDF: &str = "bench/long-pdfa-1b.pdf";
+const BENCHMARK_PDF: &str = "bench/budget.pdf";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -32,7 +32,7 @@ struct Cli {
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
-    #[arg(long, default_value_t = 10)]
+    #[arg(long, default_value_t = 5)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
@@ -75,6 +75,13 @@ struct MemSummary {
     mean: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct RunSample {
+    elapsed: Duration,
+    peak_rss: Option<u64>,
+    exit_code: i32,
+}
+
 impl MemSummary {
     fn from_samples(mut samples: Vec<u64>) -> Self {
         samples.sort_unstable();
@@ -99,7 +106,7 @@ impl MemSummary {
 /// instead would report a running historical max across every child reaped so
 /// far, which sticks at veraPDF's much larger footprint once it has run once.
 #[cfg(unix)]
-fn spawn_and_wait(command: &mut Command) -> io::Result<(Duration, Option<u64>)> {
+fn spawn_and_wait(command: &mut Command) -> io::Result<RunSample> {
     let started = Instant::now();
     let child = command.spawn()?;
     let pid = child.id() as libc::pid_t;
@@ -111,15 +118,32 @@ fn spawn_and_wait(command: &mut Command) -> io::Result<(Duration, Option<u64>)> 
     if ret < 0 {
         return Err(io::Error::last_os_error());
     }
+    if status & 0x7f != 0 {
+        return Err(io::Error::other(format!(
+            "benchmark process terminated by signal {}",
+            status & 0x7f
+        )));
+    }
     let elapsed = started.elapsed();
-    Ok((elapsed, Some(peak_rss_bytes(rusage.ru_maxrss))))
+    Ok(RunSample {
+        elapsed,
+        peak_rss: Some(peak_rss_bytes(rusage.ru_maxrss)),
+        exit_code: status >> 8,
+    })
 }
 
 #[cfg(not(unix))]
-fn spawn_and_wait(command: &mut Command) -> io::Result<(Duration, Option<u64>)> {
+fn spawn_and_wait(command: &mut Command) -> io::Result<RunSample> {
     let started = Instant::now();
-    command.status()?;
-    Ok((started.elapsed(), None))
+    let status = command.status()?;
+    let exit_code = status
+        .code()
+        .ok_or_else(|| io::Error::other("benchmark process terminated by signal"))?;
+    Ok(RunSample {
+        elapsed: started.elapsed(),
+        peak_rss: None,
+        exit_code,
+    })
 }
 
 #[cfg(target_os = "macos")]
@@ -132,45 +156,68 @@ fn peak_rss_bytes(maxrss: libc::c_long) -> u64 {
     maxrss as u64 * 1024
 }
 
-fn run(executable: &Path, args: &[&Path]) -> io::Result<(Duration, Option<u64>)> {
+fn ensure_expected_exit(
+    validator: &str,
+    sample: RunSample,
+    expected: &[i32],
+) -> io::Result<RunSample> {
+    if expected.contains(&sample.exit_code) {
+        Ok(sample)
+    } else {
+        Err(io::Error::other(format!(
+            "{validator} exited with {}; expected one of {expected:?}",
+            sample.exit_code
+        )))
+    }
+}
+
+fn run(executable: &Path, args: &[&Path], expected: &[i32]) -> io::Result<RunSample> {
     let mut command = Command::new(executable);
     command
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    spawn_and_wait(&mut command)
+    ensure_expected_exit(
+        executable.to_string_lossy().as_ref(),
+        spawn_and_wait(&mut command)?,
+        expected,
+    )
 }
 
-fn run_page(executable: &Path, file: &Path) -> io::Result<(Duration, Option<u64>)> {
+fn run_page(executable: &Path, file: &Path) -> io::Result<RunSample> {
     let mut command = Command::new(executable);
     command
+        .arg("validate")
         .arg(file)
         .args([
             "--profile",
             "a-1b",
-            "--json",
+            "--format",
+            "json",
             "--max-reference-depth",
             "512",
         ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    spawn_and_wait(&mut command)
+    ensure_expected_exit("page", spawn_and_wait(&mut command)?, &[0, 2])
 }
 
-fn run_verapdf(executable: &Path, file: &Path) -> io::Result<(Duration, Option<u64>)> {
+fn run_verapdf(executable: &Path, file: &Path) -> io::Result<RunSample> {
     run(
         executable,
         &[
             Path::new("--loglevel"),
             Path::new("0"),
+            Path::new("--disableerrormessages"),
             Path::new("--format"),
             Path::new("json"),
             Path::new("--flavour"),
             Path::new("1b"),
             file,
         ],
+        &[0, 1],
     )
 }
 
@@ -242,10 +289,10 @@ fn main() -> io::Result<()> {
             let page_sample = run_page(&cli.page, file)?;
             (page_sample, verapdf_sample)
         };
-        page_time.push(page_sample.0);
-        page_mem.push(page_sample.1);
-        verapdf_time.push(verapdf_sample.0);
-        verapdf_mem.push(verapdf_sample.1);
+        page_time.push(page_sample.elapsed);
+        page_mem.push(page_sample.peak_rss);
+        verapdf_time.push(verapdf_sample.elapsed);
+        verapdf_mem.push(verapdf_sample.peak_rss);
     }
 
     let page = Summary::from_samples(page_time);

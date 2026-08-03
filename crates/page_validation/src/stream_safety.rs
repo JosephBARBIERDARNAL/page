@@ -1,6 +1,3 @@
-use std::collections::{HashMap, hash_map::DefaultHasher};
-use std::hash::{Hash, Hasher};
-
 use lopdf::{Document, Object};
 
 use crate::content_support::is_pdf_boundary;
@@ -45,7 +42,6 @@ pub(crate) fn inspect(
     };
     let mut stream_data_ranges = Vec::new();
     let mut used_stream_starts = Vec::new();
-    let raw_stream_start_index = build_raw_stream_start_index(bytes);
     let mut all_stream_ranges_known = true;
     for (object_id, object) in &document.objects {
         let Object::Stream(stream) = object else {
@@ -54,14 +50,14 @@ pub(crate) fn inspect(
         if stream.dict.get_type().ok() == Some(b"XRef".as_slice()) {
             summary.xref_streams.push((*object_id).into());
         }
-        let raw_start = stream.start_position.or_else(|| {
-            locate_raw_stream_data_start(
-                bytes,
-                &stream.content,
-                &used_stream_starts,
-                &raw_stream_start_index,
-            )
-        });
+        let raw_location = syntax
+            .raw_stream_locations
+            .get(&(*object_id).into())
+            .copied();
+        let raw_start = raw_location
+            .map(|location| location.data_start)
+            .or(stream.start_position)
+            .or_else(|| locate_raw_stream_data_start(bytes, &stream.content, &used_stream_starts));
         if let Some(start) = raw_start {
             used_stream_starts.push(start);
             inspect_raw_stream_syntax(
@@ -71,6 +67,7 @@ pub(crate) fn inspect(
                 start,
                 limits,
                 bytes,
+                raw_location.and_then(|location| location.endstream),
                 &mut summary,
             )?;
         }
@@ -126,7 +123,6 @@ pub(crate) fn inspect(
             bytes,
             &mut used_stream_starts,
             &mut stream_data_ranges,
-            &raw_stream_start_index,
         )? {
             all_stream_ranges_known = false;
         }
@@ -201,16 +197,12 @@ fn collect_nested_stream_data_ranges(
     bytes: &[u8],
     used_stream_starts: &mut Vec<usize>,
     stream_data_ranges: &mut Vec<std::ops::Range<usize>>,
-    raw_stream_start_index: &HashMap<(usize, u64), Vec<usize>>,
 ) -> Result<bool, PdfError> {
     match object {
         Object::Stream(stream) => {
-            let Some(start) = locate_raw_stream_data_start(
-                bytes,
-                &stream.content,
-                used_stream_starts,
-                raw_stream_start_index,
-            ) else {
+            let Some(start) =
+                locate_raw_stream_data_start(bytes, &stream.content, used_stream_starts)
+            else {
                 return Ok(false);
             };
             used_stream_starts.push(start);
@@ -225,7 +217,6 @@ fn collect_nested_stream_data_ranges(
                 bytes,
                 used_stream_starts,
                 stream_data_ranges,
-                raw_stream_start_index,
             )
         }
         Object::Dictionary(dictionary) => {
@@ -237,7 +228,6 @@ fn collect_nested_stream_data_ranges(
                     bytes,
                     used_stream_starts,
                     stream_data_ranges,
-                    raw_stream_start_index,
                 )? {
                     return Ok(false);
                 }
@@ -253,7 +243,6 @@ fn collect_nested_stream_data_ranges(
                     bytes,
                     used_stream_starts,
                     stream_data_ranges,
-                    raw_stream_start_index,
                 )? {
                     return Ok(false);
                 }
@@ -271,6 +260,7 @@ fn inspect_raw_stream_syntax(
     start: usize,
     limits: &SafetyLimits,
     bytes: &[u8],
+    known_endstream: Option<usize>,
     summary: &mut StreamSafetySummary,
 ) -> Result<(), PdfError> {
     let declared_length = stream
@@ -283,7 +273,7 @@ fn inspect_raw_stream_syntax(
         .and_then(|value| value.as_i64().ok());
     let valid_start = stream_keyword_has_required_eol(bytes, start);
     let declared_length = declared_length.and_then(|length| usize::try_from(length).ok());
-    let endstream = find_endstream(bytes, start, declared_length);
+    let endstream = known_endstream.or_else(|| find_endstream(bytes, start, declared_length));
     let actual_length = endstream.and_then(|keyword| stream_data_end_before_eol(bytes, keyword));
     let valid_end = actual_length.is_some();
     if !valid_start || !valid_end {
@@ -384,60 +374,18 @@ fn locate_raw_stream_data_start(
     bytes: &[u8],
     content: &[u8],
     used_starts: &[usize],
-    index: &HashMap<(usize, u64), Vec<usize>>,
 ) -> Option<usize> {
-    let mut hasher = DefaultHasher::new();
-    content.hash(&mut hasher);
-    index
-        .get(&(content.len(), hasher.finish()))
-        .into_iter()
-        .flatten()
-        .copied()
-        .find(|start| {
-            !used_starts.contains(start)
-                && bytes.get(*start..start.saturating_add(content.len())) == Some(content)
+    bytes
+        .windows(b"stream".len())
+        .enumerate()
+        .find_map(|(offset, window)| {
+            (window == b"stream"
+                && is_pdf_boundary(bytes.get(offset.wrapping_sub(1)).copied())
+                && is_pdf_boundary(bytes.get(offset + b"stream".len()).copied()))
+            .then(|| stream_data_start_after_keyword(bytes, offset + b"stream".len()))?
+            .filter(|start| !used_starts.contains(start))
+            .filter(|start| bytes.get(*start..start.saturating_add(content.len())) == Some(content))
         })
-}
-
-fn build_raw_stream_start_index(bytes: &[u8]) -> HashMap<(usize, u64), Vec<usize>> {
-    let mut index = HashMap::new();
-    let mut cursor = 0;
-    while cursor < bytes.len() {
-        let Some(offset) = bytes[cursor..]
-            .windows(b"stream".len())
-            .enumerate()
-            .find_map(|(offset, window)| {
-                let absolute = cursor + offset;
-                (window == b"stream"
-                    && is_pdf_boundary(bytes.get(absolute.wrapping_sub(1)).copied())
-                    && is_pdf_boundary(bytes.get(absolute + window.len()).copied()))
-                .then_some(offset)
-            })
-        else {
-            break;
-        };
-        let keyword = cursor + offset;
-        let Some(start) = stream_data_start_after_keyword(bytes, keyword + b"stream".len()) else {
-            cursor = keyword + b"stream".len();
-            continue;
-        };
-        let Some(endstream_offset) = bytes[start..]
-            .windows(b"endstream".len())
-            .position(|candidate| candidate == b"endstream")
-        else {
-            break;
-        };
-        let endstream = start + endstream_offset;
-        let raw = &bytes[start..endstream];
-        let mut hasher = DefaultHasher::new();
-        raw.hash(&mut hasher);
-        index
-            .entry((raw.len(), hasher.finish()))
-            .or_insert_with(Vec::new)
-            .push(start);
-        cursor = endstream + b"endstream".len();
-    }
-    index
 }
 
 fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
@@ -756,6 +704,7 @@ mod tests {
             7,
             &SafetyLimits::default(),
             bytes,
+            None,
             &mut summary,
         )
         .expect("inspect valid stream");
@@ -771,6 +720,7 @@ mod tests {
             7,
             &SafetyLimits::default(),
             bytes,
+            None,
             &mut summary,
         )
         .expect("inspect mismatched stream");
@@ -786,6 +736,7 @@ mod tests {
             7,
             &SafetyLimits::default(),
             bytes,
+            None,
             &mut summary,
         )
         .expect("inspect invalid EOL stream");
@@ -802,6 +753,7 @@ mod tests {
             7,
             &SafetyLimits::default(),
             bytes,
+            None,
             &mut summary,
         )
         .expect("inspect stream data containing endstream text");
@@ -818,6 +770,7 @@ mod tests {
             7,
             &SafetyLimits::default(),
             bytes,
+            None,
             &mut summary,
         )
         .expect("inspect stream with extra keyword space");

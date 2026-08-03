@@ -162,19 +162,6 @@ Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR`
 
 <br>
 
-## Performance
-
-`page` is still in a preliminary stage, but current tests and benchmark I made (only on PDF/A-1b) give:
-
-| Metric                   | `page` | `veraPDF` | ratio        |
-| ------------------------ | ------ | --------- | ------------ |
-| Validation time (median) | ~50 ms | ~1300 ms  | ~26× faster  |
-| Peak RSS (median)        | ~13 MB | ~254 MB   | ~20× lighter |
-
-Benchark code lives in [bench](./bench/).
-
-<br>
-
 ## License
 
 The original `page` source code is licensed under [MIT](LICENSE).

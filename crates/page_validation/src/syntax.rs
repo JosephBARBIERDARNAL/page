@@ -21,11 +21,23 @@ const MAX_INDIRECT_OBJECTS: usize = 8_388_607;
 pub(crate) struct SyntaxSummary {
     pub(crate) header: HeaderSummary,
     pub(crate) object_limits: ObjectLimitsSummary,
+    pub(crate) raw_stream_locations: BTreeMap<PdfObjectId, RawStreamLocation>,
     pub(crate) has_odd_hex_string: bool,
     pub(crate) has_non_hex_character: bool,
     pub(crate) has_invalid_xref_subsection_spacing: bool,
     pub(crate) has_invalid_xref_eol: bool,
     pub(crate) has_invalid_indirect_object_syntax: bool,
+}
+
+/// The physical positions of a stream in its source indirect object.
+///
+/// These are collected while the syntax inspector is already walking every
+/// xref-addressable object, so downstream raw-stream checks do not need to
+/// rediscover streams by searching the whole input for matching bytes.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct RawStreamLocation {
+    pub(crate) data_start: usize,
+    pub(crate) endstream: Option<usize>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -504,6 +516,14 @@ fn inspect_indirect_object(
 
     parser.skip_space_and_comments();
     let value = parser.parse_value(0);
+    if document
+        .objects
+        .get(&(object_id.object_number, object_id.generation))
+        .is_some_and(|object| object.as_stream().is_ok())
+        && let Some(location) = raw_stream_location(bytes, parser.position)
+    {
+        summary.raw_stream_locations.insert(object_id, location);
+    }
     let Some(mut cursor) = find_endobj_start(bytes, parser.position, document, object_id) else {
         summary.has_invalid_indirect_object_syntax = true;
         return Ok(value);
@@ -512,6 +532,26 @@ fn inspect_indirect_object(
     cursor += b"endobj".len();
     summary.has_invalid_indirect_object_syntax |= single_eol_end(bytes, cursor).is_none();
     Ok(value)
+}
+
+fn raw_stream_location(bytes: &[u8], after_dictionary: usize) -> Option<RawStreamLocation> {
+    let keyword = find_bounded_keyword(bytes, b"stream", after_dictionary)?;
+    let data_start = stream_data_start_after_keyword(bytes, keyword + b"stream".len())?;
+    Some(RawStreamLocation {
+        data_start,
+        endstream: find_bounded_keyword(bytes, b"endstream", data_start),
+    })
+}
+
+fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
+    while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
+        cursor += 1;
+    }
+    match (bytes.get(cursor), bytes.get(cursor + 1)) {
+        (Some(b'\r'), Some(b'\n')) => Some(cursor + 2),
+        (Some(b'\r' | b'\n'), _) => Some(cursor + 1),
+        _ => None,
+    }
 }
 
 fn find_endobj_start(
