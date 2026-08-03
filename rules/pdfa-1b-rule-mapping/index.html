@@ -1358,85 +1358,85 @@
 <td><code>PDFA1B-ANNOTATION-SUBTYPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.2:1</code></td>
 <td>§6.5.2</td>
-<td>partial/proxy</td>
-<td>For page <code>/Annots</code> entries resolving to dictionaries: <code>Subtype</code> is <code>Text</code>, <code>Link</code>, <code>FreeText</code>, <code>Line</code>, <code>Square</code>, <code>Circle</code>, <code>Highlight</code>, <code>Underline</code>, <code>Squiggly</code>, <code>StrikeOut</code>, <code>Stamp</code>, <code>Ink</code>, <code>Popup</code>, <code>Widget</code>, <code>PrinterMark</code>, or <code>TrapNet</code>.</td>
+<td>exact</td>
+<td>For direct or indirect page <code>/Annots</code> entries resolving specifically to COS dictionaries (not streams): the resolved <code>Subtype</code> is <code>Text</code>, <code>Link</code>, <code>FreeText</code>, <code>Line</code>, <code>Square</code>, <code>Circle</code>, <code>Highlight</code>, <code>Underline</code>, <code>Squiggly</code>, <code>StrikeOut</code>, <code>Stamp</code>, <code>Ink</code>, <code>Popup</code>, <code>Widget</code>, <code>PrinterMark</code>, or <code>TrapNet</code>; unreferenced and stream-backed annotation-looking objects are inapplicable.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ANNOTATION-OPACITY-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:1</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td>For modeled numeric annotation values: <code>CA == null \|\| CA == 1.0</code>.</td>
+<td>exact</td>
+<td>For page-annotation COS dictionaries, direct or indirect numeric <code>CA</code> is resolved before applying <code>CA == null \|\| CA == 1.0</code>; missing and nonnumeric values are exposed as null.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ANNOTATION-FLAGS-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:2</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td><code>F != null &amp;&amp; (F &amp; 4) == 4 &amp;&amp; (F &amp; 1) == 0 &amp;&amp; (F &amp; 2) == 0 &amp;&amp; (F &amp; 32) == 0</code>.</td>
+<td>exact</td>
+<td>For page-annotation COS dictionaries, direct or indirect integer <code>F</code> is resolved before applying <code>F != null &amp;&amp; (F &amp; 4) == 4 &amp;&amp; (F &amp; 1) == 0 &amp;&amp; (F &amp; 2) == 0 &amp;&amp; (F &amp; 32) == 0</code>; missing and noninteger values fail.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ANNOTATION-COLOR-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:3</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td><code>(containsC == false &amp;&amp; containsIC == false) \|\| gOutputCS == "RGB "</code>, using the pinned PDF/A-1 output-colour fold.</td>
+<td>exact</td>
+<td>For page-annotation COS dictionaries, <code>containsC</code>/<code>containsIC</code> are true only when the resolved value is an array (scalar, null, and missing values are false); <code>(containsC == false &amp;&amp; containsIC == false) \|\| gOutputCS == "RGB "</code> then uses the pinned PDF/A-1 output-colour fold.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ANNOTATION-AP-ENTRIES-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:4</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td>A resolved annotation appearance dictionary is absent or contains exactly the <code>N</code> key.</td>
+<td>exact</td>
+<td>For page-annotation COS dictionaries, <code>AP</code> is exposed only when it resolves specifically to a COS dictionary; absent, scalar, and stream values are null, while a modeled appearance dictionary passes only when its joined key set is exactly <code>N</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-WIDGET-BUTTON-APPEARANCE-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:5</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td>When <code>AP == "N"</code>, <code>Subtype == "Widget"</code>, and direct or inherited <code>FT == "Btn"</code>, <code>N</code> is a nonempty appearance subdictionary.</td>
+<td>exact</td>
+<td>When <code>AP == "N"</code>, resolved <code>Subtype == "Widget"</code>, and direct or inherited <code>FT == "Btn"</code> (walking dictionary- and stream-backed parents with bounded cycle detection), <code>N_type == "Dict"</code> and its state dictionary contains at least one resolved appearance stream; scalar-only or empty state dictionaries fail.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001</code></td>
 <td><code>ISO 19005-1:2005:6.5.3:6</code></td>
 <td>§6.5.3</td>
-<td>partial/proxy</td>
-<td>When <code>AP == "N"</code> and the annotation is not a button Widget, <code>N</code> resolves to an appearance stream.</td>
+<td>exact</td>
+<td>When <code>AP == "N"</code> and the annotation is not a resolved button Widget, the resolved <code>N</code> entry is dictionary-based and specifically stream-backed (<code>N_type == "Stream"</code>); missing, scalar, and state-dictionary values fail.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ACTION-TYPE-001</code></td>
 <td><code>ISO 19005-1:2005:6.6.1:1</code></td>
 <td>§6.6.1</td>
-<td>partial/proxy</td>
-<td>For actions reached through the bounded pinned-model graph: <code>S == "GoTo" \|\| S == "GoToR" \|\| S == "Thread" \|\| S == "URI" \|\| S == "Named" \|\| S == "SubmitForm"</code>.</td>
+<td>exact</td>
+<td>For actions reached from catalog OpenAction, the five catalog AA triggers, page O/C triggers, annotation A and ten AA triggers, field K/F/V/C triggers, outline A, and dictionary/array <code>Next</code> chains: the resolved <code>S</code> is <code>GoTo</code>, <code>GoToR</code>, <code>Thread</code>, <code>URI</code>, <code>Named</code>, or <code>SubmitForm</code>. Source-specific COS-dictionary versus dictionary-based shape gates match veraPDF, including stream-backed outline actions but not stream-backed OpenAction, annotation action, AA action, or <code>Next</code> entries.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-NAMED-ACTION-001</code></td>
 <td><code>ISO 19005-1:2005:6.6.1:2</code></td>
 <td>§6.6.1</td>
-<td>partial/proxy</td>
-<td>For reached actions with <code>S == "Named"</code>: <code>N == "NextPage" \|\| N == "PrevPage" \|\| N == "FirstPage" \|\| N == "LastPage"</code>.</td>
+<td>exact</td>
+<td>For every reached action whose resolved <code>S == "Named"</code>, direct or indirect <code>N</code> resolves to <code>NextPage</code>, <code>PrevPage</code>, <code>FirstPage</code>, or <code>LastPage</code>; missing, wrong-type, and other names fail.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-WIDGET-ACTION-001</code></td>
 <td><code>ISO 19005-1:2005:6.6.1:3</code></td>
 <td>§6.6.1</td>
-<td>partial/proxy</td>
-<td>For Widget annotations reached from page <code>/Annots</code>: <code>containsA == false</code>; key presence is tested regardless of value type.</td>
+<td>exact</td>
+<td>For COS-dictionary Widget annotations created from page <code>/Annots</code> after resolving <code>Subtype</code>: <code>containsA == false</code>; non-null key presence fails regardless of value type, direct null is empty, and stream-backed or field-only Widget-looking objects are inapplicable.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001</code></td>
 <td><code>ISO 19005-1:2005:6.6.2:1</code></td>
 <td>§6.6.2</td>
-<td>partial/proxy</td>
-<td>For Widget annotations reached from page <code>/Annots</code>: <code>containsAA == false</code>; key presence is tested regardless of value type.</td>
+<td>exact</td>
+<td>For COS-dictionary Widget annotations created from page <code>/Annots</code> after resolving <code>Subtype</code>: <code>containsAA == false</code>; non-null key presence fails regardless of value type, direct null is empty, and stream-backed or field-only Widget-looking objects are inapplicable.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-FIELD-ADDITIONAL-ACTIONS-001</code></td>
 <td><code>ISO 19005-1:2005:6.6.2:2</code></td>
 <td>§6.6.2</td>
-<td>partial/proxy</td>
-<td>For dictionaries directly in AcroForm <code>/Fields</code> and named field descendants reached through <code>/Kids</code>: <code>containsAA == false</code>.</td>
+<td>exact</td>
+<td>For dictionary- or stream-backed objects directly in a dictionary-based catalog AcroForm <code>/Fields</code>, plus dictionary-based <code>/Kids</code> descendants having a non-null <code>/T</code>: <code>containsAA == false</code>. Top-level objects remain fields without <code>/T</code>; unnamed child encounters do not suppress a later top-level occurrence; field, child, and action graphs are cycle- and depth-bounded.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001</code></td>
@@ -1750,8 +1750,8 @@
 <td><code>PDFA1B-WIDGET-APPEARANCE-001</code></td>
 <td><code>ISO 19005-1:2005:6.9:2</code></td>
 <td>§6.9</td>
-<td>partial/proxy</td>
-<td>For Widget annotations reached from page <code>/Annots</code>: <code>AP != null</code>; veraPDF exposes AP only when it resolves to a dictionary, so streams and scalar values fail while an empty dictionary passes.</td>
+<td>exact</td>
+<td>For COS-dictionary Widget annotations created from page <code>/Annots</code> after resolving <code>Subtype</code>: <code>AP != null</code>; veraPDF exposes AP only when it resolves specifically to a COS dictionary, so missing, stream, and scalar values fail while an empty or indirect dictionary passes; AP is not inherited and field-only, unreferenced, and stream-backed Widget-looking objects are inapplicable.</td>
 </tr>
 </tbody>
 </table>
