@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://pagestandards.github.io/page/faq/">
       
       
-        <link rel="prev" href="../rules/pdfa-1b-rule-mapping/">
+        <link rel="prev" href="../rules/pdfa-1-rule-mapping/">
       
       
       
@@ -262,7 +262,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../rules/pdfa-1b-rule-mapping/" class="md-tabs__link">
+        <a href="../rules/pdfa-1-rule-mapping/" class="md-tabs__link">
           
   
   Rule Reference
@@ -467,7 +467,7 @@
   
   
   
-    <a href="../rules/pdfa-1b-rule-mapping/" class="md-nav__link">
+    <a href="../rules/pdfa-1-rule-mapping/" class="md-nav__link">
       
   
   
@@ -841,6 +841,7 @@
 </ul>
 <p>This project is <a href="https://verapdf.org/">veraPDF</a>. It is, by far, the <strong>best option available</strong> out there. Other options such as <a href="https://pac.pdf-accessibility.org/en">PAC</a> or <a href="https://www.adobe.com/">Adobe Acrobat</a> meet only a subset of those criteria.</p>
 <p><code>veraPDF</code> supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a very complicated task. You can understand why that is and how <code>veraPDF</code> does it in this great <a href="https://pdfa.org/how-verapdf-does-pdfa-validation/">blog post</a>.</p>
+<p><code>page</code> uses heavily <code>veraPDF</code> as the source of truth to validate or not if what <code>page</code> does is correct.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Some open-source software claims to provide PDF validation, but this claim is often, if not always, misleading. Those tools often check only a very small subset of all the rules for a given profile.</p>
@@ -848,11 +849,11 @@
 <h2 id="how-does-page-compare-to-verapdf">How does <code>page</code> compare to <code>veraPDF</code>?<a class="headerlink" href="#how-does-page-compare-to-verapdf" title="Permanent link">&para;</a></h2>
 <p>Currently, <code>page</code> is <strong>far from a usable state</strong>: it does not provide complete profile validations for most PDF profiles and has no stable API.</p>
 <p>Even if <code>page</code> is meant as an "alternative" to <code>veraPDF</code>, <strong><code>page</code> only exists because of <code>veraPDF</code></strong>. The latter is the most important development tool used for <code>page</code>, as it provides the source of truth for which rules pass or fail for each PDF profile.</p>
-<p>In the long run, I hope that <code>page</code> will provide a veraPDF-compliant alternative that is faster and more lightweight. <a href=".././#performance">Latest measurements</a> suggest that <code>page</code> could be around an order of magnitude faster and use correspondingly less memory (peak RSS).</p>
+<p>In the long run, I hope that <code>page</code> will provide a veraPDF-compliant alternative that is faster and more lightweight.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>The reason for those differences is that <code>page</code> is written in <strong>Rust</strong> and <code>veraPDF</code> in <strong>Java</strong>. Note that it is likely that a significant part of <code>veraPDF</code>'s memory usage is due to the JVM, not <code>veraPDF</code> itself.</p>
-<p>The reasons for choosing Rust for <code>page</code> are speed, memory and type safety, and downstream integration. Indeed, it's easier to integrate Rust-based programs with Python and Node.js, as well as with other languages through a C interface (even if that's also possible with Java).</p>
+<p>The main difference between those tools is that <code>page</code> is written in <strong>Rust</strong> and <code>veraPDF</code> in <strong>Java</strong>.</p>
+<p>The reasons for choosing Rust for <code>page</code> are speed, memory and type safety, and downstream integration. Indeed, it's easier to integrate Rust-based programs with Python and JavaScript, as well as with other languages through a C interface (even if that's also possible with Java).</p>
 </div>
 <h2 id="why-are-there-multiple-pdf-formats">Why are there multiple PDF formats?<a class="headerlink" href="#why-are-there-multiple-pdf-formats" title="Permanent link">&para;</a></h2>
 <p>TODO</p>
@@ -898,7 +899,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../rules/pdfa-1b-rule-mapping/" class="md-footer__link md-footer__link--prev" aria-label="Previous: PDF&#x2f;A-1b pinned rule mapping">
+          <a href="../rules/pdfa-1-rule-mapping/" class="md-footer__link md-footer__link--prev" aria-label="Previous: PDF&#x2f;A-1 pinned rule mapping">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -908,7 +909,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                PDF/A-1b pinned rule mapping
+                PDF/A-1 pinned rule mapping
               </div>
             </div>
           </a>
