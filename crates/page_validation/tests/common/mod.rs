@@ -5214,6 +5214,273 @@ pub fn valid_annotation(subtype: &str) -> Dictionary {
     }
 }
 
+pub fn canonical_form_fixture() -> Vec<u8> {
+    let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1a.pdf"))
+        .expect("load canonical PDF/A-1a fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("canonical page");
+    let appearance = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Form",
+            "BBox" => vec![0.into(), 0.into(), 120.into(), 24.into()],
+        },
+        b"q 0.85 0.92 1 rg 0 0 120 24 re f Q".to_vec(),
+    ));
+    let widget = document.add_object(dictionary! {
+        "Type" => "Annot",
+        "Subtype" => "Widget",
+        "Rect" => vec![0.into(), 0.into(), 120.into(), 24.into()],
+        "F" => 4,
+        "FT" => "Tx",
+        "T" => Object::string_literal("canonical-field"),
+        "AP" => dictionary! {"N" => appearance},
+    });
+    document
+        .get_object_mut(page_id)
+        .expect("canonical page object")
+        .as_dict_mut()
+        .expect("canonical page dictionary")
+        .set("Annots", vec![Object::Reference(widget)]);
+    let acro_form = document.add_object(dictionary! {
+        "NeedAppearances" => false,
+        "Fields" => vec![Object::Reference(widget)],
+    });
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("canonical root")
+        .as_reference()
+        .expect("indirect canonical root");
+    document
+        .get_object_mut(root_id)
+        .expect("canonical catalog object")
+        .as_dict_mut()
+        .expect("canonical catalog dictionary")
+        .set("AcroForm", acro_form);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save canonical form fixture");
+    bytes
+}
+
+pub fn canonical_a1a_unused_invalid_font_fixture() -> Vec<u8> {
+    let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1a.pdf"))
+        .expect("load canonical PDF/A-1a fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("canonical page");
+    let resource_ids = document
+        .get_page_resources(page_id)
+        .expect("canonical page resources")
+        .1;
+    let resources_id = *resource_ids.first().expect("indirect canonical resources");
+    let font_resources = document
+        .get_object(resources_id)
+        .expect("canonical resources object")
+        .as_dict()
+        .expect("canonical resources dictionary")
+        .get(b"Font")
+        .expect("canonical font resources")
+        .clone();
+    let invalid_font = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "UnsupportedFont",
+        "BaseFont" => "UnusedUnsupportedFont",
+    });
+    match font_resources {
+        Object::Reference(font_id) => {
+            document
+                .get_object_mut(font_id)
+                .expect("canonical font resource dictionary")
+                .as_dict_mut()
+                .expect("canonical font resource dictionary")
+                .set("Unused", invalid_font);
+        }
+        Object::Dictionary(mut fonts) => {
+            fonts.set("Unused", invalid_font);
+            document
+                .get_object_mut(resources_id)
+                .expect("canonical resources object")
+                .as_dict_mut()
+                .expect("canonical resources dictionary")
+                .set("Font", fonts);
+        }
+        _ => panic!("canonical font resources have an unsupported shape"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save unused invalid-font fixture");
+    bytes
+}
+
+pub fn canonical_a1a_mutation(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1a.pdf"))
+        .expect("load canonical PDF/A-1a fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("canonical root")
+        .as_reference()
+        .expect("indirect canonical root");
+    let catalog = document
+        .get_object(root_id)
+        .expect("canonical catalog")
+        .as_dict()
+        .expect("canonical catalog dictionary")
+        .clone();
+
+    match case {
+        "id_conformance_b" => {
+            let metadata_id = catalog
+                .get(b"Metadata")
+                .expect("canonical metadata")
+                .as_reference()
+                .expect("indirect canonical metadata");
+            let metadata = document
+                .get_object_mut(metadata_id)
+                .expect("canonical metadata object")
+                .as_stream_mut()
+                .expect("canonical metadata stream");
+            let mut content = metadata
+                .decompressed_content()
+                .expect("decompress canonical metadata");
+            replace_once(
+                &mut content,
+                b"<pdfaid:conformance>A</pdfaid:conformance>",
+                b"<pdfaid:conformance>B</pdfaid:conformance>",
+            );
+            metadata.set_content(content);
+        }
+        "tagged_missing" => {
+            document
+                .get_object_mut(root_id)
+                .expect("canonical catalog object")
+                .as_dict_mut()
+                .expect("canonical catalog dictionary")
+                .remove(b"MarkInfo");
+        }
+        "struct_tree_missing" => {
+            document
+                .get_object_mut(root_id)
+                .expect("canonical catalog object")
+                .as_dict_mut()
+                .expect("canonical catalog dictionary")
+                .remove(b"StructTreeRoot");
+        }
+        "role_map_wrong_type" | "role_map_cycle" => {
+            let struct_tree_id = catalog
+                .get(b"StructTreeRoot")
+                .expect("canonical structure tree")
+                .as_reference()
+                .expect("indirect canonical structure tree");
+            let struct_tree = document
+                .get_object_mut(struct_tree_id)
+                .expect("canonical structure tree object")
+                .as_dict_mut()
+                .expect("canonical structure tree dictionary");
+            if case == "role_map_wrong_type" {
+                struct_tree.set("RoleMap", Object::Integer(1));
+            } else {
+                struct_tree.set(
+                    "RoleMap",
+                    dictionary! {"CycleA" => "CycleB", "CycleB" => "CycleA"},
+                );
+                let element_id = document
+                    .objects
+                    .iter()
+                    .find_map(|(object_id, object)| {
+                        let dictionary = object.as_dict().ok()?;
+                        (dictionary.get(b"Type").ok()?.as_name().ok()? == b"StructElem")
+                            .then_some(*object_id)
+                    })
+                    .expect("canonical structure element");
+                document
+                    .get_object_mut(element_id)
+                    .expect("canonical structure element object")
+                    .as_dict_mut()
+                    .expect("canonical structure element dictionary")
+                    .set("S", Object::Name(b"CycleA".to_vec()));
+            }
+        }
+        "language_missing" => {
+            let element_id = document
+                .objects
+                .iter()
+                .find_map(|(object_id, object)| {
+                    let dictionary = object.as_dict().ok()?;
+                    (dictionary.get(b"Type").ok()?.as_name().ok()? == b"StructElem")
+                        .then_some(*object_id)
+                })
+                .expect("canonical structure element");
+            document
+                .get_object_mut(element_id)
+                .expect("canonical structure element object")
+                .as_dict_mut()
+                .expect("canonical structure element dictionary")
+                .set("Lang", Object::string_literal("fr--CA"));
+        }
+        "unicode_missing" => {
+            let font_id = document
+                .objects
+                .iter()
+                .find_map(|(object_id, object)| {
+                    let dictionary = object.as_dict().ok()?;
+                    let base_font = dictionary.get(b"BaseFont").ok()?.as_name().ok()?;
+                    (dictionary.get(b"Subtype").ok()?.as_name().ok()? == b"Type0"
+                        && base_font
+                            .windows(b"Regular".len())
+                            .any(|window| window == b"Regular")
+                        && dictionary.get(b"ToUnicode").is_ok())
+                    .then_some(*object_id)
+                })
+                .expect("canonical Type0 font with ToUnicode");
+            let encoding = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "CMap",
+                    "CMapName" => "CanonicalIdentity",
+                    "CIDSystemInfo" => dictionary! {
+                        "Registry" => Object::string_literal("Adobe"),
+                        "Ordering" => Object::string_literal("Identity"),
+                        "Supplement" => 0,
+                    },
+                    "WMode" => 0,
+                },
+                embedded_identity_usecmap("Identity", 0),
+            ));
+            let font = document
+                .get_object_mut(font_id)
+                .expect("canonical font object")
+                .as_dict_mut()
+                .expect("canonical font dictionary");
+            font.set("Encoding", encoding);
+            font.remove(b"ToUnicode");
+        }
+        _ => panic!("unknown canonical A-1a mutation {case}"),
+    }
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save canonical mutation");
+    bytes
+}
+
+fn replace_once(bytes: &mut Vec<u8>, from: &[u8], to: &[u8]) {
+    let offset = bytes
+        .windows(from.len())
+        .position(|window| window == from)
+        .expect("canonical mutation source bytes");
+    bytes.splice(offset..offset + from.len(), to.iter().copied());
+}
+
 pub fn font_fixture(case: &str) -> Vec<u8> {
     if matches!(
         case,

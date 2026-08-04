@@ -4,30 +4,126 @@
     "profile": "1a"
   },
   "shared_cases": [
+    "tests/fixtures/canonical-pdfa-1a.pdf",
+    "tests/fixtures/canonical-pdfa-1b.pdf",
     "tests/fixtures/typst-pdfa-1a.pdf",
-    "tests/fixtures/typst-pdfa-1b.pdf",
-    "tests/fixtures/structural.pdf",
-    "tests/fixtures/malformed.pdf",
-    "tests/fixtures/encrypted.pdf",
-    "tests/fixtures/poster.pdf",
-    "tests/fixtures/proposal.pdf",
-    "tests/fixtures/resume.pdf",
-    "tests/fixtures/example-1.pdf",
-    "tests/fixtures/not-compliant-1.pdf",
-    "tests/fixtures/odd-hex-string.pdf",
-    "tests/fixtures/parser-local-discrepancy-invalid-hex.pdf",
-    "tests/fixtures/header-offset.pdf",
-    "tests/fixtures/header-binary-comment-invalid.pdf",
-    "tests/fixtures/trailer-id-missing.pdf",
-    "tests/fixtures/post-eof-data.pdf",
-    "tests/fixtures/linearized-id-mismatch.pdf",
-    "tests/fixtures/linearized-baseline.pdf",
-    "tests/fixtures/xref-spacing.pdf",
-    "tests/fixtures/xref-eol.pdf",
-    "tests/fixtures/stream-length-mismatch.pdf",
-    "tests/fixtures/stream-eol-invalid.pdf",
-    "tests/fixtures/indirect-object-syntax.pdf",
-    "tests/fixtures/xref-stream.pdf"
+    "tests/fixtures/typst-pdfa-1b.pdf"
+  ],
+  "composition_cases": [
+    "tests/fixtures/canonical-pdfa-1a-fonts.pdf",
+    "tests/fixtures/canonical-pdfa-1a-structure.pdf",
+    "tests/fixtures/canonical-pdfa-1a-content.pdf",
+    "tests/fixtures/canonical-pdfa-1a-annotations.pdf",
+    "tests/fixtures/canonical-pdfa-1a-forms.pdf"
+  ],
+  "mutation_cases": [
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-ID-CONFORMANCE-001/id_conformance_b.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.7.11:3",
+      "rationale": "The canonical metadata conformance value is changed from A to B and only the PDF/A-1a conformance-value predicate may be added."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-TAGGED-DOCUMENT-001/tagged_missing.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
+      "rationale": "Only catalog MarkInfo is removed from the canonical tagged document."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-STRUCT-TREE-ROOT-001/struct_tree_missing.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
+      "rationale": "Only the catalog StructTreeRoot entry is removed from the canonical tagged document."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-001/role_map_wrong_type.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
+      "rationale": "Only the canonical structure tree RoleMap type is changed to an invalid scalar."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001/role_map_cycle.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.4:2",
+      "rationale": "Only the canonical acyclic RoleMap is replaced with a two-node cycle."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-LANG-001/language_missing.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-LANG-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.4:1",
+      "rationale": "Only the catalog language value is removed from the canonical structured document."
+    },
+    {
+      "path": "tests/fixtures/mutations/PDFA1A-UNICODE-MAPPING-001/unicode_missing.pdf",
+      "baseline": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "rationale": "Only one rendered Type0 font ToUnicode entry is removed from the canonical document."
+    }
+  ],
+  "applicability_cases": [
+    {
+      "name": "no_annotations",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-ANNOTATION-SUBTYPE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.5.2:1",
+      "rationale": "The canonical baseline contains no page annotations, so the annotation subtype predicate is explicitly inapplicable."
+    },
+    {
+      "name": "no_forms",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-ACROFORM-NEED-APPEARANCES-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.9:1",
+      "rationale": "The canonical baseline has no AcroForm, so the NeedAppearances predicate is explicitly inapplicable."
+    },
+    {
+      "name": "no_embedded_files",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.11:1",
+      "rationale": "The canonical baseline has no file specification or embedded-file tree."
+    },
+    {
+      "name": "no_optional_content",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-OPTIONAL-CONTENT-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.13:1",
+      "rationale": "The canonical baseline has no optional-content properties or groups."
+    },
+    {
+      "name": "no_lzw_stream",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-STREAM-LZW-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.10:1",
+      "rationale": "The canonical baseline contains no LZW-filtered stream, making the LZW prohibition predicate inapplicable."
+    },
+    {
+      "name": "no_inline_image",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-INLINE-IMAGE-LZW-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.10:2",
+      "rationale": "The canonical baseline has no inline image resource, so the inline-image LZW predicate has no applicable population."
+    },
+    {
+      "name": "no_type3_fonts",
+      "path": "tests/fixtures/canonical-pdfa-1a.pdf",
+      "local_rule_id": "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.5:1",
+      "rationale": "The canonical baseline uses an embedded TrueType font and contains no Type 3 font, so the Type 3 glyph-presence population is empty."
+    },
+    {
+      "name": "unsupported_unused_font_subtype",
+      "path": "tests/fixtures/canonical-pdfa-1a-unused-invalid-font.pdf",
+      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.5:1",
+      "rationale": "The fixture declares an unused font resource with an unsupported subtype; because no page content uses it, neither validator creates an applicable font-subtype failure."
+    }
   ],
   "a_only_rules": [
     {

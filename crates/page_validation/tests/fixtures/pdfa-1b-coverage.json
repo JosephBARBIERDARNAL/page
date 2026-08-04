@@ -15,7 +15,86 @@
     ],
     "status": "developing"
   },
+  "checked_in_mutation_manifest": {
+    "path": "tests/fixtures/verapdf-diff-cases.json",
+    "field": "checked_in_mutations",
+    "representative_count": 126,
+    "policy": "One hash-pinned representative is checked in for every mapped local predicate with a constructible veraPDF failure delta; non-representable and compound parser cases remain explicitly documented in the coverage inventory."
+  },
+  "checked_in_mutation_exceptions": [
+    {
+      "local_rule_id": "PDFA1B-ENCRYPTION-001",
+      "kind": "non_representable",
+      "fixture": "tests/fixtures/encrypted.pdf",
+      "rationale": "veraPDF rejects encrypted input at the processing boundary before emitting a profile rule failure; constructing this predicate as a model-level delta is therefore impossible."
+    },
+    {
+      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
+      "kind": "non_representable",
+      "fixture": "tests/fixtures/font:type1_invalid_subtype.pdf",
+      "rationale": "An unsupported font subtype is rejected before veraPDF creates the PDFont model object required by the mapped predicate."
+    },
+    {
+      "local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+      "kind": "non_representable",
+      "fixture": "tests/fixtures/typst-pdfa-1b.pdf",
+      "rationale": "The mapped threshold is above 8,388,607 indirect objects, exceeding the validator's bounded resource policy and making a safe checked-in mutation infeasible."
+    },
+    {
+      "local_rule_id": "PDFA1B-HEADER-001",
+      "kind": "compound_parser_case",
+      "fixture": "tests/fixtures/header-offset.pdf",
+      "rationale": "The available header mutation necessarily changes parser offsets and produces additional header, trailer, metadata, and indirect-object diagnostics."
+    },
+    {
+      "local_rule_id": "PDFA1B-LINEARIZED-TRAILER-ID-001",
+      "kind": "compound_parser_case",
+      "fixture": "tests/fixtures/linearized-id-mismatch.pdf",
+      "rationale": "Changing the final linearized trailer ID also changes stream offsets and length-related parser diagnostics in the pinned implementations."
+    },
+    {
+      "local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
+      "kind": "upstream_reference_exception",
+      "fixture": "tests/fixtures/font:type0_embedded_descendant.pdf",
+      "rationale": "The local glyph-presence proxy can fail for a malformed embedded descendant, but the pinned veraPDF profile does not emit the mapped glyph-presence failure for that construct."
+    }
+  ],
   "corpus": [
+    {
+      "fixture": "canonical-pdfa-1a.pdf",
+      "recipe": "just typst",
+      "sha256": "efa925f02cdb02eb127a22d09810f2d564ba998f6a45909bcee8e07fb841e96b"
+    },
+    {
+      "fixture": "canonical-pdfa-1b.pdf",
+      "recipe": "just typst",
+      "sha256": "27e17de2b43a963ccc385dddd223d377d629b3ee882aac14b6aa633483efbc88"
+    },
+    {
+      "fixture": "canonical-pdfa-1a-fonts.pdf",
+      "recipe": "just typst",
+      "sha256": "b1c943188feb5001dc65d152321722fc2bc77f94d7e8f6ccf7f525b72d535052"
+    },
+    {
+      "fixture": "canonical-pdfa-1a-structure.pdf",
+      "recipe": "just typst",
+      "sha256": "54365af93f025b44229af869543aa28d662c9d8181ae0dabfd3e3098e13a7c2f"
+    },
+    {
+      "fixture": "canonical-pdfa-1a-content.pdf",
+      "recipe": "just typst",
+      "sha256": "5910a8bf636db7f6f11d68926f4f084548bed4adbada8d23a2885a4f6a4a6937"
+    },
+    {
+      "fixture": "canonical-pdfa-1a-annotations.pdf",
+      "recipe": "just typst",
+      "sha256": "7c73ecb9fee423a7bd7538a79deff5b473ad5000acbb3ae4f02bd56d4a048b40"
+    },
+    {
+      "fixture": "canonical-pdfa-1a-forms.pdf",
+      "recipe": "canonical_compliance.rs ignored generator",
+      "sha256": "803aca6a6132c80a6a03209229bc7c11c44d6c8d40871b856451f981c88f8a49"
+    },
     {
       "fixture": "encrypted.pdf",
       "recipe": "immutable checked-in regression input",

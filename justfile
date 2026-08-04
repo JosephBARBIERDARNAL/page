@@ -52,6 +52,18 @@ typst:
 
     typst compile crates/page_validation/tests/fixtures/typst-pdfa-1a.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
 
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1b.typ --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
+
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1a.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
+
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1a-fonts.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
+
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1a-structure.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
+
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1a-content.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
+
+    typst compile crates/page_validation/tests/fixtures/canonical-pdfa-1a-annotations.typ --pdf-standard a-1a --ignore-system-fonts --creation-timestamp 1767225600
+
 # Compare one PDF with pinned veraPDF; format may be text or json.
 diff file format="text" verapdf=verapdf_bin:
     cargo run --quiet -p page_cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"

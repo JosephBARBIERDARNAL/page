@@ -86,6 +86,25 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
     let differential = read_json(DIFFERENTIAL_PATH);
     assert_eq!(differential["reference"]["version"], "1.30.2");
     assert_eq!(differential["reference"]["profile"], "1b");
+    assert_eq!(
+        inventory["checked_in_mutation_manifest"]["path"],
+        DIFFERENTIAL_PATH
+    );
+    assert_eq!(
+        inventory["checked_in_mutation_manifest"]["field"],
+        "checked_in_mutations"
+    );
+    assert_eq!(
+        number(
+            &inventory["checked_in_mutation_manifest"]["representative_count"],
+            "checked-in mutation count"
+        ),
+        array(
+            &differential["checked_in_mutations"],
+            "checked-in mutations"
+        )
+        .len() as u64
+    );
     let atomic = atomic_evidence(&differential);
     let predicates = array(&inventory["predicates"], "predicates");
     assert_eq!(predicates.len(), 129);
@@ -148,6 +167,64 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
     assert_eq!(
         inventory_ids,
         profile_predicates.keys().cloned().collect::<BTreeSet<_>>()
+    );
+
+    let mutation_ids = array(
+        &differential["checked_in_mutations"],
+        "checked-in mutations",
+    )
+    .iter()
+    .map(|mutation| string(&mutation["local_rule_id"], "mutation local rule id"))
+    .collect::<BTreeSet<_>>();
+    let exception_ids = array(
+        &inventory["checked_in_mutation_exceptions"],
+        "checked-in mutation exceptions",
+    )
+    .iter()
+    .map(|exception| {
+        let kind = string(&exception["kind"], "mutation exception kind");
+        assert!(
+            matches!(
+                kind,
+                "non_representable" | "compound_parser_case" | "upstream_reference_exception"
+            ),
+            "invalid mutation exception kind: {kind}"
+        );
+        assert!(
+            !string(&exception["fixture"], "mutation exception fixture").is_empty(),
+            "mutation exception has no fixture"
+        );
+        assert!(
+            !string(&exception["rationale"], "mutation exception rationale")
+                .trim()
+                .is_empty(),
+            "mutation exception has no rationale"
+        );
+        string(
+            &exception["local_rule_id"],
+            "mutation exception local rule id",
+        )
+    })
+    .collect::<BTreeSet<_>>();
+    assert!(
+        mutation_ids.is_disjoint(&exception_ids),
+        "a local rule cannot be both a mutation and an exception"
+    );
+    assert_eq!(
+        mutation_ids
+            .union(&exception_ids)
+            .cloned()
+            .collect::<BTreeSet<_>>(),
+        predicates
+            .iter()
+            .flat_map(|predicate| {
+                array(&predicate["local_checks"], "local checks")
+                    .iter()
+                    .map(|local| string(local, "local check"))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<BTreeSet<_>>(),
+        "every mapped local predicate needs a checked-in mutation or an explicit exception"
     );
 
     assert_variant_and_corpus_shape(&inventory);
