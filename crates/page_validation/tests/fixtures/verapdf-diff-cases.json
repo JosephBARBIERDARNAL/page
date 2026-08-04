@@ -68,8 +68,8 @@
     },
     {
       "path": "tests/fixtures/not-compliant-1.pdf",
-      "expected_classification": "agreement",
-      "rationale": "Typst 0.15.1 generated this fixture with --pdf-standard a-1b; both validators accept it as PDF/A-1b."
+      "expected_classification": "both_noncompliant",
+      "rationale": "The deterministic Typst fixture is intentionally non-compliant; both validators report its invalid output intent and missing PDF/A identification schema."
     },
     {
       "path": "tests/fixtures/odd-hex-string.pdf",

@@ -55,8 +55,6 @@ For example, PDF/A forbids features such as JavaScript or external dependencies 
 
 Because each profile defines **hundreds of requirements**, validating a PDF is much more involved than simply checking whether it "opens correctly." A validator must verify that every applicable rule is satisfied for the requested profile.
 
-This is precisely why projects such as `veraPDF` exist, and why `page` focuses on standards-compliant validation rather than basic PDF parsing.
-
 ## What is PDF validation?
 
 TODO

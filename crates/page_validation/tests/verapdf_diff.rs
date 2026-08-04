@@ -90,6 +90,8 @@ struct PdfA1aManifest {
     reference: ManifestReference,
     shared_cases: Vec<PathBuf>,
     a_only_cases: Vec<PdfA1aCase>,
+    #[serde(default)]
+    upstream_failure_cases: Vec<PdfA1aUpstreamFailureCase>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -98,6 +100,14 @@ struct PdfA1aCase {
     fixture_family: String,
     expected_local_rule_id: String,
     expected_verapdf_rule_id: String,
+    rationale: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aUpstreamFailureCase {
+    name: String,
+    fixture_family: String,
+    expected_local_rule_id: String,
     rationale: String,
 }
 
@@ -447,6 +457,32 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
             "{}: veraPDF rule {} did not fail: {}",
             case.rationale,
             case.expected_verapdf_rule_id,
+            case.name
+        );
+    }
+    for case in &manifest.upstream_failure_cases {
+        let bytes = match case.fixture_family.as_str() {
+            "tagged_document" => common::tagged_document_fixture(&case.name),
+            family => panic!("{}: unsupported fixture family {family}", case.name),
+        };
+        let path = temporary.join(format!("{}-upstream.pdf", case.name));
+        fs::write(&path, &bytes).expect("write upstream failure fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Operational,
+            "{}: expected veraPDF upstream failure: {report}",
+            case.rationale
+        );
+        assert!(
+            report
+                .local_report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == case.expected_local_rule_id),
+            "{}: local rule {} did not fail: {}",
+            case.rationale,
+            case.expected_local_rule_id,
             case.name
         );
     }
