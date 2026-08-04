@@ -460,7 +460,7 @@ fn rule_mapping_documentation_is_current() {
     let documentation = fs::read_to_string(RULE_MAPPING_DOC_PATH)
         .expect("read generated rule mapping documentation");
     assert_eq!(
-        documentation,
+        documentation.replace("\r\n", "\n"),
         generated_rule_mapping_documentation(&inventory),
         "rule mapping documentation is stale; run the ignored documentation generator"
     );
