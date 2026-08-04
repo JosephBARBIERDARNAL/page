@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const TYPE: &str = "PDFA1B-FONT-TYPE-001";
 const SUBTYPE: &str = "PDFA1B-FONT-SUBTYPE-001";

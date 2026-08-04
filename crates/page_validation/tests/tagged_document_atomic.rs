@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 use std::collections::BTreeSet;
 use std::env;

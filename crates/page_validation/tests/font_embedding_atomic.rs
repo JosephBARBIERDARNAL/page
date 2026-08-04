@@ -6,7 +6,7 @@ use page_validation::differential::{
 };
 use page_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
-mod common;
+pub mod common;
 
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
 const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";

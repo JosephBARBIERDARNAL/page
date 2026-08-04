@@ -9,9 +9,9 @@ use page_validation::{
     validate_bytes_with_profile,
 };
 
-mod sfnt;
+pub mod sfnt;
 
-fn pdf_document() -> Document {
+pub fn pdf_document() -> Document {
     let mut document = Document::with_version("1.4");
     document.reference_table.cross_reference_type = XrefType::CrossReferenceTable;
     document.trailer.set(
@@ -3288,7 +3288,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
-fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
+pub fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
     let (source, violation) = ["form", "appearance", "pattern", "type3", "soft_mask"]
         .into_iter()
         .find_map(|source| {
@@ -4905,7 +4905,7 @@ pub fn syntax_fixture(case: &str) -> Vec<u8> {
     )
 }
 
-fn syntax_stream_fixture(case: &str) -> Vec<u8> {
+pub fn syntax_stream_fixture(case: &str) -> Vec<u8> {
     let (length_object, stream_dictionary) = match case {
         "stream_direct_length_valid" => (None, "<< /Length 3 >>"),
         "stream_direct_length_mismatch" => (None, "<< /Length 4 >>"),
@@ -4932,7 +4932,7 @@ fn syntax_stream_fixture(case: &str) -> Vec<u8> {
     build_classic_pdf_objects(&objects, "[(one) (two)]")
 }
 
-fn build_classic_pdf(
+pub fn build_classic_pdf(
     initial_probe: &str,
     current_probe: Option<&str>,
     incremental: bool,
@@ -4963,7 +4963,7 @@ fn build_classic_pdf(
     bytes
 }
 
-fn build_classic_pdf_objects(objects: &[String], trailer_id: &str) -> Vec<u8> {
+pub fn build_classic_pdf_objects(objects: &[String], trailer_id: &str) -> Vec<u8> {
     let mut bytes = b"%PDF-1.4\n%\x80\x81\x82\x83\n".to_vec();
     let mut offsets = Vec::new();
     for (index, object) in objects.iter().enumerate() {
@@ -4987,7 +4987,7 @@ fn build_classic_pdf_objects(objects: &[String], trailer_id: &str) -> Vec<u8> {
     bytes
 }
 
-fn find_last_startxref(bytes: &[u8]) -> usize {
+pub fn find_last_startxref(bytes: &[u8]) -> usize {
     let marker = bytes
         .windows(b"startxref\n".len())
         .rposition(|window| window == b"startxref\n")
@@ -5004,18 +5004,18 @@ fn find_last_startxref(bytes: &[u8]) -> usize {
         .expect("startxref integer")
 }
 
-fn action(subtype: &str) -> Object {
+pub fn action(subtype: &str) -> Object {
     Object::Dictionary(action_dictionary(subtype))
 }
 
-fn action_dictionary(subtype: &str) -> Dictionary {
+pub fn action_dictionary(subtype: &str) -> Dictionary {
     dictionary! {
         "Type" => "Action",
         "S" => subtype,
     }
 }
 
-fn file_spec_with_ef(target: &str) -> Dictionary {
+pub fn file_spec_with_ef(target: &str) -> Dictionary {
     dictionary! {
         "Type" => "Filespec",
         "F" => Object::string_literal(target),
@@ -5023,7 +5023,7 @@ fn file_spec_with_ef(target: &str) -> Dictionary {
     }
 }
 
-fn valid_annotation(subtype: &str) -> Dictionary {
+pub fn valid_annotation(subtype: &str) -> Dictionary {
     dictionary! {
         "Type" => "Annot",
         "Subtype" => subtype,
@@ -5040,7 +5040,10 @@ pub fn font_fixture_with_external_type1_program(case: &str, program: &[u8]) -> V
     font_fixture_with_type1_program(case, Some(program))
 }
 
-fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[u8]>) -> Vec<u8> {
+pub fn font_fixture_with_type1_program(
+    case: &str,
+    external_type1_program: Option<&[u8]>,
+) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let embedded = !matches!(
@@ -6297,7 +6300,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
 
 /// A minimal, always-non-embedded `Type1`/Helvetica font: using it anywhere
 /// visible must trigger `PDFA1B-FONT-EMBEDDING-001` on its own.
-fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
+pub fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
     document.add_object(dictionary! {
         "Type" => "Font",
         "Subtype" => "Type1",
@@ -6593,7 +6596,7 @@ pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
-fn type0_descendant_dictionary(
+pub fn type0_descendant_dictionary(
     document: &mut Document,
     embedded: bool,
     cid_to_gid_map: bool,
@@ -6850,7 +6853,7 @@ pub fn symbolic_cmap_with_malformed_maxp_fixture() -> Vec<u8> {
     bytes
 }
 
-fn font_descriptor(document: &mut Document, embedded: bool) -> Dictionary {
+pub fn font_descriptor(document: &mut Document, embedded: bool) -> Dictionary {
     let mut descriptor = dictionary! {
         "Type" => "FontDescriptor",
         "FontName" => "MaiTestFont",
@@ -6870,7 +6873,7 @@ fn font_descriptor(document: &mut Document, embedded: bool) -> Dictionary {
     descriptor
 }
 
-fn type1_program(char_names: &[&str]) -> Vec<u8> {
+pub fn type1_program(char_names: &[&str]) -> Vec<u8> {
     let char_strings = char_names
         .iter()
         .map(|name| format!("/{name} 1 RD"))
@@ -6900,7 +6903,7 @@ fn type1_program(char_names: &[&str]) -> Vec<u8> {
     .concat()
 }
 
-fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
+pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
     if !bytes.starts_with(&[0x80, 0x01]) {
         let length1 = bytes
             .windows(b"eexec\n".len())
@@ -6985,7 +6988,7 @@ fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
     (payload, lengths[0], lengths[1], lengths[2])
 }
 
-fn type1_program_with_width(width: u16) -> Vec<u8> {
+pub fn type1_program_with_width(width: u16) -> Vec<u8> {
     let encode_number = |value: u16| -> Vec<u8> {
         if value <= 107 {
             vec![(value + 139) as u8]
@@ -7039,7 +7042,7 @@ fn type1_program_with_width(width: u16) -> Vec<u8> {
     .concat()
 }
 
-fn text_content(rendering_mode: i64) -> Vec<u8> {
+pub fn text_content(rendering_mode: i64) -> Vec<u8> {
     content(vec![
         operation("BT", vec![]),
         operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
@@ -7049,7 +7052,7 @@ fn text_content(rendering_mode: i64) -> Vec<u8> {
     ])
 }
 
-fn embedded_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
+pub fn embedded_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n\
          12 dict begin\n\
@@ -7171,7 +7174,7 @@ pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
     bytes
 }
 
-fn embedded_two_byte_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
+pub fn embedded_two_byte_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n\
          12 dict begin\n\
@@ -7194,7 +7197,7 @@ fn embedded_two_byte_cmap(ordering: &str, wmode: i64, cid_start: u32) -> Vec<u8>
     .into_bytes()
 }
 
-fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n\
          12 dict begin\n\
@@ -7212,18 +7215,18 @@ fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
     .into_bytes()
 }
 
-fn content(operations: Vec<Operation>) -> Vec<u8> {
+pub fn content(operations: Vec<Operation>) -> Vec<u8> {
     Content { operations }.encode().expect("encode content")
 }
 
-fn operation(operator: &str, operands: Vec<Object>) -> Operation {
+pub fn operation(operator: &str, operands: Vec<Object>) -> Operation {
     Operation::new(operator, operands)
 }
 
 /// Adds the standard `/Type /Metadata /Subtype /XML` stream carrying
 /// `BASE_XMP`. `metadata_fixture`, whose whole point is exercising variant
 /// metadata shapes, builds its own instead of calling this.
-fn standard_metadata_stream(document: &mut Document) -> ObjectId {
+pub fn standard_metadata_stream(document: &mut Document) -> ObjectId {
     document.add_object(Stream::new(
         dictionary! {
             "Type" => "Metadata",
@@ -7237,7 +7240,7 @@ fn standard_metadata_stream(document: &mut Document) -> ObjectId {
 /// single `/Kids` entry. Fixtures whose page tree needs anything more (e.g.
 /// an inherited `/Resources` entry) build their own `/Pages` dictionary
 /// instead of calling this.
-fn wrap_pages(document: &mut Document, pages_id: ObjectId, page_id: ObjectId) {
+pub fn wrap_pages(document: &mut Document, pages_id: ObjectId, page_id: ObjectId) {
     document.objects.insert(
         pages_id,
         Object::Dictionary(dictionary! {
@@ -7248,7 +7251,7 @@ fn wrap_pages(document: &mut Document, pages_id: ObjectId, page_id: ObjectId) {
     );
 }
 
-fn single_intent(
+pub fn single_intent(
     document: &mut Document,
     profile: Option<Object>,
     subtype: Option<&str>,
@@ -7257,7 +7260,7 @@ fn single_intent(
     Some(Object::Array(vec![Object::Reference(intent_id)]))
 }
 
-fn single_profile_intent(
+pub fn single_profile_intent(
     document: &mut Document,
     profile: Vec<u8>,
     subtype: Option<&str>,
@@ -7266,7 +7269,7 @@ fn single_profile_intent(
     single_intent(document, Some(profile), subtype)
 }
 
-fn two_intents(document: &mut Document, first: Object, second: Object) -> Option<Object> {
+pub fn two_intents(document: &mut Document, first: Object, second: Object) -> Option<Object> {
     let first = document.add_object(output_intent_dictionary(Some(first), Some("GTS_PDFA1")));
     let second = document.add_object(output_intent_dictionary(Some(second), Some("GTS_PDFA1")));
     Some(Object::Array(vec![
@@ -7275,7 +7278,7 @@ fn two_intents(document: &mut Document, first: Object, second: Object) -> Option
     ]))
 }
 
-fn output_intent_dictionary(profile: Option<Object>, subtype: Option<&str>) -> Dictionary {
+pub fn output_intent_dictionary(profile: Option<Object>, subtype: Option<&str>) -> Dictionary {
     let mut dictionary = dictionary! {
         "Type" => "OutputIntent",
         "OutputConditionIdentifier" => Object::string_literal("Test"),
@@ -7289,17 +7292,17 @@ fn output_intent_dictionary(profile: Option<Object>, subtype: Option<&str>) -> D
     dictionary
 }
 
-fn profile_reference(document: &mut Document, bytes: Vec<u8>) -> Object {
+pub fn profile_reference(document: &mut Document, bytes: Vec<u8>) -> Object {
     Object::Reference(document.add_object(profile_stream(bytes)))
 }
 
-fn compressed_profile_reference(document: &mut Document, bytes: Vec<u8>) -> Object {
+pub fn compressed_profile_reference(document: &mut Document, bytes: Vec<u8>) -> Object {
     let mut stream = profile_stream(bytes);
     stream.compress().expect("compress ICC test profile");
     Object::Reference(document.add_object(stream))
 }
 
-fn profile_stream(bytes: Vec<u8>) -> Stream {
+pub fn profile_stream(bytes: Vec<u8>) -> Stream {
     let components = bytes.get(16..20).and_then(|signature| match signature {
         b"GRAY" => Some(1),
         b"RGB " | b"Lab " => Some(3),
@@ -7313,7 +7316,7 @@ fn profile_stream(bytes: Vec<u8>) -> Stream {
     Stream::new(dictionary, bytes)
 }
 
-fn icc_header(
+pub fn icc_header(
     device_class: [u8; 4],
     color_space: [u8; 4],
     version_major: u8,
@@ -7328,7 +7331,7 @@ fn icc_header(
     bytes
 }
 
-fn complete_info() -> Dictionary {
+pub fn complete_info() -> Dictionary {
     dictionary! {
         "Title" => Object::string_literal("Title"),
         "Author" => Object::string_literal("Author"),
@@ -7341,25 +7344,25 @@ fn complete_info() -> Dictionary {
     }
 }
 
-enum Occurrence {
+pub enum Occurrence {
     All,
     First,
     Last,
 }
 
-fn replace(bytes: &mut Vec<u8>, from: &str, to: &str) {
+pub fn replace(bytes: &mut Vec<u8>, from: &str, to: &str) {
     replace_occurrence(bytes, from, to, Occurrence::All);
 }
 
-fn replace_first(bytes: &mut Vec<u8>, from: &str, to: &str) {
+pub fn replace_first(bytes: &mut Vec<u8>, from: &str, to: &str) {
     replace_occurrence(bytes, from, to, Occurrence::First);
 }
 
-fn replace_last(bytes: &mut Vec<u8>, from: &str, to: &str) {
+pub fn replace_last(bytes: &mut Vec<u8>, from: &str, to: &str) {
     replace_occurrence(bytes, from, to, Occurrence::Last);
 }
 
-fn replace_occurrence(bytes: &mut Vec<u8>, from: &str, to: &str, occurrence: Occurrence) {
+pub fn replace_occurrence(bytes: &mut Vec<u8>, from: &str, to: &str, occurrence: Occurrence) {
     let text = String::from_utf8(bytes.clone()).expect("XMP fixture is UTF-8");
     let replaced = match occurrence {
         Occurrence::All => {
@@ -7380,7 +7383,7 @@ fn replace_occurrence(bytes: &mut Vec<u8>, from: &str, to: &str, occurrence: Occ
     *bytes = replaced.into_bytes();
 }
 
-const BASE_XMP: &[u8] = br#"<?xpacket begin=""?>
+pub const BASE_XMP: &[u8] = br#"<?xpacket begin=""?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
  xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
@@ -7401,7 +7404,7 @@ const BASE_XMP: &[u8] = br#"<?xpacket begin=""?>
 </x:xmpmeta>
 <?xpacket end="w"?>"#;
 
-const EXTENSION_SCHEMA_BLOCK: &str = r#"
+pub const EXTENSION_SCHEMA_BLOCK: &str = r#"
 <rdf:Description
  xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
  xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"

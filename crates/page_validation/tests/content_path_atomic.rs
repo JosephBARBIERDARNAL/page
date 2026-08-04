@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-mod common;
+pub mod common;
 
 const VIOLATIONS: &[(&str, &str, &str)] = &[
     (

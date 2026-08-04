@@ -1,6 +1,6 @@
 use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
-mod common;
+pub mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("no_output_intents", &[]),

@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const EMBEDDED_FILES: &str = "PDFA1B-NAMES-EMBEDDED-FILES-001";
 const OPTIONAL_CONTENT: &str = "PDFA1B-OPTIONAL-CONTENT-001";

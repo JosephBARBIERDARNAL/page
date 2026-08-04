@@ -17,11 +17,11 @@ pub fn minimal_truetype_with_glyph_count(glyph_count: u16) -> Vec<u8> {
     minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(1, 32, glyph_count)
 }
 
-fn minimal_truetype_with_cmap_count_and_mapping(cmap_count: u16, code: u8) -> Vec<u8> {
+pub fn minimal_truetype_with_cmap_count_and_mapping(cmap_count: u16, code: u8) -> Vec<u8> {
     minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(cmap_count, code, 2)
 }
 
-fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
+pub fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
     cmap_count: u16,
     code: u8,
     glyph_count: u16,

@@ -11,7 +11,7 @@
 //! forces a conscious update, and these tests would then need re-auditing
 //! rather than silently going stale).
 
-mod common;
+pub mod common;
 
 use std::fs;
 

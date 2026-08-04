@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-mod common;
+pub mod common;
 
 const EMBEDDING: &str = "PDFA1B-FONT-EMBEDDING-001";
 

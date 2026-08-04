@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const INTEGER: &str = "PDFA1B-INTEGER-RANGE-001";
 const STRING: &str = "PDFA1B-STRING-LENGTH-001";

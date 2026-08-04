@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const SUBTYPE: &str = "PDFA1B-ANNOTATION-SUBTYPE-001";
 const OPACITY: &str = "PDFA1B-ANNOTATION-OPACITY-001";

@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const ICC: &str = "PDFA1B-ICCBASED-001";
 const RGB: &str = "PDFA1B-DEVICE-RGB-001";

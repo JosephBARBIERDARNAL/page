@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const NONSYMBOLIC: &str = "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001";
 const SYMBOLIC: &str = "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001";

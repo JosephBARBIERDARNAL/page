@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-mod common;
+pub mod common;
 
 const PRESENCE: &str = "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001";
 const WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";

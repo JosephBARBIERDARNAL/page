@@ -3,7 +3,7 @@ use std::{env, fs};
 use page_validation::SafetyLimits;
 use page_validation::differential::{DifferentialRunner, ReferenceConfig};
 
-mod common;
+pub mod common;
 
 /// Confirmed live against veraPDF 1.30.2: `PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`
 /// reads a TrueType program's `cmap` table subtable count directly from the

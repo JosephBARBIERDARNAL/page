@@ -5,7 +5,7 @@ use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig,
 };
 
-mod common;
+pub mod common;
 
 const SYSTEM_INFO: &str = "PDFA1B-TYPE0-CID-SYSTEM-INFO-001";
 const CID_TO_GID: &str = "PDFA1B-CIDTOGIDMAP-001";

@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const EXTGSTATE_SMASK: &str = "PDFA1B-EXTGSTATE-SMASK-001";
 const XOBJECT_SMASK: &str = "PDFA1B-XOBJECT-SMASK-001";

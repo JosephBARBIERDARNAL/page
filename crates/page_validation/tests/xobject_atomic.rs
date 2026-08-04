@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("image_alternates", &["PDFA1B-IMAGE-ALTERNATES-001"]),

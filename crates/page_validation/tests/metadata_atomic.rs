@@ -5,7 +5,7 @@ use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
 
-mod common;
+pub mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("first_rdf_package", &[]),

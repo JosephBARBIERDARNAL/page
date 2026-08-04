@@ -10,7 +10,7 @@ use page_validation::differential::{
 };
 use serde::Deserialize;
 
-mod common;
+pub mod common;
 
 #[derive(Debug, Deserialize)]
 struct Manifest {

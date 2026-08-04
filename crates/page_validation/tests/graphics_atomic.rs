@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 const CASES: &[(&str, &[&str])] = &[
     ("extgstate_tr", &["PDFA1B-EXTGSTATE-TR-001"]),

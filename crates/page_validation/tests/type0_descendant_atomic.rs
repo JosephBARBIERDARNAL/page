@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 /// Confirmed live against veraPDF 1.30.2: an indirect reference to the name
 /// `/Identity` for `/CIDToGIDMap` resolves rendered CIDs to the same
