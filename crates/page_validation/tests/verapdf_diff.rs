@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use page_validation::SafetyLimits;
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
-    ReferenceConfig,
+    ReferenceConfig, ReferenceProfile,
 };
 use serde::Deserialize;
 
@@ -82,6 +82,22 @@ struct AtomicRuleCase {
     expected_local_passed_rule_ids: Vec<String>,
     expected_verapdf_failed_rule_ids: Vec<String>,
     expected_verapdf_passed_rule_ids: Vec<String>,
+    rationale: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aManifest {
+    reference: ManifestReference,
+    shared_cases: Vec<PathBuf>,
+    a_only_cases: Vec<PdfA1aCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aCase {
+    name: String,
+    fixture_family: String,
+    expected_local_rule_id: String,
+    expected_verapdf_rule_id: String,
     rationale: String,
 }
 
@@ -349,6 +365,92 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
     );
     assert_blend_mode_upstream_repro(&runner, &temporary);
     fs::remove_dir_all(temporary).expect("remove atomic fixture directory");
+}
+
+#[test]
+fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping opt-in veraPDF differential run");
+        return;
+    };
+    let manifest_path = Path::new("tests/fixtures/verapdf-diff-cases-1a.json");
+    let manifest: PdfA1aManifest = serde_json::from_slice(
+        &fs::read(manifest_path).expect("read PDF/A-1a differential case manifest"),
+    )
+    .expect("parse PDF/A-1a differential case manifest");
+    assert_eq!(manifest.reference.version, PINNED_VERAPDF_VERSION);
+    assert_eq!(manifest.reference.profile, "1a");
+
+    let mut config = ReferenceConfig::pinned(executable);
+    config.profile = ReferenceProfile::PdfA1a;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+
+    let shared_paths = manifest
+        .shared_cases
+        .iter()
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+    for (path, report) in shared_paths
+        .iter()
+        .zip(runner.compare_files(&shared_paths, &SafetyLimits::default()))
+    {
+        assert!(
+            matches!(
+                report.classification,
+                ComparisonClassification::Agreement
+                    | ComparisonClassification::BothNoncompliant
+                    | ComparisonClassification::CoverageGap
+                    | ComparisonClassification::ReferenceParserDiscrepancy
+            ),
+            "{}: unexpected PDF/A-1a classification: {report}",
+            path.display()
+        );
+    }
+
+    let temporary = env::temp_dir().join(format!("page-verapdf-pdfa-1a-{}", std::process::id()));
+    fs::create_dir_all(&temporary).expect("create PDF/A-1a differential fixture directory");
+    for case in &manifest.a_only_cases {
+        let bytes = match case.fixture_family.as_str() {
+            "metadata" => common::metadata_fixture(&case.name),
+            "tagged_document" => common::tagged_document_fixture(&case.name),
+            "font" => common::font_fixture(&case.name),
+            family => panic!("{}: unsupported fixture family {family}", case.name),
+        };
+        let path = temporary.join(format!("{}.pdf", case.name));
+        fs::write(&path, &bytes).expect("write PDF/A-1a differential fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let local = page_validation::validate_bytes_with_profile(
+            &bytes,
+            page_validation::ValidationProfile::PdfA1a,
+            &SafetyLimits::default(),
+        );
+        assert!(
+            local
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == case.expected_local_rule_id),
+            "{}: local rule {} did not fail: {} ({})",
+            case.rationale,
+            case.expected_local_rule_id,
+            case.name,
+            report
+        );
+        let reference = report
+            .reference_result
+            .as_ref()
+            .unwrap_or_else(|| panic!("{}: reference failed: {report}", case.name));
+        assert!(
+            reference
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == case.expected_verapdf_rule_id),
+            "{}: veraPDF rule {} did not fail: {}",
+            case.rationale,
+            case.expected_verapdf_rule_id,
+            case.name
+        );
+    }
+    fs::remove_dir_all(temporary).expect("remove PDF/A-1a differential fixture directory");
 }
 
 fn assert_blend_mode_upstream_repro(runner: &DifferentialRunner, temporary: &Path) {

@@ -4,7 +4,7 @@
 
 !!! warning
 
-      `page` is an experimental project and isn't usable yet. The current focus is on validating PDF/A-1b.
+      `page` is an experimental project and isn't really usable yet.
 
 ## Installation
 

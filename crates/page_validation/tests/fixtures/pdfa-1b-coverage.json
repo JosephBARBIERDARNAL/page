@@ -4691,6 +4691,50 @@
       "mapping_note": "Local bounded precondition supporting the ISO 19005-1 §6.3.5 test-1 glyph-presence predicate: a CID decoded from a rendered byte must be within the descendant CIDFont's supported range before glyph presence can be evaluated. It is not an independently numbered veraPDF test."
     }
   ],
+  "pdfa_1a_only_mappings": [
+    {
+      "local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.7.11:3",
+      "implementation_strength": "exact",
+      "mapping_note": "For PDF/A-1a validation, the PDF/A Identification Schema declares `conformance == \"A\"`; PDF/A-1b accepts `A` or `B` through the shared identification check."
+    },
+    {
+      "local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
+      "implementation_strength": "exact",
+      "mapping_note": "The document catalog contains a MarkInfo dictionary with boolean `Marked == true`."
+    },
+    {
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
+      "implementation_strength": "exact",
+      "mapping_note": "The document catalog contains a valid StructTreeRoot entry describing the logical structure hierarchy."
+    },
+    {
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
+      "implementation_strength": "exact",
+      "mapping_note": "Every non-standard structure type resolves through RoleMap to a standard structure type."
+    },
+    {
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:2",
+      "implementation_strength": "exact",
+      "mapping_note": "The StructTreeRoot RoleMap contains no circular mapping."
+    },
+    {
+      "local_rule_id": "PDFA1A-LANG-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.4:1",
+      "implementation_strength": "exact",
+      "mapping_note": "Every present catalog, structure-element, or property-list Lang value is empty or matches the pinned RFC 1766 language-tag syntax."
+    },
+    {
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "implementation_strength": "exact",
+      "mapping_note": "Every rendered font has a usable ToUnicode CMap unless one of the PDF/A-1a rule's predefined-encoding, standard Type 1 character-name, or Adobe character-collection exceptions applies."
+    }
+  ],
   "low_level_syntax": {
     "inventoried_clause_6_1_predicate_count": 30,
     "policy": "Every clause 6.1 predicate is inventoried. The milestone requires exact behavior for raw file syntax and selected COS objects; content execution and embedded-program populations remain governed by their owning coverage families.",

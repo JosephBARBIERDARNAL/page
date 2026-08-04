@@ -1,0 +1,75 @@
+{
+  "reference": {
+    "version": "1.30.2",
+    "profile": "1a"
+  },
+  "shared_cases": [
+    "tests/fixtures/typst-pdfa-1b.pdf",
+    "tests/fixtures/structural.pdf",
+    "tests/fixtures/malformed.pdf",
+    "tests/fixtures/encrypted.pdf",
+    "tests/fixtures/poster.pdf",
+    "tests/fixtures/proposal.pdf",
+    "tests/fixtures/resume.pdf",
+    "tests/fixtures/example-1.pdf",
+    "tests/fixtures/not-compliant-1.pdf",
+    "tests/fixtures/odd-hex-string.pdf",
+    "tests/fixtures/parser-local-discrepancy-invalid-hex.pdf",
+    "tests/fixtures/header-offset.pdf",
+    "tests/fixtures/header-binary-comment-invalid.pdf",
+    "tests/fixtures/trailer-id-missing.pdf",
+    "tests/fixtures/post-eof-data.pdf",
+    "tests/fixtures/linearized-id-mismatch.pdf",
+    "tests/fixtures/linearized-baseline.pdf",
+    "tests/fixtures/xref-spacing.pdf",
+    "tests/fixtures/xref-eol.pdf",
+    "tests/fixtures/stream-length-mismatch.pdf",
+    "tests/fixtures/stream-eol-invalid.pdf",
+    "tests/fixtures/indirect-object-syntax.pdf",
+    "tests/fixtures/xref-stream.pdf"
+  ],
+  "a_only_cases": [
+    {
+      "name": "baseline_b",
+      "fixture_family": "metadata",
+      "expected_local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.7.11:3",
+      "rationale": "PDF/A-1a identification must declare conformance A."
+    },
+    {
+      "name": "tagged_missing",
+      "fixture_family": "tagged_document",
+      "expected_local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
+      "rationale": "PDF/A-1a requires MarkInfo/Marked true."
+    },
+    {
+      "name": "struct_tree_missing",
+      "fixture_family": "tagged_document",
+      "expected_local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
+      "rationale": "PDF/A-1a requires a StructTreeRoot."
+    },
+    {
+      "name": "struct_tree_role_map_unmapped",
+      "fixture_family": "tagged_document",
+      "expected_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
+      "rationale": "Non-standard structure types must map to standard types."
+    },
+    {
+      "name": "lang_catalog_invalid",
+      "fixture_family": "tagged_document",
+      "expected_local_rule_id": "PDFA1A-LANG-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.4:1",
+      "rationale": "PDF/A-1a language identifiers must follow the pinned RFC 1766 syntax."
+    },
+    {
+      "name": "unicode_missing",
+      "fixture_family": "font",
+      "expected_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "rationale": "Rendered PDF/A-1a text must have a usable Unicode mapping."
+    }
+  ]
+}

@@ -14,7 +14,7 @@ nav = [
     "api/nodejs.md",
     "api/web-assembly.md",
   ] },
-  { "Rule Reference" = ["rules/pdfa-1b-rule-mapping.md"] },
+  { "Rule Reference" = ["rules/pdfa-1-rule-mapping.md"] },
   { "FAQ" = ["faq.md"] }
 ]
 
