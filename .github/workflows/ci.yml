@@ -53,7 +53,7 @@ jobs:
         run: just coverage
 
   verapdf:
-    name: veraPDF 1.28.2 differential
+    name: veraPDF 1.30.2 differential
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -85,11 +85,11 @@ jobs:
         run: |
           curl --fail --silent --show-error --location \
             --output /tmp/verapdf-installer.zip \
-            https://software.verapdf.org/releases/1.28/verapdf-greenfield-1.28.2-installer.zip
-          echo "d1693a5f0bf0997180f6d97e8a5568b0cf39e27eee338d439c8adb58435c1e89  /tmp/verapdf-installer.zip" \
+            https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip
+          echo "6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838  /tmp/verapdf-installer.zip" \
             | sha256sum --check
           unzip -q /tmp/verapdf-installer.zip -d /tmp/verapdf-installer
-          /tmp/verapdf-installer/verapdf-greenfield-1.28.2/verapdf-install \
+          /tmp/verapdf-installer/verapdf-greenfield-1.30.2/verapdf-install \
             "$GITHUB_WORKSPACE/.github/verapdf-auto-install.xml"
           /tmp/verapdf/verapdf --version
 
