@@ -30,7 +30,7 @@ fn tagged_document_cases_enforce_catalog_mark_info() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 138, "{case}");
+        assert_eq!(report.checks.total, 139, "{case}");
         assert_eq!(
             report
                 .failures

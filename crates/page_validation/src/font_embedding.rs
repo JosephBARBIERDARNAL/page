@@ -33,6 +33,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
     pub(crate) missing_type1_glyphs: Vec<RuleFailure>,
     pub(crate) inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -86,6 +87,7 @@ struct Scanner<'a> {
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    invalid_unicode_mappings: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
     missing_type1_glyphs: Vec<RuleFailure>,
     inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -121,6 +123,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
+        invalid_unicode_mappings: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
         missing_type1_glyphs: Vec::new(),
         inconsistent_truetype_widths: Vec::new(),
@@ -151,6 +154,7 @@ pub(crate) fn inspect(
     scanner.inspect_rendered_type3_glyphs()?;
     scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
+    scanner.inspect_rendered_unicode_mappings()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
 
@@ -187,6 +191,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
+        invalid_unicode_mappings: scanner.invalid_unicode_mappings,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
         missing_type1_glyphs: scanner.missing_type1_glyphs,
         inconsistent_truetype_widths: scanner.inconsistent_truetype_widths,
@@ -391,6 +396,94 @@ impl Scanner<'_> {
                     description,
                     "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
                 ));
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_unicode_mappings(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible || usage.shown_bytes.is_empty() {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else { continue };
+            if unicode_mapping_exception(
+                self.document,
+                font,
+                usage.subtype.as_deref(),
+                &usage.shown_bytes,
+                self.limits,
+            )? {
+                continue;
+            }
+            let Some(value) = font.get(b"ToUnicode").ok() else {
+                self.invalid_unicode_mappings.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "does not define a ToUnicode CMap for rendered text",
+                ));
+                continue;
+            };
+            let Some(value) =
+                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+            else {
+                self.invalid_unicode_mappings.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has an unresolved ToUnicode entry",
+                ));
+                continue;
+            };
+            let Some(stream) = value.as_stream().ok() else {
+                self.invalid_unicode_mappings.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a ToUnicode entry that is not a CMap stream",
+                ));
+                continue;
+            };
+            let bytes = decode_font_stream(stream, self.limits)?;
+            let Some(map) = UnicodeCmap::parse(&bytes) else {
+                self.invalid_unicode_mappings.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a malformed ToUnicode CMap",
+                ));
+                continue;
+            };
+            let rendered_codes = if usage.subtype.as_deref() == Some("Type0") {
+                let Some(encoding) = font.get(b"Encoding").ok() else {
+                    continue;
+                };
+                let Some(decoder) = resolve_cmap_decoder(self.document, encoding, self.limits)?
+                    .codes(&usage.shown_bytes)
+                else {
+                    self.invalid_unicode_mappings.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "has rendered codes that cannot be decoded",
+                    ));
+                    continue;
+                };
+                decoder
+            } else {
+                usage.shown_bytes.iter().map(|byte| vec![*byte]).collect()
+            };
+            if rendered_codes.iter().any(|code| !map.maps_usable(code)) {
+                self.invalid_unicode_mappings.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has rendered character codes missing from or invalid in its ToUnicode CMap",
+                ));
+            }
         }
         Ok(())
     }
@@ -1956,6 +2049,21 @@ enum CmapDecoder {
 }
 
 impl CmapDecoder {
+    fn codes(&self, shown_bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
+        match self {
+            Self::IdentityBytes => shown_bytes.chunks_exact(2).next().is_some().then(|| {
+                shown_bytes
+                    .chunks_exact(2)
+                    .map(|code| code.to_vec())
+                    .collect()
+            }),
+            Self::Parsed(parsed) => parsed.codes(shown_bytes),
+            Self::Unavailable => None,
+        }
+    }
+}
+
+impl CmapDecoder {
     fn decode(&self, shown_bytes: &[u8]) -> Option<Vec<u16>> {
         match self {
             Self::IdentityBytes => identity_cids(shown_bytes),
@@ -2377,6 +2485,179 @@ impl ParsedCmap {
         }
         Some(cids)
     }
+
+    fn codes(&self, shown_bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
+        let mut codes = Vec::new();
+        let mut position = 0;
+        while position < shown_bytes.len() {
+            let mut matched = None;
+            for space in &self.code_spaces {
+                let end = position.checked_add(space.bytes)?;
+                let bytes = shown_bytes.get(position..end)?;
+                let code = bytes
+                    .iter()
+                    .fold(0_u32, |value, byte| value << 8 | u32::from(*byte));
+                if (space.start..=space.end).contains(&code) {
+                    matched = Some(bytes.to_vec());
+                    break;
+                }
+            }
+            let code = matched?;
+            position += code.len();
+            codes.push(code);
+        }
+        Some(codes)
+    }
+}
+
+fn unicode_mapping_exception(
+    document: &Document,
+    font: &Dictionary,
+    subtype: Option<&str>,
+    shown_bytes: &[u8],
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3")) {
+        let encoding = simple_font_encoding(document, font, limits)?;
+        let standard = encoding.base == Some(PredefinedEncoding::MacRoman)
+            || encoding.base == Some(PredefinedEncoding::MacExpert)
+            || encoding.base == Some(PredefinedEncoding::WinAnsi);
+        if standard && encoding.differences.is_empty() {
+            return Ok(true);
+        }
+        if matches!(subtype, Some("Type1" | "MMType1")) {
+            let standard_names = (0..=u8::MAX)
+                .filter_map(|byte| font_encodings::glyph_name(PredefinedEncoding::Standard, byte))
+                .collect::<BTreeSet<_>>();
+            let all_standard = shown_bytes.iter().all(|byte| {
+                encoding
+                    .glyph_name(*byte)
+                    .or_else(|| font_encodings::glyph_name(PredefinedEncoding::Standard, *byte))
+                    .is_some_and(|name| standard_names.contains(name))
+            });
+            let symbol_font = resolved_name(document, font, b"BaseFont", limits)?
+                .is_some_and(|name| name == b"Symbol");
+            if all_standard || symbol_font {
+                return Ok(true);
+            }
+        }
+    }
+    if subtype == Some("Type0") {
+        if let Some(encoding) = font.get(b"Encoding").ok()
+            && resolve_optional(document, encoding, limits.max_reference_depth)?
+                .and_then(|object| object.as_name().ok())
+                .is_some_and(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+        {
+            return Ok(true);
+        }
+        if let Some(descendant) = first_descendant_dictionary(document, font, limits)?
+            && let Some((registry, ordering)) = cid_system_info(document, descendant, limits)?
+            && registry == b"Adobe"
+            && matches!(
+                ordering.as_slice(),
+                b"GB1" | b"CNS1" | b"Japan1" | b"Korea1"
+            )
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+struct UnicodeCmap {
+    mappings: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+impl UnicodeCmap {
+    fn parse(bytes: &[u8]) -> Option<Self> {
+        let tokens = cmap_tokens(bytes);
+        let mut mappings = BTreeMap::new();
+        let mut cursor = 0;
+        while cursor + 1 < tokens.len() {
+            let Some(count) = parse_cmap_integer(tokens[cursor]).map(|count| count as usize) else {
+                cursor += 1;
+                continue;
+            };
+            match tokens[cursor + 1] {
+                b"beginbfchar" => {
+                    for index in 0..count {
+                        let source = parse_cmap_bytes(tokens.get(cursor + 2 + index * 2)?)?;
+                        let destination = parse_cmap_bytes(tokens.get(cursor + 3 + index * 2)?)?;
+                        mappings.insert(source, destination);
+                    }
+                    cursor += 2 + count * 2;
+                }
+                b"beginbfrange" => {
+                    for index in 0..count {
+                        let base = cursor + 2 + index * 3;
+                        let start = parse_cmap_bytes(tokens.get(base)?)?;
+                        let end = parse_cmap_bytes(tokens.get(base + 1)?)?;
+                        let first = parse_cmap_bytes(tokens.get(base + 2)?)?;
+                        if start.len() != end.len() || start.len() != first.len() || start > end {
+                            return None;
+                        }
+                        let start_value = bytes_value(&start);
+                        let end_value = bytes_value(&end);
+                        let first_value = bytes_value(&first);
+                        let range_length = end_value - start_value;
+                        if range_length > 65_535 {
+                            return None;
+                        }
+                        for offset in 0..=range_length {
+                            let source = value_bytes(start_value + offset, start.len());
+                            let destination = value_bytes(first_value + offset, first.len());
+                            mappings.insert(source, destination);
+                        }
+                    }
+                    cursor += 2 + count * 3;
+                }
+                _ => cursor += 1,
+            }
+        }
+        (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
+            .then_some(Self { mappings })
+    }
+
+    fn maps_usable(&self, code: &[u8]) -> bool {
+        self.mappings
+            .get(code)
+            .is_some_and(|value| valid_unicode_bytes(value))
+    }
+}
+
+fn parse_cmap_bytes(token: &[u8]) -> Option<Vec<u8>> {
+    let value = token.strip_prefix(b"<")?.strip_suffix(b">")?;
+    (value.len() % 2 == 0 && !value.is_empty()).then(|| {
+        (0..value.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(std::str::from_utf8(&value[i..i + 2]).ok()?, 16).ok())
+            .collect::<Option<Vec<_>>>()
+    })?
+}
+
+fn bytes_value(bytes: &[u8]) -> u32 {
+    bytes
+        .iter()
+        .fold(0, |value, byte| value << 8 | u32::from(*byte))
+}
+
+fn value_bytes(value: u32, length: usize) -> Vec<u8> {
+    (0..length)
+        .rev()
+        .map(|shift| (value >> (shift * 8)) as u8)
+        .collect()
+}
+
+fn valid_unicode_bytes(bytes: &[u8]) -> bool {
+    bytes.len().is_multiple_of(2)
+        && !bytes.is_empty()
+        && String::from_utf16(
+            &bytes
+                .chunks_exact(2)
+                .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+                .collect::<Vec<_>>(),
+        )
+        .is_ok()
 }
 
 fn cmap_tokens(bytes: &[u8]) -> Vec<&[u8]> {
@@ -3342,7 +3623,7 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        cff_fd_select, cff_index, cmap_bytes_system_info, cmap_maximal_cid,
+        UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info, cmap_maximal_cid,
         cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
         parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
         type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
@@ -3410,6 +3691,18 @@ mod tests {
         assert_eq!(cmap_cids(&[0x41, 0x80, 0x01]), Some(vec![12, 21]));
         assert_eq!(cmap_cids(&[0x80]), None);
         assert_eq!(cmap_cids(&[0x42]), None);
+    }
+
+    #[test]
+    fn parses_usable_unicode_cmaps_and_rejects_incomplete_or_invalid_values() {
+        let map = UnicodeCmap::parse(
+            b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <41> <0041> endbfchar",
+        )
+        .expect("valid ToUnicode CMap");
+        assert!(map.maps_usable(b"A"));
+        assert!(!map.maps_usable(b"B"));
+        assert!(UnicodeCmap::parse(b"1 beginbfchar <41> <d800> endbfchar").is_none());
+        assert!(UnicodeCmap::parse(b"1 beginbfrange <00> <ffff> <d800> endbfrange").is_none());
     }
 
     #[test]

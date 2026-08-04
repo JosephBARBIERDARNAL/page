@@ -31,7 +31,7 @@ fn validates_catalog_structure_and_property_list_language_values() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 138, "{case}");
+        assert_eq!(report.checks.total, 139, "{case}");
         assert_eq!(
             report
                 .failures

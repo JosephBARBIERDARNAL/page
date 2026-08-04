@@ -5165,6 +5165,12 @@ pub fn valid_annotation(subtype: &str) -> Dictionary {
 }
 
 pub fn font_fixture(case: &str) -> Vec<u8> {
+    if matches!(
+        case,
+        "unicode_type0_identity_h" | "unicode_type0_identity_v" | "unicode_type0_gb1"
+    ) {
+        return type0_descendant_fixture(case);
+    }
     font_fixture_with_type1_program(case, None)
 }
 
@@ -5272,7 +5278,9 @@ pub fn font_fixture_with_type1_program(
                 b"%!PS-AdobeFont-1.0: garbage garbage garbage not a real program".to_vec(),
             )),
         );
-    } else if case.starts_with("type1_real_symbol_") {
+    } else if case.starts_with("type1_real_symbol_")
+        || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol")
+    {
         let (program, length1, length2, length3) = pdf_type1_program(
             external_type1_program.unwrap_or(include_bytes!("../fixtures/fonts/usyr.pfa")),
         );
@@ -5496,7 +5504,9 @@ pub fn font_fixture_with_type1_program(
         font.set("BaseFont", "ABCDEF+MaiTestFont");
     } else if case == "type1_fontfile_header_only_garbage" {
         font.set("Subtype", "Type1");
-    } else if case.starts_with("type1_real_symbol_") {
+    } else if case.starts_with("type1_real_symbol_")
+        || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol")
+    {
         font.set("Subtype", "Type1");
         font.set(
             "BaseFont",
@@ -5637,6 +5647,11 @@ pub fn font_fixture_with_type1_program(
             | "type3_missing_charproc_zero_width"
             | "type3_macroman_base"
             | "type3_macexpert_base"
+            | "unicode_missing"
+            | "unicode_scalar"
+            | "unicode_indirect"
+            | "unicode_malformed"
+            | "unicode_incomplete"
     ) {
         let mut char_procs = Dictionary::new();
         let charproc_bytes = match case {
@@ -5659,8 +5674,13 @@ pub fn font_fixture_with_type1_program(
             );
         }
         let encoding = match case {
-            "type3_macroman_base" => Object::Name(b"MacRomanEncoding".to_vec()),
-            "type3_macexpert_base" => Object::Name(b"MacExpertEncoding".to_vec()),
+            "type3_macroman_base" | "unicode_macroman" => {
+                Object::Name(b"MacRomanEncoding".to_vec())
+            }
+            "type3_macexpert_base" | "unicode_macexpert" => {
+                Object::Name(b"MacExpertEncoding".to_vec())
+            }
+            "unicode_winansi" => Object::Name(b"WinAnsiEncoding".to_vec()),
             _ => Object::Dictionary(dictionary! {
                 "Type" => "Encoding",
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
@@ -6072,6 +6092,57 @@ pub fn font_fixture_with_type1_program(
         }
         _ => {}
     }
+    if case.starts_with("unicode_") {
+        let valid_cmap = || {
+            Stream::new(
+                dictionary! { "Type" => "CMap" },
+                b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <0020> endbfchar".to_vec(),
+            )
+        };
+        match case {
+            "unicode_missing" => {
+                font.set(
+                    "Encoding",
+                    dictionary! {
+                        "BaseEncoding" => "WinAnsiEncoding",
+                        "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+                    },
+                );
+            }
+            "unicode_scalar" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set("ToUnicode", 1);
+            }
+            "unicode_indirect" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set("ToUnicode", document.add_object(valid_cmap()));
+            }
+            "unicode_malformed" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set(
+                    "ToUnicode",
+                    document.add_object(Stream::new(Dictionary::new(), b"not a CMap".to_vec())),
+                );
+            }
+            "unicode_incomplete" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <21> <0021> endbfchar".to_vec())));
+            }
+            "unicode_winansi" => font.set("Encoding", "WinAnsiEncoding"),
+            "unicode_macroman" => font.set("Encoding", "MacRomanEncoding"),
+            "unicode_macexpert" => font.set("Encoding", "MacExpertEncoding"),
+            "unicode_type1_standard" => {
+                font.set("Subtype", "Type1");
+                font.remove(b"Encoding");
+            }
+            "unicode_type1_symbol" => {
+                font.set("Subtype", "Type1");
+                font.set("BaseFont", "Symbol");
+                font.remove(b"Encoding");
+            }
+            _ => {}
+        }
+    }
     let font_object = if case == "direct_font" {
         Object::Dictionary(font)
     } else {
@@ -6106,15 +6177,19 @@ pub fn font_fixture_with_type1_program(
     };
     resources.set("Font", font_resources.clone());
     let page_content = match case {
-        case if case.starts_with("type1_real_symbol_") => content(vec![
-            operation("BT", vec![]),
-            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
-            operation(
-                "Tj",
-                vec![Object::String(vec![34], lopdf::StringFormat::Literal)],
-            ),
-            operation("ET", vec![]),
-        ]),
+        case if case.starts_with("type1_real_symbol_")
+            || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol") =>
+        {
+            content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation(
+                    "Tj",
+                    vec![Object::String(vec![34], lopdf::StringFormat::Literal)],
+                ),
+                operation("ET", vec![]),
+            ])
+        }
         "type3_macroman_base" | "type3_macexpert_base" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
@@ -6767,9 +6842,27 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
     let pages_id = document.new_object_id();
 
     let descendant0 = type0_descendant_dictionary(&mut document, true, true);
+    if case == "unicode_type0_gb1" {
+        document
+            .get_object_mut(descendant0)
+            .expect("descendant0")
+            .as_dict_mut()
+            .expect("descendant0 dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("GB1"),
+                    "Supplement" => 4,
+                },
+            );
+    }
     let mut descendants = vec![Object::Reference(descendant0)];
     match case {
-        "baseline" => {}
+        "baseline"
+        | "unicode_type0_identity_h"
+        | "unicode_type0_identity_v"
+        | "unicode_type0_gb1" => {}
         "indirect_identity_cidtogidmap" => {
             // The first descendant's own /CIDToGIDMap as an *indirect*
             // reference to the name /Identity, not a direct one --
@@ -6808,6 +6901,11 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
         other => panic!("unknown type0_descendant_fixture case {other}"),
     }
 
+    let cmap_name = if case == "unicode_type0_identity_v" {
+        "Identity-V"
+    } else {
+        "Identity-H"
+    };
     let cmap_content =
         b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> def\n\
 /CMapName /Identity-H def\n\
@@ -6815,15 +6913,23 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
 1 begincidrange\n<0000> <FFFF> 0\nendcidrange\n"
             .to_vec();
     let cmap_id = document.add_object(Stream::new(
-        dictionary! { "Type" => "CMap", "CMapName" => "Identity-H" },
+        dictionary! { "Type" => "CMap", "CMapName" => cmap_name },
         cmap_content,
     ));
+    let encoding = if matches!(
+        case,
+        "unicode_type0_identity_h" | "unicode_type0_identity_v"
+    ) {
+        Object::Name(cmap_name.as_bytes().to_vec())
+    } else {
+        cmap_id.into()
+    };
 
     let type0_font = document.add_object(dictionary! {
         "Type" => "Font",
         "Subtype" => "Type0",
         "BaseFont" => "MaiTestFont",
-        "Encoding" => cmap_id,
+        "Encoding" => encoding,
         "DescendantFonts" => descendants,
     });
 

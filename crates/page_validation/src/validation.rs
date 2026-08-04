@@ -74,7 +74,7 @@ const TOTAL_RULE_COUNT: usize = 134;
 fn total_rule_count(profile: ValidationProfile) -> usize {
     TOTAL_RULE_COUNT
         + if matches!(profile, ValidationProfile::PdfA1a) {
-            4
+            5
         } else {
             0
         }
@@ -558,6 +558,13 @@ fn validate_document(
     validate_stream_safety(&inspections.stream_safety, &mut failures);
 
     validate_font_dictionaries(&inspections.font_embedding, &mut failures);
+    if matches!(profile, ValidationProfile::PdfA1a) {
+        aggregate_failures(
+            &inspections.font_embedding.invalid_unicode_mappings,
+            "PDFA1A-UNICODE-MAPPING-001",
+            &mut failures,
+        );
+    }
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, total_rule_count(profile))
@@ -1739,7 +1746,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 4);
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 5);
     }
 
     #[test]
@@ -2135,7 +2142,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 4);
+        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 5);
     }
 
     #[test]
