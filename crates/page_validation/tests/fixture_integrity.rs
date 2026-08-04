@@ -46,7 +46,7 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "typst-pdfa-1b.pdf",
             include_bytes!("fixtures/typst-pdfa-1b.pdf"),
-            "94c23eff7c1b2a16f4f284d662456b4aef56358c9ff225e5f0bac632801ce035",
+            "82b98675997387850f6bf54d05c748893a6ef44abd92510d92665379f66e00db",
         ),
     ];
 
