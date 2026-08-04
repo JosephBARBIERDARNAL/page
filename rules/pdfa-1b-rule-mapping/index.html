@@ -848,7 +848,7 @@
 <td><code>ISO 19005-1:2005:6.1.11:1</code></td>
 <td>§6.1.11</td>
 <td>exact</td>
-<td><code>containsEF == false</code> for every reachable file specification: dictionary-based values in the catalog's <code>EmbeddedFiles</code> name tree (<code>Names</code> arrays and recursive <code>Kids</code> traversed with configured reference-depth bounds), and a <code>GoToR</code>/<code>SubmitForm</code> action's <code>/F</code> entry (confirmed against veraPDF 1.28.2, which creates the same <code>CosFileSpecification</code> object either way).</td>
+<td><code>containsEF == false</code> for every reachable file specification: dictionary-based values in the catalog's <code>EmbeddedFiles</code> name tree (<code>Names</code> arrays and recursive <code>Kids</code> traversed with configured reference-depth bounds), and a <code>GoToR</code>/<code>SubmitForm</code> action's <code>/F</code> entry (confirmed against veraPDF 1.30.2, which creates the same <code>CosFileSpecification</code> object either way).</td>
 </tr>
 <tr>
 <td><code>PDFA1B-NAMES-EMBEDDED-FILES-001</code></td>
@@ -1044,7 +1044,7 @@
 <td><code>ISO 19005-1:2005:6.2.10:1</code></td>
 <td>§6.2.10</td>
 <td>exact</td>
-<td>No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by <code>BX</code> and <code>EX</code>. Soft-mask <code>/G</code> content is excluded because veraPDF 1.28.2 does not create content-operation model objects for it.</td>
+<td>No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by <code>BX</code> and <code>EX</code>. Soft-mask <code>/G</code> content is excluded because veraPDF 1.30.2 does not create content-operation model objects for it.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-OUTPUTINTENT-001</code></td>
@@ -1065,7 +1065,7 @@
 <td><code>ISO 19005-1:2005:6.2.3.2:1</code></td>
 <td>§6.2.3.2</td>
 <td>exact</td>
-<td>For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr" \|\| deviceClass == "scnr" \|\| deviceClass == "spac") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY" \|\| colorSpace == "Lab ") &amp;&amp; version &lt; 3.0</code>. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask <code>/G</code> content remain inapplicable exactly where veraPDF 1.28.2 omits their model objects.</td>
+<td>For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: <code>(deviceClass == "prtr" \|\| deviceClass == "mntr" \|\| deviceClass == "scnr" \|\| deviceClass == "spac") &amp;&amp; (colorSpace == "RGB " \|\| colorSpace == "CMYK" \|\| colorSpace == "GRAY" \|\| colorSpace == "Lab ") &amp;&amp; version &lt; 3.0</code>. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask <code>/G</code> content remain inapplicable exactly where veraPDF 1.30.2 omits their model objects.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ICCBASED-COMPONENTS-001</code></td>
@@ -1079,7 +1079,7 @@
 <td><code>ISO 19005-1:2005:6.2.3.3:1</code></td>
 <td>§6.2.3.3</td>
 <td>exact</td>
-<td>For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: <code>gOutputCS != null &amp;&amp; gOutputCS == "RGB "</code>. The uncoloured Pattern underlying-space and soft-mask <code>/G</code> exclusions follow veraPDF 1.28.2.</td>
+<td>For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: <code>gOutputCS != null &amp;&amp; gOutputCS == "RGB "</code>. The uncoloured Pattern underlying-space and soft-mask <code>/G</code> exclusions follow veraPDF 1.30.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-DEVICE-CMYK-001</code></td>
@@ -1170,7 +1170,7 @@
 <td><code>ISO 19005-1:2005:6.2.9:1</code></td>
 <td>§6.2.9</td>
 <td>exact</td>
-<td>For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 <code>ri</code>/<code>gs</code> operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is <code>RelativeColorimetric</code>, <code>AbsoluteColorimetric</code>, <code>Perceptual</code>, or <code>Saturation</code>. Non-name values, explicit-mask images, unexecuted resources, and soft-mask <code>/G</code> content remain inapplicable exactly as in veraPDF 1.28.2.</td>
+<td>For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 <code>ri</code>/<code>gs</code> operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is <code>RelativeColorimetric</code>, <code>AbsoluteColorimetric</code>, <code>Perceptual</code>, or <code>Saturation</code>. Non-name values, explicit-mask images, unexecuted resources, and soft-mask <code>/G</code> content remain inapplicable exactly as in veraPDF 1.30.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-FONT-TYPE-001</code></td>
@@ -1226,7 +1226,7 @@
 <td><code>ISO 19005-1:2005:6.3.3.1:1</code></td>
 <td>§6.3.3.1</td>
 <td>exact</td>
-<td><code>cmapName == "Identity-H" \|\| cmapName == "Identity-V" \|\| (CIDFontOrdering != null &amp;&amp; CIDFontOrdering == CMapOrdering &amp;&amp; CIDFontRegistry != null &amp;&amp; CIDFontRegistry == CMapRegistry)</code> over CMaps reached by bounded text-show paths. <code>/Encoding</code> is resolved through indirection before the Identity-H/V name check (confirmed live: an <em>indirect</em> reference to <code>/Identity-H</code> is exempt exactly like a direct one). <code>CIDFontRegistry</code>/<code>CIDFontOrdering</code>/<code>CMapRegistry</code>/<code>CMapOrdering</code> are each resolved through indirection before comparison (confirmed live: an indirect <code>/Registry</code> string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the <code>composite_named_cmap</code> fixture confirms <code>/UniJIS-UCS2-H</code> supplies Adobe/Japan1 system information and produces the same failed-rule delta.</td>
+<td><code>cmapName == "Identity-H" \|\| cmapName == "Identity-V" \|\| (CIDFontOrdering != null &amp;&amp; CIDFontOrdering == CMapOrdering &amp;&amp; CIDFontRegistry != null &amp;&amp; CIDFontRegistry == CMapRegistry)</code> over CMaps reached by bounded text-show paths. <code>/Encoding</code> is resolved through indirection before the Identity-H/V name check (confirmed live: an <em>indirect</em> reference to <code>/Identity-H</code> is exempt exactly like a direct one). <code>CIDFontRegistry</code>/<code>CIDFontOrdering</code>/<code>CMapRegistry</code>/<code>CMapOrdering</code> are each resolved through indirection before comparison (confirmed live: an indirect <code>/Registry</code> string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.30.2; the <code>composite_named_cmap</code> fixture confirms <code>/UniJIS-UCS2-H</code> supplies Adobe/Japan1 system information and produces the same failed-rule delta.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-CIDTOGIDMAP-001</code></td>
@@ -1261,7 +1261,7 @@
 <td><code>ISO 19005-1:2005:6.3.5:1</code></td>
 <td>§6.3.5</td>
 <td>exact</td>
-<td>For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 <code>/CharProcs</code>. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus <code>/Differences</code>; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF <code>/Differences</code>, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.</td>
+<td>For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 <code>/CharProcs</code>. PDF simple encodings use veraPDF 1.30.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus <code>/Differences</code>; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF <code>/Differences</code>, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.30.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-GLYPH-PRESENCE-001</code></td>
@@ -1282,7 +1282,7 @@
 <td><code>ISO 19005-1:2005:6.3.5:3</code></td>
 <td>§6.3.5</td>
 <td>exact</td>
-<td>For a subset <code>CIDFontType0</code>/<code>CIDFontType2</code> descendant: the descriptor <code>/CIDSet</code> stream's bits identify every rendered CID as present. The descendant's own <code>/Subtype</code> and <code>/BaseFont</code> are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged <code>/BaseFont</code> is recognized exactly like a direct one, so a <code>/CIDSet</code> omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited <code>usecmap</code>, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; <code>composite_named_cmap_cidset_real_program</code> pins <code>/UniJIS-UCS2-H</code> code <code>003F</code> to CID 32 and reproduces veraPDF's missing-<code>CIDSet</code> failure.</td>
+<td>For a subset <code>CIDFontType0</code>/<code>CIDFontType2</code> descendant: the descriptor <code>/CIDSet</code> stream's bits identify every rendered CID as present. The descendant's own <code>/Subtype</code> and <code>/BaseFont</code> are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged <code>/BaseFont</code> is recognized exactly like a direct one, so a <code>/CIDSet</code> omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited <code>usecmap</code>, and the byte-exact predefined CMap collection bundled in veraPDF 1.30.2; <code>composite_named_cmap_cidset_real_program</code> pins <code>/UniJIS-UCS2-H</code> code <code>003F</code> to CID 32 and reproduces veraPDF's missing-<code>CIDSet</code> failure.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-GLYPH-WIDTH-001</code></td>
@@ -1296,14 +1296,14 @@
 <td><code>ISO 19005-1:2005:6.3.7:1</code></td>
 <td>§6.3.7</td>
 <td>partial/proxy</td>
-<td>For used TrueType fonts whose descriptor Flags do not set Symbolic: <code>(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") &amp;&amp; containsDifferences == false</code>. When <code>/Encoding</code> resolves to a dictionary, its <code>/BaseEncoding</code> entry is resolved through indirection before this comparison. Still <code>partial/proxy</code>: an <code>/Encoding</code> value that is present but neither a name, a dictionary, nor null (e.g. a <code>Boolean</code> or <code>Integer</code>) crashes veraPDF 1.28.2 itself with an unconditional <code>NullPointerException</code> in <code>COSObject.getKey</code> (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified.</td>
+<td>For used TrueType fonts whose descriptor Flags do not set Symbolic: <code>(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") &amp;&amp; containsDifferences == false</code>. When <code>/Encoding</code> resolves to a dictionary, its <code>/BaseEncoding</code> entry is resolved through indirection before this comparison. Still <code>partial/proxy</code>: an <code>/Encoding</code> value that is present but neither a name, a dictionary, nor null (e.g. a <code>Boolean</code> or <code>Integer</code>) crashes veraPDF 1.30.2 itself with an unconditional <code>NullPointerException</code> in <code>COSObject.getKey</code> (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001</code></td>
 <td><code>ISO 19005-1:2005:6.3.7:2</code></td>
 <td>§6.3.7</td>
 <td>partial/proxy</td>
-<td>For used TrueType fonts whose descriptor Flags set Symbolic: <code>Encoding == null</code>. Still <code>partial/proxy</code> for the same reason as <code>TRUETYPE-NONSYMBOLIC-ENCODING-001</code>: a present, non-name/non-dictionary/non-null <code>/Encoding</code> value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to <code>null</code> here cannot be differentially verified; direct and indirect <code>Null</code> values are both confirmed to resolve and compare as <code>null</code> correctly.</td>
+<td>For used TrueType fonts whose descriptor Flags set Symbolic: <code>Encoding == null</code>. Still <code>partial/proxy</code> for the same reason as <code>TRUETYPE-NONSYMBOLIC-ENCODING-001</code>: a present, non-name/non-dictionary/non-null <code>/Encoding</code> value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to <code>null</code> here cannot be differentially verified; direct and indirect <code>Null</code> values are both confirmed to resolve and compare as <code>null</code> correctly.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001</code></td>
@@ -1331,14 +1331,14 @@
 <td><code>ISO 19005-1:2005:6.4:3</code></td>
 <td>§6.4</td>
 <td>exact</td>
-<td>For page Groups and all Form Groups reached through veraPDF's bounded invoked graph, including appearances: <code>S != "Transparency"</code>. A soft-mask <code>/G</code> Form is deliberately excluded because veraPDF 1.28.2 does not expose its Group model.</td>
+<td>For page Groups and all Form Groups reached through veraPDF's bounded invoked graph, including appearances: <code>S != "Transparency"</code>. A soft-mask <code>/G</code> Form is deliberately excluded because veraPDF 1.30.2 does not expose its Group model.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-EXTGSTATE-BLEND-MODE-001</code></td>
 <td><code>ISO 19005-1:2005:6.4:4</code></td>
 <td>§6.4</td>
 <td>partial/proxy</td>
-<td>For direct or indirect ExtGState dictionaries selected by <code>gs</code> in any veraPDF-executed content source: <code>containsBM == false \|\| BMNameValue == "Normal" \|\| BMNameValue == "Compatible"</code>. Still <code>partial/proxy</code>: the minimal <code>transparency:extgstate_bm_multiply</code> fixture makes veraPDF 1.28.2 abort with a <code>VALIDATE</code> task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure.</td>
+<td>For direct or indirect ExtGState dictionaries selected by <code>gs</code> in any veraPDF-executed content source: <code>containsBM == false \|\| BMNameValue == "Normal" \|\| BMNameValue == "Compatible"</code>. Still <code>partial/proxy</code>: the minimal <code>transparency:extgstate_bm_multiply</code> fixture makes veraPDF 1.30.2 abort with a <code>VALIDATE</code> task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-EXTGSTATE-STROKE-ALPHA-001</code></td>
@@ -1450,7 +1450,7 @@
 <td><code>ISO 19005-1:2005:6.7.11:1</code></td>
 <td>§6.7.11</td>
 <td>exact</td>
-<td>Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete <code>metadata:*</code> veraPDF 1.28.2 differential suite.</td>
+<td>Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete <code>metadata:*</code> veraPDF 1.30.2 differential suite.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-PART-001</code></td>
@@ -1471,14 +1471,14 @@
 <td><code>ISO 19005-1:2005:6.7.11:4</code></td>
 <td>§6.7.11</td>
 <td>exact</td>
-<td><code>partPrefix == null \|\| partPrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.28.2.</td>
+<td><code>partPrefix == null \|\| partPrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.30.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-CONFORMANCE-PREFIX-001</code></td>
 <td><code>ISO 19005-1:2005:6.7.11:5</code></td>
 <td>§6.7.11</td>
 <td>exact</td>
-<td><code>conformancePrefix == null \|\| conformancePrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.28.2.</td>
+<td><code>conformancePrefix == null \|\| conformancePrefix == "pdfaid"</code>; lexical source-QName selection and applicability match veraPDF 1.30.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-ID-AMD-PREFIX-001</code></td>
@@ -1709,7 +1709,7 @@
 <td><code>ISO 19005-1:2005:6.7.9:1</code></td>
 <td>§6.7.9</td>
 <td>exact</td>
-<td>Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.28.2.</td>
+<td>Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-XMP-PREDEFINED-PROPERTY-001</code></td>
