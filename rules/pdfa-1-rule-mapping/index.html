@@ -94,6 +94,26 @@
     </div>
     <div data-md-component="announce">
       
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+              <button class="md-banner__button md-icon" aria-label="Don't show this again">
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            
+            
+<span class="announcement">
+  <strong>Warning</strong>: <code>page</code> is an experimental project and not
+  ready for practical usage.
+</span>
+
+          </div>
+          
+            <script>var el=document.querySelector("[data-md-component=announce]");if(el){var content=el.querySelector(".md-typeset");__md_hash(content.innerHTML)===__md_get("__announce")&&(el.hidden=!0)}</script>
+          
+        </aside>
+      
     </div>
     
     
@@ -1383,15 +1403,15 @@
 <td><code>PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001</code></td>
 <td><code>ISO 19005-1:2005:6.3.7:1</code></td>
 <td>§6.3.7</td>
-<td>partial/proxy</td>
-<td>For used TrueType fonts whose descriptor Flags do not set Symbolic: <code>(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") &amp;&amp; containsDifferences == false</code>. When <code>/Encoding</code> resolves to a dictionary, its <code>/BaseEncoding</code> entry is resolved through indirection before this comparison. Still <code>partial/proxy</code>: an <code>/Encoding</code> value that is present but neither a name, a dictionary, nor null (e.g. a <code>Boolean</code> or <code>Integer</code>) crashes veraPDF 1.30.2 itself with an unconditional <code>NullPointerException</code> in <code>COSObject.getKey</code> (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified.</td>
+<td>exact</td>
+<td>For used TrueType fonts whose descriptor Flags do not set Symbolic: <code>(Encoding == "MacRomanEncoding" \|\| Encoding == "WinAnsiEncoding") &amp;&amp; containsDifferences == false</code>. When <code>/Encoding</code> resolves to a dictionary, its <code>/BaseEncoding</code> entry is resolved through indirection before this comparison.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001</code></td>
 <td><code>ISO 19005-1:2005:6.3.7:2</code></td>
 <td>§6.3.7</td>
-<td>partial/proxy</td>
-<td>For used TrueType fonts whose descriptor Flags set Symbolic: <code>Encoding == null</code>. Still <code>partial/proxy</code> for the same reason as <code>TRUETYPE-NONSYMBOLIC-ENCODING-001</code>: a present, non-name/non-dictionary/non-null <code>/Encoding</code> value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to <code>null</code> here cannot be differentially verified; direct and indirect <code>Null</code> values are both confirmed to resolve and compare as <code>null</code> correctly.</td>
+<td>exact</td>
+<td>For used TrueType fonts whose descriptor Flags set Symbolic: <code>Encoding == null</code>; direct and indirect <code>Null</code> values are both resolved and compared as <code>null</code>.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001</code></td>
@@ -1425,8 +1445,8 @@
 <td><code>PDFA1B-EXTGSTATE-BLEND-MODE-001</code></td>
 <td><code>ISO 19005-1:2005:6.4:4</code></td>
 <td>§6.4</td>
-<td>partial/proxy</td>
-<td>For direct or indirect ExtGState dictionaries selected by <code>gs</code> in any veraPDF-executed content source: <code>containsBM == false \|\| BMNameValue == "Normal" \|\| BMNameValue == "Compatible"</code>. Still <code>partial/proxy</code>: the minimal <code>transparency:extgstate_bm_multiply</code> fixture makes veraPDF 1.30.2 abort with a <code>VALIDATE</code> task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure.</td>
+<td>exact</td>
+<td>For direct or indirect ExtGState dictionaries selected by <code>gs</code> in any veraPDF-executed content source: <code>containsBM == false \|\| BMNameValue == "Normal" \|\| BMNameValue == "Compatible"</code>. The canonical mutation uses a valid PDF/A-1b document and changes only the used blend mode to <code>/Multiply</code>, producing the exact local and veraPDF failure delta.</td>
 </tr>
 <tr>
 <td><code>PDFA1B-EXTGSTATE-STROKE-ALPHA-001</code></td>

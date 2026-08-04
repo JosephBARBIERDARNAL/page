@@ -3,3 +3,13 @@ h3,
 h4 {
   margin-top: 3em !important;
 }
+
+.md-banner {
+  background: linear-gradient(90deg, #9a3412, #ea580c);
+  color: #fff;
+}
+
+.md-banner__inner {
+  font-size: 0.75rem;
+  text-align: center;
+}
