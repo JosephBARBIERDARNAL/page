@@ -4,8 +4,7 @@ title: "Node.js"
 
 # Using page in Node.js
 
-The Node.js package uses WebAssembly and accepts PDF data as a Node.js `Buffer`
-or `Uint8Array`. It initializes the WebAssembly module automatically.
+The Node.js package uses WebAssembly and accepts PDF data as a Node.js `Buffer` or `Uint8Array`. It initializes the WebAssembly module automatically.
 
 ## Installation
 
@@ -30,9 +29,7 @@ for (const failure of report.failures) {
 }
 ```
 
-This function throws a JavaScript `Error` when the bytes cannot be parsed or
-when the profile declaration is missing, malformed, unsupported, or exceeds a
-safety limit. PDF conformance failures are returned in `report.failures`.
+This function throws a JavaScript `Error` when the bytes cannot be parsed or when the profile declaration is missing, malformed, unsupported, or exceeds a safety limit.
 
 ## Select a profile explicitly
 
@@ -40,17 +37,13 @@ Use `validatePdfWithProfile` when the caller selects the validation profile:
 
 ```js
 const { readFileSync } = require("node:fs");
-const {
-  validatePdfWithProfile,
-} = require("page_validation_wasm");
+const { validatePdfWithProfile } = require("page_validation_wasm");
 
 const bytes = readFileSync("document.pdf");
 const report = validatePdfWithProfile(bytes, "a-1b");
 ```
 
-Explicit-profile validation does not require the PDF to declare a profile.
-Parser, operational, and conformance problems are represented in the returned
-report. An unknown profile string throws a JavaScript `Error`.
+Explicit-profile validation does not require the PDF to declare a profile. Parser, operational, and conformance problems are represented in the returned report. An unknown profile string throws a JavaScript `Error`.
 
 The accepted profile strings are `a-1b`, `a-1a`, `a-2b`, `a-2a`, `a-2u`,
 `a-3b`, `a-3a`, `a-3u`, `a-4`, `a-4e`, `a-4f`, `ua-1`, and `ua-2`. PDF/A-1b
@@ -60,7 +53,7 @@ is currently the only supported profile.
 
 Both functions return a validation report:
 
-```js
+```json
 {
   profile: "a-1b",
   valid: false,
@@ -73,5 +66,4 @@ Both functions return a validation report:
 }
 ```
 
-TypeScript declarations for the functions, reports, failures, errors, and
-profile strings are included in the package.
+TypeScript declarations for the functions, reports, failures, errors, and profile strings are included in the package.
