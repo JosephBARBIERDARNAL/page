@@ -504,6 +504,10 @@ fn validate_document(
 
     validate_info_consistency(&document, &mut failures);
 
+    if matches!(profile, ValidationProfile::PdfA1a) {
+        validate_tagged_document(&inspections.document_features, &mut failures);
+    }
+
     validate_output_intents(&document, &mut failures);
 
     aggregate_failures_with_location(
@@ -544,6 +548,20 @@ fn validate_document(
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, total_rule_count(profile))
+}
+
+fn validate_tagged_document(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if !features.mark_info_is_dictionary || features.marked != Some(true) {
+        failures.push(failure(
+            "PDFA1A-TAGGED-DOCUMENT-001",
+            "the document catalog MarkInfo dictionary must contain boolean /Marked true",
+            features.mark_info_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
@@ -2243,6 +2261,7 @@ mod tests {
         let mut catalog = dictionary! {
             "Type" => "Catalog",
             "Pages" => pages_id,
+            "MarkInfo" => dictionary! { "Marked" => true },
         };
         if let Some(xmp) = xmp {
             let metadata_id = document.add_object(Stream::new(

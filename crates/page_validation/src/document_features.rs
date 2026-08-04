@@ -13,6 +13,9 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_id: Option<PdfObjectId>,
+    pub(crate) mark_info_object_id: Option<PdfObjectId>,
+    pub(crate) mark_info_is_dictionary: bool,
+    pub(crate) marked: Option<bool>,
     pub(crate) contains_embedded_files_name: bool,
     pub(crate) contains_optional_content: bool,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
@@ -29,6 +32,27 @@ pub(crate) fn inspect(
             ..DocumentFeatureSummary::default()
         });
     };
+
+    let (mark_info_object_id, mark_info_is_dictionary, marked) = catalog
+        .get(b"MarkInfo")
+        .ok()
+        .map(|value| -> Result<_, PdfError> {
+            let object_id = value.as_reference().ok().map(Into::into);
+            let resolved = resolve_optional(document, value, limits.max_reference_depth)?;
+            let Some(dictionary) = resolved.and_then(|object| object.as_dict().ok()) else {
+                return Ok((object_id, false, None));
+            };
+            let marked = dictionary
+                .get(b"Marked")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|object| object.as_bool().ok());
+            Ok((object_id, true, marked))
+        })
+        .transpose()?
+        .unwrap_or((None, false, None));
 
     let names = catalog
         .get(b"Names")
@@ -67,6 +91,9 @@ pub(crate) fn inspect(
 
     Ok(DocumentFeatureSummary {
         catalog_id,
+        mark_info_object_id,
+        mark_info_is_dictionary,
+        marked,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,

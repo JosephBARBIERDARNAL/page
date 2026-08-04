@@ -4502,6 +4502,36 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline" => {}
+        "tagged_valid" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+        }
+        "tagged_missing" => {}
+        "tagged_false" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => false });
+        }
+        "tagged_marked_wrong_type" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => 1 });
+        }
+        "tagged_mark_info_wrong_type" => catalog.set("MarkInfo", 1),
+        "tagged_indirect_mark_info_wrong_type" => {
+            let mark_info = document.add_object(1);
+            catalog.set("MarkInfo", mark_info);
+        }
+        "tagged_indirect_mark_info_null" => {
+            let mark_info = document.add_object(Object::Null);
+            catalog.set("MarkInfo", mark_info);
+        }
+        "tagged_indirect_mark_info" => {
+            let mark_info = document.add_object(dictionary! { "Marked" => true });
+            catalog.set("MarkInfo", mark_info);
+        }
+        "tagged_indirect_marked" => {
+            let marked = document.add_object(true);
+            catalog.set("MarkInfo", dictionary! { "Marked" => marked });
+        }
+        "tagged_struct_tree_only" => {
+            catalog.set("StructTreeRoot", Dictionary::new());
+        }
         "names_empty" => catalog.set("Names", Dictionary::new()),
         "names_embedded_files_dictionary" => {
             catalog.set("Names", dictionary! {"EmbeddedFiles" => Dictionary::new()});
@@ -4755,6 +4785,17 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save document-feature fixture");
+    bytes
+}
+
+pub fn tagged_document_fixture(case: &str) -> Vec<u8> {
+    let mut bytes = document_feature_fixture(case);
+    let from = b"pdfaid:conformance=\"B\"";
+    let at = bytes
+        .windows(from.len())
+        .position(|window| window == from)
+        .expect("PDF/A-1b conformance declaration");
+    bytes[at + from.len() - 2] = b'A';
     bytes
 }
 
