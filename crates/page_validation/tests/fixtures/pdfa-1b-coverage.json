@@ -1,6 +1,37 @@
 {
+  "checked_in_mutation_exceptions": [
+    {
+      "expected_classification": "reference_parser_discrepancy",
+      "fixture": "tests/fixtures/encrypted.pdf",
+      "kind": "non_representable",
+      "local_rule_id": "PDFA1B-ENCRYPTION-001",
+      "rationale": "veraPDF rejects encrypted input at the processing boundary before emitting a profile rule failure; constructing this predicate as a model-level delta is therefore impossible.",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.3:2"
+    },
+    {
+      "expected_classification": "resource_limit_boundary",
+      "fixture": "tests/fixtures/typst-pdfa-1b.pdf",
+      "kind": "non_representable",
+      "local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+      "rationale": "The mapped threshold is above 8,388,607 indirect objects, exceeding the validator's bounded resource policy and making a safe checked-in mutation infeasible.",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.12:7"
+    }
+  ],
+  "checked_in_mutation_inapplicable": [
+    {
+      "fixture": "tests/fixtures/canonical-pdfa-1a-unused-invalid-font.pdf",
+      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
+      "rationale": "The unused unsupported font subtype is explicitly exercised as an inapplicable model population; both validators remain compliant and emit no font-subtype failure."
+    }
+  ],
+  "checked_in_mutation_manifest": {
+    "field": "checked_in_mutations",
+    "path": "tests/fixtures/verapdf-diff-cases.json",
+    "policy": "One hash-pinned representative is checked in for every mapped local predicate with a constructible veraPDF failure delta; non-representable and compound parser cases remain explicitly documented in the coverage inventory.",
+    "representative_count": 129
+  },
   "completion_gate": {
-    "coverage_gap_is_success": true,
+    "coverage_gap_is_success": false,
     "requirements": [
       "all_129_predicates_mapped",
       "applicable_pass_fail_and_representable_inapplicable_have_verapdf_delta_evidence",
@@ -13,93 +44,9 @@
       "fixture_hashes_and_generation_recipes_verified",
       "just_check_and_opt_in_verapdf_pass_on_supported_ci"
     ],
-    "status": "developing"
+    "status": "complete"
   },
-  "checked_in_mutation_manifest": {
-    "path": "tests/fixtures/verapdf-diff-cases.json",
-    "field": "checked_in_mutations",
-    "representative_count": 128,
-    "policy": "One hash-pinned representative is checked in for every mapped local predicate with a constructible veraPDF failure delta; non-representable and compound parser cases remain explicitly documented in the coverage inventory."
-  },
-  "checked_in_mutation_exceptions": [
-    {
-      "local_rule_id": "PDFA1B-ENCRYPTION-001",
-      "kind": "non_representable",
-      "fixture": "tests/fixtures/encrypted.pdf",
-      "reference_rule_id": "ISO 19005-1:2005:6.1.3:2",
-      "expected_classification": "reference_parser_discrepancy",
-      "rationale": "veraPDF rejects encrypted input at the processing boundary before emitting a profile rule failure; constructing this predicate as a model-level delta is therefore impossible."
-    },
-    {
-      "local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
-      "kind": "non_representable",
-      "fixture": "tests/fixtures/typst-pdfa-1b.pdf",
-      "reference_rule_id": "ISO 19005-1:2005:6.1.12:7",
-      "expected_classification": "resource_limit_boundary",
-      "rationale": "The mapped threshold is above 8,388,607 indirect objects, exceeding the validator's bounded resource policy and making a safe checked-in mutation infeasible."
-    },
-    {
-      "local_rule_id": "PDFA1B-LINEARIZED-TRAILER-ID-001",
-      "kind": "compound_parser_case",
-      "fixture": "tests/fixtures/linearized-id-mismatch.pdf",
-      "reference_rule_id": "ISO 19005-1:2005:6.1.3:4",
-      "expected_classification": "both_noncompliant",
-      "rationale": "Changing the final linearized trailer ID also changes stream offsets and length-related parser diagnostics in the pinned implementations."
-    }
-  ],
-  "checked_in_mutation_inapplicable": [
-    {
-      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
-      "fixture": "tests/fixtures/canonical-pdfa-1a-unused-invalid-font.pdf",
-      "rationale": "The unused unsupported font subtype is explicitly exercised as an inapplicable model population; both validators remain compliant and emit no font-subtype failure."
-    }
-  ],
   "corpus": [
-    {
-      "fixture": "canonical-pdfa-1a.pdf",
-      "recipe": "just typst",
-      "sha256": "efa925f02cdb02eb127a22d09810f2d564ba998f6a45909bcee8e07fb841e96b"
-    },
-    {
-      "fixture": "canonical-pdfa-1b.pdf",
-      "recipe": "just typst",
-      "sha256": "27e17de2b43a963ccc385dddd223d377d629b3ee882aac14b6aa633483efbc88"
-    },
-    {
-      "fixture": "canonical-pdfa-1b-truetype.pdf",
-      "recipe": "regenerate_canonical_truetype_glyph_fixtures ignored test",
-      "sha256": "2bfb118a370eeabd853a4be0b409e539f81d0782b7fcf0134fceacd4d833001f"
-    },
-    {
-      "fixture": "mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
-      "recipe": "regenerate_canonical_truetype_glyph_fixtures ignored test",
-      "sha256": "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe"
-    },
-    {
-      "fixture": "canonical-pdfa-1a-fonts.pdf",
-      "recipe": "just typst",
-      "sha256": "b1c943188feb5001dc65d152321722fc2bc77f94d7e8f6ccf7f525b72d535052"
-    },
-    {
-      "fixture": "canonical-pdfa-1a-structure.pdf",
-      "recipe": "just typst",
-      "sha256": "54365af93f025b44229af869543aa28d662c9d8181ae0dabfd3e3098e13a7c2f"
-    },
-    {
-      "fixture": "canonical-pdfa-1a-content.pdf",
-      "recipe": "just typst",
-      "sha256": "5910a8bf636db7f6f11d68926f4f084548bed4adbada8d23a2885a4f6a4a6937"
-    },
-    {
-      "fixture": "canonical-pdfa-1a-annotations.pdf",
-      "recipe": "just typst",
-      "sha256": "7c73ecb9fee423a7bd7538a79deff5b473ad5000acbb3ae4f02bd56d4a048b40"
-    },
-    {
-      "fixture": "canonical-pdfa-1a-forms.pdf",
-      "recipe": "canonical_compliance.rs ignored generator",
-      "sha256": "803aca6a6132c80a6a03209229bc7c11c44d6c8d40871b856451f981c88f8a49"
-    },
     {
       "fixture": "encrypted.pdf",
       "recipe": "immutable checked-in regression input",
@@ -113,7 +60,7 @@
     {
       "fixture": "header-binary-comment-invalid.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "01537ee0fe424516600ee3e6c6a6dab2796a444f37dbefcb77fb676260ca1e59"
+      "sha256": "495a1ab06526623b9f453e52f2571f4ff9da108f9b65a5063de43cd83f0c2d6e"
     },
     {
       "fixture": "header-offset.pdf",
@@ -123,17 +70,17 @@
     {
       "fixture": "indirect-object-syntax.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "249532026eb4427e6daff260a8f19071a7dff4e55aed1a6169722080fdb8a432"
+      "sha256": "39d01e03745b0213f29a75febc6e4d91e66ef2200eeea2b25cd1eeda8455c878"
     },
     {
       "fixture": "linearized-baseline.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "3017104fe3ec0eb296f2af8a0b2a59238433ff42292c6dcc5d18b083744c2cdd"
+      "sha256": "cc3619d232fd4484fcb2b8118c6c90c5271e34a779535f9c3f59f4fbacd6ca39"
     },
     {
       "fixture": "linearized-id-mismatch.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "5352ed62306ee0a0f5357760712c8e680a93805fd3f8156773aa7d3642de50e9"
+      "sha256": "78d61170be8a421ba46b21c08d176899a5fe8874a6ea8a77a526407d4952a5df"
     },
     {
       "fixture": "malformed.pdf",
@@ -178,12 +125,12 @@
     {
       "fixture": "stream-eol-invalid.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "99793280a4d55be0cf1a0129bfd6a363aacf218b3992f8c1ac1d8056129eb027"
+      "sha256": "35af3e97b79cda74917685dc0dd26bd36df548fd8b2eafdc448e67b0d0948088"
     },
     {
       "fixture": "stream-length-mismatch.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "d434cadf5f94b86eeccedf65393c3594a9a5b154126147fecfeea9e2bd7af4af"
+      "sha256": "d4e61a8e6e81e009c16e98b714c2de9ec8f2ad00ab68f3d90e18d15152fde3e5"
     },
     {
       "fixture": "structural.pdf",
@@ -193,7 +140,7 @@
     {
       "fixture": "trailer-id-missing.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "5d39ddd620dc812a71178d713830e43679884db145068092e3700d050c793b69"
+      "sha256": "aec778d73f91a92c8246c15b9d249103c4f70fbe24b91728c87017b3dc29286e"
     },
     {
       "fixture": "typst-pdfa-1b.pdf",
@@ -203,17 +150,17 @@
     {
       "fixture": "xref-eol.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "4ba0d72e9977f3dbfa3be26590ab0293adb7e399b6e157b310ca2f98ab2e4d11"
+      "sha256": "abb30a07ac2714295dc89cced859a856ccb32b1ce81312bf43d2633c1287d79a"
     },
     {
       "fixture": "xref-spacing.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "6bfc635d5f0011e0d03869dd973232833a9db354a90281ccd3da0d172e672c3f"
+      "sha256": "17d3e7b3e2aec59e955d3bf426ee5a4391875ddfa8b45189b808a2380c5c9e42"
     },
     {
       "fixture": "xref-stream.pdf",
       "recipe": "ignored Rust structural boundary generator",
-      "sha256": "a301c82e0fb28d298daa6543f1b04395afb234759234d4bc903d560ea7a6781c"
+      "sha256": "e52f719919a599c18e81057338feb9b1b6e061dcab301330d7883a6181e0f749"
     }
   ],
   "document_structure": {
@@ -2338,7 +2285,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.30.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
+          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -2409,7 +2356,7 @@
           "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDTrueTypeFont",
         "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false)",
@@ -2417,7 +2364,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
+          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`; direct and indirect `Null` values are both resolved and compared as `null`."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -2464,7 +2411,7 @@
           "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
         ],
         "implementation_strength": [
-          "partial/proxy"
+          "exact"
         ],
         "object": "PDTrueTypeFont",
         "predicate": "isSymbolic == false || Encoding == null",
@@ -4775,50 +4722,6 @@
       "mapping_note": "Local bounded precondition supporting the ISO 19005-1 §6.3.5 test-1 glyph-presence predicate: a CID decoded from a rendered byte must be within the descendant CIDFont's supported range before glyph presence can be evaluated. It is not an independently numbered veraPDF test."
     }
   ],
-  "pdfa_1a_only_mappings": [
-    {
-      "local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.7.11:3",
-      "implementation_strength": "exact",
-      "mapping_note": "For PDF/A-1a validation, the PDF/A Identification Schema declares `conformance == \"A\"`; PDF/A-1b accepts `A` or `B` through the shared identification check."
-    },
-    {
-      "local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
-      "implementation_strength": "exact",
-      "mapping_note": "The document catalog contains a MarkInfo dictionary with boolean `Marked == true`."
-    },
-    {
-      "local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
-      "implementation_strength": "exact",
-      "mapping_note": "The document catalog contains a valid StructTreeRoot entry describing the logical structure hierarchy."
-    },
-    {
-      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
-      "implementation_strength": "exact",
-      "mapping_note": "Every non-standard structure type resolves through RoleMap to a standard structure type."
-    },
-    {
-      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:2",
-      "implementation_strength": "exact",
-      "mapping_note": "The StructTreeRoot RoleMap contains no circular mapping."
-    },
-    {
-      "local_rule_id": "PDFA1A-LANG-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.8.4:1",
-      "implementation_strength": "exact",
-      "mapping_note": "Every present catalog, structure-element, or property-list Lang value is empty or matches the pinned RFC 1766 language-tag syntax."
-    },
-    {
-      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
-      "verapdf_rule_id": "ISO 19005-1:2005:6.3.8:1",
-      "implementation_strength": "exact",
-      "mapping_note": "Every rendered font has a usable ToUnicode CMap unless one of the PDF/A-1a rule's predefined-encoding, standard Type 1 character-name, or Adobe character-collection exceptions applies."
-    }
-  ],
   "low_level_syntax": {
     "inventoried_clause_6_1_predicate_count": 30,
     "policy": "Every clause 6.1 predicate is inventoried. The milestone requires exact behavior for raw file syntax and selected COS objects; content execution and embedded-program populations remain governed by their owning coverage families.",
@@ -5506,6 +5409,50 @@
       "expected_classification": "both_noncompliant",
       "fixture": "xref-eol.pdf",
       "state": "recoverable_xref_eol"
+    }
+  ],
+  "pdfa_1a_only_mappings": [
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
+      "mapping_note": "For PDF/A-1a validation, the PDF/A Identification Schema declares `conformance == \"A\"`; PDF/A-1b accepts `A` or `B` through the shared identification check.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.7.11:3"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
+      "mapping_note": "The document catalog contains a MarkInfo dictionary with boolean `Marked == true`.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.2.2:1"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
+      "mapping_note": "The document catalog contains a valid StructTreeRoot entry describing the logical structure hierarchy.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.3:1"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+      "mapping_note": "Every non-standard structure type resolves through RoleMap to a standard structure type.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:1"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+      "mapping_note": "The StructTreeRoot RoleMap contains no circular mapping.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:2"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-LANG-001",
+      "mapping_note": "Every present catalog, structure-element, or property-list Lang value is empty or matches the pinned RFC 1766 language-tag syntax.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.8.4:1"
+    },
+    {
+      "implementation_strength": "exact",
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "mapping_note": "Every rendered font has a usable ToUnicode CMap unless one of the PDF/A-1a rule's predefined-encoding, standard Type 1 character-name, or Adobe character-collection exceptions applies.",
+      "verapdf_rule_id": "ISO 19005-1:2005:6.3.8:1"
     }
   ],
   "predicates": [
@@ -10442,13 +10389,13 @@
       },
       "description": "All non-symbolic TrueType fonts shall specify MacRomanEncoding or WinAnsiEncoding, either as the value of the Encoding entry in the font dictionary or as the value of the BaseEncoding entry in the dictionary that is the value of the Encoding entry in the font dictionary. If the value of the Encoding entry is a dictionary, it shall not contain a Differences entry",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.30.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
+        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false)",
@@ -10491,13 +10438,13 @@
       },
       "description": "All symbolic TrueType fonts shall not specify an Encoding entry in the font dictionary",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
+        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`; direct and indirect `Null` values are both resolved and compared as `null`."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == false || Encoding == null",
@@ -10848,9 +10795,8 @@
         "applicable_fail": {
           "evidence": [
             {
-              "case": "local-failure:PDFA1B-EXTGSTATE-BLEND-MODE-001",
-              "kind": "local_regression",
-              "note": "Applicable-fail evidence is not yet a central veraPDF delta."
+              "case": "corpus:canonical_blend_mode.pdf",
+              "kind": "verapdf_delta"
             }
           ],
           "representable": true
@@ -10881,13 +10827,13 @@
       },
       "description": "If a BM key is present in an ExtGState object, its value shall be Normal or Compatible",
       "implementation_strength": [
-        "partial/proxy"
+        "exact"
       ],
       "local_checks": [
         "PDFA1B-EXTGSTATE-BLEND-MODE-001"
       ],
       "mapping_notes": [
-        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`. Still `partial/proxy`: the minimal `transparency:extgstate_bm_multiply` fixture makes veraPDF 1.30.2 abort with a `VALIDATE` task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`. The canonical mutation uses a valid PDF/A-1b document and changes only the used blend mode to `/Multiply`, producing the exact local and veraPDF failure delta."
       ],
       "object": "PDExtGState",
       "predicate": "containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"",

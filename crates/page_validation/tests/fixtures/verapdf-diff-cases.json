@@ -9531,11 +9531,20 @@
     },
     {
       "expected_classification": "both_noncompliant",
+      "expected_verapdf_added_rule_ids": [
+        "ISO 19005-1:2005:6.4:4"
+      ],
+      "path": "tests/fixtures/mutations/PDFA1B-EXTGSTATE-BLEND-MODE-001/canonical_blend_mode.pdf",
+      "rationale": "The compliant canonical PDF/A-1b fixture gains one used ExtGState whose blend mode is Multiply.",
+      "reference_baseline": "tests/fixtures/canonical-pdfa-1b.pdf"
+    },
+    {
+      "expected_classification": "agreement",
       "expected_verapdf_passed_rule_ids": [
         "ISO 19005-1:2005:6.1.3:4"
       ],
       "path": "tests/fixtures/linearized-baseline.pdf",
-      "rationale": "The deterministically linearized baseline has identical first-page and final trailer IDs; qpdf's lone-CR stream serialization independently fails test 6.1.7:2."
+      "rationale": "The deterministically linearized baseline has identical first-page and final trailer IDs, and qpdf is instructed to emit compliant EOL markers around streams."
     },
     {
       "expected_classification": "both_noncompliant",
@@ -11966,8 +11975,8 @@
       "sha256": "690c175d03836960113265aefec8c41452f15680a27d0e94e12019192975c205"
     },
     {
-      "baseline_case": "baseline",
-      "case": "extgstate_bm_multiply",
+      "baseline_case": "canonical-pdfa-1b.pdf",
+      "case": "canonical_blend_mode",
       "expected_local_failed_rule_ids": [
         "PDFA1B-EXTGSTATE-BLEND-MODE-001"
       ],
@@ -11976,12 +11985,12 @@
         "ISO 19005-1:2005:6.4:4"
       ],
       "expected_verapdf_passed_rule_ids": [],
-      "family": "graphics",
+      "family": "corpus",
       "local_rule_id": "PDFA1B-EXTGSTATE-BLEND-MODE-001",
-      "path": "tests/fixtures/mutations/PDFA1B-EXTGSTATE-BLEND-MODE-001/shared-graphics-extgstate_bm_multiply.pdf",
-      "rationale": "The checked-in graphics mutation changes one ExtGState blend mode from the compliant graphics baseline.",
+      "path": "tests/fixtures/mutations/PDFA1B-EXTGSTATE-BLEND-MODE-001/canonical_blend_mode.pdf",
+      "rationale": "The compliant canonical PDF/A-1b fixture gains one used ExtGState whose blend mode is Multiply.",
       "reference_rule_id": "ISO 19005-1:2005:6.4:4",
-      "sha256": "b6e562a1147fa8349d32eeff385782779d0e53004abab5475af4704c3ea53eb3"
+      "sha256": "747bb1a7b3d3d302a89b2ede3aa491ddcdb23225825134ebb467d9c1b81c4393"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -11999,7 +12008,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-HEADER-BINARY-COMMENT-001/shared-corpus-header_binary_comment_invalid.pdf",
       "rationale": "The checked-in parser fixture changes only the required binary comment after the PDF header.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.2:2",
-      "sha256": "01537ee0fe424516600ee3e6c6a6dab2796a444f37dbefcb77fb676260ca1e59"
+      "sha256": "495a1ab06526623b9f453e52f2571f4ff9da108f9b65a5063de43cd83f0c2d6e"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12017,7 +12026,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-INDIRECT-OBJECT-SYNTAX-001/shared-corpus-indirect_object_syntax.pdf",
       "rationale": "The checked-in parser fixture changes only the indirect-object syntax.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.8:1",
-      "sha256": "249532026eb4427e6daff260a8f19071a7dff4e55aed1a6169722080fdb8a432"
+      "sha256": "39d01e03745b0213f29a75febc6e4d91e66ef2200eeea2b25cd1eeda8455c878"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12035,7 +12044,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-STREAM-EOL-001/shared-corpus-stream_eol_invalid.pdf",
       "rationale": "The checked-in parser fixture changes only the stream end-of-line marker.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.7:2",
-      "sha256": "99793280a4d55be0cf1a0129bfd6a363aacf218b3992f8c1ac1d8056129eb027"
+      "sha256": "35af3e97b79cda74917685dc0dd26bd36df548fd8b2eafdc448e67b0d0948088"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12053,7 +12062,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-XREF-EOL-001/shared-corpus-xref_eol.pdf",
       "rationale": "The checked-in parser fixture changes only the cross-reference end-of-line marker.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.4:2",
-      "sha256": "4ba0d72e9977f3dbfa3be26590ab0293adb7e399b6e157b310ca2f98ab2e4d11"
+      "sha256": "abb30a07ac2714295dc89cced859a856ccb32b1ce81312bf43d2633c1287d79a"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12071,7 +12080,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-XREF-STREAM-001/shared-corpus-xref_stream.pdf",
       "rationale": "The checked-in parser fixture changes only the forbidden cross-reference stream form.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.4:3",
-      "sha256": "a301c82e0fb28d298daa6543f1b04395afb234759234d4bc903d560ea7a6781c"
+      "sha256": "e52f719919a599c18e81057338feb9b1b6e061dcab301330d7883a6181e0f749"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12089,7 +12098,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-XREF-SUBSECTION-SPACING-001/shared-corpus-xref_spacing.pdf",
       "rationale": "The checked-in parser fixture changes only the spacing in the cross-reference subsection header.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.4:1",
-      "sha256": "6bfc635d5f0011e0d03869dd973232833a9db354a90281ccd3da0d172e672c3f"
+      "sha256": "17d3e7b3e2aec59e955d3bf426ee5a4391875ddfa8b45189b808a2380c5c9e42"
     },
     {
       "baseline_case": "typst-pdfa-1b.pdf",
@@ -12144,6 +12153,24 @@
       "rationale": "The compliant canonical PDF/A-1b fixture receives only a two-byte preamble before its PDF header.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.2:1",
       "sha256": "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe"
+    },
+    {
+      "baseline_case": "linearized-baseline.pdf",
+      "case": "linearized_id_mismatch",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-LINEARIZED-TRAILER-ID-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.1.3:4"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "family": "corpus",
+      "local_rule_id": "PDFA1B-LINEARIZED-TRAILER-ID-001",
+      "path": "tests/fixtures/mutations/PDFA1B-LINEARIZED-TRAILER-ID-001/linearized_id_mismatch.pdf",
+      "rationale": "The compliant linearized PDF/A-1b fixture changes only the first byte of the final trailer ID.",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.3:4",
+      "sha256": "78d61170be8a421ba46b21c08d176899a5fe8874a6ea8a77a526407d4952a5df"
     }
   ],
   "reference": {

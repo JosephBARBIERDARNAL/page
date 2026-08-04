@@ -5433,6 +5433,90 @@ pub fn canonical_a1b_header_offset_fixture() -> Vec<u8> {
     bytes
 }
 
+pub fn canonical_a1b_blend_mode_fixture() -> Vec<u8> {
+    let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"))
+        .expect("load canonical PDF/A-1b fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("canonical page");
+    let page = document
+        .get_object(page_id)
+        .expect("canonical page object")
+        .as_dict()
+        .expect("canonical page dictionary")
+        .clone();
+    let resources = page
+        .get(b"Resources")
+        .expect("canonical page resources")
+        .clone();
+    let blend_state = document.add_object(dictionary! { "BM" => "Multiply" });
+    let resource_dictionary = match resources {
+        Object::Reference(resources_id) => document
+            .get_object_mut(resources_id)
+            .expect("canonical resources object")
+            .as_dict_mut()
+            .expect("canonical resources dictionary"),
+        Object::Dictionary(resources) => {
+            document
+                .get_object_mut(page_id)
+                .expect("canonical page object")
+                .as_dict_mut()
+                .expect("canonical page dictionary")
+                .set("Resources", resources);
+            document
+                .get_object_mut(page_id)
+                .expect("canonical page object")
+                .as_dict_mut()
+                .expect("canonical page dictionary")
+                .get_mut(b"Resources")
+                .expect("canonical page resources")
+                .as_dict_mut()
+                .expect("canonical resources dictionary")
+        }
+        _ => panic!("canonical resources have an unsupported shape"),
+    };
+    let extgstates = resource_dictionary
+        .get(b"ExtGState")
+        .ok()
+        .cloned()
+        .unwrap_or_else(|| Object::Dictionary(Dictionary::new()));
+    match extgstates {
+        Object::Reference(extgstates_id) => document
+            .get_object_mut(extgstates_id)
+            .expect("canonical ExtGState resources")
+            .as_dict_mut()
+            .expect("canonical ExtGState dictionary")
+            .set("GSBlend", blend_state),
+        Object::Dictionary(mut extgstates) => {
+            extgstates.set("GSBlend", blend_state);
+            resource_dictionary.set("ExtGState", extgstates);
+        }
+        _ => panic!("canonical ExtGState resources have an unsupported shape"),
+    }
+    let extra_content_id =
+        document.add_object(Stream::new(Dictionary::new(), b"q /GSBlend gs Q".to_vec()));
+    let contents = page
+        .get(b"Contents")
+        .expect("canonical page contents")
+        .clone();
+    document
+        .get_object_mut(page_id)
+        .expect("canonical page object")
+        .as_dict_mut()
+        .expect("canonical page dictionary")
+        .set(
+            "Contents",
+            vec![contents, Object::Reference(extra_content_id)],
+        );
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save canonical blend-mode fixture");
+    bytes
+}
+
 pub fn canonical_a1a_mutation(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1a.pdf"))
         .expect("load canonical PDF/A-1a fixture");

@@ -600,6 +600,7 @@ fn regenerate_structural_boundary_fixtures() {
     let status = Command::new("qpdf")
         .args([
             "--deterministic-id",
+            "--newline-before-endstream",
             "--linearize",
             "tests/fixtures/typst-pdfa-1b.pdf",
         ])
@@ -611,7 +612,7 @@ fn regenerate_structural_boundary_fixtures() {
         "qpdf failed to generate linearized fixture"
     );
     let mut mismatched = fs::read(&linearized).expect("read linearized baseline");
-    let id = b"556c787363793956315955786e475534314f712b2f773d3d";
+    let id = b"5a7030693074356444525963496d46574d616a4a6b413d3d";
     let occurrences = mismatched
         .windows(id.len())
         .enumerate()

@@ -168,9 +168,9 @@ fn regenerate_shared_mutation_fixtures() {
             }
         }
     }
-    let blend_case = "extgstate_bm_multiply";
-    let blend_path = "tests/fixtures/mutations/PDFA1B-EXTGSTATE-BLEND-MODE-001/shared-graphics-extgstate_bm_multiply.pdf";
-    let blend_bytes = common::graphics_fixture(blend_case);
+    let blend_path =
+        "tests/fixtures/mutations/PDFA1B-EXTGSTATE-BLEND-MODE-001/canonical_blend_mode.pdf";
+    let blend_bytes = common::canonical_a1b_blend_mode_fixture();
     fs::create_dir_all(
         Path::new(blend_path)
             .parent()
@@ -180,9 +180,9 @@ fn regenerate_shared_mutation_fixtures() {
     fs::write(blend_path, &blend_bytes).expect("write blend mutation fixture");
     checked_in.push(json!({
         "path": blend_path,
-        "family": "graphics",
-        "case": blend_case,
-        "baseline_case": "baseline",
+        "family": "corpus",
+        "case": "canonical_blend_mode",
+        "baseline_case": "canonical-pdfa-1b.pdf",
         "local_rule_id": "PDFA1B-EXTGSTATE-BLEND-MODE-001",
         "reference_rule_id": "ISO 19005-1:2005:6.4:4",
         "expected_local_failed_rule_ids": ["PDFA1B-EXTGSTATE-BLEND-MODE-001"],
@@ -190,7 +190,7 @@ fn regenerate_shared_mutation_fixtures() {
         "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.4:4"],
         "expected_verapdf_passed_rule_ids": [],
         "sha256": hex_sha256(&blend_bytes),
-        "rationale": "The checked-in graphics mutation changes one ExtGState blend mode from the compliant graphics baseline."
+        "rationale": "The compliant canonical PDF/A-1b fixture gains one used ExtGState whose blend mode is Multiply."
     }));
     for (source, local_rule, reference_rule, case_name, rationale) in [
         (
@@ -320,6 +320,31 @@ fn regenerate_shared_mutation_fixtures() {
         "expected_verapdf_passed_rule_ids": [],
         "sha256": hex_sha256(&header_bytes),
         "rationale": "The compliant canonical PDF/A-1b fixture receives only a two-byte preamble before its PDF header."
+    }));
+    let linearized_source = "tests/fixtures/linearized-id-mismatch.pdf";
+    let linearized_path =
+        "tests/fixtures/mutations/PDFA1B-LINEARIZED-TRAILER-ID-001/linearized_id_mismatch.pdf";
+    let linearized_bytes = fs::read(linearized_source).expect("read linearized ID mutation");
+    fs::create_dir_all(
+        Path::new(linearized_path)
+            .parent()
+            .expect("linearized mutation parent"),
+    )
+    .expect("create linearized mutation directory");
+    fs::write(linearized_path, &linearized_bytes).expect("write linearized ID mutation fixture");
+    checked_in.push(json!({
+        "path": linearized_path,
+        "family": "corpus",
+        "case": "linearized_id_mismatch",
+        "baseline_case": "linearized-baseline.pdf",
+        "local_rule_id": "PDFA1B-LINEARIZED-TRAILER-ID-001",
+        "reference_rule_id": "ISO 19005-1:2005:6.1.3:4",
+        "expected_local_failed_rule_ids": ["PDFA1B-LINEARIZED-TRAILER-ID-001"],
+        "expected_local_passed_rule_ids": [],
+        "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.3:4"],
+        "expected_verapdf_passed_rule_ids": [],
+        "sha256": hex_sha256(&linearized_bytes),
+        "rationale": "The compliant linearized PDF/A-1b fixture changes only the first byte of the final trailer ID."
     }));
     assert!(selected.iter().all(|local| mapped.contains_key(local)));
     manifest["checked_in_mutations"] = Value::Array(checked_in);
@@ -838,10 +863,14 @@ fn assert_checked_in_mutations(
     let mut baseline_paths = BTreeMap::<String, PathBuf>::new();
     let mut paths = Vec::with_capacity(cases.len() * 2);
     for case in cases {
+        let baseline_key = format!("{}:{}", case.family, case.baseline_case);
         let baseline_path = baseline_paths
-            .entry(case.family.clone())
+            .entry(baseline_key)
             .or_insert_with(|| {
-                let path = temporary.join(format!("shared-baseline-{}.pdf", case.family));
+                let path = temporary.join(format!(
+                    "shared-baseline-{}-{}.pdf",
+                    case.family, case.baseline_case
+                ));
                 fs::write(
                     &path,
                     shared_mutation_fixture(&case.family, &case.baseline_case),
