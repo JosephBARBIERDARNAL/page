@@ -18,6 +18,7 @@ mod forms;
 mod graphics;
 mod icc_based;
 mod json;
+mod language;
 mod limits;
 mod metadata;
 mod model;

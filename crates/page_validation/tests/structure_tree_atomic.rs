@@ -29,7 +29,7 @@ fn structure_tree_root_cases_are_distinguished() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 137, "{case}");
+        assert_eq!(report.checks.total, 138, "{case}");
         assert_eq!(
             report
                 .failures
@@ -55,7 +55,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 137, "{case}");
+        assert_eq!(report.checks.total, 138, "{case}");
         assert_eq!(
             report
                 .failures

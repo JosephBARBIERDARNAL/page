@@ -4502,6 +4502,86 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline" => {}
+        "lang_catalog_valid" => catalog.set("Lang", Object::string_literal("en-US")),
+        "lang_catalog_empty" => catalog.set("Lang", Object::string_literal("")),
+        "lang_catalog_invalid" => catalog.set("Lang", Object::string_literal("en--US")),
+        "lang_catalog_overlong" => catalog.set("Lang", Object::string_literal("abcdefghij")),
+        "lang_catalog_wrong_type" => catalog.set("Lang", 1),
+        "lang_catalog_null" => catalog.set("Lang", Object::Null),
+        "lang_catalog_indirect_invalid" => {
+            catalog.set("Lang", document.add_object(Object::string_literal("en_US")));
+        }
+        "lang_structure_valid" | "lang_structure_indirect_invalid" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            let lang = if case == "lang_structure_indirect_invalid" {
+                Object::Reference(document.add_object(Object::string_literal("fr--CA")))
+            } else {
+                Object::string_literal("fr-CA")
+            };
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => dictionary! { "S" => "P", "Lang" => lang }
+                },
+            );
+        }
+        "lang_structure_invalid" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => dictionary! { "S" => "P", "Lang" => Object::string_literal("fr--CA") }
+                },
+            );
+        }
+        "lang_structure_wrong_type" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => dictionary! { "S" => "P", "Lang" => 1 }
+                },
+            );
+        }
+        "lang_property_valid"
+        | "lang_property_invalid"
+        | "lang_property_indirect_invalid"
+        | "lang_property_wrong_type"
+        | "lang_property_null" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set("StructTreeRoot", Dictionary::new());
+            let lang = match case {
+                "lang_property_valid" => Object::string_literal("de-DE"),
+                "lang_property_invalid" | "lang_property_indirect_invalid" => {
+                    Object::string_literal("de--DE")
+                }
+                "lang_property_wrong_type" => Object::Integer(1),
+                _ => Object::Null,
+            };
+            let properties = if case == "lang_property_indirect_invalid" {
+                let properties = document.add_object(dictionary! { "Lang" => lang });
+                let page = document.objects.get_mut(&page_id).expect("page");
+                if let Object::Dictionary(page) = page {
+                    page.set(
+                        "Resources",
+                        dictionary! {
+                            "Properties" => dictionary! { "P1" => properties }
+                        },
+                    );
+                }
+                Object::Name(b"P1".to_vec())
+            } else {
+                Object::Dictionary(dictionary! { "Lang" => lang })
+            };
+            let stream = document.objects.get_mut(&contents_id).expect("contents");
+            if let Object::Stream(stream) = stream {
+                stream.content = content(vec![
+                    Operation::new("BDC", vec![Object::Name(b"Span".to_vec()), properties]),
+                    Operation::new("EMC", Vec::new()),
+                ]);
+                stream.dict.set("Length", stream.content.len() as i64);
+            }
+        }
         "tagged_valid" => {
             catalog.set("MarkInfo", dictionary! { "Marked" => true });
             catalog.set("StructTreeRoot", Dictionary::new());

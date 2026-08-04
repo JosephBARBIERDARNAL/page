@@ -64,6 +64,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
     pub(crate) inline_image_lzw_context: Option<String>,
+    pub(crate) language_failures: Vec<RuleFailure>,
 }
 
 /// A byte is a PDF token boundary when it is absent (end of buffer), one of
@@ -494,6 +495,41 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
+                "BDC" | "DP" => {
+                    let properties = operation.operands.last();
+                    let Some(properties) = properties else {
+                        continue;
+                    };
+                    let properties = if let Ok(name) = properties.as_name() {
+                        resource(
+                            self.document,
+                            self.limits,
+                            resources,
+                            page_resources,
+                            b"Properties",
+                            name,
+                        )?
+                    } else {
+                        Some(properties)
+                    };
+                    if let Some(properties) = properties
+                        && let Some(dictionary) = resolve_optional(
+                            self.document,
+                            properties,
+                            self.limits.max_reference_depth,
+                        )?
+                        .and_then(|object| object.as_dict().ok())
+                        && let Some(failure) = crate::language::inspect_dictionary(
+                            self.document,
+                            self.limits,
+                            dictionary,
+                            properties.as_reference().ok().map(Into::into),
+                            &format!("{context} marked-content property list"),
+                        )
+                    {
+                        self.summary.language_failures.push(failure);
+                    }
+                }
                 "q" if operation.operands.is_empty() => {
                     if graphics_stack.len() >= self.limits.max_reference_depth {
                         return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));

@@ -23,6 +23,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_root_present: bool,
     pub(crate) struct_tree_root_valid: bool,
     pub(crate) struct_tree_role_map_has_cycle: bool,
+    pub(crate) language_failures: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -59,6 +60,16 @@ pub(crate) fn inspect(
         .unwrap_or((None, false, None));
 
     let structure_tree = inspect_structure_tree(document, catalog, limits)?;
+    let mut language_failures = Vec::new();
+    if let Some(failure) = crate::language::inspect_dictionary(
+        document,
+        limits,
+        catalog,
+        catalog_id,
+        "document catalog",
+    ) {
+        language_failures.push(failure);
+    }
 
     let names = catalog
         .get(b"Names")
@@ -107,6 +118,11 @@ pub(crate) fn inspect(
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
+        language_failures: structure_tree
+            .language_failures
+            .into_iter()
+            .chain(language_failures)
+            .collect(),
     })
 }
 
@@ -116,6 +132,7 @@ struct StructureTreeSummary {
     present: bool,
     valid: bool,
     role_map_has_cycle: bool,
+    language_failures: Vec<RuleFailure>,
 }
 
 fn inspect_structure_tree(
@@ -150,6 +167,7 @@ fn inspect_structure_tree(
         present: true,
         valid: true,
         role_map_has_cycle: false,
+        language_failures: Vec::new(),
     };
     if let Ok(role_map) = root_dictionary.get(b"RoleMap") {
         summary.role_map_has_cycle = inspect_role_map(document, role_map, limits)?;
@@ -262,16 +280,25 @@ fn inspect_structure_kids(
             }
         }
         Object::Dictionary(dictionary) => {
-            let Some(structure_id) = value.as_reference().ok() else {
-                return Ok(());
-            };
-            if !ancestors.insert(structure_id) {
+            let structure_id = value.as_reference().ok();
+            if let Some(structure_id) = structure_id
+                && !ancestors.insert(structure_id)
+            {
                 return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
             }
             let result = inspect_structure_element(
-                document, dictionary, limits, summary, ancestors, steps, depth,
+                document,
+                dictionary,
+                structure_id.map(Into::into),
+                limits,
+                summary,
+                ancestors,
+                steps,
+                depth,
             );
-            ancestors.remove(&structure_id);
+            if let Some(structure_id) = structure_id {
+                ancestors.remove(&structure_id);
+            }
             result?;
         }
         _ => {}
@@ -282,12 +309,22 @@ fn inspect_structure_kids(
 fn inspect_structure_element(
     document: &Document,
     dictionary: &lopdf::Dictionary,
+    object_id: Option<PdfObjectId>,
     limits: &SafetyLimits,
     summary: &mut StructureTreeSummary,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
 ) -> Result<(), PdfError> {
+    if let Some(failure) = crate::language::inspect_dictionary(
+        document,
+        limits,
+        dictionary,
+        object_id,
+        "structure element",
+    ) {
+        summary.language_failures.push(failure);
+    }
     let Some(_structure_type) = dictionary
         .get(b"S")
         .ok()

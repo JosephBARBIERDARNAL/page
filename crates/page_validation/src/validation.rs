@@ -74,7 +74,7 @@ const TOTAL_RULE_COUNT: usize = 134;
 fn total_rule_count(profile: ValidationProfile) -> usize {
     TOTAL_RULE_COUNT
         + if matches!(profile, ValidationProfile::PdfA1a) {
-            3
+            4
         } else {
             0
         }
@@ -507,6 +507,18 @@ fn validate_document(
     if matches!(profile, ValidationProfile::PdfA1a) {
         validate_tagged_document(&inspections.document_features, &mut failures);
         validate_structure_tree(&inspections.document_features, &mut failures);
+        aggregate_failures_with_location(
+            &inspections.document_features.language_failures.to_vec(),
+            "PDFA1A-LANG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.content.language_failures,
+            "PDFA1A-LANG-001",
+            None,
+            &mut failures,
+        );
     }
 
     validate_output_intents(&document, &mut failures);
@@ -1727,7 +1739,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 3);
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 4);
     }
 
     #[test]
@@ -2123,7 +2135,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 3);
+        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 4);
     }
 
     #[test]
