@@ -29,7 +29,7 @@ fn structure_tree_root_cases_are_distinguished() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 139, "{case}");
+        assert_eq!(report.checks.total, 140, "{case}");
         assert_eq!(
             report
                 .failures
@@ -55,12 +55,39 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 139, "{case}");
+        assert_eq!(report.checks.total, 140, "{case}");
         assert_eq!(
             report
                 .failures
                 .iter()
                 .any(|failure| { failure.rule_id == "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001" }),
+            should_fail,
+            "{case}: {:#?}",
+            report.failures
+        );
+    }
+}
+
+#[test]
+fn non_standard_structure_types_must_resolve_to_standard_types() {
+    for (case, should_fail) in [
+        ("struct_tree_role_map_unmapped", true),
+        ("struct_tree_role_map_direct", false),
+        ("struct_tree_role_map_multi_step", false),
+        ("struct_tree_role_map_wrong_type", true),
+        ("struct_tree_role_map_invalid_target", true),
+    ] {
+        let report = validate_bytes_with_profile(
+            &common::tagged_document_fixture(case),
+            ValidationProfile::PdfA1a,
+            &SafetyLimits::default(),
+        );
+        assert_eq!(report.checks.total, 140, "{case}");
+        assert_eq!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == "PDFA1A-STRUCT-TREE-ROLE-MAP-001"),
             should_fail,
             "{case}: {:#?}",
             report.failures
@@ -79,12 +106,12 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
         ValidationProfile::PdfA1a,
         &limits,
     );
-    assert!(
-        !report
-            .failures
-            .iter()
-            .any(|failure| failure.rule_id == "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001")
-    );
+    assert!(!report.failures.iter().any(|failure| {
+        matches!(
+            failure.rule_id,
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001" | "PDFA1A-STRUCT-TREE-ROLE-MAP-001"
+        )
+    }));
 }
 
 #[test]
@@ -153,6 +180,28 @@ fn structure_tree_fixtures_match_pinned_verapdf_when_opted_in() {
             .failed_rule_ids
             .iter()
             .any(|rule| rule.to_string() == "ISO 19005-1:2005:6.8.3.4:2");
+        assert_eq!(failed, should_fail, "{case}: {report}");
+        fs::remove_file(path).expect("remove fixture");
+    }
+
+    for (case, should_fail) in [
+        ("struct_tree_role_map_unmapped", true),
+        ("struct_tree_role_map_direct", false),
+        ("struct_tree_role_map_multi_step", false),
+        ("struct_tree_role_map_wrong_type", true),
+        ("struct_tree_role_map_invalid_target", true),
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-pdfa-1a-role-map-resolution-{case}-{}.pdf",
+            std::process::id()
+        ));
+        fs::write(&path, common::tagged_document_fixture(case)).expect("write fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let reference = report.reference_result.as_ref().expect("veraPDF result");
+        let failed = reference
+            .failed_rule_ids
+            .iter()
+            .any(|rule| rule.to_string() == "ISO 19005-1:2005:6.8.3.4:1");
         assert_eq!(failed, should_fail, "{case}: {report}");
         fs::remove_file(path).expect("remove fixture");
     }

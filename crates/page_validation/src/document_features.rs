@@ -23,6 +23,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_root_present: bool,
     pub(crate) struct_tree_root_valid: bool,
     pub(crate) struct_tree_role_map_has_cycle: bool,
+    pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) language_failures: Vec<RuleFailure>,
 }
 
@@ -115,6 +116,7 @@ pub(crate) fn inspect(
         struct_tree_root_present: structure_tree.present,
         struct_tree_root_valid: structure_tree.valid,
         struct_tree_role_map_has_cycle: structure_tree.role_map_has_cycle,
+        struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -132,6 +134,8 @@ struct StructureTreeSummary {
     present: bool,
     valid: bool,
     role_map_has_cycle: bool,
+    has_unmapped_type: bool,
+    structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
 }
 
@@ -167,11 +171,17 @@ fn inspect_structure_tree(
         present: true,
         valid: true,
         role_map_has_cycle: false,
+        has_unmapped_type: false,
+        structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
     };
-    if let Ok(role_map) = root_dictionary.get(b"RoleMap") {
-        summary.role_map_has_cycle = inspect_role_map(document, role_map, limits)?;
-    }
+    let role_map = root_dictionary
+        .get(b"RoleMap")
+        .ok()
+        .map(|value| inspect_role_map(document, value, limits))
+        .transpose()?
+        .unwrap_or_default();
+    summary.role_map_has_cycle = role_map.has_cycle;
     let mut ancestors = BTreeSet::new();
     if let Ok(root_id) = entry.as_reference() {
         ancestors.insert(root_id);
@@ -188,21 +198,35 @@ fn inspect_structure_tree(
             0,
         )?;
     }
+    summary.has_unmapped_type = summary.structure_types.iter().any(|structure_type| {
+        !is_standard_structure_type(structure_type)
+            && !resolves_to_standard_type(
+                structure_type,
+                &role_map.mappings,
+                limits.max_object_count,
+            )
+    });
     Ok(summary)
+}
+
+#[derive(Default)]
+struct RoleMapSummary {
+    mappings: BTreeMap<Vec<u8>, Vec<u8>>,
+    has_cycle: bool,
 }
 
 fn inspect_role_map(
     document: &Document,
     value: &Object,
     limits: &SafetyLimits,
-) -> Result<bool, PdfError> {
+) -> Result<RoleMapSummary, PdfError> {
     let role_map = match resolve_optional(document, value, limits.max_reference_depth) {
         Ok(Some(object)) => dictionary_based(object),
         Ok(None) | Err(PdfError::ReferenceDepth(_)) => None,
         Err(error) => return Err(error),
     };
     let Some(role_map) = role_map else {
-        return Ok(false);
+        return Ok(RoleMapSummary::default());
     };
 
     let mut mappings = BTreeMap::new();
@@ -221,7 +245,11 @@ fn inspect_role_map(
         mappings.insert(source.to_vec(), target.to_vec());
     }
 
-    for source in mappings.keys() {
+    let mut summary = RoleMapSummary {
+        mappings,
+        has_cycle: false,
+    };
+    for source in summary.mappings.keys() {
         let mut path = BTreeSet::new();
         let mut current = source.as_slice();
         let mut steps = 0usize;
@@ -231,15 +259,93 @@ fn inspect_role_map(
             }
             steps += 1;
             if !path.insert(current.to_vec()) {
-                return Ok(true);
+                summary.has_cycle = true;
+                break;
             }
-            let Some(target) = mappings.get(current) else {
+            let Some(target) = summary.mappings.get(current) else {
                 break;
             };
             current = target;
         }
     }
-    Ok(false)
+    Ok(summary)
+}
+
+fn resolves_to_standard_type(
+    source: &[u8],
+    mappings: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_steps: usize,
+) -> bool {
+    let mut current = source;
+    let mut steps = 0;
+    while steps < max_steps {
+        if is_standard_structure_type(current) {
+            return true;
+        }
+        let Some(target) = mappings.get(current) else {
+            return false;
+        };
+        current = target;
+        steps += 1;
+    }
+    // A configured bound is an inspection limit, not evidence that the role
+    // is invalid. The caller reports only mappings that were fully resolved.
+    true
+}
+
+fn is_standard_structure_type(value: &[u8]) -> bool {
+    matches!(
+        value,
+        b"Document"
+            | b"Part"
+            | b"Art"
+            | b"Sect"
+            | b"Div"
+            | b"BlockQuote"
+            | b"Caption"
+            | b"TOC"
+            | b"TOCI"
+            | b"Index"
+            | b"NonStruct"
+            | b"Private"
+            | b"P"
+            | b"H"
+            | b"H1"
+            | b"H2"
+            | b"H3"
+            | b"H4"
+            | b"H5"
+            | b"H6"
+            | b"L"
+            | b"LI"
+            | b"Lbl"
+            | b"LBody"
+            | b"Table"
+            | b"TR"
+            | b"TH"
+            | b"TD"
+            | b"THead"
+            | b"TBody"
+            | b"TFoot"
+            | b"Span"
+            | b"Quote"
+            | b"Note"
+            | b"Reference"
+            | b"BibEntry"
+            | b"Code"
+            | b"Link"
+            | b"Annot"
+            | b"Ruby"
+            | b"RB"
+            | b"RT"
+            | b"RP"
+            | b"Warichu"
+            | b"WT"
+            | b"WP"
+            | b"Figure"
+            | b"Formula"
+            | b"Form"
+    )
 }
 
 fn inspect_structure_kids(
@@ -325,7 +431,7 @@ fn inspect_structure_element(
     ) {
         summary.language_failures.push(failure);
     }
-    let Some(_structure_type) = dictionary
+    let Some(structure_type) = dictionary
         .get(b"S")
         .ok()
         .and_then(|value| value.as_name().ok())
@@ -339,6 +445,7 @@ fn inspect_structure_element(
         }
         return Ok(());
     };
+    summary.structure_types.insert(structure_type.to_vec());
     if let Ok(kids) = dictionary.get(b"K") {
         inspect_structure_kids(document, kids, limits, summary, ancestors, steps, depth + 1)?;
     }

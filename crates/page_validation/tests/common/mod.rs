@@ -4723,6 +4723,56 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "struct_tree_role_map_unmapped" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! { "K" => dictionary! { "S" => "Custom" } },
+            );
+        }
+        "struct_tree_role_map_direct" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "Custom" => "P" },
+                    "K" => dictionary! { "S" => "Custom" },
+                },
+            );
+        }
+        "struct_tree_role_map_multi_step" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! {
+                        "CustomA" => "CustomB",
+                        "CustomB" => "P",
+                    },
+                    "K" => dictionary! { "S" => "CustomA" },
+                },
+            );
+        }
+        "struct_tree_role_map_wrong_type" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "Custom" => 1 },
+                    "K" => dictionary! { "S" => "Custom" },
+                },
+            );
+        }
+        "struct_tree_role_map_invalid_target" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "Custom" => "NotAStandardType" },
+                    "K" => dictionary! { "S" => "Custom" },
+                },
+            );
+        }
         "names_empty" => catalog.set("Names", Dictionary::new()),
         "names_embedded_files_dictionary" => {
             catalog.set("Names", dictionary! {"EmbeddedFiles" => Dictionary::new()});

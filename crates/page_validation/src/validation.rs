@@ -74,7 +74,7 @@ const TOTAL_RULE_COUNT: usize = 134;
 fn total_rule_count(profile: ValidationProfile) -> usize {
     TOTAL_RULE_COUNT
         + if matches!(profile, ValidationProfile::PdfA1a) {
-            5
+            6
         } else {
             0
         }
@@ -602,6 +602,14 @@ fn validate_structure_tree(
         failures.push(failure(
             "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
             "the StructTreeRoot RoleMap must not contain a circular mapping",
+            features.struct_tree_root_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
+    if features.struct_tree_has_unmapped_type {
+        failures.push(failure(
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+            "every non-standard structure type must resolve through RoleMap to a standard structure type",
             features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
@@ -1746,7 +1754,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 5);
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 6);
     }
 
     #[test]
@@ -2142,7 +2150,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 5);
+        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 6);
     }
 
     #[test]
