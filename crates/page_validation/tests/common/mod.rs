@@ -776,6 +776,9 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
         "missing_identification" => {
             replace(&mut xmp, " pdfaid:part=\"1\" pdfaid:conformance=\"B\"", "");
         }
+        "missing_conformance" => {
+            replace(&mut xmp, " pdfaid:conformance=\"B\"", "");
+        }
         "wrong_part" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"2\""),
         "lowercase_conformance" => replace(
             &mut xmp,

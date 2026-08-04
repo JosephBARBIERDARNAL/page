@@ -1,6 +1,6 @@
 //! A deliberately small foundation for PDF/A validation.
 //!
-//! The crate currently implements only a preliminary PDF/A-1b rule set. A
+//! The crate currently implements preliminary PDF/A-1a and PDF/A-1b rule sets. A
 //! successful report is not proof of full PDF/A conformance.
 
 mod actions;

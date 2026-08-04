@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, env, fs};
 
 use page_validation::SafetyLimits;
 use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, ReferenceConfig,
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
 
 #[allow(dead_code)]
@@ -353,6 +353,7 @@ const CASES: &[(&str, &[&str])] = &[
         ],
     ),
     ("missing_identification", &["PDFA1B-ID-SCHEMA-001"]),
+    ("missing_conformance", &["PDFA1B-ID-CONFORMANCE-001"]),
     ("wrong_part", &["PDFA1B-ID-PART-001"]),
     ("lowercase_conformance", &["PDFA1B-ID-CONFORMANCE-001"]),
     (
@@ -432,6 +433,126 @@ fn accepted_conformance_and_offset_equivalent_dates_pass_targeted_rules() {
             "{case}: {:#?}",
             report.failures
         );
+    }
+}
+
+#[test]
+fn pdfa_1a_identification_cases_match_local_predicate() {
+    for (case, expected) in [
+        ("accepted_a", None),
+        ("baseline_b", Some("PDFA1A-ID-CONFORMANCE-001")),
+        ("missing_conformance", Some("PDFA1A-ID-CONFORMANCE-001")),
+        ("lowercase_conformance", Some("PDFA1A-ID-CONFORMANCE-001")),
+    ] {
+        let report = page_validation::validate_bytes_with_profile(
+            &common::metadata_fixture(case),
+            page_validation::ValidationProfile::PdfA1a,
+            &SafetyLimits::default(),
+        );
+        match expected {
+            Some(rule) => assert!(
+                report
+                    .failures
+                    .iter()
+                    .any(|failure| failure.rule_id == rule),
+                "{case}: {:#?}",
+                report.failures
+            ),
+            None => assert!(
+                report
+                    .failures
+                    .iter()
+                    .all(|failure| failure.rule_id != "PDFA1A-ID-CONFORMANCE-001"),
+                "{case}: {:#?}",
+                report.failures
+            ),
+        }
+    }
+
+    let mut aliased_a = common::metadata_fixture("id_conformance_alias");
+    let from = b"idAlias:conformance=\"B\"";
+    let at = aliased_a
+        .windows(from.len())
+        .position(|window| window == from)
+        .expect("aliased conformance");
+    aliased_a[at + from.len() - 2] = b'A';
+    let aliased_a = page_validation::validate_bytes_with_profile(
+        &aliased_a,
+        page_validation::ValidationProfile::PdfA1a,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        aliased_a
+            .failures
+            .iter()
+            .all(|failure| failure.rule_id != "PDFA1A-ID-CONFORMANCE-001")
+    );
+    assert!(
+        aliased_a
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA1B-ID-CONFORMANCE-PREFIX-001")
+    );
+
+    let duplicate = page_validation::validate_bytes_with_profile(
+        &common::metadata_fixture("duplicate_identification"),
+        page_validation::ValidationProfile::PdfA1a,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        duplicate
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA1B-XMP-001")
+    );
+    assert!(
+        duplicate
+            .failures
+            .iter()
+            .all(|failure| failure.rule_id != "PDFA1A-ID-CONFORMANCE-001")
+    );
+}
+
+#[test]
+fn pdfa_1a_identification_cases_match_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let mut config = ReferenceConfig::pinned(executable);
+    config.profile = ReferenceProfile::PdfA1a;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+    let conformance_rule = "ISO 19005-1:2005:6.7.11:3";
+    for (case, should_fail_conformance, should_fail_schema) in [
+        ("accepted_a", false, false),
+        ("baseline_b", true, false),
+        ("missing_conformance", true, false),
+        ("lowercase_conformance", true, false),
+        ("id_conformance_alias", true, false),
+        ("duplicate_identification", false, true),
+    ] {
+        let path = env::temp_dir().join(format!(
+            "page-pdfa-1a-identification-{case}-{}.pdf",
+            std::process::id()
+        ));
+        fs::write(&path, common::metadata_fixture(case)).expect("write fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let reference = report.reference_result.expect("veraPDF result");
+        let failed = reference
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            failed.contains(conformance_rule),
+            should_fail_conformance,
+            "{case}"
+        );
+        assert_eq!(
+            failed.contains("ISO 19005-1:2005:6.7.11:1"),
+            should_fail_schema,
+            "{case}"
+        );
+        fs::remove_file(path).expect("remove fixture");
     }
 }
 

@@ -1,6 +1,6 @@
 //! Differential validation against the pinned veraPDF reference.
 //!
-//! This module compares the crate's deliberately incomplete PDF/A-1b checks
+//! This module compares the crate's deliberately incomplete PDF/A-1a and PDF/A-1b checks
 //! with veraPDF. It does not turn the local validator into a complete
 //! conformance checker.
 
@@ -27,6 +27,8 @@ pub const DEFAULT_BATCH_SIZE: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum ReferenceProfile {
+    #[serde(rename = "1a")]
+    PdfA1a,
     #[serde(rename = "1b")]
     PdfA1b,
 }
@@ -34,12 +36,14 @@ pub enum ReferenceProfile {
 impl ReferenceProfile {
     pub const fn as_verapdf_flavour(self) -> &'static str {
         match self {
+            Self::PdfA1a => "1a",
             Self::PdfA1b => "1b",
         }
     }
 
     const fn expected_profile_name(self) -> &'static str {
         match self {
+            Self::PdfA1a => "PDF/A-1a validation profile",
             Self::PdfA1b => "PDF/A-1b validation profile",
         }
     }
@@ -48,6 +52,15 @@ impl ReferenceProfile {
 impl fmt::Display for ReferenceProfile {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_verapdf_flavour())
+    }
+}
+
+impl From<ReferenceProfile> for ValidationProfile {
+    fn from(profile: ReferenceProfile) -> Self {
+        match profile {
+            ReferenceProfile::PdfA1a => Self::PdfA1a,
+            ReferenceProfile::PdfA1b => Self::PdfA1b,
+        }
     }
 }
 
@@ -344,7 +357,7 @@ impl DifferentialRunner {
     }
 
     pub fn compare_file(&self, path: &Path, limits: &SafetyLimits) -> DifferentialReport {
-        let local_report = validate_file_with_profile(path, ValidationProfile::PdfA1b, limits);
+        let local_report = validate_file_with_profile(path, self.config.profile.into(), limits);
         if local_report.has_operational_failure() {
             return self.operational_report(
                 path,
@@ -385,7 +398,7 @@ impl DifferentialRunner {
     ) -> Vec<DifferentialReport> {
         let local_reports = paths
             .iter()
-            .map(|path| validate_file_with_profile(path, ValidationProfile::PdfA1b, limits))
+            .map(|path| validate_file_with_profile(path, self.config.profile.into(), limits))
             .collect::<Vec<_>>();
         let reference_indices = local_reports
             .iter()

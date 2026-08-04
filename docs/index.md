@@ -26,11 +26,8 @@ cargo install --git https://github.com/pagestandards/page.git page_cli --bin pag
 
 ## Roadmap
 
-- [ ] PDF/A-1b (~99% done)
-      
-      - complete annotations, actions, forms, and interactive-feature validation
-
-- [ ] PDF/A-1a
+- [x] PDF/A-1b
+- [ ] PDF/A-1a (current focus)
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
 - [ ] PDF/A-2u

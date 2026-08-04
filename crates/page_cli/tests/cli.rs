@@ -293,7 +293,6 @@ fn future_profiles_are_recognized_and_reported_as_unimplemented() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let profiles = [
-        ("a-1a", "PDF/A-1a"),
         ("a-2a", "PDF/A-2a"),
         ("a-2b", "PDF/A-2b"),
         ("a-2u", "PDF/A-2u"),

@@ -64,12 +64,21 @@ impl fmt::Display for ValidationProfile {
 
 impl ValidationProfile {
     pub const fn is_implemented(self) -> bool {
-        matches!(self, Self::PdfA1b)
+        matches!(self, Self::PdfA1a | Self::PdfA1b)
     }
 }
 
 /// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
 const TOTAL_RULE_COUNT: usize = 134;
+
+fn total_rule_count(profile: ValidationProfile) -> usize {
+    TOTAL_RULE_COUNT
+        + if matches!(profile, ValidationProfile::PdfA1a) {
+            1
+        } else {
+            0
+        }
+}
 
 /// Returns the sole element of a slice known to hold at most one entry, or
 /// `None` for zero or multiple entries.
@@ -473,13 +482,20 @@ fn validate_document(
             failures.push(failure);
         }
 
+        let (conformance_rule, expected_conformance) = match profile {
+            ValidationProfile::PdfA1a => ("PDFA1A-ID-CONFORMANCE-001", "one A"),
+            _ => ("PDFA1B-ID-CONFORMANCE-001", "one A or B"),
+        };
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
-            |value| matches!(value, "A" | "B"),
-            "PDFA1B-ID-CONFORMANCE-001",
+            |value| match profile {
+                ValidationProfile::PdfA1a => value == "A",
+                _ => matches!(value, "A" | "B"),
+            },
+            conformance_rule,
             "PDF/A conformance",
             "pdfaid:conformance",
-            "one A or B",
+            expected_conformance,
             document.xmp_object,
         ) {
             failures.push(failure);
@@ -527,7 +543,7 @@ fn validate_document(
     validate_font_dictionaries(&inspections.font_embedding, &mut failures);
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
-    finish_report(document, profile, failures, TOTAL_RULE_COUNT)
+    finish_report(document, profile, failures, total_rule_count(profile))
 }
 
 fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
@@ -1660,18 +1676,16 @@ mod tests {
     }
 
     #[test]
-    fn inferred_validation_reports_an_unimplemented_declared_profile() {
+    fn inferred_validation_accepts_implemented_pdfa_1a_declaration() {
         let xmp = std::str::from_utf8(VALID_XMP)
             .expect("fixture is UTF-8")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
         let bytes = fixture(Some(xmp.as_bytes()), true);
-        let error = validate_bytes(&bytes, &SafetyLimits::default())
-            .expect_err("PDF/A-1a is not implemented");
-
-        assert!(matches!(
-            error,
-            ValidationError::UnsupportedProfile(ValidationProfile::PdfA1a)
-        ));
+        let report =
+            validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
+        assert_eq!(report.profile, ValidationProfile::PdfA1a);
+        assert!(report.checks_passed, "{:#?}", report.failures);
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 1);
     }
 
     #[test]
@@ -1713,7 +1727,6 @@ mod tests {
     #[test]
     fn rejects_every_unimplemented_profile_before_parsing() {
         let profiles = [
-            ValidationProfile::PdfA1a,
             ValidationProfile::PdfA2a,
             ValidationProfile::PdfA2b,
             ValidationProfile::PdfA2u,
@@ -2048,6 +2061,27 @@ mod tests {
                 .iter()
                 .all(|failure| failure.rule_id != "PDFA1B-ID-CONFORMANCE-001")
         );
+    }
+
+    #[test]
+    fn pdfa_1a_requires_conformance_a() {
+        let b = validate_bytes_with_profile(
+            &fixture(Some(VALID_XMP), true),
+            ValidationProfile::PdfA1a,
+            &SafetyLimits::default(),
+        );
+        assert_rule(&b, "PDFA1A-ID-CONFORMANCE-001");
+
+        let a_xmp = String::from_utf8(VALID_XMP.to_vec())
+            .expect("fixture is UTF-8")
+            .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
+        let a = validate_bytes_with_profile(
+            &fixture(Some(a_xmp.as_bytes()), true),
+            ValidationProfile::PdfA1a,
+            &SafetyLimits::default(),
+        );
+        assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
+        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 1);
     }
 
     #[test]
