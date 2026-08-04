@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -22,6 +22,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_root_object_id: Option<PdfObjectId>,
     pub(crate) struct_tree_root_present: bool,
     pub(crate) struct_tree_root_valid: bool,
+    pub(crate) struct_tree_role_map_has_cycle: bool,
 }
 
 pub(crate) fn inspect(
@@ -102,6 +103,7 @@ pub(crate) fn inspect(
         struct_tree_root_object_id: structure_tree.root_object_id,
         struct_tree_root_present: structure_tree.present,
         struct_tree_root_valid: structure_tree.valid,
+        struct_tree_role_map_has_cycle: structure_tree.role_map_has_cycle,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -113,6 +115,7 @@ struct StructureTreeSummary {
     root_object_id: Option<PdfObjectId>,
     present: bool,
     valid: bool,
+    role_map_has_cycle: bool,
 }
 
 fn inspect_structure_tree(
@@ -146,7 +149,11 @@ fn inspect_structure_tree(
         root_object_id,
         present: true,
         valid: true,
+        role_map_has_cycle: false,
     };
+    if let Ok(role_map) = root_dictionary.get(b"RoleMap") {
+        summary.role_map_has_cycle = inspect_role_map(document, role_map, limits)?;
+    }
     let mut ancestors = BTreeSet::new();
     if let Ok(root_id) = entry.as_reference() {
         ancestors.insert(root_id);
@@ -164,6 +171,57 @@ fn inspect_structure_tree(
         )?;
     }
     Ok(summary)
+}
+
+fn inspect_role_map(
+    document: &Document,
+    value: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let role_map = match resolve_optional(document, value, limits.max_reference_depth) {
+        Ok(Some(object)) => dictionary_based(object),
+        Ok(None) | Err(PdfError::ReferenceDepth(_)) => None,
+        Err(error) => return Err(error),
+    };
+    let Some(role_map) = role_map else {
+        return Ok(false);
+    };
+
+    let mut mappings = BTreeMap::new();
+    for (entries, (source, target)) in role_map.iter().enumerate() {
+        if entries >= limits.max_object_count {
+            break;
+        }
+        let target = match resolve_optional(document, target, limits.max_reference_depth) {
+            Ok(Some(object)) => object.as_name().ok(),
+            Ok(None) | Err(PdfError::ReferenceDepth(_)) => None,
+            Err(error) => return Err(error),
+        };
+        let Some(target) = target else {
+            continue;
+        };
+        mappings.insert(source.to_vec(), target.to_vec());
+    }
+
+    for source in mappings.keys() {
+        let mut path = BTreeSet::new();
+        let mut current = source.as_slice();
+        let mut steps = 0usize;
+        loop {
+            if steps >= limits.max_object_count {
+                break;
+            }
+            steps += 1;
+            if !path.insert(current.to_vec()) {
+                return Ok(true);
+            }
+            let Some(target) = mappings.get(current) else {
+                break;
+            };
+            current = target;
+        }
+    }
+    Ok(false)
 }
 
 fn inspect_structure_kids(

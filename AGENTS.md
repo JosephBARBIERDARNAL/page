@@ -14,6 +14,8 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 - ignore git changes that you didn't create, it's just someone else working on the project simultaneously.
 - always run format/lint (`just fmt && just lint`) before submitting your changes and make sure it's all green
 - don't add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant.
+- always check for ways to reuse code
+- minimize useless abstraction
 
 ## Project Structure & Module Organization
 

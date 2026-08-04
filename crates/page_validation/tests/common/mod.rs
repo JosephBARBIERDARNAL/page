@@ -4591,6 +4591,58 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
             );
             catalog.set("StructTreeRoot", root);
         }
+        "struct_tree_role_map_self_cycle" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "Custom" => "Custom" },
+                    "K" => dictionary! { "S" => "Custom" },
+                },
+            );
+        }
+        "struct_tree_role_map_two_node_cycle" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! {
+                        "CustomA" => "CustomB",
+                        "CustomB" => "CustomA",
+                    },
+                    "K" => dictionary! { "S" => "CustomA" },
+                },
+            );
+        }
+        "struct_tree_role_map_long_cycle" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            let target = document.add_object(Object::Name(b"CustomB".to_vec()));
+            let role_map = document.add_object(dictionary! {
+                "CustomA" => target,
+                "CustomB" => "CustomC",
+                "CustomC" => "CustomA",
+            });
+            let root = document.add_object(dictionary! {
+                "RoleMap" => role_map,
+                "K" => dictionary! { "S" => "CustomA" },
+            });
+            catalog.set("StructTreeRoot", root);
+        }
+        "struct_tree_role_map_acyclic_chain" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            let target = document.add_object(Object::Name(b"CustomB".to_vec()));
+            let role_map = document.add_object(dictionary! {
+                "CustomA" => target,
+                "CustomB" => "P",
+            });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => role_map,
+                    "K" => dictionary! { "S" => "CustomA" },
+                },
+            );
+        }
         "names_empty" => catalog.set("Names", Dictionary::new()),
         "names_embedded_files_dictionary" => {
             catalog.set("Names", dictionary! {"EmbeddedFiles" => Dictionary::new()});
