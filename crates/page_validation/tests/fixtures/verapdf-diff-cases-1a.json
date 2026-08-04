@@ -9,6 +9,13 @@
     "tests/fixtures/typst-pdfa-1a.pdf",
     "tests/fixtures/typst-pdfa-1b.pdf"
   ],
+  "shape_cases": [
+    {
+      "name": "no_tagged_structure_pdfa_1b",
+      "path": "tests/fixtures/canonical-pdfa-1b.pdf",
+      "rationale": "A valid PDF/A-1b document has no logical structure tree; the PDF/A-1a tagging predicates are inapplicable under the PDF/A-1b profile."
+    }
+  ],
   "composition_cases": [
     "tests/fixtures/canonical-pdfa-1a-fonts.pdf",
     "tests/fixtures/canonical-pdfa-1a-structure.pdf",

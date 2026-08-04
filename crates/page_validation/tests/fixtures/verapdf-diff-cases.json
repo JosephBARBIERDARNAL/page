@@ -12108,6 +12108,42 @@
       "rationale": "The mutation appends bytes after the final EOF marker of the compliant canonical PDF/A-1b fixture.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.3:3",
       "sha256": "031627ed7ad263459431b727693819adeba5568d40ea452fc1414ec40480cdf7"
+    },
+    {
+      "baseline_case": "canonical-pdfa-1b-truetype.pdf",
+      "case": "canonical_missing_glyph",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.3.5:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "family": "corpus",
+      "local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
+      "path": "tests/fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf",
+      "rationale": "The compliant canonical TrueType fixture changes only the embedded glyph count so the rendered exclamation-mark glyph is absent.",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.5:1",
+      "sha256": "22e28100b347b7b57fb109c125d8aec015fbafc21e77160cd8e9c60509d2d2e1"
+    },
+    {
+      "baseline_case": "canonical-pdfa-1b.pdf",
+      "case": "canonical_header_offset",
+      "expected_local_failed_rule_ids": [
+        "PDFA1B-HEADER-001"
+      ],
+      "expected_local_passed_rule_ids": [],
+      "expected_verapdf_failed_rule_ids": [
+        "ISO 19005-1:2005:6.1.2:1"
+      ],
+      "expected_verapdf_passed_rule_ids": [],
+      "family": "corpus",
+      "local_rule_id": "PDFA1B-HEADER-001",
+      "path": "tests/fixtures/mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
+      "rationale": "The compliant canonical PDF/A-1b fixture receives only a two-byte preamble before its PDF header.",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.2:1",
+      "sha256": "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe"
     }
   ],
   "reference": {

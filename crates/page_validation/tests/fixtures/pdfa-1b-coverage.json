@@ -18,7 +18,7 @@
   "checked_in_mutation_manifest": {
     "path": "tests/fixtures/verapdf-diff-cases.json",
     "field": "checked_in_mutations",
-    "representative_count": 126,
+    "representative_count": 128,
     "policy": "One hash-pinned representative is checked in for every mapped local predicate with a constructible veraPDF failure delta; non-representable and compound parser cases remain explicitly documented in the coverage inventory."
   },
   "checked_in_mutation_exceptions": [
@@ -26,37 +26,32 @@
       "local_rule_id": "PDFA1B-ENCRYPTION-001",
       "kind": "non_representable",
       "fixture": "tests/fixtures/encrypted.pdf",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.3:2",
+      "expected_classification": "reference_parser_discrepancy",
       "rationale": "veraPDF rejects encrypted input at the processing boundary before emitting a profile rule failure; constructing this predicate as a model-level delta is therefore impossible."
-    },
-    {
-      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
-      "kind": "non_representable",
-      "fixture": "tests/fixtures/font:type1_invalid_subtype.pdf",
-      "rationale": "An unsupported font subtype is rejected before veraPDF creates the PDFont model object required by the mapped predicate."
     },
     {
       "local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
       "kind": "non_representable",
       "fixture": "tests/fixtures/typst-pdfa-1b.pdf",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.12:7",
+      "expected_classification": "resource_limit_boundary",
       "rationale": "The mapped threshold is above 8,388,607 indirect objects, exceeding the validator's bounded resource policy and making a safe checked-in mutation infeasible."
-    },
-    {
-      "local_rule_id": "PDFA1B-HEADER-001",
-      "kind": "compound_parser_case",
-      "fixture": "tests/fixtures/header-offset.pdf",
-      "rationale": "The available header mutation necessarily changes parser offsets and produces additional header, trailer, metadata, and indirect-object diagnostics."
     },
     {
       "local_rule_id": "PDFA1B-LINEARIZED-TRAILER-ID-001",
       "kind": "compound_parser_case",
       "fixture": "tests/fixtures/linearized-id-mismatch.pdf",
+      "reference_rule_id": "ISO 19005-1:2005:6.1.3:4",
+      "expected_classification": "both_noncompliant",
       "rationale": "Changing the final linearized trailer ID also changes stream offsets and length-related parser diagnostics in the pinned implementations."
-    },
+    }
+  ],
+  "checked_in_mutation_inapplicable": [
     {
-      "local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
-      "kind": "upstream_reference_exception",
-      "fixture": "tests/fixtures/font:type0_embedded_descendant.pdf",
-      "rationale": "The local glyph-presence proxy can fail for a malformed embedded descendant, but the pinned veraPDF profile does not emit the mapped glyph-presence failure for that construct."
+      "local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
+      "fixture": "tests/fixtures/canonical-pdfa-1a-unused-invalid-font.pdf",
+      "rationale": "The unused unsupported font subtype is explicitly exercised as an inapplicable model population; both validators remain compliant and emit no font-subtype failure."
     }
   ],
   "corpus": [
@@ -69,6 +64,16 @@
       "fixture": "canonical-pdfa-1b.pdf",
       "recipe": "just typst",
       "sha256": "27e17de2b43a963ccc385dddd223d377d629b3ee882aac14b6aa633483efbc88"
+    },
+    {
+      "fixture": "canonical-pdfa-1b-truetype.pdf",
+      "recipe": "regenerate_canonical_truetype_glyph_fixtures ignored test",
+      "sha256": "2bfb118a370eeabd853a4be0b409e539f81d0782b7fcf0134fceacd4d833001f"
+    },
+    {
+      "fixture": "mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
+      "recipe": "regenerate_canonical_truetype_glyph_fixtures ignored test",
+      "sha256": "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe"
     },
     {
       "fixture": "canonical-pdfa-1a-fonts.pdf",

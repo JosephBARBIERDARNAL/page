@@ -20,6 +20,7 @@ nav = [
 
 [project.theme]
 language = "en"
+custom_dir = "docs/overrides"
 features = [
   "announce.dismiss",
   "content.code.annotate",

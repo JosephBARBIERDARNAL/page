@@ -200,19 +200,61 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
                 .is_empty(),
             "mutation exception has no rationale"
         );
+        assert!(
+            !string(
+                &exception["reference_rule_id"],
+                "mutation exception reference rule id"
+            )
+            .trim()
+            .is_empty(),
+            "mutation exception has no expected veraPDF rule delta"
+        );
+        let classification = string(
+            &exception["expected_classification"],
+            "mutation exception classification",
+        );
+        assert!(
+            matches!(
+                classification,
+                "reference_parser_discrepancy" | "both_noncompliant" | "resource_limit_boundary"
+            ),
+            "invalid mutation exception classification: {classification}"
+        );
         string(
             &exception["local_rule_id"],
             "mutation exception local rule id",
         )
     })
     .collect::<BTreeSet<_>>();
+    let inapplicable_ids = array(
+        &inventory["checked_in_mutation_inapplicable"],
+        "checked-in mutation inapplicable cases",
+    )
+    .iter()
+    .map(|case| {
+        assert!(
+            !string(&case["fixture"], "inapplicable fixture").is_empty(),
+            "inapplicable mutation case has no fixture"
+        );
+        assert!(
+            !string(&case["rationale"], "inapplicable rationale")
+                .trim()
+                .is_empty(),
+            "inapplicable mutation case has no rationale"
+        );
+        string(&case["local_rule_id"], "inapplicable local rule id")
+    })
+    .collect::<BTreeSet<_>>();
     assert!(
-        mutation_ids.is_disjoint(&exception_ids),
-        "a local rule cannot be both a mutation and an exception"
+        mutation_ids.is_disjoint(&exception_ids)
+            && mutation_ids.is_disjoint(&inapplicable_ids)
+            && exception_ids.is_disjoint(&inapplicable_ids),
+        "a local rule cannot be both a mutation, exception, or inapplicable-only case"
     );
     assert_eq!(
         mutation_ids
             .union(&exception_ids)
+            .chain(inapplicable_ids.iter())
             .cloned()
             .collect::<BTreeSet<_>>(),
         predicates

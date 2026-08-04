@@ -35,6 +35,28 @@ fn regenerate_canonical_unused_invalid_font_fixture() {
 }
 
 #[test]
+#[ignore = "maintenance generator for canonical TrueType glyph fixtures"]
+fn regenerate_canonical_truetype_glyph_fixtures() {
+    fs::write(
+        "tests/fixtures/canonical-pdfa-1b-truetype.pdf",
+        common::canonical_a1b_truetype_glyph_fixture(false),
+    )
+    .expect("write canonical TrueType baseline");
+    fs::write(
+        "tests/fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf",
+        common::canonical_a1b_truetype_glyph_fixture(true),
+    )
+    .expect("write canonical TrueType glyph mutation");
+    fs::create_dir_all("tests/fixtures/mutations/PDFA1B-HEADER-001")
+        .expect("create canonical header-offset mutation directory");
+    fs::write(
+        "tests/fixtures/mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
+        common::canonical_a1b_header_offset_fixture(),
+    )
+    .expect("write canonical header-offset mutation");
+}
+
+#[test]
 #[ignore = "maintenance generator for checked canonical A-1a mutations"]
 fn regenerate_canonical_a1a_mutations() {
     let cases = [
@@ -266,6 +288,39 @@ fn regenerate_shared_mutation_fixtures() {
         "sha256": hex_sha256(&post_eof_bytes),
         "rationale": "The mutation appends bytes after the final EOF marker of the compliant canonical PDF/A-1b fixture."
     }));
+    let glyph_path =
+        "tests/fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf";
+    let glyph_bytes = fs::read(glyph_path).expect("read canonical TrueType glyph mutation");
+    checked_in.push(json!({
+        "path": glyph_path,
+        "family": "corpus",
+        "case": "canonical_missing_glyph",
+        "baseline_case": "canonical-pdfa-1b-truetype.pdf",
+        "local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
+        "reference_rule_id": "ISO 19005-1:2005:6.3.5:1",
+        "expected_local_failed_rule_ids": ["PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
+        "expected_local_passed_rule_ids": [],
+        "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.5:1"],
+        "expected_verapdf_passed_rule_ids": [],
+        "sha256": hex_sha256(&glyph_bytes),
+        "rationale": "The compliant canonical TrueType fixture changes only the embedded glyph count so the rendered exclamation-mark glyph is absent."
+    }));
+    let header_path = "tests/fixtures/mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf";
+    let header_bytes = fs::read(header_path).expect("read canonical header-offset mutation");
+    checked_in.push(json!({
+        "path": header_path,
+        "family": "corpus",
+        "case": "canonical_header_offset",
+        "baseline_case": "canonical-pdfa-1b.pdf",
+        "local_rule_id": "PDFA1B-HEADER-001",
+        "reference_rule_id": "ISO 19005-1:2005:6.1.2:1",
+        "expected_local_failed_rule_ids": ["PDFA1B-HEADER-001"],
+        "expected_local_passed_rule_ids": [],
+        "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.1.2:1"],
+        "expected_verapdf_passed_rule_ids": [],
+        "sha256": hex_sha256(&header_bytes),
+        "rationale": "The compliant canonical PDF/A-1b fixture receives only a two-byte preamble before its PDF header."
+    }));
     assert!(selected.iter().all(|local| mapped.contains_key(local)));
     manifest["checked_in_mutations"] = Value::Array(checked_in);
     fs::write(
@@ -432,6 +487,8 @@ struct PdfA1aManifest {
     reference: ManifestReference,
     shared_cases: Vec<PathBuf>,
     #[serde(default)]
+    shape_cases: Vec<PdfA1aShapeCase>,
+    #[serde(default)]
     composition_cases: Vec<PathBuf>,
     #[serde(default)]
     mutation_cases: Vec<PdfA1aMutationCase>,
@@ -442,6 +499,13 @@ struct PdfA1aManifest {
     upstream_failure_cases: Vec<PdfA1aUpstreamFailureCase>,
     #[serde(default)]
     upstream_mismatch_cases: Vec<PdfA1aUpstreamMismatchCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aShapeCase {
+    name: String,
+    path: PathBuf,
+    rationale: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -904,9 +968,11 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
         .collect::<BTreeSet<_>>();
     assert_eq!(actual_a_only_rules, expected_a_only_rules);
 
-    let mut config = ReferenceConfig::pinned(executable);
+    let mut config = ReferenceConfig::pinned(executable.clone());
     config.profile = ReferenceProfile::PdfA1a;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+    let shape_runner = DifferentialRunner::new(ReferenceConfig::pinned(executable))
+        .expect("pinned veraPDF PDF/A-1b shape runner");
 
     let shared_paths = manifest
         .shared_cases
@@ -924,6 +990,26 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
             ),
             "{}: unexpected PDF/A-1a classification: {report}",
             path.display()
+        );
+    }
+    for case in &manifest.shape_cases {
+        let report = shape_runner.compare_file(&case.path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Agreement,
+            "{} ({}): shape case must remain compliant: {report}",
+            case.name,
+            case.rationale
+        );
+        assert!(report.local_report.failures.is_empty(), "{report}");
+        assert_eq!(
+            report
+                .reference_result
+                .as_ref()
+                .expect("shape-case veraPDF result")
+                .compliant,
+            Some(true),
+            "{report}"
         );
     }
     for path in &manifest.composition_cases {

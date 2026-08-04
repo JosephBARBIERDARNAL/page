@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 25] = [
+    let fixtures: [(&str, &[u8], &str); 28] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -14,6 +14,23 @@ fn pdf_fixtures_remain_byte_exact() {
             "canonical-pdfa-1b.pdf",
             include_bytes!("fixtures/canonical-pdfa-1b.pdf"),
             "27e17de2b43a963ccc385dddd223d377d629b3ee882aac14b6aa633483efbc88",
+        ),
+        (
+            "canonical-pdfa-1b-truetype.pdf",
+            include_bytes!("fixtures/canonical-pdfa-1b-truetype.pdf"),
+            "2bfb118a370eeabd853a4be0b409e539f81d0782b7fcf0134fceacd4d833001f",
+        ),
+        (
+            "mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf",
+            include_bytes!(
+                "fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf"
+            ),
+            "22e28100b347b7b57fb109c125d8aec015fbafc21e77160cd8e9c60509d2d2e1",
+        ),
+        (
+            "mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
+            include_bytes!("fixtures/mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf"),
+            "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe",
         ),
         (
             "canonical-pdfa-1a-unused-invalid-font.pdf",

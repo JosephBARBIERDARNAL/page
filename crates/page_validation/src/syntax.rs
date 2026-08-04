@@ -42,6 +42,7 @@ pub(crate) struct RawStreamLocation {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HeaderSummary {
+    pub(crate) offset: usize,
     pub(crate) has_valid_header: bool,
     pub(crate) has_binary_comment: bool,
     pub(crate) has_post_eof_data: bool,
@@ -434,9 +435,13 @@ pub(crate) fn inspect(
         if !inspected_ids.insert(object_id) {
             continue;
         }
+        let adjusted_offset = usize::try_from(*offset)
+            .ok()
+            .and_then(|offset| offset.checked_add(summary.header.offset))
+            .unwrap_or(usize::MAX);
         if let Some(value) = inspect_indirect_object(
             bytes,
-            usize::try_from(*offset).unwrap_or(usize::MAX),
+            adjusted_offset,
             object_id,
             document,
             limits,
@@ -875,6 +880,7 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
         .flatten();
 
     HeaderSummary {
+        offset: marker.unwrap_or(0),
         has_valid_header,
         has_binary_comment,
         has_post_eof_data,

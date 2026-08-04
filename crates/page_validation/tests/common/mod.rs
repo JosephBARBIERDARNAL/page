@@ -5321,6 +5321,118 @@ pub fn canonical_a1a_unused_invalid_font_fixture() -> Vec<u8> {
     bytes
 }
 
+pub fn canonical_a1b_truetype_glyph_fixture(missing_glyph: bool) -> Vec<u8> {
+    let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"))
+        .expect("load canonical PDF/A-1b fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("canonical page");
+    let mut descriptor_dictionary = font_descriptor(&mut document, true);
+    descriptor_dictionary.set(
+        "FontFile2",
+        document.add_object(Stream::new(
+            Dictionary::new(),
+            sfnt::minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
+                1,
+                33,
+                if missing_glyph { 1 } else { 2 },
+            ),
+        )),
+    );
+    let descriptor = document.add_object(descriptor_dictionary);
+    let font = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "TrueType",
+        "BaseFont" => "MaiTestFont",
+        "Encoding" => "WinAnsiEncoding",
+        "FirstChar" => 33,
+        "LastChar" => 33,
+        "Widths" => vec![500.into()],
+        "FontDescriptor" => descriptor,
+    });
+    let page = document
+        .get_object(page_id)
+        .expect("canonical page object")
+        .as_dict()
+        .expect("canonical page dictionary")
+        .clone();
+    let resources = page
+        .get(b"Resources")
+        .expect("canonical page resources")
+        .clone();
+    let resource_dictionary = match resources {
+        Object::Reference(resources_id) => document
+            .get_object_mut(resources_id)
+            .expect("canonical resources object")
+            .as_dict_mut()
+            .expect("canonical resources dictionary"),
+        Object::Dictionary(resources) => {
+            document
+                .get_object_mut(page_id)
+                .expect("canonical page object")
+                .as_dict_mut()
+                .expect("canonical page dictionary")
+                .set("Resources", resources);
+            document
+                .get_object_mut(page_id)
+                .expect("canonical page object")
+                .as_dict_mut()
+                .expect("canonical page dictionary")
+                .get_mut(b"Resources")
+                .expect("canonical page resources")
+                .as_dict_mut()
+                .expect("canonical resources dictionary")
+        }
+        _ => panic!("canonical resources have an unsupported shape"),
+    };
+    let fonts = resource_dictionary
+        .get(b"Font")
+        .ok()
+        .cloned()
+        .unwrap_or_else(|| Object::Dictionary(Dictionary::new()));
+    match fonts {
+        Object::Reference(fonts_id) => document
+            .get_object_mut(fonts_id)
+            .expect("canonical font resources")
+            .as_dict_mut()
+            .expect("canonical font resource dictionary")
+            .set("FExtra", font),
+        Object::Dictionary(mut fonts) => {
+            fonts.set("FExtra", font);
+            resource_dictionary.set("Font", fonts);
+        }
+        _ => panic!("canonical font resources have an unsupported shape"),
+    }
+    let extra_content = b"BT /FExtra 12 Tf (!) Tj ET".to_vec();
+    let extra_content_id = document.add_object(Stream::new(Dictionary::new(), extra_content));
+    let contents = page
+        .get(b"Contents")
+        .expect("canonical page contents")
+        .clone();
+    document
+        .get_object_mut(page_id)
+        .expect("canonical page object")
+        .as_dict_mut()
+        .expect("canonical page dictionary")
+        .set(
+            "Contents",
+            vec![contents, Object::Reference(extra_content_id)],
+        );
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save canonical TrueType glyph fixture");
+    bytes
+}
+
+pub fn canonical_a1b_header_offset_fixture() -> Vec<u8> {
+    let mut bytes = b"%\n".to_vec();
+    bytes.extend_from_slice(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"));
+    bytes
+}
+
 pub fn canonical_a1a_mutation(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1a.pdf"))
         .expect("load canonical PDF/A-1a fixture");
