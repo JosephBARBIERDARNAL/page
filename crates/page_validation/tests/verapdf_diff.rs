@@ -89,17 +89,27 @@ struct AtomicRuleCase {
 struct PdfA1aManifest {
     reference: ManifestReference,
     shared_cases: Vec<PathBuf>,
-    a_only_cases: Vec<PdfA1aCase>,
+    a_only_rules: Vec<PdfA1aRule>,
     #[serde(default)]
     upstream_failure_cases: Vec<PdfA1aUpstreamFailureCase>,
+    #[serde(default)]
+    upstream_mismatch_cases: Vec<PdfA1aUpstreamMismatchCase>,
 }
 
 #[derive(Debug, Deserialize)]
-struct PdfA1aCase {
+struct PdfA1aRule {
+    local_rule_id: String,
+    reference_rule_id: String,
+    cases: Vec<PdfA1aMatrixCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aMatrixCase {
     name: String,
     fixture_family: String,
-    expected_local_rule_id: String,
-    expected_verapdf_rule_id: String,
+    status: String,
+    expected_local_failure: bool,
+    expected_verapdf_failure: bool,
     rationale: String,
 }
 
@@ -108,6 +118,18 @@ struct PdfA1aUpstreamFailureCase {
     name: String,
     fixture_family: String,
     expected_local_rule_id: String,
+    rationale: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PdfA1aUpstreamMismatchCase {
+    name: String,
+    fixture_family: String,
+    expected_local_failure: bool,
+    expected_verapdf_failure: bool,
+    expected_classification: ComparisonClassification,
+    local_rule_id: String,
+    reference_rule_id: String,
     rationale: String,
 }
 
@@ -390,6 +412,21 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
     .expect("parse PDF/A-1a differential case manifest");
     assert_eq!(manifest.reference.version, PINNED_VERAPDF_VERSION);
     assert_eq!(manifest.reference.profile, "1a");
+    let expected_a_only_rules = BTreeSet::from([
+        "PDFA1A-ID-CONFORMANCE-001",
+        "PDFA1A-TAGGED-DOCUMENT-001",
+        "PDFA1A-STRUCT-TREE-ROOT-001",
+        "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+        "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+        "PDFA1A-LANG-001",
+        "PDFA1A-UNICODE-MAPPING-001",
+    ]);
+    let actual_a_only_rules = manifest
+        .a_only_rules
+        .iter()
+        .map(|rule| rule.local_rule_id.as_str())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_a_only_rules, expected_a_only_rules);
 
     let mut config = ReferenceConfig::pinned(executable);
     config.profile = ReferenceProfile::PdfA1a;
@@ -419,52 +456,82 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
 
     let temporary = env::temp_dir().join(format!("page-verapdf-pdfa-1a-{}", std::process::id()));
     fs::create_dir_all(&temporary).expect("create PDF/A-1a differential fixture directory");
-    for case in &manifest.a_only_cases {
-        let bytes = match case.fixture_family.as_str() {
-            "metadata" => common::metadata_fixture(&case.name),
-            "tagged_document" => common::tagged_document_fixture(&case.name),
-            "font" => common::font_fixture(&case.name),
-            family => panic!("{}: unsupported fixture family {family}", case.name),
-        };
-        let path = temporary.join(format!("{}.pdf", case.name));
-        fs::write(&path, &bytes).expect("write PDF/A-1a differential fixture");
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-        let local = page_validation::validate_bytes_with_profile(
-            &bytes,
-            page_validation::ValidationProfile::PdfA1a,
-            &SafetyLimits::default(),
+    for rule in &manifest.a_only_rules {
+        assert!(
+            !rule.cases.is_empty(),
+            "{} has no matrix cases",
+            rule.local_rule_id
+        );
+        let statuses = rule
+            .cases
+            .iter()
+            .map(|case| case.status.as_str())
+            .collect::<BTreeSet<_>>();
+        assert!(
+            statuses.contains("pass"),
+            "{} has no pass case",
+            rule.local_rule_id
         );
         assert!(
-            local
+            statuses.contains("fail"),
+            "{} has no fail case",
+            rule.local_rule_id
+        );
+        for case in &rule.cases {
+            assert!(
+                matches!(case.status.as_str(), "pass" | "fail" | "inapplicable"),
+                "{}: unsupported matrix status {}",
+                case.name,
+                case.status
+            );
+            let expected_failure = case.status == "fail";
+            assert_eq!(
+                case.expected_local_failure, expected_failure,
+                "{}: status/local expectation mismatch",
+                case.name
+            );
+            assert_eq!(
+                case.expected_verapdf_failure, expected_failure,
+                "{}: status/veraPDF expectation mismatch",
+                case.name
+            );
+            let bytes = fixture_bytes(&case.fixture_family, &case.name);
+            let path = temporary.join(format!("{}-{}.pdf", rule.local_rule_id, case.name));
+            fs::write(&path, &bytes).expect("write PDF/A-1a differential fixture");
+            let report = runner.compare_file(&path, &SafetyLimits::default());
+            assert!(
+                matches!(
+                    report.classification,
+                    ComparisonClassification::Agreement
+                        | ComparisonClassification::BothNoncompliant
+                ),
+                "{}: unexpected PDF/A-1a classification: {report}",
+                case.rationale
+            );
+            let local_failed = report
+                .local_report
                 .failures
                 .iter()
-                .any(|failure| failure.rule_id == case.expected_local_rule_id),
-            "{}: local rule {} did not fail: {} ({})",
-            case.rationale,
-            case.expected_local_rule_id,
-            case.name,
-            report
-        );
-        let reference = report
-            .reference_result
-            .as_ref()
-            .unwrap_or_else(|| panic!("{}: reference failed: {report}", case.name));
-        assert!(
-            reference
+                .any(|failure| failure.rule_id == rule.local_rule_id);
+            assert_eq!(
+                local_failed, case.expected_local_failure,
+                "{}: local rule {} expectation failed: {report}",
+                case.rationale, rule.local_rule_id
+            );
+            let reference = report.reference_result.as_ref().expect("veraPDF result");
+            let reference_failed = reference
                 .failed_rule_ids
                 .iter()
-                .any(|rule| rule.to_string() == case.expected_verapdf_rule_id),
-            "{}: veraPDF rule {} did not fail: {}",
-            case.rationale,
-            case.expected_verapdf_rule_id,
-            case.name
-        );
+                .any(|id| id.to_string() == rule.reference_rule_id);
+            assert_eq!(
+                reference_failed, case.expected_verapdf_failure,
+                "{}: veraPDF rule {} expectation failed: {report}",
+                case.rationale, rule.reference_rule_id
+            );
+        }
     }
     for case in &manifest.upstream_failure_cases {
-        let bytes = match case.fixture_family.as_str() {
-            "tagged_document" => common::tagged_document_fixture(&case.name),
-            family => panic!("{}: unsupported fixture family {family}", case.name),
-        };
+        let bytes = fixture_bytes(&case.fixture_family, &case.name);
         let path = temporary.join(format!("{}-upstream.pdf", case.name));
         fs::write(&path, &bytes).expect("write upstream failure fixture");
         let report = runner.compare_file(&path, &SafetyLimits::default());
@@ -486,7 +553,47 @@ fn pinned_verapdf_pdfa_1a_manifest_matches_when_opted_in() {
             case.name
         );
     }
+    for case in &manifest.upstream_mismatch_cases {
+        let bytes = fixture_bytes(&case.fixture_family, &case.name);
+        let path = temporary.join(format!("{}-mismatch.pdf", case.name));
+        fs::write(&path, &bytes).expect("write upstream mismatch fixture");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification, case.expected_classification,
+            "{}: unexpected classification: {report}",
+            case.rationale
+        );
+        let local_failed = report
+            .local_report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == case.local_rule_id);
+        assert_eq!(
+            local_failed, case.expected_local_failure,
+            "{}: {report}",
+            case.rationale
+        );
+        let reference = report.reference_result.as_ref().expect("veraPDF result");
+        let reference_failed = reference
+            .failed_rule_ids
+            .iter()
+            .any(|id| id.to_string() == case.reference_rule_id);
+        assert_eq!(
+            reference_failed, case.expected_verapdf_failure,
+            "{}: {report}",
+            case.rationale
+        );
+    }
     fs::remove_dir_all(temporary).expect("remove PDF/A-1a differential fixture directory");
+}
+
+fn fixture_bytes(fixture_family: &str, name: &str) -> Vec<u8> {
+    match fixture_family {
+        "metadata" => common::metadata_fixture(name),
+        "tagged_document" => common::tagged_document_fixture(name),
+        "font" => common::font_fixture(name),
+        family => panic!("{name}: unsupported fixture family {family}"),
+    }
 }
 
 fn assert_blend_mode_upstream_repro(runner: &DifferentialRunner, temporary: &Path) {

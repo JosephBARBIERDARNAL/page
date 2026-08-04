@@ -29,55 +29,528 @@
     "tests/fixtures/indirect-object-syntax.pdf",
     "tests/fixtures/xref-stream.pdf"
   ],
-  "a_only_cases": [
+  "a_only_rules": [
     {
-      "name": "baseline_b",
-      "fixture_family": "metadata",
-      "expected_local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.7.11:3",
-      "rationale": "PDF/A-1a identification must declare conformance A."
+      "local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.7.11:3",
+      "cases": [
+        {
+          "name": "accepted_a",
+          "fixture_family": "metadata",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An explicit PDF/A-1a declaration satisfies the A conformance identifier predicate."
+        },
+        {
+          "name": "baseline_b",
+          "fixture_family": "metadata",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A PDF/A-1b declaration fails the PDF/A-1a conformance identifier predicate."
+        },
+        {
+          "name": "missing_conformance",
+          "fixture_family": "metadata",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A declaration without conformance fails the PDF/A-1a conformance identifier predicate."
+        },
+        {
+          "name": "missing_identification",
+          "fixture_family": "metadata",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "Without PDF/A identification metadata, this conformance-value predicate is inapplicable; the identification rule is covered separately."
+        }
+      ]
     },
     {
-      "name": "tagged_missing",
-      "fixture_family": "tagged_document",
-      "expected_local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
-      "rationale": "PDF/A-1a requires MarkInfo/Marked true."
+      "local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.2.2:1",
+      "cases": [
+        {
+          "name": "tagged_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "MarkInfo/Marked true satisfies the tagged-document predicate."
+        },
+        {
+          "name": "tagged_missing",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "Missing MarkInfo fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_false",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "MarkInfo/Marked false fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_marked_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A non-boolean Marked value fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_mark_info_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A non-dictionary MarkInfo value fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_indirect_mark_info_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect non-dictionary MarkInfo value fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_indirect_mark_info_null",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect null MarkInfo value fails the tagged-document predicate."
+        },
+        {
+          "name": "tagged_indirect_mark_info",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "Indirect dictionary MarkInfo with Marked true satisfies the predicate."
+        },
+        {
+          "name": "tagged_indirect_marked",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "Indirect boolean Marked true satisfies the predicate."
+        },
+        {
+          "name": "tagged_struct_tree_only",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A StructTreeRoot without valid MarkInfo/Marked fails the tagged-document predicate."
+        }
+      ]
     },
     {
-      "name": "struct_tree_missing",
-      "fixture_family": "tagged_document",
-      "expected_local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
-      "rationale": "PDF/A-1a requires a StructTreeRoot."
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.3:1",
+      "cases": [
+        {
+          "name": "struct_tree_missing",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "Missing StructTreeRoot fails the structure-tree-root predicate."
+        },
+        {
+          "name": "struct_tree_direct_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A direct valid StructTreeRoot satisfies the predicate."
+        },
+        {
+          "name": "struct_tree_minimal_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A minimal valid StructTreeRoot satisfies the predicate."
+        },
+        {
+          "name": "struct_tree_indirect_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An indirect valid StructTreeRoot satisfies the predicate."
+        },
+        {
+          "name": "struct_tree_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A non-dictionary StructTreeRoot fails the predicate."
+        },
+        {
+          "name": "struct_tree_indirect_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect invalid StructTreeRoot fails the predicate."
+        },
+        {
+          "name": "struct_tree_unsupported_shape",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An unsupported but structurally valid shape does not fail the root-presence predicate."
+        },
+        {
+          "name": "struct_tree_parent_child",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A valid parent-child structure tree satisfies the root predicate."
+        }
+      ]
     },
     {
-      "name": "struct_tree_role_map_unmapped",
-      "fixture_family": "tagged_document",
-      "expected_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
-      "rationale": "Non-standard structure types must map to standard types."
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.4:1",
+      "cases": [
+        {
+          "name": "struct_tree_minimal_valid",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "With no non-standard structure type, the RoleMap mapping predicate is inapplicable."
+        },
+        {
+          "name": "struct_tree_role_map_unmapped",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An unmapped non-standard structure type fails the RoleMap mapping predicate."
+        },
+        {
+          "name": "struct_tree_role_map_direct",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A direct mapping to a standard type satisfies the RoleMap predicate."
+        },
+        {
+          "name": "struct_tree_role_map_multi_step",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A valid multi-step mapping to a standard type satisfies the RoleMap predicate."
+        },
+        {
+          "name": "struct_tree_role_map_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A non-dictionary RoleMap fails the mapping predicate."
+        },
+        {
+          "name": "struct_tree_role_map_invalid_target",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A RoleMap target that is not a valid structure type fails the mapping predicate."
+        }
+      ]
     },
     {
-      "name": "struct_tree_role_map_self_cycle",
-      "fixture_family": "tagged_document",
-      "expected_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.3.4:2",
-      "rationale": "RoleMap cycles are a normal PDF/A-1a rule failure and veraPDF reports 6.8.3.4:2."
+      "local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.3.4:2",
+      "cases": [
+        {
+          "name": "struct_tree_minimal_valid",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "With no RoleMap cycle, the cycle predicate is inapplicable."
+        },
+        {
+          "name": "struct_tree_role_map_self_cycle",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A self-referential RoleMap entry fails the cycle predicate."
+        },
+        {
+          "name": "struct_tree_role_map_two_node_cycle",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A two-node RoleMap cycle fails the cycle predicate."
+        },
+        {
+          "name": "struct_tree_role_map_long_cycle",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A longer RoleMap cycle fails the cycle predicate."
+        },
+        {
+          "name": "struct_tree_role_map_acyclic_chain",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An acyclic RoleMap chain satisfies the cycle predicate."
+        }
+      ]
     },
     {
-      "name": "lang_catalog_invalid",
-      "fixture_family": "tagged_document",
-      "expected_local_rule_id": "PDFA1A-LANG-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.8.4:1",
-      "rationale": "PDF/A-1a language identifiers must follow the pinned RFC 1766 syntax."
+      "local_rule_id": "PDFA1A-LANG-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.8.4:1",
+      "cases": [
+        {
+          "name": "lang_catalog_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A valid catalog language identifier satisfies the language predicate."
+        },
+        {
+          "name": "lang_catalog_empty",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An empty catalog language is accepted by the pinned predicate."
+        },
+        {
+          "name": "lang_catalog_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An invalid catalog language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_catalog_overlong",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An overlong catalog language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_catalog_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A non-string catalog language value is handled by the catalog-type predicate, not this syntax predicate."
+        },
+        {
+          "name": "lang_catalog_null",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A null catalog language value is handled by the catalog-value predicate, not this syntax predicate."
+        },
+        {
+          "name": "lang_catalog_indirect_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect invalid catalog language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_structure_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A valid structure language identifier satisfies the language predicate."
+        },
+        {
+          "name": "lang_structure_indirect_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect invalid structure language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_structure_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An invalid structure language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_structure_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A non-string structure language value is handled by the value-type predicate, not this syntax predicate."
+        },
+        {
+          "name": "lang_property_valid",
+          "fixture_family": "tagged_document",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A valid structure property language identifier satisfies the language predicate."
+        },
+        {
+          "name": "lang_property_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An invalid structure property language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_property_indirect_invalid",
+          "fixture_family": "tagged_document",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An indirect invalid structure property language identifier fails the language predicate."
+        },
+        {
+          "name": "lang_property_wrong_type",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A non-string property language value is handled by the value-type predicate, not this syntax predicate."
+        },
+        {
+          "name": "lang_property_null",
+          "fixture_family": "tagged_document",
+          "status": "inapplicable",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A null property language value is handled by the value predicate, not this syntax predicate."
+        }
+      ]
     },
     {
-      "name": "unicode_missing",
-      "fixture_family": "font",
-      "expected_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
-      "expected_verapdf_rule_id": "ISO 19005-1:2005:6.3.8:1",
-      "rationale": "Rendered PDF/A-1a text must have a usable Unicode mapping."
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "cases": [
+        {
+          "name": "unicode_missing",
+          "fixture_family": "font",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A missing ToUnicode mapping fails the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_scalar",
+          "fixture_family": "font",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A scalar Unicode mapping fails the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_malformed",
+          "fixture_family": "font",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "A malformed ToUnicode mapping fails the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_incomplete",
+          "fixture_family": "font",
+          "status": "fail",
+          "expected_local_failure": true,
+          "expected_verapdf_failure": true,
+          "rationale": "An incomplete ToUnicode mapping fails the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_winansi",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A WinAnsi-encoded font with a valid mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_macroman",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A MacRoman-encoded font with a valid mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_macexpert",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A MacExpert-encoded font with a valid mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_indirect",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "An indirect valid ToUnicode mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_type1_standard",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A Type 1 standard encoding with a valid mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_type1_symbol",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A Type 1 Symbol encoding with a valid mapping satisfies the Unicode-mapping predicate."
+        },
+        {
+          "name": "unicode_type0_gb1",
+          "fixture_family": "font",
+          "status": "pass",
+          "expected_local_failure": false,
+          "expected_verapdf_failure": false,
+          "rationale": "A Type 0 GB1 font with a valid mapping satisfies the Unicode-mapping predicate."
+        }
+      ]
     }
   ],
   "upstream_failure_cases": [
@@ -85,7 +558,29 @@
       "name": "struct_tree_cyclic",
       "fixture_family": "tagged_document",
       "expected_local_rule_id": "RESOURCE-LIMIT-001",
-      "rationale": "A recursive StructTreeRoot/P/K graph is bounded locally, while veraPDF 1.30.2 aborts instead of returning a conformance result."
+      "rationale": "The recursive StructTreeRoot/P/K graph is bounded locally; veraPDF 1.30.2 aborts while traversing this upstream repro."
+    }
+  ],
+  "upstream_mismatch_cases": [
+    {
+      "name": "unicode_type0_identity_h",
+      "fixture_family": "font",
+      "expected_local_failure": false,
+      "expected_verapdf_failure": true,
+      "expected_classification": "both_noncompliant",
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "rationale": "veraPDF 1.30.2 reports a failure for Identity-H although the PDF/A-1 profile exception permits it."
+    },
+    {
+      "name": "unicode_type0_identity_v",
+      "fixture_family": "font",
+      "expected_local_failure": false,
+      "expected_verapdf_failure": true,
+      "expected_classification": "both_noncompliant",
+      "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
+      "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
+      "rationale": "veraPDF 1.30.2 reports a failure for Identity-V although the PDF/A-1 profile exception permits it."
     }
   ]
 }

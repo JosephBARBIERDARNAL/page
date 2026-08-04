@@ -59,7 +59,7 @@
     {
       "fixture": "not-compliant-1.pdf",
       "recipe": "just typst",
-      "sha256": "5bc593d878564406d81995b39ff0d0e578eb850b9cc05b5f406a8b80b870e61a"
+      "sha256": "715a7f0da1f41a90a4905e1b138ba08673fa415a90cdeede9929e7665077a7e7"
     },
     {
       "fixture": "odd-hex-string.pdf",
