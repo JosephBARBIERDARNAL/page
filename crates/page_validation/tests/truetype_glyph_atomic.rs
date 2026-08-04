@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 
-#[allow(dead_code)]
 mod common;
 
 const PRESENCE: &str = "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001";

@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};

@@ -74,7 +74,7 @@ const TOTAL_RULE_COUNT: usize = 134;
 fn total_rule_count(profile: ValidationProfile) -> usize {
     TOTAL_RULE_COUNT
         + if matches!(profile, ValidationProfile::PdfA1a) {
-            1
+            2
         } else {
             0
         }
@@ -506,6 +506,7 @@ fn validate_document(
 
     if matches!(profile, ValidationProfile::PdfA1a) {
         validate_tagged_document(&inspections.document_features, &mut failures);
+        validate_structure_tree(&inspections.document_features, &mut failures);
     }
 
     validate_output_intents(&document, &mut failures);
@@ -559,6 +560,22 @@ fn validate_tagged_document(
             "PDFA1A-TAGGED-DOCUMENT-001",
             "the document catalog MarkInfo dictionary must contain boolean /Marked true",
             features.mark_info_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_structure_tree(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if !features.struct_tree_root_present || !features.struct_tree_root_valid {
+        failures.push(failure(
+            "PDFA1A-STRUCT-TREE-ROOT-001",
+            "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
+            features
+                .struct_tree_root_object_id
+                .or(features.catalog_id),
             FailureCategory::Conformance,
         ));
     }
@@ -1547,7 +1564,6 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<Validati
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn compare_field(
     document: &PdfDocument,
     info_key: &str,
@@ -1703,7 +1719,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 1);
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 2);
     }
 
     #[test]
@@ -2099,7 +2115,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 1);
+        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 2);
     }
 
     #[test]
@@ -2262,6 +2278,7 @@ mod tests {
             "Type" => "Catalog",
             "Pages" => pages_id,
             "MarkInfo" => dictionary! { "Marked" => true },
+            "StructTreeRoot" => Dictionary::new(),
         };
         if let Some(xmp) = xmp {
             let metadata_id = document.add_object(Stream::new(

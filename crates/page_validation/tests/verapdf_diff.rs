@@ -10,7 +10,6 @@ use page_validation::differential::{
 };
 use serde::Deserialize;
 
-#[allow(dead_code)]
 mod common;
 
 #[derive(Debug, Deserialize)]
@@ -492,7 +491,6 @@ fn is_untracked_1302_rule_string(id: &str) -> bool {
 /// Asserts that `actual_ids` adds exactly `expected_added`, removes only
 /// failures explicitly named by `expected_passed`, and contains none of the
 /// expected passing IDs.
-#[allow(clippy::too_many_arguments)]
 fn assert_rule_id_delta(
     label: &str,
     case_name: &str,

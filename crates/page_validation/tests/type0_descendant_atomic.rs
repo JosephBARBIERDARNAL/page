@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 /// Confirmed live against veraPDF 1.30.2: an indirect reference to the name

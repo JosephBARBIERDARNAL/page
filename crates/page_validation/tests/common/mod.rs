@@ -4504,6 +4504,7 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "baseline" => {}
         "tagged_valid" => {
             catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set("StructTreeRoot", Dictionary::new());
         }
         "tagged_missing" => {}
         "tagged_false" => {
@@ -4531,6 +4532,64 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         }
         "tagged_struct_tree_only" => {
             catalog.set("StructTreeRoot", Dictionary::new());
+        }
+        "struct_tree_direct_valid" => {
+            catalog.set("StructTreeRoot", Dictionary::new());
+        }
+        "struct_tree_minimal_valid" => {
+            catalog.set("StructTreeRoot", Dictionary::new());
+        }
+        "struct_tree_missing" => {}
+        "struct_tree_indirect_valid" => {
+            let root = document.add_object(Dictionary::new());
+            catalog.set("StructTreeRoot", root);
+        }
+        "struct_tree_invalid" => catalog.set("StructTreeRoot", 1),
+        "struct_tree_indirect_invalid" => {
+            let invalid = document.add_object(1);
+            catalog.set("StructTreeRoot", invalid);
+        }
+        "struct_tree_unsupported_shape" => {
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => vec![Object::Dictionary(dictionary! { "Type" => "Unsupported" })]
+                },
+            );
+        }
+        "struct_tree_cyclic" => {
+            let root = document.new_object_id();
+            let child = document.new_object_id();
+            document.objects.insert(
+                root,
+                Object::Dictionary(dictionary! { "K" => vec![Object::Reference(child)] }),
+            );
+            document.objects.insert(
+                child,
+                Object::Dictionary(dictionary! {
+                    "S" => "P",
+                    "P" => Object::Reference(root),
+                    "K" => vec![Object::Reference(child)],
+                }),
+            );
+            catalog.set("StructTreeRoot", root);
+        }
+        "struct_tree_parent_child" => {
+            let root = document.new_object_id();
+            let child = document.new_object_id();
+            document.objects.insert(
+                root,
+                Object::Dictionary(dictionary! { "K" => vec![Object::Reference(child)] }),
+            );
+            document.objects.insert(
+                child,
+                Object::Dictionary(dictionary! {
+                    "S" => "P",
+                    "P" => Object::Reference(root),
+                    "K" => Vec::<Object>::new(),
+                }),
+            );
+            catalog.set("StructTreeRoot", root);
         }
         "names_empty" => catalog.set("Names", Dictionary::new()),
         "names_embedded_files_dictionary" => {

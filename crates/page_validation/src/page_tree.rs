@@ -118,7 +118,6 @@ pub(crate) fn collect_pages(
 /// on every path, success or failure, so a sibling branch that legitimately
 /// shares a node with an already-completed branch is not mistaken for that
 /// node being its own ancestor.
-#[allow(clippy::too_many_arguments)]
 fn walk(
     document: &Document,
     node: &Object,
@@ -162,7 +161,6 @@ fn walk(
     result
 }
 
-#[allow(clippy::too_many_arguments)]
 fn walk_node(
     document: &Document,
     node: &Object,

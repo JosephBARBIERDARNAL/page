@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const SUBTYPE: &str = "PDFA1B-ANNOTATION-SUBTYPE-001";

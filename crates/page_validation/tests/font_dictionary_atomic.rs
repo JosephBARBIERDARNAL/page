@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const TYPE: &str = "PDFA1B-FONT-TYPE-001";

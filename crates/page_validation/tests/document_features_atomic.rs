@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const EMBEDDED_FILES: &str = "PDFA1B-NAMES-EMBEDDED-FILES-001";

@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-#[allow(dead_code)]
 mod common;
 
 const VIOLATIONS: &[(&str, &str, &str)] = &[

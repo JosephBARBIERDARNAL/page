@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const NONSYMBOLIC: &str = "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001";

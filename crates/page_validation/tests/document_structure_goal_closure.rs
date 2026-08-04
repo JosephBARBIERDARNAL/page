@@ -11,7 +11,6 @@
 //! forces a conscious update, and these tests would then need re-auditing
 //! rather than silently going stale).
 
-#[allow(dead_code)]
 mod common;
 
 use std::fs;

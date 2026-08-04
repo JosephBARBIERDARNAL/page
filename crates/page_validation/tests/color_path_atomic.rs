@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const ICC: &str = "PDFA1B-ICCBASED-001";

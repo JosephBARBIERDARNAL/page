@@ -6,7 +6,6 @@ use page_validation::differential::{
 };
 use page_validation::{PdfDocument, SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
-#[allow(dead_code)]
 mod common;
 
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";

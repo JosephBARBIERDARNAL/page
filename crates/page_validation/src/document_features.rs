@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -19,6 +19,17 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) contains_embedded_files_name: bool,
     pub(crate) contains_optional_content: bool,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
+    pub(crate) struct_tree_root_object_id: Option<PdfObjectId>,
+    pub(crate) struct_tree_root_present: bool,
+    pub(crate) struct_tree_root_valid: bool,
+    pub(crate) structure_tree_shape_supported: bool,
+    pub(crate) structure_elements: BTreeMap<PdfObjectId, StructureElementSummary>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct StructureElementSummary {
+    pub(crate) parent: Option<PdfObjectId>,
+    pub(crate) children: Vec<PdfObjectId>,
 }
 
 pub(crate) fn inspect(
@@ -53,6 +64,8 @@ pub(crate) fn inspect(
         })
         .transpose()?
         .unwrap_or((None, false, None));
+
+    let structure_tree = inspect_structure_tree(document, catalog, limits)?;
 
     let names = catalog
         .get(b"Names")
@@ -94,10 +107,194 @@ pub(crate) fn inspect(
         mark_info_object_id,
         mark_info_is_dictionary,
         marked,
+        struct_tree_root_object_id: structure_tree.root_object_id,
+        struct_tree_root_present: structure_tree.present,
+        struct_tree_root_valid: structure_tree.valid,
+        structure_tree_shape_supported: structure_tree.shape_supported,
+        structure_elements: structure_tree.elements,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
     })
+}
+
+#[derive(Default)]
+struct StructureTreeSummary {
+    root_object_id: Option<PdfObjectId>,
+    present: bool,
+    valid: bool,
+    shape_supported: bool,
+    elements: BTreeMap<PdfObjectId, StructureElementSummary>,
+}
+
+fn inspect_structure_tree(
+    document: &Document,
+    catalog: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<StructureTreeSummary, PdfError> {
+    let Ok(entry) = catalog.get(b"StructTreeRoot") else {
+        return Ok(StructureTreeSummary::default());
+    };
+    if matches!(entry, Object::Null) {
+        return Ok(StructureTreeSummary::default());
+    }
+    let root_object_id = entry.as_reference().ok().map(Into::into);
+    let Some(root) = resolve_optional(document, entry, limits.max_reference_depth)? else {
+        return Ok(StructureTreeSummary {
+            root_object_id,
+            present: true,
+            ..StructureTreeSummary::default()
+        });
+    };
+    let Some(root_dictionary) = root.as_dict().ok() else {
+        return Ok(StructureTreeSummary {
+            root_object_id,
+            present: true,
+            ..StructureTreeSummary::default()
+        });
+    };
+
+    let mut summary = StructureTreeSummary {
+        root_object_id,
+        present: true,
+        valid: true,
+        shape_supported: true,
+        ..StructureTreeSummary::default()
+    };
+    let mut ancestors = BTreeSet::new();
+    if let Some(root_id) = entry.as_reference().ok() {
+        ancestors.insert(root_id);
+    }
+    let mut steps = 0;
+    if let Ok(kids) = root_dictionary.get(b"K") {
+        inspect_structure_kids(
+            document,
+            kids,
+            limits,
+            &mut summary,
+            &mut ancestors,
+            &mut steps,
+            0,
+        )?;
+    }
+    Ok(summary)
+}
+
+fn inspect_structure_kids(
+    document: &Document,
+    value: &Object,
+    limits: &SafetyLimits,
+    summary: &mut StructureTreeSummary,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    depth: usize,
+) -> Result<(), PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    *steps += 1;
+    if *steps > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual: *steps,
+            limit: limits.max_object_count,
+        });
+    }
+    let Some(resolved) = resolve_optional(document, value, limits.max_reference_depth)? else {
+        summary.shape_supported = false;
+        return Ok(());
+    };
+    match resolved {
+        Object::Integer(_) => {}
+        Object::Array(values) => {
+            for value in values {
+                inspect_structure_kids(
+                    document,
+                    value,
+                    limits,
+                    summary,
+                    ancestors,
+                    steps,
+                    depth + 1,
+                )?;
+            }
+        }
+        Object::Dictionary(dictionary) => {
+            let Some(structure_id) = value.as_reference().ok() else {
+                summary.shape_supported = false;
+                return Ok(());
+            };
+            if !ancestors.insert(structure_id) {
+                return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+            }
+            let result = inspect_structure_element(
+                document,
+                structure_id,
+                dictionary,
+                limits,
+                summary,
+                ancestors,
+                steps,
+                depth,
+            );
+            ancestors.remove(&structure_id);
+            result?;
+        }
+        _ => summary.shape_supported = false,
+    }
+    Ok(())
+}
+
+fn inspect_structure_element(
+    document: &Document,
+    structure_id: ObjectId,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+    summary: &mut StructureTreeSummary,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    depth: usize,
+) -> Result<(), PdfError> {
+    let Some(_structure_type) = dictionary
+        .get(b"S")
+        .ok()
+        .and_then(|value| value.as_name().ok())
+    else {
+        let kind = dictionary
+            .get(b"Type")
+            .ok()
+            .and_then(|value| value.as_name().ok());
+        if matches!(kind, Some(b"MCR") | Some(b"OBJR")) {
+            return Ok(());
+        }
+        summary.shape_supported = false;
+        return Ok(());
+    };
+    let object_id = PdfObjectId::from(structure_id);
+    let parent = dictionary
+        .get(b"P")
+        .ok()
+        .and_then(|value| value.as_reference().ok())
+        .map(Into::into);
+    let mut element = StructureElementSummary {
+        parent,
+        ..StructureElementSummary::default()
+    };
+    if let Ok(kids) = dictionary.get(b"K") {
+        collect_structure_child_ids(kids, &mut element.children);
+        inspect_structure_kids(document, kids, limits, summary, ancestors, steps, depth + 1)?;
+    }
+    summary.elements.insert(object_id, element);
+    Ok(())
+}
+
+fn collect_structure_child_ids(value: &Object, children: &mut Vec<PdfObjectId>) {
+    match value {
+        Object::Reference(id) => children.push((*id).into()),
+        Object::Array(values) => values
+            .iter()
+            .for_each(|value| collect_structure_child_ids(value, children)),
+        _ => {}
+    }
 }
 
 /// Walks one name-tree node (an intermediate node with `/Kids`, a leaf with
@@ -118,7 +315,6 @@ pub(crate) fn inspect(
 /// bounds the walk's total work (independent of ancestor depth) against a
 /// DAG that fans out shared subtrees without any node being its own
 /// ancestor, the same DAG-blowup safety `page_tree.rs` uses.
-#[allow(clippy::too_many_arguments)]
 fn inspect_name_tree(
     document: &Document,
     node: &Object,
@@ -151,7 +347,6 @@ fn inspect_name_tree(
     result
 }
 
-#[allow(clippy::too_many_arguments)]
 fn inspect_name_tree_node(
     document: &Document,
     node: &Object,
@@ -264,6 +459,49 @@ mod tests {
             inspect(&document, &SafetyLimits::default()),
             Err(PdfError::ReferenceDepth(_))
         ));
+    }
+
+    #[test]
+    fn retains_structure_element_parent_and_child_relationships() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "StructTreeRoot" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "K" => vec![Object::Reference((3, 0))] }),
+        );
+        document.objects.insert(
+            (3, 0),
+            Object::Dictionary(dictionary! {
+                "S" => "P",
+                "P" => Object::Reference((2, 0)),
+                "K" => vec![Object::Reference((4, 0))],
+            }),
+        );
+        document
+            .objects
+            .insert((4, 0), Object::Dictionary(dictionary! { "S" => "Span" }));
+
+        let features = inspect(&document, &SafetyLimits::default()).expect("inspect");
+        let parent = features
+            .structure_elements
+            .get(&(3, 0).into())
+            .expect("parent");
+        let child = features
+            .structure_elements
+            .get(&(4, 0).into())
+            .expect("child");
+        assert_eq!(parent.parent, Some((2, 0).into()));
+        assert_eq!(parent.children, vec![(4, 0).into()]);
+        assert_eq!(child.parent, None);
+        assert!(features.struct_tree_root_present);
+        assert!(features.struct_tree_root_valid);
     }
 
     /// Confirmed against veraPDF 1.30.2: the same name-tree leaf reachable

@@ -13,6 +13,7 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 - make sure, when possible, to reuse code from different profiles when possible
 - ignore git changes that you didn't create, it's just someone else working on the project simultaneously.
 - always run format/lint (`just fmt && just lint`) before submitting your changes and make sure it's all green
+- don't add things like #[allow(dead_code)]
 
 ## Project Structure & Module Organization
 

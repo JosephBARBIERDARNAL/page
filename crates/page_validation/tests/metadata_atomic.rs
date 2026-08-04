@@ -5,7 +5,6 @@ use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
 
-#[allow(dead_code)]
 mod common;
 
 const CASES: &[(&str, &[&str])] = &[

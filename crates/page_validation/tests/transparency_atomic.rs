@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod common;
 
 const EXTGSTATE_SMASK: &str = "PDFA1B-EXTGSTATE-SMASK-001";

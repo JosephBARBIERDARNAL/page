@@ -1,6 +1,5 @@
 use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
-#[allow(dead_code)]
 mod common;
 
 const CASES: &[(&str, &[&str])] = &[

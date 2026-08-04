@@ -405,7 +405,6 @@ impl ContentExecutor<'_> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn execute_contents(
         &mut self,
         contents: &Object,
@@ -780,7 +779,6 @@ impl ContentExecutor<'_> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn execute_xobject(
         &mut self,
         object: &Object,
@@ -937,7 +935,6 @@ impl ContentExecutor<'_> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn execute_pattern(
         &mut self,
         object: &Object,
@@ -1041,7 +1038,6 @@ impl ContentExecutor<'_> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn execute_type3_glyphs(
         &mut self,
         selected: &SelectedFont,
@@ -1115,7 +1111,6 @@ impl ContentExecutor<'_> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn execute_standalone_stream(
         &mut self,
         object: &Object,
