@@ -12,7 +12,7 @@ use crate::object_resolution::resolve_optional;
 /// instead of referenced indirectly, by a clone of the dictionary itself.
 ///
 /// PDF32000 requires page-tree `Kids` entries to be indirect references, but
-/// veraPDF 1.28.2 does not enforce this: confirmed by embedding a
+/// veraPDF 1.30.2 does not enforce this: confirmed by embedding a
 /// compliant document's sole page directly and observing the same
 /// annotation-subtype and flag violations reported as when it is indirect.
 /// Every page-tree consumer resolves a page through [`PageEntry::resolve`]
@@ -64,7 +64,7 @@ impl PageEntry {
 /// id revisited while still an ancestor on the current path) raises
 /// `PdfError::ReferenceDepth` rather than silently truncating the page
 /// list. Cycle detection is ancestor-path-scoped, not "ever visited
-/// anywhere": confirmed against veraPDF 1.28.2 that the *same* Page object
+/// anywhere": confirmed against veraPDF 1.30.2 that the *same* Page object
 /// legitimately reachable through two different `Pages` branches (a DAG,
 /// not a cycle — neither branch is the other's ancestor) is processed
 /// without error, so an earlier global "ever visited" set was a false
@@ -82,7 +82,7 @@ impl PageEntry {
 /// A *resolved* page-tree node (root or `Kids` entry) whose `/Type` is
 /// missing or is neither `Page` nor `Pages` is a parse-level failure
 /// (`PdfError::UnexpectedObject`, surfacing as `PDF-PARSE-001`), not a
-/// silently skipped node: confirmed against veraPDF 1.28.2, which throws a
+/// silently skipped node: confirmed against veraPDF 1.30.2, which throws a
 /// fatal `unknown type of page tree node` parse exception — rejecting the
 /// whole file before any conformance rule runs — for both a missing and a
 /// present-but-wrong page-tree node `/Type`.
@@ -277,7 +277,7 @@ mod tests {
         assert!(matches!(result, Err(crate::PdfError::ReferenceDepth(_))));
     }
 
-    /// Confirmed against veraPDF 1.28.2: a page-tree node reached via `Kids`
+    /// Confirmed against veraPDF 1.30.2: a page-tree node reached via `Kids`
     /// with a missing or unrecognized `/Type` throws a fatal
     /// `unknown type of page tree node` parse exception, rather than being
     /// silently skipped.
@@ -306,7 +306,7 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.28.2: the *same* Page object reachable
+    /// Confirmed against veraPDF 1.30.2: the *same* Page object reachable
     /// through two different `Pages` branches (a DAG, not a cycle — neither
     /// branch is the other's ancestor) is processed without error.
     #[test]
@@ -342,7 +342,7 @@ mod tests {
         assert_eq!(pages[&2].object_id(), Some(page_id));
     }
 
-    /// Confirmed against veraPDF 1.28.2: a Page dictionary embedded directly
+    /// Confirmed against veraPDF 1.30.2: a Page dictionary embedded directly
     /// (not as an indirect reference) in a `Kids` array is still walked and
     /// validated, not silently ignored.
     #[test]

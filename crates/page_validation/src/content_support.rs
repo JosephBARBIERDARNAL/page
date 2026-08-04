@@ -1273,7 +1273,7 @@ impl ContentExecutor<'_> {
         let nested_index = match kind {
             Some(b"Indexed") => Some(1),
             Some(b"Separation" | b"DeviceN") => Some(2),
-            // Pinned veraPDF 1.28.2 deliberately does not model the
+            // Pinned veraPDF 1.30.2 deliberately does not model the
             // underlying space of an uncoloured Pattern.
             Some(b"Pattern") => None,
             _ => None,

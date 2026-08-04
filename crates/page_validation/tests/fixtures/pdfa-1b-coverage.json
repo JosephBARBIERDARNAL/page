@@ -320,7 +320,7 @@
     "predicates": [
       {
         "applicability": [
-          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
+          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.30.2, which creates the same `CosFileSpecification` object either way)."
         ],
         "coverage": {
           "applicable_fail": {
@@ -396,7 +396,7 @@
         ],
         "object": "CosFileSpecification",
         "predicate": "containsEF == false",
-        "traversal_origin": "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.28.2 to instantiate the same CosFileSpecification object either way)",
+        "traversal_origin": "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.30.2 to instantiate the same CosFileSpecification object either way)",
         "verapdf_rule_id": "ISO 19005-1:2005:6.1.11:1"
       },
       {
@@ -850,7 +850,7 @@
         "verapdf_rule_id": "ISO 19005-1:2005:6.9:1"
       }
     ],
-    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "source": "veraPDF 1.30.2 PDF/A-1B profile",
     "status": "complete"
   },
   "font": {
@@ -1317,7 +1317,7 @@
       },
       {
         "applicability": [
-          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
+          "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.30.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -1748,7 +1748,7 @@
       },
       {
         "applicability": [
-          "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
+          "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.30.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.30.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
           "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program."
         ],
         "content_sources": [
@@ -2024,7 +2024,7 @@
       },
       {
         "applicability": [
-          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
+          "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.30.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -2254,7 +2254,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.28.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
+          "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.30.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -2333,7 +2333,7 @@
       },
       {
         "applicability": [
-          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
+          "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
         ],
         "content_sources": [
           "page content (content_support::ContentExecutor::execute_page/execute_contents)",
@@ -2446,7 +2446,7 @@
         "verapdf_rule_id": "ISO 19005-1:2005:6.3.7:3"
       }
     ],
-    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "source": "veraPDF 1.30.2 PDF/A-1B profile",
     "status": "complete"
   },
   "graphical_content": {
@@ -2648,7 +2648,7 @@
       },
       {
         "applicability": [
-          "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.28.2 does not create content-operation model objects for it."
+          "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.30.2 does not create content-operation model objects for it."
         ],
         "coverage": {
           "applicable_fail": {
@@ -3104,7 +3104,7 @@
       },
       {
         "applicability": [
-          "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
+          "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.30.2 omits their model objects."
         ],
         "coverage": {
           "applicable_fail": {
@@ -3520,7 +3520,7 @@
       },
       {
         "applicability": [
-          "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.28.2."
+          "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.30.2."
         ],
         "coverage": {
           "applicable_fail": {
@@ -4500,7 +4500,7 @@
       },
       {
         "applicability": [
-          "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.28.2."
+          "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.30.2."
         ],
         "coverage": {
           "applicable_fail": {
@@ -4636,7 +4636,7 @@
       }
     ],
     "shared_clause_6_1_predicate_count": 3,
-    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "source": "veraPDF 1.30.2 PDF/A-1B profile",
     "status": "complete"
   },
   "integration_corpus": [
@@ -4731,7 +4731,7 @@
       },
       {
         "applicability": [
-          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
+          "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.30.2, which creates the same `CosFileSpecification` object either way)."
         ],
         "implementation_path": [
           "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
@@ -5208,7 +5208,7 @@
     ],
     "profile_predicate_count": 129,
     "required_predicate_count": 26,
-    "source": "veraPDF 1.28.2 PDF/A-1B profile",
+    "source": "veraPDF 1.30.2 PDF/A-1B profile",
     "status": "complete"
   },
   "mutation_regressions": [
@@ -5598,7 +5598,7 @@
         "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001"
       ],
       "mapping_notes": [
-        "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.28.2, which creates the same `CosFileSpecification` object either way)."
+        "`containsEF == false` for every reachable file specification: dictionary-based values in the catalog's `EmbeddedFiles` name tree (`Names` arrays and recursive `Kids` traversed with configured reference-depth bounds), and a `GoToR`/`SubmitForm` action's `/F` entry (confirmed against veraPDF 1.30.2, which creates the same `CosFileSpecification` object either way)."
       ],
       "object": "CosFileSpecification",
       "predicate": "containsEF == false",
@@ -7152,7 +7152,7 @@
         "PDFA1B-CONTENT-OPERATOR-001"
       ],
       "mapping_notes": [
-        "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.28.2 does not create content-operation model objects for it."
+        "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.30.2 does not create content-operation model objects for it."
       ],
       "object": "Op_Undefined",
       "predicate": "false",
@@ -7771,7 +7771,7 @@
         "PDFA1B-ICCBASED-001"
       ],
       "mapping_notes": [
-        "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.28.2 omits their model objects."
+        "For safely decoded profiles reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; invoked images and alternates; inline images; shadings; transparency-group CS; Indexed bases; Separation/DeviceN alternates; and default-device replacements: `(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0`. Unselected resources, mask-only images, malformed direct profile streams, an uncoloured Pattern's underlying space, and soft-mask `/G` content remain inapplicable exactly where veraPDF 1.30.2 omits their model objects."
       ],
       "object": "ICCInputProfile",
       "predicate": "(deviceClass == \"prtr\" || deviceClass == \"mntr\" || deviceClass == \"scnr\" || deviceClass == \"spac\") && (colorSpace == \"RGB \" || colorSpace == \"CMYK\" || colorSpace == \"GRAY\" || colorSpace == \"Lab \") && version < 3.0",
@@ -8057,7 +8057,7 @@
         "PDFA1B-DEVICE-RGB-001"
       ],
       "mapping_notes": [
-        "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.28.2."
+        "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.30.2."
       ],
       "object": "PDDeviceRGB",
       "predicate": "gOutputCS != null && gOutputCS == \"RGB \"",
@@ -9002,7 +9002,7 @@
         "PDFA1B-RENDERING-INTENT-001"
       ],
       "mapping_notes": [
-        "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.28.2."
+        "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.30.2."
       ],
       "object": "CosRenderingIntent",
       "predicate": "internalRepresentation == \"RelativeColorimetric\" || internalRepresentation == \"AbsoluteColorimetric\" || internalRepresentation == \"Perceptual\" || internalRepresentation == \"Saturation\"",
@@ -9429,7 +9429,7 @@
         "PDFA1B-TYPE0-CID-SYSTEM-INFO-001"
       ],
       "mapping_notes": [
-        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.28.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
+        "`cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)` over CMaps reached by bounded text-show paths. `/Encoding` is resolved through indirection before the Identity-H/V name check (confirmed live: an *indirect* reference to `/Identity-H` is exempt exactly like a direct one). `CIDFontRegistry`/`CIDFontOrdering`/`CMapRegistry`/`CMapOrdering` are each resolved through indirection before comparison (confirmed live: an indirect `/Registry` string compares equal to a matching direct one). Named CMaps resolve against the byte-exact 118-resource collection bundled in veraPDF 1.30.2; the `composite_named_cmap` fixture confirms `/UniJIS-UCS2-H` supplies Adobe/Japan1 system information and produces the same failed-rule delta."
       ],
       "object": "PDType0Font",
       "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry)",
@@ -9947,7 +9947,7 @@
         "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
       ],
       "mapping_notes": [
-        "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.28.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.28.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
+        "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.30.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.30.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
         "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program."
       ],
       "object": "Glyph",
@@ -10090,7 +10090,7 @@
         "PDFA1B-CID-SUBSET-CIDSET-001"
       ],
       "mapping_notes": [
-        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.28.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
+        "For a subset `CIDFontType0`/`CIDFontType2` descendant: the descriptor `/CIDSet` stream's bits identify every rendered CID as present. The descendant's own `/Subtype` and `/BaseFont` are both resolved through indirection before the subset-tag check (confirmed live: an indirect reference to a subset-tagged `/BaseFont` is recognized exactly like a direct one, so a `/CIDSet` omitting a rendered CID is still caught rather than the descendant being treated as non-subset and the check silently skipped). Rendered codes are decoded through Identity, explicit embedded, inherited `usecmap`, and the byte-exact predefined CMap collection bundled in veraPDF 1.30.2; `composite_named_cmap_cidset_real_program` pins `/UniJIS-UCS2-H` code `003F` to CID 32 and reproduces veraPDF's missing-`CIDSet` failure."
       ],
       "object": "PDCIDFont",
       "predicate": "fontName.search(/[A-Z]{6}\\+/) != 0 || (containsCIDSet == true && cidSetListsAllGlyphs == true)",
@@ -10320,7 +10320,7 @@
         "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.28.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
+        "For used TrueType fonts whose descriptor Flags do not set Symbolic: `(Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false`. When `/Encoding` resolves to a dictionary, its `/BaseEncoding` entry is resolved through indirection before this comparison. Still `partial/proxy`: an `/Encoding` value that is present but neither a name, a dictionary, nor null (e.g. a `Boolean` or `Integer`) crashes veraPDF 1.30.2 itself with an unconditional `NullPointerException` in `COSObject.getKey` (confirmed live via reprex, for both symbolic and non-symbolic fonts), so the local treatment of that exact shape (as equivalent to a missing/unrecognized encoding) cannot be differentially verified."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && containsDifferences == false)",
@@ -10369,7 +10369,7 @@
         "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001"
       ],
       "mapping_notes": [
-        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.28.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
+        "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`. Still `partial/proxy` for the same reason as `TRUETYPE-NONSYMBOLIC-ENCODING-001`: a present, non-name/non-dictionary/non-null `/Encoding` value crashes veraPDF 1.30.2 itself (confirmed live via reprex), so whether it should compare unequal to `null` here cannot be differentially verified; direct and indirect `Null` values are both confirmed to resolve and compare as `null` correctly."
       ],
       "object": "PDTrueTypeFont",
       "predicate": "isSymbolic == false || Encoding == null",
@@ -10709,7 +10709,7 @@
         "PDFA1B-TRANSPARENCY-GROUP-001"
       ],
       "mapping_notes": [
-        "For page Groups and all Form Groups reached through veraPDF's bounded invoked graph, including appearances: `S != \"Transparency\"`. A soft-mask `/G` Form is deliberately excluded because veraPDF 1.28.2 does not expose its Group model."
+        "For page Groups and all Form Groups reached through veraPDF's bounded invoked graph, including appearances: `S != \"Transparency\"`. A soft-mask `/G` Form is deliberately excluded because veraPDF 1.30.2 does not expose its Group model."
       ],
       "object": "PDGroup",
       "predicate": "S != \"Transparency\"",
@@ -10759,7 +10759,7 @@
         "PDFA1B-EXTGSTATE-BLEND-MODE-001"
       ],
       "mapping_notes": [
-        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`. Still `partial/proxy`: the minimal `transparency:extgstate_bm_multiply` fixture makes veraPDF 1.28.2 abort with a `VALIDATE` task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure."
+        "For direct or indirect ExtGState dictionaries selected by `gs` in any veraPDF-executed content source: `containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"`. Still `partial/proxy`: the minimal `transparency:extgstate_bm_multiply` fixture makes veraPDF 1.30.2 abort with a `VALIDATE` task exception instead of returning the failing rule, so its applicable-fail state cannot be differentially verified. The opt-in differential test executes this minimal repro and requires that exact upstream exception while also requiring the local blend-mode failure."
       ],
       "object": "PDExtGState",
       "predicate": "containsBM == false || BMNameValue == \"Normal\" || BMNameValue == \"Compatible\"",
@@ -11847,7 +11847,7 @@
         "PDFA1B-ID-SCHEMA-001"
       ],
       "mapping_notes": [
-        "Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.28.2 differential suite."
+        "Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.30.2 differential suite."
       ],
       "object": "MainXMPPackage",
       "predicate": "containsPDFAIdentification == true",
@@ -12002,7 +12002,7 @@
         "PDFA1B-ID-PART-PREFIX-001"
       ],
       "mapping_notes": [
-        "`partPrefix == null || partPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.28.2."
+        "`partPrefix == null || partPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2."
       ],
       "object": "PDFAIdentification",
       "predicate": "partPrefix == null || partPrefix == \"pdfaid\"",
@@ -12051,7 +12051,7 @@
         "PDFA1B-ID-CONFORMANCE-PREFIX-001"
       ],
       "mapping_notes": [
-        "`conformancePrefix == null || conformancePrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.28.2."
+        "`conformancePrefix == null || conformancePrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2."
       ],
       "object": "PDFAIdentification",
       "predicate": "conformancePrefix == null || conformancePrefix == \"pdfaid\"",
@@ -14152,7 +14152,7 @@
         "PDFA1B-XMP-001"
       ],
       "mapping_notes": [
-        "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.28.2."
+        "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2."
       ],
       "object": "XMPPackage",
       "predicate": "isSerializationValid",
@@ -14576,8 +14576,8 @@
     "predicate_count": 129,
     "product": "veraPDF",
     "profile_path": "PDFA-1B-1.28.xml",
-    "profile_sha256": "1fd81cc8002e089a7597967ee607cd1b49744f29219d08a89f79687657fdc75d",
-    "version": "1.28.2"
+    "profile_sha256": "1c8e6bbb1134f611f768243babf2c17a88069334144441035d274de1b4b64a89",
+    "version": "1.30.2"
   },
   "schema_version": 1,
   "variant_matrix": {

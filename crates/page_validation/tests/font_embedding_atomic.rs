@@ -86,7 +86,7 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
         !common::failure_ids(&common::font_fixture("type1_difference_glyph"))
             .contains(TYPE1_GLYPH_PRESENCE)
     );
-    // Confirmed live against veraPDF 1.28.2: a Differences array's code
+    // Confirmed live against veraPDF 1.30.2: a Differences array's code
     // entry as an indirect reference is resolved exactly like a direct
     // value, so the glyph it maps to is still found.
     assert!(

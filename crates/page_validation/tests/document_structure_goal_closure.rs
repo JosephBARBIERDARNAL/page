@@ -64,7 +64,7 @@ fn gap_1_recursive_name_trees_are_bounded_not_silently_truncated() {
 /// `gap_3b` below, found and fixed in `document_features.rs::
 /// inspect_name_tree` by the identical audit. The same name-tree leaf
 /// reachable from two different `Kids` branches is a DAG, not a cycle, and
-/// veraPDF 1.28.2 processes it without a parse or resource-limit failure.
+/// veraPDF 1.30.2 processes it without a parse or resource-limit failure.
 #[test]
 fn gap_1b_duplicate_non_cyclic_name_tree_references_are_not_treated_as_cycles() {
     let mut document = Document::with_version("1.4");
@@ -103,7 +103,7 @@ fn gap_1b_duplicate_non_cyclic_name_tree_references_are_not_treated_as_cycles() 
 }
 
 /// Gap 2: "file specifications reachable outside the currently modeled name
-/// tree." Confirmed (differentially, against real veraPDF 1.28.2) and
+/// tree." Confirmed (differentially, against real veraPDF 1.30.2) and
 /// implemented this session: a `GoToR`/`SubmitForm` action's `/F` file
 /// specification is a second, independent reachability path, pinned in
 /// `verapdf-diff-cases.json`'s `atomic_action_cases` as
@@ -119,7 +119,7 @@ fn gap_2_file_specifications_are_discovered_outside_the_embedded_files_tree() {
 
 /// Gap 3: "page-tree structure and inherited values." Two shapes: a Page
 /// dictionary embedded directly (non-indirect) in `Kids` is still walked
-/// and validated (confirmed against veraPDF 1.28.2 this session, fixed via
+/// and validated (confirmed against veraPDF 1.30.2 this session, fixed via
 /// `page_tree::PageEntry`), and inherited `/Resources` is still resolved
 /// through the `/Parent` chain for that same directly embedded page.
 #[test]
@@ -135,7 +135,7 @@ fn gap_3_page_tree_direct_dictionaries_and_inherited_resources_are_handled() {
 /// this closure test: the page tree's original cycle detection used a
 /// single "ever visited anywhere" set, which treated the same Page object
 /// legitimately reached through two different `Pages` branches (a DAG, not
-/// a cycle) as an error. Confirmed against veraPDF 1.28.2 that this is
+/// a cycle) as an error. Confirmed against veraPDF 1.30.2 that this is
 /// compliant, not rejected; fixed by making cycle detection
 /// ancestor-path-scoped instead of globally-ever-visited (see
 /// `page_tree.rs::walk`'s doc comment for the DAG-blowup safety tradeoff
@@ -188,7 +188,7 @@ fn gap_3b_duplicate_non_cyclic_page_references_are_not_treated_as_cycles() {
 /// pinned PDF/A-1B predicates. There is nothing for this milestone to
 /// implement here because the profile itself has no such predicate for
 /// flavour `1b` — implementing one anyway would violate the goal's own
-/// "do not add broader structural restrictions unless veraPDF 1.28.2
+/// "do not add broader structural restrictions unless veraPDF 1.30.2
 /// reports them" rule.
 #[test]
 fn gap_4_no_logical_structure_predicates_exist_in_the_pinned_1b_profile() {

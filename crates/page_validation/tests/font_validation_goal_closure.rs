@@ -71,7 +71,7 @@ fn gap_every_partial_proxy_font_predicate_has_a_documented_exception() {
 /// anywhere in the 129 pinned PDF/A-1B predicates. There is nothing for
 /// this milestone to implement here because the profile itself has no such
 /// predicate for flavour `1b` — implementing Unicode-mapping validation
-/// anyway would add a restriction veraPDF 1.28.2 does not itself enforce,
+/// anyway would add a restriction veraPDF 1.30.2 does not itself enforce,
 /// which this project's own rule ("veraPDF is the source of truth") forbids.
 #[test]
 fn gap_no_unicode_mapping_predicates_exist_in_the_pinned_1b_profile() {

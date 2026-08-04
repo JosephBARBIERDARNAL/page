@@ -244,7 +244,7 @@ impl Scanner<'_> {
         };
         let subtype = resolved_name(self.document, font, b"Subtype", self.limits)?
             .map(|value| String::from_utf8_lossy(value).into_owned());
-        // veraPDF 1.28.2 does not create a PDFont model object for a missing
+        // veraPDF 1.30.2 does not create a PDFont model object for a missing
         // or unsupported subtype, so none of the PDFont predicates are
         // instantiated for such a resource.
         if !matches!(
@@ -282,7 +282,7 @@ impl Scanner<'_> {
             description: selected.description.clone(),
             subtype: subtype.clone(),
             embedded,
-            // veraPDF 1.28.2 associates the first observed rendering mode
+            // veraPDF 1.30.2 associates the first observed rendering mode
             // with a font model object and does not revise it on later uses.
             visible: rendering_mode != 3,
             shown_bytes: if rendering_mode == 3 {
@@ -295,7 +295,7 @@ impl Scanner<'_> {
         if subtype.as_deref() == Some("Type0")
             && self.active_descendant_fonts.insert(selected.key.clone())
         {
-            // PDF32000 9.7.3 requires exactly one entry, and veraPDF 1.28.2
+            // PDF32000 9.7.3 requires exactly one entry, and veraPDF 1.30.2
             // confirms this in its object model: it creates a PDCIDFont (and
             // evaluates every per-font predicate, including embedding) only
             // for DescendantFonts[0]. A second or later entry is invisible
@@ -1212,7 +1212,7 @@ impl Scanner<'_> {
         let Ok(encoding) = font.get(b"Encoding") else {
             return Ok(());
         };
-        // Confirmed live against veraPDF 1.28.2: an *indirect* reference to
+        // Confirmed live against veraPDF 1.30.2: an *indirect* reference to
         // the name /Identity-H or /Identity-V is accepted exactly like a
         // direct one, so resolution must happen before checking either
         // shape, not only before the stream fallback.
@@ -1340,7 +1340,7 @@ impl Scanner<'_> {
             ));
         }
 
-        // Confirmed live against veraPDF 1.28.2: the "standard 14 fonts"
+        // Confirmed live against veraPDF 1.30.2: the "standard 14 fonts"
         // /FirstChar//LastChar//Widths exemption applies only to Type1/
         // MMType1 -- a TrueType (or Type3) font whose /BaseFont happens to
         // match a standard-14 name (e.g. "Helvetica") is still required to
@@ -1514,7 +1514,7 @@ fn resolve_cid_to_gid_map(
     map: &Object,
     limits: &SafetyLimits,
 ) -> Result<CidToGidMap, PdfError> {
-    // Confirmed live against veraPDF 1.28.2 (matching `valid_cid_to_gid_map`):
+    // Confirmed live against veraPDF 1.30.2 (matching `valid_cid_to_gid_map`):
     // an indirect reference to the name /Identity is accepted exactly like
     // a direct one, so resolution must happen before checking either shape.
     let resolved = resolve_optional(document, map, limits.max_reference_depth)?;
@@ -1710,7 +1710,7 @@ fn valid_cid_to_gid_map(
     value: &Object,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    // Confirmed live against veraPDF 1.28.2: an *indirect* reference to the
+    // Confirmed live against veraPDF 1.30.2: an *indirect* reference to the
     // name /Identity is accepted exactly like a direct one, so resolution
     // must happen before checking either shape, not only before the stream
     // fallback.
@@ -1733,7 +1733,7 @@ fn cid_system_info(
     else {
         return Ok(None);
     };
-    // Confirmed live against veraPDF 1.28.2: an indirect reference to the
+    // Confirmed live against veraPDF 1.30.2: an indirect reference to the
     // /Registry or /Ordering string is resolved exactly like a direct one.
     let Some(registry) = resolved_string(document, info, b"Registry", limits)? else {
         return Ok(None);
@@ -1980,7 +1980,7 @@ fn resolve_cmap_decoder(
     limits: &SafetyLimits,
 ) -> Result<CmapDecoder, PdfError> {
     let resolved = resolve_optional(document, encoding, limits.max_reference_depth)?;
-    // Confirmed live against veraPDF 1.28.2: an indirect reference to the
+    // Confirmed live against veraPDF 1.30.2: an indirect reference to the
     // name /Identity-H or /Identity-V is accepted exactly like a direct one.
     if let Some(name) = resolved.and_then(|object| object.as_name().ok()) {
         if matches!(name, b"Identity-H" | b"Identity-V") {
@@ -3121,7 +3121,7 @@ fn truetype_cmap_count(
         return Ok(None);
     };
     let bytes = decode_font_stream(stream, limits)?;
-    // Confirmed live against veraPDF 1.28.2: it reads the `cmap` table's
+    // Confirmed live against veraPDF 1.30.2: it reads the `cmap` table's
     // subtable count directly from the SFNT table directory, independent
     // of whether the rest of the font (`maxp`, `hhea`, ...) otherwise
     // parses -- a font whose `cmap` table is valid but whose `maxp` table
@@ -3199,7 +3199,7 @@ fn valid_font_program(
         Err(_) => return Ok(false),
     };
     Ok(match key {
-        // Confirmed live against veraPDF 1.28.2: a stream whose bytes start
+        // Confirmed live against veraPDF 1.30.2: a stream whose bytes start
         // with the Type1 magic header but never contain an `eexec` marker
         // (no encrypted/binary section at all, just header text) still
         // fails `PDFA1B-FONT-EMBEDDING-001` on veraPDF -- the header alone
@@ -3212,7 +3212,7 @@ fn valid_font_program(
                     && bytes.windows(2).any(|window| window == [0x80, 0x02]))
         }
         b"FontFile2" => valid_sfnt(&bytes),
-        // Confirmed live against veraPDF 1.28.2: a stream whose bytes
+        // Confirmed live against veraPDF 1.30.2: a stream whose bytes
         // satisfy only the CFF header-byte shape (major/minor version,
         // hdrSize) but contain no parseable CFF structure beyond that still
         // fails `PDFA1B-FONT-EMBEDDING-001` -- the header alone is not
@@ -3229,7 +3229,7 @@ fn valid_font_program(
     })
 }
 
-// Confirmed live against veraPDF 1.28.2 (the same fixture that confirmed
+// Confirmed live against veraPDF 1.30.2 (the same fixture that confirmed
 // `truetype_cmap_count`'s fix): it still considers a `/FontFile2` stream
 // "embedded" (no `PDFA1B-FONT-EMBEDDING-001` failure) even when the font's
 // `maxp` table is malformed enough that a full `ttf_parser::Face::parse`
@@ -3295,7 +3295,7 @@ fn collect_shown_text_bytes(operands: &[Object], bytes: &mut Vec<u8>) {
 }
 
 /// Resolves `object` through indirection before checking whether it is an
-/// integer. Confirmed live against veraPDF 1.28.2 that an *indirect*
+/// integer. Confirmed live against veraPDF 1.30.2 that an *indirect*
 /// numeric value (e.g. a CMap's `/WMode`) is resolved rather than treated
 /// as absent -- the several integer-valued keys this file reads (`/WMode`,
 /// `/Flags`, `/FirstChar`, `/LastChar`) are not guaranteed to be direct.

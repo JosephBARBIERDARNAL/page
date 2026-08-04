@@ -336,7 +336,7 @@ enum RdfTerm {
 }
 
 /// Validate the complete RDF/XML serialization subset accepted by the Adobe
-/// XMP 2004 parser embedded in veraPDF 1.28.2.
+/// XMP 2004 parser embedded in veraPDF 1.30.2.
 fn validate_rdf_package(rdf: Node<'_, '_>, xml: &str) -> Result<(), String> {
     validate_cdata_usage(rdf, xml)?;
     let mut package = RdfNodeState::new(RdfCompoundKind::Schema);

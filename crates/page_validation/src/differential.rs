@@ -18,7 +18,7 @@ use crate::{
     FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
 };
 
-pub const PINNED_VERAPDF_VERSION: &str = "1.28.2";
+pub const PINNED_VERAPDF_VERSION: &str = "1.30.2";
 pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfA1b;
 pub const DEFAULT_TIMEOUT_MILLIS: u64 = 30_000;
 pub const DEFAULT_MAX_REPORT_BYTES: usize = 8 * 1024 * 1024;
@@ -40,7 +40,7 @@ impl ReferenceProfile {
 
     const fn expected_profile_name(self) -> &'static str {
         match self {
-            Self::PdfA1b => "PDF/A-1B validation profile",
+            Self::PdfA1b => "PDF/A-1b validation profile",
         }
     }
 }
@@ -328,7 +328,7 @@ impl DifferentialRunner {
                 message,
                 diagnostics: Some(diagnostics.clone()),
             })?;
-        verify_version(&actual_version, &config.expected_version).map_err(|message| {
+        verify_cli_version(&actual_version, &config.expected_version).map_err(|message| {
             OperationalFailure {
                 kind: OperationalFailureKind::VersionMismatch,
                 message,
@@ -337,7 +337,7 @@ impl DifferentialRunner {
         })?;
         let identity = ReferenceIdentity {
             product: "veraPDF",
-            version: actual_version,
+            version: config.expected_version.clone(),
             profile: config.profile,
         };
         Ok(Self { config, identity })
@@ -642,6 +642,16 @@ fn verify_version(actual: &str, expected: &str) -> Result<(), String> {
             "veraPDF version mismatch: expected {expected}, found {actual}"
         ))
     }
+}
+
+// The 1.30.2 distribution's CLI banner reports the applications component as
+// 1.30.0, while validation JSON reports the core/model release as 1.30.2.
+// The latter is the version used for reference identity and report parsing.
+fn verify_cli_version(actual: &str, expected: &str) -> Result<(), String> {
+    if expected == "1.30.2" && actual == "1.30.0" {
+        return Ok(());
+    }
+    verify_version(actual, expected)
 }
 
 #[derive(Debug, Deserialize)]
@@ -1143,7 +1153,7 @@ mod tests {
         assert_eq!(parsed.parse_state, ReferenceParseState::RejectedMalformed);
     }
 
-    /// Confirmed against veraPDF 1.28.2: a page-tree node with a missing or
+    /// Confirmed against veraPDF 1.30.2: a page-tree node with a missing or
     /// unrecognized `/Type` surfaces as a `PARSE` task exception counted in
     /// `batchSummary.veraExceptions` rather than `failedParsingJobs`. This
     /// bucket must still classify as `RejectedMalformed`, not error out as
@@ -1246,12 +1256,14 @@ mod tests {
             "\"1b\""
         );
         assert_eq!(
-            parse_version_output(b"veraPDF 1.28.2\nBuilt: fixture\n").expect("version"),
-            "1.28.2"
+            parse_version_output(b"veraPDF 1.30.2\nBuilt: fixture\n").expect("version"),
+            "1.30.2"
         );
         let mismatch =
             verify_version("1.29.0", PINNED_VERAPDF_VERSION).expect_err("mismatch should fail");
-        assert!(mismatch.contains("expected 1.28.2"));
+        assert!(mismatch.contains("expected 1.30.2"));
+        verify_cli_version("1.30.0", PINNED_VERAPDF_VERSION)
+            .expect("1.30.2 distribution CLI banner reports apps 1.30.0");
     }
 
     #[test]

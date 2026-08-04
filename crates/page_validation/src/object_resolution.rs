@@ -104,7 +104,7 @@ pub(crate) fn dictionary_based(object: &Object) -> Option<&Dictionary> {
 /// Whether `dictionary` has `key` as a *meaningfully present* entry for a
 /// veraPDF `containsX` boolean predicate: a direct `Object::Null` value is
 /// treated as absent, matching veraPDF's own convention confirmed against
-/// 1.28.2 for every `containsX`/`isXPresent` predicate this crate checks
+/// 1.30.2 for every `containsX`/`isXPresent` predicate this crate checks
 /// (`containsEmbeddedFiles`, `isOptionalContentPresent`, `containsEF`,
 /// `containsAA`, `containsA`, `containsTR2`, `containsOPI`, ...).
 ///

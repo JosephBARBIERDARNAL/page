@@ -15,7 +15,7 @@ const CASES: &[(&str, bool)] = &[
 
 /// A font used only from an annotation appearance stream, a Pattern's own
 /// content, or a Type3 glyph CharProc must still be checked for embedding,
-/// exactly as veraPDF 1.28.2 checks it (confirmed live for each shape below
+/// exactly as veraPDF 1.30.2 checks it (confirmed live for each shape below
 /// before this coverage was added).
 #[test]
 fn fonts_used_outside_page_and_form_content_are_still_checked_for_embedding() {
@@ -56,7 +56,7 @@ fn undeclared_pattern_use_does_not_flag_its_font() {
     assert!(!failures.contains(EMBEDDING));
 }
 
-/// veraPDF 1.28.2 walks a `/D` (down) appearance stream for font use just
+/// veraPDF 1.30.2 walks a `/D` (down) appearance stream for font use just
 /// like `/N`, even though `/D`'s mere presence already fails
 /// `PDFA1B-ANNOTATION-AP-ENTRIES-001` on its own -- both failures are
 /// independently real, not one masking the other.

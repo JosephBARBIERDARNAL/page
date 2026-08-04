@@ -4,7 +4,7 @@
       "releaseDetails": [
         {
           "id": "core",
-          "version": "1.28.2"
+          "version": "1.30.2"
         }
       ]
     },
@@ -17,7 +17,7 @@
               "failedChecks": 0,
               "ruleSummaries": []
             },
-            "profileName": "PDF/A-1B validation profile",
+            "profileName": "PDF/A-1b validation profile",
             "compliant": true
           }
         ]

@@ -39,5 +39,5 @@ colour-managed output.
   table.header([Property], [Expected value]),
   [PDF version], [1.4],
   [Conformance], [PDF/A-1b],
-  [Reference validator], [veraPDF 1.28.2],
+  [Reference validator], [veraPDF 1.30.2],
 )

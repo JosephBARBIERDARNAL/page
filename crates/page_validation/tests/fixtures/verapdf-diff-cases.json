@@ -1,6 +1,6 @@
 {
   "reference": {
-    "version": "1.28.2",
+    "version": "1.30.2",
     "profile": "1b"
   },
   "cases": [
@@ -44,7 +44,7 @@
     {
       "path": "tests/fixtures/encrypted.pdf",
       "expected_classification": "reference_parser_discrepancy",
-      "rationale": "The local parser preserves the trailer and reports its encryption check, while veraPDF 1.28.2 rejects this AES-256 fixture as an encrypted parse task."
+      "rationale": "The local parser preserves the trailer and reports its encryption check, while veraPDF 1.30.2 rejects this AES-256 fixture as an encrypted parse task."
     },
     {
       "path": "tests/fixtures/poster.pdf",
@@ -2424,7 +2424,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "A directly embedded stream is malformed in this position; veraPDF 1.28.2 creates no ICCInputProfile model object, and the local parser likewise leaves the predicate inapplicable."
+      "rationale": "A directly embedded stream is malformed in this position; veraPDF 1.30.2 creates no ICCInputProfile model object, and the local parser likewise leaves the predicate inapplicable."
     }
   ],
   "atomic_device_color_cases": [
@@ -2602,7 +2602,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-DEVICE-RGB-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.3:1"],
-      "rationale": "veraPDF 1.28.2 does not expose a PDDeviceRGB object from the underlying space of a painted uncoloured Pattern."
+      "rationale": "veraPDF 1.30.2 does not expose a PDDeviceRGB object from the underlying space of a painted uncoloured Pattern."
     },
     {
       "name": "devicen_nine_components",
@@ -3054,7 +3054,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-RENDERING-INTENT-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.9:1"],
-      "rationale": "An Image reached only through another Image's Mask entry does not expose its Intent as a rendering-intent model object in veraPDF 1.28.2."
+      "rationale": "An Image reached only through another Image's Mask entry does not expose its Intent as a rendering-intent model object in veraPDF 1.30.2."
     },
     {
       "name": "soft_mask_image_intent_invalid",
@@ -3284,7 +3284,7 @@
         "ISO 19005-1:2005:6.2.8:1"
       ],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "An indirect reference to null remains a meaningfully present TR entry in veraPDF 1.28.2."
+      "rationale": "An indirect reference to null remains a meaningfully present TR entry in veraPDF 1.30.2."
     },
     {
       "name": "undefined_before_malformed_array",
@@ -3464,7 +3464,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.2.10:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "An annotation appearance stream without an explicit Form subtype is still reached through veraPDF 1.28.2's annotation appearance model."
+      "rationale": "An annotation appearance stream without an explicit Form subtype is still reached through veraPDF 1.30.2's annotation appearance model."
     },
     {
       "name": "path_appearance_missing_subtype_form_ref",
@@ -3480,7 +3480,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-IMAGE-BPC-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.4:4"],
-      "rationale": "A stream reached only as an annotation appearance remains a Form-role object in veraPDF 1.28.2 even when its malformed dictionary declares Subtype Image."
+      "rationale": "A stream reached only as an annotation appearance remains a Form-role object in veraPDF 1.30.2 even when its malformed dictionary declares Subtype Image."
     },
     {
       "name": "path_appearance_appearance_and_painted_image_bpc_16",
@@ -3892,7 +3892,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-FONT-EMBEDDING-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
-      "rationale": "veraPDF 1.28.2 retains rendering mode 3 from the font's first text-show use."
+      "rationale": "veraPDF 1.30.2 retains rendering mode 3 from the font's first text-show use."
     },
     {
       "name": "mixed_visible_first",
@@ -3900,7 +3900,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "veraPDF 1.28.2 retains visible mode 0 from the font's first text-show use."
+      "rationale": "veraPDF 1.30.2 retains visible mode 0 from the font's first text-show use."
     },
     {
       "name": "direct_font",
@@ -4460,7 +4460,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "A font used only from a FreeText annotation's /AP /N appearance stream, never from the page's own content, still populates a PDFont object in veraPDF 1.28.2 and is still checked for embedding."
+      "rationale": "A font used only from a FreeText annotation's /AP /N appearance stream, never from the page's own content, still populates a PDFont object in veraPDF 1.30.2 and is still checked for embedding."
     },
     {
       "name": "widget_state_unembedded",
@@ -4468,7 +4468,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "veraPDF 1.28.2 walks every state stream in a button Widget's /AP /N subdictionary, not only the one named by /AS, so a font used only in a non-selected state is still checked for embedding."
+      "rationale": "veraPDF 1.30.2 walks every state stream in a button Widget's /AP /N subdictionary, not only the one named by /AS, so a font used only in a non-selected state is still checked for embedding."
     },
     {
       "name": "down_appearance_unembedded",
@@ -4482,7 +4482,7 @@
         "ISO 19005-1:2005:6.5.3:4"
       ],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "veraPDF 1.28.2 walks a /D (down) appearance stream for font use just like /N, even though /D's mere presence already independently fails PDFA1B-ANNOTATION-AP-ENTRIES-001 (an /AP dictionary with entries other than only /N)."
+      "rationale": "veraPDF 1.30.2 walks a /D (down) appearance stream for font use just like /N, even though /D's mere presence already independently fails PDFA1B-ANNOTATION-AP-ENTRIES-001 (an /AP dictionary with entries other than only /N)."
     },
     {
       "name": "pattern_unembedded",
@@ -4490,7 +4490,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "A font used only inside a tiling Pattern's own content stream, selected via cs/scn and actually painted, still populates a PDFont object in veraPDF 1.28.2."
+      "rationale": "A font used only inside a tiling Pattern's own content stream, selected via cs/scn and actually painted, still populates a PDFont object in veraPDF 1.30.2."
     },
     {
       "name": "pattern_unused",
@@ -4498,7 +4498,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "A Pattern resource that is declared but never selected via cs/scn is not used, so its font must not be flagged, in veraPDF 1.28.2 or locally."
+      "rationale": "A Pattern resource that is declared but never selected via cs/scn is not used, so its font must not be flagged, in veraPDF 1.30.2 or locally."
     },
     {
       "name": "type3_charproc_unembedded",
@@ -4506,7 +4506,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": ["ISO 19005-1:2005:6.3.4:1"],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "A font used only inside a Type3 font's own rendered glyph /CharProcs stream still populates a PDFont object in veraPDF 1.28.2; the Type3 font itself is exempt from this rule but the nested font is not."
+      "rationale": "A font used only inside a Type3 font's own rendered glyph /CharProcs stream still populates a PDFont object in veraPDF 1.30.2; the Type3 font itself is exempt from this rule but the nested font is not."
     }
   ],
   "atomic_type0_descendant_cases": [
@@ -4524,7 +4524,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "PDF32000 9.7.3 requires exactly one /DescendantFonts entry; veraPDF 1.28.2 creates a PDCIDFont object, and checks embedding, only for DescendantFonts[0]. A second, unembedded entry is invisible to it entirely and must not be flagged locally either."
+      "rationale": "PDF32000 9.7.3 requires exactly one /DescendantFonts entry; veraPDF 1.30.2 creates a PDCIDFont object, and checks embedding, only for DescendantFonts[0]. A second, unembedded entry is invisible to it entirely and must not be flagged locally either."
     },
     {
       "name": "second_descendant_missing_cidtogidmap",
@@ -4532,7 +4532,7 @@
       "expected_local_passed_rule_ids": [],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "veraPDF 1.28.2 evaluates PDFA1B-CIDTOGIDMAP-001's rule only against DescendantFonts[0]; a second entry missing /CIDToGIDMap is invisible to it entirely and must not be flagged locally either."
+      "rationale": "veraPDF 1.30.2 evaluates PDFA1B-CIDTOGIDMAP-001's rule only against DescendantFonts[0]; a second entry missing /CIDToGIDMap is invisible to it entirely and must not be flagged locally either."
     }
   ],
   "atomic_composite_font_cases": [
@@ -5108,7 +5108,7 @@
         "ISO 19005-1:2005:6.4:2"
       ],
       "expected_verapdf_passed_rule_ids": [],
-      "rationale": "An indirect reference to null remains a present XObject SMask entry in veraPDF 1.28.2."
+      "rationale": "An indirect reference to null remains a present XObject SMask entry in veraPDF 1.30.2."
     }
   ],
   "atomic_annotation_cases": [
@@ -5832,7 +5832,7 @@
       ],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.6.2:3"],
-      "rationale": "Confirmed against veraPDF 1.28.2: a document catalog with a direct null /AA is compliant, matching the same direct-null convention as containsEmbeddedFiles/isOptionalContentPresent/containsEF. Fixed a real bug where Dictionary::has(b\"AA\") (and the equivalent widget /A, widget /AA, and field /AA presence checks) treated a literal null value as present."
+      "rationale": "Confirmed against veraPDF 1.30.2: a document catalog with a direct null /AA is compliant, matching the same direct-null convention as containsEmbeddedFiles/isOptionalContentPresent/containsEF. Fixed a real bug where Dictionary::has(b\"AA\") (and the equivalent widget /A, widget /AA, and field /AA presence checks) treated a literal null value as present."
     },
     {
       "name": "catalog_additional_javascript",
@@ -6844,7 +6844,7 @@
       "expected_local_passed_rule_ids": ["PDFA1B-ICCBASED-001"],
       "expected_verapdf_failed_rule_ids": [],
       "expected_verapdf_passed_rule_ids": ["ISO 19005-1:2005:6.2.3.2:1"],
-      "rationale": "veraPDF 1.28.2 deliberately does not expose the underlying ICCBased space of an uncoloured Pattern."
+      "rationale": "veraPDF 1.30.2 deliberately does not expose the underlying ICCBased space of an uncoloured Pattern."
     },
     {
       "name": "device_page_group",

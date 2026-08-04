@@ -38,7 +38,7 @@ fn symbolic_cmap_failure_reports_the_table_count() {
     assert!(failure.message.contains("2 cmap subtables"));
 }
 
-/// Confirmed live against veraPDF 1.28.2 via reprex: a TrueType font's
+/// Confirmed live against veraPDF 1.30.2 via reprex: a TrueType font's
 /// `/Encoding` present as a value that is neither a name, a dictionary, nor
 /// null (a `Boolean` here) crashes veraPDF's own validation entirely --
 /// `Wrapped java.lang.NullPointerException: Cannot invoke

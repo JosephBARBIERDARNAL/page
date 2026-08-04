@@ -3672,7 +3672,7 @@ pub fn annotation_fixture(case: &str) -> Vec<u8> {
             annotation.set("Subtype", "MaiAnnot");
             direct_annotation = true;
         }
-        // Confirmed against veraPDF 1.28.2: a Page dictionary embedded
+        // Confirmed against veraPDF 1.30.2: a Page dictionary embedded
         // directly (not as an indirect reference) in the page tree's Kids
         // array is still walked and its annotations validated.
         "direct_page_invalid_annotation" => {
@@ -4970,7 +4970,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
     }
     if case == "tt_symbolic_indirect_flags" {
         // An *indirect* reference to the Symbolic flags value (4), not a
-        // direct one -- confirmed live against veraPDF 1.28.2 to be
+        // direct one -- confirmed live against veraPDF 1.30.2 to be
         // resolved and treated as symbolic exactly like a direct value.
         let indirect_flags = document.add_object(Object::Integer(4));
         descriptor.set("Flags", indirect_flags);
@@ -5357,7 +5357,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
         if case == "type1_indirect_difference_code" {
             // The Differences array's code entry (33) as an *indirect*
             // reference, not a direct integer -- confirmed live against
-            // veraPDF 1.28.2 to be resolved and used exactly like a direct
+            // veraPDF 1.30.2 to be resolved and used exactly like a direct
             // value.
             let indirect_code = document.add_object(Object::Integer(33));
             font.set(
@@ -5484,7 +5484,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
         if case == "composite_indirect_cid_system_info" {
             // The descendant's CIDSystemInfo /Registry as an *indirect*
             // reference, not a direct string -- confirmed live against
-            // veraPDF 1.28.2 to be resolved and compared exactly like a
+            // veraPDF 1.30.2 to be resolved and compared exactly like a
             // direct value.
             let indirect_registry = document.add_object(Object::string_literal("Adobe"));
             descendant_dictionary.set(
@@ -5564,7 +5564,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
                 descendant_dictionary.set("CIDToGIDMap", map);
             }
             // An *indirect* reference to the name /Identity, not a direct
-            // one -- confirmed live against veraPDF 1.28.2 to be accepted
+            // one -- confirmed live against veraPDF 1.30.2 to be accepted
             // exactly like a direct /Identity.
             "composite_cidmap_indirect_identity" => {
                 let map = document.add_object(Object::Name(b"Identity".to_vec()));
@@ -5610,7 +5610,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
         let encoding = match case {
             "composite_identity_v" => Object::Name(b"Identity-V".to_vec()),
             // An *indirect* reference to the name /Identity-H, not a direct
-            // one -- confirmed live against veraPDF 1.28.2 to be accepted
+            // one -- confirmed live against veraPDF 1.30.2 to be accepted
             // exactly like a direct /Identity-H.
             "composite_indirect_identity_h" => {
                 Object::Reference(document.add_object(Object::Name(b"Identity-H".to_vec())))
@@ -5641,7 +5641,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
                     + i64::from(case == "composite_cmap_wmode_indirect_match");
                 let cid_start = u32::from(case == "composite_cmap_cid_too_large") * 65_536;
                 // An *indirect* reference to the /WMode integer, not a
-                // direct one -- confirmed live against veraPDF 1.28.2 to be
+                // direct one -- confirmed live against veraPDF 1.30.2 to be
                 // resolved and compared exactly like a direct value.
                 let wmode_object = if case == "composite_cmap_wmode_indirect_match" {
                     Object::Reference(document.add_object(Object::Integer(dictionary_wmode)))
@@ -5726,7 +5726,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
             font.set("Widths", vec![Object::Reference(indirect_width)]);
         }
         // /FirstChar and /LastChar as *indirect* references, not direct
-        // integers -- confirmed live against veraPDF 1.28.2 to be resolved
+        // integers -- confirmed live against veraPDF 1.30.2 to be resolved
         // and compared exactly like direct values.
         "font_firstchar_lastchar_indirect" => {
             let indirect_first_char = document.add_object(Object::Integer(32));
@@ -5744,7 +5744,7 @@ fn font_fixture_with_type1_program(case: &str, external_type1_program: Option<&[
         }
         // The "standard 14 fonts" /FirstChar//LastChar//Widths exemption is
         // scoped to Type1/MMType1 only (confirmed live against veraPDF
-        // 1.28.2): a TrueType font whose /BaseFont matches a standard-14
+        // 1.30.2): a TrueType font whose /BaseFont matches a standard-14
         // name (e.g. "Helvetica") still requires all three, unlike the
         // Type1 case above.
         "truetype_named_standard14_missing_metrics" => {
@@ -6210,7 +6210,7 @@ fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
 /// content source other than the page's own content stream or an invoked
 /// Form XObject: an annotation appearance stream (including a button
 /// Widget's non-selected state), a Pattern's own content, or a Type3 glyph
-/// CharProc. Each was confirmed live against veraPDF 1.28.2 to still
+/// CharProc. Each was confirmed live against veraPDF 1.30.2 to still
 /// populate a `PDFont` object for a font used only there, so it must still
 /// be checked for embedding (see `content_support::ContentExecutor`'s shared
 /// appearance, Pattern, and Type3 execution paths).
@@ -6291,7 +6291,7 @@ pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
             ));
             // /D's mere presence already fails PDFA1B-ANNOTATION-AP-ENTRIES-001
             // on its own (confirmed live: a compliant /AP has only /N), but
-            // veraPDF 1.28.2 still walks /D for font use regardless, so the
+            // veraPDF 1.30.2 still walks /D for font use regardless, so the
             // unembedded font used only there is independently flagged too.
             annotations.push(document.add_object(dictionary! {
                 "Type" => "Annot",
@@ -6519,7 +6519,7 @@ fn type0_descendant_dictionary(
 
 /// Builds a Type0 font with one or two `/DescendantFonts` entries. PDF32000
 /// 9.7.3 requires exactly one entry, and this was confirmed live against
-/// veraPDF 1.28.2: it creates a `PDCIDFont` object, and evaluates every
+/// veraPDF 1.30.2: it creates a `PDCIDFont` object, and evaluates every
 /// per-font predicate against it (including embedding and `/CIDToGIDMap`),
 /// only for `DescendantFonts[0]`. A second entry is invisible to veraPDF's
 /// object model entirely, however broken -- so `font_embedding.rs`'s
@@ -6535,7 +6535,7 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
         "indirect_identity_cidtogidmap" => {
             // The first descendant's own /CIDToGIDMap as an *indirect*
             // reference to the name /Identity, not a direct one --
-            // confirmed live against veraPDF 1.28.2 to resolve rendered
+            // confirmed live against veraPDF 1.30.2 to resolve rendered
             // CIDs to the same glyphs as a direct /Identity would. /DW is
             // also deliberately mismatched (999, not the real glyph 1
             // advance width of 500): `glyph_for`'s `None` case (an
@@ -6640,7 +6640,7 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
 /// valid (declaring 2 subtables) but whose `maxp` table is truncated to 2
 /// bytes (too short to read `numGlyphs`), so `ttf_parser`'s whole-font
 /// `Face::parse` fails even though the `cmap` table itself is perfectly
-/// readable. Confirmed live against veraPDF 1.28.2: it reads the `cmap`
+/// readable. Confirmed live against veraPDF 1.30.2: it reads the `cmap`
 /// table's subtable count directly (matching its own mapping note, "read
 /// from the bounded SFNT cmap table header"), so `PDFA1B-TRUETYPE-SYMBOLIC-
 /// CMAP-001` must not gate on a full-font parse either -- see

@@ -4,7 +4,7 @@
 
 `page_validation` includes 118 Adobe CMap resources under
 `src/predefined_cmaps/`. They are the byte-exact collection bundled by
-veraPDF 1.28.2. Their upstream source is Adobe's CMap Resources project:
+veraPDF 1.30.2. Their upstream source is Adobe's CMap Resources project:
 
 https://github.com/adobe-type-tools/cmap-resources
 

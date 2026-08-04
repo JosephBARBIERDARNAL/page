@@ -1,4 +1,4 @@
-// Byte-to-glyph-name tables copied from veraPDF 1.28.2's
+// Byte-to-glyph-name tables copied from veraPDF 1.30.2's
 // `org.verapdf.pd.font.truetype.TrueTypePredefined`. These names are model
 // data: glyph presence and width predicates compare them against embedded
 // Type1, Type1C, and Type3 programs.

@@ -1884,7 +1884,7 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.28.2: a catalog Metadata stream with a
+    /// Confirmed against veraPDF 1.30.2: a catalog Metadata stream with a
     /// direct null `/Filter` is compliant, matching the same direct-null
     /// convention as every other `containsX` predicate this crate checks.
     #[test]

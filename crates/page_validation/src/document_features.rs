@@ -85,7 +85,7 @@ pub(crate) fn inspect(
 /// revisited while still an ancestor) raises `PdfError::ReferenceDepth`,
 /// while the same file specification or intermediate node legitimately
 /// reachable from two different `Kids` branches (a DAG, not a cycle) is not
-/// mistaken for one — confirmed against veraPDF 1.28.2, which processes
+/// mistaken for one — confirmed against veraPDF 1.30.2, which processes
 /// such a shared reference without a parse or resource-limit failure, the
 /// same way it does for a page shared by two `Pages` branches. `steps`
 /// bounds the walk's total work (independent of ancestor depth) against a
@@ -239,7 +239,7 @@ mod tests {
         ));
     }
 
-    /// Confirmed against veraPDF 1.28.2: the same name-tree leaf reachable
+    /// Confirmed against veraPDF 1.30.2: the same name-tree leaf reachable
     /// from two different `Kids` branches (a DAG, not a cycle — neither
     /// branch is the other's ancestor) is processed without error, the same
     /// way a Page object shared by two `Pages` branches is (see

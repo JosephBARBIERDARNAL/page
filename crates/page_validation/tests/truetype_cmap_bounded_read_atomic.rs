@@ -6,7 +6,7 @@ use page_validation::differential::{DifferentialRunner, ReferenceConfig};
 #[allow(dead_code)]
 mod common;
 
-/// Confirmed live against veraPDF 1.28.2: `PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`
+/// Confirmed live against veraPDF 1.30.2: `PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001`
 /// reads a TrueType program's `cmap` table subtable count directly from the
 /// SFNT table directory, independent of whether the rest of the font
 /// (`maxp`, `hhea`, ...) otherwise parses. A font whose `cmap` table is

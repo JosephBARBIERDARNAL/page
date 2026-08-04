@@ -13,7 +13,7 @@ const PROFILE_PATH: &str = "tests/fixtures/PDFA-1B-1.28.xml";
 const DIFFERENTIAL_PATH: &str = "tests/fixtures/verapdf-diff-cases.json";
 const RULE_MAPPING_DOC_PATH: &str = "../../docs/rules/pdfa-1b-rule-mapping.md";
 const EXPECTED_PROFILE_SHA256: &str =
-    "1fd81cc8002e089a7597967ee607cd1b49744f29219d08a89f79687657fdc75d";
+    "1c8e6bbb1134f611f768243babf2c17a88069334144441035d274de1b4b64a89";
 
 #[derive(Debug)]
 struct AtomicEvidence {
@@ -39,7 +39,7 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
         string(&reference["product"], "reference product"),
         "veraPDF"
     );
-    assert_eq!(string(&reference["version"], "reference version"), "1.28.2");
+    assert_eq!(string(&reference["version"], "reference version"), "1.30.2");
     assert_eq!(string(&reference["flavour"], "reference flavour"), "1b");
     assert_eq!(
         number(&reference["predicate_count"], "reference predicate count"),
@@ -84,7 +84,7 @@ fn coverage_inventory_matches_the_pinned_profile_and_differential_manifest() {
     assert_eq!(profile_predicates.len(), 129);
 
     let differential = read_json(DIFFERENTIAL_PATH);
-    assert_eq!(differential["reference"]["version"], "1.28.2");
+    assert_eq!(differential["reference"]["version"], "1.30.2");
     assert_eq!(differential["reference"]["profile"], "1b");
     let atomic = atomic_evidence(&differential);
     let predicates = array(&inventory["predicates"], "predicates");
@@ -960,7 +960,7 @@ fn generated_low_level_syntax_matrix(inventory: &Value) -> Value {
         .count();
     json!({
         "status": "complete",
-        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "source": "veraPDF 1.30.2 PDF/A-1B profile",
         "profile_predicate_count": predicates.len(),
         "inventoried_clause_6_1_predicate_count": entries.len(),
         "required_predicate_count": required_count,
@@ -1011,7 +1011,7 @@ fn generated_graphical_content_matrix(inventory: &Value) -> Value {
     assert_eq!(entries.len(), 22, "graphical-content predicate count");
     json!({
         "status": "complete",
-        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "source": "veraPDF 1.30.2 PDF/A-1B profile",
         "clause_6_2_predicate_count": 19,
         "shared_clause_6_1_predicate_count": 3,
         "exact_predicate_count": 22,
@@ -1047,7 +1047,7 @@ fn document_structure_catalog_rooted_rule_ids() -> BTreeSet<&'static str> {
 fn document_structure_traversal_origin(rule_id: &str) -> &'static str {
     match rule_id {
         "ISO 19005-1:2005:6.1.11:1" => {
-            "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.28.2 to instantiate the same CosFileSpecification object either way)"
+            "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.30.2 to instantiate the same CosFileSpecification object either way)"
         }
         "ISO 19005-1:2005:6.1.11:2" => {
             "catalog::resolve_catalog -> Names -> EmbeddedFiles key presence (document_features::inspect)"
@@ -1116,7 +1116,7 @@ fn generated_document_structure_matrix(inventory: &Value) -> Value {
     let family_accounting = generated_predicate_family_accounting(inventory, &catalog_rooted);
     json!({
         "status": "complete",
-        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "source": "veraPDF 1.30.2 PDF/A-1B profile",
         "catalog_rooted_predicate_count": entries.len(),
         "page_tree_owned_predicate_count": 0,
         "name_tree_owned_predicate_count": 0,
@@ -1175,7 +1175,7 @@ fn font_predicate_rule_ids() -> BTreeSet<&'static str> {
 /// only the `/AS`-selected one), tiling Pattern content selected via
 /// `cs`/`scn`, and Type3 `/CharProcs` glyph descriptions for rendered
 /// glyphs. The three additional source families were each confirmed live against
-/// veraPDF 1.28.2 (a font used only there still populates a `PDFont`
+/// veraPDF 1.30.2 (a font used only there still populates a `PDFont`
 /// object) before this milestone added them; see the
 /// `font_content_source_*` atomic and differential cases.
 const FONT_CONTENT_SOURCES: &[&str] = &[
@@ -1235,7 +1235,7 @@ fn generated_font_matrix(inventory: &Value) -> Value {
     assert_eq!(entries.len(), rule_ids.len(), "font predicate count");
     json!({
         "status": "complete",
-        "source": "veraPDF 1.28.2 PDF/A-1B profile",
+        "source": "veraPDF 1.30.2 PDF/A-1B profile",
         "predicate_count": entries.len(),
         "local_only_precondition_rules": [
             "PDFA1B-CMAP-CID-RANGE-001"

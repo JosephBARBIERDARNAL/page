@@ -1,4 +1,4 @@
-//! The predefined CMap collection bundled by veraPDF 1.28.2.
+//! The predefined CMap collection bundled by veraPDF 1.30.2.
 //!
 //! These byte-exact resources are the data its font model resolves for a
 //! named Type0 `/Encoding`. Keeping the lookup private avoids exposing Adobe

@@ -386,7 +386,7 @@ impl Inspector<'_> {
         // CosFileSpecification object, and applies the same containsEF
         // check, for a file spec reached this way as for one reached
         // through the catalog Names/EmbeddedFiles tree (confirmed against
-        // veraPDF 1.28.2).
+        // veraPDF 1.30.2).
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
             && let Some(failure) = file_spec::inspect(

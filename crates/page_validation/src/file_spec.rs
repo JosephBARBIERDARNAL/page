@@ -11,7 +11,7 @@ use crate::report::RuleFailure;
 /// veraPDF creates the same `CosFileSpecification` object, and applies this
 /// same predicate, regardless of how the file specification is reached: the
 /// catalog `Names/EmbeddedFiles` name tree, or a `GoToR`/`SubmitForm`
-/// action's `/F` entry (confirmed against veraPDF 1.28.2: a `GoToR` and a
+/// action's `/F` entry (confirmed against veraPDF 1.30.2: a `GoToR` and a
 /// `SubmitForm` action each targeting a file specification with an `/EF`
 /// entry, and no `Names` tree at all, both report exactly this rule). Every
 /// reachability path shares this one check instead of re-deriving it.

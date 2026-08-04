@@ -726,7 +726,7 @@ mod tests {
 
     use super::*;
 
-    /// Confirmed against veraPDF 1.28.2: a trailer with a direct `/Encrypt
+    /// Confirmed against veraPDF 1.30.2: a trailer with a direct `/Encrypt
     /// null` is compliant (not encrypted), matching the same direct-null
     /// convention as every other `containsX` predicate. Built directly on
     /// an in-memory `Document` rather than round-tripped through bytes:

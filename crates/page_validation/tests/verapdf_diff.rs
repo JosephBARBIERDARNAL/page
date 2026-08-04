@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 use page_validation::SafetyLimits;
 use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, OperationalFailureKind, PINNED_VERAPDF_PROFILE,
-    PINNED_VERAPDF_VERSION, ReferenceConfig,
+    ComparisonClassification, DifferentialRunner, PINNED_VERAPDF_PROFILE, PINNED_VERAPDF_VERSION,
+    ReferenceConfig,
 };
 use serde::Deserialize;
 
@@ -136,6 +136,7 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
                         .expect("baseline reference result")
                         .failed_rule_ids
                         .iter()
+                        .filter(|id| !is_untracked_1302_rule(id))
                         .map(ToString::to_string)
                         .collect::<BTreeSet<_>>()
                 }),
@@ -161,6 +162,7 @@ fn pinned_verapdf_manifest_matches_when_opted_in() {
                 .expect("case reference result")
                 .failed_rule_ids
                 .iter()
+                .filter(|id| !is_untracked_1302_rule(id))
                 .map(ToString::to_string)
                 .collect::<BTreeSet<_>>();
             assert_rule_id_delta(
@@ -363,15 +365,18 @@ fn assert_blend_mode_upstream_repro(runner: &DifferentialRunner, temporary: &Pat
             .any(|failure| failure.rule_id == "PDFA1B-EXTGSTATE-BLEND-MODE-001"),
         "the minimal repro must exercise the local blend-mode predicate"
     );
-    assert_eq!(report.classification, ComparisonClassification::Operational);
-    let failure = report
-        .operational_failure
-        .expect("veraPDF VALIDATE exception must be reported operationally");
-    assert_eq!(failure.kind, OperationalFailureKind::InvalidReferenceReport);
+    assert_eq!(
+        report.classification,
+        ComparisonClassification::BothNoncompliant
+    );
     assert!(
-        failure.message.contains("VALIDATE"),
-        "unexpected veraPDF failure for blend-mode repro: {}",
-        failure.message
+        report
+            .reference_result
+            .as_ref()
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .any(|rule| rule.to_string() == "ISO 19005-1:2005:6.4:4")
     );
 }
 
@@ -456,6 +461,7 @@ fn assert_atomic_cases(
         let reference_ids = reference
             .failed_rule_ids
             .iter()
+            .filter(|id| !is_untracked_1302_rule(id))
             .map(ToString::to_string)
             .collect::<BTreeSet<_>>();
         assert_rule_id_delta(
@@ -468,6 +474,19 @@ fn assert_atomic_cases(
             &case.expected_verapdf_passed_rule_ids,
         );
     }
+}
+
+// veraPDF 1.30.2 adds PDF/A-1 metadata predicates 6.7.3:1 and 6.7.3:8.
+// The repository's pinned 129-predicate profile intentionally remains the
+// legacy profile, so these upstream-only deltas are outside this manifest.
+fn is_untracked_1302_rule(id: &page_validation::differential::ReferenceRuleId) -> bool {
+    id.specification == "ISO 19005-1:2005"
+        && id.clause == "6.7.3"
+        && matches!(id.test_number, 1 | 8)
+}
+
+fn is_untracked_1302_rule_string(id: &str) -> bool {
+    matches!(id, "ISO 19005-1:2005:6.7.3:1" | "ISO 19005-1:2005:6.7.3:8")
 }
 
 /// Asserts that `actual_ids` adds exactly `expected_added`, removes only
@@ -484,12 +503,20 @@ fn assert_rule_id_delta(
     expected_passed: &[String],
 ) {
     let (added, removed) = common::rule_delta(baseline_ids, actual_ids);
-    let expected = expected_added.iter().cloned().collect::<BTreeSet<_>>();
+    let expected = expected_added
+        .iter()
+        .filter(|id| !is_untracked_1302_rule_string(id))
+        .cloned()
+        .collect::<BTreeSet<_>>();
     assert_eq!(
         added, expected,
         "{case_name}: {rationale}: unexpected {label} rule delta; full set {actual_ids:?}"
     );
-    let expected_passed = expected_passed.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_passed = expected_passed
+        .iter()
+        .filter(|id| !is_untracked_1302_rule_string(id))
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let unexpected_removed = removed
         .difference(&expected_passed)
         .cloned()

@@ -130,7 +130,7 @@ fn inspect_image(
         b"BitsPerComponent",
         limits.max_reference_depth,
     )?;
-    // veraPDF 1.28.2's `isMask` getter reads only a direct boolean. An
+    // veraPDF 1.30.2's `isMask` getter reads only a direct boolean. An
     // indirect `true` is therefore modeled as an ordinary image.
     let is_stencil_mask = dictionary
         .get(b"ImageMask")
