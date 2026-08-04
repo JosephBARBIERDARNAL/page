@@ -37,7 +37,25 @@ In the long run, I hope that `page` will provide a veraPDF-compliant alternative
 
 ## Why are there multiple PDF formats?
 
-TODO
+The PDF specification is intentionally broad: it supports features ranging from interactive forms and multimedia to encryption, JavaScript, and digital signatures. This flexibility makes PDF suitable for many use cases, but it also makes it impossible to guarantee that every PDF will behave consistently across all software and over long periods of time.
+
+To address this, the ISO standard defines a number of **specialized PDF profiles**. Each profile restricts or requires certain features to guarantee a particular property.
+
+Some of the most common profiles are:
+
+- `PDF/A`: Long-term document preservation and archiving.
+- `PDF/UA`: Universal accessibility for users of assistive technologies.
+- `PDF/X`: Reliable printing and graphic arts workflows.
+- `PDF/E`: Engineering and technical documentation.
+- `PDF/VT`: Variable-data and transactional printing.
+
+These profiles are not competing formats. Instead, they are **subsets (and sometimes supersets) of the PDF specification**, each designed for a specific purpose.
+
+For example, PDF/A forbids features such as JavaScript or external dependencies because they could make a document impossible to reproduce decades later. Conversely, PDF/UA requires additional semantic information (such as a tag tree and alternative text) to ensure documents are accessible to screen readers.
+
+Because each profile defines **hundreds of requirements**, validating a PDF is much more involved than simply checking whether it "opens correctly." A validator must verify that every applicable rule is satisfied for the requested profile.
+
+This is precisely why projects such as `veraPDF` exist, and why `page` focuses on standards-compliant validation rather than basic PDF parsing.
 
 ## What is PDF validation?
 

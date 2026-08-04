@@ -4,6 +4,7 @@
     "profile": "1a"
   },
   "shared_cases": [
+    "tests/fixtures/typst-pdfa-1a.pdf",
     "tests/fixtures/typst-pdfa-1b.pdf",
     "tests/fixtures/structural.pdf",
     "tests/fixtures/malformed.pdf",
