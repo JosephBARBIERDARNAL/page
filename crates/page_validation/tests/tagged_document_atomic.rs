@@ -5,9 +5,7 @@ use std::collections::BTreeSet;
 use std::env;
 use std::fs;
 
-use page_validation::differential::{
-    DifferentialRunner, ReferenceConfig, ReferenceProfile,
-};
+use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
 use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 const RULE: &str = "PDFA1A-TAGGED-DOCUMENT-001";
@@ -35,7 +33,10 @@ fn tagged_document_cases_enforce_catalog_mark_info() {
         );
         assert_eq!(report.checks.total, 135, "{case}");
         assert_eq!(
-            report.failures.iter().any(|failure| failure.rule_id == RULE),
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == RULE),
             *should_fail,
             "{case}: {:#?}",
             report.failures
@@ -66,7 +67,11 @@ fn tagged_document_cases_match_pinned_verapdf_when_opted_in() {
             .iter()
             .map(ToString::to_string)
             .collect::<BTreeSet<_>>();
-        assert_eq!(failed.contains(reference_rule), *should_fail, "{case}: {report}");
+        assert_eq!(
+            failed.contains(reference_rule),
+            *should_fail,
+            "{case}: {report}"
+        );
         fs::remove_file(path).expect("remove fixture");
     }
 }
