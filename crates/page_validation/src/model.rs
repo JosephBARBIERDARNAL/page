@@ -150,6 +150,10 @@ pub(crate) struct InspectionSummary {
 impl PdfDocument {
     pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
         let document = load_document(bytes, limits)?;
+        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
+        if !encrypted {
+            enforce_object_limit(&document, limits)?;
+        }
         Self::normalize(&document, limits)
     }
 
@@ -158,6 +162,10 @@ impl PdfDocument {
         limits: &SafetyLimits,
     ) -> Result<(Self, InspectionSummary), PdfError> {
         let document = load_document(bytes, limits)?;
+        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
+        if !encrypted {
+            enforce_object_limit(&document, limits)?;
+        }
         let normalized = Self::normalize(&document, limits)?;
         let syntax = crate::syntax::inspect(bytes, &document, limits)?;
         let header = syntax.header.clone();
@@ -330,13 +338,35 @@ fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfErr
     } else {
         Document::load_mem_with_options(bytes, options)?
     };
-    if document.objects.len() > limits.max_object_count {
+    Ok(document)
+}
+
+fn enforce_object_limit(document: &Document, limits: &SafetyLimits) -> Result<(), PdfError> {
+    let indirect_count = document
+        .reference_table
+        .entries
+        .values()
+        .filter(|entry| {
+            !matches!(
+                entry,
+                lopdf::xref::XrefEntry::Free | lopdf::xref::XrefEntry::UnusableFree
+            )
+        })
+        .count();
+    if indirect_count > SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS {
+        return Err(PdfError::TooManyIndirectObjects {
+            actual: indirect_count,
+            limit: SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS,
+        });
+    }
+    let actual = document.objects.len();
+    if actual > limits.max_object_count {
         return Err(PdfError::TooManyObjects {
-            actual: document.objects.len(),
+            actual,
             limit: limits.max_object_count,
         });
     }
-    Ok(document)
+    Ok(())
 }
 
 fn inspect_catalog_metadata(
@@ -746,6 +776,18 @@ mod tests {
         let normalized =
             PdfDocument::normalize(&document, &SafetyLimits::default()).expect("normalize");
         assert!(!normalized.encrypted);
+    }
+
+    #[test]
+    fn encrypted_documents_are_normalized_before_the_object_safety_cap() {
+        let limits = SafetyLimits {
+            max_object_count: 0,
+            ..SafetyLimits::default()
+        };
+        let document =
+            PdfDocument::from_bytes(include_bytes!("../tests/fixtures/encrypted.pdf"), &limits)
+                .expect("encryption is a terminal PDF/A finding");
+        assert!(document.encrypted);
     }
 
     #[test]

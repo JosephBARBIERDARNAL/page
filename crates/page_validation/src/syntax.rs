@@ -15,7 +15,7 @@ const MAX_STRING_BYTES: usize = 65_535;
 const MAX_NAME_BYTES: usize = 127;
 const MAX_ARRAY_ENTRIES: usize = 8_191;
 const MAX_DICTIONARY_ENTRIES: usize = 4_095;
-const MAX_INDIRECT_OBJECTS: usize = 8_388_607;
+const MAX_INDIRECT_OBJECTS: usize = SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SyntaxSummary {

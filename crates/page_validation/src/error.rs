@@ -13,6 +13,9 @@ pub enum PdfError {
     #[error("PDF contains {actual} objects, exceeding the {limit}-object limit")]
     TooManyObjects { actual: usize, limit: usize },
 
+    #[error("PDF contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}")]
+    TooManyIndirectObjects { actual: usize, limit: usize },
+
     #[error("reference chain exceeds the configured depth of {0}")]
     ReferenceDepth(usize),
 

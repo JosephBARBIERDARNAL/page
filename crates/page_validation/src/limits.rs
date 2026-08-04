@@ -7,6 +7,8 @@ pub struct SafetyLimits {
 }
 
 impl SafetyLimits {
+    /// ISO 19005-1:2005, 6.1.12-7 permits at most this many indirect objects.
+    pub const PDF_A1_MAX_INDIRECT_OBJECTS: usize = 8_388_607;
     pub const DEFAULT_MAX_INPUT_SIZE: u64 = 256 * 1024 * 1024;
     pub const DEFAULT_MAX_DECODED_STREAM_SIZE: usize = 32 * 1024 * 1024;
     pub const DEFAULT_MAX_OBJECT_COUNT: usize = 1_000_000;

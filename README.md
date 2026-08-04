@@ -146,8 +146,11 @@ Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR`
 
 ## Roadmap
 
+> [!IMPORTANT]
+> page implements a PDF/A-1 validator based on ISO 19005-1 and is extensively verified against veraPDF 1.30.2, with documented limitations around the impractical [maximum indirect-object boundary](https://github.com/veraPDF/veraPDF-validation-profiles/wiki/PDFA-Part-1-rules#rule-6112-7).
+
 - [x] PDF/A-1b
-- [ ] PDF/A-1a (current focus)
+- [x] PDF/A-1a
 - [ ] PDF/A-2a
 - [ ] PDF/A-2b
 - [ ] PDF/A-2u

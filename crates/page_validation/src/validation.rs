@@ -180,6 +180,15 @@ pub fn validate_bytes_with_profile(
                 error.to_string(),
             );
         }
+        Err(PdfError::TooManyIndirectObjects { actual, limit }) => {
+            return ValidationReport::conformance_failure(
+                profile,
+                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+                format!(
+                    "the document contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}"
+                ),
+            );
+        }
         Err(error) => return ValidationReport::parse_failure(profile, error.to_string()),
     };
     validate_document(document, inspections, profile)
@@ -2193,6 +2202,43 @@ mod tests {
                 .all(|failure| failure.rule_id != "PDF-PARSE-001")
         );
         assert_eq!(report.exit_code(), 2);
+    }
+
+    #[test]
+    fn encryption_takes_precedence_over_object_safety_limit() {
+        let limits = SafetyLimits {
+            max_object_count: 0,
+            ..SafetyLimits::default()
+        };
+        let report = validate_bytes_with_profile(
+            include_bytes!("../tests/fixtures/encrypted.pdf"),
+            ValidationProfile::PdfA1b,
+            &limits,
+        );
+        assert_rule(&report, "PDFA1B-ENCRYPTION-001");
+        assert!(!report.has_operational_failure());
+        assert_eq!(report.exit_code(), 2);
+    }
+
+    #[test]
+    fn ordinary_object_safety_limit_remains_operational() {
+        let limits = SafetyLimits {
+            max_object_count: 0,
+            ..SafetyLimits::default()
+        };
+        let report = validate_bytes_with_profile(
+            include_bytes!("../tests/fixtures/structural.pdf"),
+            ValidationProfile::PdfA1b,
+            &limits,
+        );
+        assert_rule(&report, "RESOURCE-LIMIT-001");
+        assert!(
+            !report
+                .failures
+                .iter()
+                .any(|failure| { failure.rule_id == "PDFA1B-INDIRECT-OBJECT-COUNT-001" })
+        );
+        assert_eq!(report.exit_code(), 1);
     }
 
     #[test]

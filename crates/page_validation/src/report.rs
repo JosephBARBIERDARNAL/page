@@ -68,6 +68,14 @@ impl ValidationReport {
         Self::single_failure(profile, rule_id, message, FailureCategory::Operational)
     }
 
+    pub(crate) fn conformance_failure(
+        profile: ValidationProfile,
+        rule_id: &'static str,
+        message: impl Into<String>,
+    ) -> Self {
+        Self::single_failure(profile, rule_id, message, FailureCategory::Conformance)
+    }
+
     fn single_failure(
         profile: ValidationProfile,
         rule_id: &'static str,
