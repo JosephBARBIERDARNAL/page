@@ -856,7 +856,19 @@
 <p>The reasons for choosing Rust for <code>page</code> are speed, memory and type safety, and downstream integration. Indeed, it's easier to integrate Rust-based programs with Python and JavaScript, as well as with other languages through a C interface (even if that's also possible with Java).</p>
 </div>
 <h2 id="why-are-there-multiple-pdf-formats">Why are there multiple PDF formats?<a class="headerlink" href="#why-are-there-multiple-pdf-formats" title="Permanent link">&para;</a></h2>
-<p>TODO</p>
+<p>The PDF specification is intentionally broad: it supports features ranging from interactive forms and multimedia to encryption, JavaScript, and digital signatures. This flexibility makes PDF suitable for many use cases, but it also makes it impossible to guarantee that every PDF will behave consistently across all software and over long periods of time.</p>
+<p>To address this, the ISO standard defines a number of <strong>specialized PDF profiles</strong>. Each profile restricts or requires certain features to guarantee a particular property.</p>
+<p>Some of the most common profiles are:</p>
+<ul>
+<li><code>PDF/A</code>: Long-term document preservation and archiving.</li>
+<li><code>PDF/UA</code>: Universal accessibility for users of assistive technologies.</li>
+<li><code>PDF/X</code>: Reliable printing and graphic arts workflows.</li>
+<li><code>PDF/E</code>: Engineering and technical documentation.</li>
+<li><code>PDF/VT</code>: Variable-data and transactional printing.</li>
+</ul>
+<p>These profiles are not competing formats. Instead, they are <strong>subsets (and sometimes supersets) of the PDF specification</strong>, each designed for a specific purpose.</p>
+<p>For example, PDF/A forbids features such as JavaScript or external dependencies because they could make a document impossible to reproduce decades later. Conversely, PDF/UA requires additional semantic information (such as a tag tree and alternative text) to ensure documents are accessible to screen readers.</p>
+<p>Because each profile defines <strong>hundreds of requirements</strong>, validating a PDF is much more involved than simply checking whether it "opens correctly." A validator must verify that every applicable rule is satisfied for the requested profile.</p>
 <h2 id="what-is-pdf-validation">What is PDF validation?<a class="headerlink" href="#what-is-pdf-validation" title="Permanent link">&para;</a></h2>
 <p>TODO</p>
 
