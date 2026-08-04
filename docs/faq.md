@@ -7,7 +7,7 @@ title: "FAQ"
 There are multiple projects that attempt to provide a PDF validator, but only one is:
 
 - open source
-- fully compliant with ISO standards
+- based on ISO standards
 - cross-platform
 - non-commercial
 
