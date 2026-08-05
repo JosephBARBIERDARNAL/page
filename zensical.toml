@@ -15,6 +15,7 @@ nav = [
     "api/web-assembly.md",
   ] },
   { "Rule Reference" = ["rules/pdfa-1-rule-mapping.md"] },
+  { "PDF syntax" = "pdf-syntax.md" },
   { "FAQ" = ["faq.md"] }
 ]
 
