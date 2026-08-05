@@ -1,6 +1,6 @@
 # page
 
-`page` is an experimental PDF/A and PDF/UA validaton engine, written in Rust.
+`page` is an experimental PDF/A and PDF/UA validation engine, written in Rust.
 
 > [!WARNING]
 > This project is experimental and isn't really usable yet.
