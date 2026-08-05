@@ -3,7 +3,7 @@
 `page` is an experimental PDF/A and PDF/UA validaton engine, written in Rust.
 
 > [!WARNING]
-> This project is an experimental project and isn't really usable yet.
+> This project is experimental and isn't really usable yet.
 
 <br>
 
