@@ -5906,6 +5906,26 @@
         "semantic_note": "Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state.",
         "object": "PDICCBasedCMYK",
         "predicate": "overprintFlag == false || OPM == 0"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.4:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-SEPARATION-CONSISTENCY-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression.",
+        "object": "PDSeparation",
+        "predicate": "areTintAndAlternateConsistent == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.4:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-SEPARATION-CONSISTENCY-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression.",
+        "object": "PDSeparation",
+        "predicate": "areTintAndAlternateConsistent == true"
       }
     ],
     "coverage_gaps": [
@@ -5944,15 +5964,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.8:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.4:2",
         "applicable_profiles": [
           "2a",
           "2b",
@@ -6083,15 +6094,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.8:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.4:2",
         "applicable_profiles": [
           "3a",
           "3b",

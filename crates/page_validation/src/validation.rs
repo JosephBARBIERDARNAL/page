@@ -1798,6 +1798,14 @@ fn validate_font_dictionaries(
             "PDFA1B-CMAP-CID-RANGE-001",
         ),
         (
+            if _profile.is_pdfa_2_or_3() {
+                fonts.invalid_cmap_references.as_slice()
+            } else {
+                &[]
+            },
+            "PDFA1B-CMAP-REFERENCE-001",
+        ),
+        (
             fonts.oversized_cmap_cids.as_slice(),
             "PDFA1B-CMAP-MAX-CID-001",
         ),

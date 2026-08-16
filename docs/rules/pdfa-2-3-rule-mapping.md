@@ -813,6 +813,12 @@ These rules apply to both PDF/A-2 and PDF/A-3; shared validation code selects th
 | `PDFA3A-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
 | `PDFA3B-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
 | `PDFA3U-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA2A-SEPARATION-CONSISTENCY-001` | `ISO 19005-2:2011:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
+| `PDFA2B-SEPARATION-CONSISTENCY-001` | `ISO 19005-2:2011:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
+| `PDFA2U-SEPARATION-CONSISTENCY-001` | `ISO 19005-2:2011:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
+| `PDFA3A-SEPARATION-CONSISTENCY-001` | `ISO 19005-3:2012:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
+| `PDFA3B-SEPARATION-CONSISTENCY-001` | `ISO 19005-3:2012:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
+| `PDFA3U-SEPARATION-CONSISTENCY-001` | `ISO 19005-3:2012:6.2.4.4:2` | §6.2.4.4 | exact | Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression. |
 
 ## PDF/A-2 mappings
 

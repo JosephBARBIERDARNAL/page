@@ -74,7 +74,7 @@ pub(crate) fn inspect(
     // selection, so retain its whole parsed-object population in addition to
     // the executed colour spaces above.
     let (all_pdfa1, all_pdfa2, all_colorants) = inspect_all_devicen_components(document, limits)?;
-    let inconsistent_separations = inspect_separation_consistency(document, limits)?;
+    let inconsistent_separations = inspect_separation_consistency(document, execution, limits)?;
     inspector.invalid_devicen_components.extend(all_pdfa1);
     inspector.invalid_devicen_components_pdfa2.extend(all_pdfa2);
     inspector.invalid_devicen_colorants.extend(all_colorants);
@@ -125,12 +125,20 @@ pub(crate) fn inspect(
 
 fn inspect_separation_consistency(
     document: &Document,
+    execution: &ContentExecutionSummary,
     limits: &SafetyLimits,
 ) -> Result<Vec<RuleFailure>, PdfError> {
     let mut by_name = BTreeMap::<String, (Object, Object)>::new();
     let mut failures = Vec::new();
-    for object in document.objects.values() {
-        collect_separations(document, object, limits, &mut by_name, &mut failures, 0)?;
+    for selected in &execution.selected_color_spaces {
+        collect_separations(
+            document,
+            &selected.value,
+            limits,
+            &mut by_name,
+            &mut failures,
+            0,
+        )?;
     }
     Ok(failures)
 }
@@ -147,16 +155,35 @@ fn collect_separations(
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
     match object {
+        Object::Reference(_) => {
+            if let Some(resolved) = resolve_optional(document, object, limits.max_reference_depth)?
+            {
+                collect_separations(document, resolved, limits, by_name, failures, depth + 1)?;
+            }
+        }
         Object::Array(items) => {
             if items.first().and_then(|item| item.as_name().ok()) == Some(b"Separation".as_slice())
-                && let (Some(name), Some(alternate), Some(tint)) =
-                    (items.get(1).and_then(|item| item.as_name().ok()), items.get(2), items.get(3))
+                && let (Some(name), Some(alternate), Some(tint)) = (
+                    items.get(1).and_then(|item| item.as_name().ok()),
+                    items.get(2),
+                    items.get(3),
+                )
             {
                 let name = crate::model::decode_verapdf_pdf_string(name);
                 if let Some((expected_alternate, expected_tint)) = by_name.get(&name) {
-                    if !equivalent_pdf_objects(document, expected_alternate, alternate, limits, depth + 1)?
-                        || !equivalent_pdf_objects(document, expected_tint, tint, limits, depth + 1)?
-                    {
+                    if !equivalent_pdf_objects(
+                        document,
+                        expected_alternate,
+                        alternate,
+                        limits,
+                        depth + 1,
+                    )? || !equivalent_pdf_objects(
+                        document,
+                        expected_tint,
+                        tint,
+                        limits,
+                        depth + 1,
+                    )? {
                         failures.push(RuleFailure {
                             object_id: None,
                             description: format!("Separation /{name} has inconsistent alternate space or tint transform"),
@@ -197,12 +224,65 @@ fn equivalent_pdf_objects(
     }
     let left = resolve_optional(document, left, limits.max_reference_depth)?.unwrap_or(left);
     let right = resolve_optional(document, right, limits.max_reference_depth)?.unwrap_or(right);
-    Ok(match (left, right) {
-        (Object::Array(left), Object::Array(right)) => left.len() == right.len() && left.iter().zip(right).all(|(left, right)| equivalent_pdf_objects(document, left, right, limits, depth + 1).unwrap_or(false)),
-        (Object::Dictionary(left), Object::Dictionary(right)) => left.len() == right.len() && left.iter().all(|(key, value)| right.get(key).ok().is_some_and(|other| equivalent_pdf_objects(document, value, other, limits, depth + 1).unwrap_or(false))),
-        (Object::Stream(left), Object::Stream(right)) => left.dict.len() == right.dict.len() && left.dict.iter().all(|(key, value)| right.dict.get(key).ok().is_some_and(|other| equivalent_pdf_objects(document, value, other, limits, depth + 1).unwrap_or(false))) && left.decompressed_content().ok() == right.decompressed_content().ok(),
-        _ => left == right,
-    })
+    match (left, right) {
+        (Object::Array(left), Object::Array(right)) => {
+            if left.len() != right.len() {
+                return Ok(false);
+            }
+            for (left, right) in left.iter().zip(right) {
+                if !equivalent_pdf_objects(document, left, right, limits, depth + 1)? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
+        (Object::Dictionary(left), Object::Dictionary(right)) => {
+            if left.len() != right.len() {
+                return Ok(false);
+            }
+            for (key, value) in left.iter() {
+                let Some(other) = right.get(key).ok() else {
+                    return Ok(false);
+                };
+                if !equivalent_pdf_objects(document, value, other, limits, depth + 1)? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
+        (Object::Stream(left), Object::Stream(right)) => {
+            let filtered_len = |dictionary: &lopdf::Dictionary| {
+                dictionary
+                    .iter()
+                    .filter(|(key, _)| {
+                        key.as_slice() != b"Filter" && key.as_slice() != b"DecodeParms"
+                    })
+                    .count()
+            };
+            if filtered_len(&left.dict) != filtered_len(&right.dict) {
+                return Ok(false);
+            }
+            for (key, value) in left.dict.iter() {
+                if key.as_slice() == b"Filter" || key.as_slice() == b"DecodeParms" {
+                    continue;
+                }
+                let Some(other) = right.dict.get(key).ok() else {
+                    return Ok(false);
+                };
+                if !equivalent_pdf_objects(document, value, other, limits, depth + 1)? {
+                    return Ok(false);
+                }
+            }
+            let left_bytes = left
+                .decompressed_content_with_limit(limits.max_decoded_stream_size)
+                .map_err(|_| PdfError::UnexpectedObject("could not decode Separation stream"))?;
+            let right_bytes = right
+                .decompressed_content_with_limit(limits.max_decoded_stream_size)
+                .map_err(|_| PdfError::UnexpectedObject("could not decode Separation stream"))?;
+            Ok(left_bytes == right_bytes)
+        }
+        _ => Ok(left == right),
+    }
 }
 
 impl Inspector<'_> {

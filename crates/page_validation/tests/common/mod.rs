@@ -2053,6 +2053,26 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "icc_baseline" | "device_baseline" | "intent_baseline" => {}
+        "separation_consistent"
+        | "separation_inconsistent"
+        | "separation_unreferenced_inconsistent" => {
+            let first = separation(Object::Name(b"DeviceRGB".to_vec()));
+            let second = if case == "separation_inconsistent" {
+                separation(Object::Name(b"DeviceCMYK".to_vec()))
+            } else {
+                first.clone()
+            };
+            if case == "separation_unreferenced_inconsistent" {
+                document.add_object(first);
+                document.add_object(second);
+            } else {
+                resources.set(
+                    "ColorSpace",
+                    dictionary! { "CS1" => first, "CS2" => second },
+                );
+                contents = b"/CS1 cs\n/CS2 cs\n".to_vec();
+            }
+        }
         "icc_separation_alternate" | "icc_separation_valid" => {
             let alternate = if case == "icc_separation_valid" {
                 valid_icc.clone()
@@ -6692,6 +6712,7 @@ pub fn font_fixture_with_type1_program(
             | "composite_cmap_wmode_mismatch"
             | "composite_cmap_wmode_indirect_match"
             | "composite_cmap_cid_too_large"
+            | "composite_cmap_unknown_usecmap"
             | "composite_cidset_nonidentity_real_program"
             | "composite_nonidentity_missing_glyph"
             | "composite_nonidentity_multibyte_missing_glyph"
@@ -6730,6 +6751,8 @@ pub fn font_fixture_with_type1_program(
                         embedded_two_byte_cmap(cmap_ordering, content_wmode, cid_start)
                     } else if case == "composite_identity_usecmap_missing_glyph" {
                         embedded_identity_usecmap(cmap_ordering, content_wmode)
+                    } else if case == "composite_cmap_unknown_usecmap" {
+                        embedded_unknown_usecmap(cmap_ordering, content_wmode)
                     } else {
                         embedded_cmap(cmap_ordering, content_wmode, cid_start)
                     },
@@ -8263,6 +8286,11 @@ pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
          end\n"
     )
     .into_bytes()
+}
+
+pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+    embedded_identity_usecmap(ordering, wmode)
+        .replace("/Identity-H usecmap", "/NotAStandardCMap usecmap")
 }
 
 pub fn content(operations: Vec<Operation>) -> Vec<u8> {

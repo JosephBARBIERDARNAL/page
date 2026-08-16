@@ -13,6 +13,7 @@ const CMAP_EMBEDDING: &str = "PDFA1B-CMAP-EMBEDDING-001";
 const CMAP_WMODE: &str = "PDFA1B-CMAP-WMODE-001";
 const CMAP_CID_RANGE: &str = "PDFA1B-CMAP-CID-RANGE-001";
 const CMAP_MAX_CID: &str = "PDFA1B-CMAP-MAX-CID-001";
+const CMAP_REFERENCE: &str = "PDFA1B-CMAP-REFERENCE-001";
 const CID_SUBSET_CIDSET: &str = "PDFA1B-CID-SUBSET-CIDSET-001";
 const GLYPH_PRESENCE: &str = "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001";
 const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
@@ -78,6 +79,7 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_identity_usecmap_missing_glyph",
         &[GLYPH_PRESENCE],
     ),
+    ("composite_cmap_unknown_usecmap", &[CMAP_REFERENCE]),
     ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_cff_present_glyph", &[]),
     ("composite_cff_width_mismatch", &[GLYPH_WIDTH]),

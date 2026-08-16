@@ -30,6 +30,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) unembedded_predefined_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_cmap_wmodes: Vec<RuleFailure>,
     pub(crate) invalid_cmap_cids: Vec<RuleFailure>,
+    pub(crate) invalid_cmap_references: Vec<RuleFailure>,
     pub(crate) oversized_cmap_cids: Vec<RuleFailure>,
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
@@ -105,6 +106,7 @@ struct Scanner<'a> {
     unembedded_predefined_cmaps: Vec<RuleFailure>,
     invalid_cmap_wmodes: Vec<RuleFailure>,
     invalid_cmap_cids: Vec<RuleFailure>,
+    invalid_cmap_references: Vec<RuleFailure>,
     oversized_cmap_cids: Vec<RuleFailure>,
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
@@ -144,6 +146,7 @@ pub(crate) fn inspect(
         unembedded_predefined_cmaps: Vec::new(),
         invalid_cmap_wmodes: Vec::new(),
         invalid_cmap_cids: Vec::new(),
+        invalid_cmap_references: Vec::new(),
         oversized_cmap_cids: Vec::new(),
         invalid_type1_subset_charsets: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
@@ -215,6 +218,7 @@ pub(crate) fn inspect(
         unembedded_predefined_cmaps: scanner.unembedded_predefined_cmaps,
         invalid_cmap_wmodes: scanner.invalid_cmap_wmodes,
         invalid_cmap_cids: scanner.invalid_cmap_cids,
+        invalid_cmap_references: scanner.invalid_cmap_references,
         oversized_cmap_cids: scanner.oversized_cmap_cids,
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
@@ -1397,6 +1401,15 @@ impl Scanner<'_> {
             .flatten()
             .unwrap_or(0);
         let bytes = decode_font_stream(cmap, self.limits)?;
+        if let Some(base_name) = cmap_usecmap_name(&bytes)
+            && !is_pdfa_2_3_predefined_cmap(base_name)
+        {
+            self.invalid_cmap_references.push(font_failure(
+                object_id,
+                description,
+                "references a CMap outside the PDF/A-2 and PDF/A-3 predefined CMap set",
+            ));
+        }
         if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
             self.invalid_cmap_cids.push(font_failure(
                 object_id,
