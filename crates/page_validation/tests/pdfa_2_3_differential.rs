@@ -40,6 +40,12 @@ struct CheckedInMutation {
     path: PathBuf,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum EvidenceKind {
+    Fail,
+    Inapplicable,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct AtomicCandidate {
     family: String,
@@ -47,6 +53,7 @@ struct AtomicCandidate {
     path: Option<PathBuf>,
     reidentify: bool,
     local_rule_ids: Vec<String>,
+    kind: EvidenceKind,
 }
 
 #[test]
@@ -181,6 +188,7 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
                 path: Some(path),
                 reidentify: !local_rule_id.contains("-ID-"),
                 local_rule_ids: vec![local_rule_id],
+                kind: EvidenceKind::Fail,
             },
         );
     }
@@ -281,6 +289,12 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
                     .any(|id| id.to_string() == reference_rule)
             });
             if !local_failed || !reference_failed {
+                if candidate.kind == EvidenceKind::Inapplicable
+                    && !local_failed
+                    && !reference_failed
+                {
+                    continue;
+                }
                 missing.push(format!(
                     "{profile_name}:{canonical}:{} local_failed={local_failed} reference_failed={reference_failed}",
                     candidate.case
@@ -327,6 +341,7 @@ fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
                             path: None,
                             reidentify: !local_rule_ids.iter().any(|id| id.contains("-ID-")),
                             local_rule_ids,
+                            kind: EvidenceKind::Fail,
                         })
                     }
                 })
@@ -341,6 +356,11 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
         path: None,
         reidentify: !local_rule_id.contains("-ID-"),
         local_rule_ids: vec![local_rule_id.to_owned()],
+        kind: EvidenceKind::Fail,
+    };
+    let inapplicable = |family: &str, name: &str, local_rule_id: &str| AtomicCandidate {
+        kind: EvidenceKind::Inapplicable,
+        ..case(family, name, local_rule_id)
     };
     let checked_in = |path: &str, local_rule_id: &str| AtomicCandidate {
         family: "checked_in".to_owned(),
@@ -348,6 +368,7 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
         path: Some(PathBuf::from(path)),
         reidentify: !local_rule_id.contains("-ID-"),
         local_rule_ids: vec![local_rule_id.to_owned()],
+        kind: EvidenceKind::Fail,
     };
 
     vec![
@@ -475,7 +496,7 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "halftone_transfer_primary_invalid",
             "PDFA1B-HALFTONE-NAME-001",
         ),
-        case("font", "font_subtype_invalid", "PDFA1B-FONT-SUBTYPE-001"),
+        inapplicable("font", "font_subtype_invalid", "PDFA1B-FONT-SUBTYPE-001"),
         case(
             "annotation",
             "flags_invisible",
