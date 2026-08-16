@@ -413,6 +413,21 @@ const CASES: &[(&str, &[&str])] = &[
 ];
 
 #[test]
+fn pdfa2_rejects_undefined_xmp_properties_with_the_profile_rule() {
+    let report = validate_bytes_with_profile(
+        &common::metadata_fixture("predefined_unknown_property"),
+        ValidationProfile::PdfA2b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA2B-XMP-PROPERTY-DEFINITION-001")
+    );
+}
+
+#[test]
 fn metadata_cases_have_the_complete_expected_failure_delta() {
     common::assert_case_deltas(common::metadata_fixture, "baseline_b", CASES);
 }

@@ -13,7 +13,6 @@ const CMAP_EMBEDDING: &str = "PDFA1B-CMAP-EMBEDDING-001";
 const CMAP_WMODE: &str = "PDFA1B-CMAP-WMODE-001";
 const CMAP_CID_RANGE: &str = "PDFA1B-CMAP-CID-RANGE-001";
 const CMAP_MAX_CID: &str = "PDFA1B-CMAP-MAX-CID-001";
-const CMAP_REFERENCE: &str = "PDFA1B-CMAP-REFERENCE-001";
 const CID_SUBSET_CIDSET: &str = "PDFA1B-CID-SUBSET-CIDSET-001";
 const GLYPH_PRESENCE: &str = "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001";
 const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
@@ -79,7 +78,7 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_identity_usecmap_missing_glyph",
         &[GLYPH_PRESENCE],
     ),
-    ("composite_cmap_unknown_usecmap", &[CMAP_REFERENCE]),
+    ("composite_cmap_unknown_usecmap", &[]),
     ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_cff_present_glyph", &[]),
     ("composite_cff_width_mismatch", &[GLYPH_WIDTH]),
@@ -118,6 +117,34 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
     }
 
     common::assert_case_deltas(common::font_fixture, "composite_baseline", CASES);
+}
+
+#[test]
+fn unknown_usecmap_reference_is_rejected_in_pdfa2_and_pdfa3() {
+    for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
+        let report = validate_bytes_with_profile(
+            &common::font_fixture("composite_cmap_unknown_usecmap"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        let expected = match profile {
+            ValidationProfile::PdfA2b => "PDFA2B-CMAP-REFERENCE-001",
+            ValidationProfile::PdfA3b => "PDFA3B-CMAP-REFERENCE-001",
+            _ => unreachable!(),
+        };
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == expected),
+            "{profile:?} did not report {expected}: {:?}",
+            report
+                .failures
+                .iter()
+                .map(|failure| &failure.rule_id)
+                .collect::<Vec<_>>()
+        );
+    }
 }
 
 #[test]

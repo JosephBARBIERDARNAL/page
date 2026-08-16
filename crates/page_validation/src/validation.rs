@@ -525,6 +525,17 @@ fn validate_document(
                 FailureCategory::Metadata,
             ));
         }
+        if profile.is_pdfa_2_or_3()
+            && (!xmp.invalid_predefined_xmp_properties.is_empty()
+                || !xmp.undefined_extension_xmp_properties.is_empty())
+        {
+            failures.push(failure(
+                "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+                "XMP contains a property not defined by a predefined or declared extension schema",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
         if !xmp.invalid_extension_xmp_value_types.is_empty() {
             failures.push(failure(
                 "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
@@ -738,6 +749,20 @@ fn validate_document(
             &mut failures,
         );
     }
+    if profile.is_pdfa_2_or_3() && profile.requires_unicode_mapping() {
+        aggregate_failures(
+            &inspections.font_embedding.invalid_unicode_values,
+            "PDFA1B-UNICODE-VALUE-001",
+            &mut failures,
+        );
+    }
+    if profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &inspections.font_embedding.notdef_glyphs,
+            "PDFA1B-NOTDEF-GLYPH-001",
+            &mut failures,
+        );
+    }
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
     finish_report(document, profile, failures, total_rule_count(profile))
@@ -784,6 +809,14 @@ fn validate_structure_tree(
             "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
             "every non-standard structure type must resolve through RoleMap to a standard structure type",
             features.struct_tree_root_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
+    if features.struct_tree_role_map_has_standard_remap {
+        failures.push(failure(
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+            "a standard structure type must not be remapped to a non-standard type",
+            features.struct_tree_root_object_id,
             FailureCategory::Conformance,
         ));
     }
@@ -1507,6 +1540,22 @@ fn validate_xobjects(
         ),
     ] {
         aggregate_failures_with_location(invalid, rule_id, None, failures);
+    }
+    if profile.is_pdfa_2_or_3() {
+        for (index, failures_for_rule) in xobjects.jpeg2000_failures.iter().enumerate() {
+            aggregate_failures(
+                failures_for_rule,
+                match index {
+                    0 => "PDFA1B-JPEG2000-CHANNELS-001",
+                    1 => "PDFA1B-JPEG2000-COLOR-SPECS-001",
+                    2 => "PDFA1B-JPEG2000-COLOR-METHOD-001",
+                    3 => "PDFA1B-JPEG2000-COLOR-SPACE-001",
+                    4 => "PDFA1B-JPEG2000-BIT-DEPTH-001",
+                    _ => unreachable!(),
+                },
+                failures,
+            );
+        }
     }
 }
 

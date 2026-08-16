@@ -27,6 +27,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_root_valid: bool,
     pub(crate) struct_tree_role_map_has_cycle: bool,
     pub(crate) struct_tree_has_unmapped_type: bool,
+    pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
     pub(crate) invalid_page_boundaries: Vec<RuleFailure>,
@@ -35,6 +36,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_with_alternate_presentations: Vec<RuleFailure>,
     pub(crate) catalog_with_needs_rendering: Vec<RuleFailure>,
     pub(crate) permissions_with_invalid_keys: Vec<RuleFailure>,
+    pub(crate) signature_refs_with_digest_keys: Vec<RuleFailure>,
     pub(crate) acro_forms_with_xfa: Vec<RuleFailure>,
     pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
@@ -210,6 +212,57 @@ pub(crate) fn inspect(
         });
     }
     let mut permissions_with_invalid_keys = Vec::new();
+    let mut signature_refs_with_digest_keys = Vec::new();
+    let docmdp_present = catalog
+        .get(b"Perms")
+        .ok()
+        .and_then(|value| {
+            resolve_optional(document, value, limits.max_reference_depth)
+                .ok()
+                .flatten()
+        })
+        .and_then(|object| object.as_dict().ok())
+        .is_some_and(|perms| perms.get(b"DocMDP").is_ok());
+    if docmdp_present {
+        for (object_id, object) in &document.objects {
+            let Some(dictionary) = object.as_dict().ok() else {
+                continue;
+            };
+            let Some(references) = dictionary
+                .get(b"Reference")
+                .ok()
+                .and_then(|value| {
+                    resolve_optional(document, value, limits.max_reference_depth)
+                        .ok()
+                        .flatten()
+                })
+                .and_then(|object| object.as_array().ok())
+            else {
+                continue;
+            };
+            for reference in references {
+                let Some(reference) =
+                    resolve_optional(document, reference, limits.max_reference_depth)?
+                        .and_then(|object| object.as_dict().ok())
+                else {
+                    continue;
+                };
+                if [
+                    b"DigestLocation".as_slice(),
+                    b"DigestMethod",
+                    b"DigestValue",
+                ]
+                .iter()
+                .any(|key| reference.get(key).is_ok())
+                {
+                    signature_refs_with_digest_keys.push(RuleFailure {
+                        object_id: Some((*object_id).into()),
+                        description: "signature reference contains a forbidden digest key in the presence of DocMDP".to_owned(),
+                    });
+                }
+            }
+        }
+    }
     if let Ok(value) = catalog.get(b"Perms") {
         let object_id = value.as_reference().ok().map(Into::into).or(catalog_id);
         if let Some(perms) = resolve_optional(document, value, limits.max_reference_depth)?
@@ -374,6 +427,7 @@ pub(crate) fn inspect(
         struct_tree_root_valid: structure_tree.valid,
         struct_tree_role_map_has_cycle: structure_tree.role_map_has_cycle,
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
+        struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -389,6 +443,7 @@ pub(crate) fn inspect(
         catalog_with_alternate_presentations,
         catalog_with_needs_rendering,
         permissions_with_invalid_keys,
+        signature_refs_with_digest_keys,
         acro_forms_with_xfa,
         embedded_files_with_invalid_mime,
         file_specs_missing_f_or_uf,
@@ -630,6 +685,7 @@ struct StructureTreeSummary {
     valid: bool,
     role_map_has_cycle: bool,
     has_unmapped_type: bool,
+    role_map_has_standard_remap: bool,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     invalid_unicode_structure_types: Vec<RuleFailure>,
@@ -668,6 +724,7 @@ fn inspect_structure_tree(
         valid: true,
         role_map_has_cycle: false,
         has_unmapped_type: false,
+        role_map_has_standard_remap: false,
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         invalid_unicode_structure_types: Vec::new(),
@@ -679,6 +736,7 @@ fn inspect_structure_tree(
         .transpose()?
         .unwrap_or_default();
     summary.role_map_has_cycle = role_map.has_cycle;
+    summary.role_map_has_standard_remap = role_map.has_standard_remap;
     let mut ancestors = BTreeSet::new();
     if let Ok(root_id) = entry.as_reference() {
         ancestors.insert(root_id);
@@ -710,6 +768,7 @@ fn inspect_structure_tree(
 struct RoleMapSummary {
     mappings: BTreeMap<Vec<u8>, Vec<u8>>,
     has_cycle: bool,
+    has_standard_remap: bool,
 }
 
 fn inspect_role_map(
@@ -745,7 +804,11 @@ fn inspect_role_map(
     let mut summary = RoleMapSummary {
         mappings,
         has_cycle: false,
+        has_standard_remap: false,
     };
+    summary.has_standard_remap = summary.mappings.iter().any(|(source, target)| {
+        is_standard_structure_type(source) && !is_standard_structure_type(target)
+    });
     for source in summary.mappings.keys() {
         let mut path = BTreeSet::new();
         let mut current = source.as_slice();

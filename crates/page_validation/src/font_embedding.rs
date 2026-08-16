@@ -38,6 +38,8 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
+    pub(crate) invalid_unicode_values: Vec<RuleFailure>,
+    pub(crate) notdef_glyphs: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
     pub(crate) missing_type1_glyphs: Vec<RuleFailure>,
     pub(crate) inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -114,6 +116,8 @@ struct Scanner<'a> {
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_unicode_mappings: Vec<RuleFailure>,
+    invalid_unicode_values: Vec<RuleFailure>,
+    notdef_glyphs: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
     missing_type1_glyphs: Vec<RuleFailure>,
     inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -154,6 +158,8 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
         invalid_unicode_mappings: Vec::new(),
+        invalid_unicode_values: Vec::new(),
+        notdef_glyphs: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
         missing_type1_glyphs: Vec::new(),
         inconsistent_truetype_widths: Vec::new(),
@@ -171,6 +177,7 @@ pub(crate) fn inspect(
         )?;
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
+    scanner.inspect_rendered_notdef_glyphs()?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
         left.object_id
             .cmp(&right.object_id)
@@ -182,6 +189,14 @@ pub(crate) fn inspect(
     scanner.inspect_rendered_truetype_glyphs()?;
     scanner.inspect_rendered_type1_glyphs()?;
     scanner.inspect_rendered_type3_glyphs()?;
+    scanner.notdef_glyphs.sort_by(|left, right| {
+        left.object_id
+            .cmp(&right.object_id)
+            .then_with(|| left.description.cmp(&right.description))
+    });
+    scanner.notdef_glyphs.dedup_by(|left, right| {
+        left.object_id == right.object_id && left.description == right.description
+    });
     scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_unicode_mappings()?;
@@ -226,6 +241,8 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
         invalid_unicode_mappings: scanner.invalid_unicode_mappings,
+        invalid_unicode_values: scanner.invalid_unicode_values,
+        notdef_glyphs: scanner.notdef_glyphs,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
         missing_type1_glyphs: scanner.missing_type1_glyphs,
         inconsistent_truetype_widths: scanner.inconsistent_truetype_widths,
@@ -493,6 +510,13 @@ impl Scanner<'_> {
                 ));
                 continue;
             };
+            if map.has_reserved_values {
+                self.invalid_unicode_values.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a ToUnicode CMap value of U+0000, U+FEFF, or U+FFFE",
+                ));
+            }
             let rendered_codes = if usage.subtype.as_deref() == Some("Type0") {
                 let Some(encoding) = font.get(b"Encoding").ok() else {
                     continue;
@@ -602,6 +626,13 @@ impl Scanner<'_> {
                         .and_then(|encoding| single_encoded_character(encoding, byte))
                         .and_then(|character| face.glyph_index(character))
                 };
+                if glyph.is_some_and(|glyph| glyph.0 == 0) {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered byte",
+                    ));
+                }
                 let Some(glyph) = glyph.filter(|glyph| face.glyph_is_present(*glyph)) else {
                     self.missing_truetype_glyphs.push(font_failure(
                         usage.object_id,
@@ -640,6 +671,55 @@ impl Scanner<'_> {
                         &format!(
                             "has rendered byte {byte} width {program_width:.3} in its embedded TrueType program but {dictionary_width:.3} in /Widths"
                         ),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendered_notdef_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if usage.shown_bytes.is_empty() {
+                continue;
+            }
+            let Some(font) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(|object| object.as_dict().ok()) else {
+                continue;
+            };
+            if usage.subtype.as_deref() == Some("Type0") {
+                let Some(encoding) = font.get(b"Encoding").ok() else {
+                    continue;
+                };
+                if resolve_cmap_decoder(self.document, encoding, self.limits)?
+                    .decode(&usage.shown_bytes)
+                    .is_some_and(|cids| cids.contains(&0))
+                {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered CID",
+                    ));
+                }
+            } else if matches!(
+                usage.subtype.as_deref(),
+                Some("Type1" | "MMType1" | "TrueType" | "Type3")
+            ) {
+                let encoding = simple_font_encoding(self.document, font, self.limits)?;
+                if usage
+                    .shown_bytes
+                    .iter()
+                    .any(|byte| encoding.glyph_name(*byte) == Some(".notdef"))
+                {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered byte",
                     ));
                 }
             }
@@ -716,6 +796,11 @@ impl Scanner<'_> {
             let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
             for cid in cids.into_iter().collect::<BTreeSet<_>>() {
                 if cid == 0 {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered CID",
+                    ));
                     continue;
                 }
                 let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
@@ -792,6 +877,11 @@ impl Scanner<'_> {
         let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
         for cid in cids.iter().copied().collect::<BTreeSet<_>>() {
             if cid == 0 {
+                self.notdef_glyphs.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "references the .notdef glyph for a rendered CID",
+                ));
                 continue;
             }
             let Some(&glyph) = glyph_by_cid.get(&cid) else {
@@ -977,6 +1067,13 @@ impl Scanner<'_> {
                 else {
                     continue;
                 };
+                if name == ".notdef" {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered byte",
+                    ));
+                }
                 let glyph_present = program_names.contains(name);
                 if !glyph_present {
                     self.missing_type1_glyphs.push(font_failure(
@@ -1061,6 +1158,13 @@ impl Scanner<'_> {
                 let Some(name) = encoding.glyph_name(byte) else {
                     continue;
                 };
+                if name == ".notdef" {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered byte",
+                    ));
+                }
                 let charproc = char_procs
                     .get(name.as_bytes())
                     .ok()
@@ -2746,6 +2850,7 @@ fn unicode_mapping_exception(
 
 struct UnicodeCmap {
     mappings: BTreeMap<Vec<u8>, Vec<u8>>,
+    has_reserved_values: bool,
 }
 
 impl UnicodeCmap {
@@ -2795,7 +2900,14 @@ impl UnicodeCmap {
             }
         }
         (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
-            .then_some(Self { mappings })
+            .then_some(Self {
+                has_reserved_values: mappings.values().any(|value| {
+                    value.chunks_exact(2).any(|pair| {
+                        matches!(u16::from_be_bytes([pair[0], pair[1]]), 0 | 0xFEFF | 0xFFFE)
+                    })
+                }),
+                mappings,
+            })
     }
 
     fn maps_usable(&self, code: &[u8]) -> bool {

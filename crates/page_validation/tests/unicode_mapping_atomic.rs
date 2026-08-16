@@ -7,6 +7,7 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 pub mod common;
 
 const RULE: &str = "PDFA1A-UNICODE-MAPPING-001";
+const PDF2_VALUE_RULE: &str = "PDFA2A-UNICODE-VALUE-001";
 
 const INVALID_CASES: &[&str] = &[
     "unicode_missing",
@@ -59,6 +60,27 @@ fn unicode_mapping_rule_is_profile_specific() {
             "PDF/A-1b must not report {RULE} for {case}"
         );
     }
+}
+
+#[test]
+fn pdfa2_rejects_reserved_tounicode_values() {
+    let report = validate_bytes_with_profile(
+        &common::font_fixture("unicode_reserved"),
+        ValidationProfile::PdfA2a,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == PDF2_VALUE_RULE),
+        "reserved Unicode value was not rejected: {:?}",
+        report
+            .failures
+            .iter()
+            .map(|failure| &failure.rule_id)
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]

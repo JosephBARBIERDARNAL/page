@@ -2182,6 +2182,186 @@
         "predicate": "toUnicode != null"
       },
       {
+        "section": "a_or_u",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.2:2",
+        "applicable_profiles": ["2a", "2u"],
+        "canonical_local_rule_id": "PDFA1B-UNICODE-VALUE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects rendered ToUnicode mappings containing U+0000, U+FEFF, or U+FFFE.",
+        "object": "Glyph",
+        "predicate": "toUnicode == null || (toUnicode.indexOf(\"\\u0000\") == -1 && toUnicode.indexOf(\"\\uFFFE\") == -1 && toUnicode.indexOf(\"\\uFEFF\") == -1)"
+      },
+      {
+        "section": "a_or_u",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.2:2",
+        "applicable_profiles": ["3a", "3u"],
+        "canonical_local_rule_id": "PDFA1B-UNICODE-VALUE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects rendered ToUnicode mappings containing U+0000, U+FEFF, or U+FFFE.",
+        "object": "Glyph",
+        "predicate": "toUnicode == null || (toUnicode.indexOf(\"\\u0000\") == -1 && toUnicode.indexOf(\"\\uFFFE\") == -1 && toUnicode.indexOf(\"\\uFEFF\") == -1)"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.8:1",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-NOTDEF-GLYPH-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects every rendered .notdef glyph reference, including CID 0 and simple-font glyph-name resolution, regardless of rendering mode.",
+        "object": "Glyph",
+        "predicate": "name != \".notdef\""
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.1:1",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects XMP properties absent from the predefined XMP schema and from both main/current extension-schema packages.",
+        "object": "XMPProperty",
+        "predicate": "isPredefinedInXMP2005 == true || isDefinedInMainPackage == true || isDefinedInCurrentPackage == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.1:1",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects XMP properties absent from the predefined XMP schema and from both main/current extension-schema packages.",
+        "object": "XMPProperty",
+        "predicate": "isPredefinedInXMP2005 == true || isDefinedInMainPackage == true || isDefinedInCurrentPackage == true"
+      },
+      {
+        "section": "a_only",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.7.3.4:3",
+        "applicable_profiles": ["2a"],
+        "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects RoleMap entries whose source is a standard structure type and whose target is non-standard.",
+        "object": "SENonStandard",
+        "predicate": "remappedStandardType == null"
+      },
+      {
+        "section": "a_only",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.7.3.4:3",
+        "applicable_profiles": ["3a"],
+        "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects RoleMap entries whose source is a standard structure type and whose target is non-standard.",
+        "object": "SENonStandard",
+        "predicate": "remappedStandardType == null"
+      },
+      {
+        "section": "pdfa_2",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:1",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-CHANNELS-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Checks JPEG2000 channel count from SIZ/JP2 ihdr data.",
+        "object": "JPEG2000",
+        "predicate": "nrColorChannels == 1 || nrColorChannels == 3 || nrColorChannels == 4"
+      },
+      {
+        "section": "pdfa_2",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-SPECS-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires exactly one APPROX=1 colour specification when multiple specifications exist, unless an external PDF colour space is present.",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || nrColorSpaceSpecs == 1 || nrColorSpacesWithApproxField == 1"
+      },
+      {
+        "section": "pdfa_2",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:3",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-METHOD-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Allows only JPEG2000 colr methods 1, 2, and 3.",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || colrMethod == 1 || colrMethod == 2 || colrMethod == 3"
+      },
+      {
+        "section": "pdfa_2",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:4",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-SPACE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects enumerated JPEG2000 colour space 19 (CIEJab).",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || colrEnumCS == null || colrEnumCS != 19"
+      },
+      {
+        "section": "pdfa_2",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:5",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-BIT-DEPTH-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires no bpcc box and equal channel bit depth in the range 1 through 38.",
+        "object": "JPEG2000",
+        "predicate": "bpccBoxPresent == false && (bitDepth >= 1 && bitDepth <= 38)"
+      },
+      {
+        "section": "pdfa_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:1",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-CHANNELS-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Checks JPEG2000 channel count from SIZ/JP2 ihdr data.",
+        "object": "JPEG2000",
+        "predicate": "nrColorChannels == 1 || nrColorChannels == 3 || nrColorChannels == 4"
+      },
+      {
+        "section": "pdfa_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-SPECS-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires exactly one APPROX=1 colour specification when multiple specifications exist, unless an external PDF colour space is present.",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || nrColorSpaceSpecs == 1 || nrColorSpacesWithApproxField == 1"
+      },
+      {
+        "section": "pdfa_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:3",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-METHOD-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Allows only JPEG2000 colr methods 1, 2, and 3.",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || colrMethod == 1 || colrMethod == 2 || colrMethod == 3"
+      },
+      {
+        "section": "pdfa_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:4",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-COLOR-SPACE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects enumerated JPEG2000 colour space 19 (CIEJab).",
+        "object": "JPEG2000",
+        "predicate": "hasColorSpace == true || colrEnumCS == null || colrEnumCS != 19"
+      },
+      {
+        "section": "pdfa_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:5",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-JPEG2000-BIT-DEPTH-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires no bpcc box and equal channel bit depth in the range 1 through 38.",
+        "object": "JPEG2000",
+        "predicate": "bpccBoxPresent == false && (bitDepth >= 1 && bitDepth <= 38)"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.8:1",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-NOTDEF-GLYPH-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects every rendered .notdef glyph reference, including CID 0 and simple-font glyph-name resolution, regardless of rendering mode.",
+        "object": "Glyph",
+        "predicate": "name != \".notdef\""
+      },
+      {
         "section": "pdfa_2",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
         "applicable_profiles": [
@@ -2830,6 +3010,16 @@
         "semantic_note": "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one).",
         "object": "CMapFile",
         "predicate": "WMode == dictWMode"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.3:3",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-CMAP-REFERENCE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Every embedded CMap usecmap reference is restricted to the ISO 32000-1:2008 Table 118 predefined CMap names.",
+        "object": "PDReferencedCMap",
+        "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\""
       },
       {
         "section": "shared_pdfa_2_3",
@@ -4611,6 +4801,16 @@
       },
       {
         "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.3:3",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-CMAP-REFERENCE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Every embedded CMap usecmap reference is restricted to the ISO 32000-1:2008 Table 118 predefined CMap names.",
+        "object": "PDReferencedCMap",
+        "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\""
+      },
+      {
+        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.1:1",
         "applicable_profiles": [
           "3a",
@@ -5939,80 +6139,9 @@
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
       {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.3:1",
         "applicable_profiles": [
           "2a"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.8:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.8.3:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
@@ -6035,22 +6164,6 @@
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
       {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.7.3.4:3",
-        "applicable_profiles": [
-          "2a"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-2:2011:6.8:5",
         "applicable_profiles": [
           "2a",
@@ -6069,80 +6182,9 @@
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
       {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.3:1",
         "applicable_profiles": [
           "3a"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.8:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.8.3:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
@@ -6161,22 +6203,6 @@
           "3a",
           "3b",
           "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.7.3.4:3",
-        "applicable_profiles": [
-          "3a"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       }

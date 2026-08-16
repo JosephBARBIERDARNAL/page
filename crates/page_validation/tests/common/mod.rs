@@ -5028,6 +5028,16 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "struct_tree_role_map_standard_remap" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "P" => "Custom" },
+                    "K" => dictionary! { "S" => "P" },
+                },
+            );
+        }
         "struct_tree_role_map_multi_step" => {
             catalog.set("MarkInfo", dictionary! { "Marked" => true });
             catalog.set(
@@ -6465,6 +6475,7 @@ pub fn font_fixture_with_type1_program(
             | "type3_missing_charproc_zero_width"
             | "type3_macroman_base"
             | "type3_macexpert_base"
+            | "type3_notdef"
             | "unicode_missing"
             | "unicode_scalar"
             | "unicode_indirect"
@@ -6473,9 +6484,10 @@ pub fn font_fixture_with_type1_program(
     ) {
         let mut char_procs = Dictionary::new();
         let charproc_bytes = match case {
-            "type3_width_match" | "type3_macroman_base" | "type3_macexpert_base" => {
-                Some(b"500 0 d0\n".as_slice())
-            }
+            "type3_width_match"
+            | "type3_macroman_base"
+            | "type3_macexpert_base"
+            | "type3_notdef" => Some(b"500 0 d0\n".as_slice()),
             "type3_width_tolerance_boundary" => Some(b"499 0 d0\n".as_slice()),
             "type3_width_mismatch" => Some(b"400 0 d0\n".as_slice()),
             "type3_width_d1_mismatch" => Some(b"400 0 0 0 500 700 d1\n".as_slice()),
@@ -6485,6 +6497,8 @@ pub fn font_fixture_with_type1_program(
             char_procs.set(
                 if case == "type3_macexpert_base" {
                     "exclamsmall"
+                } else if case == "type3_notdef" {
+                    ".notdef"
                 } else {
                     "space"
                 },
@@ -6499,6 +6513,10 @@ pub fn font_fixture_with_type1_program(
                 Object::Name(b"MacExpertEncoding".to_vec())
             }
             "unicode_winansi" => Object::Name(b"WinAnsiEncoding".to_vec()),
+            "type3_notdef" => Object::Dictionary(dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![32.into(), Object::Name(b".notdef".to_vec())],
+            }),
             _ => Object::Dictionary(dictionary! {
                 "Type" => "Encoding",
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
@@ -6960,6 +6978,10 @@ pub fn font_fixture_with_type1_program(
                 font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
                 font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <21> <0021> endbfchar".to_vec())));
             }
+            "unicode_reserved" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <0000> endbfchar".to_vec())));
+            }
             "unicode_winansi" => font.set("Encoding", "WinAnsiEncoding"),
             "unicode_macroman" => font.set("Encoding", "MacRomanEncoding"),
             "unicode_macexpert" => font.set("Encoding", "MacExpertEncoding"),
@@ -7038,6 +7060,15 @@ pub fn font_fixture_with_type1_program(
                     }],
                     lopdf::StringFormat::Literal,
                 )],
+            ),
+            operation("ET", vec![]),
+        ]),
+        "type3_notdef" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
             ),
             operation("ET", vec![]),
         ]),
@@ -8289,8 +8320,14 @@ pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
 }
 
 pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
-    embedded_identity_usecmap(ordering, wmode)
-        .replace("/Identity-H usecmap", "/NotAStandardCMap usecmap")
+    format!(
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
+         /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
+         /CMapName /Page-CMap def\n/CMapType 1 def\n/WMode {wmode} def\n\
+         /NotAStandardCMap usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
+         end\nend\n"
+    )
+    .into_bytes()
 }
 
 pub fn content(operations: Vec<Operation>) -> Vec<u8> {
