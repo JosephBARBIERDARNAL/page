@@ -33,6 +33,10 @@ coverage:
 verapdf verapdf=verapdf_bin:
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test verapdf_diff -- --nocapture
 
+# Regenerate checked-in rule-mapping documentation.
+rules-docs:
+    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
+
 # Release-only gate. This intentionally fails while the inventory status is developing.
 pdfa1b-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
@@ -74,8 +78,12 @@ benchmark:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/verapdf.rs
 
-# Serve documentation
-doc:
+# Build documentation after regenerating rule mappings.
+doc-build: rules-docs
+    uvx zensical build --clean
+
+# Serve documentation after regenerating rule mappings.
+doc: rules-docs
     uvx zensical serve
 
 # Install locally

@@ -5,19 +5,13 @@ site_url = "https://pagestandards.github.io/page/"
 site_description = "Experimental veraPDF-compliant PDF/A validation, written in Rust"
 site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]
-nav = [
-  { "Home" = "index.md" },
-  { "Usage" = [
-    "api/cli.md",
-    "api/rust.md",
-    "api/python.md",
-    "api/nodejs.md",
-    "api/web-assembly.md",
-  ] },
-  { "Rule Reference" = ["rules/pdfa-1-rule-mapping.md"] },
-  { "PDF syntax" = "pdf-syntax.md" },
-  { "FAQ" = ["faq.md"] }
-]
+nav = [{ "Home" = "index.md" }, { "Usage" = [
+  "api/cli.md",
+  "api/rust.md",
+  "api/python.md",
+  "api/nodejs.md",
+  "api/web-assembly.md",
+] }, { "Rule Reference" = ["rules/pdfa-1-rule-mapping.md", "rules/pdfa-2-3-rule-mapping.md"] }, { "PDF syntax" = "pdf-syntax.md" }, { "FAQ" = ["faq.md"] }]
 
 [project.theme]
 language = "en"
