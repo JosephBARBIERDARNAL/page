@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document};
 
@@ -23,7 +23,7 @@ pub(crate) struct AnnotationSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
 ) -> Result<AnnotationSummary, PdfError> {
     let mut summary = AnnotationSummary::default();

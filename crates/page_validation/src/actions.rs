@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -30,7 +30,7 @@ pub(crate) struct ActionSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
 ) -> Result<ActionSummary, PdfError> {
     let Some(catalog) = resolve_catalog(document, limits)? else {
@@ -76,7 +76,7 @@ pub(crate) fn inspect(
 
 struct Inspector<'a> {
     document: &'a Document,
-    pages: &'a BTreeMap<u32, PageEntry>,
+    pages: &'a [PageEntry],
     limits: &'a SafetyLimits,
     summary: ActionSummary,
     seen_actions: BTreeSet<ObjectId>,
@@ -93,7 +93,8 @@ impl Inspector<'_> {
     // argument.
     fn inspect_pages(&mut self) -> Result<(), PdfError> {
         let pages = self.pages;
-        for (&page_number, page_entry) in pages {
+        for (index, page_entry) in pages.iter().enumerate() {
+            let page_number = (index + 1) as u32;
             let Some(page) = page_entry.resolve(self.document) else {
                 continue;
             };

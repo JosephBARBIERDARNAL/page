@@ -168,12 +168,13 @@ pub(crate) fn inherited_page_resources<'a>(
 /// dictionary, others also accept a stream-backed one via `dictionary_based`).
 pub(crate) fn for_each_page_annotation<'a>(
     document: &'a Document,
-    pages: &'a BTreeMap<u32, PageEntry>,
+    pages: &'a [PageEntry],
     limits: &SafetyLimits,
     inspected: &mut BTreeSet<ObjectId>,
     mut visit: impl FnMut(u32, usize, Option<PdfObjectId>, &'a Object) -> Result<(), PdfError>,
 ) -> Result<(), PdfError> {
-    for (&page_number, page_entry) in pages {
+    for (index, page_entry) in pages.iter().enumerate() {
+        let page_number = (index + 1) as u32;
         let Some(page) = page_entry.resolve(document) else {
             continue;
         };
@@ -226,7 +227,7 @@ pub(crate) fn resource_once<'a>(
 
 pub(crate) fn execute_content(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     cache: &mut ContentCache,
     limits: &SafetyLimits,
 ) -> Result<ContentExecutionSummary, PdfError> {
@@ -236,7 +237,8 @@ pub(crate) fn execute_content(
         cache,
         summary: ContentExecutionSummary::default(),
     };
-    for (&page_number, page_entry) in pages {
+    for (index, page_entry) in pages.iter().enumerate() {
+        let page_number = (index + 1) as u32;
         let page = page_entry
             .resolve(document)
             .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
@@ -1790,7 +1792,6 @@ fn is_pdf_whitespace(byte: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
 
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
@@ -2042,7 +2043,7 @@ mod tests {
             .set("Annots", vec![Object::Reference(annotation)]);
         let summary = execute_content(
             &document,
-            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
             &SafetyLimits::default(),
         )
@@ -2087,7 +2088,7 @@ mod tests {
 
         let error = execute_content(
             &document,
-            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
             &limits,
         )
@@ -2185,7 +2186,7 @@ mod tests {
         };
         let error = execute_content(
             &document,
-            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
             &limits,
         )
@@ -2209,7 +2210,7 @@ mod tests {
         };
         let error = execute_content(
             &document,
-            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
             &limits,
         )
@@ -2233,7 +2234,7 @@ mod tests {
     ) -> Result<super::ContentExecutionSummary, crate::PdfError> {
         execute_content(
             document,
-            &BTreeMap::from([(1, PageEntry::Indirect(page_id))]),
+            &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
             &SafetyLimits::default(),
         )

@@ -70,27 +70,27 @@ fn only_page_tree_rs_walks_the_page_tree() {
             assert_eq!(
                 occurrences, 0,
                 "{file_name} contains {pattern:?}, re-implementing page-tree traversal instead \
-                 of consuming page_tree::collect_pages's shared BTreeMap<u32, PageEntry>"
+                 of consuming page_tree::collect_pages's shared ordered PageEntry vector"
             );
         }
     }
 }
 
-/// Every consumer of the shared page map takes it as `PageEntry`, not a raw
-/// `ObjectId` — a regression to the pre-refactor shape (which could not
-/// represent a directly embedded Page dictionary) would show up as a
-/// `BTreeMap<u32, ObjectId>` parameter somewhere outside page_tree.rs.
+/// Every consumer of the shared page list takes `PageEntry`, not raw object
+/// IDs — a regression to the pre-refactor shape (which could not represent a
+/// directly embedded Page dictionary) would show up as a page-list parameter
+/// using `ObjectId` outside page_tree.rs.
 #[test]
 fn shared_pages_map_is_keyed_by_page_entry_not_a_raw_object_id() {
     for (file_name, content) in src_files() {
         if file_name == "page_tree.rs" {
             continue;
         }
-        let occurrences = non_comment_occurrences(&content, "BTreeMap<u32, ObjectId>");
+        let occurrences = non_comment_occurrences(&content, "pages: &[ObjectId]");
         assert_eq!(
             occurrences, 0,
-            "{file_name} declares a page map keyed by a raw ObjectId; it should use \
-             page_tree::PageEntry via BTreeMap<u32, PageEntry> so directly embedded pages \
+            "{file_name} declares a page list using raw ObjectIds; it should use \
+             page_tree::PageEntry via the shared ordered vector so directly embedded pages \
              (see page_tree.rs's doc comment) are representable"
         );
     }

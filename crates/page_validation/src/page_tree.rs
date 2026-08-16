@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};
@@ -90,14 +89,13 @@ pub(crate) fn collect_pages(
     document: &Document,
     catalog: &Dictionary,
     limits: &SafetyLimits,
-) -> Result<BTreeMap<u32, PageEntry>, PdfError> {
-    let mut pages = BTreeMap::new();
+) -> Result<Vec<PageEntry>, PdfError> {
+    let mut pages = Vec::new();
     let Ok(root) = catalog.get(b"Pages") else {
         return Ok(pages);
     };
     let mut ancestors = BTreeSet::new();
     let mut steps = 0usize;
-    let mut next_number = 1u32;
     walk(
         document,
         root,
@@ -106,7 +104,6 @@ pub(crate) fn collect_pages(
         &mut ancestors,
         &mut steps,
         &mut pages,
-        &mut next_number,
     )?;
     Ok(pages)
 }
@@ -125,8 +122,7 @@ fn walk(
     depth: usize,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
-    pages: &mut BTreeMap<u32, PageEntry>,
-    next_number: &mut u32,
+    pages: &mut Vec<PageEntry>,
 ) -> Result<(), PdfError> {
     if depth >= limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
@@ -145,15 +141,7 @@ fn walk(
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
     let result = walk_node(
-        document,
-        node,
-        object_id,
-        limits,
-        depth,
-        ancestors,
-        steps,
-        pages,
-        next_number,
+        document, node, object_id, limits, depth, ancestors, steps, pages,
     );
     if let Some(id) = object_id {
         ancestors.remove(&id);
@@ -169,8 +157,7 @@ fn walk_node(
     depth: usize,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
-    pages: &mut BTreeMap<u32, PageEntry>,
-    next_number: &mut u32,
+    pages: &mut Vec<PageEntry>,
 ) -> Result<(), PdfError> {
     let resolved = match object_id {
         Some(_) => {
@@ -191,8 +178,7 @@ fn walk_node(
                 Some(id) => PageEntry::Indirect(id),
                 None => PageEntry::Direct(dictionary.clone()),
             };
-            pages.insert(*next_number, entry);
-            *next_number += 1;
+            pages.push(entry);
         }
         Some(b"Pages") => {
             let Ok(kids) = dictionary.get(b"Kids") else {
@@ -204,16 +190,7 @@ fn walk_node(
                 return Ok(());
             };
             for kid in kids {
-                walk(
-                    document,
-                    kid,
-                    limits,
-                    depth + 1,
-                    ancestors,
-                    steps,
-                    pages,
-                    next_number,
-                )?;
+                walk(document, kid, limits, depth + 1, ancestors, steps, pages)?;
             }
         }
         _ => {
@@ -336,8 +313,8 @@ mod tests {
         let pages =
             collect_pages(&document, catalog, &SafetyLimits::default()).expect("collect pages");
         assert_eq!(pages.len(), 2);
-        assert_eq!(pages[&1].object_id(), Some(page_id));
-        assert_eq!(pages[&2].object_id(), Some(page_id));
+        assert_eq!(pages[0].object_id(), Some(page_id));
+        assert_eq!(pages[1].object_id(), Some(page_id));
     }
 
     /// Confirmed against veraPDF 1.30.2: a Page dictionary embedded directly
@@ -363,8 +340,8 @@ mod tests {
         let pages =
             collect_pages(&document, catalog, &SafetyLimits::default()).expect("collect pages");
         assert_eq!(pages.len(), 2);
-        assert_eq!(pages[&1].object_id(), Some(indirect_page_id));
-        assert_eq!(pages[&2].object_id(), None);
-        assert!(pages[&2].resolve(&document).is_some());
+        assert_eq!(pages[0].object_id(), Some(indirect_page_id));
+        assert_eq!(pages[1].object_id(), None);
+        assert!(pages[1].resolve(&document).is_some());
     }
 }

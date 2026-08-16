@@ -690,19 +690,19 @@ fn collect_lopdf_dictionary_findings(
     object_id: Option<PdfObjectId>,
     summary: &mut ObjectLimitsSummary,
 ) {
-    if dictionary
-        .iter()
-        .filter(|(_, value)| !matches!(value, Object::Null))
-        .count()
-        > MAX_DICTIONARY_ENTRIES
+    let mut meaningful_entries = 0;
+    for (_, value) in dictionary.iter() {
+        if !matches!(value, Object::Null) {
+            meaningful_entries += 1;
+        }
+        if let Some(object_id) = object_id {
+            collect_lopdf_value_findings(value, object_id, summary);
+        }
+    }
+    if meaningful_entries > MAX_DICTIONARY_ENTRIES
         && let Some(object_id) = object_id
     {
         summary.oversized_dictionaries.push(object_id);
-    }
-    if let Some(object_id) = object_id {
-        for (_, value) in dictionary.iter() {
-            collect_lopdf_value_findings(value, object_id, summary);
-        }
     }
 }
 
