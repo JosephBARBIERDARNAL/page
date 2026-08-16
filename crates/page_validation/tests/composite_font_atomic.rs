@@ -79,6 +79,7 @@ const CASES: &[(&str, &[&str])] = &[
         &[GLYPH_PRESENCE],
     ),
     ("composite_cmap_unknown_usecmap", &[]),
+    ("composite_cmap_dictionary_unknown_usecmap", &[]),
     ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_cff_present_glyph", &[]),
     ("composite_cff_width_mismatch", &[GLYPH_WIDTH]),

@@ -1958,6 +1958,19 @@ fn validate_font_dictionaries(
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
+    if _profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &fonts.invalid_nonsymbolic_truetype_cmaps,
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
+            failures,
+        );
+    } else {
+        aggregate_failures(
+            &fonts.invalid_nonsymbolic_truetype_cmaps,
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            failures,
+        );
+    }
     if !_profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &fonts.unembedded_predefined_cmaps,

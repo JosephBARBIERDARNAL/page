@@ -587,23 +587,19 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         RawValue::Integer(value) if !(*value >= MIN_INTEGER && *value <= MAX_INTEGER) => {
             summary.object_limits.out_of_range_integers.push(object_id);
         }
-        RawValue::Real(value)
-            if !(value.is_finite() && *value >= -MAX_REAL && *value <= MAX_REAL) =>
-        {
-            summary.object_limits.out_of_range_reals.push(object_id);
-        }
-        RawValue::Real(value)
-            if !(value.is_finite() && *value >= -MAX_PDFA_2_REAL && *value <= MAX_PDFA_2_REAL) =>
-        {
-            summary
-                .object_limits
-                .out_of_range_reals_pdfa_2
-                .push(object_id);
-        }
-        RawValue::Real(value)
-            if value.is_finite() && *value != 0.0 && value.abs() < MIN_PDFA_2_REAL =>
-        {
-            summary.object_limits.underflow_reals_pdfa_2.push(object_id);
+        RawValue::Real(value) => {
+            if !(value.is_finite() && *value >= -MAX_REAL && *value <= MAX_REAL) {
+                summary.object_limits.out_of_range_reals.push(object_id);
+            }
+            if !(value.is_finite() && *value >= -MAX_PDFA_2_REAL && *value <= MAX_PDFA_2_REAL) {
+                summary
+                    .object_limits
+                    .out_of_range_reals_pdfa_2
+                    .push(object_id);
+            }
+            if value.is_finite() && *value != 0.0 && value.abs() < MIN_PDFA_2_REAL {
+                summary.object_limits.underflow_reals_pdfa_2.push(object_id);
+            }
         }
         RawValue::Name(value) if value.len() > MAX_NAME_BYTES => {
             summary.object_limits.overlong_names.push(object_id);
@@ -656,7 +652,6 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         | RawValue::Reference
         | RawValue::Other
         | RawValue::Integer(_)
-        | RawValue::Real(_)
         | RawValue::Name(_) => {}
     }
 }
@@ -680,16 +675,16 @@ fn collect_lopdf_value_findings(
         {
             summary.out_of_range_integers.push(object_id);
         }
-        Object::Real(value) if !(*value >= -(MAX_REAL as f32) && *value <= MAX_REAL as f32) => {
-            summary.out_of_range_reals.push(object_id);
-        }
-        Object::Real(value)
-            if !(*value >= -(MAX_PDFA_2_REAL as f32) && *value <= MAX_PDFA_2_REAL as f32) =>
-        {
-            summary.out_of_range_reals_pdfa_2.push(object_id);
-        }
-        Object::Real(value) if *value != 0.0 && (*value as f64).abs() < MIN_PDFA_2_REAL => {
-            summary.underflow_reals_pdfa_2.push(object_id);
+        Object::Real(value) => {
+            if !(*value >= -(MAX_REAL as f32) && *value <= MAX_REAL as f32) {
+                summary.out_of_range_reals.push(object_id);
+            }
+            if !(*value >= -(MAX_PDFA_2_REAL as f32) && *value <= MAX_PDFA_2_REAL as f32) {
+                summary.out_of_range_reals_pdfa_2.push(object_id);
+            }
+            if *value != 0.0 && (*value as f64).abs() < MIN_PDFA_2_REAL {
+                summary.underflow_reals_pdfa_2.push(object_id);
+            }
         }
         Object::String(value, _) if value.len() > MAX_STRING_BYTES => {
             summary.overlong_strings.push(object_id);

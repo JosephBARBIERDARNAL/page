@@ -35,6 +35,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
+    pub(crate) invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
@@ -115,6 +116,7 @@ struct Scanner<'a> {
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
+    invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_unicode_mappings: Vec<RuleFailure>,
@@ -158,6 +160,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
+        invalid_nonsymbolic_truetype_cmaps: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
         invalid_unicode_mappings: Vec::new(),
@@ -244,6 +247,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
+        invalid_nonsymbolic_truetype_cmaps: scanner.invalid_nonsymbolic_truetype_cmaps,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
         invalid_unicode_mappings: scanner.invalid_unicode_mappings,
@@ -457,7 +461,7 @@ impl Scanner<'_> {
                     truetype_cmap_summary(self.document, descriptor, self.limits)?
                 && ((cmap30_present && cmap_count <= 1) || (!cmap30_present && cmap_count == 0))
             {
-                self.invalid_nonsymbolic_truetype_encodings.push(font_failure(
+                self.invalid_nonsymbolic_truetype_cmaps.push(font_failure(
                     object_id,
                     description,
                     &format!(
@@ -1598,9 +1602,12 @@ impl Scanner<'_> {
             .flatten()
             .unwrap_or(0);
         let bytes = decode_font_stream(cmap, self.limits)?;
-        if let Some(base_name) = cmap_usecmap_name(&bytes)
-            && !is_pdfa_2_3_predefined_cmap(base_name)
-        {
+        let dictionary_reference_invalid =
+            resolved_name(self.document, &cmap.dict, b"UseCMap", self.limits)?
+                .is_some_and(|name| !is_pdfa_2_3_predefined_cmap(name));
+        let embedded_reference_invalid = cmap_usecmap_name(&bytes)
+            .is_some_and(|base_name| !is_pdfa_2_3_predefined_cmap(base_name));
+        if dictionary_reference_invalid || embedded_reference_invalid {
             self.invalid_cmap_references.push(font_failure(
                 object_id,
                 description,

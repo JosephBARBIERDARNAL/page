@@ -780,6 +780,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             replace(&mut xmp, " pdfaid:conformance=\"B\"", "");
         }
         "wrong_part" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"2\""),
+        "wrong_part_four" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"4\""),
         "lowercase_conformance" => replace(
             &mut xmp,
             "pdfaid:conformance=\"B\"",
@@ -5562,12 +5563,60 @@ pub fn object_limit_fixture(case: &str) -> Vec<u8> {
     let mut bytes = document_feature_fixture(case);
     if case == "object_real_pdfa2_high" {
         let source = b"340282350000000000000000000000000000000";
-        let replacement = b"340400000000000000000000000000000000000";
+        let replacement = b"340400000000000000000000000000000000000.0";
         let start = bytes
             .windows(source.len())
             .position(|window| window == source)
             .expect("serialized PDF/A-2 high real");
-        bytes[start..start + replacement.len()].copy_from_slice(replacement);
+        let old_xref = find_last_startxref(&bytes);
+        bytes.splice(start..start + source.len(), replacement.iter().copied());
+        let delta = replacement.len() as isize - source.len() as isize;
+        let new_xref = usize::try_from(old_xref as isize + delta).expect("shifted xref offset");
+        let xref_end = bytes[new_xref..]
+            .windows(b"trailer\n".len())
+            .position(|window| window == b"trailer\n")
+            .map(|offset| new_xref + offset)
+            .expect("xref trailer");
+        let mut line_start = new_xref + b"xref\n".len();
+        while line_start < xref_end {
+            let line_end = bytes[line_start..xref_end]
+                .iter()
+                .position(|byte| *byte == b'\n')
+                .map(|offset| line_start + offset)
+                .expect("xref line ending");
+            if line_end - line_start >= 18
+                && bytes[line_start..line_start + 10]
+                    .iter()
+                    .all(u8::is_ascii_digit)
+                && bytes[line_start + 17] == b'n'
+            {
+                let old_offset = std::str::from_utf8(&bytes[line_start..line_start + 10])
+                    .expect("xref offset")
+                    .parse::<usize>()
+                    .expect("numeric xref offset");
+                let shifted = if old_offset > start {
+                    usize::try_from(old_offset as isize + delta).expect("shifted object offset")
+                } else {
+                    old_offset
+                };
+                let formatted = format!("{shifted:010}");
+                bytes[line_start..line_start + 10].copy_from_slice(formatted.as_bytes());
+            }
+            line_start = line_end + 1;
+        }
+        let startxref = bytes[xref_end..]
+            .windows(b"startxref\n".len())
+            .position(|window| window == b"startxref\n")
+            .map(|offset| xref_end + offset + b"startxref\n".len())
+            .expect("startxref value");
+        let startxref_end = bytes[startxref..]
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .map(|offset| startxref + offset)
+            .expect("startxref line ending");
+        let formatted = new_xref.to_string();
+        assert_eq!(formatted.len(), startxref_end - startxref);
+        bytes[startxref..startxref_end].copy_from_slice(formatted.as_bytes());
     }
     bytes
 }
@@ -6985,6 +7034,7 @@ pub fn font_fixture_with_type1_program(
             | "composite_cmap_wmode_indirect_match"
             | "composite_cmap_cid_too_large"
             | "composite_cmap_unknown_usecmap"
+            | "composite_cmap_dictionary_unknown_usecmap"
             | "composite_cidset_nonidentity_real_program"
             | "composite_nonidentity_missing_glyph"
             | "composite_nonidentity_multibyte_missing_glyph"
@@ -7008,17 +7058,21 @@ pub fn font_fixture_with_type1_program(
                 } else {
                     Object::Integer(dictionary_wmode)
                 };
-                Object::Reference(document.add_object(Stream::new(
-                    dictionary! {
-                        "Type" => "CMap",
-                        "CMapName" => "Page-CMap",
-                        "CIDSystemInfo" => dictionary! {
-                            "Registry" => Object::string_literal("Adobe"),
-                            "Ordering" => Object::string_literal(cmap_ordering),
-                            "Supplement" => 0,
-                        },
-                        "WMode" => wmode_object,
+                let mut cmap_dictionary = dictionary! {
+                    "Type" => "CMap",
+                    "CMapName" => "Page-CMap",
+                    "CIDSystemInfo" => dictionary! {
+                        "Registry" => Object::string_literal("Adobe"),
+                        "Ordering" => Object::string_literal(cmap_ordering),
+                        "Supplement" => 0,
                     },
+                    "WMode" => wmode_object,
+                };
+                if case == "composite_cmap_dictionary_unknown_usecmap" {
+                    cmap_dictionary.set("UseCMap", Object::Name(b"NotAStandardCMap".to_vec()));
+                }
+                Object::Reference(document.add_object(Stream::new(
+                    cmap_dictionary,
                     if case == "composite_nonidentity_multibyte_missing_glyph" {
                         embedded_two_byte_cmap(cmap_ordering, content_wmode, cid_start)
                     } else if case == "composite_identity_usecmap_missing_glyph" {
@@ -7361,16 +7415,18 @@ pub fn font_fixture_with_type1_program(
                 operation("ET", vec![]),
             ])
         }
-        "composite_cmap_unknown_usecmap" => content(vec![
-            operation("BT", vec![]),
-            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
-            operation("Tr", vec![3.into()]),
-            operation(
-                "Tj",
-                vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
-            ),
-            operation("ET", vec![]),
-        ]),
+        "composite_cmap_unknown_usecmap" | "composite_cmap_dictionary_unknown_usecmap" => {
+            content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation("Tr", vec![3.into()]),
+                operation(
+                    "Tj",
+                    vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+                ),
+                operation("ET", vec![]),
+            ])
+        }
         "composite_cidset_nonidentity_real_program" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),

@@ -391,12 +391,7 @@ fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
 }
 
 fn inapplicable_rules() -> &'static [&'static str] {
-    &[
-        "PDFA1B-REAL-RANGE-001",
-        "PDFA1B-CMAP-REFERENCE-001",
-        "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "PDFA1B-ID-PART-001",
-    ]
+    &["PDFA1B-CMAP-REFERENCE-001"]
 }
 
 fn explicit_candidates() -> Vec<AtomicCandidate> {
@@ -575,6 +570,11 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "PDFA1B-FONT-FILE-SUBTYPE-001",
         ),
         case(
+            "font",
+            "tt_nonsymbolic_zero_cmaps",
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
+        ),
+        case(
             "object_limit",
             "object_real_pdfa2_high",
             "PDFA1B-REAL-RANGE-001",
@@ -650,6 +650,7 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "stream_lzwdecode",
             "PDFA1B-STREAM-FILTER-001",
         ),
+        case("metadata", "wrong_part_four", "PDFA1B-ID-PART-001"),
     ]
 }
 
