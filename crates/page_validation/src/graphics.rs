@@ -232,6 +232,25 @@ fn inspect_halftone_dictionary(
     limits: &SafetyLimits,
     summary: &mut GraphicsSummary,
 ) -> Result<(), PdfError> {
+    if let Some(halftone_type) = halftone
+        .get(b"HalftoneType")
+        .ok()
+        .and_then(|value| value.as_i64().ok())
+        && !matches!(halftone_type, 1 | 5)
+    {
+        summary.halftone_types.push(RuleFailure {
+            object_id,
+            description: format!(
+                "a halftone dictionary has /HalftoneType {halftone_type} instead of 1 or 5"
+            ),
+        });
+    }
+    if contains_key(halftone, b"HalftoneName") {
+        summary.halftone_names.push(RuleFailure {
+            object_id,
+            description: "a halftone dictionary contains /HalftoneName".to_owned(),
+        });
+    }
     inspect_halftone_transfer_function(document, halftone, object_id, None, limits, summary)?;
     if halftone
         .get(b"HalftoneType")
@@ -385,6 +404,12 @@ fn inspect_extgstate(
     limits: &SafetyLimits,
     summary: &mut GraphicsSummary,
 ) -> Result<(), PdfError> {
+    if contains_key(dictionary, b"HTP") {
+        summary.extgstate_htp.push(RuleFailure {
+            object_id,
+            description: "a used ExtGState dictionary contains /HTP".to_owned(),
+        });
+    }
     if contains_key(dictionary, b"TR") {
         summary.transfer_functions.push(RuleFailure {
             object_id,

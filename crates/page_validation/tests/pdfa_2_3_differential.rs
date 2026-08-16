@@ -392,31 +392,10 @@ fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
 
 fn inapplicable_rules() -> &'static [&'static str] {
     &[
-        "PDFA1A-UNICODE-MAPPING-001",
-        "PDFA1B-SIGNATURE-REFERENCE-001",
         "PDFA1B-REAL-RANGE-001",
-        "PDFA1B-DEVICEN-COMPONENTS-001",
-        "PDFA1B-ALTERNATE-PRESENTATIONS-001",
-        "PDFA1B-CATALOG-REQUIREMENTS-001",
-        "PDFA1B-EXTGSTATE-BLEND-MODE-001",
-        "PDFA1B-FONT-FILE-SUBTYPE-001",
-        "PDFA1B-CMAP-EMBEDDING-001",
         "PDFA1B-CMAP-REFERENCE-001",
         "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
-        "PDFA1B-EXTGSTATE-HTP-001",
-        "PDFA1B-HALFTONE-TYPE-001",
-        "PDFA1B-HALFTONE-NAME-001",
-        "PDFA1B-IMAGE-BPC-001",
-        "PDFA1B-ANNOTATION-SUBTYPE-001",
-        "PDFA1B-ACROFORM-XFA-001",
         "PDFA1B-ID-PART-001",
-        "PDFA1B-FILE-SPEC-F-AND-UF-001",
-        "PDFA1B-OPTIONAL-CONTENT-NAME-001",
-        "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
-        "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
-        "PDFA1B-OPTIONAL-CONTENT-AS-001",
-        "PDFA1B-EMBEDDED-FILE-MIME-001",
     ]
 }
 
@@ -472,7 +451,10 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "lang_catalog_invalid",
             "PDFA1A-LANG-001",
         ),
-        case("font", "unicode_missing", "PDFA1A-UNICODE-MAPPING-001"),
+        checked_in(
+            "tests/fixtures/mutations/PDFA1A-UNICODE-MAPPING-001/unicode_missing.pdf",
+            "PDFA1A-UNICODE-MAPPING-001",
+        ),
         case(
             "font",
             "unicode_pua_missing_actual_text",
@@ -521,6 +503,16 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "PDFA1B-EMBEDDED-FILE-MIME-001",
         ),
         case(
+            "document_feature",
+            "file_spec_missing_f_uf",
+            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+        ),
+        case(
+            "document_feature",
+            "embedded_file_missing_mime",
+            "PDFA1B-EMBEDDED-FILE-MIME-001",
+        ),
+        case(
             "annotation",
             "flags_missing",
             "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
@@ -531,8 +523,8 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "PDFA1B-ANNOTATION-AP-REQUIRED-001",
         ),
         case(
-            "xobject",
-            "image_alternates",
+            "document_feature",
+            "alternate_presentations",
             "PDFA1B-ALTERNATE-PRESENTATIONS-001",
         ),
         case(
@@ -540,34 +532,79 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "page_additional_action",
             "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
         ),
-        case("form", "need_appearances_true", "PDFA1B-ACROFORM-XFA-001"),
+        case("form", "xfa_present", "PDFA1B-ACROFORM-XFA-001"),
         case(
             "document_feature",
-            "ocproperties_dictionary",
+            "catalog_requirements",
             "PDFA1B-CATALOG-REQUIREMENTS-001",
         ),
-        case("font", "composite_named_cmap", "PDFA1B-CMAP-REFERENCE-001"),
+        case(
+            "font",
+            "composite_unknown_named_cmap",
+            "PDFA1B-CMAP-EMBEDDING-001",
+        ),
         case(
             "color_path",
             "device_output_invalid_rgb",
             "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
         ),
         case(
+            "output_intent",
+            "pdfx_with_dest_output_profile_ref",
+            "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
+        ),
+        case(
             "graphics",
-            "halftone_transfer_root_invalid",
+            "extgstate_htp_present",
             "PDFA1B-EXTGSTATE-HTP-001",
         ),
         case(
             "graphics",
-            "halftone_transfer_primary_invalid",
+            "halftone_type_invalid",
             "PDFA1B-HALFTONE-TYPE-001",
         ),
         case(
             "graphics",
-            "halftone_transfer_primary_invalid",
+            "halftone_name_present",
             "PDFA1B-HALFTONE-NAME-001",
         ),
         inapplicable("font", "font_subtype_invalid", "PDFA1B-FONT-SUBTYPE-001"),
+        case(
+            "font",
+            "font_file_subtype_invalid_fontfile3",
+            "PDFA1B-FONT-FILE-SUBTYPE-001",
+        ),
+        case(
+            "object_limit",
+            "object_real_pdfa2_high",
+            "PDFA1B-REAL-RANGE-001",
+        ),
+        case(
+            "object_limit",
+            "object_real_pdfa2_minimum",
+            "PDFA1B-REAL-MINIMUM-001",
+        ),
+        case(
+            "document_feature",
+            "page_boundary_too_small",
+            "PDFA1B-PAGE-BOUNDARY-001",
+        ),
+        case(
+            "device_color",
+            "devicen_33_components",
+            "PDFA1B-DEVICEN-COMPONENTS-001",
+        ),
+        case(
+            "graphics",
+            "extgstate_bm_invalid",
+            "PDFA1B-EXTGSTATE-BLEND-MODE-001",
+        ),
+        case("xobject", "image_bpc_3", "PDFA1B-IMAGE-BPC-001"),
+        case(
+            "annotation",
+            "subtype_unknown",
+            "PDFA1B-ANNOTATION-SUBTYPE-001",
+        ),
         case(
             "annotation",
             "flags_invisible",
@@ -575,22 +612,22 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
         ),
         case(
             "document_feature",
-            "file_spec_without_ef",
+            "ocproperties_missing_name",
             "PDFA1B-OPTIONAL-CONTENT-NAME-001",
         ),
         case(
             "document_feature",
-            "ocproperties_wrong_type",
+            "ocproperties_duplicate_name",
             "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
         ),
         case(
             "document_feature",
-            "ocproperties_stream",
+            "ocproperties_order_missing",
             "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
         ),
         case(
             "document_feature",
-            "ocproperties_indirect_null",
+            "ocproperties_as_present",
             "PDFA1B-OPTIONAL-CONTENT-AS-001",
         ),
         case(
