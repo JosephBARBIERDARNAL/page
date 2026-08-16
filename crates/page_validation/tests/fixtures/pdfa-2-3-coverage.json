@@ -6219,5 +6219,15 @@
       }
     ],
     "coverage_gaps": []
+  },
+  "completion_gate": {
+    "status": "developing",
+    "coverage_gap_is_success": true,
+    "profiles": ["2a", "2b", "2u", "3a", "3b", "3u"],
+    "required_evidence_states": ["applicable_pass", "applicable_fail", "inapplicable"],
+    "blockers": [
+      "Profile-specific veraPDF failure fixtures are still missing for the rules listed by the atomic differential harness.",
+      "Reports remain explicitly preliminary until the all-profile release gate is green."
+    ]
   }
 }

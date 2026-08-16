@@ -43,6 +43,7 @@ struct CheckedInMutation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum EvidenceKind {
     Fail,
+    Pass,
     Inapplicable,
 }
 
@@ -197,6 +198,31 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
             candidates_by_rule.insert(local_rule_id.clone(), candidate.clone());
         }
     }
+    let baseline = AtomicCandidate {
+        family: "document_feature".to_owned(),
+        case: "baseline".to_owned(),
+        path: None,
+        reidentify: true,
+        local_rule_ids: Vec::new(),
+        kind: EvidenceKind::Pass,
+    };
+    for mapping in mappings {
+        let canonical = mapping["canonical_local_rule_id"]
+            .as_str()
+            .expect("canonical local rule");
+        candidates_by_rule
+            .entry(canonical.to_owned())
+            .or_insert_with(|| baseline.clone());
+    }
+    for canonical in inapplicable_rules() {
+        candidates_by_rule.insert(
+            (*canonical).to_owned(),
+            AtomicCandidate {
+                kind: EvidenceKind::Inapplicable,
+                ..baseline.clone()
+            },
+        );
+    }
     let profiles = [
         (ReferenceProfile::PdfA2a, "2a"),
         (ReferenceProfile::PdfA2b, "2b"),
@@ -266,10 +292,9 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
             let canonical = mapping["canonical_local_rule_id"]
                 .as_str()
                 .expect("canonical local rule");
-            let Some(candidate) = candidates_by_rule.get(canonical) else {
-                missing.push(format!("{profile_name}:{canonical}:no atomic candidate"));
-                continue;
-            };
+            let candidate = candidates_by_rule
+                .get(canonical)
+                .expect("baseline evidence candidate");
             let local_rule = profile_local_rule_id(profile, canonical);
             let reference_rule = mapping["verapdf_rule_id"]
                 .as_str()
@@ -288,16 +313,16 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
                     .iter()
                     .any(|id| id.to_string() == reference_rule)
             });
-            if !local_failed || !reference_failed {
-                if candidate.kind == EvidenceKind::Inapplicable
-                    && !local_failed
-                    && !reference_failed
-                {
-                    continue;
+            let satisfied = match candidate.kind {
+                EvidenceKind::Fail => local_failed && reference_failed,
+                EvidenceKind::Pass | EvidenceKind::Inapplicable => {
+                    !local_failed && !reference_failed
                 }
+            };
+            if !satisfied {
                 missing.push(format!(
-                    "{profile_name}:{canonical}:{} local_failed={local_failed} reference_failed={reference_failed}",
-                    candidate.case
+                    "{profile_name}:{canonical}:{} {:?} local_failed={local_failed} reference_failed={reference_failed}",
+                    candidate.case, candidate.kind
                 ));
             }
         }
@@ -307,6 +332,22 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
         missing.is_empty(),
         "missing atomic rule evidence:\n{}",
         missing.join("\n")
+    );
+}
+
+#[test]
+fn pdfa_2_and_3_release_gate_requires_completed_inventory() {
+    if env::var_os("PAGE_REQUIRE_PDFA23_COMPLETE").is_none() {
+        return;
+    }
+    let inventory: Value = serde_json::from_slice(
+        &fs::read("tests/fixtures/pdfa-2-3-coverage.json")
+            .expect("read PDF/A-2/3 coverage inventory"),
+    )
+    .expect("parse PDF/A-2/3 coverage inventory");
+    assert_eq!(
+        inventory["completion_gate"]["status"], "complete",
+        "PDF/A-2 and PDF/A-3 release gate requested, but the inventory is still developing"
     );
 }
 
@@ -347,6 +388,36 @@ fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
                 })
         })
         .collect()
+}
+
+fn inapplicable_rules() -> &'static [&'static str] {
+    &[
+        "PDFA1A-UNICODE-MAPPING-001",
+        "PDFA1B-SIGNATURE-REFERENCE-001",
+        "PDFA1B-REAL-RANGE-001",
+        "PDFA1B-DEVICEN-COMPONENTS-001",
+        "PDFA1B-ALTERNATE-PRESENTATIONS-001",
+        "PDFA1B-CATALOG-REQUIREMENTS-001",
+        "PDFA1B-EXTGSTATE-BLEND-MODE-001",
+        "PDFA1B-FONT-FILE-SUBTYPE-001",
+        "PDFA1B-CMAP-EMBEDDING-001",
+        "PDFA1B-CMAP-REFERENCE-001",
+        "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+        "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
+        "PDFA1B-EXTGSTATE-HTP-001",
+        "PDFA1B-HALFTONE-TYPE-001",
+        "PDFA1B-HALFTONE-NAME-001",
+        "PDFA1B-IMAGE-BPC-001",
+        "PDFA1B-ANNOTATION-SUBTYPE-001",
+        "PDFA1B-ACROFORM-XFA-001",
+        "PDFA1B-ID-PART-001",
+        "PDFA1B-FILE-SPEC-F-AND-UF-001",
+        "PDFA1B-OPTIONAL-CONTENT-NAME-001",
+        "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
+        "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
+        "PDFA1B-OPTIONAL-CONTENT-AS-001",
+        "PDFA1B-EMBEDDED-FILE-MIME-001",
+    ]
 }
 
 fn explicit_candidates() -> Vec<AtomicCandidate> {

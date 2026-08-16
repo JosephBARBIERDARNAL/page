@@ -49,6 +49,7 @@ pdfa1b-release-gate verapdf=verapdf_bin:
 # Release-only gate for every currently implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
 pdfa-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
+    PAGE_REQUIRE_PDFA23_COMPLETE=1 cargo test -p page_validation --test pdfa_2_3_differential pdfa_2_and_3_release_gate_requires_completed_inventory -- --nocapture
     cargo test -p page_validation --test rule_mapping_docs --test canonical_compliance
     just verapdf-all "{{ verapdf }}"
 
