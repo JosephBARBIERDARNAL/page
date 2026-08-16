@@ -64,6 +64,8 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
     pub(crate) inline_image_lzw_context: Option<String>,
+    pub(crate) inline_image_invalid_filter_context: Option<String>,
+    pub(crate) inline_image_interpolate_context: Option<String>,
     pub(crate) language_failures: Vec<RuleFailure>,
 }
 
@@ -468,6 +470,16 @@ impl ContentExecutor<'_> {
             if inline.has_lzw {
                 self.summary
                     .inline_image_lzw_context
+                    .get_or_insert_with(|| format!("{context}/inline image"));
+            }
+            if inline.has_invalid_pdfa2_filter {
+                self.summary
+                    .inline_image_invalid_filter_context
+                    .get_or_insert_with(|| format!("{context}/inline image"));
+            }
+            if inline.has_interpolate {
+                self.summary
+                    .inline_image_interpolate_context
                     .get_or_insert_with(|| format!("{context}/inline image"));
             }
             if let Some(name) = &inline.rendering_intent {
@@ -1469,6 +1481,8 @@ struct InlineImage {
     color_space: Option<Vec<u8>>,
     rendering_intent: Option<Vec<u8>>,
     has_lzw: bool,
+    has_invalid_pdfa2_filter: bool,
+    has_interpolate: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -1508,6 +1522,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                 let mut color_space_value = false;
                 let mut rendering_intent_value = false;
                 let mut filter_value = false;
+                let mut interpolate_value = false;
                 let mut filter_array_depth = None;
                 while let Some((token, _, next)) = next_content_token(bytes, cursor) {
                     cursor = next;
@@ -1532,6 +1547,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                         }
                         ContentToken::Name(name) if filter_value => {
                             image.has_lzw |= is_lzw_filter(&name);
+                            image.has_invalid_pdfa2_filter |= !is_pdfa2_inline_filter(&name);
                             filter_value = false;
                         }
                         ContentToken::OpenArray if filter_value => {
@@ -1547,16 +1563,23 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                         }
                         ContentToken::Name(name) if filter_array_depth.is_some() => {
                             image.has_lzw |= is_lzw_filter(&name);
+                            image.has_invalid_pdfa2_filter |= !is_pdfa2_inline_filter(&name);
+                        }
+                        ContentToken::Bare(value) if interpolate_value => {
+                            image.has_interpolate |= value == b"true";
+                            interpolate_value = false;
                         }
                         ContentToken::Name(name) => {
                             color_space_value = matches!(name.as_slice(), b"CS" | b"ColorSpace");
                             rendering_intent_value = matches!(name.as_slice(), b"Intent");
                             filter_value = matches!(name.as_slice(), b"F" | b"Filter");
+                            interpolate_value = matches!(name.as_slice(), b"I" | b"Interpolate");
                         }
                         _ => {
                             color_space_value = false;
                             rendering_intent_value = false;
                             filter_value = false;
+                            interpolate_value = false;
                         }
                     }
                 }
@@ -1572,6 +1595,24 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
 
 fn is_lzw_filter(name: &[u8]) -> bool {
     matches!(name, b"LZW" | b"LZWDecode")
+}
+
+fn is_pdfa2_inline_filter(name: &[u8]) -> bool {
+    matches!(
+        name,
+        b"ASCIIHexDecode"
+            | b"ASCII85Decode"
+            | b"FlateDecode"
+            | b"RunLengthDecode"
+            | b"CCITTFaxDecode"
+            | b"DCTDecode"
+            | b"AHx"
+            | b"A85"
+            | b"Fl"
+            | b"RL"
+            | b"CCF"
+            | b"DCT"
+    )
 }
 
 fn content_syntax_is_balanced(bytes: &[u8]) -> bool {

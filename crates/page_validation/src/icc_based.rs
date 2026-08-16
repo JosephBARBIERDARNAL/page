@@ -12,11 +12,14 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct IccBasedSummary {
     pub(crate) failures: Vec<RuleFailure>,
+    pub(crate) failures_pdfa2: Vec<RuleFailure>,
     pub(crate) component_failures: Vec<RuleFailure>,
     pub(crate) device_gray_context: Option<String>,
     pub(crate) device_rgb_context: Option<String>,
     pub(crate) device_cmyk_context: Option<String>,
     pub(crate) invalid_devicen_components: Vec<RuleFailure>,
+    pub(crate) invalid_devicen_components_pdfa2: Vec<RuleFailure>,
+    pub(crate) invalid_devicen_colorants: Vec<RuleFailure>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -26,16 +29,21 @@ enum DeviceColorSpace {
     Cmyk,
 }
 
+type DeviceNFindings = (Vec<RuleFailure>, Vec<RuleFailure>, Vec<RuleFailure>);
+
 struct Inspector<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
     inspected_profiles: BTreeSet<ResourceKey>,
     failures: BTreeMap<ResourceKey, RuleFailure>,
+    failures_pdfa2: BTreeMap<ResourceKey, RuleFailure>,
     component_failures: BTreeMap<ResourceKey, RuleFailure>,
     device_gray_context: Option<String>,
     device_rgb_context: Option<String>,
     device_cmyk_context: Option<String>,
     invalid_devicen_components: Vec<RuleFailure>,
+    invalid_devicen_components_pdfa2: Vec<RuleFailure>,
+    invalid_devicen_colorants: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -48,11 +56,14 @@ pub(crate) fn inspect(
         limits,
         inspected_profiles: BTreeSet::new(),
         failures: BTreeMap::new(),
+        failures_pdfa2: BTreeMap::new(),
         component_failures: BTreeMap::new(),
         device_gray_context: None,
         device_rgb_context: None,
         device_cmyk_context: None,
         invalid_devicen_components: Vec::new(),
+        invalid_devicen_components_pdfa2: Vec::new(),
+        invalid_devicen_colorants: Vec::new(),
     };
     for selected in &execution.selected_color_spaces {
         inspector.inspect_selected_color_space(selected)?;
@@ -61,9 +72,10 @@ pub(crate) fn inspect(
     // veraPDF exposes PDDeviceN objects independently from colour-space
     // selection, so retain its whole parsed-object population in addition to
     // the executed colour spaces above.
-    inspector
-        .invalid_devicen_components
-        .extend(inspect_all_devicen_components(document, limits)?);
+    let (all_pdfa1, all_pdfa2, all_colorants) = inspect_all_devicen_components(document, limits)?;
+    inspector.invalid_devicen_components.extend(all_pdfa1);
+    inspector.invalid_devicen_components_pdfa2.extend(all_pdfa2);
+    inspector.invalid_devicen_colorants.extend(all_colorants);
     inspector.invalid_devicen_components.sort_by(|left, right| {
         left.object_id
             .cmp(&right.object_id)
@@ -74,14 +86,37 @@ pub(crate) fn inspect(
         .dedup_by(|left, right| {
             left.object_id == right.object_id && left.description == right.description
         });
+    inspector
+        .invalid_devicen_components_pdfa2
+        .sort_by(|left, right| {
+            left.object_id
+                .cmp(&right.object_id)
+                .then_with(|| left.description.cmp(&right.description))
+        });
+    inspector.invalid_devicen_colorants.sort_by(|left, right| {
+        left.object_id
+            .cmp(&right.object_id)
+            .then_with(|| left.description.cmp(&right.description))
+    });
+    inspector.invalid_devicen_colorants.dedup_by(|left, right| {
+        left.object_id == right.object_id && left.description == right.description
+    });
+    inspector
+        .invalid_devicen_components_pdfa2
+        .dedup_by(|left, right| {
+            left.object_id == right.object_id && left.description == right.description
+        });
 
     Ok(IccBasedSummary {
         failures: inspector.failures.into_values().collect(),
+        failures_pdfa2: inspector.failures_pdfa2.into_values().collect(),
         component_failures: inspector.component_failures.into_values().collect(),
         device_gray_context: inspector.device_gray_context,
         device_rgb_context: inspector.device_rgb_context,
         device_cmyk_context: inspector.device_cmyk_context,
         invalid_devicen_components: inspector.invalid_devicen_components,
+        invalid_devicen_components_pdfa2: inspector.invalid_devicen_components_pdfa2,
+        invalid_devicen_colorants: inspector.invalid_devicen_colorants,
     })
 }
 
@@ -134,6 +169,22 @@ impl Inspector<'_> {
                     object_id: value.as_reference().ok().map(Into::into),
                     description: format!(
                         "{context} uses a DeviceN colour space with {components} components"
+                    ),
+                });
+            }
+            if components > 32 {
+                self.invalid_devicen_components_pdfa2.push(RuleFailure {
+                    object_id: value.as_reference().ok().map(Into::into),
+                    description: format!(
+                        "{context} uses a DeviceN colour space with {components} components"
+                    ),
+                });
+            }
+            if !devicen_colorants_present(self.document, items, self.limits)? {
+                self.invalid_devicen_colorants.push(RuleFailure {
+                    object_id: value.as_reference().ok().map(Into::into),
+                    description: format!(
+                        "{context} uses a spot colour without a matching DeviceN /Colorants entry"
                     ),
                 });
             }
@@ -257,6 +308,18 @@ impl Inspector<'_> {
                 ),
             );
         }
+        if !header.conforms_to_pdfa_2_input_profile() {
+            self.record_failure_pdfa2(
+                key.clone(),
+                format!(
+                    "ICCBased profile has class {:?}, colour space {:?}, and version {}.{}",
+                    header.device_class,
+                    header.color_space,
+                    header.version_major,
+                    header.version_minor
+                ),
+            );
+        }
         let components = stream
             .dict
             .get(b"N")
@@ -303,13 +366,23 @@ impl Inspector<'_> {
             description,
         });
     }
+
+    fn record_failure_pdfa2(&mut self, key: ResourceKey, description: String) {
+        let object_id = key.object_id();
+        self.failures_pdfa2.entry(key).or_insert(RuleFailure {
+            object_id,
+            description,
+        });
+    }
 }
 
 fn inspect_all_devicen_components(
     document: &Document,
     limits: &SafetyLimits,
-) -> Result<Vec<RuleFailure>, PdfError> {
+) -> Result<DeviceNFindings, PdfError> {
     let mut failures = Vec::new();
+    let mut pdfa2_failures = Vec::new();
+    let mut colorant_failures = Vec::new();
     let mut visited = BTreeSet::new();
     for (object_id, object) in &document.objects {
         inspect_devicen_object(
@@ -319,9 +392,11 @@ fn inspect_all_devicen_components(
             limits,
             &mut visited,
             &mut failures,
+            &mut pdfa2_failures,
+            &mut colorant_failures,
         )?;
     }
-    Ok(failures)
+    Ok((failures, pdfa2_failures, colorant_failures))
 }
 
 fn devicen_component_count(
@@ -345,6 +420,8 @@ fn inspect_devicen_object(
     limits: &SafetyLimits,
     visited: &mut BTreeSet<ObjectId>,
     failures: &mut Vec<RuleFailure>,
+    pdfa2_failures: &mut Vec<RuleFailure>,
+    colorant_failures: &mut Vec<RuleFailure>,
 ) -> Result<(), PdfError> {
     match object {
         Object::Reference(object_id) if visited.insert(*object_id) => {
@@ -356,6 +433,8 @@ fn inspect_devicen_object(
                     limits,
                     visited,
                     failures,
+                    pdfa2_failures,
+                    colorant_failures,
                 )?;
             }
         }
@@ -370,24 +449,114 @@ fn inspect_devicen_object(
                         ),
                     });
                 }
+                if components > 32 {
+                    pdfa2_failures.push(RuleFailure {
+                        object_id: owner,
+                        description: format!(
+                            "an object uses a DeviceN colour space with {components} components"
+                        ),
+                    });
+                }
+                if !devicen_colorants_present(document, items, limits)? {
+                    colorant_failures.push(RuleFailure {
+                        object_id: owner,
+                        description: "a DeviceN colour space has a spot colour without a matching /Colorants entry".to_owned(),
+                    });
+                }
             }
             for item in items {
-                inspect_devicen_object(document, item, owner, limits, visited, failures)?;
+                inspect_devicen_object(
+                    document,
+                    item,
+                    owner,
+                    limits,
+                    visited,
+                    failures,
+                    pdfa2_failures,
+                    colorant_failures,
+                )?;
             }
         }
         Object::Dictionary(dictionary) => {
             for (_, value) in dictionary.iter() {
-                inspect_devicen_object(document, value, owner, limits, visited, failures)?;
+                inspect_devicen_object(
+                    document,
+                    value,
+                    owner,
+                    limits,
+                    visited,
+                    failures,
+                    pdfa2_failures,
+                    colorant_failures,
+                )?;
             }
         }
         Object::Stream(stream) => {
             for (_, value) in stream.dict.iter() {
-                inspect_devicen_object(document, value, owner, limits, visited, failures)?;
+                inspect_devicen_object(
+                    document,
+                    value,
+                    owner,
+                    limits,
+                    visited,
+                    failures,
+                    pdfa2_failures,
+                    colorant_failures,
+                )?;
             }
         }
         _ => {}
     }
     Ok(())
+}
+
+fn devicen_colorants_present(
+    document: &Document,
+    items: &[Object],
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(names) = items
+        .get(1)
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_array().ok())
+    else {
+        return Ok(true);
+    };
+    let Some(attributes) = items
+        .get(4)
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return Ok(names.iter().all(is_process_colorant));
+    };
+    let Some(colorants) = attributes
+        .get(b"Colorants")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return Ok(names.iter().all(is_process_colorant));
+    };
+    Ok(names.iter().all(|name| {
+        is_process_colorant(name)
+            || name
+                .as_name()
+                .ok()
+                .is_some_and(|name| colorants.get(name).is_ok())
+    }))
+}
+
+fn is_process_colorant(value: &Object) -> bool {
+    matches!(
+        value.as_name().ok(),
+        Some(b"Cyan" | b"Magenta" | b"Yellow" | b"Black")
+    )
 }
 
 #[cfg(test)]
@@ -411,8 +580,11 @@ mod tests {
                 Object::Null,
             ],
         });
-        let failures = inspect_all_devicen_components(&document, &SafetyLimits::default())
-            .expect("inspect DeviceN");
+        let (failures, pdfa2_failures, colorant_failures) =
+            inspect_all_devicen_components(&document, &SafetyLimits::default())
+                .expect("inspect DeviceN");
         assert_eq!(failures.len(), 1);
+        assert!(pdfa2_failures.is_empty());
+        assert_eq!(colorant_failures.len(), 1);
     }
 }

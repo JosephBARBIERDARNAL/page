@@ -81,12 +81,26 @@ impl IccHeader {
             && self.version_major < 3
     }
 
+    pub fn conforms_to_pdfa_2_output_intent(&self) -> bool {
+        matches!(self.device_class.as_str(), "prtr" | "mntr")
+            && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY")
+            && self.version_major < 5
+    }
+
     pub(crate) fn conforms_to_pdfa_1_input_profile(&self) -> bool {
         matches!(
             self.device_class.as_str(),
             "prtr" | "mntr" | "scnr" | "spac"
         ) && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY" | "Lab ")
             && self.version_major < 3
+    }
+
+    pub(crate) fn conforms_to_pdfa_2_input_profile(&self) -> bool {
+        matches!(
+            self.device_class.as_str(),
+            "prtr" | "mntr" | "scnr" | "spac"
+        ) && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY" | "Lab ")
+            && self.version_major < 5
     }
 }
 
@@ -97,6 +111,7 @@ pub struct OutputIntentSummary {
     pub subtype_present: bool,
     pub subtype: Option<String>,
     pub dest_output_profile_present: bool,
+    pub dest_output_profile_ref_present: bool,
     pub dest_output_profile_id: Option<PdfObjectId>,
     pub dest_output_profile_is_stream: bool,
     pub dest_output_profile_header: Option<IccHeader>,
@@ -218,7 +233,7 @@ impl PdfDocument {
             let annotations = crate::annotations::inspect(&document, &pages, limits)?;
             let actions = crate::actions::inspect(&document, &pages, limits)?;
             let forms = crate::forms::inspect(&document, &pages, limits)?;
-            let document_features = crate::document_features::inspect(&document, limits)?;
+            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
             let font_embedding = font_embedding::inspect(&document, &content, limits)?;
@@ -687,6 +702,8 @@ fn inspect_output_intent(
             resolve_optional(document, subtype, limits.max_reference_depth)?.unwrap_or(subtype);
         summary.subtype = resolved.as_name().ok().map(signature);
     }
+
+    summary.dest_output_profile_ref_present = contains_key(dictionary, b"DestOutputProfileRef");
 
     let Ok(profile) = dictionary.get(b"DestOutputProfile") else {
         return Ok(summary);

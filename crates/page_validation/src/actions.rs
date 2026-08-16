@@ -20,11 +20,13 @@ const FIELD_ACTION_KEYS: &[&[u8]] = &[b"K", b"F", b"V", b"C"];
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ActionSummary {
     pub(crate) invalid_action_types: Vec<RuleFailure>,
+    pub(crate) invalid_action_types_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_named_actions: Vec<RuleFailure>,
     pub(crate) widgets_with_actions: Vec<RuleFailure>,
     pub(crate) widgets_with_additional_actions: Vec<RuleFailure>,
     pub(crate) fields_with_additional_actions: Vec<RuleFailure>,
     pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) pages_with_additional_actions: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
 }
 
@@ -98,6 +100,14 @@ impl Inspector<'_> {
             let Some(page) = page_entry.resolve(self.document) else {
                 continue;
             };
+            if contains_key(page, b"AA") {
+                self.summary
+                    .pages_with_additional_actions
+                    .push(RuleFailure {
+                        object_id: page_entry.object_id().map(Into::into),
+                        description: format!("page {page_number} contains /AA"),
+                    });
+            }
             self.inspect_additional_actions(
                 page.get(b"AA").ok(),
                 PAGE_ACTION_KEYS,
@@ -367,6 +377,15 @@ impl Inspector<'_> {
             Some(b"GoTo" | b"GoToR" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
         ) {
             self.summary.invalid_action_types.push(RuleFailure {
+                object_id: failure_id,
+                description: format!("{context} has a missing or forbidden /S"),
+            });
+        }
+        if !matches!(
+            subtype,
+            Some(b"GoTo" | b"GoToR" | b"GoToE" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
+        ) {
+            self.summary.invalid_action_types_pdfa2.push(RuleFailure {
                 object_id: failure_id,
                 description: format!("{context} has a missing or forbidden /S"),
             });

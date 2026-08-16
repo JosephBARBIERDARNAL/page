@@ -7,7 +7,10 @@ use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{dictionary_based, resolve_optional};
+use crate::object_resolution::{
+    contains_key, dictionary_based, resolve_optional, resolved_name, walk_inherited,
+};
+use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
@@ -25,10 +28,32 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_cycle: bool,
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) language_failures: Vec<RuleFailure>,
+    pub(crate) invalid_page_boundaries: Vec<RuleFailure>,
+    pub(crate) pages_with_pres_steps: Vec<RuleFailure>,
+    pub(crate) catalog_with_requirements: Vec<RuleFailure>,
+    pub(crate) catalog_with_alternate_presentations: Vec<RuleFailure>,
+    pub(crate) catalog_with_needs_rendering: Vec<RuleFailure>,
+    pub(crate) acro_forms_with_xfa: Vec<RuleFailure>,
+    pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_af_relationship: Vec<RuleFailure>,
+    pub(crate) file_specs_not_associated: Vec<RuleFailure>,
+    pub(crate) optional_content_missing_names: Vec<RuleFailure>,
+    pub(crate) optional_content_duplicate_names: Vec<RuleFailure>,
+    pub(crate) optional_content_invalid_orders: Vec<RuleFailure>,
+    pub(crate) optional_content_as_entries: Vec<RuleFailure>,
 }
+
+type OptionalContentFailures = (
+    Vec<RuleFailure>,
+    Vec<RuleFailure>,
+    Vec<RuleFailure>,
+    Vec<RuleFailure>,
+);
 
 pub(crate) fn inspect(
     document: &Document,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
 ) -> Result<DocumentFeatureSummary, PdfError> {
     let catalog_id = root_reference_id(document);
@@ -106,6 +131,220 @@ pub(crate) fn inspect(
     let contains_optional_content = catalog
         .get(b"OCProperties")
         .is_ok_and(|value| !matches!(value, Object::Null));
+    let (
+        optional_content_missing_names,
+        optional_content_duplicate_names,
+        optional_content_invalid_orders,
+        optional_content_as_entries,
+    ) = inspect_optional_content(document, catalog, limits)?;
+
+    let mut invalid_page_boundaries = Vec::new();
+    let mut pages_with_pres_steps = Vec::new();
+    for (index, page_entry) in pages.iter().enumerate() {
+        let Some(page) = page_entry.resolve(document) else {
+            continue;
+        };
+        let object_id = page_entry.object_id().map(Into::into);
+        if page
+            .get(b"PresSteps")
+            .is_ok_and(|value| !matches!(value, Object::Null))
+        {
+            pages_with_pres_steps.push(RuleFailure {
+                object_id,
+                description: format!("page {} contains /PresSteps", index + 1),
+            });
+        }
+        for key in [
+            b"MediaBox".as_slice(),
+            b"CropBox",
+            b"BleedBox",
+            b"TrimBox",
+            b"ArtBox",
+        ] {
+            if let Some((width, height)) = page_boundary_size(document, page, key, limits)?
+                && (!(3.0..=14_400.0).contains(&width) || !(3.0..=14_400.0).contains(&height))
+            {
+                invalid_page_boundaries.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "page {} has an invalid /{} size",
+                        index + 1,
+                        String::from_utf8_lossy(key)
+                    ),
+                });
+            }
+        }
+    }
+
+    let mut catalog_with_requirements = Vec::new();
+    if catalog
+        .get(b"Requirements")
+        .is_ok_and(|value| !matches!(value, Object::Null))
+    {
+        catalog_with_requirements.push(RuleFailure {
+            object_id: catalog_id,
+            description: "document catalog contains /Requirements".to_owned(),
+        });
+    }
+    let mut catalog_with_alternate_presentations = Vec::new();
+    if names.is_some_and(|names| {
+        names
+            .get(b"AlternatePresentations")
+            .is_ok_and(|value| !matches!(value, Object::Null))
+    }) {
+        catalog_with_alternate_presentations.push(RuleFailure {
+            object_id: catalog_id,
+            description: "document name dictionary contains /AlternatePresentations".to_owned(),
+        });
+    }
+    let mut catalog_with_needs_rendering = Vec::new();
+    if catalog
+        .get(b"NeedsRendering")
+        .is_ok_and(|value| !matches!(value, Object::Boolean(false) | Object::Null))
+    {
+        catalog_with_needs_rendering.push(RuleFailure {
+            object_id: catalog_id,
+            description: "document catalog contains a non-false /NeedsRendering value".to_owned(),
+        });
+    }
+    let mut acro_forms_with_xfa = Vec::new();
+    if let Some(acro_form) = catalog
+        .get(b"AcroForm")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+        && acro_form
+            .get(b"XFA")
+            .is_ok_and(|value| !matches!(value, Object::Null))
+    {
+        acro_forms_with_xfa.push(RuleFailure {
+            object_id: catalog_id,
+            description: "the catalog AcroForm contains /XFA".to_owned(),
+        });
+    }
+
+    let mut associated_file_spec_ids = BTreeSet::new();
+    collect_associated_file_spec_ids(
+        document,
+        catalog.get(b"AF").ok(),
+        limits,
+        &mut associated_file_spec_ids,
+    )?;
+    for page_entry in pages {
+        if let Some(page) = page_entry.resolve(document) {
+            collect_associated_file_spec_ids(
+                document,
+                page.get(b"AF").ok(),
+                limits,
+                &mut associated_file_spec_ids,
+            )?;
+            if let Some(annotations) = page
+                .get(b"Annots")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|object| object.as_array().ok())
+            {
+                for annotation in annotations {
+                    if let Some(annotation) =
+                        resolve_optional(document, annotation, limits.max_reference_depth)?
+                            .and_then(dictionary_based)
+                    {
+                        collect_associated_file_spec_ids(
+                            document,
+                            annotation.get(b"AF").ok(),
+                            limits,
+                            &mut associated_file_spec_ids,
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+    let mut embedded_files_with_invalid_mime = Vec::new();
+    let mut file_specs_missing_f_or_uf = Vec::new();
+    let mut file_specs_missing_af_relationship = Vec::new();
+    let mut file_specs_not_associated = Vec::new();
+    for (object_id, object) in &document.objects {
+        let Some(dictionary) = dictionary_based(object) else {
+            continue;
+        };
+        if !contains_key(dictionary, b"EF") {
+            continue;
+        }
+        let raw_object_id = *object_id;
+        let object_id = Some(raw_object_id.into());
+        if !contains_key(dictionary, b"F") || !contains_key(dictionary, b"UF") {
+            file_specs_missing_f_or_uf.push(RuleFailure {
+                object_id,
+                description: "embedded-file specification is missing /F or /UF".to_owned(),
+            });
+        }
+        if resolved_name(
+            document,
+            dictionary,
+            b"AFRelationship",
+            limits.max_reference_depth,
+        )?
+        .is_none()
+        {
+            file_specs_missing_af_relationship.push(RuleFailure {
+                object_id,
+                description: "associated-file specification is missing /AFRelationship".to_owned(),
+            });
+        }
+        if !associated_file_spec_ids.contains(&raw_object_id) {
+            file_specs_not_associated.push(RuleFailure {
+                object_id,
+                description: "embedded-file specification is not referenced by an /AF association"
+                    .to_owned(),
+            });
+        }
+        let Some(embedded_files) = dictionary
+            .get(b"EF")
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(dictionary_based)
+        else {
+            continue;
+        };
+        for key in [b"F".as_slice(), b"UF"] {
+            let Some(value) = embedded_files
+                .get(key)
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+            else {
+                continue;
+            };
+            let valid_mime = value
+                .as_stream()
+                .ok()
+                .and_then(|stream| {
+                    stream
+                        .dict
+                        .get(b"Subtype")
+                        .ok()
+                        .and_then(|value| value.as_name().ok())
+                })
+                .is_some_and(is_mime_type);
+            if !valid_mime {
+                embedded_files_with_invalid_mime.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "embedded-file stream /{} has no valid MIME /Subtype",
+                        String::from_utf8_lossy(key)
+                    ),
+                });
+            }
+        }
+    }
 
     Ok(DocumentFeatureSummary {
         catalog_id,
@@ -125,7 +364,243 @@ pub(crate) fn inspect(
             .into_iter()
             .chain(language_failures)
             .collect(),
+        invalid_page_boundaries,
+        pages_with_pres_steps,
+        catalog_with_requirements,
+        catalog_with_alternate_presentations,
+        catalog_with_needs_rendering,
+        acro_forms_with_xfa,
+        embedded_files_with_invalid_mime,
+        file_specs_missing_f_or_uf,
+        file_specs_missing_af_relationship,
+        file_specs_not_associated,
+        optional_content_missing_names,
+        optional_content_duplicate_names,
+        optional_content_invalid_orders,
+        optional_content_as_entries,
     })
+}
+
+fn inspect_optional_content(
+    document: &Document,
+    catalog: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<OptionalContentFailures, PdfError> {
+    let Some(properties) = catalog
+        .get(b"OCProperties")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok((Vec::new(), Vec::new(), Vec::new(), Vec::new()));
+    };
+    let mut configurations = Vec::new();
+    if let Some(default) = properties
+        .get(b"D")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    {
+        configurations.push(default);
+    }
+    if let Some(values) = properties
+        .get(b"Configs")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|object| object.as_array().ok())
+    {
+        for value in values {
+            if let Some(configuration) =
+                resolve_optional(document, value, limits.max_reference_depth)?
+                    .and_then(dictionary_based)
+            {
+                configurations.push(configuration);
+            }
+        }
+    }
+    let ocg_ids = properties
+        .get(b"OCGs")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|object| object.as_array().ok())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_reference().ok())
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    let mut names = BTreeSet::new();
+    let mut missing_names = Vec::new();
+    let mut duplicate_names = Vec::new();
+    let mut invalid_orders = Vec::new();
+    let mut as_entries = Vec::new();
+    for (index, configuration) in configurations.iter().enumerate() {
+        let object_id = None;
+        let name = configuration_name(document, configuration, limits)?;
+        match name {
+            Some(name) if !name.is_empty() => {
+                if !names.insert(name.clone()) {
+                    duplicate_names.push(RuleFailure {
+                        object_id,
+                        description: format!(
+                            "optional-content configuration {index} duplicates /Name {name:?}"
+                        ),
+                    });
+                }
+            }
+            _ => {
+                missing_names.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "optional-content configuration {index} has no nonempty /Name"
+                    ),
+                });
+            }
+        }
+        if contains_key(configuration, b"AS") {
+            as_entries.push(RuleFailure {
+                object_id,
+                description: format!("optional-content configuration {index} contains /AS"),
+            });
+        }
+        if let Some(order) = configuration
+            .get(b"Order")
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|object| object.as_array().ok())
+        {
+            let mut ordered_ids = BTreeSet::new();
+            collect_object_references(order, &mut ordered_ids);
+            if ocg_ids.iter().any(|id| !ordered_ids.contains(id)) {
+                invalid_orders.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "optional-content configuration {index} /Order omits an OCG"
+                    ),
+                });
+            }
+        }
+    }
+    Ok((missing_names, duplicate_names, invalid_orders, as_entries))
+}
+
+fn configuration_name(
+    document: &Document,
+    configuration: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<String>, PdfError> {
+    let Some(value) = configuration
+        .get(b"Name")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(None);
+    };
+    Ok(value
+        .as_str()
+        .ok()
+        .map(|value| String::from_utf8_lossy(value).into_owned()))
+}
+
+fn collect_object_references(values: &[Object], ids: &mut BTreeSet<ObjectId>) {
+    for value in values {
+        match value {
+            Object::Reference(id) => {
+                ids.insert(*id);
+            }
+            Object::Array(values) => collect_object_references(values, ids),
+            _ => {}
+        }
+    }
+}
+
+fn collect_associated_file_spec_ids(
+    document: &Document,
+    value: Option<&Object>,
+    limits: &SafetyLimits,
+    ids: &mut BTreeSet<ObjectId>,
+) -> Result<(), PdfError> {
+    if let Some(value) = value
+        && let Ok(id) = value.as_reference()
+    {
+        ids.insert(id);
+    }
+    let Some(value) = value
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(());
+    };
+    let Some(values) = value.as_array().ok() else {
+        if let Ok(id) = value.as_reference() {
+            ids.insert(id);
+        }
+        return Ok(());
+    };
+    for value in values {
+        if let Ok(id) = value.as_reference() {
+            ids.insert(id);
+        }
+    }
+    Ok(())
+}
+
+fn is_mime_type(value: &[u8]) -> bool {
+    let Some(separator) = value.iter().position(|byte| *byte == b'/') else {
+        return false;
+    };
+    let (type_, subtype) = value.split_at(separator);
+    let subtype = &subtype[1..];
+    !type_.is_empty()
+        && !subtype.is_empty()
+        && type_
+            .iter()
+            .chain(subtype)
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'+' | b'.'))
+}
+
+fn page_boundary_size(
+    document: &Document,
+    page: &lopdf::Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<(f64, f64)>, PdfError> {
+    let Some(value) = walk_inherited(document, page, limits, key, |document, value, limits| {
+        resolve_optional(document, value, limits.max_reference_depth)
+    })?
+    else {
+        return Ok(None);
+    };
+    let Ok(values) = value.as_array() else {
+        return Ok(Some((0.0, 0.0)));
+    };
+    if values.len() != 4 {
+        return Ok(Some((0.0, 0.0)));
+    }
+    let numbers = values
+        .iter()
+        .map(|value| value.as_float().ok())
+        .collect::<Option<Vec<_>>>();
+    Ok(numbers.map(|values| {
+        (
+            f64::from((values[2] - values[0]).abs()),
+            f64::from((values[3] - values[1]).abs()),
+        )
+    }))
 }
 
 #[derive(Default)]
@@ -582,7 +1057,7 @@ mod tests {
         );
 
         assert!(matches!(
-            inspect(&document, &SafetyLimits::default()),
+            inspect(&document, &[], &SafetyLimits::default()),
             Err(PdfError::ReferenceDepth(_))
         ));
     }
@@ -611,7 +1086,7 @@ mod tests {
         );
 
         assert!(matches!(
-            inspect(&document, &SafetyLimits::default()),
+            inspect(&document, &[], &SafetyLimits::default()),
             Err(PdfError::ReferenceDepth(_))
         ));
     }
@@ -643,7 +1118,7 @@ mod tests {
             .objects
             .insert((4, 0), Object::Dictionary(dictionary! { "S" => "Span" }));
 
-        let features = inspect(&document, &SafetyLimits::default()).expect("inspect");
+        let features = inspect(&document, &[], &SafetyLimits::default()).expect("inspect");
         assert!(features.struct_tree_root_present);
         assert!(features.struct_tree_root_valid);
     }
@@ -694,6 +1169,6 @@ mod tests {
             }),
         );
 
-        assert!(inspect(&document, &SafetyLimits::default()).is_ok());
+        assert!(inspect(&document, &[], &SafetyLimits::default()).is_ok());
     }
 }

@@ -4,7 +4,10 @@ use crate::model::PdfObjectId;
 pub(crate) struct ObjectLimitsSummary {
     pub(crate) out_of_range_integers: Vec<PdfObjectId>,
     pub(crate) out_of_range_reals: Vec<PdfObjectId>,
+    pub(crate) out_of_range_reals_pdfa_2: Vec<PdfObjectId>,
+    pub(crate) underflow_reals_pdfa_2: Vec<PdfObjectId>,
     pub(crate) overlong_strings: Vec<PdfObjectId>,
+    pub(crate) overlong_strings_pdfa_2: Vec<PdfObjectId>,
     pub(crate) overlong_names: Vec<PdfObjectId>,
     pub(crate) oversized_arrays: Vec<PdfObjectId>,
     pub(crate) oversized_dictionaries: Vec<PdfObjectId>,

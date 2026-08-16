@@ -60,3 +60,188 @@ fn canonical_pdfa_1a_matches_verapdf() {
         "{report}"
     );
 }
+
+fn reidentify(bytes: &[u8], part: u8, conformance: u8) -> Vec<u8> {
+    let mut bytes = bytes.to_vec();
+    let part_marker = b"<pdfaid:part>1</pdfaid:part>";
+    let part_replacement = format!("<pdfaid:part>{part}</pdfaid:part>");
+    replace_once(&mut bytes, part_marker, part_replacement.as_bytes());
+    let conformance_marker = if bytes
+        .windows(b"<pdfaid:conformance>A</pdfaid:conformance>".len())
+        .any(|window| window == b"<pdfaid:conformance>A</pdfaid:conformance>")
+    {
+        b"<pdfaid:conformance>A</pdfaid:conformance>".as_slice()
+    } else {
+        b"<pdfaid:conformance>B</pdfaid:conformance>".as_slice()
+    };
+    let conformance_replacement = format!(
+        "<pdfaid:conformance>{}</pdfaid:conformance>",
+        char::from(conformance)
+    );
+    replace_once(
+        &mut bytes,
+        conformance_marker,
+        conformance_replacement.as_bytes(),
+    );
+    bytes
+}
+
+fn replace_once(bytes: &mut [u8], needle: &[u8], replacement: &[u8]) {
+    assert_eq!(needle.len(), replacement.len());
+    let start = bytes
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .expect("canonical fixture marker");
+    bytes[start..start + needle.len()].copy_from_slice(replacement);
+}
+
+#[test]
+fn canonical_pdfa_2_and_3_profiles_are_locally_compliant() {
+    let cases = [
+        (
+            ValidationProfile::PdfA2a,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1a.pdf"), 2, b'A'),
+        ),
+        (
+            ValidationProfile::PdfA2b,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1b.pdf"), 2, b'B'),
+        ),
+        (
+            ValidationProfile::PdfA2u,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1a.pdf"), 2, b'U'),
+        ),
+        (
+            ValidationProfile::PdfA3a,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1a.pdf"), 3, b'A'),
+        ),
+        (
+            ValidationProfile::PdfA3b,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1b.pdf"), 3, b'B'),
+        ),
+        (
+            ValidationProfile::PdfA3u,
+            reidentify(include_bytes!("fixtures/canonical-pdfa-1a.pdf"), 3, b'U'),
+        ),
+    ];
+    for (profile, bytes) in cases {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(report.checks_passed, "{profile}: {report}");
+        assert!(report.failures.is_empty(), "{profile}: {report}");
+        let expected_total = match profile {
+            ValidationProfile::PdfA2a => 153,
+            ValidationProfile::PdfA2b => 144,
+            ValidationProfile::PdfA2u => 146,
+            ValidationProfile::PdfA3a => 155,
+            ValidationProfile::PdfA3b => 146,
+            ValidationProfile::PdfA3u => 148,
+            _ => unreachable!("PDF/A-2/3 profile case"),
+        };
+        assert_eq!(report.checks.total, expected_total, "{profile}: {report}");
+    }
+}
+
+#[test]
+fn canonical_pdfa_2_and_3_profiles_match_verapdf() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping opt-in veraPDF PDF/A-2/3 test");
+        return;
+    };
+    let cases = [
+        (
+            "pdfa2a",
+            ReferenceProfile::PdfA2a,
+            2,
+            b'A',
+            "canonical-pdfa-1a.pdf",
+        ),
+        (
+            "pdfa2b",
+            ReferenceProfile::PdfA2b,
+            2,
+            b'B',
+            "canonical-pdfa-1b.pdf",
+        ),
+        (
+            "pdfa2u",
+            ReferenceProfile::PdfA2u,
+            2,
+            b'U',
+            "canonical-pdfa-1a.pdf",
+        ),
+        (
+            "pdfa3a",
+            ReferenceProfile::PdfA3a,
+            3,
+            b'A',
+            "canonical-pdfa-1a.pdf",
+        ),
+        (
+            "pdfa3b",
+            ReferenceProfile::PdfA3b,
+            3,
+            b'B',
+            "canonical-pdfa-1b.pdf",
+        ),
+        (
+            "pdfa3u",
+            ReferenceProfile::PdfA3u,
+            3,
+            b'U',
+            "canonical-pdfa-1a.pdf",
+        ),
+    ];
+    for (name, profile, part, conformance, fixture) in cases {
+        let source = match fixture {
+            "canonical-pdfa-1a.pdf" => include_bytes!("fixtures/canonical-pdfa-1a.pdf").as_slice(),
+            _ => include_bytes!("fixtures/canonical-pdfa-1b.pdf").as_slice(),
+        };
+        let path = env::temp_dir().join(format!("page-{name}-{}-{part}.pdf", std::process::id()));
+        std::fs::write(&path, reidentify(source, part, conformance)).expect("write fixture");
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        std::fs::remove_file(&path).expect("remove temporary fixture");
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Agreement,
+            "{report}"
+        );
+    }
+}
+
+#[test]
+fn pdfa_2_accepts_pdfa_1_xref_relaxations() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping opt-in PDF/A-2 relaxation test");
+        return;
+    };
+    for (name, fixture) in [
+        ("xref-spacing", "xref-spacing.pdf"),
+        ("xref-stream", "xref-stream.pdf"),
+    ] {
+        let source = match fixture {
+            "xref-spacing.pdf" => include_bytes!("fixtures/xref-spacing.pdf").as_slice(),
+            _ => include_bytes!("fixtures/xref-stream.pdf").as_slice(),
+        };
+        let bytes = reidentify(source, 2, b'B');
+        let local = validate_bytes_with_profile(
+            &bytes,
+            ValidationProfile::PdfA2b,
+            &SafetyLimits::default(),
+        );
+        assert!(local.checks_passed, "{name}: {local}");
+        let path = env::temp_dir().join(format!("page-pdfa2-{name}-{}.pdf", std::process::id()));
+        std::fs::write(&path, bytes).expect("write temporary PDF/A-2 fixture");
+        let mut config = ReferenceConfig::pinned(executable.clone());
+        config.profile = ReferenceProfile::PdfA2b;
+        let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        std::fs::remove_file(&path).expect("remove temporary PDF/A-2 fixture");
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::Agreement,
+            "{report}"
+        );
+    }
+}

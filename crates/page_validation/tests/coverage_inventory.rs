@@ -15,6 +15,127 @@ const RULE_MAPPING_DOC_PATH: &str = "../../docs/rules/pdfa-1-rule-mapping.md";
 const EXPECTED_PROFILE_SHA256: &str =
     "1c8e6bbb1134f611f768243babf2c17a88069334144441035d274de1b4b64a89";
 
+#[test]
+fn pdfa_2_3_coverage_inventory_pins_all_profiles() {
+    let inventory = read_json("tests/fixtures/pdfa-2-3-coverage.json");
+    assert_eq!(inventory["reference"]["product"], "veraPDF");
+    assert_eq!(inventory["reference"]["version"], "1.30.2");
+    let expected = [
+        (
+            "2a",
+            153,
+            "22ef9e98557d1ff714e252d5cf020840b0ec05fddd437c47058eeaa225dc6af5",
+        ),
+        (
+            "2b",
+            144,
+            "bae015161f0c9b4296481f11936c97728dfd12dffb2df48ea744f885794da382",
+        ),
+        (
+            "2u",
+            146,
+            "52bddd46bc6c8bfcfb00cf4589935a7328668f709d92928d2e8841446c05a21d",
+        ),
+        (
+            "3a",
+            155,
+            "4eac441409c0523ded5d29d77e567f63ae3ac285d82505f673d2992286da674a",
+        ),
+        (
+            "3b",
+            146,
+            "fc6f5c9cccc8c52af8584f98505fe62979522e66acd525a67ce391c36d8dbc17",
+        ),
+        (
+            "3u",
+            148,
+            "2ac7b14a789681c4dc9d53ec66e9a28f6efa2cd61a4633487b4c15c111281bf2",
+        ),
+    ];
+    for (profile, count, digest) in expected {
+        let profile_file = inventory["reference"]["profiles"][profile]["profile_file"]
+            .as_str()
+            .expect("profile file");
+        let profile_bytes = fs::read(profile_file).expect("read pinned PDF/A-2/3 profile");
+        assert_eq!(sha256(&profile_bytes), digest, "{profile} profile digest");
+        let profile_document = roxmltree::Document::parse(
+            std::str::from_utf8(&profile_bytes).expect("profile is UTF-8"),
+        )
+        .expect("parse pinned PDF/A-2/3 profile");
+        let predicate_count = profile_document
+            .descendants()
+            .filter(|node| node.has_tag_name(("http://www.verapdf.org/ValidationProfile", "rule")))
+            .count();
+        assert_eq!(predicate_count, count, "{profile} predicate count");
+        let predicate_ids = inventory["reference"]["profiles"][profile]["predicate_ids"]
+            .as_array()
+            .expect("pinned predicate ids");
+        assert_eq!(predicate_ids.len(), count, "{profile} pinned predicate ids");
+        let unique_ids = predicate_ids
+            .iter()
+            .map(|id| id.as_str().expect("predicate id"))
+            .collect::<BTreeSet<_>>();
+        assert_eq!(unique_ids.len(), count, "{profile} duplicate predicate ids");
+        let expected_specification = if profile.starts_with('2') {
+            "ISO_19005_2"
+        } else {
+            "ISO_19005_3"
+        };
+        assert!(
+            unique_ids
+                .iter()
+                .all(|id| id.starts_with(expected_specification)),
+            "{profile} predicate specification mismatch"
+        );
+        assert_eq!(
+            inventory["reference"]["profiles"][profile]["predicate_count"],
+            count
+        );
+        assert_eq!(
+            inventory["reference"]["profiles"][profile]["profile_sha256"],
+            digest
+        );
+    }
+    for family in [
+        "shared_pdfa_2_3",
+        "pdfa_2_3_relaxed_or_extended",
+        "pdfa_3_associated_files",
+        "pdfa_a_or_u_unicode",
+        "pdfa_a_tagged_structure",
+    ] {
+        assert!(
+            !inventory["local_profile_capabilities"][family]
+                .as_array()
+                .expect("capability list")
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+fn pdfa_2_3_rule_mapping_documentation_references_every_pinned_profile() {
+    let documentation = fs::read_to_string("../../docs/rules/pdfa-2-3-rule-mapping.md")
+        .expect("read PDF/A-2/3 rule mapping documentation");
+    for profile in ["2A", "2B", "2U", "3A", "3B", "3U"] {
+        assert!(
+            documentation.contains(&format!("PDFA-{profile}-1.30.2.xml")),
+            "mapping documentation omits PDFA-{profile}"
+        );
+    }
+    for capability in [
+        "xref streams",
+        "optional content",
+        "transparency",
+        "JPEG2000-compatible image rules",
+        "PDF/A-3 embedded files",
+    ] {
+        assert!(
+            documentation.contains(capability),
+            "mapping documentation omits {capability}"
+        );
+    }
+}
+
 #[derive(Debug)]
 struct AtomicEvidence {
     failed: BTreeSet<String>,

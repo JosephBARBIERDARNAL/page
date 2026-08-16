@@ -108,7 +108,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     );
     assert!(!report.failures.iter().any(|failure| {
         matches!(
-            failure.rule_id,
+            failure.rule_id.as_str(),
             "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001" | "PDFA1A-STRUCT-TREE-ROLE-MAP-001"
         )
     }));

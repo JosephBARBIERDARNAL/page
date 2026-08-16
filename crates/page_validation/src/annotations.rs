@@ -13,8 +13,12 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct AnnotationSummary {
     pub(crate) invalid_subtypes: Vec<RuleFailure>,
+    pub(crate) invalid_subtypes_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_opacities: Vec<RuleFailure>,
     pub(crate) invalid_flags: Vec<RuleFailure>,
+    pub(crate) invalid_flags_pdfa2: Vec<RuleFailure>,
+    pub(crate) missing_flags_pdfa2: Vec<RuleFailure>,
+    pub(crate) missing_appearances_pdfa2: Vec<RuleFailure>,
     pub(crate) color_uses: Vec<RuleFailure>,
     pub(crate) invalid_appearance_entries: Vec<RuleFailure>,
     pub(crate) invalid_button_appearances: Vec<RuleFailure>,
@@ -86,6 +90,39 @@ fn inspect_annotation(
             "has a missing or forbidden /Subtype",
         ));
     }
+    if !matches!(
+        subtype,
+        Some(
+            b"Text"
+                | b"Link"
+                | b"FreeText"
+                | b"Line"
+                | b"Square"
+                | b"Circle"
+                | b"Polygon"
+                | b"PolyLine"
+                | b"Highlight"
+                | b"Underline"
+                | b"Squiggly"
+                | b"StrikeOut"
+                | b"Stamp"
+                | b"Caret"
+                | b"Ink"
+                | b"Popup"
+                | b"FileAttachment"
+                | b"Widget"
+                | b"PrinterMark"
+                | b"TrapNet"
+                | b"Watermark"
+                | b"Redact"
+        )
+    ) {
+        summary.invalid_subtypes_pdfa2.push(annotation_failure(
+            object_id,
+            context,
+            "has a missing or forbidden /Subtype",
+        ));
+    }
 
     if annotation
         .get(b"CA")
@@ -104,13 +141,27 @@ fn inspect_annotation(
     }
 
     let flags = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?;
-    if !flags
-        .is_some_and(|flags| flags & 4 == 4 && flags & 1 == 0 && flags & 2 == 0 && flags & 32 == 0)
-    {
+    if subtype != Some(b"Popup".as_slice()) && flags.is_none() {
+        summary.missing_flags_pdfa2.push(annotation_failure(
+            object_id,
+            context,
+            "has no required /F annotation flags",
+        ));
+    }
+    let flags_are_valid = flags
+        .is_some_and(|flags| flags & 4 == 4 && flags & 1 == 0 && flags & 2 == 0 && flags & 32 == 0);
+    if !flags_are_valid {
         summary.invalid_flags.push(annotation_failure(
             object_id,
             context,
             "is not printable or is hidden, invisible, or not viewable",
+        ));
+    }
+    if flags.is_some() && !flags_are_valid {
+        summary.invalid_flags_pdfa2.push(annotation_failure(
+            object_id,
+            context,
+            "has invalid PDF/A-2/3 annotation flags",
         ));
     }
 
@@ -123,6 +174,16 @@ fn inspect_annotation(
     }
 
     let Ok(appearance) = annotation.get(b"AP") else {
+        if subtype != Some(b"Popup".as_slice())
+            && subtype != Some(b"Link".as_slice())
+            && !zero_annotation_rect(document, annotation, limits)?
+        {
+            summary.missing_appearances_pdfa2.push(annotation_failure(
+                object_id,
+                context,
+                "has no required /AP appearance dictionary",
+            ));
+        }
         return Ok(());
     };
     let Some(appearance) = resolve_optional(document, appearance, limits.max_reference_depth)?
@@ -167,6 +228,34 @@ fn inspect_annotation(
         ));
     }
     Ok(())
+}
+
+fn zero_annotation_rect(
+    document: &Document,
+    annotation: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(rect) = annotation
+        .get(b"Rect")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_array().ok())
+    else {
+        return Ok(false);
+    };
+    if rect.len() != 4 {
+        return Ok(false);
+    }
+    let Some(values) = rect
+        .iter()
+        .map(|value| value.as_float().ok())
+        .collect::<Option<Vec<_>>>()
+    else {
+        return Ok(false);
+    };
+    Ok(values[0] == values[2] && values[1] == values[3])
 }
 
 fn inherited_field_type<'a>(

@@ -46,8 +46,8 @@ const report = validatePdfWithProfile(bytes, "a-1b");
 Explicit-profile validation does not require the PDF to declare a profile. Parser, operational, and conformance problems are represented in the returned report. An unknown profile string throws a JavaScript `Error`.
 
 The accepted profile strings are `a-1b`, `a-1a`, `a-2b`, `a-2a`, `a-2u`,
-`a-3b`, `a-3a`, `a-3u`, `a-4`, `a-4e`, `a-4f`, `ua-1`, and `ua-2`. PDF/A-1b
-is currently the only supported profile.
+`a-3b`, `a-3a`, `a-3u`, `a-4`, `a-4e`, `a-4f`, `ua-1`, and `ua-2`. PDF/A-1,
+PDF/A-2, and PDF/A-3 profiles are supported by the preliminary validator.
 
 ## Validation report
 

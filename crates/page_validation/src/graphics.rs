@@ -18,9 +18,14 @@ pub(crate) struct GraphicsSummary {
     pub(crate) extgstate_soft_masks: Vec<RuleFailure>,
     pub(crate) xobject_soft_masks: Vec<RuleFailure>,
     pub(crate) transparency_groups: Vec<RuleFailure>,
+    pub(crate) transparency_groups_missing_cs: Vec<RuleFailure>,
     pub(crate) blend_modes: Vec<RuleFailure>,
+    pub(crate) blend_modes_pdfa2: Vec<RuleFailure>,
     pub(crate) stroke_alpha: Vec<RuleFailure>,
     pub(crate) fill_alpha: Vec<RuleFailure>,
+    pub(crate) extgstate_htp: Vec<RuleFailure>,
+    pub(crate) halftone_types: Vec<RuleFailure>,
+    pub(crate) halftone_names: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -114,7 +119,44 @@ pub(crate) fn inspect(
             &mut summary,
         )?;
     }
+    inspect_all_halftones_and_extgstates(document, &mut summary);
     Ok(summary)
+}
+
+fn inspect_all_halftones_and_extgstates(document: &Document, summary: &mut GraphicsSummary) {
+    for (object_id, object) in &document.objects {
+        let Some(dictionary) = object.as_dict().ok() else {
+            continue;
+        };
+        let object_id = Some((*object_id).into());
+        if contains_key(dictionary, b"HTP") {
+            summary.extgstate_htp.push(RuleFailure {
+                object_id,
+                description: "an ExtGState dictionary contains /HTP".to_owned(),
+            });
+        }
+        let Some(halftone_type) = dictionary
+            .get(b"HalftoneType")
+            .ok()
+            .and_then(|value| value.as_i64().ok())
+        else {
+            continue;
+        };
+        if !matches!(halftone_type, 1 | 5) {
+            summary.halftone_types.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "a halftone dictionary has /HalftoneType {halftone_type} instead of 1 or 5"
+                ),
+            });
+        }
+        if contains_key(dictionary, b"HalftoneName") {
+            summary.halftone_names.push(RuleFailure {
+                object_id,
+                description: "a halftone dictionary contains /HalftoneName".to_owned(),
+            });
+        }
+    }
 }
 
 fn inspect_alpha(
@@ -168,6 +210,12 @@ fn inspect_group(
             object_id,
             description: format!("{context} contains a transparency group"),
         });
+        if context == "page" && !contains_key(group, b"CS") {
+            summary.transparency_groups_missing_cs.push(RuleFailure {
+                object_id,
+                description: "page transparency group has no /CS blending colour space".to_owned(),
+            });
+        }
     }
     Ok(())
 }
@@ -237,16 +285,46 @@ fn inspect_extgstate(
         });
     }
     if contains_key(dictionary, b"BM")
-        && !matches!(
-            resolved_name(document, dictionary, b"BM", limits.max_reference_depth)?,
-            Some(b"Normal" | b"Compatible")
-        )
+        && let Some(blend_mode) =
+            resolved_name(document, dictionary, b"BM", limits.max_reference_depth)?
     {
-        summary.blend_modes.push(RuleFailure {
-            object_id,
-            description: "used ExtGState dictionary has /BM other than /Normal or /Compatible"
-                .to_owned(),
-        });
+        if !matches!(blend_mode, b"Normal" | b"Compatible") {
+            summary.blend_modes.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "used ExtGState dictionary has /BM /{} outside PDF/A-1's allowed set",
+                    String::from_utf8_lossy(blend_mode)
+                ),
+            });
+        }
+        if !matches!(
+            blend_mode,
+            b"Normal"
+                | b"Compatible"
+                | b"Multiply"
+                | b"Screen"
+                | b"Overlay"
+                | b"Darken"
+                | b"Lighten"
+                | b"ColorDodge"
+                | b"ColorBurn"
+                | b"HardLight"
+                | b"SoftLight"
+                | b"Difference"
+                | b"Exclusion"
+                | b"Hue"
+                | b"Saturation"
+                | b"Color"
+                | b"Luminosity"
+        ) {
+            summary.blend_modes_pdfa2.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "used ExtGState dictionary has unsupported blend mode /{}",
+                    String::from_utf8_lossy(blend_mode)
+                ),
+            });
+        }
     }
     inspect_alpha(
         document,

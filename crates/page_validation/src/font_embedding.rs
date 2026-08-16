@@ -22,6 +22,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_last_chars: Vec<RuleFailure>,
     pub(crate) invalid_widths: Vec<RuleFailure>,
     pub(crate) invalid_font_file_subtypes: Vec<RuleFailure>,
+    pub(crate) invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     pub(crate) incompatible_type0_system_info: Vec<RuleFailure>,
     pub(crate) invalid_cid_to_gid_maps: Vec<RuleFailure>,
     pub(crate) unembedded_cmaps: Vec<RuleFailure>,
@@ -76,6 +77,7 @@ struct Scanner<'a> {
     invalid_last_chars: Vec<RuleFailure>,
     invalid_widths: Vec<RuleFailure>,
     invalid_font_file_subtypes: Vec<RuleFailure>,
+    invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     incompatible_type0_system_info: Vec<RuleFailure>,
     invalid_cid_to_gid_maps: Vec<RuleFailure>,
     unembedded_cmaps: Vec<RuleFailure>,
@@ -112,6 +114,7 @@ pub(crate) fn inspect(
         invalid_last_chars: Vec::new(),
         invalid_widths: Vec::new(),
         invalid_font_file_subtypes: Vec::new(),
+        invalid_font_file_subtypes_pdfa2: Vec::new(),
         incompatible_type0_system_info: Vec::new(),
         invalid_cid_to_gid_maps: Vec::new(),
         unembedded_cmaps: Vec::new(),
@@ -180,6 +183,7 @@ pub(crate) fn inspect(
         invalid_last_chars: scanner.invalid_last_chars,
         invalid_widths: scanner.invalid_widths,
         invalid_font_file_subtypes: scanner.invalid_font_file_subtypes,
+        invalid_font_file_subtypes_pdfa2: scanner.invalid_font_file_subtypes_pdfa2,
         incompatible_type0_system_info: scanner.incompatible_type0_system_info,
         invalid_cid_to_gid_maps: scanner.invalid_cid_to_gid_maps,
         unembedded_cmaps: scanner.unembedded_cmaps,
@@ -1492,6 +1496,13 @@ impl Scanner<'_> {
                 description,
                 &format!("uses unsupported embedded font subtype /{invalid_subtype}"),
             ));
+            if invalid_subtype != "OpenType" {
+                self.invalid_font_file_subtypes_pdfa2.push(font_failure(
+                    object_id,
+                    description,
+                    &format!("uses unsupported embedded font subtype /{invalid_subtype}"),
+                ));
+            }
         }
         Ok(())
     }
@@ -3505,6 +3516,9 @@ fn valid_font_program(
                 resolved_name(document, &stream.dict, b"Subtype", limits)?,
                 Some(b"Type1C" | b"CIDFontType0C")
             ) && ttf_parser::cff::Table::parse(&bytes).is_some()
+                || resolved_name(document, &stream.dict, b"Subtype", limits)?
+                    == Some(b"OpenType".as_slice())
+                    && valid_sfnt(&bytes)
         }
         _ => false,
     })

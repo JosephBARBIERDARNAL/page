@@ -11,7 +11,10 @@ use crate::object_limits::ObjectLimitsSummary;
 const MIN_INTEGER: i128 = -2_147_483_648;
 const MAX_INTEGER: i128 = 2_147_483_647;
 const MAX_REAL: f64 = 32_767.0;
+const MAX_PDFA_2_REAL: f64 = 3.403e38;
+const MIN_PDFA_2_REAL: f64 = 1.175e-38;
 const MAX_STRING_BYTES: usize = 65_535;
+const MAX_PDFA_2_STRING_BYTES: usize = 32_767;
 const MAX_NAME_BYTES: usize = 127;
 const MAX_ARRAY_ENTRIES: usize = 8_191;
 const MAX_DICTIONARY_ENTRIES: usize = 4_095;
@@ -589,6 +592,19 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         {
             summary.object_limits.out_of_range_reals.push(object_id);
         }
+        RawValue::Real(value)
+            if !(value.is_finite() && *value >= -MAX_PDFA_2_REAL && *value <= MAX_PDFA_2_REAL) =>
+        {
+            summary
+                .object_limits
+                .out_of_range_reals_pdfa_2
+                .push(object_id);
+        }
+        RawValue::Real(value)
+            if value.is_finite() && *value != 0.0 && value.abs() < MIN_PDFA_2_REAL =>
+        {
+            summary.object_limits.underflow_reals_pdfa_2.push(object_id);
+        }
         RawValue::Name(value) if value.len() > MAX_NAME_BYTES => {
             summary.object_limits.overlong_names.push(object_id);
         }
@@ -601,6 +617,12 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         } => {
             if *decoded_length > MAX_STRING_BYTES {
                 summary.object_limits.overlong_strings.push(object_id);
+            }
+            if *decoded_length > MAX_PDFA_2_STRING_BYTES {
+                summary
+                    .object_limits
+                    .overlong_strings_pdfa_2
+                    .push(object_id);
             }
             if *is_hex {
                 summary.has_odd_hex_string |= hex_count % 2 != 0;
@@ -661,8 +683,19 @@ fn collect_lopdf_value_findings(
         Object::Real(value) if !(*value >= -(MAX_REAL as f32) && *value <= MAX_REAL as f32) => {
             summary.out_of_range_reals.push(object_id);
         }
+        Object::Real(value)
+            if !(*value >= -(MAX_PDFA_2_REAL as f32) && *value <= MAX_PDFA_2_REAL as f32) =>
+        {
+            summary.out_of_range_reals_pdfa_2.push(object_id);
+        }
+        Object::Real(value) if *value != 0.0 && (*value as f64).abs() < MIN_PDFA_2_REAL => {
+            summary.underflow_reals_pdfa_2.push(object_id);
+        }
         Object::String(value, _) if value.len() > MAX_STRING_BYTES => {
             summary.overlong_strings.push(object_id);
+        }
+        Object::String(value, _) if value.len() > MAX_PDFA_2_STRING_BYTES => {
+            summary.overlong_strings_pdfa_2.push(object_id);
         }
         Object::Name(value) if value.len() > MAX_NAME_BYTES => {
             summary.overlong_names.push(object_id);

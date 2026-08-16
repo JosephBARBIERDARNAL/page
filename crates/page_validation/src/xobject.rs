@@ -18,6 +18,7 @@ pub(crate) struct XObjectSummary {
     pub(crate) xobject_opi: Vec<RuleFailure>,
     pub(crate) image_interpolate: Vec<RuleFailure>,
     pub(crate) image_bits_per_component: Vec<RuleFailure>,
+    pub(crate) image_bits_per_component_pdfa2: Vec<RuleFailure>,
     pub(crate) mask_bits_per_component: Vec<RuleFailure>,
     pub(crate) form_postscript: Vec<RuleFailure>,
     pub(crate) form_reference: Vec<RuleFailure>,
@@ -150,6 +151,15 @@ fn inspect_image(
         && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8))
     {
         summary.image_bits_per_component.push(RuleFailure {
+            object_id,
+            description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
+        });
+    }
+    if is_ordinary_image
+        && !is_stencil_mask
+        && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8 | 16))
+    {
+        summary.image_bits_per_component_pdfa2.push(RuleFailure {
             object_id,
             description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
         });
