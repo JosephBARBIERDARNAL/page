@@ -1295,6 +1295,24 @@ fn validate_stream_safety(
             FailureCategory::Conformance,
         ));
     }
+    if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
+        let object_id = only(&streams.invalid_signature_certificates).copied();
+        failures.push(failure(
+            "PDFA1B-SIGNATURE-CERTIFICATE-001",
+            "a parsed PKCS#7 signature does not contain a signing certificate",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
+        let object_id = only(&streams.invalid_signature_signer_counts).copied();
+        failures.push(failure(
+            "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+            "a parsed PKCS#7 signature does not contain exactly one signer",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
     if profile.is_pdfa_2_or_3()
         && let Some(context) = &content.inline_image_invalid_filter_context
     {

@@ -2183,8 +2183,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Requires usable Unicode mappings for rendered glyphs, with the shared validator's predefined-encoding exceptions.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used visible text, applies the bounded ToUnicode CMap and PDF/A exception semantics: every rendered code must map to valid Unicode, with standard simple-font, Symbol, Identity, and Adobe CMap exceptions resolved through bounded indirection.",
         "object": "Glyph",
         "predicate": "toUnicode != null"
       },
@@ -2196,8 +2196,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Requires usable Unicode mappings for rendered glyphs, with the shared validator's predefined-encoding exceptions.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used visible text, applies the bounded ToUnicode CMap and PDF/A exception semantics: every rendered code must map to valid Unicode, with standard simple-font, Symbol, Identity, and Adobe CMap exceptions resolved through bounded indirection.",
         "object": "Glyph",
         "predicate": "toUnicode != null"
       },
@@ -3112,8 +3112,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TYPE1-SUBSET-CHARSET-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks subset Type 1 CharSet coverage for rendered glyphs; veraPDF's PDF/A-2/3 predicate is conditional on CharSet presence and covers all program glyphs.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used subset Type1/MMType1/Type1C fonts, requires a descriptor /CharSet and checks every rendered embedded glyph selected by the bounded PDF encoding, matching veraPDF's GFGlyph.name behavior including indirect BaseFont, Differences, and program-subtype resolution.",
         "object": "PDType1Font",
         "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || CharSet == null || charSetListsAllGlyphs == true"
       },
@@ -3126,8 +3126,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-CID-SUBSET-CIDSET-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks subset CIDSet coverage for rendered CIDs; veraPDF's PDF/A-2/3 predicate is conditional on CIDSet presence and covers all program glyphs.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used subset CIDFontType0/CIDFontType2 descendants, requires a descriptor /CIDSet stream and checks every rendered non-zero CID bit through bounded Identity, embedded, inherited-usecmap, and predefined CMap decoding; missing CIDSet is inapplicable, matching veraPDF's conditional predicate.",
         "object": "PDCIDFont",
         "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || containsCIDSet == false || cidSetListsAllGlyphs == true"
       },
@@ -3168,8 +3168,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks MacRoman or WinAnsi encoding for non-symbolic TrueType fonts; Differences and cmap behavior are represented by bounded local font inspection.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires MacRomanEncoding or WinAnsiEncoding for used non-symbolic TrueType fonts and accepts a Differences array only when the bounded lopdf font-encoding parser recognizes every entry as an Adobe Glyph List name (direct null is absent).",
         "object": "PDTrueTypeFont",
         "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && (containsDifferences == false || differencesAreUnicodeCompliant == true))"
       },
@@ -4910,8 +4910,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TYPE1-SUBSET-CHARSET-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks subset Type 1 CharSet coverage for rendered glyphs; veraPDF's PDF/A-2/3 predicate is conditional on CharSet presence and covers all program glyphs.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used subset Type1/MMType1/Type1C fonts, requires a descriptor /CharSet and checks every rendered embedded glyph selected by the bounded PDF encoding, matching veraPDF's GFGlyph.name behavior including indirect BaseFont, Differences, and program-subtype resolution.",
         "object": "PDType1Font",
         "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || CharSet == null || charSetListsAllGlyphs == true"
       },
@@ -4924,8 +4924,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-CID-SUBSET-CIDSET-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks subset CIDSet coverage for rendered CIDs; veraPDF's PDF/A-2/3 predicate is conditional on CIDSet presence and covers all program glyphs.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used subset CIDFontType0/CIDFontType2 descendants, requires a descriptor /CIDSet stream and checks every rendered non-zero CID bit through bounded Identity, embedded, inherited-usecmap, and predefined CMap decoding; missing CIDSet is inapplicable, matching veraPDF's conditional predicate.",
         "object": "PDCIDFont",
         "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || containsCIDSet == false || cidSetListsAllGlyphs == true"
       },
@@ -4966,8 +4966,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks MacRoman or WinAnsi encoding for non-symbolic TrueType fonts; Differences and cmap behavior are represented by bounded local font inspection.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires MacRomanEncoding or WinAnsiEncoding for used non-symbolic TrueType fonts and accepts a Differences array only when the bounded lopdf font-encoding parser recognizes every entry as an Adobe Glyph List name (direct null is absent).",
         "object": "PDTrueTypeFont",
         "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && (containsDifferences == false || differencesAreUnicodeCompliant == true))"
       },
@@ -6186,45 +6186,48 @@
         "semantic_note": "Compares reached same-named Separation alternate spaces and tint transforms structurally, ignoring direct/indirect form and stream compression.",
         "object": "PDSeparation",
         "predicate": "areTintAndAlternateConsistent == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-CERTIFICATE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "For parsed PDF signature PKCS#7 SignedData, bounded DER inspection requires a certificate set containing at least one signing certificate.",
+        "object": "PKCSDataObject",
+        "predicate": "signingCertificatePresent == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:3",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "For parsed PDF signature PKCS#7 SignedData, bounded DER inspection requires exactly one SignerInfo entry.",
+        "object": "PKCSDataObject",
+        "predicate": "SignerInfoCount == 1"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.4.3:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-CERTIFICATE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "For parsed PDF signature PKCS#7 SignedData, bounded DER inspection requires a certificate set containing at least one signing certificate.",
+        "object": "PKCSDataObject",
+        "predicate": "signingCertificatePresent == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.4.3:3",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "For parsed PDF signature PKCS#7 SignedData, bounded DER inspection requires exactly one SignerInfo entry.",
+        "object": "PKCSDataObject",
+        "predicate": "SignerInfoCount == 1"
       }
     ],
-    "coverage_gaps": [
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.4.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.4.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      }
-    ]
+    "coverage_gaps": []
   }
 }

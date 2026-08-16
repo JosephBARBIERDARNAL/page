@@ -20,6 +20,8 @@ pub(crate) struct StreamSafetySummary {
     pub(crate) has_invalid_xref_eol: bool,
     pub(crate) has_invalid_indirect_object_syntax: bool,
     pub(crate) invalid_signature_byte_ranges: Vec<PdfObjectId>,
+    pub(crate) invalid_signature_certificates: Vec<PdfObjectId>,
+    pub(crate) invalid_signature_signer_counts: Vec<PdfObjectId>,
 }
 
 #[derive(Clone, Debug)]
@@ -49,16 +51,37 @@ pub(crate) fn inspect(
         if let Some(dictionary) = object.as_dict().ok()
             && resolved_name(document, dictionary, b"Type", limits.max_reference_depth)?
                 == Some(b"Sig".as_slice())
-            && !signature_byte_range_covers_document(
+        {
+            if !signature_byte_range_covers_document(
                 document,
                 dictionary,
                 limits.max_reference_depth,
                 bytes.len(),
-            )?
-        {
-            summary
-                .invalid_signature_byte_ranges
-                .push((*object_id).into());
+            )? {
+                summary
+                    .invalid_signature_byte_ranges
+                    .push((*object_id).into());
+            }
+            if let Some(contents) = dictionary
+                .get(b"Contents")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_str().ok())
+                && let Some((certificate_present, signer_count)) = parse_pkcs7_signed_data(contents)
+            {
+                if !certificate_present {
+                    summary
+                        .invalid_signature_certificates
+                        .push((*object_id).into());
+                }
+                if signer_count != 1 {
+                    summary
+                        .invalid_signature_signer_counts
+                        .push((*object_id).into());
+                }
+            }
         }
         let Object::Stream(stream) = object else {
             continue;
@@ -153,6 +176,82 @@ pub(crate) fn inspect(
     }
     let _ = all_stream_ranges_known;
     Ok(summary)
+}
+
+fn parse_pkcs7_signed_data(bytes: &[u8]) -> Option<(bool, usize)> {
+    let (tag, content, _) = der_tlv(bytes, 0)?;
+    if tag != 0x30 {
+        return None;
+    }
+    let content_info = der_children(bytes, content)?;
+    let content_type = content_info.first().copied()?;
+    if bytes.get(content_type.0..content_type.1)?
+        != [
+            0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02,
+        ]
+    {
+        return None;
+    }
+    let wrapper = content_info.get(1).copied()?;
+    if bytes.get(wrapper.0..wrapper.1)?.first().copied()? != 0xa0 {
+        return None;
+    }
+    let (_, wrapper_content, _) = der_tlv(bytes, wrapper.0)?;
+    let signed_data = der_children(bytes, wrapper_content)?
+        .into_iter()
+        .find(|range| bytes.get(range.0..range.0 + 1) == Some(&[0x30][..]))?;
+    let (_, signed_data_content, _) = der_tlv(bytes, signed_data.0)?;
+    let fields = der_children(bytes, signed_data_content)?;
+    let certificate_present = fields
+        .iter()
+        .any(|range| bytes.get(range.0..range.0 + 1) == Some(&[0xa0][..]));
+    let signer_infos = fields
+        .iter()
+        .rev()
+        .find(|range| bytes.get(range.0..range.0 + 1) == Some(&[0x31][..]))
+        .copied()?;
+    let (_, signer_content, _) = der_tlv(bytes, signer_infos.0)?;
+    let signer_count = der_children(bytes, signer_content)?.len();
+    Some((certificate_present, signer_count))
+}
+
+fn der_tlv(bytes: &[u8], offset: usize) -> Option<(u8, (usize, usize), usize)> {
+    let tag = *bytes.get(offset)?;
+    let length_byte = *bytes.get(offset.checked_add(1)?)?;
+    let (length, header) = if length_byte & 0x80 == 0 {
+        (usize::from(length_byte), 2)
+    } else {
+        let count = usize::from(length_byte & 0x7f);
+        if count == 0 || count > 4 {
+            return None;
+        }
+        let start = offset.checked_add(2)?;
+        let end = start.checked_add(count)?;
+        let mut length = 0usize;
+        for byte in bytes.get(start..end)? {
+            length = length.checked_mul(256)?.checked_add(usize::from(*byte))?;
+        }
+        (length, 2 + count)
+    };
+    let content_start = offset.checked_add(header)?;
+    let content_end = content_start.checked_add(length)?;
+    bytes.get(content_start..content_end)?;
+    Some((tag, (content_start, content_end), content_end))
+}
+
+fn der_children(bytes: &[u8], content: (usize, usize)) -> Option<Vec<(usize, usize)>> {
+    let mut offset = content.0;
+    let mut children = Vec::new();
+    while offset < content.1 {
+        let (_, range, next) = der_tlv(bytes, offset)?;
+        if next > content.1 {
+            return None;
+        }
+        children.push((offset, next));
+        offset = next;
+        let _ = range;
+    }
+    (offset == content.1).then_some(children)
 }
 
 fn signature_byte_range_covers_document(

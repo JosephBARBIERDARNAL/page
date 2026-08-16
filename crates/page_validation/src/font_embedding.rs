@@ -427,7 +427,8 @@ impl Scanner<'_> {
             .transpose()?
             .flatten()
             .is_some_and(|flags| flags & 4 != 0);
-        let (encoding, contains_differences) = truetype_encoding(self.document, font, self.limits)?;
+        let (encoding, contains_differences, differences_unicode_compliant) =
+            truetype_encoding(self.document, font, self.limits)?;
 
         if symbolic {
             if encoding.is_some() {
@@ -472,7 +473,7 @@ impl Scanner<'_> {
             if !matches!(
                 encoding.as_deref(),
                 Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
-            ) || contains_differences
+            ) || (contains_differences && !differences_unicode_compliant)
             {
                 self.invalid_nonsymbolic_truetype_encodings
                     .push(font_failure(
@@ -669,13 +670,13 @@ impl Scanner<'_> {
                 .transpose()?
                 .flatten()
                 .is_some_and(|flags| flags & 4 != 0);
-            let (encoding, contains_differences) =
+            let (encoding, contains_differences, differences_unicode_compliant) =
                 truetype_encoding(self.document, font, self.limits)?;
             if (!symbolic
                 && (!matches!(
                     encoding.as_deref(),
                     Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
-                ) || contains_differences))
+                ) || (contains_differences && !differences_unicode_compliant)))
                 || (symbolic && encoding.is_some())
             {
                 continue;
@@ -1037,8 +1038,6 @@ impl Scanner<'_> {
                 continue;
             };
             let char_set = type1_charset_names(&char_set_bytes);
-            let encoding = simple_font_encoding(self.document, font, self.limits)?;
-            let rendered_bytes = usage.shown_bytes.into_iter().collect::<BTreeSet<_>>();
             let invalid = if let Some(stream) = descriptor
                 .get(b"FontFile")
                 .ok()
@@ -1051,6 +1050,8 @@ impl Scanner<'_> {
             {
                 let program_bytes = decode_font_stream(stream, self.limits)?;
                 let program_names = type1_program_char_names(&program_bytes);
+                let encoding = simple_font_encoding(self.document, font, self.limits)?;
+                let rendered_bytes = usage.shown_bytes.into_iter().collect::<BTreeSet<_>>();
                 program_names.is_empty()
                     || rendered_bytes.iter().copied().any(|byte| {
                         let name = encoding.glyph_name(byte);
@@ -1075,6 +1076,8 @@ impl Scanner<'_> {
                 } else if let Some(cff) =
                     ttf_parser::cff::Table::parse(&decode_font_stream(stream, self.limits)?)
                 {
+                    let encoding = simple_font_encoding(self.document, font, self.limits)?;
+                    let rendered_bytes = usage.shown_bytes.into_iter().collect::<BTreeSet<_>>();
                     rendered_bytes.iter().copied().any(|byte| {
                         encoding
                             .glyph_name(byte)
@@ -3648,21 +3651,26 @@ fn truetype_encoding(
     document: &Document,
     font: &Dictionary,
     limits: &SafetyLimits,
-) -> Result<(Option<Vec<u8>>, bool), PdfError> {
+) -> Result<(Option<Vec<u8>>, bool, bool), PdfError> {
     let Ok(encoding) = font.get(b"Encoding") else {
-        return Ok((None, false));
+        return Ok((None, false, true));
     };
     let Some(encoding) = resolve_optional(document, encoding, limits.max_reference_depth)? else {
-        return Ok((None, false));
+        return Ok((None, false, true));
     };
     if let Ok(name) = encoding.as_name() {
-        return Ok((Some(name.to_vec()), false));
+        return Ok((Some(name.to_vec()), false, true));
     }
     let Ok(dictionary) = encoding.as_dict() else {
-        return Ok((None, false));
+        return Ok((None, false, true));
     };
     let base = resolved_name(document, dictionary, b"BaseEncoding", limits)?.map(ToOwned::to_owned);
-    Ok((base, contains_key(dictionary, b"Differences")))
+    let contains_differences = contains_key(dictionary, b"Differences");
+    let differences_unicode_compliant = match dictionary.get(b"Differences") {
+        Err(_) | Ok(Object::Null) => true,
+        Ok(_) => dictionary.get_font_encoding(document).is_ok(),
+    };
+    Ok((base, contains_differences, differences_unicode_compliant))
 }
 
 /// The subset of an SFNT needed by veraPDF's glyph-presence and width model.

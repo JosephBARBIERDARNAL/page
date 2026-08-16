@@ -128,10 +128,10 @@ fn canonical_pdfa_2_and_3_profiles_are_locally_compliant() {
         assert!(report.checks_passed, "{profile}: {report}");
         assert!(report.failures.is_empty(), "{profile}: {report}");
         let expected_total = match profile {
-            ValidationProfile::PdfA2a => 153,
+            ValidationProfile::PdfA2a => 154,
             ValidationProfile::PdfA2b => 144,
             ValidationProfile::PdfA2u => 146,
-            ValidationProfile::PdfA3a => 155,
+            ValidationProfile::PdfA3a => 156,
             ValidationProfile::PdfA3b => 146,
             ValidationProfile::PdfA3u => 148,
             _ => unreachable!("PDF/A-2/3 profile case"),
