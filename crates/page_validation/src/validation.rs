@@ -675,6 +675,12 @@ fn validate_document(
             Some("direct DeviceN space"),
             &mut failures,
         );
+        aggregate_failures_with_location(
+            &inspections.icc_based.inconsistent_separations,
+            "PDFA1B-SEPARATION-CONSISTENCY-001",
+            None,
+            &mut failures,
+        );
     }
     let output_color_space = pdfa_output_color_space(&document);
     validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
@@ -1591,6 +1597,18 @@ fn validate_graphics(
         }
     }
     if profile.is_pdfa_2_or_3() {
+        aggregate_failures_with_location(
+            &content.icc_cmyk_overprint,
+            "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+            None,
+            failures,
+        );
+        aggregate_failures_with_location(
+            &content.inherited_resources,
+            "PDFA1B-CONTENT-RESOURCES-001",
+            None,
+            failures,
+        );
         aggregate_failures_with_location(
             &graphics.halftone_transfer_functions,
             "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",

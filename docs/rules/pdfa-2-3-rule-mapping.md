@@ -801,6 +801,18 @@ These rules apply to both PDF/A-2 and PDF/A-3; shared validation code selects th
 | `PDFA3A-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
 | `PDFA3B-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
 | `PDFA3U-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA2A-CONTENT-RESOURCES-001` | `ISO 19005-2:2011:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA2B-CONTENT-RESOURCES-001` | `ISO 19005-2:2011:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA2U-CONTENT-RESOURCES-001` | `ISO 19005-2:2011:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA3A-CONTENT-RESOURCES-001` | `ISO 19005-3:2012:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA3B-CONTENT-RESOURCES-001` | `ISO 19005-3:2012:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA3U-CONTENT-RESOURCES-001` | `ISO 19005-3:2012:6.2.2:2` | §6.2.2 | exact | Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception. |
+| `PDFA2A-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-2:2011:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA2B-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-2:2011:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA2U-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-2:2011:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA3A-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA3B-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
+| `PDFA3U-ICCBased-CMYK-OVERPRINT-001` | `ISO 19005-3:2012:6.2.4.2:2` | §6.2.4.2 | exact | Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state. |
 
 ## PDF/A-2 mappings
 

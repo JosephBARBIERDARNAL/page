@@ -1655,6 +1655,61 @@ pub fn icc_based_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn icc_cmyk_overprint_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let profile = profile_reference(&mut document, icc_header(*b"mntr", *b"CMYK", 2, 1));
+    let color_space = Object::Array(vec![Object::Name(b"ICCBased".to_vec()), profile]);
+    let state = match case {
+        "stroke_opm_one" | "fill_opm_one" | "select_before_state" => {
+            dictionary! { "OP" => true, "op" => true, "OPM" => 1 }
+        }
+        "stroke_opm_zero" => dictionary! { "OP" => true, "OPM" => 0 },
+        "stroke_overprint_false" => dictionary! { "OP" => false, "OPM" => 1 },
+        _ => panic!("unknown ICCBased CMYK overprint fixture {case}"),
+    };
+    let contents = match case {
+        "stroke_opm_one" | "stroke_opm_zero" | "stroke_overprint_false" => {
+            b"/GS1 gs\n/CS1 CS\n0 0 0 0 SC\n0 0 m\n1 1 l\nS\n".to_vec()
+        }
+        "fill_opm_one" => b"/GS1 gs\n/CS1 cs\n0 0 0 0 sc\n0 0 m\n1 1 l\nf\n".to_vec(),
+        "select_before_state" => b"/CS1 CS\n/GS1 gs\n0 0 0 0 SC\n0 0 m\n1 1 l\nS\n".to_vec(),
+        _ => unreachable!(),
+    };
+    let contents = document.add_object(Stream::new(Dictionary::new(), contents));
+    let page = document.add_object(dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+        "Resources" => dictionary! {
+            "ColorSpace" => dictionary! { "CS1" => color_space },
+            "ExtGState" => dictionary! { "GS1" => state },
+        },
+        "Contents" => contents,
+    });
+    wrap_pages(&mut document, pages_id, page);
+    let metadata = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"CMYK", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    document.trailer.set("Root", catalog);
+    let info = document.add_object(complete_info());
+    document.trailer.set("Info", info);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save ICCBased CMYK overprint fixture");
+    bytes
+}
+
 pub fn device_color_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
@@ -2871,6 +2926,90 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline" => {}
+        "inherited_resource_color_space"
+        | "inherited_resource_calgray"
+        | "inherited_resource_default_color_space"
+        | "inherited_resource_extgstate"
+        | "inherited_resource_font"
+        | "inherited_resource_xobject"
+        | "inherited_resource_pattern"
+        | "inherited_resource_shading"
+        | "inherited_resource_properties" => {
+            inherit_resources = true;
+            match case {
+                "inherited_resource_color_space" => {
+                    resources.set("ColorSpace", dictionary! { "CS1" => "DeviceRGB" });
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "inherited_resource_calgray" => {
+                    resources.set(
+                        "ColorSpace",
+                        dictionary! { "CS1" => vec![
+                            Object::Name(b"CalGray".to_vec()),
+                            Object::Dictionary(dictionary! { "WhitePoint" => vec![1.into(), 1.into(), 1.into()] }),
+                        ] },
+                    );
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "inherited_resource_default_color_space" => {
+                    resources.set("ColorSpace", dictionary! { "DefaultRGB" => "DeviceCMYK" });
+                    contents = b"1 0 0 rg\n".to_vec();
+                }
+                "inherited_resource_extgstate" => {
+                    resources.set("ExtGState", dictionary! { "GS1" => Dictionary::new() });
+                    contents = b"/GS1 gs\n".to_vec();
+                }
+                "inherited_resource_font" => {
+                    resources.set(
+                        "Font",
+                        dictionary! { "F1" => dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" } },
+                    );
+                    contents = b"BT\n/F1 12 Tf\nET\n".to_vec();
+                }
+                "inherited_resource_xobject" => {
+                    let form = document.add_object(Stream::new(
+                        dictionary! {
+                            "Type" => "XObject",
+                            "Subtype" => "Form",
+                            "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                            "Resources" => Dictionary::new(),
+                        },
+                        Vec::new(),
+                    ));
+                    resources.set("XObject", dictionary! { "X1" => form });
+                    contents = b"/X1 Do\n".to_vec();
+                }
+                "inherited_resource_pattern" => {
+                    let pattern = document.add_object(Stream::new(
+                        dictionary! {
+                            "Type" => "Pattern",
+                            "PatternType" => 1,
+                            "PaintType" => 1,
+                            "TilingType" => 1,
+                            "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                            "XStep" => 1,
+                            "YStep" => 1,
+                            "Resources" => Dictionary::new(),
+                        },
+                        Vec::new(),
+                    ));
+                    resources.set("Pattern", dictionary! { "P1" => pattern });
+                    contents = b"/Pattern cs\n/P1 scn\n".to_vec();
+                }
+                "inherited_resource_shading" => {
+                    resources.set(
+                        "Shading",
+                        dictionary! { "S1" => dictionary! { "ShadingType" => 2, "ColorSpace" => "DeviceRGB", "Coords" => vec![0.into(), 0.into(), 1.into(), 1.into()], "Function" => dictionary! { "FunctionType" => 2, "Domain" => vec![0.into(), 1.into()], "C0" => vec![0.into(), 0.into(), 0.into()], "C1" => vec![1.into(), 1.into(), 1.into()], "N" => 1 }, "Extend" => vec![true.into(), true.into()] } },
+                    );
+                    contents = b"/S1 sh\n".to_vec();
+                }
+                "inherited_resource_properties" => {
+                    resources.set("Properties", dictionary! { "Pr1" => Dictionary::new() });
+                    contents = b"/Tag /Pr1 BDC\nEMC\n".to_vec();
+                }
+                _ => unreachable!("known inherited resource fixture"),
+            }
+        }
         "extgstate_tr"
         | "direct_extgstate_tr"
         | "extgstate_tr_null"

@@ -20,6 +20,7 @@ pub(crate) struct IccBasedSummary {
     pub(crate) invalid_devicen_components: Vec<RuleFailure>,
     pub(crate) invalid_devicen_components_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_devicen_colorants: Vec<RuleFailure>,
+    pub(crate) inconsistent_separations: Vec<RuleFailure>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -73,6 +74,7 @@ pub(crate) fn inspect(
     // selection, so retain its whole parsed-object population in addition to
     // the executed colour spaces above.
     let (all_pdfa1, all_pdfa2, all_colorants) = inspect_all_devicen_components(document, limits)?;
+    let inconsistent_separations = inspect_separation_consistency(document, limits)?;
     inspector.invalid_devicen_components.extend(all_pdfa1);
     inspector.invalid_devicen_components_pdfa2.extend(all_pdfa2);
     inspector.invalid_devicen_colorants.extend(all_colorants);
@@ -117,6 +119,89 @@ pub(crate) fn inspect(
         invalid_devicen_components: inspector.invalid_devicen_components,
         invalid_devicen_components_pdfa2: inspector.invalid_devicen_components_pdfa2,
         invalid_devicen_colorants: inspector.invalid_devicen_colorants,
+        inconsistent_separations,
+    })
+}
+
+fn inspect_separation_consistency(
+    document: &Document,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let mut by_name = BTreeMap::<String, (Object, Object)>::new();
+    let mut failures = Vec::new();
+    for object in document.objects.values() {
+        collect_separations(document, object, limits, &mut by_name, &mut failures, 0)?;
+    }
+    Ok(failures)
+}
+
+fn collect_separations(
+    document: &Document,
+    object: &Object,
+    limits: &SafetyLimits,
+    by_name: &mut BTreeMap<String, (Object, Object)>,
+    failures: &mut Vec<RuleFailure>,
+    depth: usize,
+) -> Result<(), PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    match object {
+        Object::Array(items) => {
+            if items.first().and_then(|item| item.as_name().ok()) == Some(b"Separation".as_slice())
+                && let (Some(name), Some(alternate), Some(tint)) =
+                    (items.get(1).and_then(|item| item.as_name().ok()), items.get(2), items.get(3))
+            {
+                let name = crate::model::decode_verapdf_pdf_string(name);
+                if let Some((expected_alternate, expected_tint)) = by_name.get(&name) {
+                    if !equivalent_pdf_objects(document, expected_alternate, alternate, limits, depth + 1)?
+                        || !equivalent_pdf_objects(document, expected_tint, tint, limits, depth + 1)?
+                    {
+                        failures.push(RuleFailure {
+                            object_id: None,
+                            description: format!("Separation /{name} has inconsistent alternate space or tint transform"),
+                        });
+                    }
+                } else {
+                    by_name.insert(name, (alternate.clone(), tint.clone()));
+                }
+            }
+            for item in items {
+                collect_separations(document, item, limits, by_name, failures, depth + 1)?;
+            }
+        }
+        Object::Dictionary(dictionary) => {
+            for value in dictionary.iter().map(|(_, value)| value) {
+                collect_separations(document, value, limits, by_name, failures, depth + 1)?;
+            }
+        }
+        Object::Stream(stream) => {
+            for value in stream.dict.iter().map(|(_, value)| value) {
+                collect_separations(document, value, limits, by_name, failures, depth + 1)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn equivalent_pdf_objects(
+    document: &Document,
+    left: &Object,
+    right: &Object,
+    limits: &SafetyLimits,
+    depth: usize,
+) -> Result<bool, PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    let left = resolve_optional(document, left, limits.max_reference_depth)?.unwrap_or(left);
+    let right = resolve_optional(document, right, limits.max_reference_depth)?.unwrap_or(right);
+    Ok(match (left, right) {
+        (Object::Array(left), Object::Array(right)) => left.len() == right.len() && left.iter().zip(right).all(|(left, right)| equivalent_pdf_objects(document, left, right, limits, depth + 1).unwrap_or(false)),
+        (Object::Dictionary(left), Object::Dictionary(right)) => left.len() == right.len() && left.iter().all(|(key, value)| right.get(key).ok().is_some_and(|other| equivalent_pdf_objects(document, value, other, limits, depth + 1).unwrap_or(false))),
+        (Object::Stream(left), Object::Stream(right)) => left.dict.len() == right.dict.len() && left.dict.iter().all(|(key, value)| right.dict.get(key).ok().is_some_and(|other| equivalent_pdf_objects(document, value, other, limits, depth + 1).unwrap_or(false))) && left.decompressed_content().ok() == right.decompressed_content().ok(),
+        _ => left == right,
     })
 }
 

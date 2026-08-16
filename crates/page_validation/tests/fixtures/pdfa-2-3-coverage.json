@@ -5866,6 +5866,46 @@
         "semantic_note": "Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths.",
         "object": "PDHalftone",
         "predicate": "colorantName == 'Default' || ((colorantName == null || colorantName == 'Cyan' || colorantName == 'Magenta' || colorantName == 'Yellow' || colorantName == 'Black') ? TransferFunction == null : TransferFunction != null)"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.2:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-CONTENT-RESOURCES-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception.",
+        "object": "PDContentStream",
+        "predicate": "inheritedResourceNames == ''"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.2:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-CONTENT-RESOURCES-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Tracks resolved resource names used by page, Form, appearance, tiling-pattern, and Type 3 content streams, including veraPDF's Device colour-space exception.",
+        "object": "PDContentStream",
+        "predicate": "inheritedResourceNames == ''"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.2:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state.",
+        "object": "PDICCBasedCMYK",
+        "predicate": "overprintFlag == false || OPM == 0"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.2:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects ICCBased CMYK painting with enabled matching overprint and nonzero OPM in the current graphics state.",
+        "object": "PDICCBasedCMYK",
+        "predicate": "overprintFlag == false || OPM == 0"
       }
     ],
     "coverage_gaps": [
@@ -5904,24 +5944,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.8:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.2:2",
         "applicable_profiles": [
           "2a",
           "2b",
@@ -6061,24 +6083,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.8:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.2:2",
         "applicable_profiles": [
           "3a",
           "3b",
