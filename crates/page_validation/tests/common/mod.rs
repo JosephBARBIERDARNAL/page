@@ -1770,7 +1770,9 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
         | "devicen_rgb"
         | "devicen_nine_components"
         | "separation_invalid_utf8"
-        | "devicen_invalid_utf8" => {
+        | "devicen_invalid_utf8"
+        | "separation_unreferenced_invalid_utf8"
+        | "devicen_unreferenced_invalid_utf8" => {
             let tint_transform = dictionary! {
                 "FunctionType" => 2,
                 "Domain" => vec![0.into(), 1.into()],
@@ -1778,11 +1780,17 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 "C1" => vec![1.into(), 1.into(), 1.into()],
                 "N" => 1,
             };
-            let color_space = if matches!(case, "separation_rgb" | "separation_invalid_utf8") {
+            let color_space = if matches!(
+                case,
+                "separation_rgb" | "separation_invalid_utf8" | "separation_unreferenced_invalid_utf8"
+            ) {
                 Object::Array(vec![
                     Object::Name(b"Separation".to_vec()),
                     Object::Name(
-                        if case == "separation_invalid_utf8" {
+                        if matches!(
+                            case,
+                            "separation_invalid_utf8" | "separation_unreferenced_invalid_utf8"
+                        ) {
                             b"Spot\xff".to_vec()
                         } else {
                             b"Spot".to_vec()
@@ -1801,7 +1809,10 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                             1
                         })
                             .map(|index| {
-                                Object::Name(if case == "devicen_invalid_utf8" && index == 0 {
+                                Object::Name(if matches!(
+                                    case,
+                                    "devicen_invalid_utf8" | "devicen_unreferenced_invalid_utf8"
+                                ) && index == 0 {
                                     b"Spot\xff".to_vec()
                                 } else {
                                     format!("Spot{index}").into_bytes()
@@ -1813,8 +1824,15 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                     Object::Dictionary(tint_transform),
                 ])
             };
-            resources.set("ColorSpace", dictionary! {"CS1" => color_space});
-            contents = b"/CS1 cs\n".to_vec();
+            if matches!(
+                case,
+                "separation_unreferenced_invalid_utf8" | "devicen_unreferenced_invalid_utf8"
+            ) {
+                document.add_object(color_space);
+            } else {
+                resources.set("ColorSpace", dictionary! {"CS1" => color_space});
+                contents = b"/CS1 cs\n".to_vec();
+            }
         }
         "pattern_rgb" => {
             let pattern_id = document.add_object(Stream::new(
@@ -6182,6 +6200,7 @@ pub fn font_fixture_with_type1_program(
         "unicode_name_basefont_invalid"
             | "unicode_name_basefont_unused"
             | "unicode_name_basefont_indirect"
+            | "unicode_name_basefont_unreferenced"
     ) {
         let invalid_name = Object::Name(b"MaiTest\xffFont".to_vec());
         font.set(
@@ -6743,6 +6762,9 @@ pub fn font_fixture_with_type1_program(
         },
     };
     resources.set("Font", font_resources.clone());
+    if case == "unicode_name_basefont_unreferenced" {
+        resources.remove(b"Font");
+    }
     let page_content = match case {
         case if case.starts_with("type1_real_symbol_")
             || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol") =>

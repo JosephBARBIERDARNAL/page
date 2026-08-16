@@ -29,6 +29,7 @@ mod predefined_cmaps;
 mod report;
 mod stream_safety;
 mod syntax;
+mod unicode_names;
 mod validation;
 mod xobject;
 

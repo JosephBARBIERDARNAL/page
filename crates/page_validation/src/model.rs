@@ -160,6 +160,7 @@ pub(crate) struct InspectionSummary {
     pub(crate) document_features: crate::document_features::DocumentFeatureSummary,
     pub(crate) object_limits: crate::object_limits::ObjectLimitsSummary,
     pub(crate) stream_safety: crate::stream_safety::StreamSafetySummary,
+    pub(crate) unicode_names: crate::unicode_names::UnicodeNameSummary,
 }
 
 impl PdfDocument {
@@ -206,6 +207,7 @@ impl PdfDocument {
                 document_features: crate::document_features::DocumentFeatureSummary::default(),
                 object_limits: crate::object_limits::ObjectLimitsSummary::default(),
                 stream_safety: crate::stream_safety::StreamSafetySummary::default(),
+                unicode_names: crate::unicode_names::UnicodeNameSummary::default(),
             }
         } else {
             // Computed once and shared: every inspector below that walks the
@@ -236,6 +238,7 @@ impl PdfDocument {
             let document_features = crate::document_features::inspect(&document, &pages, limits)?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+            let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
             let font_embedding = font_embedding::inspect(&document, &content, limits)?;
             InspectionSummary {
                 header,
@@ -250,6 +253,7 @@ impl PdfDocument {
                 document_features,
                 object_limits,
                 stream_safety,
+                unicode_names,
             }
         };
         Ok((normalized, inspections))

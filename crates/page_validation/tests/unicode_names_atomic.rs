@@ -2,17 +2,20 @@ use std::{env, fs};
 
 use lopdf::Object;
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::SafetyLimits;
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 pub mod common;
 
-const CASES: &[(&str, fn(&str) -> Vec<u8>)] = &[
-    ("basefont", common::font_fixture),
-    ("basefont_unused", common::font_fixture),
-    ("basefont_indirect", common::font_fixture),
-    ("separation", common::device_color_fixture),
-    ("devicen", common::device_color_fixture),
-    ("structure", common::document_feature_fixture),
+const CASES: &[(&str, fn(&str) -> Vec<u8>, bool)] = &[
+    ("basefont", common::font_fixture, true),
+    ("basefont_unused", common::font_fixture, true),
+    ("basefont_indirect", common::font_fixture, true),
+    ("basefont_unreferenced", common::font_fixture, false),
+    ("separation", common::device_color_fixture, true),
+    ("devicen", common::device_color_fixture, true),
+    ("separation_unreferenced", common::device_color_fixture, false),
+    ("devicen_unreferenced", common::device_color_fixture, false),
+    ("structure", common::document_feature_fixture, true),
 ];
 
 #[test]
@@ -22,18 +25,32 @@ fn utf8_name_population_matches_pinned_verapdf_when_opted_in() {
     };
     let directory = env::temp_dir().join(format!("page-unicode-names-{}", std::process::id()));
     fs::create_dir_all(&directory).expect("create Unicode-name fixture directory");
-    for (case, fixture) in CASES {
+    for (case, fixture, expected_failure) in CASES {
         let fixture_case = match *case {
             "basefont" => "unicode_name_basefont_invalid",
             "basefont_unused" => "unicode_name_basefont_unused",
             "basefont_indirect" => "unicode_name_basefont_indirect",
+            "basefont_unreferenced" => "unicode_name_basefont_unreferenced",
             "separation" => "separation_invalid_utf8",
             "devicen" => "devicen_invalid_utf8",
+            "separation_unreferenced" => "separation_unreferenced_invalid_utf8",
+            "devicen_unreferenced" => "devicen_unreferenced_invalid_utf8",
             "structure" => "unicode_name_structure_invalid",
             _ => unreachable!("known Unicode-name fixture"),
         };
         let path = directory.join(format!("{case}.pdf"));
-        fs::write(&path, fixture(fixture_case)).expect("write Unicode-name fixture");
+        let bytes = fixture(fixture_case);
+        fs::write(&path, &bytes).expect("write Unicode-name fixture");
+        for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
+            assert_eq!(
+                validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default())
+                    .failures
+                    .iter()
+                    .any(|failure| failure.rule_id == "PDFA2B-UNICODE-NAME-001" || failure.rule_id == "PDFA3B-UNICODE-NAME-001"),
+                *expected_failure,
+                "{case}: unexpected local {profile} Unicode-name result"
+            );
+        }
         for (profile, expected_rule) in [
             (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.1.8:1"),
             (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.1.8:1"),
@@ -43,14 +60,15 @@ fn utf8_name_population_matches_pinned_verapdf_when_opted_in() {
             let report = DifferentialRunner::new(config)
                 .expect("pinned veraPDF")
                 .compare_file(&path, &SafetyLimits::default());
-            assert!(
+            assert_eq!(
                 report
                     .reference_result
                     .expect("veraPDF result")
                     .failed_rule_ids
                     .iter()
                     .any(|rule| rule.to_string() == expected_rule),
-                "{case}: {profile} did not report its Unicode-name rule"
+                *expected_failure,
+                "{case}: unexpected {profile} Unicode-name result"
             );
         }
     }

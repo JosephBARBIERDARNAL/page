@@ -28,6 +28,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_cycle: bool,
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) language_failures: Vec<RuleFailure>,
+    pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
     pub(crate) invalid_page_boundaries: Vec<RuleFailure>,
     pub(crate) pages_with_pres_steps: Vec<RuleFailure>,
     pub(crate) catalog_with_requirements: Vec<RuleFailure>,
@@ -381,6 +382,7 @@ pub(crate) fn inspect(
             .into_iter()
             .chain(language_failures)
             .collect(),
+        invalid_unicode_structure_types: structure_tree.invalid_unicode_structure_types,
         invalid_page_boundaries,
         pages_with_pres_steps,
         catalog_with_requirements,
@@ -630,6 +632,7 @@ struct StructureTreeSummary {
     has_unmapped_type: bool,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
+    invalid_unicode_structure_types: Vec<RuleFailure>,
 }
 
 fn inspect_structure_tree(
@@ -667,6 +670,7 @@ fn inspect_structure_tree(
         has_unmapped_type: false,
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
+        invalid_unicode_structure_types: Vec::new(),
     };
     let role_map = root_dictionary
         .get(b"RoleMap")
@@ -939,6 +943,12 @@ fn inspect_structure_element(
         return Ok(());
     };
     summary.structure_types.insert(structure_type.to_vec());
+    if !crate::unicode_names::is_valid_utf8(structure_type) {
+        summary.invalid_unicode_structure_types.push(RuleFailure {
+            object_id,
+            description: "a structure element /S name is not valid UTF-8".to_owned(),
+        });
+    }
     if let Ok(kids) = dictionary.get(b"K") {
         inspect_structure_kids(document, kids, limits, summary, ancestors, steps, depth + 1)?;
     }

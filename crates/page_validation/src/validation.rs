@@ -695,6 +695,21 @@ fn validate_document(
     validate_actions(profile, &inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
     validate_document_features(profile, &inspections.document_features, &mut failures);
+    if profile.is_pdfa_2_or_3() {
+        let mut invalid_unicode_names = inspections.unicode_names.failures.clone();
+        invalid_unicode_names.extend(
+            inspections
+                .document_features
+                .invalid_unicode_structure_types
+                .iter()
+                .cloned(),
+        );
+        aggregate_failures(
+            &invalid_unicode_names,
+            "PDFA1B-UNICODE-NAME-001",
+            &mut failures,
+        );
+    }
     validate_file_specifications(
         profile,
         &inspections.document_features,
