@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use lopdf::{Document, Object};
@@ -180,9 +181,7 @@ fn inspect_jpeg2000(
     limits: &SafetyLimits,
     summary: &mut XObjectSummary,
 ) -> Result<(), PdfError> {
-    let bytes = stream
-        .decompressed_content_with_limit(limits.max_decoded_stream_size)
-        .map_err(|_| PdfError::ContentDecodeLimit(limits.max_decoded_stream_size))?;
+    let bytes = jpx_stream_bytes(stream, limits)?;
     let mut channels = None;
     let mut depths = Vec::new();
     let mut methods = Vec::new();
@@ -239,6 +238,38 @@ fn inspect_jpeg2000(
         ));
     }
     Ok(())
+}
+
+fn jpx_stream_bytes<'a>(
+    stream: &'a lopdf::Stream,
+    limits: &SafetyLimits,
+) -> Result<Cow<'a, [u8]>, PdfError> {
+    // JPXDecode is the image codec, not a PDF stream compression filter. Its
+    // bytes must be inspected as-is; asking lopdf to decode JPXDecode reports
+    // it as an unsupported decompression error and previously surfaced that
+    // unrelated failure as RESOURCE-LIMIT-001.
+    if stream
+        .dict
+        .get(b"Filter")
+        .ok()
+        .and_then(|filter| filter.as_name().ok())
+        == Some(b"JPXDecode")
+    {
+        if stream.content.len() > limits.max_decoded_stream_size {
+            return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
+        }
+        return Ok(Cow::Borrowed(&stream.content));
+    }
+
+    stream
+        .decompressed_content_with_limit(limits.max_decoded_stream_size)
+        .map(Cow::Owned)
+        .map_err(|error| match error {
+            lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }) => {
+                PdfError::ContentDecodeLimit(limits.max_decoded_stream_size)
+            }
+            error => PdfError::Parse(error),
+        })
 }
 
 fn jpx_failure(object_id: Option<PdfObjectId>, description: impl Into<String>) -> RuleFailure {
@@ -339,7 +370,11 @@ fn inspect_form(
 
 #[cfg(test)]
 mod tests {
-    use super::parse_j2k_siz;
+    use lopdf::{Stream, dictionary};
+
+    use super::{jpx_stream_bytes, parse_j2k_siz};
+    use crate::error::PdfError;
+    use crate::limits::SafetyLimits;
 
     #[test]
     fn parses_jpeg2000_siz_channels_and_depths() {
@@ -349,5 +384,30 @@ mod tests {
         bytes[6 + 35] = 3;
         bytes.extend_from_slice(&[7, 1, 1, 7, 1, 1, 7, 1, 1]);
         assert_eq!(parse_j2k_siz(&bytes), Some((3, vec![8, 8, 8])));
+    }
+
+    #[test]
+    fn direct_jpx_filter_is_inspected_without_lopdf_decompression() {
+        let content = vec![0xff, 0x4f, 0xff, 0x51];
+        let stream = Stream::new(dictionary! { "Filter" => "JPXDecode" }, content.clone());
+
+        assert_eq!(
+            jpx_stream_bytes(&stream, &SafetyLimits::default()).unwrap(),
+            content
+        );
+    }
+
+    #[test]
+    fn direct_jpx_filter_still_obeys_the_decoded_stream_limit() {
+        let stream = Stream::new(dictionary! { "Filter" => "JPXDecode" }, vec![0; 4]);
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 3,
+            ..SafetyLimits::default()
+        };
+
+        assert!(matches!(
+            jpx_stream_bytes(&stream, &limits),
+            Err(PdfError::ContentDecodeLimit(3))
+        ));
     }
 }

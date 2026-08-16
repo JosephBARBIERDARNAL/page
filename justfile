@@ -41,7 +41,7 @@ verapdf-all verapdf=verapdf_bin:
 rules-docs:
     cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
 
-# Release-only gate. This intentionally fails while the inventory status is developing.
+# Release-only gate for the completed PDF/A-1B inventory.
 pdfa1b-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
     just verapdf "{{ verapdf }}"

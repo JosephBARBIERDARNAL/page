@@ -1,7 +1,8 @@
 //! A deliberately small foundation for PDF/A validation.
 //!
-//! The crate currently implements preliminary PDF/A-1, PDF/A-2, and PDF/A-3 rule sets. A
-//! successful report is not proof of full PDF/A conformance.
+//! The crate implements PDF/A-1, PDF/A-2, and PDF/A-3 validation rule sets. A successful report
+//! is a validation result for the selected profile, not a guarantee that every possible PDF
+//! producer defect is recoverable from malformed input.
 
 mod actions;
 mod annotations;

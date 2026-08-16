@@ -86,7 +86,7 @@ impl ValidationReport {
             source: None,
             profile,
             checks_passed: false,
-            preliminary: true,
+            preliminary: false,
             checks: ValidationCounts {
                 total: 1,
                 passed: 0,

@@ -15,7 +15,7 @@ use page_validation::differential::{
     name = "verapdf-diff",
     bin_name = "verapdf-diff",
     version,
-    about = "Compare preliminary local PDF/A-1/2/3 checks with pinned veraPDF"
+    about = "Compare local PDF/A-1/2/3 checks with pinned veraPDF"
 )]
 struct Cli {
     /// Path to the veraPDF executable.

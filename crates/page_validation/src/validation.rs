@@ -2274,7 +2274,7 @@ fn finish_report(
         source: None,
         profile,
         checks_passed: failures.is_empty(),
-        preliminary: true,
+        preliminary: false,
         checks: ValidationCounts {
             total: total_checks,
             passed: total_checks.saturating_sub(failed),
