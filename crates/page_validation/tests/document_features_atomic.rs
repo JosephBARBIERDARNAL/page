@@ -116,6 +116,27 @@ fn pdfa_2_and_3_permissions_allow_only_ur3_and_docmdp() {
 }
 
 #[test]
+fn pdfa_2_and_3_reject_signature_reference_digest_keys_with_docmdp() {
+    for (profile, rule_id) in [
+        (ValidationProfile::PdfA2b, "PDFA2B-SIGNATURE-REFERENCE-001"),
+        (ValidationProfile::PdfA3b, "PDFA3B-SIGNATURE-REFERENCE-001"),
+    ] {
+        let report = validate_bytes_with_profile(
+            &common::document_feature_fixture("signature_reference_digest"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
 fn permissions_key_set_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;

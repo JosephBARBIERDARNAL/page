@@ -69,6 +69,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
+    pub(crate) pages_with_transparency: BTreeSet<u32>,
 }
 
 /// A byte is a PDF token boundary when it is absent (end of buffer), one of
@@ -240,6 +241,7 @@ pub(crate) fn execute_content(
         limits,
         cache,
         summary: ContentExecutionSummary::default(),
+        current_page: 0,
     };
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
@@ -256,6 +258,7 @@ struct ContentExecutor<'a> {
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
     summary: ContentExecutionSummary,
+    current_page: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -293,6 +296,7 @@ struct SelectedFont {
 
 impl ContentExecutor<'_> {
     fn execute_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
+        self.current_page = page_number;
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let resources_are_inherited = page.get(b"Resources").is_err();
         let mut active_forms = BTreeSet::new();
@@ -710,6 +714,11 @@ impl ContentExecutor<'_> {
                         key,
                         dictionary: dictionary.clone(),
                     });
+                    if self.extgstate_has_transparency(dictionary)? {
+                        self.summary
+                            .pages_with_transparency
+                            .insert(self.current_page);
+                    }
                     if let Some(value) = resolved_bool(
                         self.document,
                         dictionary,
@@ -989,6 +998,13 @@ impl ContentExecutor<'_> {
         } else {
             declared_subtype
         };
+        if modeled_subtype == Some(b"Form".as_slice())
+            && self.transparency_group_present(dictionary)?
+        {
+            self.summary
+                .pages_with_transparency
+                .insert(self.current_page);
+        }
         match modeled_subtype {
             Some(b"Image") => {
                 let is_stencil = dictionary
@@ -1352,6 +1368,13 @@ impl ContentExecutor<'_> {
         else {
             return Ok(());
         };
+        if resolved_name(self.document, group, b"S", self.limits.max_reference_depth)?
+            == Some(b"Transparency".as_slice())
+        {
+            self.summary
+                .pages_with_transparency
+                .insert(self.current_page);
+        }
         if let Ok(color_space) = group.get(b"CS") {
             let _ = self.record_color_space(
                 color_space.clone(),
@@ -1363,6 +1386,59 @@ impl ContentExecutor<'_> {
             )?;
         }
         Ok(())
+    }
+
+    fn extgstate_has_transparency(&self, dictionary: &Dictionary) -> Result<bool, PdfError> {
+        for key in [b"CA".as_slice(), b"ca"] {
+            if let Some(value) = dictionary
+                .get(key)
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_float().ok())
+                && value < 1.0
+            {
+                return Ok(true);
+            }
+        }
+        if let Some(value) = dictionary
+            .get(b"SMask")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            && !matches!(value, Object::Null)
+            && value.as_name().ok() != Some(b"None".as_slice())
+        {
+            return Ok(true);
+        }
+        Ok(resolved_name(
+            self.document,
+            dictionary,
+            b"BM",
+            self.limits.max_reference_depth,
+        )?
+        .is_some_and(|name| !matches!(name, b"Normal" | b"Compatible")))
+    }
+
+    fn transparency_group_present(&self, owner: &Dictionary) -> Result<bool, PdfError> {
+        let Some(group) = owner
+            .get(b"Group")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_dict().ok())
+        else {
+            return Ok(false);
+        };
+        Ok(
+            resolved_name(self.document, group, b"S", self.limits.max_reference_depth)?
+                == Some(b"Transparency".as_slice()),
+        )
     }
 
     fn record_color_space(

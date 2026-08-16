@@ -4781,6 +4781,27 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "baseline" => {}
         "permissions_allowed" => catalog.set("Perms", dictionary! { "UR3" => Dictionary::new() }),
         "permissions_invalid" => catalog.set("Perms", dictionary! { "Unexpected" => true }),
+        "signature_reference_digest" => {
+            catalog.set(
+                "Perms",
+                dictionary! { "DocMDP" => dictionary! { "P" => 1 } },
+            );
+            let signature = document.add_object(dictionary! {
+                "Type" => "Sig",
+                "Reference" => Object::Array(vec![Object::Dictionary(dictionary! {
+                    "DigestMethod" => "SHA256",
+                })]),
+            });
+            let field = document.add_object(dictionary! {
+                "FT" => "Sig",
+                "T" => Object::string_literal("Signature1"),
+                "V" => signature,
+            });
+            catalog.set(
+                "AcroForm",
+                dictionary! { "Fields" => Object::Array(vec![Object::Reference(field)]) },
+            );
+        }
         "lang_catalog_valid" => catalog.set("Lang", Object::string_literal("en-US")),
         "lang_catalog_empty" => catalog.set("Lang", Object::string_literal("")),
         "lang_catalog_invalid" => catalog.set("Lang", Object::string_literal("en--US")),

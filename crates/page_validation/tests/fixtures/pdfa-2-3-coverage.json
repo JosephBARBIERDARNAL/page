@@ -2012,6 +2012,26 @@
         "predicate": "entries.split('&').filter(elem => elem != 'UR3' && elem != 'DocMDP').length == 0 || entries == ''"
       },
       {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:2",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-REFERENCE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "When catalog permissions contain DocMDP, signature reference dictionaries contain none of DigestLocation, DigestMethod, or DigestValue.",
+        "object": "PDSigRef",
+        "predicate": "permsContainDocMDP == false || entries.split('&').filter(elem => elem == 'DigestLocation' || elem == 'DigestMethod' || elem == 'DigestValue').length == 0"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.1.12:2",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-SIGNATURE-REFERENCE-001",
+        "implementation_strength": "exact",
+        "semantic_note": "When catalog permissions contain DocMDP, signature reference dictionaries contain none of DigestLocation, DigestMethod, or DigestValue.",
+        "object": "PDSigRef",
+        "predicate": "permsContainDocMDP == false || entries.split('&').filter(elem => elem == 'DigestLocation' || elem == 'DigestMethod' || elem == 'DigestValue').length == 0"
+      },
+      {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
         "applicable_profiles": [
@@ -6130,15 +6150,6 @@
     ],
     "coverage_gaps": [
       {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.3:1",
         "applicable_profiles": [
           "2a"
@@ -6169,15 +6180,6 @@
           "2a",
           "2b",
           "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.1.12:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },

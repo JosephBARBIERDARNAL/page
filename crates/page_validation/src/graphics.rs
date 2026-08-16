@@ -19,6 +19,7 @@ pub(crate) struct GraphicsSummary {
     pub(crate) xobject_soft_masks: Vec<RuleFailure>,
     pub(crate) transparency_groups: Vec<RuleFailure>,
     pub(crate) transparency_groups_missing_cs: Vec<RuleFailure>,
+    pub(crate) pages_with_transparency_missing_cs: Vec<RuleFailure>,
     pub(crate) blend_modes: Vec<RuleFailure>,
     pub(crate) blend_modes_pdfa2: Vec<RuleFailure>,
     pub(crate) stroke_alpha: Vec<RuleFailure>,
@@ -114,7 +115,7 @@ pub(crate) fn inspect(
         }
     }
 
-    for page_entry in pages {
+    for (index, page_entry) in pages.iter().enumerate() {
         let Some(page) = page_entry.resolve(document) else {
             continue;
         };
@@ -126,9 +127,46 @@ pub(crate) fn inspect(
             limits,
             &mut summary,
         )?;
+        let page_number = index + 1;
+        if content
+            .pages_with_transparency
+            .contains(&(page_number as u32))
+            && !page_has_group_cs(document, page, limits)?
+        {
+            summary
+                .pages_with_transparency_missing_cs
+                .push(RuleFailure {
+                    object_id: page_entry.object_id().map(Into::into),
+                    description:
+                        "page contains transparency without a /Group /CS blending colour space"
+                            .to_owned(),
+                });
+        }
     }
     inspect_all_halftones_and_extgstates(document, &mut summary);
     Ok(summary)
+}
+
+fn page_has_group_cs(
+    document: &Document,
+    page: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(group) = page
+        .get(b"Group")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, group, b"S", limits.max_reference_depth)?
+            == Some(b"Transparency".as_slice())
+            && contains_key(group, b"CS"),
+    )
 }
 
 fn inspect_all_halftones_and_extgstates(document: &Document, summary: &mut GraphicsSummary) {
@@ -303,12 +341,6 @@ fn inspect_group(
             object_id,
             description: format!("{context} contains a transparency group"),
         });
-        if context == "page" && !contains_key(group, b"CS") {
-            summary.transparency_groups_missing_cs.push(RuleFailure {
-                object_id,
-                description: "page transparency group has no /CS blending colour space".to_owned(),
-            });
-        }
     }
     Ok(())
 }

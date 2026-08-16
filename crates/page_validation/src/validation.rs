@@ -1166,6 +1166,10 @@ fn validate_document_features(
                 &features.optional_content_as_entries,
                 "PDFA1B-OPTIONAL-CONTENT-AS-001",
             ),
+            (
+                &features.signature_refs_with_digest_keys,
+                "PDFA1B-SIGNATURE-REFERENCE-001",
+            ),
         ] {
             aggregate_failures(invalid, rule_id, failures);
         }
@@ -1633,6 +1637,12 @@ fn validate_graphics(
     if profile.is_pdfa_2_or_3() && output_color_space.is_none() {
         aggregate_failures_with_location(
             &graphics.transparency_groups_missing_cs,
+            "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+            None,
+            failures,
+        );
+        aggregate_failures_with_location(
+            &graphics.pages_with_transparency_missing_cs,
             "PDFA1B-TRANSPARENCY-GROUP-CS-001",
             None,
             failures,
