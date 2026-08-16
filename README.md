@@ -169,6 +169,4 @@ Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR`
 
 The original `page` source code is licensed under [MIT](LICENSE).
 
-The `page_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license;
-see the [third-party notices](crates/page_validation/THIRD_PARTY_NOTICES.md).
-Binary distributions must include both license documents.
+The `page_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license; see the [third-party notices](crates/page_validation/THIRD_PARTY_NOTICES.md). Binary distributions must include both license documents.
