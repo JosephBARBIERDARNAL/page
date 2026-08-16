@@ -1782,7 +1782,9 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
             };
             let color_space = if matches!(
                 case,
-                "separation_rgb" | "separation_invalid_utf8" | "separation_unreferenced_invalid_utf8"
+                "separation_rgb"
+                    | "separation_invalid_utf8"
+                    | "separation_unreferenced_invalid_utf8"
             ) {
                 Object::Array(vec![
                     Object::Name(b"Separation".to_vec()),
@@ -1809,14 +1811,18 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                             1
                         })
                             .map(|index| {
-                                Object::Name(if matches!(
-                                    case,
-                                    "devicen_invalid_utf8" | "devicen_unreferenced_invalid_utf8"
-                                ) && index == 0 {
-                                    b"Spot\xff".to_vec()
-                                } else {
-                                    format!("Spot{index}").into_bytes()
-                                })
+                                Object::Name(
+                                    if matches!(
+                                        case,
+                                        "devicen_invalid_utf8"
+                                            | "devicen_unreferenced_invalid_utf8"
+                                    ) && index == 0
+                                    {
+                                        b"Spot\xff".to_vec()
+                                    } else {
+                                        format!("Spot{index}").into_bytes()
+                                    },
+                                )
                             })
                             .collect(),
                     ),
@@ -3269,6 +3275,74 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 contents = b"/Fm Do\n".to_vec();
             }
         }
+        "halftone_transfer_root_invalid"
+        | "halftone_transfer_root_indirect_ht_invalid"
+        | "halftone_transfer_unreferenced_invalid"
+        | "halftone_transfer_unused_invalid"
+        | "halftone_transfer_root_null"
+        | "halftone_transfer_root_indirect_null"
+        | "halftone_transfer_primary_invalid"
+        | "halftone_transfer_spot_missing"
+        | "halftone_transfer_default_present"
+        | "halftone_transfer_spot_present" => {
+            let transfer = Object::Name(b"Identity".to_vec());
+            let child = |transfer_function: Option<Object>| {
+                let mut halftone = dictionary! { "HalftoneType" => 1 };
+                if let Some(transfer_function) = transfer_function {
+                    halftone.set("TransferFunction", transfer_function);
+                }
+                Object::Dictionary(halftone)
+            };
+            let halftone = match case {
+                "halftone_transfer_root_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_root_indirect_ht_invalid"
+                | "halftone_transfer_unreferenced_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_unused_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_root_null" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => Object::Null }
+                }
+                "halftone_transfer_root_indirect_null" => dictionary! {
+                    "HalftoneType" => 1,
+                    "TransferFunction" => Object::Reference(document.add_object(Object::Null)),
+                },
+                "halftone_transfer_primary_invalid" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Cyan" => child(Some(transfer)),
+                },
+                "halftone_transfer_spot_missing" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Spot" => child(None),
+                },
+                "halftone_transfer_default_present" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Default" => child(Some(transfer)),
+                },
+                "halftone_transfer_spot_present" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Spot" => child(Some(transfer)),
+                },
+                _ => unreachable!("known halftone transfer fixture"),
+            };
+            let halftone = if case == "halftone_transfer_root_indirect_ht_invalid" {
+                Object::Reference(document.add_object(halftone))
+            } else {
+                Object::Dictionary(halftone)
+            };
+            let state =
+                document.add_object(dictionary! { "Type" => "ExtGState", "HT" => halftone });
+            if case != "halftone_transfer_unreferenced_invalid" {
+                resources.set("ExtGState", dictionary! { "GS1" => state });
+                if case != "halftone_transfer_unused_invalid" {
+                    contents = b"/GS1 gs\n".to_vec();
+                }
+            }
+        }
         _ => panic!("unknown graphics fixture case {case}"),
     }
 
@@ -3346,6 +3420,16 @@ pub fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
         | "appearance_and_painted_image_bpc_16" => Vec::new(),
         "extgstate_tr" => {
             let state = document.add_object(dictionary! {"TR" => "Identity"});
+            inner_resources.set("ExtGState", dictionary! {"GS1" => state});
+            b"/GS1 gs\n".to_vec()
+        }
+        "halftone_transfer_invalid" => {
+            let state = document.add_object(dictionary! {
+                "HT" => dictionary! {
+                    "HalftoneType" => 1,
+                    "TransferFunction" => "Identity",
+                },
+            });
             inner_resources.set("ExtGState", dictionary! {"GS1" => state});
             b"/GS1 gs\n".to_vec()
         }

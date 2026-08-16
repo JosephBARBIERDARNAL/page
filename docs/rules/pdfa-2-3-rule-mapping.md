@@ -789,6 +789,18 @@ These rules apply to both PDF/A-2 and PDF/A-3; shared validation code selects th
 | `PDFA3A-OPTIONAL-CONTENT-AS-001` | `ISO 19005-3:2012:6.9:4` | §6.9 | exact | Rejects AS in optional-content configuration dictionaries. |
 | `PDFA3B-OPTIONAL-CONTENT-AS-001` | `ISO 19005-3:2012:6.9:4` | §6.9 | exact | Rejects AS in optional-content configuration dictionaries. |
 | `PDFA3U-OPTIONAL-CONTENT-AS-001` | `ISO 19005-3:2012:6.9:4` | §6.9 | exact | Rejects AS in optional-content configuration dictionaries. |
+| `PDFA2A-UNICODE-NAME-001` | `ISO 19005-2:2011:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA2B-UNICODE-NAME-001` | `ISO 19005-2:2011:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA2U-UNICODE-NAME-001` | `ISO 19005-2:2011:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA3A-UNICODE-NAME-001` | `ISO 19005-3:2012:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA3B-UNICODE-NAME-001` | `ISO 19005-3:2012:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA3U-UNICODE-NAME-001` | `ISO 19005-3:2012:6.1.8:1` | §6.1.8 | exact | Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree. |
+| `PDFA2A-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-2:2011:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA2B-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-2:2011:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA2U-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-2:2011:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA3A-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA3B-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
+| `PDFA3U-HALFTONE-TRANSFER-FUNCTION-001` | `ISO 19005-3:2012:6.2.5:6` | §6.2.5 | exact | Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths. |
 
 ## PDF/A-2 mappings
 

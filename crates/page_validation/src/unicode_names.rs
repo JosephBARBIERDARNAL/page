@@ -71,7 +71,8 @@ fn inspect_object(
             if !visited.insert(*id) {
                 return Ok(());
             }
-            if let Some(resolved) = resolve_optional(document, object, limits.max_reference_depth)? {
+            if let Some(resolved) = resolve_optional(document, object, limits.max_reference_depth)?
+            {
                 inspect_object(
                     document,
                     resolved,
@@ -93,8 +94,12 @@ fn inspect_object(
             if let Some(dictionary) = dictionary_based(object) {
                 if resolved_name(document, dictionary, b"Type", limits.max_reference_depth)?
                     == Some(b"Font".as_slice())
-                    && let Some(name) =
-                        resolved_name(document, dictionary, b"BaseFont", limits.max_reference_depth)?
+                    && let Some(name) = resolved_name(
+                        document,
+                        dictionary,
+                        b"BaseFont",
+                        limits.max_reference_depth,
+                    )?
                     && !is_valid_utf8(name)
                 {
                     failures.push(RuleFailure {
@@ -122,7 +127,14 @@ fn inspect_color_space(
         return Ok(());
     };
     match kind {
-        b"Separation" => inspect_name(document, items.get(1), owner, limits, failures, "Separation colourant")?,
+        b"Separation" => inspect_name(
+            document,
+            items.get(1),
+            owner,
+            limits,
+            failures,
+            "Separation colourant",
+        )?,
         b"DeviceN" => {
             let Some(names) = items
                 .get(1)
@@ -134,7 +146,14 @@ fn inspect_color_space(
                 return Ok(());
             };
             for name in names {
-                inspect_name(document, Some(name), owner, limits, failures, "DeviceN colourant")?;
+                inspect_name(
+                    document,
+                    Some(name),
+                    owner,
+                    limits,
+                    failures,
+                    "DeviceN colourant",
+                )?;
             }
         }
         _ => {}

@@ -1004,26 +1004,6 @@
           "2a",
           "3a"
         ]
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-2:2011:6.1.8:1",
-        "applicable_profiles": ["2a", "2b", "2u"],
-        "canonical_local_rule_id": "PDFA1B-UNICODE-NAME-001",
-        "implementation_strength": "exact",
-        "semantic_note": "Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree.",
-        "object": "CosUnicodeName",
-        "predicate": "isValidUtf8 == true"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-3:2012:6.1.8:1",
-        "applicable_profiles": ["3a", "3b", "3u"],
-        "canonical_local_rule_id": "PDFA1B-UNICODE-NAME-001",
-        "implementation_strength": "exact",
-        "semantic_note": "Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree.",
-        "object": "CosUnicodeName",
-        "predicate": "isValidUtf8 == true"
       }
     ],
     "profiles": [
@@ -5846,6 +5826,46 @@
         "semantic_note": "Rejects AS in optional-content configuration dictionaries.",
         "object": "PDOCConfig",
         "predicate": "AS == null"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.1.8:1",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-UNICODE-NAME-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree.",
+        "object": "CosUnicodeName",
+        "predicate": "isValidUtf8 == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.1.8:1",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-UNICODE-NAME-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Validates UTF-8 font, Separation and DeviceN colourant, and structure type names in reached page resources and the structure tree.",
+        "object": "CosUnicodeName",
+        "predicate": "isValidUtf8 == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:6",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths.",
+        "object": "PDHalftone",
+        "predicate": "colorantName == 'Default' || ((colorantName == null || colorantName == 'Cyan' || colorantName == 'Magenta' || colorantName == 'Yellow' || colorantName == 'Black') ? TransferFunction == null : TransferFunction != null)"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:6",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Validates TransferFunction presence for selected root and Type 5 colourant halftones across veraPDF's content paths.",
+        "object": "PDHalftone",
+        "predicate": "colorantName == 'Default' || ((colorantName == null || colorantName == 'Cyan' || colorantName == 'Magenta' || colorantName == 'Yellow' || colorantName == 'Black') ? TransferFunction == null : TransferFunction != null)"
       }
     ],
     "coverage_gaps": [
@@ -5911,15 +5931,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.4:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:6",
         "applicable_profiles": [
           "2a",
           "2b",
@@ -6077,15 +6088,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.4:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:6",
         "applicable_profiles": [
           "3a",
           "3b",

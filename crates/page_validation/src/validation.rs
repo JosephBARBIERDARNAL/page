@@ -1590,6 +1590,14 @@ fn validate_graphics(
             aggregate_failures_with_location(invalid, rule_id, None, failures);
         }
     }
+    if profile.is_pdfa_2_or_3() {
+        aggregate_failures_with_location(
+            &graphics.halftone_transfer_functions,
+            "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+            None,
+            failures,
+        );
+    }
     if !content.undefined_operators.is_empty() {
         let detail = content
             .undefined_operators

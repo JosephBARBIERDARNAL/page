@@ -26,6 +26,7 @@ pub(crate) struct GraphicsSummary {
     pub(crate) extgstate_htp: Vec<RuleFailure>,
     pub(crate) halftone_types: Vec<RuleFailure>,
     pub(crate) halftone_names: Vec<RuleFailure>,
+    pub(crate) halftone_transfer_functions: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -46,6 +47,13 @@ pub(crate) fn inspect(
     for use_ in &content.extgstates {
         if extgstates.insert(use_.key.clone()) {
             inspect_extgstate(
+                document,
+                &use_.dictionary,
+                use_.key.object_id(),
+                limits,
+                &mut summary,
+            )?;
+            inspect_extgstate_halftone(
                 document,
                 &use_.dictionary,
                 use_.key.object_id(),
@@ -157,6 +165,91 @@ fn inspect_all_halftones_and_extgstates(document: &Document, summary: &mut Graph
             });
         }
     }
+}
+
+fn inspect_extgstate_halftone(
+    document: &Document,
+    extgstate: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    let Some(halftone) = extgstate
+        .get(b"HT")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(());
+    };
+    inspect_halftone_dictionary(document, halftone, object_id, limits, summary)
+}
+
+fn inspect_halftone_dictionary(
+    document: &Document,
+    halftone: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    inspect_halftone_transfer_function(document, halftone, object_id, None, limits, summary)?;
+    if halftone
+        .get(b"HalftoneType")
+        .ok()
+        .and_then(|value| value.as_i64().ok())
+        == Some(5)
+    {
+        for (colorant_name, value) in halftone.iter() {
+            let Some(child) = resolve_optional(document, value, limits.max_reference_depth)?
+                .and_then(dictionary_based)
+            else {
+                continue;
+            };
+            inspect_halftone_transfer_function(
+                document,
+                child,
+                object_id,
+                Some(colorant_name),
+                limits,
+                summary,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn inspect_halftone_transfer_function(
+    document: &Document,
+    halftone: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    colorant_name: Option<&[u8]>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    let has_transfer_function = halftone
+        .get(b"TransferFunction")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .is_some_and(|value| !matches!(value, lopdf::Object::Null));
+    let valid = match colorant_name {
+        Some(b"Default") => true,
+        None | Some(b"Cyan" | b"Magenta" | b"Yellow" | b"Black") => !has_transfer_function,
+        Some(_) => has_transfer_function,
+    };
+    if !valid {
+        let context = colorant_name
+            .map(|name| format!(" /{}", String::from_utf8_lossy(name)))
+            .unwrap_or_else(|| " root".to_owned());
+        summary.halftone_transfer_functions.push(RuleFailure {
+            object_id,
+            description: format!("a{context} halftone has an invalid /TransferFunction entry"),
+        });
+    }
+    Ok(())
 }
 
 fn inspect_alpha(
