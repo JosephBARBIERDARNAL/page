@@ -1,5 +1,7 @@
 pub mod common;
 
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+
 const CASES: &[(&str, &[&str])] = &[
     ("image_alternates", &["PDFA1B-IMAGE-ALTERNATES-001"]),
     ("image_alternates_null", &[]),
@@ -64,4 +66,41 @@ fn multiple_invalid_xobjects_are_one_deterministic_unattached_failure() {
     let failure = common::assert_single_failure(&report, "PDFA1B-IMAGE-BPC-001");
     assert!(failure.object_id.is_none());
     assert!(failure.message.contains("; "));
+}
+
+#[test]
+fn pdfa_2_and_3_keep_image_and_form_opi_predicates_separate() {
+    let image = validate_bytes_with_profile(
+        &common::xobject_fixture("image_opi"),
+        ValidationProfile::PdfA2b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        image
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA2B-XOBJECT-OPI-001")
+    );
+    assert!(
+        image
+            .failures
+            .iter()
+            .all(|failure| failure.rule_id != "PDFA2B-FORM-POSTSCRIPT-001")
+    );
+
+    let form = validate_bytes_with_profile(
+        &common::xobject_fixture("form_opi"),
+        ValidationProfile::PdfA2b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        form.failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA2B-FORM-POSTSCRIPT-001")
+    );
+    assert!(
+        form.failures
+            .iter()
+            .all(|failure| failure.rule_id != "PDFA2B-XOBJECT-OPI-001")
+    );
 }

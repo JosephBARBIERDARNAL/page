@@ -1,3 +1,10 @@
+use std::{env, fs};
+
+use page_validation::differential::{
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
+};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+
 pub mod common;
 
 const EMBEDDED_FILES: &str = "PDFA1B-NAMES-EMBEDDED-FILES-001";
@@ -73,4 +80,74 @@ fn document_feature_failures_attach_the_catalog_object() {
         assert_eq!(report.checks.failed, expected_failed);
         assert_eq!(report.checks.passed, 134 - expected_failed);
     }
+}
+
+#[test]
+fn pdfa_2_and_3_permissions_allow_only_ur3_and_docmdp() {
+    for (profile, rule_id) in [
+        (ValidationProfile::PdfA2b, "PDFA2B-PERMS-ENTRIES-001"),
+        (ValidationProfile::PdfA3b, "PDFA3B-PERMS-ENTRIES-001"),
+    ] {
+        let allowed = validate_bytes_with_profile(
+            &common::document_feature_fixture("permissions_allowed"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        assert!(
+            allowed
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != rule_id),
+            "{profile}: {allowed}"
+        );
+        let invalid = validate_bytes_with_profile(
+            &common::document_feature_fixture("permissions_invalid"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        assert!(
+            invalid
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule_id),
+            "{profile}: {invalid}"
+        );
+    }
+}
+
+#[test]
+fn permissions_key_set_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-permissions-{}.pdf", std::process::id()));
+    fs::write(
+        &path,
+        common::document_feature_fixture("permissions_invalid"),
+    )
+    .expect("write permissions fixture");
+    for (profile, expected_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.1.12:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.1.12:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == expected_rule),
+            "{profile} did not reject the permissions key"
+        );
+    }
+    fs::remove_file(path).expect("remove permissions fixture");
 }

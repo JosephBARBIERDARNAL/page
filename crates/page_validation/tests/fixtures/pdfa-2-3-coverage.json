@@ -1984,6 +1984,34 @@
     ],
     "mappings": [
       {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:1",
+        "applicable_profiles": [
+          "2a",
+          "2b",
+          "2u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-PERMS-ENTRIES-001",
+        "implementation_strength": "exact",
+        "semantic_note": "The catalog permissions dictionary contains only UR3 and DocMDP keys, resolving the dictionary through indirection.",
+        "object": "PDPerms",
+        "predicate": "entries.split('&').filter(elem => elem != 'UR3' && elem != 'DocMDP').length == 0 || entries == ''"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.1.12:1",
+        "applicable_profiles": [
+          "3a",
+          "3b",
+          "3u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-PERMS-ENTRIES-001",
+        "implementation_strength": "exact",
+        "semantic_note": "The catalog permissions dictionary contains only UR3 and DocMDP keys, resolving the dictionary through indirection.",
+        "object": "PDPerms",
+        "predicate": "entries.split('&').filter(elem => elem != 'UR3' && elem != 'DocMDP').length == 0 || entries == ''"
+      },
+      {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
         "applicable_profiles": [
@@ -2406,8 +2434,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-HEADER-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "The local header check requires byte offset zero and a syntactically valid PDF version, but does not narrow the version to PDF 1.0 through PDF 1.7.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires the byte-zero header line to be exactly `%PDF-1.n`, where `n` is a single digit from 0 through 7.",
         "object": "CosDocument",
         "predicate": "headerOffset == 0 && /^%PDF-1\\.[0-7]$/.test(header)"
       },
@@ -2434,8 +2462,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRAILER-ID-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "The local trailer-ID check requires an ID entry, but retains PDF/A-1 linearized-trailer selection and does not require veraPDF's non-empty serialized value.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires a nonempty last trailer ID value; the PDF/A-1 linearized first-trailer rule is not applied to PDF/A-2 or PDF/A-3.",
         "object": "CosDocument",
         "predicate": "lastID != null && lastID.length() > 0"
       },
@@ -2560,22 +2588,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-STREAM-FILTER-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Rejects stream filters outside the PDF/A-2/3 allow-list; LZWDecode is reported by the companion local LZW rule.",
-        "object": "CosFilter",
-        "predicate": "internalRepresentation == \"ASCIIHexDecode\" || internalRepresentation == \"ASCII85Decode\" || internalRepresentation == \"FlateDecode\" || internalRepresentation == \"RunLengthDecode\" || internalRepresentation == \"CCITTFaxDecode\" || internalRepresentation == \"JBIG2Decode\" || internalRepresentation == \"DCTDecode\" || internalRepresentation == \"JPXDecode\" || (internalRepresentation == \"Crypt\" && decodeParms == \"Identity\")"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-2:2011:6.1.7.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-STREAM-LZW-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Together with the general stream-filter check, rejects LZWDecode; this local rule represents only the LZW branch of the veraPDF predicate.",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects every stream filter outside the PDF/A-2/3 allow-list, including LZWDecode and Crypt unless its resolved decode-parameters Name is Identity.",
         "object": "CosFilter",
         "predicate": "internalRepresentation == \"ASCIIHexDecode\" || internalRepresentation == \"ASCII85Decode\" || internalRepresentation == \"FlateDecode\" || internalRepresentation == \"RunLengthDecode\" || internalRepresentation == \"CCITTFaxDecode\" || internalRepresentation == \"JBIG2Decode\" || internalRepresentation == \"DCTDecode\" || internalRepresentation == \"JPXDecode\" || (internalRepresentation == \"Crypt\" && decodeParms == \"Identity\")"
       },
@@ -2770,8 +2784,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks Registry and Ordering compatibility for non-Identity Type 0 CMaps; the PDF/A-2/3 Supplement ordering is not fully represented.",
+        "implementation_strength": "exact",
+        "semantic_note": "For non-Identity Type 0 CMaps reached by bounded text-show paths, requires matching Registry and Ordering values plus non-null supplements where the CIDFont supplement is no greater than the CMap supplement.",
         "object": "PDType0Font",
         "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry && CIDFontSupplement != null && CMapSupplement != null && CIDFontSupplement <= CMapSupplement)"
       },
@@ -2798,8 +2812,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-CMAP-EMBEDDING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Accepts locally recognized predefined CMaps and otherwise requires an embedded CMap program.",
+        "implementation_strength": "exact",
+        "semantic_note": "For Type 0 CMaps reached by bounded text-show paths, accepts exactly the ISO 32000-1:2008 Table 118 names; every other named CMap must be embedded.",
         "object": "PDCMap",
         "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\" || containsEmbeddedFile == true"
       },
@@ -3190,8 +3204,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the image-XObject OPI branch; the same local rule also reports OPI on other XObject types.",
+        "implementation_strength": "exact",
+        "semantic_note": "For invoked Image XObjects, rejects a non-null OPI entry; Form XObjects are evaluated by their own predicate.",
         "object": "PDXImage",
         "predicate": "containsOPI == false"
       },
@@ -3246,22 +3260,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-FORM-POSTSCRIPT-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers forbidden PS and Subtype2=PS entries; form OPI is reported through the companion XObject OPI rule.",
-        "object": "PDXForm",
-        "predicate": "(Subtype2 == null || Subtype2 != \"PS\") && containsPS == false && containsOPI == false"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.9:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the form-XObject OPI branch; PostScript entries are reported through the companion form rule.",
+        "implementation_strength": "exact",
+        "semantic_note": "For invoked Form XObjects, rejects OPI, a modeled PS stream, and Subtype2 equal to PS under one predicate.",
         "object": "PDXForm",
         "predicate": "(Subtype2 == null || Subtype2 != \"PS\") && containsPS == false && containsOPI == false"
       },
@@ -3400,22 +3400,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-WIDGET-ACTION-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the widget A-key branch of the combined A/AA predicate.",
-        "object": "PDWidgetAnnot",
-        "predicate": "containsA == false && containsAA == false"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-2:2011:6.4.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the widget AA-key branch of the combined A/AA predicate.",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects Widget annotations containing either A or AA; both branches are aggregated under the one veraPDF predicate.",
         "object": "PDWidgetAnnot",
         "predicate": "containsA == false && containsAA == false"
       },
@@ -3600,6 +3586,20 @@
         "semantic_note": "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2.",
         "object": "XMPPackage",
         "predicate": "isSerializationValid"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:5",
+        "applicable_profiles": [
+          "2a",
+          "2b",
+          "2u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-XMP-ENCODING-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Matches veraPDF's initial-byte `ByteBuffer.getEncoding()` classifier and requires its detected value to be exactly UTF-8, independently of XML-declaration text and parser recovery.",
+        "object": "XMPPackage",
+        "predicate": "actualEncoding == \"UTF-8\""
       },
       {
         "section": "shared_pdfa_2_3",
@@ -3967,6 +3967,20 @@
       },
       {
         "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:7",
+        "applicable_profiles": [
+          "2a",
+          "2b",
+          "2u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-ID-CORR-PREFIX-001",
+        "implementation_strength": "exact",
+        "semantic_note": "`corrPrefix == null || corrPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
+        "object": "PDFAIdentification",
+        "predicate": "corrPrefix == null || corrPrefix == \"pdfaid\""
+      },
+      {
+        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.8:2",
         "applicable_profiles": [
           "2a",
@@ -4198,8 +4212,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-HEADER-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "The local header check requires byte offset zero and a syntactically valid PDF version, but does not narrow the version to PDF 1.0 through PDF 1.7.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires the byte-zero header line to be exactly `%PDF-1.n`, where `n` is a single digit from 0 through 7.",
         "object": "CosDocument",
         "predicate": "headerOffset == 0 && /^%PDF-1\\.[0-7]$/.test(header)"
       },
@@ -4226,8 +4240,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRAILER-ID-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "The local trailer-ID check requires an ID entry, but retains PDF/A-1 linearized-trailer selection and does not require veraPDF's non-empty serialized value.",
+        "implementation_strength": "exact",
+        "semantic_note": "Requires a nonempty last trailer ID value; the PDF/A-1 linearized first-trailer rule is not applied to PDF/A-2 or PDF/A-3.",
         "object": "CosDocument",
         "predicate": "lastID != null && lastID.length() > 0"
       },
@@ -4352,22 +4366,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-STREAM-FILTER-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Rejects stream filters outside the PDF/A-2/3 allow-list; LZWDecode is reported by the companion local LZW rule.",
-        "object": "CosFilter",
-        "predicate": "internalRepresentation == \"ASCIIHexDecode\" || internalRepresentation == \"ASCII85Decode\" || internalRepresentation == \"FlateDecode\" || internalRepresentation == \"RunLengthDecode\" || internalRepresentation == \"CCITTFaxDecode\" || internalRepresentation == \"JBIG2Decode\" || internalRepresentation == \"DCTDecode\" || internalRepresentation == \"JPXDecode\" || (internalRepresentation == \"Crypt\" && decodeParms == \"Identity\")"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-3:2012:6.1.7.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-STREAM-LZW-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Together with the general stream-filter check, rejects LZWDecode; this local rule represents only the LZW branch of the veraPDF predicate.",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects every stream filter outside the PDF/A-2/3 allow-list, including LZWDecode and Crypt unless its resolved decode-parameters Name is Identity.",
         "object": "CosFilter",
         "predicate": "internalRepresentation == \"ASCIIHexDecode\" || internalRepresentation == \"ASCII85Decode\" || internalRepresentation == \"FlateDecode\" || internalRepresentation == \"RunLengthDecode\" || internalRepresentation == \"CCITTFaxDecode\" || internalRepresentation == \"JBIG2Decode\" || internalRepresentation == \"DCTDecode\" || internalRepresentation == \"JPXDecode\" || (internalRepresentation == \"Crypt\" && decodeParms == \"Identity\")"
       },
@@ -4562,8 +4562,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks Registry and Ordering compatibility for non-Identity Type 0 CMaps; the PDF/A-2/3 Supplement ordering is not fully represented.",
+        "implementation_strength": "exact",
+        "semantic_note": "For non-Identity Type 0 CMaps reached by bounded text-show paths, requires matching Registry and Ordering values plus non-null supplements where the CIDFont supplement is no greater than the CMap supplement.",
         "object": "PDType0Font",
         "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry && CIDFontSupplement != null && CMapSupplement != null && CIDFontSupplement <= CMapSupplement)"
       },
@@ -4590,8 +4590,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-CMAP-EMBEDDING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Accepts locally recognized predefined CMaps and otherwise requires an embedded CMap program.",
+        "implementation_strength": "exact",
+        "semantic_note": "For Type 0 CMaps reached by bounded text-show paths, accepts exactly the ISO 32000-1:2008 Table 118 names; every other named CMap must be embedded.",
         "object": "PDCMap",
         "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\" || containsEmbeddedFile == true"
       },
@@ -4982,8 +4982,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the image-XObject OPI branch; the same local rule also reports OPI on other XObject types.",
+        "implementation_strength": "exact",
+        "semantic_note": "For invoked Image XObjects, rejects a non-null OPI entry; Form XObjects are evaluated by their own predicate.",
         "object": "PDXImage",
         "predicate": "containsOPI == false"
       },
@@ -5038,22 +5038,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-FORM-POSTSCRIPT-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers forbidden PS and Subtype2=PS entries; form OPI is reported through the companion XObject OPI rule.",
-        "object": "PDXForm",
-        "predicate": "(Subtype2 == null || Subtype2 != \"PS\") && containsPS == false && containsOPI == false"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.9:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the form-XObject OPI branch; PostScript entries are reported through the companion form rule.",
+        "implementation_strength": "exact",
+        "semantic_note": "For invoked Form XObjects, rejects OPI, a modeled PS stream, and Subtype2 equal to PS under one predicate.",
         "object": "PDXForm",
         "predicate": "(Subtype2 == null || Subtype2 != \"PS\") && containsPS == false && containsOPI == false"
       },
@@ -5192,22 +5178,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-WIDGET-ACTION-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the widget A-key branch of the combined A/AA predicate.",
-        "object": "PDWidgetAnnot",
-        "predicate": "containsA == false && containsAA == false"
-      },
-      {
-        "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-3:2012:6.4.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "canonical_local_rule_id": "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Covers the widget AA-key branch of the combined A/AA predicate.",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects Widget annotations containing either A or AA; both branches are aggregated under the one veraPDF predicate.",
         "object": "PDWidgetAnnot",
         "predicate": "containsA == false && containsAA == false"
       },
@@ -5392,6 +5364,20 @@
         "semantic_note": "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2.",
         "object": "XMPPackage",
         "predicate": "isSerializationValid"
+      },
+      {
+        "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:5",
+        "applicable_profiles": [
+          "3a",
+          "3b",
+          "3u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-XMP-ENCODING-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Matches veraPDF's initial-byte `ByteBuffer.getEncoding()` classifier and requires its detected value to be exactly UTF-8, independently of XML-declaration text and parser recovery.",
+        "object": "XMPPackage",
+        "predicate": "actualEncoding == \"UTF-8\""
       },
       {
         "section": "shared_pdfa_2_3",
@@ -5759,6 +5745,20 @@
       },
       {
         "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:7",
+        "applicable_profiles": [
+          "3a",
+          "3b",
+          "3u"
+        ],
+        "canonical_local_rule_id": "PDFA1B-ID-CORR-PREFIX-001",
+        "implementation_strength": "exact",
+        "semantic_note": "`corrPrefix == null || corrPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
+        "object": "PDFAIdentification",
+        "predicate": "corrPrefix == null || corrPrefix == \"pdfaid\""
+      },
+      {
+        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.8:2",
         "applicable_profiles": [
           "3a",
@@ -5829,15 +5829,6 @@
       }
     ],
     "coverage_gaps": [
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
       {
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:2",
         "applicable_profiles": [
@@ -5989,25 +5980,7 @@
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
       {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:7",
         "applicable_profiles": [
           "2a",
           "2b",
@@ -6028,15 +6001,6 @@
           "2a",
           "2b",
           "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.1.12:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
@@ -6191,25 +6155,7 @@
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },
       {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:7",
         "applicable_profiles": [
           "3a",
           "3b",

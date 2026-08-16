@@ -4502,6 +4502,8 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "baseline" => {}
+        "permissions_allowed" => catalog.set("Perms", dictionary! { "UR3" => Dictionary::new() }),
+        "permissions_invalid" => catalog.set("Perms", dictionary! { "Unexpected" => true }),
         "lang_catalog_valid" => catalog.set("Lang", Object::string_literal("en-US")),
         "lang_catalog_empty" => catalog.set("Lang", Object::string_literal("")),
         "lang_catalog_invalid" => catalog.set("Lang", Object::string_literal("en--US")),
@@ -6313,6 +6315,16 @@ pub fn font_fixture_with_type1_program(
                 descendant_dictionary.set("DW", 0);
             }
         }
+        if case == "composite_cmap_supplement_mismatch" {
+            descendant_dictionary.set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Identity"),
+                    "Supplement" => 1,
+                },
+            );
+        }
         match case {
             "composite_cidmap_missing" => {
                 descendant_dictionary.remove(b"CIDToGIDMap");
@@ -6390,6 +6402,7 @@ pub fn font_fixture_with_type1_program(
                 Object::Name(b"UniJIS-UCS2-H".to_vec())
             }
             "composite_cmap_matching"
+            | "composite_cmap_supplement_mismatch"
             | "composite_cmap_mismatch_system"
             | "composite_indirect_cid_system_info"
             | "composite_cmap_wmode_match"

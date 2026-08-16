@@ -24,8 +24,10 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_font_file_subtypes: Vec<RuleFailure>,
     pub(crate) invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     pub(crate) incompatible_type0_system_info: Vec<RuleFailure>,
+    pub(crate) incompatible_type0_system_info_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_cid_to_gid_maps: Vec<RuleFailure>,
     pub(crate) unembedded_cmaps: Vec<RuleFailure>,
+    pub(crate) unembedded_predefined_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_cmap_wmodes: Vec<RuleFailure>,
     pub(crate) invalid_cmap_cids: Vec<RuleFailure>,
     pub(crate) oversized_cmap_cids: Vec<RuleFailure>,
@@ -41,7 +43,25 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
 }
 
-type CidSystemInfo = (Vec<u8>, Vec<u8>);
+#[derive(Debug, PartialEq, Eq)]
+struct CidSystemInfo {
+    registry: Vec<u8>,
+    ordering: Vec<u8>,
+    supplement: Option<i64>,
+}
+
+impl CidSystemInfo {
+    fn matches_pdfa1(&self, other: &Self) -> bool {
+        self.registry == other.registry && self.ordering == other.ordering
+    }
+
+    fn matches_pdfa2_or_3(&self, cmap: &Self) -> bool {
+        self.matches_pdfa1(cmap)
+            && self.supplement.zip(cmap.supplement).is_some_and(
+                |(cid_font_supplement, cmap_supplement)| cid_font_supplement <= cmap_supplement,
+            )
+    }
+}
 
 #[derive(Clone)]
 struct SelectedFont {
@@ -79,8 +99,10 @@ struct Scanner<'a> {
     invalid_font_file_subtypes: Vec<RuleFailure>,
     invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     incompatible_type0_system_info: Vec<RuleFailure>,
+    incompatible_type0_system_info_pdfa2: Vec<RuleFailure>,
     invalid_cid_to_gid_maps: Vec<RuleFailure>,
     unembedded_cmaps: Vec<RuleFailure>,
+    unembedded_predefined_cmaps: Vec<RuleFailure>,
     invalid_cmap_wmodes: Vec<RuleFailure>,
     invalid_cmap_cids: Vec<RuleFailure>,
     oversized_cmap_cids: Vec<RuleFailure>,
@@ -116,8 +138,10 @@ pub(crate) fn inspect(
         invalid_font_file_subtypes: Vec::new(),
         invalid_font_file_subtypes_pdfa2: Vec::new(),
         incompatible_type0_system_info: Vec::new(),
+        incompatible_type0_system_info_pdfa2: Vec::new(),
         invalid_cid_to_gid_maps: Vec::new(),
         unembedded_cmaps: Vec::new(),
+        unembedded_predefined_cmaps: Vec::new(),
         invalid_cmap_wmodes: Vec::new(),
         invalid_cmap_cids: Vec::new(),
         oversized_cmap_cids: Vec::new(),
@@ -185,8 +209,10 @@ pub(crate) fn inspect(
         invalid_font_file_subtypes: scanner.invalid_font_file_subtypes,
         invalid_font_file_subtypes_pdfa2: scanner.invalid_font_file_subtypes_pdfa2,
         incompatible_type0_system_info: scanner.incompatible_type0_system_info,
+        incompatible_type0_system_info_pdfa2: scanner.incompatible_type0_system_info_pdfa2,
         invalid_cid_to_gid_maps: scanner.invalid_cid_to_gid_maps,
         unembedded_cmaps: scanner.unembedded_cmaps,
+        unembedded_predefined_cmaps: scanner.unembedded_predefined_cmaps,
         invalid_cmap_wmodes: scanner.invalid_cmap_wmodes,
         invalid_cmap_cids: scanner.invalid_cmap_cids,
         oversized_cmap_cids: scanner.oversized_cmap_cids,
@@ -1321,22 +1347,29 @@ impl Scanner<'_> {
             return Ok(());
         }
         let Some(cmap) = resolved.and_then(|object| object.as_stream().ok()) else {
-            self.unembedded_cmaps.push(font_failure(
+            let failure = font_failure(
                 object_id,
                 description,
                 "uses a non-Identity CMap that is not embedded",
-            ));
+            );
+            if resolved
+                .and_then(|object| object.as_name().ok())
+                .is_some_and(is_pdfa_2_3_predefined_cmap)
+            {
+                self.unembedded_predefined_cmaps.push(failure);
+            } else {
+                self.unembedded_cmaps.push(failure);
+            }
             if let Some(descendant) = descendant
                 && let Some(name) = resolved.and_then(|object| object.as_name().ok())
                 && let Some(bytes) = predefined_cmaps::get(name)
-                && cid_system_info(self.document, descendant, self.limits)?
-                    != cmap_bytes_system_info(bytes)
             {
-                self.incompatible_type0_system_info.push(font_failure(
+                self.record_type0_system_info(
                     object_id,
                     description,
-                    "has incompatible CIDSystemInfo Registry or Ordering values in its CIDFont and CMap",
-                ));
+                    cid_system_info(self.document, descendant, self.limits)?,
+                    cmap_bytes_system_info(bytes),
+                );
             }
             return Ok(());
         };
@@ -1346,15 +1379,13 @@ impl Scanner<'_> {
             return Ok(());
         }
 
-        if let Some(descendant) = descendant
-            && cid_system_info(self.document, descendant, self.limits)?
-                != cid_system_info(self.document, &cmap.dict, self.limits)?
-        {
-            self.incompatible_type0_system_info.push(font_failure(
+        if let Some(descendant) = descendant {
+            self.record_type0_system_info(
                 object_id,
                 description,
-                "has incompatible CIDSystemInfo Registry or Ordering values in its CIDFont and CMap",
-            ));
+                cid_system_info(self.document, descendant, self.limits)?,
+                cid_system_info(self.document, &cmap.dict, self.limits)?,
+            );
         }
 
         let dictionary_wmode = cmap
@@ -1384,6 +1415,38 @@ impl Scanner<'_> {
             ));
         }
         Ok(())
+    }
+
+    fn record_type0_system_info(
+        &mut self,
+        object_id: Option<PdfObjectId>,
+        description: &str,
+        cid_font: Option<CidSystemInfo>,
+        cmap: Option<CidSystemInfo>,
+    ) {
+        let pdfa1_matches = cid_font
+            .as_ref()
+            .zip(cmap.as_ref())
+            .is_some_and(|(cid_font, cmap)| cid_font.matches_pdfa1(cmap));
+        if !pdfa1_matches {
+            self.incompatible_type0_system_info.push(font_failure(
+                object_id,
+                description,
+                "has incompatible CIDSystemInfo Registry or Ordering values in its CIDFont and CMap",
+            ));
+        }
+        let pdfa2_matches = cid_font
+            .as_ref()
+            .zip(cmap.as_ref())
+            .is_some_and(|(cid_font, cmap)| cid_font.matches_pdfa2_or_3(cmap));
+        if !pdfa2_matches {
+            self.incompatible_type0_system_info_pdfa2
+                .push(font_failure(
+                    object_id,
+                    description,
+                    "has incompatible CIDSystemInfo Registry, Ordering, or Supplement values in its CIDFont and CMap",
+                ));
+        }
     }
 
     fn inspect_cid_subset_font(
@@ -1845,7 +1908,17 @@ fn cid_system_info(
     let Some(ordering) = resolved_string(document, info, b"Ordering", limits)? else {
         return Ok(None);
     };
-    Ok(Some((registry, ordering)))
+    let supplement = info
+        .get(b"Supplement")
+        .ok()
+        .map(|value| resolved_integer(document, limits, value))
+        .transpose()?
+        .flatten();
+    Ok(Some(CidSystemInfo {
+        registry,
+        ordering,
+        supplement,
+    }))
 }
 
 fn resolved_string(
@@ -2152,7 +2225,81 @@ fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
     let tokens = cmap_tokens(bytes);
     tokens
         .windows(2)
-        .any(|pair| matches!(pair[0], b"/Identity-H" | b"/Identity-V") && pair[1] == b"usecmap")
+        .filter_map(|pair| {
+            (pair[1] == b"usecmap")
+                .then(|| pair[0].strip_prefix(b"/"))
+                .flatten()
+        })
+        .any(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+}
+
+/// The complete predefined CMap set in ISO 32000-1:2008 Table 118, copied
+/// from the pinned veraPDF 1.30.2 PDF/A-2 and PDF/A-3 profiles.
+fn is_pdfa_2_3_predefined_cmap(name: &[u8]) -> bool {
+    matches!(
+        name,
+        b"Identity-H"
+            | b"Identity-V"
+            | b"GB-EUC-H"
+            | b"GB-EUC-V"
+            | b"GBpc-EUC-H"
+            | b"GBpc-EUC-V"
+            | b"GBK-EUC-H"
+            | b"GBK-EUC-V"
+            | b"GBKp-EUC-H"
+            | b"GBKp-EUC-V"
+            | b"GBK2K-H"
+            | b"GBK2K-V"
+            | b"UniGB-UCS2-H"
+            | b"UniGB-UCS2-V"
+            | b"UniGB-UTF16-H"
+            | b"UniGB-UTF16-V"
+            | b"B5pc-H"
+            | b"B5pc-V"
+            | b"HKscs-B5-H"
+            | b"HKscs-B5-V"
+            | b"ETen-B5-H"
+            | b"ETen-B5-V"
+            | b"ETenms-B5-H"
+            | b"ETenms-B5-V"
+            | b"CNS-EUC-H"
+            | b"CNS-EUC-V"
+            | b"UniCNS-UCS2-H"
+            | b"UniCNS-UCS2-V"
+            | b"UniCNS-UTF16-H"
+            | b"UniCNS-UTF16-V"
+            | b"83pv-RKSJ-H"
+            | b"90ms-RKSJ-H"
+            | b"90ms-RKSJ-V"
+            | b"90msp-RKSJ-H"
+            | b"90msp-RKSJ-V"
+            | b"90pv-RKSJ-H"
+            | b"Add-RKSJ-H"
+            | b"Add-RKSJ-V"
+            | b"EUC-H"
+            | b"EUC-V"
+            | b"Ext-RKSJ-H"
+            | b"Ext-RKSJ-V"
+            | b"H"
+            | b"V"
+            | b"UniJIS-UCS2-H"
+            | b"UniJIS-UCS2-V"
+            | b"UniJIS-UCS2-HW-H"
+            | b"UniJIS-UCS2-HW-V"
+            | b"UniJIS-UTF16-H"
+            | b"UniJIS-UTF16-V"
+            | b"KSC-EUC-H"
+            | b"KSC-EUC-V"
+            | b"KSCms-UHC-H"
+            | b"KSCms-UHC-V"
+            | b"KSCms-UHC-HW-H"
+            | b"KSCms-UHC-HW-V"
+            | b"KSCpc-EUC-H"
+            | b"UniKS-UCS2-H"
+            | b"UniKS-UCS2-V"
+            | b"UniKS-UTF16-H"
+            | b"UniKS-UTF16-V"
+    )
 }
 
 fn cmap_has_explicit_mappings(bytes: &[u8]) -> bool {
@@ -2414,7 +2561,16 @@ fn cmap_bytes_system_info(bytes: &[u8]) -> Option<CidSystemInfo> {
                 .flatten()
         })
     };
-    Some((value(b"/Registry")?.to_vec(), value(b"/Ordering")?.to_vec()))
+    let supplement = tokens.windows(2).find_map(|pair| {
+        (pair[0] == b"/Supplement")
+            .then(|| parse_cmap_integer(pair[1]))
+            .flatten()
+    })?;
+    Some(CidSystemInfo {
+        registry: value(b"/Registry")?.to_vec(),
+        ordering: value(b"/Ordering")?.to_vec(),
+        supplement: Some(i64::from(supplement)),
+    })
 }
 
 impl ParsedCmap {
@@ -2562,10 +2718,10 @@ fn unicode_mapping_exception(
             return Ok(true);
         }
         if let Some(descendant) = first_descendant_dictionary(document, font, limits)?
-            && let Some((registry, ordering)) = cid_system_info(document, descendant, limits)?
-            && registry == b"Adobe"
+            && let Some(system_info) = cid_system_info(document, descendant, limits)?
+            && system_info.registry == b"Adobe"
             && matches!(
-                ordering.as_slice(),
+                system_info.ordering.as_slice(),
                 b"GB1" | b"CNS1" | b"Japan1" | b"Korea1"
             )
         {
@@ -3637,8 +3793,8 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info, cmap_maximal_cid,
-        cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
+        CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
+        cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
         parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
         type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
     };
@@ -3774,7 +3930,11 @@ mod tests {
         assert_eq!(decoder.decode(&[0x00, 0x3f]), Some(vec![32]));
         assert_eq!(
             cmap_bytes_system_info(horizontal),
-            Some((b"Adobe".to_vec(), b"Japan1".to_vec()))
+            Some(CidSystemInfo {
+                registry: b"Adobe".to_vec(),
+                ordering: b"Japan1".to_vec(),
+                supplement: Some(4),
+            })
         );
 
         let vertical = predefined_cmaps::get(b"UniJIS-UCS2-V").expect("vertical UniJIS CMap");

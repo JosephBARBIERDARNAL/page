@@ -1,9 +1,9 @@
 use std::{env, fs};
 
-use page_validation::SafetyLimits;
 use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, ReferenceConfig,
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 pub mod common;
 
@@ -116,6 +116,127 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
     }
 
     common::assert_case_deltas(common::font_fixture, "composite_baseline", CASES);
+}
+
+#[test]
+fn pdfa_2_and_3_allow_the_complete_table_118_cmap_set() {
+    let bytes = common::font_fixture("composite_named_cmap");
+    for (profile, rule_id) in [
+        (ValidationProfile::PdfA2b, "PDFA2B-CMAP-EMBEDDING-001"),
+        (ValidationProfile::PdfA3b, "PDFA3B-CMAP-EMBEDDING-001"),
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn pdfa_2_and_3_require_a_cmap_supplement_not_lower_than_the_cidfont() {
+    let bytes = common::font_fixture("composite_cmap_supplement_mismatch");
+    let a1 =
+        validate_bytes_with_profile(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+    assert!(
+        a1.failures
+            .iter()
+            .all(|failure| failure.rule_id != SYSTEM_INFO),
+        "{a1}"
+    );
+    for (profile, rule_id) in [
+        (
+            ValidationProfile::PdfA2b,
+            "PDFA2B-TYPE0-CID-SYSTEM-INFO-001",
+        ),
+        (
+            ValidationProfile::PdfA3b,
+            "PDFA3B-TYPE0-CID-SYSTEM-INFO-001",
+        ),
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn table_118_cmap_is_accepted_by_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-table-118-cmap-{}.pdf", std::process::id()));
+    fs::write(&path, common::font_fixture("composite_named_cmap"))
+        .expect("write Table 118 CMap fixture");
+    for (profile, cmap_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.3.3:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.3.3:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .all(|rule| rule.to_string() != cmap_rule),
+            "{profile} rejected the Table 118 CMap"
+        );
+    }
+    fs::remove_file(path).expect("remove Table 118 CMap fixture");
+}
+
+#[test]
+fn cmap_supplement_mismatch_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-cmap-supplement-{}.pdf", std::process::id()));
+    fs::write(
+        &path,
+        common::font_fixture("composite_cmap_supplement_mismatch"),
+    )
+    .expect("write CMap supplement fixture");
+    for (profile, cmap_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.3.1:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.3.1:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == cmap_rule),
+            "{profile} did not reject the CMap supplement mismatch"
+        );
+    }
+    fs::remove_file(path).expect("remove CMap supplement fixture");
 }
 
 #[test]

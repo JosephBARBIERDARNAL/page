@@ -867,12 +867,9 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
     });
     let has_valid_header = marker.zip(header_end).is_some_and(|(start, end)| {
         start == 0
-            && bytes[start..end].windows(8).any(|window| {
-                window[0..5] == *b"%PDF-"
-                    && window[5].is_ascii_digit()
-                    && window[6] == b'.'
-                    && window[7].is_ascii_digit()
-            })
+            && end == b"%PDF-1.0".len()
+            && bytes[..end].starts_with(b"%PDF-1.")
+            && matches!(bytes[7], b'0'..=b'7')
     });
     let comment_start = header_end.and_then(|end| single_eol_end(bytes, end));
     let has_binary_comment = comment_start.is_some_and(|start| {
@@ -1267,6 +1264,22 @@ mod tests {
         let trailer = parse(b"<< /ID [(one) 42 <74776f>] >>");
         assert_eq!(trailer_id(&trailer), Some(b"onetwo".to_vec()));
         assert_eq!(trailer_id(&parse(b"<< /ID [] >>")), Some(Vec::new()));
+    }
+
+    #[test]
+    fn pdfa_2_and_3_header_accepts_only_pdf_1_0_through_1_7() {
+        let revisions = [];
+        for version in 0..=7 {
+            let mut bytes = format!("%PDF-1.{version}\n%").into_bytes();
+            bytes.extend_from_slice(&[128, 129, 130, 131, b'\n']);
+            assert!(inspect_header(&bytes, &revisions).has_valid_header);
+        }
+        for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n", b"%PDF-1.7 extra\n"] {
+            assert!(
+                !inspect_header(header, &revisions).has_valid_header,
+                "{header:?}"
+            );
+        }
     }
 
     #[test]

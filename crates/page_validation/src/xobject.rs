@@ -15,11 +15,12 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct XObjectSummary {
     pub(crate) image_alternates: Vec<RuleFailure>,
-    pub(crate) xobject_opi: Vec<RuleFailure>,
+    pub(crate) image_opi: Vec<RuleFailure>,
     pub(crate) image_interpolate: Vec<RuleFailure>,
     pub(crate) image_bits_per_component: Vec<RuleFailure>,
     pub(crate) image_bits_per_component_pdfa2: Vec<RuleFailure>,
     pub(crate) mask_bits_per_component: Vec<RuleFailure>,
+    pub(crate) form_opi: Vec<RuleFailure>,
     pub(crate) form_postscript: Vec<RuleFailure>,
     pub(crate) form_reference: Vec<RuleFailure>,
     pub(crate) postscript_xobject: Vec<RuleFailure>,
@@ -48,14 +49,6 @@ pub(crate) fn inspect(
         };
         let object_id = key.object_id();
         let subtype = resolved_name(document, dictionary, b"Subtype", limits.max_reference_depth)?;
-        if subtype.is_some() || is_appearance {
-            let kind = if is_appearance {
-                "appearance Form"
-            } else {
-                "XObject"
-            };
-            inspect_common_xobject(dictionary, object_id, kind, &mut summary);
-        }
         if subtype == Some(b"Image".as_slice()) && (is_ordinary_image || is_explicit_mask) {
             inspect_image(
                 document,
@@ -82,20 +75,6 @@ pub(crate) fn inspect(
     Ok(summary)
 }
 
-fn inspect_common_xobject(
-    dictionary: &lopdf::Dictionary,
-    object_id: Option<PdfObjectId>,
-    kind: &str,
-    summary: &mut XObjectSummary,
-) {
-    if contains_key(dictionary, b"OPI") {
-        summary.xobject_opi.push(RuleFailure {
-            object_id,
-            description: format!("{kind} dictionary contains /OPI"),
-        });
-    }
-}
-
 fn inspect_image(
     document: &Document,
     dictionary: &lopdf::Dictionary,
@@ -105,6 +84,12 @@ fn inspect_image(
     limits: &SafetyLimits,
     summary: &mut XObjectSummary,
 ) -> Result<(), PdfError> {
+    if contains_key(dictionary, b"OPI") {
+        summary.image_opi.push(RuleFailure {
+            object_id,
+            description: "image dictionary contains /OPI".to_owned(),
+        });
+    }
     if contains_key(dictionary, b"Alternates") {
         summary.image_alternates.push(RuleFailure {
             object_id,
@@ -185,6 +170,12 @@ fn inspect_form(
             .is_some_and(|object| matches!(object, Object::Stream(_))),
         Err(_) => false,
     };
+    if contains_key(dictionary, b"OPI") {
+        summary.form_opi.push(RuleFailure {
+            object_id,
+            description: "Form dictionary contains /OPI".to_owned(),
+        });
+    }
     if subtype2_is_ps || contains_modeled_ps {
         summary.form_postscript.push(RuleFailure {
             object_id,

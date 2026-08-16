@@ -33,6 +33,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_with_requirements: Vec<RuleFailure>,
     pub(crate) catalog_with_alternate_presentations: Vec<RuleFailure>,
     pub(crate) catalog_with_needs_rendering: Vec<RuleFailure>,
+    pub(crate) permissions_with_invalid_keys: Vec<RuleFailure>,
     pub(crate) acro_forms_with_xfa: Vec<RuleFailure>,
     pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
@@ -207,6 +208,22 @@ pub(crate) fn inspect(
             description: "document catalog contains a non-false /NeedsRendering value".to_owned(),
         });
     }
+    let mut permissions_with_invalid_keys = Vec::new();
+    if let Ok(value) = catalog.get(b"Perms") {
+        let object_id = value.as_reference().ok().map(Into::into).or(catalog_id);
+        if let Some(perms) = resolve_optional(document, value, limits.max_reference_depth)?
+            .and_then(dictionary_based)
+            && perms
+                .iter()
+                .any(|(key, _)| !matches!(key.as_slice(), b"UR3" | b"DocMDP"))
+        {
+            permissions_with_invalid_keys.push(RuleFailure {
+                object_id,
+                description: "permissions dictionary contains a key other than /UR3 or /DocMDP"
+                    .to_owned(),
+            });
+        }
+    }
     let mut acro_forms_with_xfa = Vec::new();
     if let Some(acro_form) = catalog
         .get(b"AcroForm")
@@ -369,6 +386,7 @@ pub(crate) fn inspect(
         catalog_with_requirements,
         catalog_with_alternate_presentations,
         catalog_with_needs_rendering,
+        permissions_with_invalid_keys,
         acro_forms_with_xfa,
         embedded_files_with_invalid_mime,
         file_specs_missing_f_or_uf,
