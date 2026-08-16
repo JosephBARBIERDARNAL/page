@@ -450,17 +450,37 @@ impl Scanner<'_> {
                     ),
                 ));
             }
-        } else if !matches!(
-            encoding.as_deref(),
-            Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
-        ) || contains_differences
-        {
-            self.invalid_nonsymbolic_truetype_encodings
-                .push(font_failure(
+        } else {
+            if font_is_embedded(self.document, font, self.limits)?
+                && let Some((cmap_count, cmap30_present)) =
+                    truetype_cmap_summary(self.document, descriptor, self.limits)?
+                && ((cmap30_present && cmap_count <= 1) || (!cmap30_present && cmap_count == 0))
+            {
+                self.invalid_nonsymbolic_truetype_encodings.push(font_failure(
                     object_id,
                     description,
-                    "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
+                    &format!(
+                        "is non-symbolic but its embedded TrueType program has {cmap_count} cmap subtables{}",
+                        if cmap30_present {
+                            " including a Microsoft Symbol cmap"
+                        } else {
+                            " and no Microsoft Symbol cmap"
+                        }
+                    ),
                 ));
+            }
+            if !matches!(
+                encoding.as_deref(),
+                Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
+            ) || contains_differences
+            {
+                self.invalid_nonsymbolic_truetype_encodings
+                    .push(font_failure(
+                        object_id,
+                        description,
+                        "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
+                    ));
+            }
         }
         Ok(())
     }

@@ -3154,8 +3154,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Locally checks non-symbolic TrueType encoding and Unicode cmap support through the shared font inspection.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used non-symbolic TrueType fonts with a recognized embedded program, reads the bounded SFNT cmap table and requires at least one cmap when no Microsoft Symbol (platform 3, encoding 0) subtable is present, or more than one cmap when it is present; unembedded programs are inapplicable.",
         "object": "TrueTypeFontProgram",
         "predicate": "isSymbolic == true || (cmap30Present == true ? nrCmaps > 1 : nrCmaps > 0)"
       },
@@ -4952,8 +4952,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Locally checks non-symbolic TrueType encoding and Unicode cmap support through the shared font inspection.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used non-symbolic TrueType fonts with a recognized embedded program, reads the bounded SFNT cmap table and requires at least one cmap when no Microsoft Symbol (platform 3, encoding 0) subtable is present, or more than one cmap when it is present; unembedded programs are inapplicable.",
         "object": "TrueTypeFontProgram",
         "predicate": "isSymbolic == true || (cmap30Present == true ? nrCmaps > 1 : nrCmaps > 0)"
       },

@@ -18,6 +18,14 @@ const CASES: &[(&str, &[&str])] = &[
     ("tt_nonsymbolic_dictionary_indirect_baseencoding", &[]),
     ("tt_nonsymbolic_differences", &[NONSYMBOLIC]),
     ("tt_nonsymbolic_differences_null", &[]),
+    (
+        "tt_nonsymbolic_zero_cmaps",
+        &[NONSYMBOLIC, "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
+    ),
+    (
+        "tt_nonsymbolic_one_cmap30",
+        &[NONSYMBOLIC, "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"],
+    ),
     ("tt_symbolic_no_encoding", &[]),
     ("tt_symbolic_indirect_flags", &[]),
     ("tt_symbolic_with_encoding", &[SYMBOLIC]),
@@ -111,6 +119,43 @@ fn symbolic_cmap_predicate_matches_pinned_verapdf_for_pdfa_2_and_3() {
         }
     }
     fs::remove_file(path).expect("remove symbolic cmap fixture");
+}
+
+#[test]
+fn nonsymbolic_cmap_predicate_matches_pinned_verapdf_for_pdfa_2_and_3() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-nonsymbolic-cmap-{}.pdf", std::process::id()));
+    for case in ["tt_nonsymbolic_zero_cmaps", "tt_nonsymbolic_one_cmap30"] {
+        fs::write(&path, common::font_fixture(case)).expect("write nonsymbolic cmap fixture");
+        for (profile, rule) in [
+            (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.6:1"),
+            (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.6:1"),
+        ] {
+            let mut config = ReferenceConfig::pinned(&executable);
+            config.profile = profile;
+            let report = DifferentialRunner::new(config)
+                .expect("pinned veraPDF")
+                .compare_file(&path, &SafetyLimits::default());
+            let reference = report
+                .reference_result
+                .as_ref()
+                .unwrap_or_else(|| panic!("reference result: {report}"));
+            assert!(
+                reference
+                    .failed_rule_ids
+                    .iter()
+                    .any(|id| id.to_string() == rule),
+                "{case} {profile}: {report}"
+            );
+            assert!(
+                report.operational_failure.is_none(),
+                "{case} {profile}: {report}"
+            );
+        }
+    }
+    fs::remove_file(path).expect("remove nonsymbolic cmap fixture");
 }
 
 /// Confirmed live against veraPDF 1.30.2 via reprex: a TrueType font's

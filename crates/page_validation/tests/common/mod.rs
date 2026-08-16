@@ -6095,16 +6095,22 @@ pub fn font_fixture_with_type1_program(
     }
     if matches!(
         case,
-        "tt_symbolic_two_cmaps" | "tt_symbolic_two_cmaps_with_cmap30"
+        "tt_symbolic_two_cmaps"
+            | "tt_symbolic_two_cmaps_with_cmap30"
+            | "tt_nonsymbolic_zero_cmaps"
+            | "tt_nonsymbolic_one_cmap30"
     ) {
         descriptor.set(
             "FontFile2",
             document.add_object(Stream::new(
                 Dictionary::new(),
-                if case == "tt_symbolic_two_cmaps_with_cmap30" {
-                    sfnt::minimal_truetype_with_symbol_cmap(2)
-                } else {
-                    sfnt::minimal_truetype_with_cmap_count(2)
+                match case {
+                    "tt_symbolic_two_cmaps_with_cmap30" => {
+                        sfnt::minimal_truetype_with_symbol_cmap(2)
+                    }
+                    "tt_nonsymbolic_zero_cmaps" => sfnt::minimal_truetype_with_cmap_count(0),
+                    "tt_nonsymbolic_one_cmap30" => sfnt::minimal_truetype_with_symbol_cmap(1),
+                    _ => sfnt::minimal_truetype_with_cmap_count(2),
                 },
             )),
         );
