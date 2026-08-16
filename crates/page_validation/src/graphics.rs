@@ -26,7 +26,7 @@ pub(crate) struct GraphicsSummary {
 pub(crate) fn inspect(
     document: &Document,
     content: &ContentExecutionSummary,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
 ) -> Result<GraphicsSummary, PdfError> {
     let mut summary = GraphicsSummary::default();
@@ -101,7 +101,7 @@ pub(crate) fn inspect(
         }
     }
 
-    for page_entry in pages.values() {
+    for page_entry in pages {
         let Some(page) = page_entry.resolve(document) else {
             continue;
         };

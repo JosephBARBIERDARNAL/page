@@ -154,7 +154,7 @@ impl PdfDocument {
         if !encrypted {
             enforce_object_limit(&document, limits)?;
         }
-        Self::normalize(&document, limits)
+        Self::normalize(&document, limits, None)
     }
 
     pub(crate) fn from_bytes_with_inspections(
@@ -166,7 +166,15 @@ impl PdfDocument {
         if !encrypted {
             enforce_object_limit(&document, limits)?;
         }
-        let normalized = Self::normalize(&document, limits)?;
+        let pages = if encrypted {
+            None
+        } else {
+            Some(match resolve_catalog(&document, limits)? {
+                Some(catalog) => page_tree::collect_pages(&document, catalog.dictionary, limits)?,
+                None => Vec::new(),
+            })
+        };
+        let normalized = Self::normalize(&document, limits, pages.as_ref().map(Vec::len))?;
         let syntax = crate::syntax::inspect(bytes, &document, limits)?;
         let header = syntax.header.clone();
         let inspections = if normalized.encrypted {
@@ -194,10 +202,7 @@ impl PdfDocument {
             // iteration budget) with this crate's `SafetyLimits`, and
             // surfaces a cyclic or overlong page tree as `PdfError`
             // instead of silently truncating the page list.
-            let pages = match resolve_catalog(&document, limits)? {
-                Some(catalog) => page_tree::collect_pages(&document, catalog.dictionary, limits)?,
-                None => BTreeMap::new(),
-            };
+            let pages = pages.unwrap_or_default();
             // One shared execution establishes the exact resource population
             // used by colour, XObject, graphics, and font rule predicates.
             let mut content_cache = crate::content_support::ContentCache::new();
@@ -235,7 +240,11 @@ impl PdfDocument {
         Ok((normalized, inspections))
     }
 
-    fn normalize(document: &Document, limits: &SafetyLimits) -> Result<Self, PdfError> {
+    fn normalize(
+        document: &Document,
+        limits: &SafetyLimits,
+        collected_page_count: Option<usize>,
+    ) -> Result<Self, PdfError> {
         let catalog_reference = root_reference_id(document);
         let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
         let mut trailer_keys = document
@@ -278,9 +287,12 @@ impl PdfDocument {
             .iter()
             .map(|entry| entry.object_id)
             .collect();
-        let page_count = match catalog {
-            Some(catalog) => page_tree::collect_pages(document, catalog, limits)?.len(),
-            None => 0,
+        let page_count = match collected_page_count {
+            Some(count) => count,
+            None => match catalog {
+                Some(catalog) => page_tree::collect_pages(document, catalog, limits)?.len(),
+                None => 0,
+            },
         };
 
         Ok(Self {
@@ -774,7 +786,7 @@ mod tests {
         document.trailer.set("Root", catalog_id);
 
         let normalized =
-            PdfDocument::normalize(&document, &SafetyLimits::default()).expect("normalize");
+            PdfDocument::normalize(&document, &SafetyLimits::default(), None).expect("normalize");
         assert!(!normalized.encrypted);
     }
 

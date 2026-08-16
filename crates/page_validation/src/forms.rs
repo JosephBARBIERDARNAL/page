@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use lopdf::{Document, Object};
 
@@ -18,7 +18,7 @@ pub(crate) struct FormSummary {
 
 pub(crate) fn inspect(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
 ) -> Result<FormSummary, PdfError> {
     let mut summary = FormSummary::default();
@@ -64,7 +64,7 @@ fn inspect_acro_form(
 
 fn inspect_page_widgets(
     document: &Document,
-    pages: &BTreeMap<u32, PageEntry>,
+    pages: &[PageEntry],
     limits: &SafetyLimits,
     summary: &mut FormSummary,
 ) -> Result<(), PdfError> {
