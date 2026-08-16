@@ -1766,7 +1766,11 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
             );
             contents = b"/CS1 cs\n".to_vec();
         }
-        "separation_rgb" | "devicen_rgb" | "devicen_nine_components" => {
+        "separation_rgb"
+        | "devicen_rgb"
+        | "devicen_nine_components"
+        | "separation_invalid_utf8"
+        | "devicen_invalid_utf8" => {
             let tint_transform = dictionary! {
                 "FunctionType" => 2,
                 "Domain" => vec![0.into(), 1.into()],
@@ -1774,10 +1778,16 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 "C1" => vec![1.into(), 1.into(), 1.into()],
                 "N" => 1,
             };
-            let color_space = if case == "separation_rgb" {
+            let color_space = if matches!(case, "separation_rgb" | "separation_invalid_utf8") {
                 Object::Array(vec![
                     Object::Name(b"Separation".to_vec()),
-                    Object::Name(b"Spot".to_vec()),
+                    Object::Name(
+                        if case == "separation_invalid_utf8" {
+                            b"Spot\xff".to_vec()
+                        } else {
+                            b"Spot".to_vec()
+                        },
+                    ),
                     Object::Name(b"DeviceRGB".to_vec()),
                     Object::Dictionary(tint_transform),
                 ])
@@ -1790,7 +1800,13 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                         } else {
                             1
                         })
-                            .map(|index| Object::Name(format!("Spot{index}").into_bytes()))
+                            .map(|index| {
+                                Object::Name(if case == "devicen_invalid_utf8" && index == 0 {
+                                    b"Spot\xff".to_vec()
+                                } else {
+                                    format!("Spot{index}").into_bytes()
+                                })
+                            })
                             .collect(),
                     ),
                     Object::Name(b"DeviceRGB".to_vec()),
@@ -4545,6 +4561,15 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "unicode_name_structure_invalid" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => dictionary! { "S" => Object::Name(b"P\xff".to_vec()) }
+                },
+            );
+        }
         "lang_property_valid"
         | "lang_property_invalid"
         | "lang_property_indirect_invalid"
@@ -6154,6 +6179,22 @@ pub fn font_fixture_with_type1_program(
     }
     if matches!(
         case,
+        "unicode_name_basefont_invalid"
+            | "unicode_name_basefont_unused"
+            | "unicode_name_basefont_indirect"
+    ) {
+        let invalid_name = Object::Name(b"MaiTest\xffFont".to_vec());
+        font.set(
+            "BaseFont",
+            if case == "unicode_name_basefont_indirect" {
+                Object::Reference(document.add_object(invalid_name))
+            } else {
+                invalid_name
+            },
+        );
+    }
+    if matches!(
+        case,
         "type3_visible"
             | "type3_width_match"
             | "type3_width_mismatch"
@@ -6807,7 +6848,7 @@ pub fn font_fixture_with_type1_program(
             ),
             operation("ET", vec![]),
         ]),
-        "unused_resource" | "unused_invalid_font" => Vec::new(),
+        "unused_resource" | "unused_invalid_font" | "unicode_name_basefont_unused" => Vec::new(),
         "selected_not_shown" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
