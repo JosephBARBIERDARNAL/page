@@ -184,6 +184,11 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
             },
         );
     }
+    for candidate in explicit_candidates() {
+        for local_rule_id in &candidate.local_rule_ids {
+            candidates_by_rule.insert(local_rule_id.clone(), candidate.clone());
+        }
+    }
     let profiles = [
         (ReferenceProfile::PdfA2a, "2a"),
         (ReferenceProfile::PdfA2b, "2b"),
@@ -329,6 +334,196 @@ fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
         .collect()
 }
 
+fn explicit_candidates() -> Vec<AtomicCandidate> {
+    let case = |family: &str, name: &str, local_rule_id: &str| AtomicCandidate {
+        family: family.to_owned(),
+        case: name.to_owned(),
+        path: None,
+        reidentify: !local_rule_id.contains("-ID-"),
+        local_rule_ids: vec![local_rule_id.to_owned()],
+    };
+    let checked_in = |path: &str, local_rule_id: &str| AtomicCandidate {
+        family: "checked_in".to_owned(),
+        case: path.to_owned(),
+        path: Some(PathBuf::from(path)),
+        reidentify: !local_rule_id.contains("-ID-"),
+        local_rule_ids: vec![local_rule_id.to_owned()],
+    };
+
+    vec![
+        checked_in(
+            "tests/fixtures/mutations/PDFA1A-ID-CONFORMANCE-001/id_conformance_b.pdf",
+            "PDFA1A-ID-CONFORMANCE-001",
+        ),
+        case(
+            "document_feature",
+            "tagged_missing",
+            "PDFA1A-TAGGED-DOCUMENT-001",
+        ),
+        case(
+            "document_feature",
+            "struct_tree_missing",
+            "PDFA1A-STRUCT-TREE-ROOT-001",
+        ),
+        case(
+            "document_feature",
+            "struct_tree_role_map_wrong_type",
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+        ),
+        case(
+            "document_feature",
+            "struct_tree_role_map_self_cycle",
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+        ),
+        case(
+            "document_feature",
+            "lang_catalog_invalid",
+            "PDFA1A-LANG-001",
+        ),
+        case("font", "unicode_missing", "PDFA1A-UNICODE-MAPPING-001"),
+        case(
+            "font",
+            "unicode_pua_missing_actual_text",
+            "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+        ),
+        case(
+            "document_feature",
+            "struct_tree_role_map_standard_remap",
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+        ),
+        case(
+            "document_feature",
+            "permissions_invalid",
+            "PDFA1B-PERMS-ENTRIES-001",
+        ),
+        case(
+            "document_feature",
+            "signature_reference_digest",
+            "PDFA1B-SIGNATURE-REFERENCE-001",
+        ),
+        case(
+            "metadata",
+            "unknown_rdf_property",
+            "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+        ),
+        case(
+            "graphics",
+            "inline_image_lzw",
+            "PDFA1B-INLINE-IMAGE-FILTER-001",
+        ),
+        case("font", "unicode_reserved", "PDFA1B-UNICODE-VALUE-001"),
+        case("font", "type3_notdef", "PDFA1B-NOTDEF-GLYPH-001"),
+        case(
+            "document_feature",
+            "embedded_file_invalid_pdfa",
+            "PDFA1B-EMBEDDED-FILE-PDFA-001",
+        ),
+        case(
+            "document_feature",
+            "file_spec_with_ef",
+            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+        ),
+        case(
+            "document_feature",
+            "file_spec_with_ef",
+            "PDFA1B-EMBEDDED-FILE-MIME-001",
+        ),
+        case(
+            "annotation",
+            "flags_missing",
+            "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
+        ),
+        case(
+            "annotation",
+            "appearance_absent",
+            "PDFA1B-ANNOTATION-AP-REQUIRED-001",
+        ),
+        case(
+            "xobject",
+            "image_alternates",
+            "PDFA1B-ALTERNATE-PRESENTATIONS-001",
+        ),
+        case(
+            "action",
+            "page_additional_action",
+            "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
+        ),
+        case("form", "need_appearances_true", "PDFA1B-ACROFORM-XFA-001"),
+        case(
+            "document_feature",
+            "ocproperties_dictionary",
+            "PDFA1B-CATALOG-REQUIREMENTS-001",
+        ),
+        case("font", "composite_named_cmap", "PDFA1B-CMAP-REFERENCE-001"),
+        case(
+            "color_path",
+            "device_output_invalid_rgb",
+            "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
+        ),
+        case(
+            "graphics",
+            "halftone_transfer_root_invalid",
+            "PDFA1B-EXTGSTATE-HTP-001",
+        ),
+        case(
+            "graphics",
+            "halftone_transfer_primary_invalid",
+            "PDFA1B-HALFTONE-TYPE-001",
+        ),
+        case(
+            "graphics",
+            "halftone_transfer_primary_invalid",
+            "PDFA1B-HALFTONE-NAME-001",
+        ),
+        case("font", "font_subtype_invalid", "PDFA1B-FONT-SUBTYPE-001"),
+        case(
+            "annotation",
+            "flags_invisible",
+            "PDFA1B-ANNOTATION-FLAGS-001",
+        ),
+        case(
+            "document_feature",
+            "file_spec_without_ef",
+            "PDFA1B-OPTIONAL-CONTENT-NAME-001",
+        ),
+        case(
+            "document_feature",
+            "ocproperties_wrong_type",
+            "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
+        ),
+        case(
+            "document_feature",
+            "ocproperties_stream",
+            "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
+        ),
+        case(
+            "document_feature",
+            "ocproperties_indirect_null",
+            "PDFA1B-OPTIONAL-CONTENT-AS-001",
+        ),
+        case(
+            "font",
+            "unicode_name_basefont_invalid",
+            "PDFA1B-UNICODE-NAME-001",
+        ),
+        case(
+            "color_path",
+            "separation_inconsistent",
+            "PDFA1B-SEPARATION-CONSISTENCY-001",
+        ),
+        case(
+            "icc_cmyk_overprint",
+            "stroke_opm_one",
+            "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+        ),
+        case(
+            "document_feature",
+            "stream_lzwdecode",
+            "PDFA1B-STREAM-FILTER-001",
+        ),
+    ]
+}
+
 fn atomic_fixture(candidate: &AtomicCandidate) -> Vec<u8> {
     match candidate.family.as_str() {
         "metadata" => common::metadata_fixture(&candidate.case),
@@ -339,6 +534,7 @@ fn atomic_fixture(candidate: &AtomicCandidate) -> Vec<u8> {
         "xobject" => common::xobject_fixture(&candidate.case),
         "graphics" => common::graphics_fixture(&candidate.case),
         "font" | "composite_font" | "truetype" => common::font_fixture(&candidate.case),
+        "icc_cmyk_overprint" => common::icc_cmyk_overprint_fixture(&candidate.case),
         "font_content_source" => common::font_content_source_fixture(&candidate.case),
         "type0_descendant" => common::type0_descendant_fixture(&candidate.case),
         "transparency" => common::graphics_fixture(&candidate.case),
