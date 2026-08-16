@@ -756,6 +756,13 @@ fn validate_document(
             &mut failures,
         );
     }
+    if matches!(profile, ValidationProfile::PdfA2a | ValidationProfile::PdfA3a) {
+        aggregate_failures(
+            &inspections.font_embedding.unicode_pua_without_actual_text,
+            "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+            &mut failures,
+        );
+    }
     if profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &inspections.font_embedding.notdef_glyphs,

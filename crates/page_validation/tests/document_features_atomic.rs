@@ -158,6 +158,35 @@ fn pdfa_2_and_3_reject_non_pdfa_embedded_files() {
 }
 
 #[test]
+fn embedded_file_pdfa_rule_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-embedded-pdfa-{}.pdf", std::process::id()));
+    fs::write(
+        &path,
+        common::document_feature_fixture("embedded_file_invalid_pdfa"),
+    )
+    .expect("write embedded file fixture");
+    let mut config = ReferenceConfig::pinned(&executable);
+    config.profile = ReferenceProfile::PdfA2b;
+    let report = DifferentialRunner::new(config)
+        .expect("pinned veraPDF")
+        .compare_file(&path, &SafetyLimits::default());
+    assert!(
+        report
+            .reference_result
+            .as_ref()
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .any(|rule| rule.to_string() == "ISO 19005-2:2011:6.8:5"),
+        "{report:?}"
+    );
+    fs::remove_file(path).expect("remove embedded file fixture");
+}
+
+#[test]
 fn permissions_key_set_matches_pinned_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;

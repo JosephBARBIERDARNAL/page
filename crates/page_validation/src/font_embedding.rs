@@ -39,6 +39,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
     pub(crate) invalid_unicode_values: Vec<RuleFailure>,
+    pub(crate) unicode_pua_without_actual_text: Vec<RuleFailure>,
     pub(crate) notdef_glyphs: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
     pub(crate) missing_type1_glyphs: Vec<RuleFailure>,
@@ -82,6 +83,7 @@ struct FontUse {
     embedded: bool,
     visible: bool,
     shown_bytes: Vec<u8>,
+    shown_text_actual_text: Vec<(Vec<u8>, bool)>,
 }
 
 struct Scanner<'a> {
@@ -117,6 +119,7 @@ struct Scanner<'a> {
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_unicode_mappings: Vec<RuleFailure>,
     invalid_unicode_values: Vec<RuleFailure>,
+    unicode_pua_without_actual_text: Vec<RuleFailure>,
     notdef_glyphs: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
     missing_type1_glyphs: Vec<RuleFailure>,
@@ -159,6 +162,7 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_cmaps: Vec::new(),
         invalid_unicode_mappings: Vec::new(),
         invalid_unicode_values: Vec::new(),
+        unicode_pua_without_actual_text: Vec::new(),
         notdef_glyphs: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
         missing_type1_glyphs: Vec::new(),
@@ -174,6 +178,7 @@ pub(crate) fn inspect(
             },
             usage.rendering_mode,
             &usage.shown_bytes,
+            usage.actual_text_present,
         )?;
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
@@ -200,6 +205,7 @@ pub(crate) fn inspect(
     scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_unicode_mappings()?;
+    scanner.inspect_unicode_pua_actual_text()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
 
@@ -242,6 +248,7 @@ pub(crate) fn inspect(
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
         invalid_unicode_mappings: scanner.invalid_unicode_mappings,
         invalid_unicode_values: scanner.invalid_unicode_values,
+        unicode_pua_without_actual_text: scanner.unicode_pua_without_actual_text,
         notdef_glyphs: scanner.notdef_glyphs,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
         missing_type1_glyphs: scanner.missing_type1_glyphs,
@@ -280,10 +287,14 @@ impl Scanner<'_> {
         selected: &SelectedFont,
         rendering_mode: i64,
         shown_bytes: &[u8],
+        actual_text_present: bool,
     ) -> Result<(), PdfError> {
         if let Some(font_use) = self.uses.get_mut(&selected.key) {
             if rendering_mode != 3 {
                 font_use.shown_bytes.extend_from_slice(shown_bytes);
+                font_use
+                    .shown_text_actual_text
+                    .push((shown_bytes.to_vec(), actual_text_present));
             }
             return Ok(());
         }
@@ -346,6 +357,11 @@ impl Scanner<'_> {
             } else {
                 shown_bytes.to_vec()
             },
+            shown_text_actual_text: if rendering_mode == 3 {
+                Vec::new()
+            } else {
+                vec![(shown_bytes.to_vec(), actual_text_present)]
+            },
         });
 
         if subtype.as_deref() == Some("Type0")
@@ -370,7 +386,7 @@ impl Scanner<'_> {
                     object: descendant.clone(),
                     description: describe_descendant(descendant, &selected.description),
                 };
-                self.record_font(&descendant, rendering_mode, &[])?;
+                self.record_font(&descendant, rendering_mode, &[], false)?;
             }
             self.active_descendant_fonts.remove(&selected.key);
         }
@@ -541,6 +557,62 @@ impl Scanner<'_> {
                     &usage.description,
                     "has rendered character codes missing from or invalid in its ToUnicode CMap",
                 ));
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_unicode_pua_actual_text(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if !usage.visible || usage.shown_text_actual_text.is_empty() {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else { continue };
+            let Some(value) = font.get(b"ToUnicode").ok() else {
+                continue;
+            };
+            let Some(stream) = resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let Some(map) = UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?) else {
+                continue;
+            };
+            for (shown_bytes, actual_text_present) in usage.shown_text_actual_text {
+                if actual_text_present {
+                    continue;
+                }
+                let rendered_codes = if usage.subtype.as_deref() == Some("Type0") {
+                    let Some(encoding) = font.get(b"Encoding").ok() else {
+                        continue;
+                    };
+                    let Some(codes) = resolve_cmap_decoder(self.document, encoding, self.limits)?
+                        .codes(&shown_bytes)
+                    else {
+                        continue;
+                    };
+                    codes
+                } else {
+                    shown_bytes.iter().map(|byte| vec![*byte]).collect()
+                };
+                if rendered_codes.iter().any(|code| map.maps_pua(code)) {
+                    self.unicode_pua_without_actual_text.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "maps rendered text to the Unicode Private Use Area without enclosing /ActualText",
+                    ));
+                    break;
+                }
             }
         }
         Ok(())
@@ -2914,6 +2986,25 @@ impl UnicodeCmap {
         self.mappings
             .get(code)
             .is_some_and(|value| valid_unicode_bytes(value))
+    }
+
+    fn maps_pua(&self, code: &[u8]) -> bool {
+        self.mappings.get(code).is_some_and(|value| {
+            String::from_utf16(
+                &value
+                    .chunks_exact(2)
+                    .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+                    .collect::<Vec<_>>(),
+            )
+            .is_ok_and(|value| {
+                value.chars().any(|character| {
+                    matches!(
+                        character as u32,
+                        0xE000..=0xF8FF | 0xF0000..=0xFFFFD | 0x100000..=0x10FFFD
+                    )
+                })
+            })
+        })
     }
 }
 

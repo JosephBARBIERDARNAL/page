@@ -48,6 +48,7 @@ pub(crate) struct FontUse {
     pub(crate) description: String,
     pub(crate) rendering_mode: i64,
     pub(crate) shown_bytes: Vec<u8>,
+    pub(crate) actual_text_present: bool,
 }
 
 /// Deterministic discoveries made while executing the bounded page, Form,
@@ -303,6 +304,7 @@ impl ContentExecutor<'_> {
         let mut decoded_bytes = 0usize;
         let mut graphics_state = GraphicsState::default();
         let mut graphics_stack = Vec::new();
+        let mut marked_content = Vec::new();
         self.record_group_color_space(
             page,
             resources.as_ref(),
@@ -319,6 +321,7 @@ impl ContentExecutor<'_> {
                 },
                 &mut graphics_state,
                 &mut graphics_stack,
+                &mut marked_content,
                 &mut active_forms,
                 &mut decoded_bytes,
                 &format!("page {page_number}"),
@@ -416,6 +419,7 @@ impl ContentExecutor<'_> {
                     resources_are_inherited: false,
                 },
                 &graphics_state,
+                &mut Vec::new(),
                 active_forms,
                 decoded_bytes,
                 context,
@@ -447,6 +451,7 @@ impl ContentExecutor<'_> {
         resource_context: ResourceContext<'_>,
         graphics_state: &mut GraphicsState,
         graphics_stack: &mut Vec<GraphicsState>,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -473,6 +478,7 @@ impl ContentExecutor<'_> {
                     resource_context,
                     graphics_state,
                     graphics_stack,
+                    marked_content,
                     active_forms,
                     decoded_bytes,
                     context,
@@ -546,6 +552,7 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
+                "BMC" => marked_content.push(false),
                 "BDC" | "DP" => {
                     let properties = operation.operands.last();
                     let Some(properties) = properties else {
@@ -565,23 +572,41 @@ impl ContentExecutor<'_> {
                     } else {
                         Some(properties)
                     };
-                    if let Some(properties) = properties
-                        && let Some(dictionary) = resolve_optional(
-                            self.document,
-                            properties,
-                            self.limits.max_reference_depth,
-                        )?
-                        .and_then(|object| object.as_dict().ok())
+                    let properties = properties.and_then(|properties| {
+                        resolve_optional(self.document, properties, self.limits.max_reference_depth)
+                            .ok()
+                            .flatten()
+                            .and_then(|object| object.as_dict().ok())
+                    });
+                    if operation.operator == "BDC" {
+                        let actual_text_present = properties
+                            .and_then(|dictionary| dictionary.get(b"ActualText").ok())
+                            .and_then(|value| {
+                                resolve_optional(
+                                    self.document,
+                                    value,
+                                    self.limits.max_reference_depth,
+                                )
+                                .ok()
+                                .flatten()
+                            })
+                            .is_some_and(|value| matches!(value, Object::String(_, _)));
+                        marked_content.push(actual_text_present);
+                    }
+                    if let Some(dictionary) = properties
                         && let Some(failure) = crate::language::inspect_dictionary(
                             self.document,
                             self.limits,
                             dictionary,
-                            properties.as_reference().ok().map(Into::into),
+                            None,
                             &format!("{context} marked-content property list"),
                         )
                     {
                         self.summary.language_failures.push(failure);
                     }
+                }
+                "EMC" => {
+                    marked_content.pop();
                 }
                 "q" if operation.operands.is_empty() => {
                     if graphics_stack.len() >= self.limits.max_reference_depth {
@@ -786,12 +811,14 @@ impl ContentExecutor<'_> {
                             description: font.description.clone(),
                             rendering_mode: graphics_state.rendering_mode,
                             shown_bytes: shown_bytes.clone(),
+                            actual_text_present: marked_content.iter().copied().any(|value| value),
                         });
                         self.execute_type3_glyphs(
                             &font,
                             &shown_bytes,
                             page_resources,
                             graphics_state,
+                            marked_content,
                             active_forms,
                             decoded_bytes,
                             depth + 1,
@@ -823,6 +850,7 @@ impl ContentExecutor<'_> {
                         XObjectUseKind::Painted,
                         resource_context,
                         graphics_state,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         &format!("{context}/XObject /{}", String::from_utf8_lossy(name)),
@@ -899,6 +927,7 @@ impl ContentExecutor<'_> {
                         pattern,
                         resource_context,
                         graphics_state,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
@@ -958,6 +987,7 @@ impl ContentExecutor<'_> {
         kind: XObjectUseKind,
         resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1049,6 +1079,7 @@ impl ContentExecutor<'_> {
                             dependent_kind,
                             resource_context,
                             graphics_state,
+                            marked_content,
                             active_forms,
                             decoded_bytes,
                             &format!("{context}/{}", String::from_utf8_lossy(key)),
@@ -1079,6 +1110,7 @@ impl ContentExecutor<'_> {
                                 XObjectUseKind::Alternate,
                                 resource_context,
                                 graphics_state,
+                                marked_content,
                                 active_forms,
                                 decoded_bytes,
                                 &format!("{context}/Alternate {index}"),
@@ -1118,6 +1150,7 @@ impl ContentExecutor<'_> {
                         },
                         &mut form_graphics_state,
                         &mut form_graphics_stack,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         context,
@@ -1141,6 +1174,7 @@ impl ContentExecutor<'_> {
         object: &Object,
         resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1218,6 +1252,7 @@ impl ContentExecutor<'_> {
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
+            marked_content,
             active_forms,
             decoded_bytes,
             context,
@@ -1261,6 +1296,7 @@ impl ContentExecutor<'_> {
         shown_bytes: &[u8],
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         depth: usize,
@@ -1315,6 +1351,7 @@ impl ContentExecutor<'_> {
                 font_resources.as_ref(),
                 page_resources,
                 graphics_state,
+                marked_content,
                 active_forms,
                 decoded_bytes,
                 &format!("{}/CharProc /{glyph_name}", selected.description),
@@ -1334,6 +1371,7 @@ impl ContentExecutor<'_> {
         fallback_resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1360,6 +1398,7 @@ impl ContentExecutor<'_> {
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
+            marked_content,
             active_forms,
             decoded_bytes,
             context,

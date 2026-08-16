@@ -7045,6 +7045,20 @@ pub fn font_fixture_with_type1_program(
                 font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
                 font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <0000> endbfchar".to_vec())));
             }
+            "unicode_pua_missing_actual_text"
+            | "unicode_pua_with_actual_text"
+            | "unicode_pua_null_actual_text"
+            | "unicode_pua_integer_actual_text"
+            | "unicode_pua_indirect_actual_text"
+            | "unicode_pua_named_actual_text" => {
+                font.set(
+                    "ToUnicode",
+                    document.add_object(Stream::new(
+                        Dictionary::new(),
+                        b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <E000> endbfchar".to_vec(),
+                    )),
+                );
+            }
             "unicode_winansi" => font.set("Encoding", "WinAnsiEncoding"),
             "unicode_macroman" => font.set("Encoding", "MacRomanEncoding"),
             "unicode_macexpert" => font.set("Encoding", "MacExpertEncoding"),
@@ -7392,6 +7406,34 @@ pub fn font_fixture_with_type1_program(
                 vec![Object::String(vec![0xe9], StringFormat::Literal)],
             ),
             operation("ET", vec![]),
+        ]),
+        "unicode_pua_missing_actual_text" => text_content(0),
+        "unicode_pua_with_actual_text" => content(vec![
+            operation("BDC", vec![
+                Object::Name(b"Span".to_vec()),
+                Object::Dictionary(dictionary! { "ActualText" => Object::string_literal("replacement") }),
+            ]),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_null_actual_text" => content(vec![
+            operation("BDC", vec![Object::Name(b"Span".to_vec()), Object::Dictionary(dictionary! { "ActualText" => Object::Null })]),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_integer_actual_text" => content(vec![
+            operation("BDC", vec![Object::Name(b"Span".to_vec()), Object::Dictionary(dictionary! { "ActualText" => 1 })]),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
         ]),
         _ => text_content(0),
     };
