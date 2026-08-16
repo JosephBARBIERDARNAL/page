@@ -149,10 +149,10 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA1b => TOTAL_RULE_COUNT,
         ValidationProfile::PdfA1a => TOTAL_RULE_COUNT + 6,
         ValidationProfile::PdfA2b => 144,
-        ValidationProfile::PdfA2a => 153,
+        ValidationProfile::PdfA2a => 154,
         ValidationProfile::PdfA2u => 146,
         ValidationProfile::PdfA3b => 146,
-        ValidationProfile::PdfA3a => 155,
+        ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
         _ => 0,
     }
@@ -756,7 +756,10 @@ fn validate_document(
             &mut failures,
         );
     }
-    if matches!(profile, ValidationProfile::PdfA2a | ValidationProfile::PdfA3a) {
+    if matches!(
+        profile,
+        ValidationProfile::PdfA2a | ValidationProfile::PdfA3a
+    ) {
         aggregate_failures(
             &inspections.font_embedding.unicode_pua_without_actual_text,
             "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",

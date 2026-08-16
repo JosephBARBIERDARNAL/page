@@ -2222,6 +2222,26 @@
         "predicate": "toUnicode == null || (toUnicode.indexOf(\"\\u0000\") == -1 && toUnicode.indexOf(\"\\uFFFE\") == -1 && toUnicode.indexOf(\"\\uFEFF\") == -1)"
       },
       {
+        "section": "a_only",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.3:1",
+        "applicable_profiles": ["2a"],
+        "canonical_local_rule_id": "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects each rendered Unicode Private Use Area mapping in every rendering mode unless an enclosing BDC property list supplies a direct string-valued /ActualText entry; null, scalar, and indirect values are absent in veraPDF's glyph model.",
+        "object": "Glyph",
+        "predicate": "unicodePUA == false || actualTextPresent == true"
+      },
+      {
+        "section": "a_only",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.3:1",
+        "applicable_profiles": ["3a"],
+        "canonical_local_rule_id": "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Rejects each rendered Unicode Private Use Area mapping in every rendering mode unless an enclosing BDC property list supplies a direct string-valued /ActualText entry; null, scalar, and indirect values are absent in veraPDF's glyph model.",
+        "object": "Glyph",
+        "predicate": "unicodePUA == false || actualTextPresent == true"
+      },
+      {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.8:1",
         "applicable_profiles": ["2a", "2b", "2u"],
@@ -2998,8 +3018,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-CIDTOGIDMAP-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Requires a CIDToGIDMap for used CIDFontType2 descendants, with local applicability based on rendering use rather than veraPDF's embedded-font condition.",
+        "implementation_strength": "exact",
+        "semantic_note": "For each embedded CIDFontType2 descendant reached through bounded text-show paths, requires a valid /CIDToGIDMap stream or the name /Identity; unembedded descendants are inapplicable.",
         "object": "PDCIDFont",
         "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || containsFontFile == false"
       },
@@ -3176,8 +3196,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks the symbolic TrueType cmap population, including Microsoft Symbol cmap support.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used symbolic TrueType fonts, reads the embedded SFNT cmap table with bounded parsing and requires exactly one subtable or a Microsoft platform-3 encoding-0 Symbol cmap; malformed or unavailable embedded programs remain outside this predicate.",
         "object": "TrueTypeFontProgram",
         "predicate": "isSymbolic == false || nrCmaps == 1 || cmap30Present == true"
       },
@@ -4796,8 +4816,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-CIDTOGIDMAP-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Requires a CIDToGIDMap for used CIDFontType2 descendants, with local applicability based on rendering use rather than veraPDF's embedded-font condition.",
+        "implementation_strength": "exact",
+        "semantic_note": "For each embedded CIDFontType2 descendant reached through bounded text-show paths, requires a valid /CIDToGIDMap stream or the name /Identity; unembedded descendants are inapplicable.",
         "object": "PDCIDFont",
         "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || containsFontFile == false"
       },
@@ -4974,8 +4994,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "Checks the symbolic TrueType cmap population, including Microsoft Symbol cmap support.",
+        "implementation_strength": "exact",
+        "semantic_note": "For used symbolic TrueType fonts, reads the embedded SFNT cmap table with bounded parsing and requires exactly one subtable or a Microsoft platform-3 encoding-0 Symbol cmap; malformed or unavailable embedded programs remain outside this predicate.",
         "object": "TrueTypeFontProgram",
         "predicate": "isSymbolic == false || nrCmaps == 1 || cmap30Present == true"
       },
@@ -6170,13 +6190,6 @@
     ],
     "coverage_gaps": [
       {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.3:1",
-        "applicable_profiles": [
-          "2a"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:2",
         "applicable_profiles": [
           "2a",
@@ -6191,13 +6204,6 @@
           "2a",
           "2b",
           "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.3:1",
-        "applicable_profiles": [
-          "3a"
         ],
         "rationale": "No local rule currently implements this pinned veraPDF predicate."
       },

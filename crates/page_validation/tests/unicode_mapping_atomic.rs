@@ -97,7 +97,10 @@ fn pdfa2_and_pdfa3_a_require_actual_text_for_unicode_pua_glyphs() {
             &SafetyLimits::default(),
         );
         assert!(
-            missing.failures.iter().any(|failure| failure.rule_id == rule),
+            missing
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule),
             "{profile}: PUA glyph without ActualText was accepted: {:?}",
             missing.failures
         );
@@ -107,7 +110,10 @@ fn pdfa2_and_pdfa3_a_require_actual_text_for_unicode_pua_glyphs() {
             &SafetyLimits::default(),
         );
         assert!(
-            !present.failures.iter().any(|failure| failure.rule_id == rule),
+            !present
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule),
             "{profile}: PUA glyph with ActualText was rejected: {:?}",
             present.failures
         );
@@ -137,11 +143,17 @@ fn unicode_pua_actual_text_cases_match_pinned_verapdf() {
             let report = runner.compare_file(&path, &SafetyLimits::default());
             let reference = report.reference_result.as_ref().expect("reference result");
             assert_eq!(
-                reference.failed_rule_ids.iter().any(|id| id.to_string() == rule),
+                reference
+                    .failed_rule_ids
+                    .iter()
+                    .any(|id| id.to_string() == rule),
                 expected_failure,
                 "{profile:?} {case}: {report}",
             );
-            assert!(report.operational_failure.is_none(), "{profile:?} {case}: {report}");
+            assert!(
+                report.operational_failure.is_none(),
+                "{profile:?} {case}: {report}"
+            );
             fs::remove_file(path).expect("remove PUA fixture");
         }
     }
@@ -163,6 +175,9 @@ fn unicode_pua_actual_text_value_shapes_match_pinned_verapdf() {
         "unicode_pua_with_actual_text",
         "unicode_pua_null_actual_text",
         "unicode_pua_integer_actual_text",
+        "unicode_pua_indirect_actual_text",
+        "unicode_pua_named_actual_text",
+        "unicode_pua_invisible_missing_actual_text",
     ] {
         let path = directory.join(format!("{case}.pdf"));
         let bytes = common::font_fixture(case);

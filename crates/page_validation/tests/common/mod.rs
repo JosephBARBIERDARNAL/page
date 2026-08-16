@@ -6093,12 +6093,19 @@ pub fn font_fixture_with_type1_program(
         let indirect_flags = document.add_object(Object::Integer(4));
         descriptor.set("Flags", indirect_flags);
     }
-    if case == "tt_symbolic_two_cmaps" {
+    if matches!(
+        case,
+        "tt_symbolic_two_cmaps" | "tt_symbolic_two_cmaps_with_cmap30"
+    ) {
         descriptor.set(
             "FontFile2",
             document.add_object(Stream::new(
                 Dictionary::new(),
-                sfnt::minimal_truetype_with_cmap_count(2),
+                if case == "tt_symbolic_two_cmaps_with_cmap30" {
+                    sfnt::minimal_truetype_with_symbol_cmap(2)
+                } else {
+                    sfnt::minimal_truetype_with_cmap_count(2)
+                },
             )),
         );
     }
@@ -6128,6 +6135,8 @@ pub fn font_fixture_with_type1_program(
         descriptor.set("FontFile2", 42);
     } else if case == "missing_font_file_object" {
         descriptor.set("FontFile2", Object::Reference((999_999, 0)));
+    } else if case == "composite_cidmap_missing_unembedded" {
+        descriptor.remove(b"FontFile2");
     } else if case == "font_file_subtype_invalid" {
         descriptor.set(
             "FontFile2",
@@ -6710,7 +6719,7 @@ pub fn font_fixture_with_type1_program(
             );
         }
         match case {
-            "composite_cidmap_missing" => {
+            "composite_cidmap_missing" | "composite_cidmap_missing_unembedded" => {
                 descendant_dictionary.remove(b"CIDToGIDMap");
             }
             // The descendant's own /Subtype as an *indirect* reference to
@@ -6989,6 +6998,7 @@ pub fn font_fixture_with_type1_program(
         "tt_symbolic_no_encoding"
         | "tt_symbolic_one_cmap"
         | "tt_symbolic_two_cmaps"
+        | "tt_symbolic_two_cmaps_with_cmap30"
         | "tt_symbolic_indirect_flags" => {
             font.remove(b"Encoding");
         }
@@ -7050,7 +7060,8 @@ pub fn font_fixture_with_type1_program(
             | "unicode_pua_null_actual_text"
             | "unicode_pua_integer_actual_text"
             | "unicode_pua_indirect_actual_text"
-            | "unicode_pua_named_actual_text" => {
+            | "unicode_pua_named_actual_text"
+            | "unicode_pua_invisible_missing_actual_text" => {
                 font.set(
                     "ToUnicode",
                     document.add_object(Stream::new(
@@ -7107,6 +7118,14 @@ pub fn font_fixture_with_type1_program(
         },
     };
     resources.set("Font", font_resources.clone());
+    if case == "unicode_pua_named_actual_text" {
+        resources.set(
+            "Properties",
+            dictionary! {
+                "P" => dictionary! { "ActualText" => Object::string_literal("replacement") },
+            },
+        );
+    }
     if case == "unicode_name_basefont_unreferenced" {
         resources.remove(b"Font");
     }
@@ -7409,10 +7428,15 @@ pub fn font_fixture_with_type1_program(
         ]),
         "unicode_pua_missing_actual_text" => text_content(0),
         "unicode_pua_with_actual_text" => content(vec![
-            operation("BDC", vec![
-                Object::Name(b"Span".to_vec()),
-                Object::Dictionary(dictionary! { "ActualText" => Object::string_literal("replacement") }),
-            ]),
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(
+                        dictionary! { "ActualText" => Object::string_literal("replacement") },
+                    ),
+                ],
+            ),
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation("Tj", vec![Object::string_literal(" ")]),
@@ -7420,7 +7444,13 @@ pub fn font_fixture_with_type1_program(
             operation("EMC", vec![]),
         ]),
         "unicode_pua_null_actual_text" => content(vec![
-            operation("BDC", vec![Object::Name(b"Span".to_vec()), Object::Dictionary(dictionary! { "ActualText" => Object::Null })]),
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(dictionary! { "ActualText" => Object::Null }),
+                ],
+            ),
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation("Tj", vec![Object::string_literal(" ")]),
@@ -7428,12 +7458,53 @@ pub fn font_fixture_with_type1_program(
             operation("EMC", vec![]),
         ]),
         "unicode_pua_integer_actual_text" => content(vec![
-            operation("BDC", vec![Object::Name(b"Span".to_vec()), Object::Dictionary(dictionary! { "ActualText" => 1 })]),
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(dictionary! { "ActualText" => 1 }),
+                ],
+            ),
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
             operation("Tj", vec![Object::string_literal(" ")]),
             operation("ET", vec![]),
             operation("EMC", vec![]),
+        ]),
+        "unicode_pua_indirect_actual_text" => {
+            let actual_text = document.add_object(Object::string_literal("replacement"));
+            content(vec![
+                operation(
+                    "BDC",
+                    vec![
+                        Object::Name(b"Span".to_vec()),
+                        Object::Dictionary(dictionary! { "ActualText" => actual_text }),
+                    ],
+                ),
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+                operation("EMC", vec![]),
+            ])
+        }
+        "unicode_pua_named_actual_text" => content(vec![
+            operation(
+                "BDC",
+                vec![Object::Name(b"Span".to_vec()), Object::Name(b"P".to_vec())],
+            ),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_invisible_missing_actual_text" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tr", vec![3.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
         ]),
         _ => text_content(0),
     };

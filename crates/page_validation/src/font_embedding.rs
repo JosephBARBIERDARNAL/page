@@ -290,11 +290,11 @@ impl Scanner<'_> {
         actual_text_present: bool,
     ) -> Result<(), PdfError> {
         if let Some(font_use) = self.uses.get_mut(&selected.key) {
+            font_use
+                .shown_text_actual_text
+                .push((shown_bytes.to_vec(), actual_text_present));
             if rendering_mode != 3 {
                 font_use.shown_bytes.extend_from_slice(shown_bytes);
-                font_use
-                    .shown_text_actual_text
-                    .push((shown_bytes.to_vec(), actual_text_present));
             }
             return Ok(());
         }
@@ -331,7 +331,7 @@ impl Scanner<'_> {
         let object_id = selected.key.object_id();
         self.inspect_font_dictionary(font, object_id, &selected.description, subtype.as_deref())?;
         if subtype.as_deref() == Some("Type0") {
-            self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
+            self.inspect_composite_font(font, object_id, &selected.description)?;
         } else if subtype.as_deref() == Some("TrueType") {
             self.inspect_truetype_font(font, object_id, &selected.description)?;
         } else if subtype.as_deref() == Some("Type1") {
@@ -357,11 +357,7 @@ impl Scanner<'_> {
             } else {
                 shown_bytes.to_vec()
             },
-            shown_text_actual_text: if rendering_mode == 3 {
-                Vec::new()
-            } else {
-                vec![(shown_bytes.to_vec(), actual_text_present)]
-            },
+            shown_text_actual_text: vec![(shown_bytes.to_vec(), actual_text_present)],
         });
 
         if subtype.as_deref() == Some("Type0")
@@ -441,14 +437,16 @@ impl Scanner<'_> {
                     "is symbolic but specifies an /Encoding",
                 ));
             }
-            if let Some(cmap_count) = truetype_cmap_count(self.document, descriptor, self.limits)?
+            if let Some((cmap_count, cmap30_present)) =
+                truetype_cmap_summary(self.document, descriptor, self.limits)?
                 && cmap_count != 1
+                && !cmap30_present
             {
                 self.invalid_symbolic_truetype_cmaps.push(font_failure(
                     object_id,
                     description,
                     &format!(
-                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables"
+                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables and no Microsoft Symbol cmap"
                     ),
                 ));
             }
@@ -565,7 +563,7 @@ impl Scanner<'_> {
     fn inspect_unicode_pua_actual_text(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible || usage.shown_text_actual_text.is_empty() {
+            if usage.shown_text_actual_text.is_empty() {
                 continue;
             }
             let Some(object) = resolve_optional(
@@ -580,8 +578,9 @@ impl Scanner<'_> {
             let Some(value) = font.get(b"ToUnicode").ok() else {
                 continue;
             };
-            let Some(stream) = resolve_optional(self.document, value, self.limits.max_reference_depth)?
-                .and_then(|value| value.as_stream().ok())
+            let Some(stream) =
+                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                    .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
@@ -1488,7 +1487,6 @@ impl Scanner<'_> {
         font: &Dictionary,
         object_id: Option<PdfObjectId>,
         description: &str,
-        rendering_mode: i64,
     ) -> Result<(), PdfError> {
         let descendant = first_descendant_dictionary(self.document, font, self.limits)?;
         if let Some(descendant) = descendant {
@@ -1497,7 +1495,7 @@ impl Scanner<'_> {
         if let Some(descendant) = descendant
             && resolved_name(self.document, descendant, b"Subtype", self.limits)?
                 == Some(b"CIDFontType2".as_slice())
-            && rendering_mode != 3
+            && font_is_embedded(self.document, descendant, self.limits)?
         {
             let valid_map = match descendant.get(b"CIDToGIDMap") {
                 Ok(value) => valid_cid_to_gid_map(self.document, value, self.limits)?,
@@ -3768,11 +3766,11 @@ fn be_i16(bytes: &[u8], offset: usize) -> Option<i16> {
     ]))
 }
 
-fn truetype_cmap_count(
+fn truetype_cmap_summary(
     document: &Document,
     descriptor: Option<&Dictionary>,
     limits: &SafetyLimits,
-) -> Result<Option<usize>, PdfError> {
+) -> Result<Option<(usize, bool)>, PdfError> {
     let Some(descriptor) = descriptor else {
         return Ok(None);
     };
@@ -3796,7 +3794,13 @@ fn truetype_cmap_count(
         .ok()
         .and_then(|face| face.table(ttf_parser::Tag::from_bytes(b"cmap")))
         .and_then(ttf_parser::cmap::Table::parse)
-        .map(|cmap| usize::from(cmap.subtables.len())))
+        .map(|cmap| {
+            let cmap_count = usize::from(cmap.subtables.len());
+            let cmap30_present = cmap.subtables.into_iter().any(|subtable| {
+                subtable.platform_id == ttf_parser::PlatformId::Windows && subtable.encoding_id == 0
+            });
+            (cmap_count, cmap30_present)
+        }))
 }
 
 fn font_is_embedded(

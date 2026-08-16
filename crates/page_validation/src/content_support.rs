@@ -581,15 +581,6 @@ impl ContentExecutor<'_> {
                     if operation.operator == "BDC" {
                         let actual_text_present = properties
                             .and_then(|dictionary| dictionary.get(b"ActualText").ok())
-                            .and_then(|value| {
-                                resolve_optional(
-                                    self.document,
-                                    value,
-                                    self.limits.max_reference_depth,
-                                )
-                                .ok()
-                                .flatten()
-                            })
                             .is_some_and(|value| matches!(value, Object::String(_, _)));
                         marked_content.push(actual_text_present);
                     }
