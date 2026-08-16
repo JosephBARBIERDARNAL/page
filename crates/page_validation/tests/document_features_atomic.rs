@@ -137,24 +137,21 @@ fn pdfa_2_and_3_reject_signature_reference_digest_keys_with_docmdp() {
 }
 
 #[test]
-fn pdfa_2_and_3_reject_non_pdfa_embedded_files() {
-    for (profile, rule_id) in [
-        (ValidationProfile::PdfA2b, "PDFA2B-EMBEDDED-FILE-PDFA-001"),
-        (ValidationProfile::PdfA3b, "PDFA3B-EMBEDDED-FILE-PDFA-001"),
-    ] {
-        let report = validate_bytes_with_profile(
-            &common::document_feature_fixture("embedded_file_invalid_pdfa"),
-            profile,
-            &SafetyLimits::default(),
-        );
-        assert!(
-            report
-                .failures
-                .iter()
-                .any(|failure| failure.rule_id == rule_id),
-            "{profile}: {report}"
-        );
-    }
+fn pdfa_2_rejects_non_pdfa_embedded_files() {
+    let profile = ValidationProfile::PdfA2b;
+    let rule_id = "PDFA2B-EMBEDDED-FILE-PDFA-001";
+    let report = validate_bytes_with_profile(
+        &common::document_feature_fixture("embedded_file_invalid_pdfa"),
+        profile,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == rule_id),
+        "{profile}: {report}"
+    );
 }
 
 #[test]

@@ -1761,7 +1761,7 @@ impl Scanner<'_> {
             }
         }
 
-        if let Some(invalid_subtype) =
+        if let Some((invalid_subtype, valid_pdfa2)) =
             invalid_embedded_font_subtype(self.document, font, self.limits)?
         {
             self.invalid_font_file_subtypes.push(font_failure(
@@ -1769,7 +1769,7 @@ impl Scanner<'_> {
                 description,
                 &format!("uses unsupported embedded font subtype /{invalid_subtype}"),
             ));
-            if invalid_subtype != "OpenType" {
+            if !valid_pdfa2 {
                 self.invalid_font_file_subtypes_pdfa2.push(font_failure(
                     object_id,
                     description,
@@ -3858,7 +3858,7 @@ fn invalid_embedded_font_subtype(
     document: &Document,
     font: &Dictionary,
     limits: &SafetyLimits,
-) -> Result<Option<String>, PdfError> {
+) -> Result<Option<(String, bool)>, PdfError> {
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(None);
     };
@@ -3875,7 +3875,11 @@ fn invalid_embedded_font_subtype(
             continue;
         };
         if !matches!(subtype, b"Type1C" | b"CIDFontType0C") {
-            return Ok(Some(String::from_utf8_lossy(subtype).into_owned()));
+            let valid_pdfa2 = key == b"FontFile3" && subtype == b"OpenType";
+            return Ok(Some((
+                String::from_utf8_lossy(subtype).into_owned(),
+                valid_pdfa2,
+            )));
         }
     }
     Ok(None)

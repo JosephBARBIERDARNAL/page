@@ -6023,16 +6023,6 @@
       },
       {
         "section": "shared_pdfa_2_3",
-        "verapdf_rule_id": "ISO 19005-3:2012:6.8:5",
-        "applicable_profiles": ["3a", "3b", "3u"],
-        "canonical_local_rule_id": "PDFA1B-EMBEDDED-FILE-PDFA-001",
-        "implementation_strength": "exact",
-        "semantic_note": "Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation.",
-        "object": "EmbeddedFile",
-        "predicate": "isValidPDFA12 == true"
-      },
-      {
-        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:1",
         "applicable_profiles": [
           "3a",

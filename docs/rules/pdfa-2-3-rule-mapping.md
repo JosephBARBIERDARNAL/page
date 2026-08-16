@@ -804,9 +804,6 @@ These rules apply to both PDF/A-2 and PDF/A-3; shared validation code selects th
 | `PDFA3A-FILE-SPEC-F-AND-UF-001` | `ISO 19005-3:2012:6.8:2` | §6.8 | exact | Requires F and UF in file specifications that contain embedded files. |
 | `PDFA3B-FILE-SPEC-F-AND-UF-001` | `ISO 19005-3:2012:6.8:2` | §6.8 | exact | Requires F and UF in file specifications that contain embedded files. |
 | `PDFA3U-FILE-SPEC-F-AND-UF-001` | `ISO 19005-3:2012:6.8:2` | §6.8 | exact | Requires F and UF in file specifications that contain embedded files. |
-| `PDFA3A-EMBEDDED-FILE-PDFA-001` | `ISO 19005-3:2012:6.8:5` | §6.8 | exact | Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation. |
-| `PDFA3B-EMBEDDED-FILE-PDFA-001` | `ISO 19005-3:2012:6.8:5` | §6.8 | exact | Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation. |
-| `PDFA3U-EMBEDDED-FILE-PDFA-001` | `ISO 19005-3:2012:6.8:5` | §6.8 | exact | Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation. |
 | `PDFA3A-OPTIONAL-CONTENT-NAME-001` | `ISO 19005-3:2012:6.9:1` | §6.9 | exact | Requires every optional-content configuration to have a nonempty Name. |
 | `PDFA3B-OPTIONAL-CONTENT-NAME-001` | `ISO 19005-3:2012:6.9:1` | §6.9 | exact | Requires every optional-content configuration to have a nonempty Name. |
 | `PDFA3U-OPTIONAL-CONTENT-NAME-001` | `ISO 19005-3:2012:6.9:1` | §6.9 | exact | Requires every optional-content configuration to have a nonempty Name. |

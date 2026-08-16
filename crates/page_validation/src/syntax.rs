@@ -779,12 +779,18 @@ fn inspect_revisions(bytes: &[u8], limits: &SafetyLimits) -> Result<Vec<Revision
 
 fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<Revision> {
     if bytes.get(offset..offset + b"xref".len()) != Some(b"xref") {
+        let trailer = parse_xref_stream_dictionary(bytes, offset, limits);
+        let previous = trailer
+            .as_ref()
+            .and_then(|value| value.dictionary_value(b"Prev"))
+            .and_then(RawValue::integer)
+            .and_then(|value| usize::try_from(value).ok());
         return Some(Revision {
             offset,
             spacing_compliant: true,
             eol_compliant: true,
-            trailer: None,
-            previous: None,
+            trailer,
+            previous,
             xref_stream: None,
         });
     }
@@ -834,6 +840,25 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
             cursor = next;
         }
     }
+}
+
+fn parse_xref_stream_dictionary(
+    bytes: &[u8],
+    offset: usize,
+    limits: &SafetyLimits,
+) -> Option<RawValue> {
+    let mut parser = RawParser::at(bytes, offset, limits).ok()?;
+    parser.take_unsigned_integer_token()?;
+    parser.skip_space_and_comments();
+    parser.take_unsigned_integer_token()?;
+    parser.skip_space_and_comments();
+    parser.consume_keyword(b"obj").then_some(())?;
+    parser.parse_value(0).filter(|value| {
+        matches!(
+            value.dictionary_value(b"Type"),
+            Some(RawValue::Name(name)) if name == b"XRef"
+        )
+    })
 }
 
 fn parse_subsection_header(line: &[u8]) -> Option<(usize, bool)> {

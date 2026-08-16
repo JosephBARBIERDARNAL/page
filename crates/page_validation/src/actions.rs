@@ -28,6 +28,7 @@ pub(crate) struct ActionSummary {
     pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
     pub(crate) pages_with_additional_actions: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -407,6 +408,25 @@ impl Inspector<'_> {
         // check, for a file spec reached this way as for one reached
         // through the catalog Names/EmbeddedFiles tree (confirmed against
         // veraPDF 1.30.2).
+        if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
+            && let Ok(file_spec_value) = action.get(b"F")
+            && let Some(file_spec_dictionary) = resolve_optional(
+                self.document,
+                file_spec_value,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(dictionary_based)
+            && contains_key(file_spec_dictionary, b"EF")
+            && (!contains_key(file_spec_dictionary, b"F")
+                || !contains_key(file_spec_dictionary, b"UF"))
+        {
+            self.summary.file_specs_missing_f_or_uf.push(RuleFailure {
+                object_id: object_id.map(Into::into),
+                description: format!(
+                    "{context} /F embedded-file specification is missing /F or /UF"
+                ),
+            });
+        }
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
             && let Some(failure) = file_spec::inspect(

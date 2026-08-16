@@ -33,6 +33,10 @@ coverage:
 verapdf verapdf=verapdf_bin:
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test verapdf_diff -- --nocapture
 
+# Run the opt-in differential suites for every implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
+verapdf-all verapdf=verapdf_bin:
+    VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test canonical_compliance --test verapdf_diff --test pdfa_2_3_differential -- --nocapture
+
 # Regenerate checked-in rule-mapping documentation.
 rules-docs:
     cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
@@ -41,6 +45,12 @@ rules-docs:
 pdfa1b-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
     just verapdf "{{ verapdf }}"
+
+# Release-only gate for every currently implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
+pdfa-release-gate verapdf=verapdf_bin:
+    PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
+    cargo test -p page_validation --test rule_mapping_docs --test canonical_compliance
+    just verapdf-all "{{ verapdf }}"
 
 # Regenerate deterministic Typst fixtures.
 typst:

@@ -120,7 +120,7 @@ impl ValidationProfile {
     }
 
     const fn permits_embedded_files(self) -> bool {
-        matches!(self.pdfa_part(), Some(3))
+        matches!(self.pdfa_part(), Some(2 | 3))
     }
 
     const fn local_rule_prefix(self, level: char) -> Option<&'static str> {
@@ -407,7 +407,8 @@ fn validate_document(
             FailureCategory::Conformance,
         ));
     }
-    if inspections.header.is_linearized
+    if !profile.is_pdfa_2_or_3()
+        && inspections.header.is_linearized
         && inspections.header.last_trailer_id.is_some()
         && inspections.header.first_linearized_trailer_id != inspections.header.last_trailer_id
     {
@@ -632,7 +633,9 @@ fn validate_document(
         }
     }
 
-    validate_info_consistency(&document, &mut failures);
+    if !profile.is_pdfa_2_or_3() {
+        validate_info_consistency(&document, &mut failures);
+    }
 
     if profile.requires_tagged_structure() {
         validate_tagged_document(&inspections.document_features, &mut failures);
@@ -711,7 +714,12 @@ fn validate_document(
     );
     validate_actions(profile, &inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
-    validate_document_features(profile, &inspections.document_features, &mut failures);
+    validate_document_features(
+        profile,
+        &inspections.document_features,
+        &inspections.actions,
+        &mut failures,
+    );
     if profile.is_pdfa_2_or_3() {
         let mut invalid_unicode_names = inspections.unicode_names.failures.clone();
         invalid_unicode_names.extend(
@@ -1113,6 +1121,7 @@ fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut Vec<Validati
 fn validate_document_features(
     profile: ValidationProfile,
     features: &crate::document_features::DocumentFeatureSummary,
+    actions: &crate::actions::ActionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     for (invalid, rule_id, description) in [
@@ -1189,10 +1198,17 @@ fn validate_document_features(
             failures,
         );
         aggregate_failures(
-            &features.embedded_files_not_pdfa,
-            "PDFA1B-EMBEDDED-FILE-PDFA-001",
+            &actions.file_specs_missing_f_or_uf,
+            "PDFA1B-FILE-SPEC-F-AND-UF-001",
             failures,
         );
+        if matches!(profile.pdfa_part(), Some(2)) {
+            aggregate_failures(
+                &features.embedded_files_not_pdfa,
+                "PDFA1B-EMBEDDED-FILE-PDFA-001",
+                failures,
+            );
+        }
         if matches!(profile.pdfa_part(), Some(3)) {
             for (invalid, rule_id) in [
                 (
