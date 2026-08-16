@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -9,6 +9,9 @@ use page_validation::differential::{
     ReferenceProfile,
 };
 use serde::Deserialize;
+use serde_json::Value;
+
+pub mod common;
 
 const PROFILE_MANIFEST: &str = "tests/fixtures/verapdf-diff-cases-2-3.json";
 const SOURCE_MANIFEST: &str = "tests/fixtures/verapdf-diff-cases.json";
@@ -35,6 +38,15 @@ struct SourceManifest {
 #[derive(Debug, Deserialize)]
 struct CheckedInMutation {
     path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct AtomicCandidate {
+    family: String,
+    case: String,
+    path: Option<PathBuf>,
+    reidentify: bool,
+    local_rule_ids: Vec<String>,
 }
 
 #[test]
@@ -122,6 +134,253 @@ fn pdfa_2_and_3_profile_mutation_corpus_is_complete_when_opted_in() {
     }
 
     fs::remove_dir_all(temporary).expect("remove PDF/A-2/3 differential directory");
+}
+
+#[test]
+fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping PDF/A-2/3 atomic evidence");
+        return;
+    };
+
+    let mapping = serde_json::from_slice::<Value>(
+        &fs::read("tests/fixtures/pdfa-2-3-coverage.json")
+            .expect("read PDF/A-2/3 coverage inventory"),
+    )
+    .expect("parse PDF/A-2/3 coverage inventory");
+    let mappings = mapping["rule_mapping"]["mappings"]
+        .as_array()
+        .expect("PDF/A-2/3 mappings");
+    let source_manifest: Value = serde_json::from_slice(
+        &fs::read(SOURCE_MANIFEST).expect("read source differential manifest"),
+    )
+    .expect("parse source differential manifest");
+    let mut candidates_by_rule = atomic_candidates(&source_manifest)
+        .iter()
+        .flat_map(|candidate| {
+            candidate
+                .local_rule_ids
+                .iter()
+                .map(move |rule| (rule.clone(), candidate.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+    for mutation in source_manifest["checked_in_mutations"]
+        .as_array()
+        .expect("checked-in mutations")
+    {
+        let local_rule_id = mutation["local_rule_id"]
+            .as_str()
+            .expect("checked-in mutation local rule")
+            .to_owned();
+        let path = PathBuf::from(mutation["path"].as_str().expect("checked-in mutation path"));
+        candidates_by_rule.insert(
+            local_rule_id.clone(),
+            AtomicCandidate {
+                family: "checked_in".to_owned(),
+                case: path.to_string_lossy().into_owned(),
+                path: Some(path),
+                reidentify: !local_rule_id.contains("-ID-"),
+                local_rule_ids: vec![local_rule_id],
+            },
+        );
+    }
+    let profiles = [
+        (ReferenceProfile::PdfA2a, "2a"),
+        (ReferenceProfile::PdfA2b, "2b"),
+        (ReferenceProfile::PdfA2u, "2u"),
+        (ReferenceProfile::PdfA3a, "3a"),
+        (ReferenceProfile::PdfA3b, "3b"),
+        (ReferenceProfile::PdfA3u, "3u"),
+    ];
+    let temporary = env::temp_dir().join(format!(
+        "page-pdfa-2-3-atomic-evidence-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&temporary).expect("create PDF/A-2/3 atomic evidence directory");
+
+    let mut missing = Vec::new();
+    for (profile, profile_name) in profiles {
+        let mut config = ReferenceConfig::pinned(executable.clone());
+        config.profile = profile;
+        config.coverage_gap_policy = CoverageGapPolicy::RejectForCompleteProfile;
+        let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+        let applicable = mappings
+            .iter()
+            .filter(|mapping| {
+                mapping["applicable_profiles"]
+                    .as_array()
+                    .expect("applicable profiles")
+                    .iter()
+                    .any(|value| value == profile_name)
+            })
+            .collect::<Vec<_>>();
+        let selected = applicable
+            .iter()
+            .filter_map(|mapping| {
+                let canonical = mapping["canonical_local_rule_id"].as_str()?;
+                candidates_by_rule.get(canonical).cloned()
+            })
+            .collect::<BTreeSet<_>>();
+        let mut selected = selected.into_iter().collect::<Vec<_>>();
+        selected
+            .sort_by(|left, right| (&left.family, &left.case).cmp(&(&right.family, &right.case)));
+        let paths = selected
+            .iter()
+            .enumerate()
+            .map(|(index, candidate)| {
+                let path = temporary.join(format!(
+                    "{profile_name}-atomic-{index}-{}.pdf",
+                    candidate.case.replace(['/', '\\'], "_")
+                ));
+                let source = candidate_fixture(candidate);
+                let bytes = if candidate.reidentify {
+                    reidentify_profile(&source, profile)
+                } else {
+                    source
+                };
+                fs::write(&path, bytes).expect("write atomic evidence fixture");
+                path
+            })
+            .collect::<Vec<_>>();
+        let reports = runner.compare_files(&paths, &SafetyLimits::default());
+        let reports_by_case = selected
+            .iter()
+            .zip(reports)
+            .map(|(candidate, report)| ((candidate.family.clone(), candidate.case.clone()), report))
+            .collect::<BTreeMap<_, _>>();
+
+        for mapping in applicable {
+            let canonical = mapping["canonical_local_rule_id"]
+                .as_str()
+                .expect("canonical local rule");
+            let Some(candidate) = candidates_by_rule.get(canonical) else {
+                missing.push(format!("{profile_name}:{canonical}:no atomic candidate"));
+                continue;
+            };
+            let local_rule = profile_local_rule_id(profile, canonical);
+            let reference_rule = mapping["verapdf_rule_id"]
+                .as_str()
+                .expect("veraPDF rule id");
+            let report = reports_by_case
+                .get(&(candidate.family.clone(), candidate.case.clone()))
+                .expect("selected atomic evidence report");
+            let local_failed = report
+                .local_report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == local_rule);
+            let reference_failed = report.reference_result.as_ref().is_some_and(|result| {
+                result
+                    .failed_rule_ids
+                    .iter()
+                    .any(|id| id.to_string() == reference_rule)
+            });
+            if !local_failed || !reference_failed {
+                missing.push(format!(
+                    "{profile_name}:{canonical}:{} local_failed={local_failed} reference_failed={reference_failed}",
+                    candidate.case
+                ));
+            }
+        }
+    }
+    fs::remove_dir_all(&temporary).expect("remove PDF/A-2/3 atomic evidence directory");
+    assert!(
+        missing.is_empty(),
+        "missing atomic rule evidence:\n{}",
+        missing.join("\n")
+    );
+}
+
+fn atomic_candidates(manifest: &Value) -> Vec<AtomicCandidate> {
+    let object = manifest.as_object().expect("differential manifest object");
+    object
+        .iter()
+        .filter(|(key, value)| key.starts_with("atomic_") && value.is_array())
+        .flat_map(|(key, value)| {
+            let family = key
+                .strip_prefix("atomic_")
+                .and_then(|key| key.strip_suffix("_cases"))
+                .expect("atomic family")
+                .to_owned();
+            value
+                .as_array()
+                .expect("atomic case array")
+                .iter()
+                .filter_map({
+                    let family = family.clone();
+                    move |case| {
+                        let local_rule_ids = case["expected_local_failed_rule_ids"]
+                            .as_array()?
+                            .iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_owned)
+                            .collect::<Vec<_>>();
+                        let name = case["name"].as_str()?.to_owned();
+                        (!local_rule_ids.is_empty()).then_some(AtomicCandidate {
+                            family: family.clone(),
+                            case: name,
+                            path: None,
+                            reidentify: !local_rule_ids.iter().any(|id| id.contains("-ID-")),
+                            local_rule_ids,
+                        })
+                    }
+                })
+        })
+        .collect()
+}
+
+fn atomic_fixture(candidate: &AtomicCandidate) -> Vec<u8> {
+    match candidate.family.as_str() {
+        "metadata" => common::metadata_fixture(&candidate.case),
+        "output_intent" => common::output_intent_fixture(&candidate.case),
+        "icc_based" => common::icc_based_fixture(&candidate.case),
+        "device_color" => common::device_color_fixture(&candidate.case),
+        "color_path" => common::color_path_fixture(&candidate.case),
+        "xobject" => common::xobject_fixture(&candidate.case),
+        "graphics" => common::graphics_fixture(&candidate.case),
+        "font" | "composite_font" | "truetype" => common::font_fixture(&candidate.case),
+        "font_content_source" => common::font_content_source_fixture(&candidate.case),
+        "type0_descendant" => common::type0_descendant_fixture(&candidate.case),
+        "transparency" => common::graphics_fixture(&candidate.case),
+        "annotation" => common::annotation_fixture(&candidate.case),
+        "action" => common::action_fixture(&candidate.case),
+        "form" => common::form_fixture(&candidate.case),
+        "document_feature" => common::document_feature_fixture(&candidate.case),
+        "object_limit" => common::object_limit_fixture(&candidate.case),
+        "syntax" => common::syntax_fixture(&candidate.case),
+        family => panic!("unknown atomic family {family}"),
+    }
+}
+
+fn candidate_fixture(candidate: &AtomicCandidate) -> Vec<u8> {
+    candidate.path.as_ref().map_or_else(
+        || atomic_fixture(candidate),
+        |path| fs::read(path).expect("read mutation"),
+    )
+}
+
+fn profile_local_rule_id(profile: ReferenceProfile, canonical: &str) -> String {
+    let prefix = match profile {
+        ReferenceProfile::PdfA2a | ReferenceProfile::PdfA3a => {
+            if matches!(profile, ReferenceProfile::PdfA2a) {
+                "PDFA2A"
+            } else {
+                "PDFA3A"
+            }
+        }
+        ReferenceProfile::PdfA2b => "PDFA2B",
+        ReferenceProfile::PdfA2u => "PDFA2U",
+        ReferenceProfile::PdfA3b => "PDFA3B",
+        ReferenceProfile::PdfA3u => "PDFA3U",
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b => unreachable!(),
+    };
+    canonical
+        .strip_prefix("PDFA1A-")
+        .or_else(|| canonical.strip_prefix("PDFA1B-"))
+        .map_or_else(
+            || canonical.to_owned(),
+            |suffix| format!("{prefix}-{suffix}"),
+        )
 }
 
 fn reidentify_profile(bytes: &[u8], profile: ReferenceProfile) -> Vec<u8> {
