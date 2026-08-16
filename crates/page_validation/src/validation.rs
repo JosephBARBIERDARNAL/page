@@ -1178,6 +1178,11 @@ fn validate_document_features(
             "PDFA1B-FILE-SPEC-F-AND-UF-001",
             failures,
         );
+        aggregate_failures(
+            &features.embedded_files_not_pdfa,
+            "PDFA1B-EMBEDDED-FILE-PDFA-001",
+            failures,
+        );
         if matches!(profile.pdfa_part(), Some(3)) {
             for (invalid, rule_id) in [
                 (
@@ -1191,10 +1196,6 @@ fn validate_document_features(
                 (
                     &features.file_specs_not_associated,
                     "PDFA1B-FILE-SPEC-ASSOCIATION-001",
-                ),
-                (
-                    &features.embedded_files_not_pdfa,
-                    "PDFA1B-EMBEDDED-FILE-PDFA-001",
                 ),
             ] {
                 aggregate_failures(invalid, rule_id, failures);
