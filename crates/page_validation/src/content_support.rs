@@ -1007,6 +1007,20 @@ impl ContentExecutor<'_> {
         }
         match modeled_subtype {
             Some(b"Image") => {
+                if let Some(value) = dictionary
+                    .get(b"SMask")
+                    .ok()
+                    .map(|value| {
+                        resolve_optional(self.document, value, self.limits.max_reference_depth)
+                    })
+                    .transpose()?
+                    .flatten()
+                    && !matches!(value, Object::Null)
+                {
+                    self.summary
+                        .pages_with_transparency
+                        .insert(self.current_page);
+                }
                 let is_stencil = dictionary
                     .get(b"ImageMask")
                     .ok()

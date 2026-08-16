@@ -1,5 +1,12 @@
 pub mod common;
 
+use std::{env, fs};
+
+use page_validation::differential::{
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
+};
+use page_validation::{SafetyLimits, validate_bytes_with_profile};
+
 const EXTGSTATE_SMASK: &str = "PDFA1B-EXTGSTATE-SMASK-001";
 const XOBJECT_SMASK: &str = "PDFA1B-XOBJECT-SMASK-001";
 const GROUP: &str = "PDFA1B-TRANSPARENCY-GROUP-001";
@@ -54,4 +61,69 @@ fn a_single_transparency_failure_attaches_its_owner() {
     let report = common::validate(&common::graphics_fixture("extgstate_bm_multiply"));
     let failure = common::assert_single_failure(&report, BLEND_MODE);
     assert!(failure.object_id.is_some());
+}
+
+#[test]
+fn pdfa_2_requires_page_group_cs_for_used_transparency_without_output_intent() {
+    for profile in [
+        page_validation::ValidationProfile::PdfA2b,
+        page_validation::ValidationProfile::PdfA3b,
+    ] {
+        let report = validate_bytes_with_profile(
+            &common::graphics_fixture("extgstate_transparency_no_output_intent"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        let rule_id = match profile {
+            page_validation::ValidationProfile::PdfA2b => "PDFA2B-TRANSPARENCY-GROUP-CS-001",
+            page_validation::ValidationProfile::PdfA3b => "PDFA3B-TRANSPARENCY-GROUP-CS-001",
+            _ => unreachable!(),
+        };
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn transparency_group_cs_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "page-transparency-group-cs-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(
+        &path,
+        common::graphics_fixture("extgstate_transparency_no_output_intent"),
+    )
+    .expect("write transparency fixture");
+    for (profile, expected_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.10:2"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.10:2"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        let reference = report.reference_result.as_ref().expect("veraPDF result");
+        assert!(
+            reference
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == expected_rule),
+            "{profile}: {report:?}"
+        );
+    }
+    fs::remove_file(path).expect("remove transparency fixture");
 }

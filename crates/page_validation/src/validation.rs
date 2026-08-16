@@ -1192,6 +1192,10 @@ fn validate_document_features(
                     &features.file_specs_not_associated,
                     "PDFA1B-FILE-SPEC-ASSOCIATION-001",
                 ),
+                (
+                    &features.embedded_files_not_pdfa,
+                    "PDFA1B-EMBEDDED-FILE-PDFA-001",
+                ),
             ] {
                 aggregate_failures(invalid, rule_id, failures);
             }

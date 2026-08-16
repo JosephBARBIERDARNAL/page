@@ -39,6 +39,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) signature_refs_with_digest_keys: Vec<RuleFailure>,
     pub(crate) acro_forms_with_xfa: Vec<RuleFailure>,
     pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
+    pub(crate) embedded_files_not_pdfa: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
     pub(crate) file_specs_missing_af_relationship: Vec<RuleFailure>,
     pub(crate) file_specs_not_associated: Vec<RuleFailure>,
@@ -336,6 +337,7 @@ pub(crate) fn inspect(
         }
     }
     let mut embedded_files_with_invalid_mime = Vec::new();
+    let mut embedded_files_not_pdfa = Vec::new();
     let mut file_specs_missing_f_or_uf = Vec::new();
     let mut file_specs_missing_af_relationship = Vec::new();
     let mut file_specs_not_associated = Vec::new();
@@ -414,6 +416,37 @@ pub(crate) fn inspect(
                     ),
                 });
             }
+            let valid_pdfa = value
+                .as_stream()
+                .ok()
+                .and_then(|stream| {
+                    stream
+                        .decompressed_content_with_limit(limits.max_decoded_stream_size)
+                        .ok()
+                })
+                .is_some_and(|bytes| {
+                    bytes.starts_with(b"%PDF-")
+                        && [
+                            crate::validation::ValidationProfile::PdfA1b,
+                            crate::validation::ValidationProfile::PdfA2b,
+                        ]
+                        .into_iter()
+                        .any(|profile| {
+                            let report = crate::validation::validate_bytes_with_profile(
+                                &bytes, profile, limits,
+                            );
+                            report.failures.is_empty() && report.checks_passed
+                        })
+                });
+            if !valid_pdfa {
+                embedded_files_not_pdfa.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "embedded-file stream /{} is not a valid PDF/A-1 or PDF/A-2 document",
+                        String::from_utf8_lossy(key)
+                    ),
+                });
+            }
         }
     }
 
@@ -446,6 +479,7 @@ pub(crate) fn inspect(
         signature_refs_with_digest_keys,
         acro_forms_with_xfa,
         embedded_files_with_invalid_mime,
+        embedded_files_not_pdfa,
         file_specs_missing_f_or_uf,
         file_specs_missing_af_relationship,
         file_specs_not_associated,

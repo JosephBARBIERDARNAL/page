@@ -2872,8 +2872,8 @@
           "2u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRANSPARENCY-GROUP-CS-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "When no PDF/A output intent exists, requires a blending colour space for locally discovered transparency groups.",
+        "implementation_strength": "exact",
+        "semantic_note": "When no PDF/A output intent exists, rejects each used page containing transparency unless its transparency Group has a CS blending colour space; used ExtGState alpha/blend/soft-mask, image soft-mask, Form transparency groups, and explicit page groups are tracked through the shared executed-content traversal.",
         "object": "PDPage",
         "predicate": "gOutputCS != null || containsGroupCS == true || containsTransparency == false"
       },
@@ -4205,6 +4205,16 @@
       },
       {
         "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-2:2011:6.8:5",
+        "applicable_profiles": ["2a", "2b", "2u"],
+        "canonical_local_rule_id": "PDFA1B-EMBEDDED-FILE-PDFA-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation.",
+        "object": "EmbeddedFile",
+        "predicate": "isValidPDFA12 == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.9:1",
         "applicable_profiles": [
           "2a",
@@ -4660,8 +4670,8 @@
           "3u"
         ],
         "canonical_local_rule_id": "PDFA1B-TRANSPARENCY-GROUP-CS-001",
-        "implementation_strength": "partial/proxy",
-        "semantic_note": "When no PDF/A output intent exists, requires a blending colour space for locally discovered transparency groups.",
+        "implementation_strength": "exact",
+        "semantic_note": "When no PDF/A output intent exists, rejects each used page containing transparency unless its transparency Group has a CS blending colour space; used ExtGState alpha/blend/soft-mask, image soft-mask, Form transparency groups, and explicit page groups are tracked through the shared executed-content traversal.",
         "object": "PDPage",
         "predicate": "gOutputCS != null || containsGroupCS == true || containsTransparency == false"
       },
@@ -5993,6 +6003,16 @@
       },
       {
         "section": "shared_pdfa_2_3",
+        "verapdf_rule_id": "ISO 19005-3:2012:6.8:5",
+        "applicable_profiles": ["3a", "3b", "3u"],
+        "canonical_local_rule_id": "PDFA1B-EMBEDDED-FILE-PDFA-001",
+        "implementation_strength": "exact",
+        "semantic_note": "Embedded file streams must contain a PDF document compliant with PDF/A-1 or PDF/A-2 using bounded recursive validation.",
+        "object": "EmbeddedFile",
+        "predicate": "isValidPDFA12 == true"
+      },
+      {
+        "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:1",
         "applicable_profiles": [
           "3a",
@@ -6167,15 +6187,6 @@
       },
       {
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
-        "rationale": "No local rule currently implements this pinned veraPDF predicate."
-      },
-      {
-        "verapdf_rule_id": "ISO 19005-2:2011:6.8:5",
         "applicable_profiles": [
           "2a",
           "2b",

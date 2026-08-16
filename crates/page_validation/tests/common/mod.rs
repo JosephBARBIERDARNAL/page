@@ -2163,7 +2163,7 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
                 "SMask" => dictionary! {"S" => "Alpha", "G" => form},
             });
             resources.set("ExtGState", dictionary! {"GS1" => state});
-            contents = b"/GS1 gs\n".to_vec();
+            contents = b"/GS1 gs\n0 0 10 10 re f\n".to_vec();
         }
         "icc_annotation_appearance"
         | "icc_annotation_appearance_valid"
@@ -2943,9 +2943,20 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
     let mut page_group = None;
     let mut annotations = Vec::new();
     let mut inherit_resources = false;
+    let mut omit_output_intent = false;
 
     match case {
         "baseline" => {}
+        "extgstate_transparency_no_output_intent" => {
+            omit_output_intent = true;
+            let state = document.add_object(dictionary! { "ca" => 0.5, "BM" => "Multiply" });
+            resources.set("ExtGState", dictionary! { "GS1" => state });
+            contents = b"/GS1 gs\n0 0 10 10 re f\n".to_vec();
+            page_group = Some(dictionary! {
+                "Type" => "Group",
+                "S" => "Transparency",
+            });
+        }
         "inherited_resource_color_space"
         | "inherited_resource_calgray"
         | "inherited_resource_default_color_space"
@@ -3541,12 +3552,22 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         icc_header(*b"mntr", *b"RGB ", 2, 1),
         Some("GTS_PDFA1"),
     );
-    let catalog_id = document.add_object(dictionary! {
+    if case == "extgstate_transparency_no_output_intent"
+        && let Some(Object::Stream(stream)) = document.objects.get_mut(&metadata_id)
+    {
+        stream.content = String::from_utf8_lossy(BASE_XMP)
+            .replace("pdfaid:part=\"1\"", "pdfaid:part=\"2\"")
+            .into_bytes();
+    }
+    let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => output_intents.expect("output intent"),
-    });
+    };
+    if !omit_output_intent {
+        catalog.set("OutputIntents", output_intents.expect("output intent"));
+    }
+    let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
     document.trailer.set("Info", info_id);
@@ -4781,6 +4802,27 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "baseline" => {}
         "permissions_allowed" => catalog.set("Perms", dictionary! { "UR3" => Dictionary::new() }),
         "permissions_invalid" => catalog.set("Perms", dictionary! { "Unexpected" => true }),
+        "embedded_file_invalid_pdfa" => {
+            let embedded =
+                document.add_object(Stream::new(Dictionary::new(), b"not a PDF".to_vec()));
+            let file_spec = document.add_object(dictionary! {
+                "Type" => "Filespec",
+                "F" => Object::string_literal("file.bin"),
+                "UF" => Object::string_literal("file.bin"),
+                "EF" => dictionary! { "F" => embedded },
+            });
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Reference(file_spec),
+                        ],
+                    },
+                },
+            );
+        }
         "signature_reference_digest" => {
             catalog.set(
                 "Perms",
