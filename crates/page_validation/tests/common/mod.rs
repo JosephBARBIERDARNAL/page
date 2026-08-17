@@ -350,6 +350,11 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "pdf:Keywords=\"rust,pdf\" pdf:Unknown=\"invalid\"",
         ),
         "id_alias_declaration_only" => {}
+        "id_corr_prefix" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<idAlias:corr>1</idAlias:corr><dc:title>",
+        ),
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
         "id_part_plus_one" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"+1\""),
         "id_part_leading_zero" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"01\""),
@@ -780,6 +785,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             replace(&mut xmp, " pdfaid:conformance=\"B\"", "");
         }
         "wrong_part" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"2\""),
+        "wrong_part_four" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"4\""),
         "lowercase_conformance" => replace(
             &mut xmp,
             "pdfaid:conformance=\"B\"",
@@ -1068,6 +1074,14 @@ pub fn output_intent_fixture(case: &str) -> Vec<u8> {
         )])),
         "missing_s" => single_profile_intent(&mut document, rgb.clone(), None),
         "wrong_s" => single_profile_intent(&mut document, rgb.clone(), Some("GTS_PDFX")),
+        "pdfx_with_dest_output_profile_ref" => {
+            let profile = profile_reference(&mut document, rgb.clone());
+            let mut intent = output_intent_dictionary(Some(profile), Some("GTS_PDFX"));
+            intent.set("DestOutputProfileRef", Dictionary::new());
+            Some(Object::Array(vec![Object::Reference(
+                document.add_object(intent),
+            )]))
+        }
         "missing_dest_output_profile" => single_intent(&mut document, None, Some("GTS_PDFA1")),
         "direct_wrong_type_profile" => {
             single_intent(&mut document, Some(7.into()), Some("GTS_PDFA1"))
@@ -1655,6 +1669,61 @@ pub fn icc_based_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn icc_cmyk_overprint_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let profile = profile_reference(&mut document, icc_header(*b"mntr", *b"CMYK", 2, 1));
+    let color_space = Object::Array(vec![Object::Name(b"ICCBased".to_vec()), profile]);
+    let state = match case {
+        "stroke_opm_one" | "fill_opm_one" | "select_before_state" => {
+            dictionary! { "OP" => true, "op" => true, "OPM" => 1 }
+        }
+        "stroke_opm_zero" => dictionary! { "OP" => true, "OPM" => 0 },
+        "stroke_overprint_false" => dictionary! { "OP" => false, "OPM" => 1 },
+        _ => panic!("unknown ICCBased CMYK overprint fixture {case}"),
+    };
+    let contents = match case {
+        "stroke_opm_one" | "stroke_opm_zero" | "stroke_overprint_false" => {
+            b"/GS1 gs\n/CS1 CS\n0 0 0 0 SC\n0 0 m\n1 1 l\nS\n".to_vec()
+        }
+        "fill_opm_one" => b"/GS1 gs\n/CS1 cs\n0 0 0 0 sc\n0 0 m\n1 1 l\nf\n".to_vec(),
+        "select_before_state" => b"/CS1 CS\n/GS1 gs\n0 0 0 0 SC\n0 0 m\n1 1 l\nS\n".to_vec(),
+        _ => unreachable!(),
+    };
+    let contents = document.add_object(Stream::new(Dictionary::new(), contents));
+    let page = document.add_object(dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+        "Resources" => dictionary! {
+            "ColorSpace" => dictionary! { "CS1" => color_space },
+            "ExtGState" => dictionary! { "GS1" => state },
+        },
+        "Contents" => contents,
+    });
+    wrap_pages(&mut document, pages_id, page);
+    let metadata = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"CMYK", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata,
+        "OutputIntents" => output_intents.expect("output intent"),
+    });
+    document.trailer.set("Root", catalog);
+    let info = document.add_object(complete_info());
+    document.trailer.set("Info", info);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save ICCBased CMYK overprint fixture");
+    bytes
+}
+
 pub fn device_color_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
@@ -1766,7 +1835,14 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
             );
             contents = b"/CS1 cs\n".to_vec();
         }
-        "separation_rgb" | "devicen_rgb" | "devicen_nine_components" => {
+        "separation_rgb"
+        | "devicen_rgb"
+        | "devicen_nine_components"
+        | "devicen_33_components"
+        | "separation_invalid_utf8"
+        | "devicen_invalid_utf8"
+        | "separation_unreferenced_invalid_utf8"
+        | "devicen_unreferenced_invalid_utf8" => {
             let tint_transform = dictionary! {
                 "FunctionType" => 2,
                 "Domain" => vec![0.into(), 1.into()],
@@ -1774,10 +1850,24 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 "C1" => vec![1.into(), 1.into(), 1.into()],
                 "N" => 1,
             };
-            let color_space = if case == "separation_rgb" {
+            let color_space = if matches!(
+                case,
+                "separation_rgb"
+                    | "separation_invalid_utf8"
+                    | "separation_unreferenced_invalid_utf8"
+            ) {
                 Object::Array(vec![
                     Object::Name(b"Separation".to_vec()),
-                    Object::Name(b"Spot".to_vec()),
+                    Object::Name(
+                        if matches!(
+                            case,
+                            "separation_invalid_utf8" | "separation_unreferenced_invalid_utf8"
+                        ) {
+                            b"Spot\xff".to_vec()
+                        } else {
+                            b"Spot".to_vec()
+                        },
+                    ),
                     Object::Name(b"DeviceRGB".to_vec()),
                     Object::Dictionary(tint_transform),
                 ])
@@ -1785,20 +1875,40 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 Object::Array(vec![
                     Object::Name(b"DeviceN".to_vec()),
                     Object::Array(
-                        (0..if case == "devicen_nine_components" {
-                            9
-                        } else {
-                            1
+                        (0..match case {
+                            "devicen_nine_components" => 9,
+                            "devicen_33_components" => 33,
+                            _ => 1,
                         })
-                            .map(|index| Object::Name(format!("Spot{index}").into_bytes()))
+                            .map(|index| {
+                                Object::Name(
+                                    if matches!(
+                                        case,
+                                        "devicen_invalid_utf8"
+                                            | "devicen_unreferenced_invalid_utf8"
+                                    ) && index == 0
+                                    {
+                                        b"Spot\xff".to_vec()
+                                    } else {
+                                        format!("Spot{index}").into_bytes()
+                                    },
+                                )
+                            })
                             .collect(),
                     ),
                     Object::Name(b"DeviceRGB".to_vec()),
                     Object::Dictionary(tint_transform),
                 ])
             };
-            resources.set("ColorSpace", dictionary! {"CS1" => color_space});
-            contents = b"/CS1 cs\n".to_vec();
+            if matches!(
+                case,
+                "separation_unreferenced_invalid_utf8" | "devicen_unreferenced_invalid_utf8"
+            ) {
+                document.add_object(color_space);
+            } else {
+                resources.set("ColorSpace", dictionary! {"CS1" => color_space});
+                contents = b"/CS1 cs\n".to_vec();
+            }
         }
         "pattern_rgb" => {
             let pattern_id = document.add_object(Stream::new(
@@ -1867,6 +1977,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
                 | "separation_rgb"
                 | "devicen_rgb"
                 | "devicen_nine_components"
+                | "devicen_33_components"
                 | "pattern_rgb"
         ) {
             cmyk_profile
@@ -1958,6 +2069,26 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "icc_baseline" | "device_baseline" | "intent_baseline" => {}
+        "separation_consistent"
+        | "separation_inconsistent"
+        | "separation_unreferenced_inconsistent" => {
+            let first = separation(Object::Name(b"DeviceRGB".to_vec()));
+            let second = if case == "separation_inconsistent" {
+                separation(Object::Name(b"DeviceCMYK".to_vec()))
+            } else {
+                first.clone()
+            };
+            if case == "separation_unreferenced_inconsistent" {
+                document.add_object(first);
+                document.add_object(second);
+            } else {
+                resources.set(
+                    "ColorSpace",
+                    dictionary! { "CS1" => first, "CS2" => second },
+                );
+                contents = b"/CS1 cs\n/CS2 cs\n".to_vec();
+            }
+        }
         "icc_separation_alternate" | "icc_separation_valid" => {
             let alternate = if case == "icc_separation_valid" {
                 valid_icc.clone()
@@ -2048,7 +2179,7 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
                 "SMask" => dictionary! {"S" => "Alpha", "G" => form},
             });
             resources.set("ExtGState", dictionary! {"GS1" => state});
-            contents = b"/GS1 gs\n".to_vec();
+            contents = b"/GS1 gs\n0 0 10 10 re f\n".to_vec();
         }
         "icc_annotation_appearance"
         | "icc_annotation_appearance_valid"
@@ -2593,6 +2724,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
         | "image_interpolate_indirect_true"
         | "image_interpolate_null"
         | "image_bpc_16"
+        | "image_bpc_3"
         | "image_bpc_indirect_16"
         | "image_subtype_indirect_bpc_16"
         | "image_mask_indirect_true_bpc_16"
@@ -2622,6 +2754,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 }
                 "image_interpolate_null" => dictionary.set("Interpolate", Object::Null),
                 "image_bpc_16"
+                | "image_bpc_3"
                 | "image_bpc_indirect_16"
                 | "image_subtype_indirect_bpc_16"
                 | "image_mask_indirect_true_bpc_16"
@@ -2631,7 +2764,10 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 | "shared_painted_explicit_mask_bpc_16"
                 | "unused_resource_invalid_image"
                 | "unreferenced_invalid_image"
-                | "two_invalid_images" => dictionary.set("BitsPerComponent", 16),
+                | "two_invalid_images" => dictionary.set(
+                    "BitsPerComponent",
+                    if case == "image_bpc_3" { 3 } else { 16 },
+                ),
                 _ => unreachable!(),
             }
             if case == "image_bpc_indirect_16" {
@@ -2828,9 +2964,104 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
     let mut page_group = None;
     let mut annotations = Vec::new();
     let mut inherit_resources = false;
+    let mut omit_output_intent = false;
 
     match case {
         "baseline" => {}
+        "extgstate_transparency_no_output_intent" => {
+            omit_output_intent = true;
+            let state = document.add_object(dictionary! { "ca" => 0.5, "BM" => "Multiply" });
+            resources.set("ExtGState", dictionary! { "GS1" => state });
+            contents = b"/GS1 gs\n0 0 10 10 re f\n".to_vec();
+            page_group = Some(dictionary! {
+                "Type" => "Group",
+                "S" => "Transparency",
+            });
+        }
+        "inherited_resource_color_space"
+        | "inherited_resource_calgray"
+        | "inherited_resource_default_color_space"
+        | "inherited_resource_extgstate"
+        | "inherited_resource_font"
+        | "inherited_resource_xobject"
+        | "inherited_resource_pattern"
+        | "inherited_resource_shading"
+        | "inherited_resource_properties" => {
+            inherit_resources = true;
+            match case {
+                "inherited_resource_color_space" => {
+                    resources.set("ColorSpace", dictionary! { "CS1" => "DeviceRGB" });
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "inherited_resource_calgray" => {
+                    resources.set(
+                        "ColorSpace",
+                        dictionary! { "CS1" => vec![
+                            Object::Name(b"CalGray".to_vec()),
+                            Object::Dictionary(dictionary! { "WhitePoint" => vec![1.into(), 1.into(), 1.into()] }),
+                        ] },
+                    );
+                    contents = b"/CS1 cs\n".to_vec();
+                }
+                "inherited_resource_default_color_space" => {
+                    resources.set("ColorSpace", dictionary! { "DefaultRGB" => "DeviceCMYK" });
+                    contents = b"1 0 0 rg\n".to_vec();
+                }
+                "inherited_resource_extgstate" => {
+                    resources.set("ExtGState", dictionary! { "GS1" => Dictionary::new() });
+                    contents = b"/GS1 gs\n".to_vec();
+                }
+                "inherited_resource_font" => {
+                    resources.set(
+                        "Font",
+                        dictionary! { "F1" => dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" } },
+                    );
+                    contents = b"BT\n/F1 12 Tf\nET\n".to_vec();
+                }
+                "inherited_resource_xobject" => {
+                    let form = document.add_object(Stream::new(
+                        dictionary! {
+                            "Type" => "XObject",
+                            "Subtype" => "Form",
+                            "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                            "Resources" => Dictionary::new(),
+                        },
+                        Vec::new(),
+                    ));
+                    resources.set("XObject", dictionary! { "X1" => form });
+                    contents = b"/X1 Do\n".to_vec();
+                }
+                "inherited_resource_pattern" => {
+                    let pattern = document.add_object(Stream::new(
+                        dictionary! {
+                            "Type" => "Pattern",
+                            "PatternType" => 1,
+                            "PaintType" => 1,
+                            "TilingType" => 1,
+                            "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                            "XStep" => 1,
+                            "YStep" => 1,
+                            "Resources" => Dictionary::new(),
+                        },
+                        Vec::new(),
+                    ));
+                    resources.set("Pattern", dictionary! { "P1" => pattern });
+                    contents = b"/Pattern cs\n/P1 scn\n".to_vec();
+                }
+                "inherited_resource_shading" => {
+                    resources.set(
+                        "Shading",
+                        dictionary! { "S1" => dictionary! { "ShadingType" => 2, "ColorSpace" => "DeviceRGB", "Coords" => vec![0.into(), 0.into(), 1.into(), 1.into()], "Function" => dictionary! { "FunctionType" => 2, "Domain" => vec![0.into(), 1.into()], "C0" => vec![0.into(), 0.into(), 0.into()], "C1" => vec![1.into(), 1.into(), 1.into()], "N" => 1 }, "Extend" => vec![true.into(), true.into()] } },
+                    );
+                    contents = b"/S1 sh\n".to_vec();
+                }
+                "inherited_resource_properties" => {
+                    resources.set("Properties", dictionary! { "Pr1" => Dictionary::new() });
+                    contents = b"/Tag /Pr1 BDC\nEMC\n".to_vec();
+                }
+                _ => unreachable!("known inherited resource fixture"),
+            }
+        }
         "extgstate_tr"
         | "direct_extgstate_tr"
         | "extgstate_tr_null"
@@ -2851,6 +3082,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         | "extgstate_bm_normal"
         | "extgstate_bm_compatible"
         | "extgstate_bm_multiply"
+        | "extgstate_bm_invalid"
         | "extgstate_bm_null"
         | "extgstate_stroke_alpha_one"
         | "extgstate_stroke_alpha_zero"
@@ -2885,6 +3117,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 "extgstate_bm_normal" => state.set("BM", "Normal"),
                 "extgstate_bm_compatible" => state.set("BM", "Compatible"),
                 "extgstate_bm_multiply" => state.set("BM", "Multiply"),
+                "extgstate_bm_invalid" => state.set("BM", "MaiBlendMode"),
                 "extgstate_bm_null" => state.set("BM", Object::Null),
                 "extgstate_stroke_alpha_one" => state.set("CA", 1),
                 "extgstate_stroke_alpha_zero" => state.set("CA", 0),
@@ -3235,6 +3468,97 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 contents = b"/Fm Do\n".to_vec();
             }
         }
+        "extgstate_htp_present" => {
+            let state = document.add_object(dictionary! {
+                "Type" => "ExtGState",
+                "HTP" => 1,
+            });
+            resources.set("ExtGState", dictionary! { "GS1" => state });
+            contents = b"/GS1 gs\n".to_vec();
+        }
+        "halftone_type_invalid" | "halftone_name_present" => {
+            let mut halftone = dictionary! {
+                "HalftoneType" => if case == "halftone_type_invalid" { 2 } else { 5 },
+            };
+            if case == "halftone_name_present" {
+                halftone.set("HalftoneName", Object::string_literal("TestHalftone"));
+                halftone.set("Default", dictionary! { "HalftoneType" => 1 });
+            }
+            let state = document.add_object(dictionary! {
+                "Type" => "ExtGState",
+                "HT" => halftone,
+            });
+            resources.set("ExtGState", dictionary! { "GS1" => state });
+            contents = b"/GS1 gs\n".to_vec();
+        }
+        "halftone_transfer_root_invalid"
+        | "halftone_transfer_root_indirect_ht_invalid"
+        | "halftone_transfer_unreferenced_invalid"
+        | "halftone_transfer_unused_invalid"
+        | "halftone_transfer_root_null"
+        | "halftone_transfer_root_indirect_null"
+        | "halftone_transfer_primary_invalid"
+        | "halftone_transfer_spot_missing"
+        | "halftone_transfer_default_present"
+        | "halftone_transfer_spot_present" => {
+            let transfer = Object::Name(b"Identity".to_vec());
+            let child = |transfer_function: Option<Object>| {
+                let mut halftone = dictionary! { "HalftoneType" => 1 };
+                if let Some(transfer_function) = transfer_function {
+                    halftone.set("TransferFunction", transfer_function);
+                }
+                Object::Dictionary(halftone)
+            };
+            let halftone = match case {
+                "halftone_transfer_root_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_root_indirect_ht_invalid"
+                | "halftone_transfer_unreferenced_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_unused_invalid" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => transfer }
+                }
+                "halftone_transfer_root_null" => {
+                    dictionary! { "HalftoneType" => 1, "TransferFunction" => Object::Null }
+                }
+                "halftone_transfer_root_indirect_null" => dictionary! {
+                    "HalftoneType" => 1,
+                    "TransferFunction" => Object::Reference(document.add_object(Object::Null)),
+                },
+                "halftone_transfer_primary_invalid" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Cyan" => child(Some(transfer)),
+                },
+                "halftone_transfer_spot_missing" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Spot" => child(None),
+                },
+                "halftone_transfer_default_present" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Default" => child(Some(transfer)),
+                },
+                "halftone_transfer_spot_present" => dictionary! {
+                    "HalftoneType" => 5,
+                    "Spot" => child(Some(transfer)),
+                },
+                _ => unreachable!("known halftone transfer fixture"),
+            };
+            let halftone = if case == "halftone_transfer_root_indirect_ht_invalid" {
+                Object::Reference(document.add_object(halftone))
+            } else {
+                Object::Dictionary(halftone)
+            };
+            let state =
+                document.add_object(dictionary! { "Type" => "ExtGState", "HT" => halftone });
+            if case != "halftone_transfer_unreferenced_invalid" {
+                resources.set("ExtGState", dictionary! { "GS1" => state });
+                if case != "halftone_transfer_unused_invalid" {
+                    contents = b"/GS1 gs\n".to_vec();
+                }
+            }
+        }
         _ => panic!("unknown graphics fixture case {case}"),
     }
 
@@ -3274,12 +3598,22 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
         icc_header(*b"mntr", *b"RGB ", 2, 1),
         Some("GTS_PDFA1"),
     );
-    let catalog_id = document.add_object(dictionary! {
+    if case == "extgstate_transparency_no_output_intent"
+        && let Some(Object::Stream(stream)) = document.objects.get_mut(&metadata_id)
+    {
+        stream.content = String::from_utf8_lossy(BASE_XMP)
+            .replace("pdfaid:part=\"1\"", "pdfaid:part=\"2\"")
+            .into_bytes();
+    }
+    let mut catalog = dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
-        "OutputIntents" => output_intents.expect("output intent"),
-    });
+    };
+    if !omit_output_intent {
+        catalog.set("OutputIntents", output_intents.expect("output intent"));
+    }
+    let catalog_id = document.add_object(catalog);
     let info_id = document.add_object(complete_info());
     document.trailer.set("Root", catalog_id);
     document.trailer.set("Info", info_id);
@@ -3312,6 +3646,16 @@ pub fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
         | "appearance_and_painted_image_bpc_16" => Vec::new(),
         "extgstate_tr" => {
             let state = document.add_object(dictionary! {"TR" => "Identity"});
+            inner_resources.set("ExtGState", dictionary! {"GS1" => state});
+            b"/GS1 gs\n".to_vec()
+        }
+        "halftone_transfer_invalid" => {
+            let state = document.add_object(dictionary! {
+                "HT" => dictionary! {
+                    "HalftoneType" => 1,
+                    "TransferFunction" => "Identity",
+                },
+            });
             inner_resources.set("ExtGState", dictionary! {"GS1" => state});
             b"/GS1 gs\n".to_vec()
         }
@@ -4350,6 +4694,7 @@ pub fn form_fixture(case: &str) -> Vec<u8> {
             acro_form.remove(b"NeedAppearances");
         }
         "need_appearances_true" => acro_form.set("NeedAppearances", true),
+        "xfa_present" => acro_form.set("XFA", Object::string_literal("xfa")),
         "need_appearances_false_indirect" => {
             acro_form.set(
                 "NeedAppearances",
@@ -4479,10 +4824,15 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let contents_id = document.add_object(Stream::new(Dictionary::new(), Vec::new()));
+    let media_box = match case {
+        "page_boundary_too_small" => vec![0.into(), 0.into(), 2.into(), 2.into()],
+        "page_boundary_too_large" => vec![0.into(), 0.into(), 14_401.into(), 14_401.into()],
+        _ => vec![0.into(), 0.into(), 612.into(), 792.into()],
+    };
     let page_id = document.add_object(dictionary! {
         "Type" => "Page",
         "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        "MediaBox" => media_box,
         "Resources" => Dictionary::new(),
         "Contents" => contents_id,
     });
@@ -4501,7 +4851,124 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
     };
 
     match case {
-        "baseline" => {}
+        "baseline" | "page_boundary_too_small" | "page_boundary_too_large" => {}
+        "permissions_allowed" => catalog.set("Perms", dictionary! { "UR3" => Dictionary::new() }),
+        "permissions_invalid" => catalog.set("Perms", dictionary! { "Unexpected" => true }),
+        "embedded_file_invalid_pdfa" => {
+            let embedded =
+                document.add_object(Stream::new(Dictionary::new(), b"not a PDF".to_vec()));
+            let file_spec = document.add_object(dictionary! {
+                "Type" => "Filespec",
+                "F" => Object::string_literal("file.bin"),
+                "UF" => Object::string_literal("file.bin"),
+                "EF" => dictionary! { "F" => embedded },
+            });
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Reference(file_spec),
+                        ],
+                    },
+                },
+            );
+        }
+        "signature_reference_digest" => {
+            let signature = document.add_object(dictionary! {
+                "Type" => "Sig",
+                "Filter" => "Adobe.PPKLite",
+                "SubFilter" => "adbe.pkcs7.detached",
+                "ByteRange" => vec![0.into(), 0.into(), 0.into(), 0.into()],
+                "Contents" => Object::String(vec![0; 8], StringFormat::Hexadecimal),
+                "Reference" => Object::Array(vec![Object::Dictionary(dictionary! {
+                    "TransformMethod" => "DocMDP",
+                    "DigestMethod" => "SHA256",
+                    "TransformParams" => dictionary! {
+                        "Type" => "TransformParams",
+                        "P" => 1,
+                        "V" => "1.2",
+                    },
+                })]),
+            });
+            catalog.set("Perms", dictionary! { "DocMDP" => signature });
+            let field = document.add_object(dictionary! {
+                "FT" => "Sig",
+                "T" => Object::string_literal("Signature1"),
+                "V" => signature,
+            });
+            catalog.set(
+                "AcroForm",
+                dictionary! { "Fields" => Object::Array(vec![Object::Reference(field)]) },
+            );
+        }
+        "alternate_presentations" => {
+            catalog.set(
+                "Names",
+                dictionary! { "AlternatePresentations" => Dictionary::new() },
+            );
+        }
+        "catalog_requirements" => {
+            catalog.set(
+                "Requirements",
+                Object::Array(vec![Object::Dictionary(dictionary! {
+                    "Type" => "Requirement",
+                    "S" => "EnableJavaScript"
+                })]),
+            );
+        }
+        "ocproperties_missing_name"
+        | "ocproperties_duplicate_name"
+        | "ocproperties_order_missing"
+        | "ocproperties_as_present" => {
+            let first = document.add_object(dictionary! {
+                "Type" => "OCG",
+                "Name" => Object::string_literal(if case == "ocproperties_duplicate_name" {
+                    "Layer"
+                } else {
+                    "First"
+                }),
+            });
+            let second = document.add_object(dictionary! {
+                "Type" => "OCG",
+                "Name" => Object::string_literal("Layer"),
+            });
+            let mut default = dictionary! {
+                "Order" => if case == "ocproperties_order_missing" {
+                    Vec::<Object>::new()
+                } else {
+                    vec![Object::Reference(first)]
+                },
+            };
+            if case == "ocproperties_missing_name" {
+                default.remove(b"Order");
+            }
+            if case == "ocproperties_as_present" {
+                default.set("AS", Vec::<Object>::new());
+            }
+            if case == "ocproperties_duplicate_name" {
+                default.set("Name", Object::string_literal("Layer"));
+            }
+            let mut properties = dictionary! {
+                "OCGs" => vec![Object::Reference(first), Object::Reference(second)],
+                "D" => default,
+            };
+            if case == "ocproperties_duplicate_name" {
+                properties.set(
+                    "Configs",
+                    Object::Array(vec![
+                        Object::Dictionary(dictionary! {
+                            "Name" => Object::string_literal("Layer")
+                        }),
+                        Object::Dictionary(dictionary! {
+                            "Name" => Object::string_literal("Layer")
+                        }),
+                    ]),
+                );
+            }
+            catalog.set("OCProperties", properties);
+        }
         "lang_catalog_valid" => catalog.set("Lang", Object::string_literal("en-US")),
         "lang_catalog_empty" => catalog.set("Lang", Object::string_literal("")),
         "lang_catalog_invalid" => catalog.set("Lang", Object::string_literal("en--US")),
@@ -4540,6 +5007,15 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 "StructTreeRoot",
                 dictionary! {
                     "K" => dictionary! { "S" => "P", "Lang" => 1 }
+                },
+            );
+        }
+        "unicode_name_structure_invalid" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "K" => dictionary! { "S" => Object::Name(b"P\xff".to_vec()) }
                 },
             );
         }
@@ -4740,6 +5216,16 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                 },
             );
         }
+        "struct_tree_role_map_standard_remap" => {
+            catalog.set("MarkInfo", dictionary! { "Marked" => true });
+            catalog.set(
+                "StructTreeRoot",
+                dictionary! {
+                    "RoleMap" => dictionary! { "P" => "Custom" },
+                    "K" => dictionary! { "S" => "P" },
+                },
+            );
+        }
         "struct_tree_role_map_multi_step" => {
             catalog.set("MarkInfo", dictionary! { "Marked" => true });
             catalog.set(
@@ -4821,6 +5307,31 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
                         "Names" => vec![
                             Object::string_literal("file"),
                             Object::Dictionary(dictionary! {"EF" => Dictionary::new()}),
+                        ],
+                    },
+                },
+            );
+        }
+        "file_spec_missing_f_uf" | "embedded_file_missing_mime" => {
+            let mut embedded_dictionary = Dictionary::new();
+            if case == "embedded_file_missing_mime" {
+                embedded_dictionary.set("Type", "EmbeddedFile");
+            } else {
+                embedded_dictionary.set("Subtype", "text/plain");
+            }
+            let embedded =
+                document.add_object(Stream::new(embedded_dictionary, b"embedded data".to_vec()));
+            let file_spec = document.add_object(dictionary! {
+                "Type" => "Filespec",
+                "EF" => dictionary! { "F" => embedded },
+            });
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("file"),
+                            Object::Reference(file_spec),
                         ],
                     },
                 },
@@ -4967,8 +5478,17 @@ pub fn document_feature_fixture(case: &str) -> Vec<u8> {
         "object_real_high" => {
             document.add_object(Object::Real(32_767.5));
         }
+        "object_real_pdfa2_high" => {
+            document.add_object(Object::Real(f32::MAX));
+        }
         "object_real_low" => {
             document.add_object(Object::Real(-32_767.5));
+        }
+        "object_real_pdfa2_low" => {
+            document.add_object(Object::Real(-f32::MAX));
+        }
+        "object_real_pdfa2_minimum" => {
+            document.add_object(Object::Real(f32::MIN_POSITIVE / 2.0));
         }
         "object_string_long" => {
             document.add_object(Object::String(vec![b'x'; 65_536], StringFormat::Literal));
@@ -5045,7 +5565,65 @@ pub fn tagged_document_fixture(case: &str) -> Vec<u8> {
 /// their own builder, since both share the same minimal catalog/page
 /// scaffolding. This alias just names the fixture for its own test file.
 pub fn object_limit_fixture(case: &str) -> Vec<u8> {
-    document_feature_fixture(case)
+    let mut bytes = document_feature_fixture(case);
+    if case == "object_real_pdfa2_high" {
+        let source = b"340282350000000000000000000000000000000";
+        let replacement = b"340400000000000000000000000000000000000.0";
+        let start = bytes
+            .windows(source.len())
+            .position(|window| window == source)
+            .expect("serialized PDF/A-2 high real");
+        let old_xref = find_last_startxref(&bytes);
+        bytes.splice(start..start + source.len(), replacement.iter().copied());
+        let delta = replacement.len() as isize - source.len() as isize;
+        let new_xref = usize::try_from(old_xref as isize + delta).expect("shifted xref offset");
+        let xref_end = bytes[new_xref..]
+            .windows(b"trailer\n".len())
+            .position(|window| window == b"trailer\n")
+            .map(|offset| new_xref + offset)
+            .expect("xref trailer");
+        let mut line_start = new_xref + b"xref\n".len();
+        while line_start < xref_end {
+            let line_end = bytes[line_start..xref_end]
+                .iter()
+                .position(|byte| *byte == b'\n')
+                .map(|offset| line_start + offset)
+                .expect("xref line ending");
+            if line_end - line_start >= 18
+                && bytes[line_start..line_start + 10]
+                    .iter()
+                    .all(u8::is_ascii_digit)
+                && bytes[line_start + 17] == b'n'
+            {
+                let old_offset = std::str::from_utf8(&bytes[line_start..line_start + 10])
+                    .expect("xref offset")
+                    .parse::<usize>()
+                    .expect("numeric xref offset");
+                let shifted = if old_offset > start {
+                    usize::try_from(old_offset as isize + delta).expect("shifted object offset")
+                } else {
+                    old_offset
+                };
+                let formatted = format!("{shifted:010}");
+                bytes[line_start..line_start + 10].copy_from_slice(formatted.as_bytes());
+            }
+            line_start = line_end + 1;
+        }
+        let startxref = bytes[xref_end..]
+            .windows(b"startxref\n".len())
+            .position(|window| window == b"startxref\n")
+            .map(|offset| xref_end + offset + b"startxref\n".len())
+            .expect("startxref value");
+        let startxref_end = bytes[startxref..]
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .map(|offset| startxref + offset)
+            .expect("startxref line ending");
+        let formatted = new_xref.to_string();
+        assert_eq!(formatted.len(), startxref_end - startxref);
+        bytes[startxref..startxref_end].copy_from_slice(formatted.as_bytes());
+    }
+    bytes
 }
 
 /// A deliberately small classic-xref PDF used to exercise source syntax that
@@ -5433,6 +6011,252 @@ pub fn canonical_a1b_header_offset_fixture() -> Vec<u8> {
     bytes
 }
 
+pub fn pdfa_2_3_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let mut resources = Dictionary::new();
+    let mut contents = Vec::new();
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+    };
+
+    match case {
+        "catalog_needs_rendering"
+        | "file_spec_af_relationship"
+        | "file_spec_association"
+        | "pres_steps"
+        | "signature_byte_range"
+        | "signature_certificate"
+        | "signature_signer_count" => {}
+        "devicen_colorants" => {
+            let tint_transform = dictionary! {
+                "FunctionType" => 2,
+                "Domain" => vec![0.into(), 1.into()],
+                "C0" => vec![0.into(), 0.into(), 0.into()],
+                "C1" => vec![1.into(), 1.into(), 1.into()],
+                "N" => 1,
+            };
+            resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![
+                        Object::Name(b"DeviceN".to_vec()),
+                        Object::Array(vec![Object::Name(b"Spot".to_vec())]),
+                        Object::Name(b"DeviceRGB".to_vec()),
+                        Object::Dictionary(tint_transform),
+                        Object::Dictionary(dictionary! { "Colorants" => Dictionary::new() }),
+                    ]),
+                },
+            );
+            contents = b"/CS1 cs\n0 0 0 scn\n".to_vec();
+        }
+        case if case.starts_with("jpeg2000_") => {
+            let image_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "Filter" => "JPXDecode",
+                },
+                jpeg2000_bytes(case),
+            ));
+            resources.set("XObject", dictionary! { "Im" => image_id });
+            contents = b"/Im Do\n".to_vec();
+        }
+        other => panic!("unknown PDF/A-2/3 fixture case {other}"),
+    }
+
+    if case == "pres_steps" {
+        page.set("PresSteps", Dictionary::new());
+    }
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), contents));
+    page.set("Resources", resources);
+    page.set("Contents", contents_id);
+    let page_id = document.add_object(page);
+    wrap_pages(&mut document, pages_id, page_id);
+
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    let mut catalog = dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    };
+
+    match case {
+        "catalog_needs_rendering" => catalog.set("NeedsRendering", true),
+        "file_spec_af_relationship" | "file_spec_association" => {
+            let embedded = document.add_object(Stream::new(
+                dictionary! { "Subtype" => "application/pdf" },
+                b"%PDF-1.4\n%%EOF\n".to_vec(),
+            ));
+            let mut file_spec = dictionary! {
+                "Type" => "Filespec",
+                "F" => Object::string_literal("attachment.pdf"),
+                "UF" => Object::string_literal("attachment.pdf"),
+                "EF" => dictionary! { "F" => embedded },
+            };
+            if case == "file_spec_association" {
+                file_spec.set("AFRelationship", "Data");
+            }
+            let file_spec_id = document.add_object(file_spec);
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("attachment"),
+                            Object::Reference(file_spec_id),
+                        ],
+                    },
+                },
+            );
+            if case == "file_spec_af_relationship" {
+                catalog.set("AF", vec![Object::Reference(file_spec_id)]);
+            }
+        }
+        "signature_byte_range" | "signature_certificate" | "signature_signer_count" => {
+            let (certificate, signer_count) = match case {
+                "signature_certificate" => (false, 1),
+                "signature_signer_count" => (true, 2),
+                _ => (false, 0),
+            };
+            let contents = if case == "signature_byte_range" {
+                vec![0; 8]
+            } else {
+                signature_pkcs7(certificate, signer_count)
+            };
+            let signature_id = document.add_object(dictionary! {
+                "Type" => "Sig",
+                "Filter" => "Adobe.PPKLite",
+                "SubFilter" => "adbe.pkcs7.detached",
+                "ByteRange" => vec![0.into(), 0.into(), 0.into(), 0.into()],
+                "Contents" => Object::String(contents, StringFormat::Hexadecimal),
+            });
+            catalog.set("Perms", dictionary! { "DocMDP" => signature_id });
+            let field = document.add_object(dictionary! {
+                "FT" => "Sig",
+                "T" => Object::string_literal("Signature1"),
+                "V" => signature_id,
+            });
+            catalog.set(
+                "AcroForm",
+                dictionary! { "Fields" => vec![Object::Reference(field)] },
+            );
+        }
+        _ => {}
+    }
+
+    let catalog_id = document.add_object(catalog);
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/A-2/3 fixture");
+    bytes
+}
+
+fn jpeg2000_bytes(case: &str) -> Vec<u8> {
+    let mut bytes = BASE_JPEG2000.to_vec();
+    let ihdr = bytes
+        .windows(4)
+        .position(|window| window == b"ihdr")
+        .expect("JPEG2000 ihdr box")
+        + 4;
+    let colr = bytes
+        .windows(4)
+        .position(|window| window == b"colr")
+        .expect("JPEG2000 colr box")
+        + 4;
+    match case {
+        "jpeg2000_bit_depth" => bytes[ihdr + 10] = 0x7f,
+        "jpeg2000_channels" => bytes[ihdr + 8..ihdr + 10].copy_from_slice(&2u16.to_be_bytes()),
+        "jpeg2000_color_method" => bytes[colr] = 4,
+        "jpeg2000_color_space" => bytes[colr + 3..colr + 7].copy_from_slice(&19u32.to_be_bytes()),
+        "jpeg2000_color_specs" => {
+            let jp2h = bytes
+                .windows(4)
+                .position(|window| window == b"jp2h")
+                .expect("JPEG2000 jp2h box");
+            let jp2c = bytes
+                .windows(4)
+                .position(|window| window == b"jp2c")
+                .expect("JPEG2000 jp2c box")
+                - 4;
+            let length = u32::from_be_bytes(bytes[jp2h - 4..jp2h].try_into().unwrap()) + 15;
+            bytes[jp2h - 4..jp2h].copy_from_slice(&length.to_be_bytes());
+            bytes.splice(
+                jp2c..jp2c,
+                [0, 0, 0, 15, b'c', b'o', b'l', b'r', 1, 0, 0, 0, 0, 0, 0],
+            );
+        }
+        other => panic!("unknown JPEG2000 fixture case {other}"),
+    }
+    bytes
+}
+
+fn signature_pkcs7(certificate: bool, signer_count: usize) -> Vec<u8> {
+    const SIGNED_DATA_OID: &[u8] = &[
+        0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02,
+    ];
+    let mut fields = Vec::new();
+    fields.extend(der_tlv(0x02, &[1]));
+    fields.extend(der_tlv(0x31, &[]));
+    fields.extend(der_tlv(0x30, &[]));
+    if certificate {
+        fields.extend(der_tlv(0xa0, &[]));
+    }
+    let mut signers = Vec::new();
+    for _ in 0..signer_count {
+        signers.extend(der_tlv(0x30, &[]));
+    }
+    fields.extend(der_tlv(0x31, &signers));
+    let signed_data = der_tlv(0x30, &fields);
+    let wrapper = der_tlv(0xa0, &signed_data);
+    let mut content_info = Vec::new();
+    content_info.extend_from_slice(SIGNED_DATA_OID);
+    content_info.extend_from_slice(&wrapper);
+    der_tlv(0x30, &content_info)
+}
+
+fn der_tlv(tag: u8, content: &[u8]) -> Vec<u8> {
+    assert!(
+        content.len() < 128,
+        "test DER helper only supports short lengths"
+    );
+    let mut bytes = vec![tag, content.len() as u8];
+    bytes.extend_from_slice(content);
+    bytes
+}
+
+const BASE_JPEG2000: &[u8] = &[
+    0x00, 0x00, 0x00, 0x0c, 0x6a, 0x50, 0x20, 0x20, 0x0d, 0x0a, 0x87, 0x0a, 0x00, 0x00, 0x00, 0x14,
+    0x66, 0x74, 0x79, 0x70, 0x6a, 0x70, 0x32, 0x20, 0x00, 0x00, 0x00, 0x00, 0x6a, 0x70, 0x32, 0x20,
+    0x00, 0x00, 0x00, 0x2d, 0x6a, 0x70, 0x32, 0x68, 0x00, 0x00, 0x00, 0x16, 0x69, 0x68, 0x64, 0x72,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x07, 0x07, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x0f, 0x63, 0x6f, 0x6c, 0x72, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
+    0x84, 0x6a, 0x70, 0x32, 0x63, 0xff, 0x4f, 0xff, 0x51, 0x00, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x07, 0x01, 0x01, 0xff, 0x52, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00,
+    0x01, 0xff, 0x5c, 0x00, 0x04, 0x40, 0x40, 0xff, 0x64, 0x00, 0x25, 0x00, 0x01, 0x43, 0x72, 0x65,
+    0x61, 0x74, 0x65, 0x64, 0x20, 0x62, 0x79, 0x20, 0x4f, 0x70, 0x65, 0x6e, 0x4a, 0x50, 0x45, 0x47,
+    0x20, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x32, 0x2e, 0x35, 0x2e, 0x34, 0xff, 0x90,
+    0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0xff, 0x93, 0xdf, 0x80, 0x08, 0x07,
+    0xff, 0xd9,
+];
+
 pub fn canonical_a1b_blend_mode_fixture() -> Vec<u8> {
     let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"))
         .expect("load canonical PDF/A-1b fixture");
@@ -5732,12 +6556,25 @@ pub fn font_fixture_with_type1_program(
         let indirect_flags = document.add_object(Object::Integer(4));
         descriptor.set("Flags", indirect_flags);
     }
-    if case == "tt_symbolic_two_cmaps" {
+    if matches!(
+        case,
+        "tt_symbolic_two_cmaps"
+            | "tt_symbolic_two_cmaps_with_cmap30"
+            | "tt_nonsymbolic_zero_cmaps"
+            | "tt_nonsymbolic_one_cmap30"
+    ) {
         descriptor.set(
             "FontFile2",
             document.add_object(Stream::new(
                 Dictionary::new(),
-                sfnt::minimal_truetype_with_cmap_count(2),
+                match case {
+                    "tt_symbolic_two_cmaps_with_cmap30" => {
+                        sfnt::minimal_truetype_with_symbol_cmap(2)
+                    }
+                    "tt_nonsymbolic_zero_cmaps" => sfnt::minimal_truetype_with_cmap_count(0),
+                    "tt_nonsymbolic_one_cmap30" => sfnt::minimal_truetype_with_symbol_cmap(1),
+                    _ => sfnt::minimal_truetype_with_cmap_count(2),
+                },
             )),
         );
     }
@@ -5767,6 +6604,8 @@ pub fn font_fixture_with_type1_program(
         descriptor.set("FontFile2", 42);
     } else if case == "missing_font_file_object" {
         descriptor.set("FontFile2", Object::Reference((999_999, 0)));
+    } else if case == "composite_cidmap_missing_unembedded" {
+        descriptor.remove(b"FontFile2");
     } else if case == "font_file_subtype_invalid" {
         descriptor.set(
             "FontFile2",
@@ -5775,6 +6614,15 @@ pub fn font_fixture_with_type1_program(
                     "Subtype" => "OpenType",
                 },
                 sfnt::minimal_truetype(),
+            )),
+        );
+    } else if case == "font_file_subtype_invalid_fontfile3" {
+        descriptor.remove(b"FontFile2");
+        descriptor.set(
+            "FontFile3",
+            document.add_object(Stream::new(
+                dictionary! { "Subtype" => "Type1" },
+                minimal_type1c(true),
             )),
         );
     } else if case == "type1_fontfile_header_only_garbage" {
@@ -6015,7 +6863,10 @@ pub fn font_fixture_with_type1_program(
     } else if case == "type1_subset_missing_charset" {
         font.set("Subtype", "Type1");
         font.set("BaseFont", "ABCDEF+MaiTestFont");
-    } else if case == "type1_fontfile_header_only_garbage" {
+    } else if matches!(
+        case,
+        "font_file_subtype_invalid_fontfile3" | "type1_fontfile_header_only_garbage"
+    ) {
         font.set("Subtype", "Type1");
     } else if case.starts_with("type1_real_symbol_")
         || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol")
@@ -6152,6 +7003,23 @@ pub fn font_fixture_with_type1_program(
     }
     if matches!(
         case,
+        "unicode_name_basefont_invalid"
+            | "unicode_name_basefont_unused"
+            | "unicode_name_basefont_indirect"
+            | "unicode_name_basefont_unreferenced"
+    ) {
+        let invalid_name = Object::Name(b"MaiTest\xffFont".to_vec());
+        font.set(
+            "BaseFont",
+            if case == "unicode_name_basefont_indirect" {
+                Object::Reference(document.add_object(invalid_name))
+            } else {
+                invalid_name
+            },
+        );
+    }
+    if matches!(
+        case,
         "type3_visible"
             | "type3_width_match"
             | "type3_width_mismatch"
@@ -6160,6 +7028,7 @@ pub fn font_fixture_with_type1_program(
             | "type3_missing_charproc_zero_width"
             | "type3_macroman_base"
             | "type3_macexpert_base"
+            | "type3_notdef"
             | "unicode_missing"
             | "unicode_scalar"
             | "unicode_indirect"
@@ -6168,9 +7037,10 @@ pub fn font_fixture_with_type1_program(
     ) {
         let mut char_procs = Dictionary::new();
         let charproc_bytes = match case {
-            "type3_width_match" | "type3_macroman_base" | "type3_macexpert_base" => {
-                Some(b"500 0 d0\n".as_slice())
-            }
+            "type3_width_match"
+            | "type3_macroman_base"
+            | "type3_macexpert_base"
+            | "type3_notdef" => Some(b"500 0 d0\n".as_slice()),
             "type3_width_tolerance_boundary" => Some(b"499 0 d0\n".as_slice()),
             "type3_width_mismatch" => Some(b"400 0 d0\n".as_slice()),
             "type3_width_d1_mismatch" => Some(b"400 0 0 0 500 700 d1\n".as_slice()),
@@ -6180,6 +7050,8 @@ pub fn font_fixture_with_type1_program(
             char_procs.set(
                 if case == "type3_macexpert_base" {
                     "exclamsmall"
+                } else if case == "type3_notdef" {
+                    ".notdef"
                 } else {
                     "space"
                 },
@@ -6194,6 +7066,10 @@ pub fn font_fixture_with_type1_program(
                 Object::Name(b"MacExpertEncoding".to_vec())
             }
             "unicode_winansi" => Object::Name(b"WinAnsiEncoding".to_vec()),
+            "type3_notdef" => Object::Dictionary(dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![32.into(), Object::Name(b".notdef".to_vec())],
+            }),
             _ => Object::Dictionary(dictionary! {
                 "Type" => "Encoding",
                 "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
@@ -6313,8 +7189,18 @@ pub fn font_fixture_with_type1_program(
                 descendant_dictionary.set("DW", 0);
             }
         }
+        if case == "composite_cmap_supplement_mismatch" {
+            descendant_dictionary.set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Identity"),
+                    "Supplement" => 1,
+                },
+            );
+        }
         match case {
-            "composite_cidmap_missing" => {
+            "composite_cidmap_missing" | "composite_cidmap_missing_unembedded" => {
                 descendant_dictionary.remove(b"CIDToGIDMap");
             }
             // The descendant's own /Subtype as an *indirect* reference to
@@ -6389,13 +7275,17 @@ pub fn font_fixture_with_type1_program(
             "composite_named_cmap" | "composite_named_cmap_cidset_real_program" => {
                 Object::Name(b"UniJIS-UCS2-H".to_vec())
             }
+            "composite_unknown_named_cmap" => Object::Name(b"NotAStandardCMap".to_vec()),
             "composite_cmap_matching"
+            | "composite_cmap_supplement_mismatch"
             | "composite_cmap_mismatch_system"
             | "composite_indirect_cid_system_info"
             | "composite_cmap_wmode_match"
             | "composite_cmap_wmode_mismatch"
             | "composite_cmap_wmode_indirect_match"
             | "composite_cmap_cid_too_large"
+            | "composite_cmap_unknown_usecmap"
+            | "composite_cmap_dictionary_unknown_usecmap"
             | "composite_cidset_nonidentity_real_program"
             | "composite_nonidentity_missing_glyph"
             | "composite_nonidentity_multibyte_missing_glyph"
@@ -6419,21 +7309,27 @@ pub fn font_fixture_with_type1_program(
                 } else {
                     Object::Integer(dictionary_wmode)
                 };
-                Object::Reference(document.add_object(Stream::new(
-                    dictionary! {
-                        "Type" => "CMap",
-                        "CMapName" => "Page-CMap",
-                        "CIDSystemInfo" => dictionary! {
-                            "Registry" => Object::string_literal("Adobe"),
-                            "Ordering" => Object::string_literal(cmap_ordering),
-                            "Supplement" => 0,
-                        },
-                        "WMode" => wmode_object,
+                let mut cmap_dictionary = dictionary! {
+                    "Type" => "CMap",
+                    "CMapName" => "Page-CMap",
+                    "CIDSystemInfo" => dictionary! {
+                        "Registry" => Object::string_literal("Adobe"),
+                        "Ordering" => Object::string_literal(cmap_ordering),
+                        "Supplement" => 0,
                     },
+                    "WMode" => wmode_object,
+                };
+                if case == "composite_cmap_dictionary_unknown_usecmap" {
+                    cmap_dictionary.set("UseCMap", Object::Name(b"NotAStandardCMap".to_vec()));
+                }
+                Object::Reference(document.add_object(Stream::new(
+                    cmap_dictionary,
                     if case == "composite_nonidentity_multibyte_missing_glyph" {
                         embedded_two_byte_cmap(cmap_ordering, content_wmode, cid_start)
                     } else if case == "composite_identity_usecmap_missing_glyph" {
                         embedded_identity_usecmap(cmap_ordering, content_wmode)
+                    } else if case == "composite_cmap_unknown_usecmap" {
+                        embedded_unknown_usecmap(cmap_ordering, content_wmode)
                     } else {
                         embedded_cmap(cmap_ordering, content_wmode, cid_start)
                     },
@@ -6589,6 +7485,7 @@ pub fn font_fixture_with_type1_program(
         "tt_symbolic_no_encoding"
         | "tt_symbolic_one_cmap"
         | "tt_symbolic_two_cmaps"
+        | "tt_symbolic_two_cmaps_with_cmap30"
         | "tt_symbolic_indirect_flags" => {
             font.remove(b"Encoding");
         }
@@ -6641,6 +7538,25 @@ pub fn font_fixture_with_type1_program(
                 font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
                 font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <21> <0021> endbfchar".to_vec())));
             }
+            "unicode_reserved" => {
+                font.set("Encoding", dictionary! { "Differences" => vec![32.into(), Object::Name(b"space".to_vec())] });
+                font.set("ToUnicode", document.add_object(Stream::new(Dictionary::new(), b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <0000> endbfchar".to_vec())));
+            }
+            "unicode_pua_missing_actual_text"
+            | "unicode_pua_with_actual_text"
+            | "unicode_pua_null_actual_text"
+            | "unicode_pua_integer_actual_text"
+            | "unicode_pua_indirect_actual_text"
+            | "unicode_pua_named_actual_text"
+            | "unicode_pua_invisible_missing_actual_text" => {
+                font.set(
+                    "ToUnicode",
+                    document.add_object(Stream::new(
+                        Dictionary::new(),
+                        b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <20> <E000> endbfchar".to_vec(),
+                    )),
+                );
+            }
             "unicode_winansi" => font.set("Encoding", "WinAnsiEncoding"),
             "unicode_macroman" => font.set("Encoding", "MacRomanEncoding"),
             "unicode_macexpert" => font.set("Encoding", "MacExpertEncoding"),
@@ -6689,6 +7605,17 @@ pub fn font_fixture_with_type1_program(
         },
     };
     resources.set("Font", font_resources.clone());
+    if case == "unicode_pua_named_actual_text" {
+        resources.set(
+            "Properties",
+            dictionary! {
+                "P" => dictionary! { "ActualText" => Object::string_literal("replacement") },
+            },
+        );
+    }
+    if case == "unicode_name_basefont_unreferenced" {
+        resources.remove(b"Font");
+    }
     let page_content = match case {
         case if case.starts_with("type1_real_symbol_")
             || matches!(case, "unicode_type1_standard" | "unicode_type1_symbol") =>
@@ -6719,6 +7646,15 @@ pub fn font_fixture_with_type1_program(
             ),
             operation("ET", vec![]),
         ]),
+        "type3_notdef" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
+            ),
+            operation("ET", vec![]),
+        ]),
         "composite_cidset_real_program" | "composite_cidset_indirect_basefont_real_program" => {
             content(vec![
                 operation("BT", vec![]),
@@ -6726,6 +7662,18 @@ pub fn font_fixture_with_type1_program(
                 operation(
                     "Tj",
                     vec![Object::String(vec![0, 32], lopdf::StringFormat::Literal)],
+                ),
+                operation("ET", vec![]),
+            ])
+        }
+        "composite_cmap_unknown_usecmap" | "composite_cmap_dictionary_unknown_usecmap" => {
+            content(vec![
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation("Tr", vec![3.into()]),
+                operation(
+                    "Tj",
+                    vec![Object::String(vec![32], lopdf::StringFormat::Literal)],
                 ),
                 operation("ET", vec![]),
             ])
@@ -6794,7 +7742,7 @@ pub fn font_fixture_with_type1_program(
             ),
             operation("ET", vec![]),
         ]),
-        "unused_resource" | "unused_invalid_font" => Vec::new(),
+        "unused_resource" | "unused_invalid_font" | "unicode_name_basefont_unused" => Vec::new(),
         "selected_not_shown" => content(vec![
             operation("BT", vec![]),
             operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
@@ -6975,6 +7923,86 @@ pub fn font_fixture_with_type1_program(
                 "Tj",
                 vec![Object::String(vec![0xe9], StringFormat::Literal)],
             ),
+            operation("ET", vec![]),
+        ]),
+        "unicode_pua_missing_actual_text" => text_content(0),
+        "unicode_pua_with_actual_text" => content(vec![
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(
+                        dictionary! { "ActualText" => Object::string_literal("replacement") },
+                    ),
+                ],
+            ),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_null_actual_text" => content(vec![
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(dictionary! { "ActualText" => Object::Null }),
+                ],
+            ),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_integer_actual_text" => content(vec![
+            operation(
+                "BDC",
+                vec![
+                    Object::Name(b"Span".to_vec()),
+                    Object::Dictionary(dictionary! { "ActualText" => 1 }),
+                ],
+            ),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_indirect_actual_text" => {
+            let actual_text = document.add_object(Object::string_literal("replacement"));
+            content(vec![
+                operation(
+                    "BDC",
+                    vec![
+                        Object::Name(b"Span".to_vec()),
+                        Object::Dictionary(dictionary! { "ActualText" => actual_text }),
+                    ],
+                ),
+                operation("BT", vec![]),
+                operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+                operation("Tj", vec![Object::string_literal(" ")]),
+                operation("ET", vec![]),
+                operation("EMC", vec![]),
+            ])
+        }
+        "unicode_pua_named_actual_text" => content(vec![
+            operation(
+                "BDC",
+                vec![Object::Name(b"Span".to_vec()), Object::Name(b"P".to_vec())],
+            ),
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
+            operation("ET", vec![]),
+            operation("EMC", vec![]),
+        ]),
+        "unicode_pua_invisible_missing_actual_text" => content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation("Tr", vec![3.into()]),
+            operation("Tj", vec![Object::string_literal(" ")]),
             operation("ET", vec![]),
         ]),
         _ => text_content(0),
@@ -7962,6 +8990,23 @@ pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
          CMapName currentdict /CMap defineresource pop\n\
          end\n\
          end\n"
+    )
+    .into_bytes()
+}
+
+pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+    format!(
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
+         /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
+         /CMapName /Page-CMap def\n/CMapType 1 def\n/WMode {wmode} def\n\
+         1 begincodespacerange\n\
+         <00> <FF>\n\
+         endcodespacerange\n\
+         1 begincidrange\n\
+         <20> <20> 32\n\
+         endcidrange\n\
+         /Adobe-Japan1-UCS2 usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
+         end\nend\n"
     )
     .into_bytes()
 }

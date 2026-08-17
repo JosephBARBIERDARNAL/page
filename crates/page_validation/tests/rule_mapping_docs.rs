@@ -1,0 +1,589 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::{Component, Path, PathBuf};
+
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+
+const PROFILE_NAMESPACE: &str = "http://www.verapdf.org/ValidationProfile";
+
+#[test]
+fn rule_mapping_inventories_match_their_pinned_profiles() {
+    let inventories = inventories();
+    assert!(!inventories.is_empty(), "no rule-mapping inventories found");
+
+    let mut output_paths = BTreeSet::new();
+    for (inventory_path, inventory) in &inventories {
+        assert_eq!(number(&inventory["schema_version"], "schema version"), 1);
+        let mapping = object(&inventory["rule_mapping"], "rule_mapping");
+        assert_eq!(number(&mapping["schema_version"], "schema version"), 1);
+        let output_path = validated_output_path(&mapping["document"]["output_path"]);
+        assert!(
+            output_paths.insert(output_path.clone()),
+            "duplicate generated output path {}",
+            output_path.display()
+        );
+
+        let profiles = profiles_by_key(mapping);
+        let sections = sections_by_key(mapping, &profiles);
+        let pinned_predicates = validate_profiles(mapping, &profiles);
+        validate_mappings(mapping, &profiles, &sections, &pinned_predicates);
+        validate_coverage_gaps(mapping, &profiles, &pinned_predicates);
+
+        let generated = render(mapping);
+        for placeholder in [
+            "predicate_ids in pinned profile inventory",
+            "profile inventory",
+            "| capability |",
+        ] {
+            assert!(
+                !generated.contains(placeholder),
+                "{} generates placeholder text {placeholder:?}",
+                inventory_path.display()
+            );
+        }
+    }
+}
+
+#[test]
+fn rule_mapping_generation_is_deterministic() {
+    for (_, inventory) in inventories() {
+        let mapping = object(&inventory["rule_mapping"], "rule_mapping");
+        assert_eq!(render(mapping), render(mapping));
+    }
+}
+
+#[test]
+fn rule_mapping_documentation_is_current() {
+    for (inventory_path, inventory) in inventories() {
+        let mapping = object(&inventory["rule_mapping"], "rule_mapping");
+        let output_path =
+            workspace_root().join(validated_output_path(&mapping["document"]["output_path"]));
+        let current = fs::read_to_string(&output_path)
+            .unwrap_or_else(|error| panic!("read {}: {error}", output_path.display()));
+        assert_eq!(
+            current.replace("\r\n", "\n"),
+            render(mapping),
+            "{} is stale; run `just rules-docs`",
+            inventory_path.display()
+        );
+    }
+}
+
+#[test]
+#[ignore = "writer for checked-in rule-mapping documentation"]
+fn regenerate_rule_mapping_documentation() {
+    for (_, inventory) in inventories() {
+        let mapping = object(&inventory["rule_mapping"], "rule_mapping");
+        let output_path =
+            workspace_root().join(validated_output_path(&mapping["document"]["output_path"]));
+        fs::write(&output_path, render(mapping))
+            .unwrap_or_else(|error| panic!("write {}: {error}", output_path.display()));
+    }
+}
+
+#[test]
+fn pdfa_2_3_applicability_is_profile_accurate() {
+    let inventory = inventories()
+        .into_iter()
+        .map(|(_, inventory)| inventory)
+        .find(|inventory| {
+            inventory["rule_mapping"]["document"]["output_path"]
+                == "docs/rules/pdfa-2-3-rule-mapping.md"
+        })
+        .expect("PDF/A-2/3 rule-mapping inventory");
+    let mapping = object(&inventory["rule_mapping"], "rule_mapping");
+    let mappings = array(&mapping["mappings"], "mappings");
+
+    for permitted in [
+        "PDFA1B-XREF-STREAM-001",
+        "PDFA1B-OPTIONAL-CONTENT-001",
+        "PDFA1B-TRANSPARENCY-GROUP-001",
+    ] {
+        assert!(
+            mappings
+                .iter()
+                .all(|item| item["canonical_local_rule_id"] != permitted),
+            "permitted feature {permitted} must not be presented as a failure mapping"
+        );
+    }
+
+    assert_mapping_profiles(
+        mappings,
+        "PDFA1B-OPTIONAL-CONTENT-NAME-001",
+        &["2a", "2b", "2u", "3a", "3b", "3u"],
+        "shared_pdfa_2_3",
+    );
+    assert_mapping_profiles(
+        mappings,
+        "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+        &["2a", "2b", "2u", "3a", "3b", "3u"],
+        "shared_pdfa_2_3",
+    );
+    assert_mapping_profiles(
+        mappings,
+        "PDFA1B-FILE-SPEC-AF-RELATIONSHIP-001",
+        &["3a", "3b", "3u"],
+        "pdfa_3",
+    );
+    assert_mapping_profiles(
+        mappings,
+        "PDFA1A-UNICODE-MAPPING-001",
+        &["2a", "2u", "3a", "3u"],
+        "a_or_u",
+    );
+    assert_mapping_profiles(
+        mappings,
+        "PDFA1A-TAGGED-DOCUMENT-001",
+        &["2a", "3a"],
+        "a_only",
+    );
+
+    let documentation = render(mapping);
+    for prefix in ["PDFA2A", "PDFA2B", "PDFA2U", "PDFA3A", "PDFA3B", "PDFA3U"] {
+        assert!(
+            documentation.contains(&format!("`{prefix}-")),
+            "generated documentation omits reported prefix {prefix}"
+        );
+    }
+}
+
+fn assert_mapping_profiles(
+    mappings: &[Value],
+    local_rule: &str,
+    expected_profiles: &[&str],
+    expected_section: &str,
+) {
+    let matching = mappings
+        .iter()
+        .filter(|mapping| mapping["canonical_local_rule_id"] == local_rule)
+        .collect::<Vec<_>>();
+    assert!(!matching.is_empty(), "missing mapping for {local_rule}");
+    assert!(
+        matching
+            .iter()
+            .all(|mapping| mapping["section"] == expected_section),
+        "{local_rule} is in the wrong applicability section"
+    );
+    let actual = matching
+        .iter()
+        .flat_map(|mapping| array(&mapping["applicable_profiles"], "applicable profiles"))
+        .map(|profile| string(profile, "applicable profile"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual, expected_profiles.iter().copied().collect());
+}
+
+fn inventories() -> Vec<(PathBuf, Value)> {
+    let fixture_directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let mut paths = fs::read_dir(&fixture_directory)
+        .expect("read fixture directory")
+        .map(|entry| entry.expect("fixture directory entry").path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.ends_with("-coverage.json"))
+        })
+        .collect::<Vec<_>>();
+    paths.sort();
+    paths
+        .into_iter()
+        .filter_map(|path| {
+            let inventory: Value = serde_json::from_slice(
+                &fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display())),
+            )
+            .unwrap_or_else(|error| panic!("parse {}: {error}", path.display()));
+            inventory["rule_mapping"]
+                .is_object()
+                .then_some((path, inventory))
+        })
+        .collect()
+}
+
+fn profiles_by_key(mapping: &serde_json::Map<String, Value>) -> BTreeMap<&str, &Value> {
+    let mut profiles = BTreeMap::new();
+    for profile in array(&mapping["profiles"], "profiles") {
+        let key = string(&profile["key"], "profile key");
+        assert!(
+            profiles.insert(key, profile).is_none(),
+            "duplicate profile key {key}"
+        );
+    }
+    assert!(!profiles.is_empty(), "inventory has no profiles");
+    profiles
+}
+
+fn sections_by_key<'a>(
+    mapping: &'a serde_json::Map<String, Value>,
+    profiles: &BTreeMap<&str, &Value>,
+) -> BTreeMap<&'a str, BTreeSet<&'a str>> {
+    let mut sections = BTreeMap::new();
+    for section in array(&mapping["applicability_sections"], "applicability sections") {
+        let key = string(&section["key"], "section key");
+        assert!(
+            !string(&section["heading"], "section heading")
+                .trim()
+                .is_empty()
+        );
+        assert!(
+            !string(&section["description"], "section description")
+                .trim()
+                .is_empty()
+        );
+        let applicable = strings(&section["profiles"], "section profiles");
+        assert!(!applicable.is_empty(), "section {key} has no profiles");
+        assert!(
+            applicable
+                .iter()
+                .all(|profile| profiles.contains_key(profile)),
+            "section {key} references an unknown profile"
+        );
+        assert!(
+            sections.insert(key, applicable).is_none(),
+            "duplicate section key {key}"
+        );
+    }
+    sections
+}
+
+fn validate_profiles<'a>(
+    _mapping: &serde_json::Map<String, Value>,
+    profiles: &BTreeMap<&'a str, &'a Value>,
+) -> BTreeMap<(String, String), (String, String)> {
+    let mut all_predicates = BTreeMap::new();
+    for (key, profile) in profiles {
+        let profile_file = string(&profile["profile_file"], "profile file");
+        let bytes = fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(profile_file))
+            .unwrap_or_else(|error| panic!("read pinned profile {profile_file}: {error}"));
+        assert_eq!(
+            sha256(&bytes),
+            string(&profile["profile_sha256"], "profile digest"),
+            "{key} profile digest"
+        );
+        let xml = roxmltree::Document::parse(
+            std::str::from_utf8(&bytes).expect("pinned profile is UTF-8"),
+        )
+        .unwrap_or_else(|error| panic!("parse pinned profile {profile_file}: {error}"));
+        let root = xml.root_element();
+        assert_eq!(root.attribute("flavour"), profile["flavour"].as_str());
+
+        let predicate_ids = array(&profile["predicate_ids"], "profile predicate ids")
+            .iter()
+            .map(|id| string(id, "profile predicate id"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            predicate_ids.len() as u64,
+            number(&profile["predicate_count"], "profile predicate count"),
+            "{key} predicate count"
+        );
+        assert_eq!(
+            predicate_ids.iter().copied().collect::<BTreeSet<_>>().len(),
+            predicate_ids.len(),
+            "{key} duplicate predicate IDs"
+        );
+        let specification = predicate_ids
+            .first()
+            .and_then(|id| id.rsplit_once(':'))
+            .and_then(|(without_test, _)| without_test.rsplit_once(':'))
+            .map(|(specification, _)| specification)
+            .expect("profile predicate specification");
+        let part = specification
+            .split_once(':')
+            .map(|(standard, _)| standard)
+            .and_then(|standard| standard.strip_prefix("ISO 19005-"))
+            .expect("ISO 19005 profile specification");
+        let expected_xml_specification = format!("ISO_19005_{part}");
+
+        let rules = xml
+            .descendants()
+            .filter(|node| node.has_tag_name((PROFILE_NAMESPACE, "rule")))
+            .collect::<Vec<_>>();
+        assert_eq!(rules.len(), predicate_ids.len(), "{key} XML rule count");
+        for rule in rules {
+            let id = rule
+                .children()
+                .find(|child| child.has_tag_name((PROFILE_NAMESPACE, "id")))
+                .expect("profile rule id");
+            assert_eq!(
+                id.attribute("specification"),
+                Some(expected_xml_specification.as_str())
+            );
+            let rule_id = format!(
+                "{specification}:{}:{}",
+                id.attribute("clause").expect("rule clause"),
+                id.attribute("testNumber").expect("rule test number")
+            );
+            assert!(
+                predicate_ids.contains(&rule_id.as_str()),
+                "{key} inventory omits {rule_id}"
+            );
+            let object = rule.attribute("object").expect("rule object").to_owned();
+            let predicate = rule
+                .children()
+                .find(|child| child.has_tag_name((PROFILE_NAMESPACE, "test")))
+                .and_then(|node| node.text())
+                .expect("rule predicate")
+                .trim()
+                .to_owned();
+            assert!(
+                all_predicates
+                    .insert(((*key).to_owned(), rule_id.clone()), (object, predicate))
+                    .is_none(),
+                "duplicate pinned predicate {key} {rule_id}"
+            );
+        }
+    }
+    all_predicates
+}
+
+fn validate_mappings<'a>(
+    mapping: &'a serde_json::Map<String, Value>,
+    profiles: &BTreeMap<&'a str, &'a Value>,
+    sections: &BTreeMap<&'a str, BTreeSet<&'a str>>,
+    pinned_predicates: &BTreeMap<(String, String), (String, String)>,
+) {
+    let mut unique = BTreeSet::new();
+    for item in array(&mapping["mappings"], "mappings") {
+        let section = string(&item["section"], "mapping section");
+        let section_profiles = sections
+            .get(section)
+            .unwrap_or_else(|| panic!("mapping references unknown section {section}"));
+        let reference_rule = string(&item["verapdf_rule_id"], "veraPDF rule ID");
+        let canonical_rule = string(&item["canonical_local_rule_id"], "canonical local rule ID");
+        let strength = string(&item["implementation_strength"], "mapping strength");
+        assert!(matches!(strength, "exact" | "partial/proxy"));
+        assert!(
+            !string(&item["semantic_note"], "semantic note")
+                .trim()
+                .is_empty(),
+            "{canonical_rule} has an empty semantic note"
+        );
+        let applicable = strings(&item["applicable_profiles"], "applicable profiles");
+        assert!(!applicable.is_empty(), "{canonical_rule} has no profiles");
+        assert!(
+            applicable.is_subset(section_profiles),
+            "{canonical_rule} does not fit section {section}"
+        );
+        for profile_key in applicable {
+            let profile = profiles
+                .get(profile_key)
+                .unwrap_or_else(|| panic!("unknown applicable profile {profile_key}"));
+            let (object_type, predicate) = pinned_predicates
+                .get(&(profile_key.to_owned(), reference_rule.to_owned()))
+                .unwrap_or_else(|| panic!("{reference_rule} is absent from profile {profile_key}"));
+            assert_eq!(item["object"], object_type.as_str());
+            assert_eq!(item["predicate"], predicate.as_str());
+            let reported_rule = reported_local_rule(profile, canonical_rule);
+            if profile["remap_local_rule_ids"] == true {
+                assert!(
+                    reported_rule.starts_with(&format!(
+                        "{}-",
+                        string(&profile["local_rule_prefix"], "local rule prefix")
+                    )),
+                    "unexpected reported rule ID {reported_rule}"
+                );
+            }
+            assert!(
+                unique.insert((profile_key, reference_rule, canonical_rule)),
+                "duplicate mapping for {profile_key} {reference_rule} {canonical_rule}"
+            );
+        }
+    }
+}
+
+fn validate_coverage_gaps<'a>(
+    mapping: &'a serde_json::Map<String, Value>,
+    profiles: &BTreeMap<&'a str, &'a Value>,
+    pinned_predicates: &BTreeMap<(String, String), (String, String)>,
+) {
+    let mapped = array(&mapping["mappings"], "mappings")
+        .iter()
+        .flat_map(|item| {
+            let rule_id = string(&item["verapdf_rule_id"], "veraPDF rule ID");
+            array(&item["applicable_profiles"], "applicable profiles")
+                .iter()
+                .map(move |profile| (string(profile, "applicable profile"), rule_id))
+        })
+        .collect::<BTreeSet<_>>();
+    let mut declared_gaps = BTreeSet::new();
+    for gap in array(&mapping["coverage_gaps"], "coverage gaps") {
+        let rule_id = string(&gap["verapdf_rule_id"], "coverage-gap rule ID");
+        assert!(
+            !string(&gap["rationale"], "coverage-gap rationale")
+                .trim()
+                .is_empty(),
+            "{rule_id} has an empty gap rationale"
+        );
+        for profile in array(&gap["applicable_profiles"], "coverage-gap profiles") {
+            let profile = string(profile, "coverage-gap profile");
+            assert!(
+                profiles.contains_key(profile),
+                "unknown gap profile {profile}"
+            );
+            assert!(
+                pinned_predicates.contains_key(&(profile.to_owned(), rule_id.to_owned())),
+                "gap {rule_id} is absent from profile {profile}"
+            );
+            assert!(
+                !mapped.contains(&(profile, rule_id)),
+                "gap {rule_id} in {profile} also has a local mapping"
+            );
+            assert!(
+                declared_gaps.insert((profile, rule_id)),
+                "duplicate gap {profile} {rule_id}"
+            );
+        }
+    }
+    let inventoried = mapped
+        .union(&declared_gaps)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let pinned = pinned_predicates
+        .keys()
+        .map(|(profile, rule_id)| (profile.as_str(), rule_id.as_str()))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(inventoried, pinned, "predicate catalog is incomplete");
+}
+
+fn render(mapping: &serde_json::Map<String, Value>) -> String {
+    let document = object(&mapping["document"], "document metadata");
+    let profiles = profiles_by_key(mapping);
+    let mut output = format!(
+        "---\ntitle: {}\n---\n\n<!-- Generated by `just rules-docs`; do not edit manually. -->\n\n## Local-only checks\n\n{}\n\n<!-- prettier-ignore -->\n| Local rule | Semantic note |\n| --- | --- |\n",
+        string(&document["title"], "document title"),
+        string(
+            &document["local_only_description"],
+            "local-only description"
+        )
+    );
+    for check in array(&mapping["local_only_checks"], "local-only checks") {
+        output.push_str(&format!(
+            "| `{}` | {} |\n",
+            string(&check["local_rule_id"], "local-only rule ID"),
+            markdown_table_text(string(&check["mapping_note"], "local-only note"))
+        ));
+    }
+
+    for section in array(&mapping["applicability_sections"], "applicability sections") {
+        let section_key = string(&section["key"], "section key");
+        let section_mappings = array(&mapping["mappings"], "mappings")
+            .iter()
+            .filter(|item| item["section"] == section_key)
+            .collect::<Vec<_>>();
+        if section_mappings.is_empty() {
+            continue;
+        }
+        output.push_str(&format!(
+            "\n## {}\n\n{}\n\n<!-- prettier-ignore -->\n| Local rule | veraPDF rule | Clause | Strength | Pinned semantic note |\n| --- | --- | --- | --- | --- |\n",
+            string(&section["heading"], "section heading"),
+            string(&section["description"], "section description")
+        ));
+        let mut rendered_rows = BTreeSet::new();
+        for item in section_mappings {
+            let reference_rule = string(&item["verapdf_rule_id"], "veraPDF rule ID");
+            let canonical_rule =
+                string(&item["canonical_local_rule_id"], "canonical local rule ID");
+            for profile_key in array(&item["applicable_profiles"], "applicable profiles") {
+                let profile_key = string(profile_key, "applicable profile");
+                let profile = profiles
+                    .get(profile_key)
+                    .unwrap_or_else(|| panic!("unknown applicable profile {profile_key}"));
+                let local_rule = reported_local_rule(profile, canonical_rule);
+                let row = format!(
+                    "| `{local_rule}` | `{reference_rule}` | §{} | {} | {} |\n",
+                    clause(reference_rule),
+                    string(&item["implementation_strength"], "implementation strength"),
+                    markdown_table_text(string(&item["semantic_note"], "semantic note"))
+                );
+                if rendered_rows.insert(row.clone()) {
+                    output.push_str(&row);
+                }
+            }
+        }
+    }
+    output
+}
+
+fn reported_local_rule(profile: &Value, canonical_rule: &str) -> String {
+    if profile["remap_local_rule_ids"] != true {
+        return canonical_rule.to_owned();
+    }
+    let (_, suffix) = canonical_rule
+        .split_once('-')
+        .unwrap_or_else(|| panic!("canonical rule has no prefix: {canonical_rule}"));
+    format!(
+        "{}-{suffix}",
+        string(&profile["local_rule_prefix"], "local rule prefix")
+    )
+}
+
+fn clause(rule_id: &str) -> &str {
+    rule_id
+        .rsplit_once(':')
+        .and_then(|(without_test, _)| without_test.rsplit_once(':'))
+        .map(|(_, clause)| clause)
+        .unwrap_or_else(|| panic!("invalid veraPDF rule ID {rule_id}"))
+}
+
+fn validated_output_path(value: &Value) -> PathBuf {
+    let output = PathBuf::from(string(value, "document output path"));
+    assert!(
+        output
+            .components()
+            .all(|component| matches!(component, Component::Normal(_))),
+        "generated output path must be relative and normalized: {}",
+        output.display()
+    );
+    assert!(
+        output.starts_with("docs/rules") && output.extension().is_some_and(|value| value == "md"),
+        "generated output must be a Markdown file under docs/rules: {}",
+        output.display()
+    );
+    output
+}
+
+fn workspace_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+fn markdown_table_text(value: &str) -> String {
+    value.replace('|', "\\|").replace('\n', " ")
+}
+
+fn sha256(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn object<'a>(value: &'a Value, description: &str) -> &'a serde_json::Map<String, Value> {
+    value
+        .as_object()
+        .unwrap_or_else(|| panic!("{description} is not an object"))
+}
+
+fn array<'a>(value: &'a Value, description: &str) -> &'a [Value] {
+    value
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_else(|| panic!("{description} is not an array"))
+}
+
+fn string<'a>(value: &'a Value, description: &str) -> &'a str {
+    value
+        .as_str()
+        .unwrap_or_else(|| panic!("{description} is not a string"))
+}
+
+fn strings<'a>(value: &'a Value, description: &str) -> BTreeSet<&'a str> {
+    array(value, description)
+        .iter()
+        .map(|item| string(item, description))
+        .collect()
+}
+
+fn number(value: &Value, description: &str) -> u64 {
+    value
+        .as_u64()
+        .unwrap_or_else(|| panic!("{description} is not an unsigned integer"))
+}

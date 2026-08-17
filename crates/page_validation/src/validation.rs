@@ -64,7 +64,80 @@ impl fmt::Display for ValidationProfile {
 
 impl ValidationProfile {
     pub const fn is_implemented(self) -> bool {
-        matches!(self, Self::PdfA1a | Self::PdfA1b)
+        matches!(
+            self,
+            Self::PdfA1a
+                | Self::PdfA1b
+                | Self::PdfA2a
+                | Self::PdfA2b
+                | Self::PdfA2u
+                | Self::PdfA3a
+                | Self::PdfA3b
+                | Self::PdfA3u
+        )
+    }
+
+    pub const fn pdfa_part(self) -> Option<u8> {
+        match self {
+            Self::PdfA1a | Self::PdfA1b => Some(1),
+            Self::PdfA2a | Self::PdfA2b | Self::PdfA2u => Some(2),
+            Self::PdfA3a | Self::PdfA3b | Self::PdfA3u => Some(3),
+            _ => None,
+        }
+    }
+
+    pub const fn pdfa_conformance(self) -> Option<char> {
+        match self {
+            Self::PdfA1a | Self::PdfA2a | Self::PdfA3a => Some('A'),
+            Self::PdfA1b | Self::PdfA2b | Self::PdfA3b => Some('B'),
+            Self::PdfA2u | Self::PdfA3u => Some('U'),
+            _ => None,
+        }
+    }
+
+    const fn is_pdfa_2_or_3(self) -> bool {
+        matches!(self.pdfa_part(), Some(2 | 3))
+    }
+
+    const fn requires_tagged_structure(self) -> bool {
+        matches!(self.pdfa_conformance(), Some('A'))
+    }
+
+    const fn requires_unicode_mapping(self) -> bool {
+        matches!(self.pdfa_conformance(), Some('A' | 'U'))
+    }
+
+    const fn permits_optional_content(self) -> bool {
+        self.is_pdfa_2_or_3()
+    }
+
+    const fn permits_xref_streams(self) -> bool {
+        self.is_pdfa_2_or_3()
+    }
+
+    const fn permits_transparency(self) -> bool {
+        self.is_pdfa_2_or_3()
+    }
+
+    const fn permits_embedded_files(self) -> bool {
+        matches!(self.pdfa_part(), Some(2 | 3))
+    }
+
+    const fn local_rule_prefix(self, level: char) -> Option<&'static str> {
+        match self.pdfa_part() {
+            Some(1) => None,
+            Some(2) => Some(match level {
+                'A' => "PDFA2A",
+                'U' => "PDFA2U",
+                _ => "PDFA2B",
+            }),
+            Some(3) => Some(match level {
+                'A' => "PDFA3A",
+                'U' => "PDFA3U",
+                _ => "PDFA3B",
+            }),
+            _ => None,
+        }
     }
 }
 
@@ -72,12 +145,17 @@ impl ValidationProfile {
 const TOTAL_RULE_COUNT: usize = 134;
 
 fn total_rule_count(profile: ValidationProfile) -> usize {
-    TOTAL_RULE_COUNT
-        + if matches!(profile, ValidationProfile::PdfA1a) {
-            6
-        } else {
-            0
-        }
+    match profile {
+        ValidationProfile::PdfA1b => TOTAL_RULE_COUNT,
+        ValidationProfile::PdfA1a => TOTAL_RULE_COUNT + 6,
+        ValidationProfile::PdfA2b => 144,
+        ValidationProfile::PdfA2a => 154,
+        ValidationProfile::PdfA2u => 146,
+        ValidationProfile::PdfA3b => 146,
+        ValidationProfile::PdfA3a => 156,
+        ValidationProfile::PdfA3u => 148,
+        _ => 0,
+    }
 }
 
 /// Returns the sole element of a slice known to hold at most one entry, or
@@ -310,7 +388,13 @@ fn validate_document(
         return finish_report(document, profile, failures, 2);
     }
     validate_header(&inspections.header, &mut failures);
-    let has_trailer_id = if inspections.header.is_linearized {
+    let has_trailer_id = if profile.is_pdfa_2_or_3() {
+        inspections
+            .header
+            .last_trailer_id
+            .as_ref()
+            .is_some_and(|id| !id.is_empty())
+    } else if inspections.header.is_linearized {
         inspections.header.has_first_linearized_trailer_id
     } else {
         inspections.header.last_trailer_id.is_some() || document.trailer_id.is_some()
@@ -323,7 +407,8 @@ fn validate_document(
             FailureCategory::Conformance,
         ));
     }
-    if inspections.header.is_linearized
+    if !profile.is_pdfa_2_or_3()
+        && inspections.header.is_linearized
         && inspections.header.last_trailer_id.is_some()
         && inspections.header.first_linearized_trailer_id != inspections.header.last_trailer_id
     {
@@ -387,6 +472,14 @@ fn validate_document(
             FailureCategory::Metadata,
         ));
     }
+    if profile.is_pdfa_2_or_3() && xmp.is_some_and(|xmp| !xmp.actual_encoding_is_utf8) {
+        failures.push(failure(
+            "PDFA1B-XMP-ENCODING-001",
+            "the XMP package must be encoded as UTF-8",
+            document.xmp_object,
+            FailureCategory::Metadata,
+        ));
+    }
     if let Some(xmp) = xmp {
         if !xmp.invalid_predefined_xmp_properties.is_empty() {
             failures.push(failure(
@@ -433,6 +526,17 @@ fn validate_document(
                 FailureCategory::Metadata,
             ));
         }
+        if profile.is_pdfa_2_or_3()
+            && (!xmp.invalid_predefined_xmp_properties.is_empty()
+                || !xmp.undefined_extension_xmp_properties.is_empty())
+        {
+            failures.push(failure(
+                "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+                "XMP contains a property not defined by a predefined or declared extension schema",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
         if !xmp.invalid_extension_xmp_value_types.is_empty() {
             failures.push(failure(
                 "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
@@ -458,6 +562,9 @@ fn validate_document(
             ));
         }
         for test in &xmp.identification_prefix_failed_tests {
+            if *test == 7 && !profile.is_pdfa_2_or_3() {
+                continue;
+            }
             let (rule_id, property) = identification_prefix_rule(*test);
             failures.push(failure(
                 rule_id,
@@ -479,13 +586,19 @@ fn validate_document(
     }
 
     if xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
+        let expected_part = match profile.pdfa_part() {
+            Some(1) => "one value 1",
+            Some(2) => "one value 2",
+            Some(3) => "one value 3",
+            _ => "the selected PDF/A part",
+        };
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
-            |value| xmp_integer_value(value) == Some(1),
+            |value| xmp_integer_value(value) == profile.pdfa_part().map(i32::from),
             "PDFA1B-ID-PART-001",
             "PDF/A part",
             "pdfaid:part",
-            "one value 1",
+            expected_part,
             document.xmp_object,
         ) {
             failures.push(failure);
@@ -493,12 +606,21 @@ fn validate_document(
 
         let (conformance_rule, expected_conformance) = match profile {
             ValidationProfile::PdfA1a => ("PDFA1A-ID-CONFORMANCE-001", "one A"),
-            _ => ("PDFA1B-ID-CONFORMANCE-001", "one A or B"),
+            ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => {
+                ("PDFA1A-ID-CONFORMANCE-001", "one A")
+            }
+            ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => {
+                ("PDFA1B-ID-CONFORMANCE-001", "one U")
+            }
+            _ => ("PDFA1B-ID-CONFORMANCE-001", "one B"),
         };
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
             |value| match profile {
                 ValidationProfile::PdfA1a => value == "A",
+                ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => value == "A",
+                ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => value == "U",
+                ValidationProfile::PdfA2b | ValidationProfile::PdfA3b => value == "B",
                 _ => matches!(value, "A" | "B"),
             },
             conformance_rule,
@@ -511,9 +633,11 @@ fn validate_document(
         }
     }
 
-    validate_info_consistency(&document, &mut failures);
+    if !profile.is_pdfa_2_or_3() {
+        validate_info_consistency(&document, &mut failures);
+    }
 
-    if matches!(profile, ValidationProfile::PdfA1a) {
+    if profile.requires_tagged_structure() {
         validate_tagged_document(&inspections.document_features, &mut failures);
         validate_structure_tree(&inspections.document_features, &mut failures);
         aggregate_failures_with_location(
@@ -530,10 +654,14 @@ fn validate_document(
         );
     }
 
-    validate_output_intents(&document, &mut failures);
+    validate_output_intents(profile, &document, &mut failures);
 
     aggregate_failures_with_location(
-        &inspections.icc_based.failures,
+        if profile.is_pdfa_2_or_3() {
+            &inspections.icc_based.failures_pdfa2
+        } else {
+            &inspections.icc_based.failures
+        },
         "PDFA1B-ICCBASED-001",
         Some("direct profile"),
         &mut failures,
@@ -545,32 +673,111 @@ fn validate_document(
         &mut failures,
     );
     aggregate_failures_with_location(
-        &inspections.icc_based.invalid_devicen_components,
+        if profile.is_pdfa_2_or_3() {
+            &inspections.icc_based.invalid_devicen_components_pdfa2
+        } else {
+            &inspections.icc_based.invalid_devicen_components
+        },
         "PDFA1B-DEVICEN-COMPONENTS-001",
         Some("direct DeviceN space"),
         &mut failures,
     );
+    if profile.is_pdfa_2_or_3() {
+        aggregate_failures_with_location(
+            &inspections.icc_based.invalid_devicen_colorants,
+            "PDFA1B-DEVICEN-COLORANTS-001",
+            Some("direct DeviceN space"),
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.icc_based.inconsistent_separations,
+            "PDFA1B-SEPARATION-CONSISTENCY-001",
+            None,
+            &mut failures,
+        );
+    }
     let output_color_space = pdfa_output_color_space(&document);
     validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
-    validate_xobjects(&inspections.xobjects, &mut failures);
-    validate_graphics(&inspections.graphics, &inspections.content, &mut failures);
-    validate_annotations(output_color_space, &inspections.annotations, &mut failures);
-    validate_actions(&inspections.actions, &mut failures);
+    validate_xobjects(profile, &inspections.xobjects, &mut failures);
+    validate_graphics(
+        profile,
+        &inspections.graphics,
+        &inspections.content,
+        output_color_space,
+        &mut failures,
+    );
+    validate_annotations(
+        output_color_space,
+        profile,
+        &inspections.annotations,
+        &mut failures,
+    );
+    validate_actions(profile, &inspections.actions, &mut failures);
     validate_forms(&inspections.forms, &mut failures);
-    validate_document_features(&inspections.document_features, &mut failures);
-    validate_file_specifications(
+    validate_document_features(
+        profile,
         &inspections.document_features,
         &inspections.actions,
         &mut failures,
     );
-    validate_object_limits(&inspections.object_limits, &mut failures);
-    validate_stream_safety(&inspections.stream_safety, &mut failures);
+    if profile.is_pdfa_2_or_3() {
+        let mut invalid_unicode_names = inspections.unicode_names.failures.clone();
+        invalid_unicode_names.extend(
+            inspections
+                .document_features
+                .invalid_unicode_structure_types
+                .iter()
+                .cloned(),
+        );
+        aggregate_failures(
+            &invalid_unicode_names,
+            "PDFA1B-UNICODE-NAME-001",
+            &mut failures,
+        );
+    }
+    validate_file_specifications(
+        profile,
+        &inspections.document_features,
+        &inspections.actions,
+        &mut failures,
+    );
+    validate_object_limits(profile, &inspections.object_limits, &mut failures);
+    validate_stream_safety(
+        profile,
+        &inspections.stream_safety,
+        &inspections.content,
+        &mut failures,
+    );
 
-    validate_font_dictionaries(&inspections.font_embedding, &mut failures);
-    if matches!(profile, ValidationProfile::PdfA1a) {
+    validate_font_dictionaries(profile, &inspections.font_embedding, &mut failures);
+    if profile.requires_unicode_mapping() {
         aggregate_failures(
             &inspections.font_embedding.invalid_unicode_mappings,
             "PDFA1A-UNICODE-MAPPING-001",
+            &mut failures,
+        );
+    }
+    if profile.is_pdfa_2_or_3() && profile.requires_unicode_mapping() {
+        aggregate_failures(
+            &inspections.font_embedding.invalid_unicode_values,
+            "PDFA1B-UNICODE-VALUE-001",
+            &mut failures,
+        );
+    }
+    if matches!(
+        profile,
+        ValidationProfile::PdfA2a | ValidationProfile::PdfA3a
+    ) {
+        aggregate_failures(
+            &inspections.font_embedding.unicode_pua_without_actual_text,
+            "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+            &mut failures,
+        );
+    }
+    if profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &inspections.font_embedding.notdef_glyphs,
+            "PDFA1B-NOTDEF-GLYPH-001",
             &mut failures,
         );
     }
@@ -623,6 +830,14 @@ fn validate_structure_tree(
             FailureCategory::Conformance,
         ));
     }
+    if features.struct_tree_role_map_has_standard_remap {
+        failures.push(failure(
+            "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+            "a standard structure type must not be remapped to a non-standard type",
+            features.struct_tree_root_object_id,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
@@ -653,6 +868,7 @@ fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<Val
 }
 
 fn validate_object_limits(
+    _profile: ValidationProfile,
     limits: &crate::object_limits::ObjectLimitsSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
@@ -660,32 +876,48 @@ fn validate_object_limits(
         (
             "PDFA1B-INTEGER-RANGE-001",
             "an integer is outside the inclusive PDF/A-1 range",
-            &limits.out_of_range_integers,
+            limits.out_of_range_integers.as_slice(),
         ),
         (
             "PDFA1B-REAL-RANGE-001",
-            "a real number is outside the inclusive PDF/A-1 range",
-            &limits.out_of_range_reals,
+            "a real number is outside the inclusive PDF/A range",
+            if _profile.is_pdfa_2_or_3() {
+                limits.out_of_range_reals_pdfa_2.as_slice()
+            } else {
+                limits.out_of_range_reals.as_slice()
+            },
         ),
         (
             "PDFA1B-STRING-LENGTH-001",
-            "a string exceeds the 65,535-byte PDF/A-1 limit",
-            &limits.overlong_strings,
+            "a string exceeds the PDF/A string-length limit",
+            if _profile.is_pdfa_2_or_3() {
+                limits.overlong_strings_pdfa_2.as_slice()
+            } else {
+                limits.overlong_strings.as_slice()
+            },
         ),
         (
             "PDFA1B-NAME-LENGTH-001",
             "a name exceeds the 127-byte PDF/A-1 limit",
-            &limits.overlong_names,
+            limits.overlong_names.as_slice(),
         ),
         (
             "PDFA1B-ARRAY-LENGTH-001",
             "an array exceeds the 8,191-entry PDF/A-1 limit",
-            &limits.oversized_arrays,
+            if _profile.is_pdfa_2_or_3() {
+                &[][..]
+            } else {
+                limits.oversized_arrays.as_slice()
+            },
         ),
         (
             "PDFA1B-DICTIONARY-LENGTH-001",
             "a dictionary exceeds the 4,095-entry PDF/A-1 limit",
-            &limits.oversized_dictionaries,
+            if _profile.is_pdfa_2_or_3() {
+                &[][..]
+            } else {
+                limits.oversized_dictionaries.as_slice()
+            },
         ),
     ];
     for (rule_id, description, objects) in checks {
@@ -697,6 +929,14 @@ fn validate_object_limits(
                 FailureCategory::Conformance,
             ));
         }
+    }
+    if _profile.is_pdfa_2_or_3() && !limits.underflow_reals_pdfa_2.is_empty() {
+        failures.push(failure(
+            "PDFA1B-REAL-MINIMUM-001",
+            "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
+            only(&limits.underflow_reals_pdfa_2).copied(),
+            FailureCategory::Conformance,
+        ));
     }
     if limits.too_many_indirect_objects {
         failures.push(failure(
@@ -795,30 +1035,52 @@ fn identification_prefix_rule(test: u8) -> (&'static str, &'static str) {
         4 => ("PDFA1B-ID-PART-PREFIX-001", "part"),
         5 => ("PDFA1B-ID-CONFORMANCE-PREFIX-001", "conformance"),
         6 => ("PDFA1B-ID-AMD-PREFIX-001", "amd"),
+        7 => ("PDFA1B-ID-CORR-PREFIX-001", "corr"),
         _ => unreachable!("unsupported PDF/A-1 identification-prefix test {test}"),
     }
 }
 
 fn validate_actions(
+    _profile: ValidationProfile,
     actions: &crate::actions::ActionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
+    if _profile.is_pdfa_2_or_3() {
+        let widget_action_failures = actions
+            .widgets_with_actions
+            .iter()
+            .chain(&actions.widgets_with_additional_actions)
+            .cloned()
+            .collect::<Vec<_>>();
+        aggregate_failures(
+            &widget_action_failures,
+            "PDFA1B-WIDGET-ACTION-001",
+            failures,
+        );
+    } else {
+        aggregate_failures(
+            &actions.widgets_with_actions,
+            "PDFA1B-WIDGET-ACTION-001",
+            failures,
+        );
+        aggregate_failures(
+            &actions.widgets_with_additional_actions,
+            "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
+            failures,
+        );
+    }
     for (invalid, rule_id) in [
         (
-            actions.invalid_action_types.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                actions.invalid_action_types_pdfa2.as_slice()
+            } else {
+                actions.invalid_action_types.as_slice()
+            },
             "PDFA1B-ACTION-TYPE-001",
         ),
         (
             actions.invalid_named_actions.as_slice(),
             "PDFA1B-NAMED-ACTION-001",
-        ),
-        (
-            actions.widgets_with_actions.as_slice(),
-            "PDFA1B-WIDGET-ACTION-001",
-        ),
-        (
-            actions.widgets_with_additional_actions.as_slice(),
-            "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
         ),
         (
             actions.fields_with_additional_actions.as_slice(),
@@ -827,6 +1089,14 @@ fn validate_actions(
         (
             actions.catalog_with_additional_actions.as_slice(),
             "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
+        ),
+        (
+            if _profile.is_pdfa_2_or_3() {
+                actions.pages_with_additional_actions.as_slice()
+            } else {
+                &[][..]
+            },
+            "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
@@ -849,17 +1119,19 @@ fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut Vec<Validati
 }
 
 fn validate_document_features(
+    profile: ValidationProfile,
     features: &crate::document_features::DocumentFeatureSummary,
+    actions: &crate::actions::ActionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     for (invalid, rule_id, description) in [
         (
-            features.contains_embedded_files_name,
+            features.contains_embedded_files_name && !profile.permits_embedded_files(),
             "PDFA1B-NAMES-EMBEDDED-FILES-001",
             "the catalog Names dictionary contains an EmbeddedFiles entry",
         ),
         (
-            features.contains_optional_content,
+            features.contains_optional_content && !profile.permits_optional_content(),
             "PDFA1B-OPTIONAL-CONTENT-001",
             "the document catalog contains an OCProperties entry",
         ),
@@ -873,6 +1145,89 @@ fn validate_document_features(
             ));
         }
     }
+    if profile.is_pdfa_2_or_3() {
+        for (invalid, rule_id) in [
+            (
+                &features.invalid_page_boundaries,
+                "PDFA1B-PAGE-BOUNDARY-001",
+            ),
+            (&features.pages_with_pres_steps, "PDFA1B-PRES-STEPS-001"),
+            (
+                &features.catalog_with_requirements,
+                "PDFA1B-CATALOG-REQUIREMENTS-001",
+            ),
+            (
+                &features.catalog_with_alternate_presentations,
+                "PDFA1B-ALTERNATE-PRESENTATIONS-001",
+            ),
+            (
+                &features.catalog_with_needs_rendering,
+                "PDFA1B-CATALOG-NEEDS-RENDERING-001",
+            ),
+            (
+                &features.permissions_with_invalid_keys,
+                "PDFA1B-PERMS-ENTRIES-001",
+            ),
+            (&features.acro_forms_with_xfa, "PDFA1B-ACROFORM-XFA-001"),
+            (
+                &features.optional_content_missing_names,
+                "PDFA1B-OPTIONAL-CONTENT-NAME-001",
+            ),
+            (
+                &features.optional_content_duplicate_names,
+                "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
+            ),
+            (
+                &features.optional_content_invalid_orders,
+                "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
+            ),
+            (
+                &features.optional_content_as_entries,
+                "PDFA1B-OPTIONAL-CONTENT-AS-001",
+            ),
+            (
+                &features.signature_refs_with_digest_keys,
+                "PDFA1B-SIGNATURE-REFERENCE-001",
+            ),
+        ] {
+            aggregate_failures(invalid, rule_id, failures);
+        }
+        aggregate_failures(
+            &features.file_specs_missing_f_or_uf,
+            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+            failures,
+        );
+        aggregate_failures(
+            &actions.file_specs_missing_f_or_uf,
+            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+            failures,
+        );
+        if matches!(profile.pdfa_part(), Some(2)) {
+            aggregate_failures(
+                &features.embedded_files_not_pdfa,
+                "PDFA1B-EMBEDDED-FILE-PDFA-001",
+                failures,
+            );
+        }
+        if matches!(profile.pdfa_part(), Some(3)) {
+            for (invalid, rule_id) in [
+                (
+                    &features.embedded_files_with_invalid_mime,
+                    "PDFA1B-EMBEDDED-FILE-MIME-001",
+                ),
+                (
+                    &features.file_specs_missing_af_relationship,
+                    "PDFA1B-FILE-SPEC-AF-RELATIONSHIP-001",
+                ),
+                (
+                    &features.file_specs_not_associated,
+                    "PDFA1B-FILE-SPEC-ASSOCIATION-001",
+                ),
+            ] {
+                aggregate_failures(invalid, rule_id, failures);
+            }
+        }
+    }
 }
 
 /// Aggregates `PDFA1B-FILE-SPEC-EMBEDDED-FILE-001` failures across every
@@ -880,10 +1235,14 @@ fn validate_document_features(
 /// catalog `Names/EmbeddedFiles` name tree, and `GoToR`/`SubmitForm` action
 /// `/F` entries.
 fn validate_file_specifications(
+    profile: ValidationProfile,
     document_features: &crate::document_features::DocumentFeatureSummary,
     actions: &crate::actions::ActionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
+    if profile.is_pdfa_2_or_3() {
+        return;
+    }
     let file_spec_failures = document_features
         .file_specs_with_embedded_files
         .iter()
@@ -898,7 +1257,9 @@ fn validate_file_specifications(
 }
 
 fn validate_stream_safety(
+    profile: ValidationProfile,
     streams: &crate::stream_safety::StreamSafetySummary,
+    content: &crate::content_support::ContentExecutionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     if !streams.external_stream_entries.is_empty() {
@@ -923,7 +1284,7 @@ fn validate_stream_safety(
             FailureCategory::Conformance,
         ));
     }
-    if !streams.lzw_filters.is_empty() {
+    if !profile.is_pdfa_2_or_3() && !streams.lzw_filters.is_empty() {
         let object_id = only(&streams.lzw_filters).copied();
         failures.push(failure(
             "PDFA1B-STREAM-LZW-001",
@@ -932,7 +1293,53 @@ fn validate_stream_safety(
             FailureCategory::Conformance,
         ));
     }
-    if !streams.xref_streams.is_empty() {
+    if profile.is_pdfa_2_or_3() && !streams.invalid_filters_pdfa2.is_empty() {
+        let object_id = only(&streams.invalid_filters_pdfa2).copied();
+        failures.push(failure(
+            "PDFA1B-STREAM-FILTER-001",
+            "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if profile.is_pdfa_2_or_3() && !streams.invalid_signature_byte_ranges.is_empty() {
+        let object_id = only(&streams.invalid_signature_byte_ranges).copied();
+        failures.push(failure(
+            "PDFA1B-SIGNATURE-BYTERANGE-001",
+            "a signature /ByteRange does not cover the complete PDF except for its signature contents",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
+        let object_id = only(&streams.invalid_signature_certificates).copied();
+        failures.push(failure(
+            "PDFA1B-SIGNATURE-CERTIFICATE-001",
+            "a parsed PKCS#7 signature does not contain a signing certificate",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
+        let object_id = only(&streams.invalid_signature_signer_counts).copied();
+        failures.push(failure(
+            "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+            "a parsed PKCS#7 signature does not contain exactly one signer",
+            object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+    if profile.is_pdfa_2_or_3()
+        && let Some(context) = &content.inline_image_invalid_filter_context
+    {
+        failures.push(failure(
+            "PDFA1B-INLINE-IMAGE-FILTER-001",
+            format!("{context} declares a filter that PDF/A-2 and PDF/A-3 do not permit"),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
+    if !streams.xref_streams.is_empty() && !profile.permits_xref_streams() {
         let object_id = only(&streams.xref_streams).copied();
         failures.push(failure(
             "PDFA1B-XREF-STREAM-001",
@@ -953,7 +1360,7 @@ fn validate_stream_safety(
             "a hexadecimal string contains a non-hexadecimal character",
         ),
         (
-            streams.has_invalid_xref_subsection_spacing,
+            streams.has_invalid_xref_subsection_spacing && !profile.is_pdfa_2_or_3(),
             "PDFA1B-XREF-SUBSECTION-SPACING-001",
             "an xref subsection header does not separate its numbers with one SPACE character",
         ),
@@ -1116,7 +1523,10 @@ fn pdfa_output_color_space(document: &PdfDocument) -> Option<&str> {
         .iter()
         .filter(|entry| entry.is_dictionary_based && entry.dest_output_profile_is_stream)
     {
-        if entry.subtype.as_deref() == Some("GTS_PDFA1") {
+        if matches!(
+            entry.subtype.as_deref(),
+            Some("GTS_PDFA1" | "GTS_PDFA2" | "GTS_PDFA3")
+        ) {
             output_color_space = entry
                 .dest_output_profile_header
                 .as_ref()
@@ -1127,30 +1537,51 @@ fn pdfa_output_color_space(document: &PdfDocument) -> Option<&str> {
 }
 
 fn validate_xobjects(
+    profile: ValidationProfile,
     xobjects: &crate::xobject::XObjectSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
+    if profile.is_pdfa_2_or_3() {
+        let form_forbidden_entries = xobjects
+            .form_opi
+            .iter()
+            .chain(&xobjects.form_postscript)
+            .cloned()
+            .collect::<Vec<_>>();
+        aggregate_failures(
+            &form_forbidden_entries,
+            "PDFA1B-FORM-POSTSCRIPT-001",
+            failures,
+        );
+    } else {
+        aggregate_failures(&xobjects.form_opi, "PDFA1B-XOBJECT-OPI-001", failures);
+        aggregate_failures(
+            &xobjects.form_postscript,
+            "PDFA1B-FORM-POSTSCRIPT-001",
+            failures,
+        );
+    }
     for (invalid, rule_id) in [
         (
             xobjects.image_alternates.as_slice(),
             "PDFA1B-IMAGE-ALTERNATES-001",
         ),
-        (xobjects.xobject_opi.as_slice(), "PDFA1B-XOBJECT-OPI-001"),
+        (xobjects.image_opi.as_slice(), "PDFA1B-XOBJECT-OPI-001"),
         (
             xobjects.image_interpolate.as_slice(),
             "PDFA1B-IMAGE-INTERPOLATE-001",
         ),
         (
-            xobjects.image_bits_per_component.as_slice(),
+            if profile.is_pdfa_2_or_3() {
+                xobjects.image_bits_per_component_pdfa2.as_slice()
+            } else {
+                xobjects.image_bits_per_component.as_slice()
+            },
             "PDFA1B-IMAGE-BPC-001",
         ),
         (
             xobjects.mask_bits_per_component.as_slice(),
             "PDFA1B-IMAGE-MASK-BPC-001",
-        ),
-        (
-            xobjects.form_postscript.as_slice(),
-            "PDFA1B-FORM-POSTSCRIPT-001",
         ),
         (
             xobjects.form_reference.as_slice(),
@@ -1163,11 +1594,29 @@ fn validate_xobjects(
     ] {
         aggregate_failures_with_location(invalid, rule_id, None, failures);
     }
+    if profile.is_pdfa_2_or_3() {
+        for (index, failures_for_rule) in xobjects.jpeg2000_failures.iter().enumerate() {
+            aggregate_failures(
+                failures_for_rule,
+                match index {
+                    0 => "PDFA1B-JPEG2000-CHANNELS-001",
+                    1 => "PDFA1B-JPEG2000-COLOR-SPECS-001",
+                    2 => "PDFA1B-JPEG2000-COLOR-METHOD-001",
+                    3 => "PDFA1B-JPEG2000-COLOR-SPACE-001",
+                    4 => "PDFA1B-JPEG2000-BIT-DEPTH-001",
+                    _ => unreachable!(),
+                },
+                failures,
+            );
+        }
+    }
 }
 
 fn validate_graphics(
+    profile: ValidationProfile,
     graphics: &crate::graphics::GraphicsSummary,
     content: &crate::content_support::ContentExecutionSummary,
+    output_color_space: Option<&str>,
     failures: &mut Vec<ValidationFailure>,
 ) {
     for (invalid, rule_id) in [
@@ -1184,31 +1633,98 @@ fn validate_graphics(
             "PDFA1B-RENDERING-INTENT-001",
         ),
         (
-            graphics.extgstate_soft_masks.as_slice(),
+            if profile.permits_transparency() {
+                &[][..]
+            } else {
+                graphics.extgstate_soft_masks.as_slice()
+            },
             "PDFA1B-EXTGSTATE-SMASK-001",
         ),
         (
-            graphics.xobject_soft_masks.as_slice(),
+            if profile.permits_transparency() {
+                &[][..]
+            } else {
+                graphics.xobject_soft_masks.as_slice()
+            },
             "PDFA1B-XOBJECT-SMASK-001",
         ),
         (
-            graphics.transparency_groups.as_slice(),
+            if profile.permits_transparency() {
+                &[][..]
+            } else {
+                graphics.transparency_groups.as_slice()
+            },
             "PDFA1B-TRANSPARENCY-GROUP-001",
         ),
         (
-            graphics.blend_modes.as_slice(),
+            if profile.permits_transparency() {
+                graphics.blend_modes_pdfa2.as_slice()
+            } else {
+                graphics.blend_modes.as_slice()
+            },
             "PDFA1B-EXTGSTATE-BLEND-MODE-001",
         ),
         (
-            graphics.stroke_alpha.as_slice(),
+            if profile.permits_transparency() {
+                &[][..]
+            } else {
+                graphics.stroke_alpha.as_slice()
+            },
             "PDFA1B-EXTGSTATE-STROKE-ALPHA-001",
         ),
         (
-            graphics.fill_alpha.as_slice(),
+            if profile.permits_transparency() {
+                &[][..]
+            } else {
+                graphics.fill_alpha.as_slice()
+            },
             "PDFA1B-EXTGSTATE-FILL-ALPHA-001",
         ),
     ] {
         aggregate_failures_with_location(invalid, rule_id, None, failures);
+    }
+    if profile.is_pdfa_2_or_3() {
+        if output_color_space.is_none() {
+            aggregate_failures_with_location(
+                &graphics.transparency_groups_missing_cs,
+                "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+                None,
+                failures,
+            );
+            aggregate_failures_with_location(
+                &graphics.pages_with_transparency_missing_cs,
+                "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+                None,
+                failures,
+            );
+        }
+        for (invalid, rule_id) in [
+            (&graphics.extgstate_htp, "PDFA1B-EXTGSTATE-HTP-001"),
+            (&graphics.halftone_types, "PDFA1B-HALFTONE-TYPE-001"),
+            (&graphics.halftone_names, "PDFA1B-HALFTONE-NAME-001"),
+        ] {
+            aggregate_failures_with_location(invalid, rule_id, None, failures);
+        }
+    }
+    if profile.is_pdfa_2_or_3() {
+        aggregate_failures_with_location(
+            &content.icc_cmyk_overprint,
+            "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+            None,
+            failures,
+        );
+        aggregate_failures_with_location(
+            &content.inherited_resources,
+            "PDFA1B-CONTENT-RESOURCES-001",
+            None,
+            failures,
+        );
+        aggregate_failures_with_location(
+            &graphics.halftone_transfer_functions,
+            "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+            None,
+            failures,
+        );
     }
     if !content.undefined_operators.is_empty() {
         let detail = content
@@ -1232,25 +1748,64 @@ fn validate_graphics(
             FailureCategory::Conformance,
         ));
     }
+    if profile.is_pdfa_2_or_3()
+        && let Some(context) = &content.inline_image_interpolate_context
+    {
+        failures.push(failure(
+            "PDFA1B-IMAGE-INTERPOLATE-001",
+            format!("{context} sets the forbidden true inline-image interpolation flag"),
+            None,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
 fn validate_annotations(
     output_color_space: Option<&str>,
+    _profile: ValidationProfile,
     annotations: &crate::annotations::AnnotationSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     for (invalid, rule_id) in [
         (
-            annotations.invalid_subtypes.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                annotations.invalid_subtypes_pdfa2.as_slice()
+            } else {
+                annotations.invalid_subtypes.as_slice()
+            },
             "PDFA1B-ANNOTATION-SUBTYPE-001",
         ),
         (
-            annotations.invalid_opacities.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                &[][..]
+            } else {
+                annotations.invalid_opacities.as_slice()
+            },
             "PDFA1B-ANNOTATION-OPACITY-001",
         ),
         (
-            annotations.invalid_flags.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                annotations.invalid_flags_pdfa2.as_slice()
+            } else {
+                annotations.invalid_flags.as_slice()
+            },
             "PDFA1B-ANNOTATION-FLAGS-001",
+        ),
+        (
+            if _profile.is_pdfa_2_or_3() {
+                annotations.missing_flags_pdfa2.as_slice()
+            } else {
+                &[][..]
+            },
+            "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
+        ),
+        (
+            if _profile.is_pdfa_2_or_3() {
+                annotations.missing_appearances_pdfa2.as_slice()
+            } else {
+                &[][..]
+            },
+            "PDFA1B-ANNOTATION-AP-REQUIRED-001",
         ),
         (
             annotations.invalid_appearance_entries.as_slice(),
@@ -1267,7 +1822,7 @@ fn validate_annotations(
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
-    if output_color_space != Some("RGB ") {
+    if output_color_space != Some("RGB ") && !_profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &annotations.color_uses,
             "PDFA1B-ANNOTATION-COLOR-001",
@@ -1294,6 +1849,7 @@ fn validate_font_embedding(
 }
 
 fn validate_font_dictionaries(
+    _profile: ValidationProfile,
     fonts: &crate::font_embedding::FontEmbeddingSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
@@ -1314,11 +1870,19 @@ fn validate_font_dictionaries(
         ),
         (fonts.invalid_widths.as_slice(), "PDFA1B-FONT-WIDTHS-001"),
         (
-            fonts.invalid_font_file_subtypes.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts.invalid_font_file_subtypes_pdfa2.as_slice()
+            } else {
+                fonts.invalid_font_file_subtypes.as_slice()
+            },
             "PDFA1B-FONT-FILE-SUBTYPE-001",
         ),
         (
-            fonts.incompatible_type0_system_info.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts.incompatible_type0_system_info_pdfa2.as_slice()
+            } else {
+                fonts.incompatible_type0_system_info.as_slice()
+            },
             "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
         ),
         (
@@ -1326,7 +1890,13 @@ fn validate_font_dictionaries(
             "PDFA1B-CIDTOGIDMAP-001",
         ),
         (
-            fonts.unembedded_cmaps.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts.unembedded_cmaps.as_slice()
+            } else {
+                // PDF/A-1 permits only the two Identity CMaps unembedded;
+                // PDF/A-2/3 additionally permit the complete Table 118 set.
+                &[]
+            },
             "PDFA1B-CMAP-EMBEDDING-001",
         ),
         (
@@ -1336,6 +1906,14 @@ fn validate_font_dictionaries(
         (
             fonts.invalid_cmap_cids.as_slice(),
             "PDFA1B-CMAP-CID-RANGE-001",
+        ),
+        (
+            if _profile.is_pdfa_2_or_3() {
+                fonts.invalid_cmap_references.as_slice()
+            } else {
+                &[]
+            },
+            "PDFA1B-CMAP-REFERENCE-001",
         ),
         (
             fonts.oversized_cmap_cids.as_slice(),
@@ -1380,6 +1958,26 @@ fn validate_font_dictionaries(
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
+    if _profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &fonts.invalid_nonsymbolic_truetype_cmaps,
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
+            failures,
+        );
+    } else {
+        aggregate_failures(
+            &fonts.invalid_nonsymbolic_truetype_cmaps,
+            "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            failures,
+        );
+    }
+    if !_profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &fonts.unembedded_predefined_cmaps,
+            "PDFA1B-CMAP-EMBEDDING-001",
+            failures,
+        );
+    }
 }
 
 /// Requires exactly one declared value satisfying `accept`, producing a
@@ -1413,12 +2011,32 @@ fn require_single_declared_value(
     }
 }
 
-fn validate_output_intents(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
-    validate_output_intent_profiles(document, failures);
+fn validate_output_intents(
+    profile: ValidationProfile,
+    document: &PdfDocument,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    validate_output_intent_profiles(profile, document, failures);
     validate_output_intent_identity(document, failures);
+    if profile.is_pdfa_2_or_3()
+        && document.output_intents_summary.entries.iter().any(|entry| {
+            entry.subtype.as_deref() == Some("GTS_PDFX") && entry.dest_output_profile_ref_present
+        })
+    {
+        failures.push(failure(
+            "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
+            "a PDF/X OutputIntent contains the forbidden /DestOutputProfileRef entry",
+            document.catalog_reference,
+            FailureCategory::Conformance,
+        ));
+    }
 }
 
-fn validate_output_intent_profiles(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+fn validate_output_intent_profiles(
+    profile: ValidationProfile,
+    document: &PdfDocument,
+    failures: &mut Vec<ValidationFailure>,
+) {
     let entries = document
         .output_intents_summary
         .entries
@@ -1433,7 +2051,13 @@ fn validate_output_intent_profiles(document: &PdfDocument, failures: &mut Vec<Va
         if !entry
             .dest_output_profile_header
             .as_ref()
-            .is_some_and(|header| header.conforms_to_pdfa_1_output_intent())
+            .is_some_and(|header| {
+                if profile.is_pdfa_2_or_3() {
+                    header.conforms_to_pdfa_2_output_intent()
+                } else {
+                    header.conforms_to_pdfa_1_output_intent()
+                }
+            })
         {
             let detail = match (
                 &entry.dest_output_profile_header,
@@ -1641,13 +2265,16 @@ fn finish_report(
     mut failures: Vec<ValidationFailure>,
     total_checks: usize,
 ) -> ValidationReport {
-    failures.sort_by_key(|failure| failure.rule_id);
+    for failure in &mut failures {
+        failure.rule_id = remap_local_rule_id(profile, &failure.rule_id);
+    }
+    failures.sort_by_key(|failure| failure.rule_id.clone());
     let failed = failures.len();
     ValidationReport {
         source: None,
         profile,
         checks_passed: failures.is_empty(),
-        preliminary: true,
+        preliminary: false,
         checks: ValidationCounts {
             total: total_checks,
             passed: total_checks.saturating_sub(failed),
@@ -1665,11 +2292,28 @@ fn failure(
     category: FailureCategory,
 ) -> ValidationFailure {
     ValidationFailure {
-        rule_id,
+        rule_id: rule_id.to_owned(),
         message: message.into(),
         object_id,
         category,
     }
+}
+
+fn remap_local_rule_id(profile: ValidationProfile, rule_id: &str) -> String {
+    let level = profile.pdfa_conformance().unwrap_or_else(|| {
+        if rule_id.starts_with("PDFA1A-") {
+            'A'
+        } else {
+            'B'
+        }
+    });
+    let Some(prefix) = profile.local_rule_prefix(level) else {
+        return rule_id.to_owned();
+    };
+    rule_id
+        .strip_prefix("PDFA1A-")
+        .or_else(|| rule_id.strip_prefix("PDFA1B-"))
+        .map_or_else(|| rule_id.to_owned(), |suffix| format!("{prefix}-{suffix}"))
 }
 
 #[cfg(test)]
@@ -1805,12 +2449,6 @@ mod tests {
     #[test]
     fn rejects_every_unimplemented_profile_before_parsing() {
         let profiles = [
-            ValidationProfile::PdfA2a,
-            ValidationProfile::PdfA2b,
-            ValidationProfile::PdfA2u,
-            ValidationProfile::PdfA3a,
-            ValidationProfile::PdfA3b,
-            ValidationProfile::PdfA3u,
             ValidationProfile::PdfA4,
             ValidationProfile::PdfA4e,
             ValidationProfile::PdfA4f,
@@ -1915,6 +2553,98 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_rule(&report, "PDFA1B-TRAILER-ID-001");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_require_a_nonempty_last_trailer_id() {
+        let bytes = fixture(Some(VALID_XMP), true);
+        for profile in [
+            ValidationProfile::PdfA2a,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfA2u,
+            ValidationProfile::PdfA3a,
+            ValidationProfile::PdfA3b,
+            ValidationProfile::PdfA3u,
+        ] {
+            let (mut document, mut inspections) =
+                PdfDocument::from_bytes_with_inspections(&bytes, &SafetyLimits::default())
+                    .expect("parse fixture");
+            document.trailer_id = Some(vec![b"parser fallback".to_vec()]);
+            inspections.header.last_trailer_id = Some(Vec::new());
+            let report = validate_document(document, inspections, profile);
+            assert!(
+                report
+                    .failures
+                    .iter()
+                    .any(|failure| failure.rule_id.ends_with("-TRAILER-ID-001")),
+                "missing profile-specific trailer-ID failure: {report}"
+            );
+        }
+    }
+
+    #[test]
+    fn pdfa_2_and_3_require_the_pdfaid_prefix_for_corr() {
+        let xmp = br#"<?xpacket begin=""?>
+          <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF
+            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+            xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+            xmlns:wrong="http://www.aiim.org/pdfa/ns/id/">
+            <rdf:Description pdfaid:part="2" pdfaid:conformance="B"><wrong:corr>1</wrong:corr></rdf:Description>
+          </rdf:RDF></x:xmpmeta><?xpacket end="w"?>"#;
+        let bytes = fixture(Some(xmp), true);
+
+        let report = validate_bytes_with_profile(
+            &bytes,
+            ValidationProfile::PdfA2b,
+            &SafetyLimits::default(),
+        );
+        assert_rule(&report, "PDFA2B-ID-CORR-PREFIX-001");
+
+        let report = validate_bytes_with_profile(
+            &bytes,
+            ValidationProfile::PdfA1b,
+            &SafetyLimits::default(),
+        );
+        assert_no_rule(&report, "PDFA1B-ID-CORR-PREFIX-001");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_require_utf8_xmp_bytes() {
+        let utf16_xmp = VALID_XMP
+            .iter()
+            .flat_map(|byte| [*byte, 0])
+            .collect::<Vec<_>>();
+        let report = validate_bytes_with_profile(
+            &fixture(Some(&utf16_xmp), true),
+            ValidationProfile::PdfA2b,
+            &SafetyLimits::default(),
+        );
+
+        assert_rule(&report, "PDFA2B-XMP-ENCODING-001");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_report_lzw_through_the_combined_stream_filter_rule() {
+        let bytes = include_bytes!(
+            "../tests/fixtures/mutations/PDFA1B-STREAM-LZW-001/shared-document_feature-stream_lzwdecode.pdf"
+        );
+        let report =
+            validate_bytes_with_profile(bytes, ValidationProfile::PdfA2b, &SafetyLimits::default());
+
+        assert_rule(&report, "PDFA2B-STREAM-FILTER-001");
+        assert_no_rule(&report, "PDFA2B-STREAM-LZW-001");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_report_widget_a_and_aa_through_one_rule() {
+        let bytes = include_bytes!(
+            "../tests/fixtures/mutations/PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001/shared-action-widget_additional_actions.pdf"
+        );
+        let report =
+            validate_bytes_with_profile(bytes, ValidationProfile::PdfA2b, &SafetyLimits::default());
+
+        assert_rule(&report, "PDFA2B-WIDGET-ACTION-001");
+        assert_no_rule(&report, "PDFA2B-WIDGET-ADDITIONAL-ACTIONS-001");
     }
 
     #[test]

@@ -16,14 +16,14 @@ pub struct JsonValidationReport {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct JsonFailure {
-    pub rule: &'static str,
+    pub rule: String,
     pub message: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct JsonError {
     pub kind: JsonErrorKind,
-    pub rule: &'static str,
+    pub rule: String,
     pub message: String,
 }
 
@@ -43,12 +43,12 @@ impl ValidationReport {
             .find_map(|failure| match failure.category {
                 FailureCategory::Parser => Some(JsonError {
                     kind: JsonErrorKind::Parser,
-                    rule: failure.rule_id,
+                    rule: failure.rule_id.clone(),
                     message: failure.message.clone(),
                 }),
                 FailureCategory::Operational => Some(JsonError {
                     kind: JsonErrorKind::Operational,
-                    rule: failure.rule_id,
+                    rule: failure.rule_id.clone(),
                     message: failure.message.clone(),
                 }),
                 FailureCategory::Metadata | FailureCategory::Conformance => None,
@@ -59,7 +59,7 @@ impl ValidationReport {
             self.failures
                 .iter()
                 .map(|failure| JsonFailure {
-                    rule: failure.rule_id,
+                    rule: failure.rule_id.clone(),
                     message: failure.message.clone(),
                 })
                 .collect()
@@ -99,7 +99,7 @@ mod tests {
             },
             document: None,
             failures: vec![ValidationFailure {
-                rule_id: "RULE-001",
+                rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
                 object_id: None,
                 category: FailureCategory::Conformance,
@@ -130,7 +130,7 @@ mod tests {
             },
             document: None,
             failures: vec![ValidationFailure {
-                rule_id: "PDF-PARSE-001",
+                rule_id: "PDF-PARSE-001".to_owned(),
                 message: "malformed PDF".to_owned(),
                 object_id: None,
                 category: FailureCategory::Parser,

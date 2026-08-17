@@ -18,9 +18,16 @@ pub(crate) struct GraphicsSummary {
     pub(crate) extgstate_soft_masks: Vec<RuleFailure>,
     pub(crate) xobject_soft_masks: Vec<RuleFailure>,
     pub(crate) transparency_groups: Vec<RuleFailure>,
+    pub(crate) transparency_groups_missing_cs: Vec<RuleFailure>,
+    pub(crate) pages_with_transparency_missing_cs: Vec<RuleFailure>,
     pub(crate) blend_modes: Vec<RuleFailure>,
+    pub(crate) blend_modes_pdfa2: Vec<RuleFailure>,
     pub(crate) stroke_alpha: Vec<RuleFailure>,
     pub(crate) fill_alpha: Vec<RuleFailure>,
+    pub(crate) extgstate_htp: Vec<RuleFailure>,
+    pub(crate) halftone_types: Vec<RuleFailure>,
+    pub(crate) halftone_names: Vec<RuleFailure>,
+    pub(crate) halftone_transfer_functions: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -41,6 +48,13 @@ pub(crate) fn inspect(
     for use_ in &content.extgstates {
         if extgstates.insert(use_.key.clone()) {
             inspect_extgstate(
+                document,
+                &use_.dictionary,
+                use_.key.object_id(),
+                limits,
+                &mut summary,
+            )?;
+            inspect_extgstate_halftone(
                 document,
                 &use_.dictionary,
                 use_.key.object_id(),
@@ -101,7 +115,7 @@ pub(crate) fn inspect(
         }
     }
 
-    for page_entry in pages {
+    for (index, page_entry) in pages.iter().enumerate() {
         let Some(page) = page_entry.resolve(document) else {
             continue;
         };
@@ -113,8 +127,186 @@ pub(crate) fn inspect(
             limits,
             &mut summary,
         )?;
+        let page_number = index + 1;
+        if content
+            .pages_with_transparency
+            .contains(&(page_number as u32))
+            && !page_has_group_cs(document, page, limits)?
+        {
+            summary
+                .pages_with_transparency_missing_cs
+                .push(RuleFailure {
+                    object_id: page_entry.object_id().map(Into::into),
+                    description:
+                        "page contains transparency without a /Group /CS blending colour space"
+                            .to_owned(),
+                });
+        }
     }
+    inspect_all_halftones_and_extgstates(document, &mut summary);
     Ok(summary)
+}
+
+fn page_has_group_cs(
+    document: &Document,
+    page: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(group) = page
+        .get(b"Group")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, group, b"S", limits.max_reference_depth)?
+            == Some(b"Transparency".as_slice())
+            && contains_key(group, b"CS"),
+    )
+}
+
+fn inspect_all_halftones_and_extgstates(document: &Document, summary: &mut GraphicsSummary) {
+    for (object_id, object) in &document.objects {
+        let Some(dictionary) = object.as_dict().ok() else {
+            continue;
+        };
+        let object_id = Some((*object_id).into());
+        if contains_key(dictionary, b"HTP") {
+            summary.extgstate_htp.push(RuleFailure {
+                object_id,
+                description: "an ExtGState dictionary contains /HTP".to_owned(),
+            });
+        }
+        let Some(halftone_type) = dictionary
+            .get(b"HalftoneType")
+            .ok()
+            .and_then(|value| value.as_i64().ok())
+        else {
+            continue;
+        };
+        if !matches!(halftone_type, 1 | 5) {
+            summary.halftone_types.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "a halftone dictionary has /HalftoneType {halftone_type} instead of 1 or 5"
+                ),
+            });
+        }
+        if contains_key(dictionary, b"HalftoneName") {
+            summary.halftone_names.push(RuleFailure {
+                object_id,
+                description: "a halftone dictionary contains /HalftoneName".to_owned(),
+            });
+        }
+    }
+}
+
+fn inspect_extgstate_halftone(
+    document: &Document,
+    extgstate: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    let Some(halftone) = extgstate
+        .get(b"HT")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(());
+    };
+    inspect_halftone_dictionary(document, halftone, object_id, limits, summary)
+}
+
+fn inspect_halftone_dictionary(
+    document: &Document,
+    halftone: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    if let Some(halftone_type) = halftone
+        .get(b"HalftoneType")
+        .ok()
+        .and_then(|value| value.as_i64().ok())
+        && !matches!(halftone_type, 1 | 5)
+    {
+        summary.halftone_types.push(RuleFailure {
+            object_id,
+            description: format!(
+                "a halftone dictionary has /HalftoneType {halftone_type} instead of 1 or 5"
+            ),
+        });
+    }
+    if contains_key(halftone, b"HalftoneName") {
+        summary.halftone_names.push(RuleFailure {
+            object_id,
+            description: "a halftone dictionary contains /HalftoneName".to_owned(),
+        });
+    }
+    inspect_halftone_transfer_function(document, halftone, object_id, None, limits, summary)?;
+    if halftone
+        .get(b"HalftoneType")
+        .ok()
+        .and_then(|value| value.as_i64().ok())
+        == Some(5)
+    {
+        for (colorant_name, value) in halftone.iter() {
+            let Some(child) = resolve_optional(document, value, limits.max_reference_depth)?
+                .and_then(dictionary_based)
+            else {
+                continue;
+            };
+            inspect_halftone_transfer_function(
+                document,
+                child,
+                object_id,
+                Some(colorant_name),
+                limits,
+                summary,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn inspect_halftone_transfer_function(
+    document: &Document,
+    halftone: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    colorant_name: Option<&[u8]>,
+    limits: &SafetyLimits,
+    summary: &mut GraphicsSummary,
+) -> Result<(), PdfError> {
+    let has_transfer_function = halftone
+        .get(b"TransferFunction")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .is_some_and(|value| !matches!(value, lopdf::Object::Null));
+    let valid = match colorant_name {
+        Some(b"Default") => true,
+        None | Some(b"Cyan" | b"Magenta" | b"Yellow" | b"Black") => !has_transfer_function,
+        Some(_) => has_transfer_function,
+    };
+    if !valid {
+        let context = colorant_name
+            .map(|name| format!(" /{}", String::from_utf8_lossy(name)))
+            .unwrap_or_else(|| " root".to_owned());
+        summary.halftone_transfer_functions.push(RuleFailure {
+            object_id,
+            description: format!("a{context} halftone has an invalid /TransferFunction entry"),
+        });
+    }
+    Ok(())
 }
 
 fn inspect_alpha(
@@ -212,6 +404,12 @@ fn inspect_extgstate(
     limits: &SafetyLimits,
     summary: &mut GraphicsSummary,
 ) -> Result<(), PdfError> {
+    if contains_key(dictionary, b"HTP") {
+        summary.extgstate_htp.push(RuleFailure {
+            object_id,
+            description: "a used ExtGState dictionary contains /HTP".to_owned(),
+        });
+    }
     if contains_key(dictionary, b"TR") {
         summary.transfer_functions.push(RuleFailure {
             object_id,
@@ -237,16 +435,46 @@ fn inspect_extgstate(
         });
     }
     if contains_key(dictionary, b"BM")
-        && !matches!(
-            resolved_name(document, dictionary, b"BM", limits.max_reference_depth)?,
-            Some(b"Normal" | b"Compatible")
-        )
+        && let Some(blend_mode) =
+            resolved_name(document, dictionary, b"BM", limits.max_reference_depth)?
     {
-        summary.blend_modes.push(RuleFailure {
-            object_id,
-            description: "used ExtGState dictionary has /BM other than /Normal or /Compatible"
-                .to_owned(),
-        });
+        if !matches!(blend_mode, b"Normal" | b"Compatible") {
+            summary.blend_modes.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "used ExtGState dictionary has /BM /{} outside PDF/A-1's allowed set",
+                    String::from_utf8_lossy(blend_mode)
+                ),
+            });
+        }
+        if !matches!(
+            blend_mode,
+            b"Normal"
+                | b"Compatible"
+                | b"Multiply"
+                | b"Screen"
+                | b"Overlay"
+                | b"Darken"
+                | b"Lighten"
+                | b"ColorDodge"
+                | b"ColorBurn"
+                | b"HardLight"
+                | b"SoftLight"
+                | b"Difference"
+                | b"Exclusion"
+                | b"Hue"
+                | b"Saturation"
+                | b"Color"
+                | b"Luminosity"
+        ) {
+            summary.blend_modes_pdfa2.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "used ExtGState dictionary has unsupported blend mode /{}",
+                    String::from_utf8_lossy(blend_mode)
+                ),
+            });
+        }
     }
     inspect_alpha(
         document,

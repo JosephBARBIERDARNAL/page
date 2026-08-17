@@ -176,7 +176,7 @@ const SUMMARY_CATEGORIES: [SummaryCategory; 9] = [
 ];
 
 fn summary_category(failure: &page_validation::ValidationFailure) -> SummaryCategory {
-    let rule = failure.rule_id;
+    let rule = &failure.rule_id;
 
     if failure.category == FailureCategory::Parser
         || failure.category == FailureCategory::Operational

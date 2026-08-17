@@ -48,6 +48,7 @@ pub(crate) struct FontUse {
     pub(crate) description: String,
     pub(crate) rendering_mode: i64,
     pub(crate) shown_bytes: Vec<u8>,
+    pub(crate) actual_text_present: bool,
 }
 
 /// Deterministic discoveries made while executing the bounded page, Form,
@@ -64,7 +65,12 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) invalid_rendering_intents: BTreeMap<String, String>,
     pub(crate) undefined_operators: BTreeMap<String, String>,
     pub(crate) inline_image_lzw_context: Option<String>,
+    pub(crate) inline_image_invalid_filter_context: Option<String>,
+    pub(crate) inline_image_interpolate_context: Option<String>,
     pub(crate) language_failures: Vec<RuleFailure>,
+    pub(crate) inherited_resources: Vec<RuleFailure>,
+    pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
+    pub(crate) pages_with_transparency: BTreeSet<u32>,
 }
 
 /// A byte is a PDF token boundary when it is absent (end of buffer), one of
@@ -236,6 +242,7 @@ pub(crate) fn execute_content(
         limits,
         cache,
         summary: ContentExecutionSummary::default(),
+        current_page: 0,
     };
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
@@ -252,6 +259,14 @@ struct ContentExecutor<'a> {
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
     summary: ContentExecutionSummary,
+    current_page: u32,
+}
+
+#[derive(Clone, Copy)]
+struct ResourceContext<'a> {
+    resources: Option<&'a Dictionary>,
+    page_resources: Option<&'a Dictionary>,
+    resources_are_inherited: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -260,6 +275,17 @@ struct GraphicsState {
     nonstroking_pattern: bool,
     font: Option<SelectedFont>,
     rendering_mode: i64,
+    stroking_overprint: bool,
+    nonstroking_overprint: bool,
+    overprint_mode: i64,
+    stroking_icc_cmyk: bool,
+    nonstroking_icc_cmyk: bool,
+}
+
+#[derive(Clone, Copy)]
+struct ColorSpaceSelection {
+    is_pattern: bool,
+    is_icc_cmyk: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -271,11 +297,14 @@ struct SelectedFont {
 
 impl ContentExecutor<'_> {
     fn execute_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
+        self.current_page = page_number;
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
+        let resources_are_inherited = page.get(b"Resources").is_err();
         let mut active_forms = BTreeSet::new();
         let mut decoded_bytes = 0usize;
         let mut graphics_state = GraphicsState::default();
         let mut graphics_stack = Vec::new();
+        let mut marked_content = Vec::new();
         self.record_group_color_space(
             page,
             resources.as_ref(),
@@ -285,10 +314,14 @@ impl ContentExecutor<'_> {
         if let Ok(contents) = page.get(b"Contents") {
             self.execute_contents(
                 contents,
-                resources.as_ref(),
-                resources.as_ref(),
+                ResourceContext {
+                    resources: resources.as_ref(),
+                    page_resources: resources.as_ref(),
+                    resources_are_inherited,
+                },
                 &mut graphics_state,
                 &mut graphics_stack,
+                &mut marked_content,
                 &mut active_forms,
                 &mut decoded_bytes,
                 &format!("page {page_number}"),
@@ -380,9 +413,13 @@ impl ContentExecutor<'_> {
             return self.execute_xobject(
                 entry,
                 XObjectUseKind::Appearance,
-                page_resources,
-                page_resources,
+                ResourceContext {
+                    resources: page_resources,
+                    page_resources,
+                    resources_are_inherited: false,
+                },
                 &graphics_state,
+                &mut Vec::new(),
                 active_forms,
                 decoded_bytes,
                 context,
@@ -411,15 +448,20 @@ impl ContentExecutor<'_> {
     fn execute_contents(
         &mut self,
         contents: &Object,
-        resources: Option<&Dictionary>,
-        page_resources: Option<&Dictionary>,
+        resource_context: ResourceContext<'_>,
         graphics_state: &mut GraphicsState,
         graphics_stack: &mut Vec<GraphicsState>,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        let ResourceContext {
+            resources,
+            page_resources,
+            resources_are_inherited,
+        } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
@@ -433,10 +475,10 @@ impl ContentExecutor<'_> {
             for item in array {
                 self.execute_contents(
                     item,
-                    resources,
-                    page_resources,
+                    resource_context,
                     graphics_state,
                     graphics_stack,
+                    marked_content,
                     active_forms,
                     decoded_bytes,
                     context,
@@ -455,6 +497,7 @@ impl ContentExecutor<'_> {
             self.limits,
             decoded_bytes,
         )?;
+        let mut inherited_resource_names = BTreeSet::new();
         let inline_images = tokenize_inline_images(&bytes);
         for inline in &inline_images.images {
             if let Some(name) = &inline.color_space {
@@ -462,12 +505,24 @@ impl ContentExecutor<'_> {
                     Object::Name(name.clone()),
                     resources,
                     page_resources,
+                    resources_are_inherited,
                     format!("{context}/inline image"),
+                    &mut inherited_resource_names,
                 )?;
             }
             if inline.has_lzw {
                 self.summary
                     .inline_image_lzw_context
+                    .get_or_insert_with(|| format!("{context}/inline image"));
+            }
+            if inline.has_invalid_pdfa2_filter {
+                self.summary
+                    .inline_image_invalid_filter_context
+                    .get_or_insert_with(|| format!("{context}/inline image"));
+            }
+            if inline.has_interpolate {
+                self.summary
+                    .inline_image_interpolate_context
                     .get_or_insert_with(|| format!("{context}/inline image"));
             }
             if let Some(name) = &inline.rendering_intent {
@@ -497,6 +552,7 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
+                "BMC" => marked_content.push(false),
                 "BDC" | "DP" => {
                     let properties = operation.operands.last();
                     let Some(properties) = properties else {
@@ -508,29 +564,40 @@ impl ContentExecutor<'_> {
                             self.limits,
                             resources,
                             page_resources,
+                            resources_are_inherited,
                             b"Properties",
                             name,
+                            Some(&mut inherited_resource_names),
                         )?
                     } else {
                         Some(properties)
                     };
-                    if let Some(properties) = properties
-                        && let Some(dictionary) = resolve_optional(
-                            self.document,
-                            properties,
-                            self.limits.max_reference_depth,
-                        )?
-                        .and_then(|object| object.as_dict().ok())
+                    let properties = properties.and_then(|properties| {
+                        resolve_optional(self.document, properties, self.limits.max_reference_depth)
+                            .ok()
+                            .flatten()
+                            .and_then(|object| object.as_dict().ok())
+                    });
+                    if operation.operator == "BDC" {
+                        let actual_text_present = properties
+                            .and_then(|dictionary| dictionary.get(b"ActualText").ok())
+                            .is_some_and(|value| matches!(value, Object::String(_, _)));
+                        marked_content.push(actual_text_present);
+                    }
+                    if let Some(dictionary) = properties
                         && let Some(failure) = crate::language::inspect_dictionary(
                             self.document,
                             self.limits,
                             dictionary,
-                            properties.as_reference().ok().map(Into::into),
+                            None,
                             &format!("{context} marked-content property list"),
                         )
                     {
                         self.summary.language_failures.push(failure);
                     }
+                }
+                "EMC" => {
+                    marked_content.pop();
                 }
                 "q" if operation.operands.is_empty() => {
                     if graphics_stack.len() >= self.limits.max_reference_depth {
@@ -561,16 +628,20 @@ impl ContentExecutor<'_> {
                     let Ok(_name) = value.as_name() else {
                         continue;
                     };
-                    let pattern = self.record_color_space(
+                    let selection = self.record_color_space(
                         value.clone(),
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         format!("{context}/{}", operation.operator),
+                        &mut inherited_resource_names,
                     )?;
                     if operation.operator == "CS" {
-                        graphics_state.stroking_pattern = pattern;
+                        graphics_state.stroking_pattern = selection.is_pattern;
+                        graphics_state.stroking_icc_cmyk = selection.is_icc_cmyk;
                     } else {
-                        graphics_state.nonstroking_pattern = pattern;
+                        graphics_state.nonstroking_pattern = selection.is_pattern;
+                        graphics_state.nonstroking_icc_cmyk = selection.is_icc_cmyk;
                     }
                 }
                 "g" | "G" => {
@@ -640,8 +711,10 @@ impl ContentExecutor<'_> {
                         self.limits,
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         b"ExtGState",
                         name,
+                        Some(&mut inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -657,6 +730,35 @@ impl ContentExecutor<'_> {
                         key,
                         dictionary: dictionary.clone(),
                     });
+                    if self.extgstate_has_transparency(dictionary)? {
+                        self.summary
+                            .pages_with_transparency
+                            .insert(self.current_page);
+                    }
+                    if let Some(value) = resolved_bool(
+                        self.document,
+                        dictionary,
+                        b"OP",
+                        self.limits.max_reference_depth,
+                    )? {
+                        graphics_state.stroking_overprint = value;
+                    }
+                    if let Some(value) = resolved_bool(
+                        self.document,
+                        dictionary,
+                        b"op",
+                        self.limits.max_reference_depth,
+                    )? {
+                        graphics_state.nonstroking_overprint = value;
+                    }
+                    if let Some(value) = resolved_integer(
+                        self.document,
+                        dictionary,
+                        b"OPM",
+                        self.limits.max_reference_depth,
+                    )? {
+                        graphics_state.overprint_mode = value;
+                    }
                 }
                 "Tf" => {
                     let name = match operation.operands.as_slice() {
@@ -669,8 +771,10 @@ impl ContentExecutor<'_> {
                             self.limits,
                             resources,
                             page_resources,
+                            resources_are_inherited,
                             b"Font",
                             name,
+                            Some(&mut inherited_resource_names),
                         )?
                         .map(|object| SelectedFont {
                             key: resource_key(object, &format!("{context}/Font")),
@@ -698,12 +802,14 @@ impl ContentExecutor<'_> {
                             description: font.description.clone(),
                             rendering_mode: graphics_state.rendering_mode,
                             shown_bytes: shown_bytes.clone(),
+                            actual_text_present: marked_content.iter().copied().any(|value| value),
                         });
                         self.execute_type3_glyphs(
                             &font,
                             &shown_bytes,
                             page_resources,
                             graphics_state,
+                            marked_content,
                             active_forms,
                             decoded_bytes,
                             depth + 1,
@@ -722,8 +828,10 @@ impl ContentExecutor<'_> {
                         self.limits,
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         b"XObject",
                         name,
+                        Some(&mut inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -731,9 +839,9 @@ impl ContentExecutor<'_> {
                     self.execute_xobject(
                         value,
                         XObjectUseKind::Painted,
-                        resources,
-                        page_resources,
+                        resource_context,
                         graphics_state,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         &format!("{context}/XObject /{}", String::from_utf8_lossy(name)),
@@ -752,8 +860,10 @@ impl ContentExecutor<'_> {
                         self.limits,
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         b"Shading",
                         name,
+                        Some(&mut inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -769,7 +879,9 @@ impl ContentExecutor<'_> {
                             value.clone(),
                             resources,
                             page_resources,
+                            resources_are_inherited,
                             format!("{context}/Shading /{}", String::from_utf8_lossy(name)),
+                            &mut inherited_resource_names,
                         )?;
                     }
                 }
@@ -794,25 +906,68 @@ impl ContentExecutor<'_> {
                         self.limits,
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         b"Pattern",
                         name,
+                        Some(&mut inherited_resource_names),
                     )?
                     else {
                         continue;
                     };
                     self.execute_pattern(
                         pattern,
-                        resources,
-                        page_resources,
+                        resource_context,
                         graphics_state,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         &format!("{context}/Pattern /{}", String::from_utf8_lossy(name)),
                         depth + 1,
                     )?;
                 }
+                "S" | "s" | "f" | "F" | "f*" | "B" | "B*" | "b" | "b*"
+                    if operation.operands.is_empty() =>
+                {
+                    let stroke = matches!(
+                        operation.operator.as_str(),
+                        "S" | "s" | "B" | "B*" | "b" | "b*"
+                    );
+                    let fill = matches!(
+                        operation.operator.as_str(),
+                        "f" | "F" | "f*" | "B" | "B*" | "b" | "b*"
+                    );
+                    if ((stroke
+                        && graphics_state.stroking_icc_cmyk
+                        && graphics_state.stroking_overprint)
+                        || (fill
+                            && graphics_state.nonstroking_icc_cmyk
+                            && graphics_state.nonstroking_overprint))
+                        && graphics_state.overprint_mode != 0
+                    {
+                        self.summary.icc_cmyk_overprint.push(RuleFailure {
+                            object_id: None,
+                            description: format!(
+                                "{context} paints ICCBased CMYK with overprint mode {} and enabled overprinting",
+                                graphics_state.overprint_mode
+                            ),
+                        });
+                    }
+                }
                 _ => {}
             }
+        }
+        if !inherited_resource_names.is_empty() {
+            self.summary.inherited_resources.push(RuleFailure {
+                object_id: content_id.map(Into::into),
+                description: format!(
+                    "{context} refers to resources inherited from its page: {}",
+                    inherited_resource_names
+                        .iter()
+                        .map(|name| format!("/{name}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            });
         }
         Ok(())
     }
@@ -821,14 +976,19 @@ impl ContentExecutor<'_> {
         &mut self,
         object: &Object,
         kind: XObjectUseKind,
-        resources: Option<&Dictionary>,
-        page_resources: Option<&Dictionary>,
+        resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        let ResourceContext {
+            resources,
+            page_resources,
+            resources_are_inherited,
+        } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
@@ -859,8 +1019,29 @@ impl ContentExecutor<'_> {
         } else {
             declared_subtype
         };
+        if modeled_subtype == Some(b"Form".as_slice())
+            && self.transparency_group_present(dictionary)?
+        {
+            self.summary
+                .pages_with_transparency
+                .insert(self.current_page);
+        }
         match modeled_subtype {
             Some(b"Image") => {
+                if let Some(value) = dictionary
+                    .get(b"SMask")
+                    .ok()
+                    .map(|value| {
+                        resolve_optional(self.document, value, self.limits.max_reference_depth)
+                    })
+                    .transpose()?
+                    .flatten()
+                    && !matches!(value, Object::Null)
+                {
+                    self.summary
+                        .pages_with_transparency
+                        .insert(self.current_page);
+                }
                 let is_stencil = dictionary
                     .get(b"ImageMask")
                     .ok()
@@ -874,7 +1055,9 @@ impl ContentExecutor<'_> {
                         value.clone(),
                         resources,
                         page_resources,
+                        resources_are_inherited,
                         context.to_owned(),
+                        &mut BTreeSet::new(),
                     )?;
                 }
                 for (key, dependent_kind) in [
@@ -885,9 +1068,9 @@ impl ContentExecutor<'_> {
                         self.execute_xobject(
                             dependent,
                             dependent_kind,
-                            resources,
-                            page_resources,
+                            resource_context,
                             graphics_state,
+                            marked_content,
                             active_forms,
                             decoded_bytes,
                             &format!("{context}/{}", String::from_utf8_lossy(key)),
@@ -916,9 +1099,9 @@ impl ContentExecutor<'_> {
                             self.execute_xobject(
                                 image,
                                 XObjectUseKind::Alternate,
-                                resources,
-                                page_resources,
+                                resource_context,
                                 graphics_state,
+                                marked_content,
                                 active_forms,
                                 decoded_bytes,
                                 &format!("{context}/Alternate {index}"),
@@ -951,10 +1134,14 @@ impl ContentExecutor<'_> {
                     let mut form_graphics_stack = Vec::new();
                     self.execute_contents(
                         object,
-                        form_resources.as_ref(),
-                        page_resources,
+                        ResourceContext {
+                            resources: form_resources.as_ref(),
+                            page_resources,
+                            resources_are_inherited: false,
+                        },
                         &mut form_graphics_state,
                         &mut form_graphics_stack,
+                        marked_content,
                         active_forms,
                         decoded_bytes,
                         context,
@@ -976,14 +1163,19 @@ impl ContentExecutor<'_> {
     fn execute_pattern(
         &mut self,
         object: &Object,
-        resources: Option<&Dictionary>,
-        page_resources: Option<&Dictionary>,
+        resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        let ResourceContext {
+            resources,
+            page_resources,
+            resources_are_inherited,
+        } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
@@ -1012,7 +1204,13 @@ impl ContentExecutor<'_> {
             self.limits.max_reference_depth,
         )?;
         if pattern_type == Some(2) {
-            self.execute_shading_pattern(dictionary, resources, page_resources, context)?;
+            self.execute_shading_pattern(
+                dictionary,
+                resources,
+                page_resources,
+                resources_are_inherited,
+                context,
+            )?;
             if let Some(id) = object_id {
                 active_forms.remove(&id);
             }
@@ -1038,10 +1236,14 @@ impl ContentExecutor<'_> {
         };
         let result = self.execute_contents(
             object,
-            pattern_resources.as_ref(),
-            page_resources,
+            ResourceContext {
+                resources: pattern_resources.as_ref(),
+                page_resources,
+                resources_are_inherited: false,
+            },
             &mut graphics_state.clone(),
             &mut Vec::new(),
+            marked_content,
             active_forms,
             decoded_bytes,
             context,
@@ -1058,6 +1260,7 @@ impl ContentExecutor<'_> {
         pattern: &Dictionary,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
+        resources_are_inherited: bool,
         context: &str,
     ) -> Result<(), PdfError> {
         if let Ok(shading) = pattern.get(b"Shading")
@@ -1070,7 +1273,9 @@ impl ContentExecutor<'_> {
                 color_space.clone(),
                 resources,
                 page_resources,
+                resources_are_inherited,
                 format!("{context}/Shading"),
+                &mut BTreeSet::new(),
             )?;
         }
         Ok(())
@@ -1082,6 +1287,7 @@ impl ContentExecutor<'_> {
         shown_bytes: &[u8],
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         depth: usize,
@@ -1136,6 +1342,7 @@ impl ContentExecutor<'_> {
                 font_resources.as_ref(),
                 page_resources,
                 graphics_state,
+                marked_content,
                 active_forms,
                 decoded_bytes,
                 &format!("{}/CharProc /{glyph_name}", selected.description),
@@ -1155,6 +1362,7 @@ impl ContentExecutor<'_> {
         fallback_resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
+        marked_content: &mut Vec<bool>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1174,10 +1382,14 @@ impl ContentExecutor<'_> {
         };
         self.execute_contents(
             object,
-            resources.as_ref(),
-            page_resources,
+            ResourceContext {
+                resources: resources.as_ref(),
+                page_resources,
+                resources_are_inherited: false,
+            },
             &mut graphics_state.clone(),
             &mut Vec::new(),
+            marked_content,
             active_forms,
             decoded_bytes,
             context,
@@ -1200,15 +1412,77 @@ impl ContentExecutor<'_> {
         else {
             return Ok(());
         };
+        if resolved_name(self.document, group, b"S", self.limits.max_reference_depth)?
+            == Some(b"Transparency".as_slice())
+        {
+            self.summary
+                .pages_with_transparency
+                .insert(self.current_page);
+        }
         if let Ok(color_space) = group.get(b"CS") {
             let _ = self.record_color_space(
                 color_space.clone(),
                 resources,
                 page_resources,
+                false,
                 context.to_owned(),
+                &mut BTreeSet::new(),
             )?;
         }
         Ok(())
+    }
+
+    fn extgstate_has_transparency(&self, dictionary: &Dictionary) -> Result<bool, PdfError> {
+        for key in [b"CA".as_slice(), b"ca"] {
+            if let Some(value) = dictionary
+                .get(key)
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_float().ok())
+                && value < 1.0
+            {
+                return Ok(true);
+            }
+        }
+        if let Some(value) = dictionary
+            .get(b"SMask")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            && !matches!(value, Object::Null)
+            && value.as_name().ok() != Some(b"None".as_slice())
+        {
+            return Ok(true);
+        }
+        Ok(resolved_name(
+            self.document,
+            dictionary,
+            b"BM",
+            self.limits.max_reference_depth,
+        )?
+        .is_some_and(|name| !matches!(name, b"Normal" | b"Compatible")))
+    }
+
+    fn transparency_group_present(&self, owner: &Dictionary) -> Result<bool, PdfError> {
+        let Some(group) = owner
+            .get(b"Group")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_dict().ok())
+        else {
+            return Ok(false);
+        };
+        Ok(
+            resolved_name(self.document, group, b"S", self.limits.max_reference_depth)?
+                == Some(b"Transparency".as_slice()),
+        )
     }
 
     fn record_color_space(
@@ -1216,9 +1490,18 @@ impl ContentExecutor<'_> {
         value: Object,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
+        resources_are_inherited: bool,
         context: String,
-    ) -> Result<bool, PdfError> {
-        let value = self.resolve_color_space(value, resources, page_resources, 0)?;
+        inherited_resource_names: &mut BTreeSet<String>,
+    ) -> Result<ColorSpaceSelection, PdfError> {
+        let value = self.resolve_color_space(
+            value,
+            resources,
+            page_resources,
+            resources_are_inherited,
+            inherited_resource_names,
+            0,
+        )?;
         let is_pattern = match &value {
             Object::Name(name) => name == b"Pattern",
             Object::Array(items) => {
@@ -1226,10 +1509,14 @@ impl ContentExecutor<'_> {
             }
             _ => false,
         };
+        let is_icc_cmyk = is_icc_cmyk(self.document, &value, self.limits)?;
         self.summary
             .selected_color_spaces
             .push(SelectedColorSpace { value, context });
-        Ok(is_pattern)
+        Ok(ColorSpaceSelection {
+            is_pattern,
+            is_icc_cmyk,
+        })
     }
 
     fn resolve_color_space(
@@ -1237,6 +1524,8 @@ impl ContentExecutor<'_> {
         value: Object,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
+        resources_are_inherited: bool,
+        inherited_resource_names: &mut BTreeSet<String>,
         depth: usize,
     ) -> Result<Object, PdfError> {
         if depth > self.limits.max_reference_depth {
@@ -1267,14 +1556,18 @@ impl ContentExecutor<'_> {
                     self.limits,
                     resources,
                     page_resources,
+                    resources_are_inherited,
                     b"ColorSpace",
                     default,
+                    None,
                 )?
             {
                 return self.resolve_color_space(
                     replacement.clone(),
                     resources,
                     page_resources,
+                    resources_are_inherited,
+                    inherited_resource_names,
                     depth + 1,
                 );
             }
@@ -1286,13 +1579,20 @@ impl ContentExecutor<'_> {
                 self.limits,
                 resources,
                 page_resources,
+                resources_are_inherited,
                 b"ColorSpace",
                 name,
+                Some(inherited_resource_names),
             )? {
+                if resolves_to_device_color_space(self.document, selected, self.limits)? {
+                    inherited_resource_names.remove(&String::from_utf8_lossy(name).into_owned());
+                }
                 return self.resolve_color_space(
                     selected.clone(),
                     resources,
                     page_resources,
+                    resources_are_inherited,
+                    inherited_resource_names,
                     depth + 1,
                 );
             }
@@ -1314,8 +1614,14 @@ impl ContentExecutor<'_> {
         if let Some(index) = nested_index
             && let Some(nested) = items.get(index).cloned()
         {
-            items[index] =
-                self.resolve_color_space(nested, resources, page_resources, depth + 1)?;
+            items[index] = self.resolve_color_space(
+                nested,
+                resources,
+                page_resources,
+                resources_are_inherited,
+                inherited_resource_names,
+                depth + 1,
+            )?;
         }
         Ok(Object::Array(items))
     }
@@ -1333,8 +1639,10 @@ impl ContentExecutor<'_> {
             self.limits,
             resources,
             page_resources,
+            false,
             b"ColorSpace",
             name,
+            None,
         )?
         .cloned()
         .unwrap_or_else(|| Object::Name(fallback.to_vec()));
@@ -1342,10 +1650,63 @@ impl ContentExecutor<'_> {
             value,
             resources,
             page_resources,
+            false,
             format!("{context}/{}", String::from_utf8_lossy(name)),
+            &mut BTreeSet::new(),
         )
         .map(|_| ())
     }
+}
+
+fn resolved_bool(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    max_reference_depth: usize,
+) -> Result<Option<bool>, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(None);
+    };
+    Ok(resolve_optional(document, value, max_reference_depth)?
+        .and_then(|value| value.as_bool().ok()))
+}
+
+fn is_icc_cmyk(
+    document: &Document,
+    value: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(value) = resolve_optional(document, value, limits.max_reference_depth)? else {
+        return Ok(false);
+    };
+    let Ok(items) = value.as_array() else {
+        return Ok(false);
+    };
+    if items.first().and_then(|item| item.as_name().ok()) != Some(b"ICCBased".as_slice()) {
+        return Ok(false);
+    }
+    let Some(profile) = items.get(1) else {
+        return Ok(false);
+    };
+    let Some(profile) = resolve_optional(document, profile, limits.max_reference_depth)? else {
+        return Ok(false);
+    };
+    let Ok(stream) = profile.as_stream() else {
+        return Ok(false);
+    };
+    resolved_integer(document, &stream.dict, b"N", limits.max_reference_depth).map(|n| n == Some(4))
+}
+
+fn resolves_to_device_color_space(
+    document: &Document,
+    object: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    Ok(matches!(
+        resolve_optional(document, object, limits.max_reference_depth)?
+            .and_then(|object| object.as_name().ok()),
+        Some(b"DeviceGray" | b"G" | b"DeviceRGB" | b"RGB" | b"DeviceCMYK" | b"CMYK")
+    ))
 }
 
 fn resource_key(object: &Object, context: &str) -> ResourceKey {
@@ -1370,13 +1731,24 @@ fn resource<'a>(
     limits: &SafetyLimits,
     resources: Option<&'a Dictionary>,
     page_resources: Option<&'a Dictionary>,
+    resources_are_inherited: bool,
     category: &[u8],
     name: &[u8],
+    inherited_resource_names: Option<&mut BTreeSet<String>>,
 ) -> Result<Option<&'a Object>, PdfError> {
     if let Some(object) = resource_once(document, limits, resources, category, name)? {
+        if resources_are_inherited && let Some(names) = inherited_resource_names {
+            names.insert(String::from_utf8_lossy(name).into_owned());
+        }
         return Ok(Some(object));
     }
-    resource_once(document, limits, page_resources, category, name)
+    let object = resource_once(document, limits, page_resources, category, name)?;
+    if object.is_some()
+        && let Some(names) = inherited_resource_names
+    {
+        names.insert(String::from_utf8_lossy(name).into_owned());
+    }
+    Ok(object)
 }
 
 fn is_standard_rendering_intent(name: &str) -> bool {
@@ -1469,6 +1841,8 @@ struct InlineImage {
     color_space: Option<Vec<u8>>,
     rendering_intent: Option<Vec<u8>>,
     has_lzw: bool,
+    has_invalid_pdfa2_filter: bool,
+    has_interpolate: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -1508,6 +1882,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                 let mut color_space_value = false;
                 let mut rendering_intent_value = false;
                 let mut filter_value = false;
+                let mut interpolate_value = false;
                 let mut filter_array_depth = None;
                 while let Some((token, _, next)) = next_content_token(bytes, cursor) {
                     cursor = next;
@@ -1532,6 +1907,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                         }
                         ContentToken::Name(name) if filter_value => {
                             image.has_lzw |= is_lzw_filter(&name);
+                            image.has_invalid_pdfa2_filter |= !is_pdfa2_inline_filter(&name);
                             filter_value = false;
                         }
                         ContentToken::OpenArray if filter_value => {
@@ -1547,16 +1923,23 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                         }
                         ContentToken::Name(name) if filter_array_depth.is_some() => {
                             image.has_lzw |= is_lzw_filter(&name);
+                            image.has_invalid_pdfa2_filter |= !is_pdfa2_inline_filter(&name);
+                        }
+                        ContentToken::Bare(value) if interpolate_value => {
+                            image.has_interpolate |= value == b"true";
+                            interpolate_value = false;
                         }
                         ContentToken::Name(name) => {
                             color_space_value = matches!(name.as_slice(), b"CS" | b"ColorSpace");
                             rendering_intent_value = matches!(name.as_slice(), b"Intent");
                             filter_value = matches!(name.as_slice(), b"F" | b"Filter");
+                            interpolate_value = matches!(name.as_slice(), b"I" | b"Interpolate");
                         }
                         _ => {
                             color_space_value = false;
                             rendering_intent_value = false;
                             filter_value = false;
+                            interpolate_value = false;
                         }
                     }
                 }
@@ -1572,6 +1955,24 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
 
 fn is_lzw_filter(name: &[u8]) -> bool {
     matches!(name, b"LZW" | b"LZWDecode")
+}
+
+fn is_pdfa2_inline_filter(name: &[u8]) -> bool {
+    matches!(
+        name,
+        b"ASCIIHexDecode"
+            | b"ASCII85Decode"
+            | b"FlateDecode"
+            | b"RunLengthDecode"
+            | b"CCITTFaxDecode"
+            | b"DCTDecode"
+            | b"AHx"
+            | b"A85"
+            | b"Fl"
+            | b"RL"
+            | b"CCF"
+            | b"DCT"
+    )
 }
 
 fn content_syntax_is_balanced(bytes: &[u8]) -> bool {

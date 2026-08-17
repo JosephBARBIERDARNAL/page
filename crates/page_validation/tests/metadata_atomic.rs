@@ -4,6 +4,7 @@ use page_validation::SafetyLimits;
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
+use page_validation::{ValidationProfile, validate_bytes_with_profile};
 
 pub mod common;
 
@@ -412,6 +413,21 @@ const CASES: &[(&str, &[&str])] = &[
 ];
 
 #[test]
+fn pdfa2_rejects_undefined_xmp_properties_with_the_profile_rule() {
+    let report = validate_bytes_with_profile(
+        &common::metadata_fixture("predefined_unknown_property"),
+        ValidationProfile::PdfA2b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA2B-XMP-PROPERTY-DEFINITION-001")
+    );
+}
+
+#[test]
 fn metadata_cases_have_the_complete_expected_failure_delta() {
     common::assert_case_deltas(common::metadata_fixture, "baseline_b", CASES);
 }
@@ -649,6 +665,73 @@ fn equivalent_rdf_serializations_match_pinned_verapdf_when_opted_in() {
         );
         fs::remove_file(path).expect("remove metadata fixture");
     }
+}
+
+#[test]
+fn pdfa_2_and_3_reject_non_utf8_xmp_packages() {
+    let bytes = common::metadata_fixture("xmp_utf16le_without_bom");
+    for profile in [
+        ValidationProfile::PdfA2a,
+        ValidationProfile::PdfA2b,
+        ValidationProfile::PdfA2u,
+        ValidationProfile::PdfA3a,
+        ValidationProfile::PdfA3b,
+        ValidationProfile::PdfA3u,
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        let expected = match profile {
+            ValidationProfile::PdfA2a => "PDFA2A-XMP-ENCODING-001",
+            ValidationProfile::PdfA2b => "PDFA2B-XMP-ENCODING-001",
+            ValidationProfile::PdfA2u => "PDFA2U-XMP-ENCODING-001",
+            ValidationProfile::PdfA3a => "PDFA3A-XMP-ENCODING-001",
+            ValidationProfile::PdfA3b => "PDFA3B-XMP-ENCODING-001",
+            ValidationProfile::PdfA3u => "PDFA3U-XMP-ENCODING-001",
+            _ => unreachable!("PDF/A-2/3 profile"),
+        };
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == expected),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn non_utf8_xmp_encoding_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-metadata-non-utf8-{}.pdf", std::process::id()));
+    fs::write(&path, common::metadata_fixture("xmp_utf16le_without_bom"))
+        .expect("write UTF-16 XMP fixture");
+
+    for (profile, expected_reference_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.6.2.1:5"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.6.2.1:5"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant,
+            "{profile:?}: {report:#?}"
+        );
+        assert!(
+            report
+                .reference_result
+                .as_ref()
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == expected_reference_rule),
+            "{profile:?}: {report:#?}"
+        );
+    }
+    fs::remove_file(&path).expect("remove UTF-16 XMP fixture");
 }
 
 #[test]

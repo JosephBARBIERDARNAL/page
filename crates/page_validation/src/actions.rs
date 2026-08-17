@@ -20,12 +20,15 @@ const FIELD_ACTION_KEYS: &[&[u8]] = &[b"K", b"F", b"V", b"C"];
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ActionSummary {
     pub(crate) invalid_action_types: Vec<RuleFailure>,
+    pub(crate) invalid_action_types_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_named_actions: Vec<RuleFailure>,
     pub(crate) widgets_with_actions: Vec<RuleFailure>,
     pub(crate) widgets_with_additional_actions: Vec<RuleFailure>,
     pub(crate) fields_with_additional_actions: Vec<RuleFailure>,
     pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) pages_with_additional_actions: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -98,6 +101,14 @@ impl Inspector<'_> {
             let Some(page) = page_entry.resolve(self.document) else {
                 continue;
             };
+            if contains_key(page, b"AA") {
+                self.summary
+                    .pages_with_additional_actions
+                    .push(RuleFailure {
+                        object_id: page_entry.object_id().map(Into::into),
+                        description: format!("page {page_number} contains /AA"),
+                    });
+            }
             self.inspect_additional_actions(
                 page.get(b"AA").ok(),
                 PAGE_ACTION_KEYS,
@@ -371,6 +382,15 @@ impl Inspector<'_> {
                 description: format!("{context} has a missing or forbidden /S"),
             });
         }
+        if !matches!(
+            subtype,
+            Some(b"GoTo" | b"GoToR" | b"GoToE" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
+        ) {
+            self.summary.invalid_action_types_pdfa2.push(RuleFailure {
+                object_id: failure_id,
+                description: format!("{context} has a missing or forbidden /S"),
+            });
+        }
         if subtype == Some(b"Named".as_slice())
             && !matches!(
                 resolved_name(self.document, action, b"N", self.limits.max_reference_depth,)?,
@@ -388,6 +408,25 @@ impl Inspector<'_> {
         // check, for a file spec reached this way as for one reached
         // through the catalog Names/EmbeddedFiles tree (confirmed against
         // veraPDF 1.30.2).
+        if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
+            && let Ok(file_spec_value) = action.get(b"F")
+            && let Some(file_spec_dictionary) = resolve_optional(
+                self.document,
+                file_spec_value,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(dictionary_based)
+            && contains_key(file_spec_dictionary, b"EF")
+            && (!contains_key(file_spec_dictionary, b"F")
+                || !contains_key(file_spec_dictionary, b"UF"))
+        {
+            self.summary.file_specs_missing_f_or_uf.push(RuleFailure {
+                object_id: object_id.map(Into::into),
+                description: format!(
+                    "{context} /F embedded-file specification is missing /F or /UF"
+                ),
+            });
+        }
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
             && let Some(failure) = file_spec::inspect(

@@ -289,16 +289,10 @@ fn details_format_prints_every_failed_rule() {
 }
 
 #[test]
-fn future_profiles_are_recognized_and_reported_as_unimplemented() {
+fn remaining_profiles_are_recognized_and_reported_as_unimplemented() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let profiles = [
-        ("a-2a", "PDF/A-2a"),
-        ("a-2b", "PDF/A-2b"),
-        ("a-2u", "PDF/A-2u"),
-        ("a-3a", "PDF/A-3a"),
-        ("a-3b", "PDF/A-3b"),
-        ("a-3u", "PDF/A-3u"),
         ("a-4", "PDF/A-4"),
         ("a-4e", "PDF/A-4e"),
         ("a-4f", "PDF/A-4f"),

@@ -12,6 +12,7 @@ const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
 const TYPE1_GLYPH_PRESENCE: &str = "PDFA1B-TYPE1-GLYPH-PRESENCE-001";
 const TYPE1_SUBSET_CHARSET: &str = "PDFA1B-TYPE1-SUBSET-CHARSET-001";
 const GLYPH_WIDTH: &str = "PDFA1B-TRUETYPE-GLYPH-WIDTH-001";
+const NOTDEF: &str = "PDFA2B-NOTDEF-GLYPH-001";
 
 const CASES: &[(&str, bool)] = &[
     ("unembedded_visible", true),
@@ -63,6 +64,21 @@ fn font_embedding_cases_have_the_complete_expected_failure_delta() {
             "{case}: removed baseline failures {removed:?}"
         );
     }
+}
+
+#[test]
+fn pdfa2_rejects_rendered_notdef_glyphs() {
+    let report = validate_bytes_with_profile(
+        &common::font_fixture("type3_notdef"),
+        ValidationProfile::PdfA2b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == NOTDEF)
+    );
 }
 
 #[test]

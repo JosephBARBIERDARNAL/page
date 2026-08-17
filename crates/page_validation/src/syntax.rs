@@ -11,7 +11,10 @@ use crate::object_limits::ObjectLimitsSummary;
 const MIN_INTEGER: i128 = -2_147_483_648;
 const MAX_INTEGER: i128 = 2_147_483_647;
 const MAX_REAL: f64 = 32_767.0;
+const MAX_PDFA_2_REAL: f64 = 3.403e38;
+const MIN_PDFA_2_REAL: f64 = 1.175e-38;
 const MAX_STRING_BYTES: usize = 65_535;
+const MAX_PDFA_2_STRING_BYTES: usize = 32_767;
 const MAX_NAME_BYTES: usize = 127;
 const MAX_ARRAY_ENTRIES: usize = 8_191;
 const MAX_DICTIONARY_ENTRIES: usize = 4_095;
@@ -584,10 +587,19 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         RawValue::Integer(value) if !(*value >= MIN_INTEGER && *value <= MAX_INTEGER) => {
             summary.object_limits.out_of_range_integers.push(object_id);
         }
-        RawValue::Real(value)
-            if !(value.is_finite() && *value >= -MAX_REAL && *value <= MAX_REAL) =>
-        {
-            summary.object_limits.out_of_range_reals.push(object_id);
+        RawValue::Real(value) => {
+            if !(value.is_finite() && *value >= -MAX_REAL && *value <= MAX_REAL) {
+                summary.object_limits.out_of_range_reals.push(object_id);
+            }
+            if !(value.is_finite() && *value >= -MAX_PDFA_2_REAL && *value <= MAX_PDFA_2_REAL) {
+                summary
+                    .object_limits
+                    .out_of_range_reals_pdfa_2
+                    .push(object_id);
+            }
+            if value.is_finite() && *value != 0.0 && value.abs() < MIN_PDFA_2_REAL {
+                summary.object_limits.underflow_reals_pdfa_2.push(object_id);
+            }
         }
         RawValue::Name(value) if value.len() > MAX_NAME_BYTES => {
             summary.object_limits.overlong_names.push(object_id);
@@ -601,6 +613,12 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         } => {
             if *decoded_length > MAX_STRING_BYTES {
                 summary.object_limits.overlong_strings.push(object_id);
+            }
+            if *decoded_length > MAX_PDFA_2_STRING_BYTES {
+                summary
+                    .object_limits
+                    .overlong_strings_pdfa_2
+                    .push(object_id);
             }
             if *is_hex {
                 summary.has_odd_hex_string |= hex_count % 2 != 0;
@@ -634,7 +652,6 @@ fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mu
         | RawValue::Reference
         | RawValue::Other
         | RawValue::Integer(_)
-        | RawValue::Real(_)
         | RawValue::Name(_) => {}
     }
 }
@@ -658,11 +675,22 @@ fn collect_lopdf_value_findings(
         {
             summary.out_of_range_integers.push(object_id);
         }
-        Object::Real(value) if !(*value >= -(MAX_REAL as f32) && *value <= MAX_REAL as f32) => {
-            summary.out_of_range_reals.push(object_id);
+        Object::Real(value) => {
+            if !(*value >= -(MAX_REAL as f32) && *value <= MAX_REAL as f32) {
+                summary.out_of_range_reals.push(object_id);
+            }
+            if !(*value >= -(MAX_PDFA_2_REAL as f32) && *value <= MAX_PDFA_2_REAL as f32) {
+                summary.out_of_range_reals_pdfa_2.push(object_id);
+            }
+            if *value != 0.0 && (*value as f64).abs() < MIN_PDFA_2_REAL {
+                summary.underflow_reals_pdfa_2.push(object_id);
+            }
         }
         Object::String(value, _) if value.len() > MAX_STRING_BYTES => {
             summary.overlong_strings.push(object_id);
+        }
+        Object::String(value, _) if value.len() > MAX_PDFA_2_STRING_BYTES => {
+            summary.overlong_strings_pdfa_2.push(object_id);
         }
         Object::Name(value) if value.len() > MAX_NAME_BYTES => {
             summary.overlong_names.push(object_id);
@@ -746,12 +774,18 @@ fn inspect_revisions(bytes: &[u8], limits: &SafetyLimits) -> Result<Vec<Revision
 
 fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<Revision> {
     if bytes.get(offset..offset + b"xref".len()) != Some(b"xref") {
+        let trailer = parse_xref_stream_dictionary(bytes, offset, limits);
+        let previous = trailer
+            .as_ref()
+            .and_then(|value| value.dictionary_value(b"Prev"))
+            .and_then(RawValue::integer)
+            .and_then(|value| usize::try_from(value).ok());
         return Some(Revision {
             offset,
             spacing_compliant: true,
             eol_compliant: true,
-            trailer: None,
-            previous: None,
+            trailer,
+            previous,
             xref_stream: None,
         });
     }
@@ -803,6 +837,25 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
     }
 }
 
+fn parse_xref_stream_dictionary(
+    bytes: &[u8],
+    offset: usize,
+    limits: &SafetyLimits,
+) -> Option<RawValue> {
+    let mut parser = RawParser::at(bytes, offset, limits).ok()?;
+    parser.take_unsigned_integer_token()?;
+    parser.skip_space_and_comments();
+    parser.take_unsigned_integer_token()?;
+    parser.skip_space_and_comments();
+    parser.consume_keyword(b"obj").then_some(())?;
+    parser.parse_value(0).filter(|value| {
+        matches!(
+            value.dictionary_value(b"Type"),
+            Some(RawValue::Name(name)) if name == b"XRef"
+        )
+    })
+}
+
 fn parse_subsection_header(line: &[u8]) -> Option<(usize, bool)> {
     let first_end = line.iter().position(|byte| !byte.is_ascii_digit())?;
     let second_start = line[first_end..]
@@ -834,12 +887,9 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
     });
     let has_valid_header = marker.zip(header_end).is_some_and(|(start, end)| {
         start == 0
-            && bytes[start..end].windows(8).any(|window| {
-                window[0..5] == *b"%PDF-"
-                    && window[5].is_ascii_digit()
-                    && window[6] == b'.'
-                    && window[7].is_ascii_digit()
-            })
+            && end == b"%PDF-1.0".len()
+            && bytes[..end].starts_with(b"%PDF-1.")
+            && matches!(bytes[7], b'0'..=b'7')
     });
     let comment_start = header_end.and_then(|end| single_eol_end(bytes, end));
     let has_binary_comment = comment_start.is_some_and(|start| {
@@ -1234,6 +1284,22 @@ mod tests {
         let trailer = parse(b"<< /ID [(one) 42 <74776f>] >>");
         assert_eq!(trailer_id(&trailer), Some(b"onetwo".to_vec()));
         assert_eq!(trailer_id(&parse(b"<< /ID [] >>")), Some(Vec::new()));
+    }
+
+    #[test]
+    fn pdfa_2_and_3_header_accepts_only_pdf_1_0_through_1_7() {
+        let revisions = [];
+        for version in 0..=7 {
+            let mut bytes = format!("%PDF-1.{version}\n%").into_bytes();
+            bytes.extend_from_slice(&[128, 129, 130, 131, b'\n']);
+            assert!(inspect_header(&bytes, &revisions).has_valid_header);
+        }
+        for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n", b"%PDF-1.7 extra\n"] {
+            assert!(
+                !inspect_header(header, &revisions).has_valid_header,
+                "{header:?}"
+            );
+        }
     }
 
     #[test]

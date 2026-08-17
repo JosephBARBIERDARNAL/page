@@ -9,6 +9,12 @@ pub fn minimal_truetype_with_cmap_count(cmap_count: u16) -> Vec<u8> {
     minimal_truetype_with_cmap_count_and_mapping(cmap_count, 32)
 }
 
+pub fn minimal_truetype_with_symbol_cmap(cmap_count: u16) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
+        cmap_count, 32, 2, true,
+    )
+}
+
 pub fn minimal_truetype_with_cmap_mapping(code: u8) -> Vec<u8> {
     minimal_truetype_with_cmap_count_and_mapping(1, code)
 }
@@ -25,6 +31,20 @@ pub fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
     cmap_count: u16,
     code: u8,
     glyph_count: u16,
+) -> Vec<u8> {
+    minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
+        cmap_count,
+        code,
+        glyph_count,
+        false,
+    )
+}
+
+fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
+    cmap_count: u16,
+    code: u8,
+    glyph_count: u16,
+    symbol_cmap: bool,
 ) -> Vec<u8> {
     let mut head = vec![0; 54];
     put_u32(&mut head, 0, 0x0001_0000);
@@ -57,7 +77,11 @@ pub fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
         put_u16(
             &mut cmap,
             record + 2,
-            u16::try_from(index + 1).expect("small cmap count"),
+            if symbol_cmap && index == 0 {
+                0
+            } else {
+                u16::try_from(index + 1).expect("small cmap count")
+            },
         );
         put_u32(
             &mut cmap,

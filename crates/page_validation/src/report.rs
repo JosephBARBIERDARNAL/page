@@ -18,7 +18,7 @@ pub enum FailureCategory {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ValidationFailure {
-    pub rule_id: &'static str,
+    pub rule_id: String,
     pub message: String,
     pub object_id: Option<PdfObjectId>,
     pub category: FailureCategory,
@@ -86,7 +86,7 @@ impl ValidationReport {
             source: None,
             profile,
             checks_passed: false,
-            preliminary: true,
+            preliminary: false,
             checks: ValidationCounts {
                 total: 1,
                 passed: 0,
@@ -94,7 +94,7 @@ impl ValidationReport {
             },
             document: None,
             failures: vec![ValidationFailure {
-                rule_id,
+                rule_id: rule_id.to_owned(),
                 message: message.into(),
                 object_id: None,
                 category,

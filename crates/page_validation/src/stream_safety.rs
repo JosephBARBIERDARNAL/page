@@ -4,12 +4,13 @@ use crate::content_support::is_pdf_boundary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::resolve_optional;
+use crate::object_resolution::{resolve_optional, resolved_name};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StreamSafetySummary {
     pub(crate) external_stream_entries: Vec<StreamFailure>,
     pub(crate) lzw_filters: Vec<PdfObjectId>,
+    pub(crate) invalid_filters_pdfa2: Vec<PdfObjectId>,
     pub(crate) xref_streams: Vec<PdfObjectId>,
     pub(crate) invalid_lengths: Vec<PdfObjectId>,
     pub(crate) invalid_eol_markers: Vec<PdfObjectId>,
@@ -18,6 +19,9 @@ pub(crate) struct StreamSafetySummary {
     pub(crate) has_invalid_xref_subsection_spacing: bool,
     pub(crate) has_invalid_xref_eol: bool,
     pub(crate) has_invalid_indirect_object_syntax: bool,
+    pub(crate) invalid_signature_byte_ranges: Vec<PdfObjectId>,
+    pub(crate) invalid_signature_certificates: Vec<PdfObjectId>,
+    pub(crate) invalid_signature_signer_counts: Vec<PdfObjectId>,
 }
 
 #[derive(Clone, Debug)]
@@ -44,6 +48,41 @@ pub(crate) fn inspect(
     let mut used_stream_starts = Vec::new();
     let mut all_stream_ranges_known = true;
     for (object_id, object) in &document.objects {
+        if let Some(dictionary) = object.as_dict().ok()
+            && resolved_name(document, dictionary, b"Type", limits.max_reference_depth)?
+                == Some(b"Sig".as_slice())
+        {
+            if !signature_byte_range_covers_document(
+                document,
+                dictionary,
+                limits.max_reference_depth,
+                bytes.len(),
+            )? {
+                summary
+                    .invalid_signature_byte_ranges
+                    .push((*object_id).into());
+            }
+            if let Some(contents) = dictionary
+                .get(b"Contents")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_str().ok())
+                && let Some((certificate_present, signer_count)) = parse_pkcs7_signed_data(contents)
+            {
+                if !certificate_present {
+                    summary
+                        .invalid_signature_certificates
+                        .push((*object_id).into());
+                }
+                if signer_count != 1 {
+                    summary
+                        .invalid_signature_signer_counts
+                        .push((*object_id).into());
+                }
+            }
+        }
         let Object::Stream(stream) = object else {
             continue;
         };
@@ -101,15 +140,20 @@ pub(crate) fn inspect(
                 keys,
             });
         }
-        if stream
-            .dict
-            .get(b"Filter")
-            .ok()
-            .map(|value| filter_contains_lzw_decode(document, value, limits.max_reference_depth))
-            .transpose()?
-            .unwrap_or(false)
+        if let Ok(filter) = stream.dict.get(b"Filter")
+            && !matches!(filter, Object::Null)
         {
-            summary.lzw_filters.push((*object_id).into());
+            if filter_contains_lzw_decode(document, filter, limits.max_reference_depth)? {
+                summary.lzw_filters.push((*object_id).into());
+            }
+            if filter_contains_invalid_pdfa2_filter(
+                document,
+                filter,
+                stream.dict.get(b"DecodeParms").ok(),
+                limits.max_reference_depth,
+            )? {
+                summary.invalid_filters_pdfa2.push((*object_id).into());
+            }
         }
     }
     for object in document.objects.values() {
@@ -132,6 +176,119 @@ pub(crate) fn inspect(
     }
     let _ = all_stream_ranges_known;
     Ok(summary)
+}
+
+fn parse_pkcs7_signed_data(bytes: &[u8]) -> Option<(bool, usize)> {
+    let (tag, content, _) = der_tlv(bytes, 0)?;
+    if tag != 0x30 {
+        return None;
+    }
+    let content_info = der_children(bytes, content)?;
+    let content_type = content_info.first().copied()?;
+    if bytes.get(content_type.0..content_type.1)?
+        != [
+            0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02,
+        ]
+    {
+        return None;
+    }
+    let wrapper = content_info.get(1).copied()?;
+    if bytes.get(wrapper.0..wrapper.1)?.first().copied()? != 0xa0 {
+        return None;
+    }
+    let (_, wrapper_content, _) = der_tlv(bytes, wrapper.0)?;
+    let signed_data = der_children(bytes, wrapper_content)?
+        .into_iter()
+        .find(|range| bytes.get(range.0..range.0 + 1) == Some(&[0x30][..]))?;
+    let (_, signed_data_content, _) = der_tlv(bytes, signed_data.0)?;
+    let fields = der_children(bytes, signed_data_content)?;
+    let certificate_present = fields
+        .iter()
+        .any(|range| bytes.get(range.0..range.0 + 1) == Some(&[0xa0][..]));
+    let signer_infos = fields
+        .iter()
+        .rev()
+        .find(|range| bytes.get(range.0..range.0 + 1) == Some(&[0x31][..]))
+        .copied()?;
+    let (_, signer_content, _) = der_tlv(bytes, signer_infos.0)?;
+    let signer_count = der_children(bytes, signer_content)?.len();
+    Some((certificate_present, signer_count))
+}
+
+fn der_tlv(bytes: &[u8], offset: usize) -> Option<(u8, (usize, usize), usize)> {
+    let tag = *bytes.get(offset)?;
+    let length_byte = *bytes.get(offset.checked_add(1)?)?;
+    let (length, header) = if length_byte & 0x80 == 0 {
+        (usize::from(length_byte), 2)
+    } else {
+        let count = usize::from(length_byte & 0x7f);
+        if count == 0 || count > 4 {
+            return None;
+        }
+        let start = offset.checked_add(2)?;
+        let end = start.checked_add(count)?;
+        let mut length = 0usize;
+        for byte in bytes.get(start..end)? {
+            length = length.checked_mul(256)?.checked_add(usize::from(*byte))?;
+        }
+        (length, 2 + count)
+    };
+    let content_start = offset.checked_add(header)?;
+    let content_end = content_start.checked_add(length)?;
+    bytes.get(content_start..content_end)?;
+    Some((tag, (content_start, content_end), content_end))
+}
+
+fn der_children(bytes: &[u8], content: (usize, usize)) -> Option<Vec<(usize, usize)>> {
+    let mut offset = content.0;
+    let mut children = Vec::new();
+    while offset < content.1 {
+        let (_, range, next) = der_tlv(bytes, offset)?;
+        if next > content.1 {
+            return None;
+        }
+        children.push((offset, next));
+        offset = next;
+        let _ = range;
+    }
+    (offset == content.1).then_some(children)
+}
+
+fn signature_byte_range_covers_document(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    maximum_depth: usize,
+    document_length: usize,
+) -> Result<bool, PdfError> {
+    let Some(value) = dictionary
+        .get(b"ByteRange")
+        .ok()
+        .map(|value| resolve_optional(document, value, maximum_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(false);
+    };
+    let Some(values) = value.as_array().ok() else {
+        return Ok(false);
+    };
+    let values = values
+        .iter()
+        .map(|value| {
+            Ok(resolve_optional(document, value, maximum_depth)?
+                .and_then(|value| value.as_i64().ok()))
+        })
+        .collect::<Result<Vec<_>, PdfError>>()?;
+    let Some(values) = values.into_iter().collect::<Option<Vec<_>>>() else {
+        return Ok(false);
+    };
+    if values.len() != 4 || values.iter().any(|value| *value < 0) {
+        return Ok(false);
+    }
+    let document_length = i64::try_from(document_length).unwrap_or(i64::MAX);
+    Ok(values[0] == 0
+        && values[2] == values[0].saturating_add(values[1])
+        && values[2].saturating_add(values[3]) == document_length)
 }
 
 fn has_unaccounted_stream(
@@ -681,6 +838,82 @@ fn filter_contains_lzw_decode(
         })?,
         _ => false,
     })
+}
+
+fn filter_contains_invalid_pdfa2_filter(
+    document: &Document,
+    filter: &Object,
+    decode_parms: Option<&Object>,
+    maximum_depth: usize,
+) -> Result<bool, PdfError> {
+    let Some(filter) = resolve_optional(document, filter, maximum_depth)? else {
+        return Ok(true);
+    };
+    match filter {
+        Object::Name(name) => Ok(!pdfa2_filter_is_allowed(
+            document,
+            name,
+            decode_parms,
+            maximum_depth,
+        )?),
+        Object::Array(filters) => {
+            let resolved_decode_parms = decode_parms
+                .map(|value| resolve_optional(document, value, maximum_depth))
+                .transpose()?
+                .flatten();
+            for (index, filter) in filters.iter().enumerate() {
+                let decode_parm = resolved_decode_parms.and_then(|value| match value {
+                    Object::Array(values) => values.get(index),
+                    _ if index == 0 => Some(value),
+                    _ => None,
+                });
+                if filter_contains_invalid_pdfa2_filter(
+                    document,
+                    filter,
+                    decode_parm,
+                    maximum_depth,
+                )? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        _ => Ok(true),
+    }
+}
+
+fn pdfa2_filter_is_allowed(
+    document: &Document,
+    name: &[u8],
+    decode_parm: Option<&Object>,
+    maximum_depth: usize,
+) -> Result<bool, PdfError> {
+    if name != b"Crypt" {
+        return Ok(matches!(
+            name,
+            b"ASCIIHexDecode"
+                | b"ASCII85Decode"
+                | b"FlateDecode"
+                | b"RunLengthDecode"
+                | b"CCITTFaxDecode"
+                | b"JBIG2Decode"
+                | b"DCTDecode"
+                | b"JPXDecode"
+        ));
+    }
+    let Some(decode_parm) = decode_parm
+        .map(|value| resolve_optional(document, value, maximum_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(decode_parm
+        .get(b"Name")
+        .ok()
+        .and_then(|value| value.as_name().ok())
+        == Some(b"Identity".as_slice()))
 }
 
 #[cfg(test)]

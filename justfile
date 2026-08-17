@@ -33,10 +33,20 @@ coverage:
 verapdf verapdf=verapdf_bin:
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test verapdf_diff -- --nocapture
 
-# Release-only gate. This intentionally fails while the inventory status is developing.
-pdfa1b-release-gate verapdf=verapdf_bin:
+# Run the opt-in differential suites for every implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
+verapdf-all verapdf=verapdf_bin:
+    VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test canonical_compliance --test verapdf_diff --test pdfa_2_3_differential -- --nocapture
+
+# Regenerate checked-in rule-mapping documentation.
+rules-docs:
+    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
+
+# Release-only gate for every currently implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
+pdfa-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
-    just verapdf "{{ verapdf }}"
+    PAGE_REQUIRE_PDFA23_COMPLETE=1 cargo test -p page_validation --test pdfa_2_3_differential pdfa_2_and_3_release_gate_requires_completed_inventory -- --nocapture
+    cargo test -p page_validation --test rule_mapping_docs --test canonical_compliance
+    just verapdf-all "{{ verapdf }}"
 
 # Regenerate deterministic Typst fixtures.
 typst:
@@ -74,8 +84,12 @@ benchmark:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/verapdf.rs
 
-# Serve documentation
-doc:
+# Build documentation after regenerating rule mappings.
+doc-build: rules-docs
+    uvx zensical build --clean
+
+# Serve documentation after regenerating rule mappings.
+doc: rules-docs
     uvx zensical serve
 
 # Install locally

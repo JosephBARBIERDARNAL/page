@@ -59,6 +59,8 @@ pub struct XmpMetadata {
     #[serde(skip)]
     pub packet_header_has_encoding: bool,
     #[serde(skip)]
+    pub actual_encoding_is_utf8: bool,
+    #[serde(skip)]
     pub extension_schema_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
     pub invalid_predefined_xmp_properties: BTreeSet<String>,
@@ -137,6 +139,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
             .is_some_and(|header| has_quoted_assignment(header, b"bytes")),
         packet_header_has_encoding: packet_header
             .is_some_and(|header| has_quoted_assignment(header, b"encoding")),
+        actual_encoding_is_utf8: verapdf_actual_encoding_is_utf8(bytes),
         extension_schema_failed_tests,
         invalid_predefined_xmp_properties,
         invalid_predefined_xmp_value_types,
@@ -1399,7 +1402,7 @@ fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
 }
 
 fn inspect_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
-    [("part", 4), ("conformance", 5), ("amd", 6)]
+    [("part", 4), ("conformance", 5), ("amd", 6), ("corr", 7)]
         .into_iter()
         .filter_map(|(name, test)| {
             first_document_property(rdf, xml, PDFA_ID_NAMESPACE, name)
@@ -2093,6 +2096,22 @@ fn ordered_array_values(property: Node<'_, '_>) -> Option<Vec<String>> {
         .collect()
 }
 
+/// Mirrors veraPDF 1.30.2's `ByteBuffer.getEncoding()` only as far as the
+/// PDF/A predicate needs: whether its detected encoding is exactly `UTF-8`.
+///
+/// This intentionally examines the raw stream rather than an XML declaration
+/// or the decoder selected below. veraPDF records its detected input encoding
+/// before applying its Latin-1 and control-character recovery paths.
+fn verapdf_actual_encoding_is_utf8(bytes: &[u8]) -> bool {
+    match bytes {
+        [] | [_] => true,
+        [0, ..] => false,
+        [first, second, ..] if *first < 0x80 => *second != 0,
+        [0xEF, ..] => true,
+        _ => false,
+    }
+}
+
 fn decode_xml(bytes: &[u8]) -> Result<String, String> {
     let xml = if bytes.starts_with(&[0, 0, 0xFE, 0xFF])
         || bytes.len() >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0
@@ -2762,6 +2781,16 @@ mod tests {
         assert_eq!(xmp_integer_value("2147483647"), Some(i32::MAX));
         assert_eq!(xmp_integer_value("-2147483648"), Some(i32::MIN));
         assert_eq!(xmp_integer_value("2147483648"), None);
+    }
+
+    #[test]
+    fn matches_verapdfs_initial_byte_encoding_classifier() {
+        assert!(verapdf_actual_encoding_is_utf8(b"<?xpacket"));
+        assert!(verapdf_actual_encoding_is_utf8(&[0xEF, 0xBB, 0xBF, b'<']));
+        assert!(!verapdf_actual_encoding_is_utf8(b"<\0?\0"));
+        assert!(!verapdf_actual_encoding_is_utf8(b"\0<\0?"));
+        assert!(!verapdf_actual_encoding_is_utf8(&[0xFE, 0xFF, 0, b'<']));
+        assert!(!verapdf_actual_encoding_is_utf8(&[0xC3, 0xA9]));
     }
 
     #[test]

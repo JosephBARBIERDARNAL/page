@@ -28,16 +28,19 @@ cargo install --git https://github.com/pagestandards/page.git page_cli --bin pag
 
 !!! failure "Important"
       
-      page implements a PDF/A-1 validator based on ISO 19005-1 and is extensively verified against veraPDF 1.30.2, with documented limitations around the impractical [maximum indirect-object boundary](https://github.com/veraPDF/veraPDF-validation-profiles/wiki/PDFA-Part-1-rules#rule-6112-7).
+      page implements PDF/A-1, PDF/A-2, and PDF/A-3 validators based on ISO 19005-1, ISO 19005-2, and ISO 19005-3, with differential verification against veraPDF 1.30.2.
 
-- [x] PDF/A-1b
-- [x] PDF/A-1a
-- [ ] PDF/A-2a
-- [ ] PDF/A-2b
-- [ ] PDF/A-2u
-- [ ] PDF/A-3a
-- [ ] PDF/A-3b
-- [ ] PDF/A-3u
+- [x] PDF/A-1
+      - [x] PDF/A-1a
+      - [x] PDF/A-1b
+- [x] PDF/A-2a
+      - [x] PDF/A-2a
+      - [x] PDF/A-2b
+      - [x] PDF/A-2u
+- [x] PDF/A-3a
+      - [x] PDF/A-3a
+      - [x] PDF/A-3b
+      - [x] PDF/A-3u
 - [ ] PDF/A-4
 - [ ] PDF/A-4e
 - [ ] PDF/A-4f

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use lopdf::{Document, Object};
@@ -15,10 +16,13 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct XObjectSummary {
     pub(crate) image_alternates: Vec<RuleFailure>,
-    pub(crate) xobject_opi: Vec<RuleFailure>,
+    pub(crate) image_opi: Vec<RuleFailure>,
     pub(crate) image_interpolate: Vec<RuleFailure>,
     pub(crate) image_bits_per_component: Vec<RuleFailure>,
+    pub(crate) image_bits_per_component_pdfa2: Vec<RuleFailure>,
+    pub(crate) jpeg2000_failures: [Vec<RuleFailure>; 5],
     pub(crate) mask_bits_per_component: Vec<RuleFailure>,
+    pub(crate) form_opi: Vec<RuleFailure>,
     pub(crate) form_postscript: Vec<RuleFailure>,
     pub(crate) form_reference: Vec<RuleFailure>,
     pub(crate) postscript_xobject: Vec<RuleFailure>,
@@ -47,18 +51,11 @@ pub(crate) fn inspect(
         };
         let object_id = key.object_id();
         let subtype = resolved_name(document, dictionary, b"Subtype", limits.max_reference_depth)?;
-        if subtype.is_some() || is_appearance {
-            let kind = if is_appearance {
-                "appearance Form"
-            } else {
-                "XObject"
-            };
-            inspect_common_xobject(dictionary, object_id, kind, &mut summary);
-        }
         if subtype == Some(b"Image".as_slice()) && (is_ordinary_image || is_explicit_mask) {
             inspect_image(
                 document,
                 dictionary,
+                object,
                 object_id,
                 is_ordinary_image,
                 is_explicit_mask,
@@ -81,29 +78,28 @@ pub(crate) fn inspect(
     Ok(summary)
 }
 
-fn inspect_common_xobject(
-    dictionary: &lopdf::Dictionary,
-    object_id: Option<PdfObjectId>,
-    kind: &str,
-    summary: &mut XObjectSummary,
-) {
-    if contains_key(dictionary, b"OPI") {
-        summary.xobject_opi.push(RuleFailure {
-            object_id,
-            description: format!("{kind} dictionary contains /OPI"),
-        });
-    }
-}
-
 fn inspect_image(
     document: &Document,
     dictionary: &lopdf::Dictionary,
+    object: &Object,
     object_id: Option<PdfObjectId>,
     is_ordinary_image: bool,
     is_explicit_mask: bool,
     limits: &SafetyLimits,
     summary: &mut XObjectSummary,
 ) -> Result<(), PdfError> {
+    if is_ordinary_image
+        && has_jpx_filter(dictionary)
+        && let Ok(stream) = object.as_stream()
+    {
+        inspect_jpeg2000(stream, object_id, limits, summary)?;
+    }
+    if contains_key(dictionary, b"OPI") {
+        summary.image_opi.push(RuleFailure {
+            object_id,
+            description: "image dictionary contains /OPI".to_owned(),
+        });
+    }
     if contains_key(dictionary, b"Alternates") {
         summary.image_alternates.push(RuleFailure {
             object_id,
@@ -154,7 +150,183 @@ fn inspect_image(
             description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
         });
     }
+    if is_ordinary_image
+        && !is_stencil_mask
+        && bits_per_component.is_some_and(|value| !matches!(value, 1 | 2 | 4 | 8 | 16))
+    {
+        summary.image_bits_per_component_pdfa2.push(RuleFailure {
+            object_id,
+            description: format!("image dictionary has /BitsPerComponent {bits_per_component:?}"),
+        });
+    }
     Ok(())
+}
+
+fn has_jpx_filter(dictionary: &lopdf::Dictionary) -> bool {
+    let Ok(filter) = dictionary.get(b"Filter") else {
+        return false;
+    };
+    match filter {
+        Object::Name(name) => name == b"JPXDecode",
+        Object::Array(filters) => filters
+            .iter()
+            .any(|filter| filter.as_name().ok() == Some(b"JPXDecode")),
+        _ => false,
+    }
+}
+
+fn inspect_jpeg2000(
+    stream: &lopdf::Stream,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut XObjectSummary,
+) -> Result<(), PdfError> {
+    let bytes = jpx_stream_bytes(stream, limits)?;
+    let mut channels = None;
+    let mut depths = Vec::new();
+    let mut methods = Vec::new();
+    let mut approx_one = 0usize;
+    let mut enum_cs = None;
+    if bytes.starts_with(&[0xff, 0x4f]) {
+        if let Some((csiz, ssiz)) = parse_j2k_siz(&bytes) {
+            channels = Some(csiz);
+            depths = ssiz;
+        }
+    } else {
+        parse_jp2_boxes(
+            &bytes,
+            &mut channels,
+            &mut depths,
+            &mut methods,
+            &mut approx_one,
+            &mut enum_cs,
+        );
+    }
+    if let Some(channels) = channels
+        && !matches!(channels, 1 | 3 | 4)
+    {
+        summary.jpeg2000_failures[0].push(jpx_failure(
+            object_id,
+            format!("has {channels} colour channels"),
+        ));
+    }
+    if methods.len() > 1 && approx_one != 1 {
+        summary.jpeg2000_failures[1].push(jpx_failure(
+            object_id,
+            "has an invalid number of APPROX=1 colour specifications",
+        ));
+    }
+    if methods.iter().any(|method| !matches!(method, 1..=3)) {
+        summary.jpeg2000_failures[2].push(jpx_failure(
+            object_id,
+            "has an invalid JPEG2000 colour method",
+        ));
+    }
+    if enum_cs == Some(19) {
+        summary.jpeg2000_failures[3].push(jpx_failure(
+            object_id,
+            "uses enumerated colour space 19 (CIEJab)",
+        ));
+    }
+    if !depths.is_empty()
+        && (depths.iter().any(|depth| !(1..=38).contains(depth))
+            || depths.windows(2).any(|pair| pair[0] != pair[1]))
+    {
+        summary.jpeg2000_failures[4].push(jpx_failure(
+            object_id,
+            "has an invalid or inconsistent bit depth",
+        ));
+    }
+    Ok(())
+}
+
+fn jpx_stream_bytes<'a>(
+    stream: &'a lopdf::Stream,
+    limits: &SafetyLimits,
+) -> Result<Cow<'a, [u8]>, PdfError> {
+    // JPXDecode is the image codec, not a PDF stream compression filter. Its
+    // bytes must be inspected as-is; asking lopdf to decode JPXDecode reports
+    // it as an unsupported decompression error and previously surfaced that
+    // unrelated failure as RESOURCE-LIMIT-001.
+    if stream
+        .dict
+        .get(b"Filter")
+        .ok()
+        .and_then(|filter| filter.as_name().ok())
+        == Some(b"JPXDecode")
+    {
+        if stream.content.len() > limits.max_decoded_stream_size {
+            return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
+        }
+        return Ok(Cow::Borrowed(&stream.content));
+    }
+
+    stream
+        .decompressed_content_with_limit(limits.max_decoded_stream_size)
+        .map(Cow::Owned)
+        .map_err(|error| match error {
+            lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }) => {
+                PdfError::ContentDecodeLimit(limits.max_decoded_stream_size)
+            }
+            error => PdfError::Parse(error),
+        })
+}
+
+fn jpx_failure(object_id: Option<PdfObjectId>, description: impl Into<String>) -> RuleFailure {
+    RuleFailure {
+        object_id,
+        description: description.into(),
+    }
+}
+
+fn parse_j2k_siz(bytes: &[u8]) -> Option<(usize, Vec<usize>)> {
+    let marker = bytes.windows(2).position(|pair| pair == [0xff, 0x51])?;
+    let length = usize::from(u16::from_be_bytes([
+        *bytes.get(marker + 2)?,
+        *bytes.get(marker + 3)?,
+    ]));
+    let end = marker.checked_add(2 + length)?;
+    let segment = bytes.get(marker + 4..end)?;
+    let csiz = usize::from(u16::from_be_bytes([*segment.get(34)?, *segment.get(35)?]));
+    let mut depths = Vec::with_capacity(csiz);
+    for index in 0..csiz {
+        depths.push(usize::from(segment.get(36 + index * 3)? & 0x7f) + 1);
+    }
+    Some((csiz, depths))
+}
+
+fn parse_jp2_boxes(
+    bytes: &[u8],
+    channels: &mut Option<usize>,
+    depths: &mut Vec<usize>,
+    methods: &mut Vec<u8>,
+    approx_one: &mut usize,
+    enum_cs: &mut Option<u32>,
+) {
+    let mut position = 0usize;
+    while position + 8 <= bytes.len() {
+        let length = u32::from_be_bytes(bytes[position..position + 4].try_into().unwrap()) as usize;
+        if length < 8 || position + length > bytes.len() {
+            break;
+        }
+        let kind = &bytes[position + 4..position + 8];
+        let payload = &bytes[position + 8..position + length];
+        if kind == b"ihdr" && payload.len() >= 11 {
+            *channels = Some(usize::from(u16::from_be_bytes([payload[8], payload[9]])));
+            depths.push(usize::from((payload[10] & 0x7f) + 1));
+        } else if kind == b"colr" && payload.len() >= 3 {
+            methods.push(payload[0]);
+            if payload[2] == 1 {
+                *approx_one += 1;
+            }
+            if payload[0] == 1 && payload.len() >= 7 {
+                *enum_cs = Some(u32::from_be_bytes(payload[3..7].try_into().unwrap()));
+            }
+        } else if kind == b"jp2h" || kind == b"jp2c" {
+            parse_jp2_boxes(payload, channels, depths, methods, approx_one, enum_cs);
+        }
+        position += length;
+    }
 }
 
 fn inspect_form(
@@ -175,6 +347,12 @@ fn inspect_form(
             .is_some_and(|object| matches!(object, Object::Stream(_))),
         Err(_) => false,
     };
+    if contains_key(dictionary, b"OPI") {
+        summary.form_opi.push(RuleFailure {
+            object_id,
+            description: "Form dictionary contains /OPI".to_owned(),
+        });
+    }
     if subtype2_is_ps || contains_modeled_ps {
         summary.form_postscript.push(RuleFailure {
             object_id,
@@ -188,4 +366,48 @@ fn inspect_form(
         });
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use lopdf::{Stream, dictionary};
+
+    use super::{jpx_stream_bytes, parse_j2k_siz};
+    use crate::error::PdfError;
+    use crate::limits::SafetyLimits;
+
+    #[test]
+    fn parses_jpeg2000_siz_channels_and_depths() {
+        let mut bytes = vec![0xff, 0x4f, 0xff, 0x51, 0, 45];
+        bytes.extend_from_slice(&[0; 36]);
+        bytes[6 + 34] = 0;
+        bytes[6 + 35] = 3;
+        bytes.extend_from_slice(&[7, 1, 1, 7, 1, 1, 7, 1, 1]);
+        assert_eq!(parse_j2k_siz(&bytes), Some((3, vec![8, 8, 8])));
+    }
+
+    #[test]
+    fn direct_jpx_filter_is_inspected_without_lopdf_decompression() {
+        let content = vec![0xff, 0x4f, 0xff, 0x51];
+        let stream = Stream::new(dictionary! { "Filter" => "JPXDecode" }, content.clone());
+
+        assert_eq!(
+            jpx_stream_bytes(&stream, &SafetyLimits::default()).unwrap(),
+            content
+        );
+    }
+
+    #[test]
+    fn direct_jpx_filter_still_obeys_the_decoded_stream_limit() {
+        let stream = Stream::new(dictionary! { "Filter" => "JPXDecode" }, vec![0; 4]);
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 3,
+            ..SafetyLimits::default()
+        };
+
+        assert!(matches!(
+            jpx_stream_bytes(&stream, &limits),
+            Err(PdfError::ContentDecodeLimit(3))
+        ));
+    }
 }

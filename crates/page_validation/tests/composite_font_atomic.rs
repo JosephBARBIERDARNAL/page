@@ -1,9 +1,9 @@
 use std::{env, fs};
 
-use page_validation::SafetyLimits;
 use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, ReferenceConfig,
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 
 pub mod common;
 
@@ -78,6 +78,8 @@ const CASES: &[(&str, &[&str])] = &[
         "composite_identity_usecmap_missing_glyph",
         &[GLYPH_PRESENCE],
     ),
+    ("composite_cmap_unknown_usecmap", &[]),
+    ("composite_cmap_dictionary_unknown_usecmap", &[]),
     ("composite_cff_missing_glyph", &[GLYPH_PRESENCE]),
     ("composite_cff_present_glyph", &[]),
     ("composite_cff_width_mismatch", &[GLYPH_WIDTH]),
@@ -116,6 +118,206 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
     }
 
     common::assert_case_deltas(common::font_fixture, "composite_baseline", CASES);
+}
+
+#[test]
+fn unknown_usecmap_reference_is_rejected_in_pdfa2_and_pdfa3() {
+    for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
+        let report = validate_bytes_with_profile(
+            &common::font_fixture("composite_cmap_unknown_usecmap"),
+            profile,
+            &SafetyLimits::default(),
+        );
+        let expected = match profile {
+            ValidationProfile::PdfA2b => "PDFA2B-CMAP-REFERENCE-001",
+            ValidationProfile::PdfA3b => "PDFA3B-CMAP-REFERENCE-001",
+            _ => unreachable!(),
+        };
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == expected),
+            "{profile:?} did not report {expected}: {:?}",
+            report
+                .failures
+                .iter()
+                .map(|failure| &failure.rule_id)
+                .collect::<Vec<_>>()
+        );
+    }
+}
+
+#[test]
+fn unembedded_cidfonttype2_does_not_require_cid_to_gid_map_in_pdfa2_or_pdfa3() {
+    let bytes = common::font_fixture("composite_cidmap_missing_unembedded");
+    for (profile, rule) in [
+        (ValidationProfile::PdfA2b, "PDFA2B-CIDTOGIDMAP-001"),
+        (ValidationProfile::PdfA3b, "PDFA3B-CIDTOGIDMAP-001"),
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != rule),
+            "{profile}: {report}",
+        );
+    }
+}
+
+#[test]
+fn cid_to_gid_map_embedded_font_applicability_matches_pinned_verapdf() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-cidtogidmap-{}.pdf", std::process::id()));
+    let bytes = common::font_fixture("composite_cidmap_missing_unembedded");
+    fs::write(&path, &bytes).expect("write unembedded CIDFont fixture");
+    for (profile, rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.3.2:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.3.2:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        let reference = report
+            .reference_result
+            .as_ref()
+            .unwrap_or_else(|| panic!("reference result: {report}"));
+        assert!(
+            reference
+                .failed_rule_ids
+                .iter()
+                .all(|id| id.to_string() != rule),
+            "{profile}: {report}",
+        );
+        assert!(report.operational_failure.is_none(), "{profile}: {report}");
+    }
+    fs::remove_file(path).expect("remove unembedded CIDFont fixture");
+}
+
+#[test]
+fn pdfa_2_and_3_allow_the_complete_table_118_cmap_set() {
+    let bytes = common::font_fixture("composite_named_cmap");
+    for (profile, rule_id) in [
+        (ValidationProfile::PdfA2b, "PDFA2B-CMAP-EMBEDDING-001"),
+        (ValidationProfile::PdfA3b, "PDFA3B-CMAP-EMBEDDING-001"),
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn pdfa_2_and_3_require_a_cmap_supplement_not_lower_than_the_cidfont() {
+    let bytes = common::font_fixture("composite_cmap_supplement_mismatch");
+    let a1 =
+        validate_bytes_with_profile(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+    assert!(
+        a1.failures
+            .iter()
+            .all(|failure| failure.rule_id != SYSTEM_INFO),
+        "{a1}"
+    );
+    for (profile, rule_id) in [
+        (
+            ValidationProfile::PdfA2b,
+            "PDFA2B-TYPE0-CID-SYSTEM-INFO-001",
+        ),
+        (
+            ValidationProfile::PdfA3b,
+            "PDFA3B-TYPE0-CID-SYSTEM-INFO-001",
+        ),
+    ] {
+        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule_id),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
+fn table_118_cmap_is_accepted_by_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-table-118-cmap-{}.pdf", std::process::id()));
+    fs::write(&path, common::font_fixture("composite_named_cmap"))
+        .expect("write Table 118 CMap fixture");
+    for (profile, cmap_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.3.3:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.3.3:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .all(|rule| rule.to_string() != cmap_rule),
+            "{profile} rejected the Table 118 CMap"
+        );
+    }
+    fs::remove_file(path).expect("remove Table 118 CMap fixture");
+}
+
+#[test]
+fn cmap_supplement_mismatch_matches_pinned_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!("page-cmap-supplement-{}.pdf", std::process::id()));
+    fs::write(
+        &path,
+        common::font_fixture("composite_cmap_supplement_mismatch"),
+    )
+    .expect("write CMap supplement fixture");
+    for (profile, cmap_rule) in [
+        (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.3.1:1"),
+        (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.11.3.1:1"),
+    ] {
+        let mut config = ReferenceConfig::pinned(&executable);
+        config.profile = profile;
+        let report = DifferentialRunner::new(config)
+            .expect("pinned veraPDF")
+            .compare_file(&path, &SafetyLimits::default());
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::BothNoncompliant
+        );
+        assert!(
+            report
+                .reference_result
+                .expect("veraPDF result")
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == cmap_rule),
+            "{profile} did not reject the CMap supplement mismatch"
+        );
+    }
+    fs::remove_file(path).expect("remove CMap supplement fixture");
 }
 
 #[test]

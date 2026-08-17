@@ -96,6 +96,21 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
 }
 
 #[test]
+fn pdfa2_rejects_standard_role_map_remaps() {
+    let report = validate_bytes_with_profile(
+        &common::tagged_document_fixture("struct_tree_role_map_standard_remap"),
+        ValidationProfile::PdfA2a,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA2A-STRUCT-TREE-ROLE-MAP-STANDARD-001")
+    );
+}
+
+#[test]
 fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     let limits = SafetyLimits {
         max_object_count: 1,
@@ -108,7 +123,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     );
     assert!(!report.failures.iter().any(|failure| {
         matches!(
-            failure.rule_id,
+            failure.rule_id.as_str(),
             "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001" | "PDFA1A-STRUCT-TREE-ROLE-MAP-001"
         )
     }));

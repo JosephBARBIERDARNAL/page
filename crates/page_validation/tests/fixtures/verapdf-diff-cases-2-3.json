@@ -1,0 +1,10 @@
+{
+  "reference": {
+    "product": "veraPDF",
+    "version": "1.30.2",
+    "source_manifest": "tests/fixtures/verapdf-diff-cases.json"
+  },
+  "profiles": ["2a", "2b", "2u", "3a", "3b", "3u"],
+  "mutation_policy": "Every checked-in mutation is re-identified and compared against every PDF/A-2 and PDF/A-3 profile. Agreement is expected when the source mutation is outside the selected profile; otherwise both validators must report the same semantic failure without a coverage gap.",
+  "mutation_count": 129
+}

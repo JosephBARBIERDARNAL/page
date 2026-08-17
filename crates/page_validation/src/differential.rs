@@ -1,6 +1,6 @@
 //! Differential validation against the pinned veraPDF reference.
 //!
-//! This module compares the crate's deliberately incomplete PDF/A-1a and PDF/A-1b checks
+//! This module compares the crate's deliberately incomplete PDF/A-1, PDF/A-2, and PDF/A-3 checks
 //! with veraPDF. It does not turn the local validator into a complete
 //! conformance checker.
 
@@ -31,6 +31,18 @@ pub enum ReferenceProfile {
     PdfA1a,
     #[serde(rename = "1b")]
     PdfA1b,
+    #[serde(rename = "2a")]
+    PdfA2a,
+    #[serde(rename = "2b")]
+    PdfA2b,
+    #[serde(rename = "2u")]
+    PdfA2u,
+    #[serde(rename = "3a")]
+    PdfA3a,
+    #[serde(rename = "3b")]
+    PdfA3b,
+    #[serde(rename = "3u")]
+    PdfA3u,
 }
 
 impl ReferenceProfile {
@@ -38,6 +50,12 @@ impl ReferenceProfile {
         match self {
             Self::PdfA1a => "1a",
             Self::PdfA1b => "1b",
+            Self::PdfA2a => "2a",
+            Self::PdfA2b => "2b",
+            Self::PdfA2u => "2u",
+            Self::PdfA3a => "3a",
+            Self::PdfA3b => "3b",
+            Self::PdfA3u => "3u",
         }
     }
 
@@ -45,6 +63,12 @@ impl ReferenceProfile {
         match self {
             Self::PdfA1a => "PDF/A-1a validation profile",
             Self::PdfA1b => "PDF/A-1b validation profile",
+            Self::PdfA2a => "PDF/A-2a validation profile",
+            Self::PdfA2b => "PDF/A-2b validation profile",
+            Self::PdfA2u => "PDF/A-2u validation profile",
+            Self::PdfA3a => "PDF/A-3a validation profile",
+            Self::PdfA3b => "PDF/A-3b validation profile",
+            Self::PdfA3u => "PDF/A-3u validation profile",
         }
     }
 }
@@ -60,6 +84,12 @@ impl From<ReferenceProfile> for ValidationProfile {
         match profile {
             ReferenceProfile::PdfA1a => Self::PdfA1a,
             ReferenceProfile::PdfA1b => Self::PdfA1b,
+            ReferenceProfile::PdfA2a => Self::PdfA2a,
+            ReferenceProfile::PdfA2b => Self::PdfA2b,
+            ReferenceProfile::PdfA2u => Self::PdfA2u,
+            ReferenceProfile::PdfA3a => Self::PdfA3a,
+            ReferenceProfile::PdfA3b => Self::PdfA3b,
+            ReferenceProfile::PdfA3u => Self::PdfA3u,
         }
     }
 }
@@ -294,7 +324,7 @@ impl fmt::Display for DifferentialReport {
         if self.classification == ComparisonClassification::CoverageGap {
             writeln!(
                 formatter,
-                "Warning: coverage_gap means only the local subset passed; the PDF is not PDF/A-1b compliant."
+                "Warning: coverage_gap means only the local subset passed; the PDF is not compliant with the selected PDF/A profile."
             )?;
         }
         Ok(())
@@ -1069,9 +1099,9 @@ mod tests {
             } else {
                 vec![ValidationFailure {
                     rule_id: if category == FailureCategory::Parser {
-                        "PDF-PARSE-001"
+                        "PDF-PARSE-001".to_owned()
                     } else {
-                        "PDFA1B-XMP-001"
+                        "PDFA1B-XMP-001".to_owned()
                     },
                     message: "fixture failure".to_owned(),
                     object_id: None,

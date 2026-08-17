@@ -10,7 +10,7 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 - when you found a very unexpected result in veraPDF, figure out whether it's a real upstream bug or not. In order to prove that it is one, you need to create a reprex (as minimalist as possible).
 - always write markdown paragraph / bullet point on a single line. Only use linebreaks for new paragraph, an heading, new bullet point, etc.
 - every time you implement a new rule or a new feature, think of the impact it will have on performance and look for low hanging fruit that would improve performance.
-- make sure, when possible, to reuse code from different profiles when possible
+- make sure, when possible, to reuse code from different profiles
 - ignore git changes that you didn't create, it's just someone else working on the project simultaneously.
 - always run format/lint (`just fmt && just lint`) before submitting your changes and make sure it's all green
 - don't add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant.
@@ -32,7 +32,7 @@ Place focused unit tests beside their owning validation modules in `#[cfg(test)]
 
 Always follow official verapdf rules specs.
 
-- **PDF/A-1 (ISO 19005-1)**
+- (done) **PDF/A-1 (ISO 19005-1)**
   - PDF/A-1a
   - PDF/A-1b
   - Rules:
