@@ -10,6 +10,12 @@ version = "0.3.0"
 edition = "2024"
 license = "MIT"
 
+# page is a CPU-bound, single-binary CLI with no plugin or dynamic-linking
+# need, so trade slower release builds for a faster validator.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
 # The profile that 'dist' will build with
 [profile.dist]
 inherits = "release"

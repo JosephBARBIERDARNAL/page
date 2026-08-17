@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
 use page_validation::{
@@ -94,14 +95,15 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
     };
 
     let limits = SafetyLimits::default();
+    let reports = validate_cases(&cases, &limits);
+
     let mut mismatches = 0;
     let mut operational_failures = 0;
     let mut displayed_mismatches = 0;
     let mut suppressed_mismatches = 0;
 
-    for case in &cases {
-        let report = validate_file_with_profile(&case.path, case.profile, &limits);
-        let actual = report.exit_code();
+    for (case, (actual, report)) in cases.iter().zip(&reports) {
+        let actual = *actual;
         if actual == case.expected.exit_code() {
             continue;
         }
@@ -112,7 +114,7 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
             mismatches += 1;
         }
         if actual == 1 || displayed_mismatches < MAX_MISMATCH_DETAILS {
-            print_mismatch(case, actual, &report);
+            print_mismatch(case, actual, report);
             if actual != 1 {
                 displayed_mismatches += 1;
             }
@@ -145,6 +147,60 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
         );
     }
     exit_code
+}
+
+/// Validates every case, distributing them across a bounded pool of worker
+/// threads since each case's validation is independent CPU-bound work.
+/// Results are returned in the same order as `cases` regardless of which
+/// worker completed them, so mismatch reporting stays deterministic.
+fn validate_cases(cases: &[CorpusCase], limits: &SafetyLimits) -> Vec<(i32, ValidationReport)> {
+    let worker_count = std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1)
+        .min(cases.len().max(1));
+
+    if worker_count <= 1 {
+        return cases
+            .iter()
+            .map(|case| {
+                let report = validate_file_with_profile(&case.path, case.profile, limits);
+                let actual = report.exit_code();
+                (actual, report)
+            })
+            .collect();
+    }
+
+    let next_index = AtomicUsize::new(0);
+    let mut indexed_results: Vec<(usize, i32, ValidationReport)> = std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..worker_count)
+            .map(|_| {
+                let next_index = &next_index;
+                scope.spawn(move || {
+                    let mut results = Vec::new();
+                    loop {
+                        let index = next_index.fetch_add(1, Ordering::Relaxed);
+                        let Some(case) = cases.get(index) else {
+                            break;
+                        };
+                        let report = validate_file_with_profile(&case.path, case.profile, limits);
+                        let actual = report.exit_code();
+                        results.push((index, actual, report));
+                    }
+                    results
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .flat_map(|handle| handle.join().expect("corpus worker thread panicked"))
+            .collect()
+    });
+
+    indexed_results.sort_by_key(|(index, _, _)| *index);
+    indexed_results
+        .into_iter()
+        .map(|(_, actual, report)| (actual, report))
+        .collect()
 }
 
 fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {

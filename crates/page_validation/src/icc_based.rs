@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -551,8 +551,15 @@ fn inspect_all_devicen_components(
     let mut failures = Vec::new();
     let mut pdfa2_failures = Vec::new();
     let mut colorant_failures = Vec::new();
-    let mut visited = BTreeSet::new();
+    let mut visited = HashSet::new();
     for (object_id, object) in &document.objects {
+        // Register the top-level entry itself before recursing, matching the
+        // `Object::Reference` arm below, so an object reached both directly
+        // from this map and through a reference elsewhere in the graph is
+        // only ever walked once instead of twice.
+        if !visited.insert(*object_id) {
+            continue;
+        }
         inspect_devicen_object(
             document,
             object,
@@ -586,7 +593,7 @@ fn inspect_devicen_object(
     object: &Object,
     owner: Option<crate::PdfObjectId>,
     limits: &SafetyLimits,
-    visited: &mut BTreeSet<ObjectId>,
+    visited: &mut HashSet<ObjectId>,
     failures: &mut Vec<RuleFailure>,
     pdfa2_failures: &mut Vec<RuleFailure>,
     colorant_failures: &mut Vec<RuleFailure>,

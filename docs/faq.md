@@ -2,7 +2,7 @@
 title: "FAQ"
 ---
 
-## Related projects
+## What are the alternatives?
 
 There are multiple projects that attempt to provide a PDF validator, but only one is:
 
@@ -25,7 +25,7 @@ This project is [veraPDF](https://verapdf.org/). It is, by far, the **best optio
 
 Currently, `page` is **far from a usable state**: it does not provide complete profile validations for most PDF profiles and has no stable API.
 
-Even if `page` is meant as an "alternative" to `veraPDF`, **`page` only exists because of `veraPDF`**. The latter is the most important development tool used for `page`, as it provides the source of truth for which rules pass or fail for each PDF profile.
+Even if `page` is meant as an "alternative" to `veraPDF`, **`page` only exists because of `veraPDF`**. The latter is the most important development tool used for `page`, as it provides the source of truth for which rules pass or fail for each PDF profile. `page` is also using the same [test corpus as `veraPDF`](https://github.com/veraPDF/veraPDF-corpus).
 
 In the long run, I hope that `page` will provide a veraPDF-compliant alternative that is faster and more lightweight.
 
