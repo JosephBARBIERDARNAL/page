@@ -104,7 +104,6 @@ Document: PDF 1.4, 1 page(s), 4 object(s)
 [PDFA1B-TRAILER-ID-001] Conformance: [.........]
 ```
 
-
 > [.........] are just placeholders of the actual messages
 
 <br>
@@ -141,27 +140,6 @@ page validate document.pdf --format details --output report.txt
 Explicit formats that conflict with `.json` or `.txt` are rejected. File output is uncolored and leaves stdout empty.
 
 Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.
-
-<br>
-
-## Roadmap
-
-> [!IMPORTANT]
-> page implements preliminary PDF/A-1, PDF/A-2, and PDF/A-3 validators based on ISO 19005-1, ISO 19005-2, and ISO 19005-3, with differential verification against veraPDF 1.30.2.
-
-- [x] PDF/A-1b
-- [x] PDF/A-1a
-- [x] PDF/A-2a
-- [x] PDF/A-2b
-- [x] PDF/A-2u
-- [x] PDF/A-3a
-- [x] PDF/A-3b
-- [x] PDF/A-3u
-- [ ] PDF/A-4
-- [ ] PDF/A-4e
-- [ ] PDF/A-4f
-- [ ] PDF/UA-1
-- [ ] PDF/UA-2
 
 <br>
 
