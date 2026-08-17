@@ -305,10 +305,10 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../pdf-syntax/" class="md-tabs__link">
+      <a href="../../pdf-format/" class="md-tabs__link">
         
   
-  PDF syntax
+  PDF format
 
       </a>
     </li>
@@ -320,24 +320,14 @@
   
   
   
-    
-      
-      
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
         
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../faq/" class="md-tabs__link">
-          
   
   FAQ
 
-        </a>
-      </li>
-    
+      </a>
+    </li>
   
 
       
@@ -812,14 +802,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../pdf-syntax/" class="md-nav__link">
+      <a href="../../pdf-format/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PDF syntax
+  PDF format
 
     
   </span>
@@ -837,33 +827,9 @@
   
   
   
-    
-    
-      
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
         
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../faq/" class="md-nav__link">
-      
   
   
   <span class="md-ellipsis">
@@ -876,13 +842,7 @@
   
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
+      </a>
     </li>
   
 
@@ -1173,7 +1133,7 @@ explicit behaviors for an in-memory PDF:</p>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="n">max_input_size</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="n">max_decoded_stream_size</span><span class="p">:</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="n">max_object_count</span><span class="p">:</span><span class="w"> </span><span class="mi">500_000</span><span class="p">,</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="n">max_reference_depth</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="n">max_reference_depth</span><span class="p">:</span><span class="w"> </span><span class="mi">256</span><span class="p">,</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">};</span>
 </span></code></pre></div>
 <p>Use <code>SafetyLimits::default()</code> when the built-in defaults are sufficient.</p>

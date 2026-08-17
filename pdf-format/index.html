@@ -12,7 +12,7 @@
         <meta name="author" content="Joseph Barbier">
       
       
-        <link rel="canonical" href="https://pagestandards.github.io/page/pdf-syntax/">
+        <link rel="canonical" href="https://pagestandards.github.io/page/pdf-format/">
       
       
         <link rel="prev" href="../rules/pdfa-2-3-rule-mapping/">
@@ -29,7 +29,7 @@
     
     
       
-        <title>PDF syntax - page</title>
+        <title>PDF Format - page</title>
       
     
     
@@ -87,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#the-shape-of-a-pdf-file" class="md-skip">
+        <a href="#pdfa" class="md-skip">
           Skip to content
         </a>
       
@@ -141,7 +141,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              PDF syntax
+              PDF Format
             
           </span>
         </div>
@@ -308,7 +308,7 @@
       <a href="././" class="md-tabs__link">
         
   
-  PDF syntax
+  PDF format
 
       </a>
     </li>
@@ -320,24 +320,14 @@
   
   
   
-    
-      
-      
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
         
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../faq/" class="md-tabs__link">
-          
   
   FAQ
 
-        </a>
-      </li>
-    
+      </a>
+    </li>
   
 
       
@@ -555,7 +545,7 @@
   <span class="md-ellipsis">
     
   
-  PDF syntax
+  PDF format
 
     
   </span>
@@ -572,7 +562,7 @@
   <span class="md-ellipsis">
     
   
-  PDF syntax
+  PDF format
 
     
   </span>
@@ -596,33 +586,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-shape-of-a-pdf-file" class="md-nav__link">
+  <a href="#pdfa" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The shape of a PDF file
+        PDF/A
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF&#x2f;A">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/A-1
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#a-complete-minimal-pdf" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        A complete minimal PDF
+        PDF/A-2
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="A complete minimal PDF">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#reading-the-example" class="md-nav__link">
+  <a href="#pdfa-3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Reading the example
+        PDF/A-3
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/A-4
       </span>
     </span>
   </a>
@@ -635,46 +647,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tokens-and-basic-objects" class="md-nav__link">
+  <a href="#pdfua" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Tokens and basic objects
+        PDF/UA
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF&#x2f;UA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pdfua-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/UA-1
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#the-document-and-page-trees" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#pdfua-2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The document and page trees
+        PDF/UA-2
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#content-streams-and-graphics-operators" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Content streams and graphics operators
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resources-and-fonts" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Resources and fonts
-      </span>
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -692,33 +699,9 @@
   
   
   
-    
-    
-      
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
         
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../faq/" class="md-nav__link">
-      
   
   
   <span class="md-ellipsis">
@@ -731,13 +714,7 @@
   
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
+      </a>
     </li>
   
 
@@ -779,33 +756,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-shape-of-a-pdf-file" class="md-nav__link">
+  <a href="#pdfa" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The shape of a PDF file
+        PDF/A
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF&#x2f;A">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/A-1
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#a-complete-minimal-pdf" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        A complete minimal PDF
+        PDF/A-2
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="A complete minimal PDF">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#reading-the-example" class="md-nav__link">
+  <a href="#pdfa-3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Reading the example
+        PDF/A-3
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pdfa-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/A-4
       </span>
     </span>
   </a>
@@ -818,46 +817,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tokens-and-basic-objects" class="md-nav__link">
+  <a href="#pdfua" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Tokens and basic objects
+        PDF/UA
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF&#x2f;UA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pdfua-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PDF/UA-1
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#the-document-and-page-trees" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#pdfua-2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The document and page trees
+        PDF/UA-2
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#content-streams-and-graphics-operators" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Content streams and graphics operators
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resources-and-fonts" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Resources and fonts
-      </span>
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -887,153 +881,209 @@
   
 
 
-  <h1 id="__skip">PDF syntax</h1>
+  <h1 id="__skip">PDF Format</h1>
 
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This page is inspired by the <a href="https://github.com/pdf-association/pdf-cos-syntax">PDF Association guide / VSX extension</a> for learning PDF syntax.</p>
-</div>
-<h2 id="the-shape-of-a-pdf-file">The shape of a PDF file<a class="headerlink" href="#the-shape-of-a-pdf-file" title="Permanent link">&para;</a></h2>
-<p>A traditional PDF has four parts, in this order:</p>
+<p>Each PDF standard serves a specific purpose and defines a different set of requirements that a document must meet to be considered conformant. For example, a PDF containing an informative image without alternative text is not conformant with PDF/UA, because accessible alternatives for non-text content are required.</p>
+<p>It is important to understand the differences between these standards because, depending on the use case, only some of them may be relevant. Here, we'll briefly describe the specific characteristics and conformance levels of the main PDF standards.</p>
+<h2 id="pdfa">PDF/A<a class="headerlink" href="#pdfa" title="Permanent link">&para;</a></h2>
+<p>PDF/A is a family of ISO standards designed for the <strong>long-term preservation and archiving of electronic documents</strong>. Unlike regular PDF, PDF/A restricts features that could make a document dependent on external resources or difficult to reproduce reliably in the future.</p>
+<h3 id="pdfa-1">PDF/A-1<a class="headerlink" href="#pdfa-1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 1.4</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO Standard</td>
+<td style="text-align: center;">19005-1:2005</td>
+</tr>
+<tr>
+<td style="text-align: center;">Publication year</td>
+<td style="text-align: center;">2005</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/A-1 is the first PDF/A standard and is based on PDF 1.4. It notably requires fonts to be embedded and prohibits features such as encryption, external content dependencies, audio, video, and JavaScript.</p>
 <ul>
-<li>A header, such as <code>%PDF-1.4</code>, declaring the file format version.</li>
-<li>A body containing indirect objects.</li>
-<li>A cross-reference table, or <code>xref</code>, indexing the byte offset of each object.</li>
-<li>A trailer containing the entry points needed to read the file, followed by <code>startxref</code> and <code>%%EOF</code>.</li>
+<li>
+<p><strong>PDF/A-1b:</strong> The "b" stands for <strong>Basic</strong> conformance. It focuses on preserving the document's visual appearance so that it can be reliably reproduced in the future.</p>
+</li>
+<li>
+<p><strong>PDF/A-1a:</strong> The "a" stands for <strong>Accessible</strong> conformance. It includes all PDF/A-1b requirements and adds requirements related to the document's logical structure, such as tagged content, reading order, and language information. Despite its name, PDF/A-1a conformance does not by itself guarantee full accessibility.</p>
+</li>
 </ul>
-<p>The parser starts at the end of the file, reads <code>startxref</code>, jumps to the cross-reference table, finds the trailer, and then follows references into the body.</p>
-<p>Whitespace is generally insignificant between tokens. Newlines are useful for humans, however, and the byte offsets in the cross-reference table must count every byte, including spaces and newlines.</p>
-<h2 id="a-complete-minimal-pdf">A complete minimal PDF<a class="headerlink" href="#a-complete-minimal-pdf" title="Permanent link">&para;</a></h2>
-<p>Copy the following text into a file named <code>hello.pdf</code>. Use Unix line endings (<code>LF</code>) and save it as bytes without a text encoding conversion. The second line is an ordinary ASCII comment; a production PDF commonly uses four bytes with values above 127 there to signal that binary data may occur later.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>%PDF-1.4
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>%PDF
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>1 0 obj
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>&lt;&lt; /Type /Catalog /Pages 2 0 R &gt;&gt;
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>endobj
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>2 0 obj
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>&lt;&lt; /Type /Pages /Kids [3 0 R] /Count 1 &gt;&gt;
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>endobj
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>3 0 obj
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>&lt;&lt; /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources &lt;&lt; /Font &lt;&lt; /F1 5 0 R &gt;&gt; &gt;&gt; /Contents 4 0 R &gt;&gt;
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>endobj
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>4 0 obj
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>&lt;&lt; /Length 43 &gt;&gt;
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>stream
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>BT
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>/F1 24 Tf
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>72 720 Td
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>(Hello, PDF!) Tj
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>ET
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>endstream
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>endobj
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>5 0 obj
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>&lt;&lt; /Type /Font /Subtype /Type1 /BaseFont /Helvetica &gt;&gt;
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>endobj
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>xref
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>0 6
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>0000000000 65535 f 
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>0000000014 00000 n 
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>0000000063 00000 n 
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>0000000120 00000 n 
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>0000000246 00000 n 
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>0000000338 00000 n 
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>trailer
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>&lt;&lt; /Size 6 /Root 1 0 R &gt;&gt;
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>startxref
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>408
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>%%EOF
-</span></code></pre></div>
-<p>Open the file in a PDF viewer. It should display <code>Hello, PDF!</code> near the top of a US Letter-sized page.</p>
-<h3 id="reading-the-example">Reading the example<a class="headerlink" href="#reading-the-example" title="Permanent link">&para;</a></h3>
-<p><code>1 0 obj</code> begins object 1, generation 0. Its dictionary says that object 1 is the document catalog and that the page tree starts at object 2. The reference <code>2 0 R</code> means “object 2, generation 0”.</p>
-<p>Object 2 is a <code>/Pages</code> node. It has one child, object 3, and <code>/Count 1</code> records the number of pages below it. Object 3 is the actual page and points back to its parent, to its content stream, and to its resources.</p>
-<p>Object 4 is a stream containing page drawing instructions. <code>/Length 43</code> is the number of bytes between the newline after <code>stream</code> and the newline before <code>endstream</code>; it is not the length of the whole object.</p>
-<p>Object 5 is a built-in Type 1 font. <code>/Helvetica</code> is one of the standard 14 PDF fonts, so the file does not need to embed a font program.</p>
-<p>The <code>xref</code> table has one entry for object number 0 and one entry for each object through 5. The offsets are zero-based byte positions from the beginning of the file: object 1 starts at byte 14, object 2 at byte 63, and so on. Every entry is exactly 20 bytes in this traditional form: a ten-digit offset, a space, a five-digit generation number, a space, a status letter, and a line ending.</p>
-<p>The object-0 entry is always the free-object head with generation <code>65535</code>. The <code>trailer</code> says there are six entries and identifies object 1 as the root catalog. <code>startxref</code> points to byte 408, where the word <code>xref</code> begins. <code>%%EOF</code> marks the end of the file.</p>
-<h2 id="tokens-and-basic-objects">Tokens and basic objects<a class="headerlink" href="#tokens-and-basic-objects" title="Permanent link">&para;</a></h2>
-<p>PDF syntax is made from a small set of tokens. The most common ones are:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>% comment
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>/Name
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>(literal string)
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&lt;486578&gt;                 hexadecimal string: "Hex"
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>true false null
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>123 -4 3.14
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>[1 2 /Name (text)]       array
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>&lt;&lt; /Key value &gt;&gt;         dictionary
-</span></code></pre></div>
-<p>Names start with <code>/</code> and are case-sensitive: <code>/Type</code>, <code>/type</code>, and <code>/TYPE</code> are different names. A name can contain almost any byte except whitespace and delimiters; special bytes are written with a hexadecimal escape, such as <code>/A#20B</code> for <code>A B</code>.</p>
-<p>Literal strings are enclosed in parentheses. A backslash escapes special characters: <code>\(</code>, <code>\)</code>, and <code>\\</code> represent delimiters and a backslash; <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\b</code>, and <code>\f</code> represent control characters. Parentheses nested inside a string must be escaped or balanced.</p>
-<p>Arrays are ordered collections. Dictionaries are unordered name/value maps enclosed by <code>&lt;&lt;</code> and <code>&gt;&gt;</code>. A dictionary value can be another dictionary, an array, a string, a number, or an indirect reference.</p>
-<p>An indirect object has this form:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>object-number generation-number obj
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>object-value
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>endobj
-</span></code></pre></div>
-<p>The generation is normally <code>0</code> in a newly written file. References use the form <code>object-number generation-number R</code>, for example <code>5 0 R</code>.</p>
-<h2 id="the-document-and-page-trees">The document and page trees<a class="headerlink" href="#the-document-and-page-trees" title="Permanent link">&para;</a></h2>
-<p>The catalog is the root object named by <code>/Root</code> in the trailer. A minimal catalog points to a page tree:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>&lt;&lt; /Type /Catalog /Pages 2 0 R &gt;&gt;
-</span></code></pre></div>
-<p>A page tree groups pages and may contain nested <code>/Pages</code> nodes. A leaf page has <code>/Type /Page</code>, a <code>/Parent</code>, and a <code>/MediaBox</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>&lt;&lt;
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  /Type /Page
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  /Parent 2 0 R
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  /MediaBox [0 0 612 792]
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  /Resources &lt;&lt; ... &gt;&gt;
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  /Contents 4 0 R
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>&gt;&gt;
-</span></code></pre></div>
-<p>Coordinates are measured in points, where 72 points equal one inch. The default origin is the lower-left corner of the page. The media box above is 612 by 792 points, or 8.5 by 11 inches.</p>
-<p>For two pages, add another page object, include it in <code>/Kids</code>, and change <code>/Count</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&lt;&lt; /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 &gt;&gt;
-</span></code></pre></div>
-<p>The new object must also receive a cross-reference entry, and all offsets at or after the inserted bytes must be recalculated.</p>
-<h2 id="content-streams-and-graphics-operators">Content streams and graphics operators<a class="headerlink" href="#content-streams-and-graphics-operators" title="Permanent link">&para;</a></h2>
-<p>A stream is a dictionary followed by the markers <code>stream</code> and <code>endstream</code>. Its dictionary must include the byte length of the stream data:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>4 0 obj
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>&lt;&lt; /Length 43 &gt;&gt;
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>stream
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>BT
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>/F1 24 Tf
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>72 720 Td
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>(Hello, PDF!) Tj
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>ET
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>endstream
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>endobj
-</span></code></pre></div>
-<p>The stream contains operators followed by their operands. In the example:</p>
+<h3 id="pdfa-2">PDF/A-2<a class="headerlink" href="#pdfa-2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 1.7</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO Standard</td>
+<td style="text-align: center;">19005-2:2011</td>
+</tr>
+<tr>
+<td style="text-align: center;">Publication year</td>
+<td style="text-align: center;">2011</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/A-2 builds on PDF/A-1 and is based on PDF 1.7. It supports additional PDF features, including JPEG 2000 compression, transparency, layers, and the embedding of other PDF/A files.</p>
 <ul>
-<li><code>BT</code> and <code>ET</code> begin and end a text object.</li>
-<li><code>/F1 24 Tf</code> selects resource <code>/F1</code> at 24 points.</li>
-<li><code>72 720 Td</code> moves the text position to <code>(72, 720)</code>.</li>
-<li><code>(Hello, PDF!) Tj</code> shows the string.</li>
+<li>
+<p><strong>PDF/A-2a:</strong> Provides <strong>Level A</strong> conformance. In addition to preserving the document's visual appearance, it requires information about its logical structure and reading order.</p>
+</li>
+<li>
+<p><strong>PDF/A-2b:</strong> Provides <strong>Level B</strong> conformance. It focuses on preserving the document's visual appearance without requiring its logical structure to be preserved.</p>
+</li>
+<li>
+<p><strong>PDF/A-2u:</strong> Provides <strong>Level U</strong> conformance. It includes the requirements of PDF/A-2b and additionally requires Unicode mappings for textual content, allowing text to be reliably extracted, searched, and copied.</p>
+</li>
 </ul>
-<p>Here is a slightly richer text stream:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>BT
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>/F1 18 Tf
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>72 720 Td
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>(First line) Tj
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>0 -24 Td
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>(Second line) Tj
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>ET
-</span></code></pre></div>
-<p>Common path operators include <code>m</code> for move-to, <code>l</code> for line-to, <code>c</code> for a cubic Bézier curve, <code>re</code> for rectangle, <code>S</code> for stroke, <code>f</code> for fill, and <code>n</code> for end-path without painting. <code>q</code> saves the graphics state and <code>Q</code> restores it.</p>
-<p>For example, this stream draws a filled rectangle:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>q
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>0.2 0.6 0.9 rg
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>72 600 200 80 re
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>f
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>Q
-</span></code></pre></div>
-<p><code>rg</code> sets the non-stroking RGB color. The three components range from 0 to 1. A color set with <code>RG</code> applies to strokes instead.</p>
-<h2 id="resources-and-fonts">Resources and fonts<a class="headerlink" href="#resources-and-fonts" title="Permanent link">&para;</a></h2>
-<p>Operators refer to resources by name, so the page must map each name to an object. The example maps <code>/F1</code> to the Helvetica font object:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/Resources &lt;&lt;
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  /Font &lt;&lt; /F1 5 0 R &gt;&gt;
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>&gt;&gt;
-</span></code></pre></div>
-<p>Other resource categories include <code>/XObject</code> for reusable images or forms, <code>/ColorSpace</code> for named color spaces, <code>/ExtGState</code> for graphics-state parameters, and <code>/Pattern</code> for tiling or shading patterns.</p>
+<h3 id="pdfa-3">PDF/A-3<a class="headerlink" href="#pdfa-3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 1.7</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO Standard</td>
+<td style="text-align: center;">19005-3:2012</td>
+</tr>
+<tr>
+<td style="text-align: center;">Publication year</td>
+<td style="text-align: center;">2012</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/A-3 is largely based on PDF/A-2 but introduces one important feature: it allows <strong>arbitrary file formats to be embedded as attachments</strong>. This makes it useful for documents that need to preserve both a human-readable PDF representation and the original or associated machine-readable data.</p>
+<p>For example, an electronic invoice can contain its visual representation as PDF while embedding the corresponding XML invoice data.</p>
+<ul>
+<li>
+<p><strong>PDF/A-3a:</strong> Provides <strong>Level A</strong> conformance. It requires preservation of both the visual appearance and the document's logical structure.</p>
+</li>
+<li>
+<p><strong>PDF/A-3b:</strong> Provides <strong>Level B</strong> conformance. It focuses on reliable preservation of the document's visual appearance.</p>
+</li>
+<li>
+<p><strong>PDF/A-3u:</strong> Provides <strong>Level U</strong> conformance. It includes the requirements of PDF/A-3b and requires Unicode mappings for textual content.</p>
+</li>
+</ul>
+<h3 id="pdfa-4">PDF/A-4<a class="headerlink" href="#pdfa-4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 2.0</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO Standard</td>
+<td style="text-align: center;">19005-4:2020</td>
+</tr>
+<tr>
+<td style="text-align: center;">Publication year</td>
+<td style="text-align: center;">2020</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/A-4 is based on <strong>PDF 2.0</strong> and modernizes PDF/A by taking advantage of the newer PDF specification.</p>
+<p>Unlike previous versions, PDF/A-4 no longer uses the <code>a</code>, <code>b</code>, and <code>u</code> conformance levels. The base PDF/A-4 standard defines a single conformance level, with two specialized profiles: PDF/A-4e and PDF/A-4f.</p>
+<ul>
+<li>
+<p><strong>PDF/A-4:</strong> The base conformance level for long-term preservation of PDF 2.0 documents. It does not require tagged PDF or a logical structure.</p>
+</li>
+<li>
+<p><strong>PDF/A-4e:</strong> The "e" stands for <strong>Engineering</strong>. It is intended primarily for engineering and technical documents and supports features useful for this domain, including RichMedia annotations for 3D content.</p>
+</li>
+<li>
+<p><strong>PDF/A-4f:</strong> The "f" stands for <strong>Files</strong>. It extends PDF/A-4 by allowing arbitrary files to be embedded in the PDF as associated files, making it the PDF/A-4 counterpart to the attachment capabilities commonly associated with PDF/A-3.</p>
+</li>
+</ul>
+<h2 id="pdfua">PDF/UA<a class="headerlink" href="#pdfua" title="Permanent link">&para;</a></h2>
+<p>PDF/UA is the ISO standard for <strong>accessible PDF documents</strong>. "UA" stands for <strong>Universal Accessibility</strong>.</p>
+<p>Unlike PDF/A, which primarily concerns long-term preservation, PDF/UA defines requirements that make PDF content accessible to people using assistive technologies such as screen readers.</p>
+<p>Among other things, PDF/UA requires documents to provide an appropriate logical structure, correctly identify content using tags, provide meaningful text alternatives for non-text content when required, specify languages, and ensure that content can be navigated and interpreted correctly by assistive technologies.</p>
+<p>PDF/A and PDF/UA are not mutually exclusive. A document can conform to both standards when it satisfies the requirements of each.</p>
+<h3 id="pdfua-1">PDF/UA-1<a class="headerlink" href="#pdfua-1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 1.7</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO Standard</td>
+<td style="text-align: center;">ISO 14289-1:2014</td>
+</tr>
+<tr>
+<td style="text-align: center;">Publication year</td>
+<td style="text-align: center;">2014</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/UA-1 defines accessibility requirements for PDF documents based on PDF 1.7.</p>
+<p>A conforming PDF/UA-1 document must use tagged PDF and provide a meaningful logical structure. Requirements cover areas such as headings, paragraphs, lists, tables, links, annotations, forms, alternative descriptions for non-text content, document and content languages, and the relationship between content and its semantic structure.</p>
+<p>PDF/UA-1 conformance is primarily concerned with whether the PDF file itself satisfies the technical accessibility requirements of the standard. Accessibility in a broader context may also depend on the PDF reader, assistive technology, and the way the content is authored.</p>
+<h3 id="pdfua-2">PDF/UA-2<a class="headerlink" href="#pdfua-2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Property</th>
+<th style="text-align: center;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Version</td>
+<td style="text-align: center;">PDF 2.0</td>
+</tr>
+<tr>
+<td style="text-align: center;">ISO</td>
+<td style="text-align: center;">ISO 14289-2:2024</td>
+</tr>
+<tr>
+<td style="text-align: center;">Date</td>
+<td style="text-align: center;">2024</td>
+</tr>
+</tbody>
+</table>
+<p>PDF/UA-2 is the successor to PDF/UA-1 and is based on <strong>PDF 2.0</strong>.</p>
+<p>It updates the accessibility requirements to align with the revised tagging and structure model introduced by PDF 2.0. PDF/UA-2 takes advantage of newer PDF 2.0 semantics and provides more precise requirements for representing accessible document structures.</p>
+<p>As with PDF/UA-1, conformance requires the document's content and semantics to be represented in a way that assistive technologies can interpret. However, PDF/UA-2 is not simply PDF/UA-1 applied to PDF 2.0: some structural concepts and requirements differ because of changes introduced in the PDF 2.0 specification.</p>
+<p>When implementing or validating PDF/UA support, it is therefore important to treat PDF/UA-1 and PDF/UA-2 as distinct standards rather than assuming that a document conforming to one automatically conforms to the other.</p>
 
 
 
