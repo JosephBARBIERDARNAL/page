@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
@@ -635,6 +635,11 @@ impl Scanner<'_> {
 
     fn inspect_unicode_pua_actual_text(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
+        // Built once for the whole document instead of rescanning every
+        // indirect object per rendered text run: a document with N shown-text
+        // records and M objects previously did O(N * M) structure-tree
+        // lookups here, which dominates runtime on large tagged documents.
+        let actual_text_coverage = actual_text_mcid_coverage(self.document);
         for usage in uses {
             if usage.shown_text_actual_text.is_empty() {
                 continue;
@@ -665,7 +670,7 @@ impl Scanner<'_> {
             {
                 if actual_text_present
                     || structure_element_has_actual_text(
-                        self.document,
+                        &actual_text_coverage,
                         page_object_id,
                         marked_content_id,
                     )
@@ -3053,18 +3058,15 @@ fn unicode_mapping_exception(
     Ok(false)
 }
 
-fn structure_element_has_actual_text(
-    document: &Document,
-    page_object_id: Option<ObjectId>,
-    marked_content_id: Option<i64>,
-) -> bool {
-    let (Some(page_object_id), Some(marked_content_id)) = (page_object_id, marked_content_id)
-    else {
-        return false;
-    };
-    document.objects.values().any(|object| {
+/// Indexes every marked-content id that a `StructElem` with a string
+/// `/ActualText` covers on a given page, across the whole document. Built
+/// once so per-rendered-text-run lookups are a hash lookup instead of a
+/// fresh linear scan of every indirect object.
+fn actual_text_mcid_coverage(document: &Document) -> HashSet<(ObjectId, i64)> {
+    let mut coverage = HashSet::new();
+    for object in document.objects.values() {
         let Ok(dictionary) = object.as_dict() else {
-            return false;
+            continue;
         };
         if dictionary
             .get(b"Type")
@@ -3072,45 +3074,67 @@ fn structure_element_has_actual_text(
             .and_then(|value| value.as_name().ok())
             != Some(b"StructElem".as_slice())
         {
-            return false;
+            continue;
         }
         if dictionary
             .get(b"ActualText")
             .ok()
             .is_none_or(|value| !matches!(value, Object::String(_, _)))
         {
-            return false;
+            continue;
         }
-        if dictionary
+        let Some(page_object_id) = dictionary
             .get(b"Pg")
             .ok()
             .and_then(|value| value.as_reference().ok())
-            != Some(page_object_id)
-        {
-            return false;
-        }
-        dictionary
-            .get(b"K")
-            .ok()
-            .is_some_and(|value| structure_element_contains_mcid(value, marked_content_id))
-    })
+        else {
+            continue;
+        };
+        let Ok(kids) = dictionary.get(b"K") else {
+            continue;
+        };
+        let mut marked_content_ids = Vec::new();
+        collect_marked_content_ids(kids, &mut marked_content_ids);
+        coverage.extend(
+            marked_content_ids
+                .into_iter()
+                .map(|mcid| (page_object_id, mcid)),
+        );
+    }
+    coverage
 }
 
-fn structure_element_contains_mcid(value: &Object, marked_content_id: i64) -> bool {
+fn collect_marked_content_ids(value: &Object, marked_content_ids: &mut Vec<i64>) {
     match value {
-        Object::Integer(value) => *value == marked_content_id,
-        Object::Array(values) => values
-            .iter()
-            .any(|value| structure_element_contains_mcid(value, marked_content_id)),
+        Object::Integer(value) => marked_content_ids.push(*value),
+        Object::Array(values) => {
+            for value in values {
+                collect_marked_content_ids(value, marked_content_ids);
+            }
+        }
         Object::Dictionary(dictionary) => {
-            dictionary
+            if let Some(mcid) = dictionary
                 .get(b"MCID")
                 .ok()
                 .and_then(|value| value.as_i64().ok())
-                == Some(marked_content_id)
+            {
+                marked_content_ids.push(mcid);
+            }
         }
-        _ => false,
+        _ => {}
     }
+}
+
+fn structure_element_has_actual_text(
+    coverage: &HashSet<(ObjectId, i64)>,
+    page_object_id: Option<ObjectId>,
+    marked_content_id: Option<i64>,
+) -> bool {
+    let (Some(page_object_id), Some(marked_content_id)) = (page_object_id, marked_content_id)
+    else {
+        return false;
+    };
+    coverage.contains(&(page_object_id, marked_content_id))
 }
 
 fn is_symbol_glyph_name(name: &str) -> bool {
