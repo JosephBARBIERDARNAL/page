@@ -420,6 +420,7 @@ fn run_validate(cli: ValidateArgs) {
         max_decoded_stream_size: cli.max_decoded_stream_size,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
+        max_xref_revisions: SafetyLimits::DEFAULT_MAX_XREF_REVISIONS,
     };
     let started_at = Instant::now();
     let report = match cli.profile {

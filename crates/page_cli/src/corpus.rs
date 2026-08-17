@@ -122,22 +122,29 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
     }
 
     let matched = cases.len() - mismatches - operational_failures;
-    eprintln!(
-        "\n\nCorpus: {matched}/{} cases matched, {mismatches} mismatches, {operational_failures} operational failures",
-        cases.len()
-    );
-    if suppressed_mismatches > 0 {
-        eprintln!(
-            "Corpus: suppressed {suppressed_mismatches} additional mismatch details after displaying {MAX_MISMATCH_DETAILS}"
-        );
-    }
-    if operational_failures > 0 {
+    let exit_code = if operational_failures > 0 {
         1
     } else if mismatches > 0 {
         2
     } else {
         0
+    };
+    eprintln!();
+    eprintln!("Corpus validation");
+    eprintln!("  cases:       {}", cases.len());
+    eprintln!("  matched:     {matched}");
+    eprintln!("  mismatches:  {mismatches}");
+    eprintln!("  operational: {operational_failures}");
+    eprintln!(
+        "  result:      {} (exit {exit_code})",
+        exit_label(exit_code)
+    );
+    if suppressed_mismatches > 0 {
+        eprintln!(
+            "  details:     suppressed {suppressed_mismatches} additional mismatches after displaying {MAX_MISMATCH_DETAILS}"
+        );
     }
+    exit_code
 }
 
 fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {
@@ -230,18 +237,43 @@ fn expected_result(path: &Path) -> Result<ExpectedResult, String> {
 }
 
 fn print_mismatch(case: &CorpusCase, actual: i32, report: &ValidationReport) {
+    eprintln!();
+    eprintln!("Corpus mismatch");
+    eprintln!("  file:     {}", case.path.display());
+    eprintln!("  profile:  {}", case.profile);
     eprintln!(
-        "corpus mismatch: '{}' ({}) expected page exit {}, got {}",
-        case.path.display(),
+        "  expected: {} (exit {})",
         case.expected.as_str(),
-        case.expected.exit_code(),
-        actual
+        case.expected.exit_code()
     );
-    for failure in &report.failures {
-        eprintln!(
-            "  [{}] {:?}: {}",
-            failure.rule_id, failure.category, failure.message
-        );
+    eprintln!("  actual:   {} (exit {actual})", exit_label(actual));
+    if report.failures.is_empty() {
+        eprintln!("  failures: none reported");
+    } else {
+        eprintln!("  failures:");
+        for failure in &report.failures {
+            eprintln!("    - rule:     {}", failure.rule_id);
+            eprintln!("      category: {}", category_label(failure.category));
+            eprintln!("      message:  {}", failure.message);
+        }
+    }
+}
+
+fn exit_label(exit_code: i32) -> &'static str {
+    match exit_code {
+        0 => "pass",
+        1 => "operational failure",
+        2 => "fail",
+        _ => "unexpected result",
+    }
+}
+
+fn category_label(category: page_validation::FailureCategory) -> &'static str {
+    match category {
+        page_validation::FailureCategory::Operational => "operational",
+        page_validation::FailureCategory::Parser => "parser",
+        page_validation::FailureCategory::Metadata => "metadata",
+        page_validation::FailureCategory::Conformance => "conformance",
     }
 }
 

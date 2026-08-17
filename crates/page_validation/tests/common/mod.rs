@@ -6546,6 +6546,23 @@ pub fn font_fixture_with_type1_program(
             | "font_subtype_indirect_unembedded"
     );
     let mut descriptor = font_descriptor(&mut document, embedded);
+    if matches!(
+        case,
+        "composite_baseline"
+            | "composite_identity_v"
+            | "composite_indirect_identity_h"
+            | "composite_cidmap_indirect_identity"
+            | "composite_cid_subset_missing_cidset"
+            | "type0_embedded_descendant"
+    ) {
+        descriptor.set(
+            "FontFile2",
+            document.add_object(Stream::new(
+                Dictionary::new(),
+                sfnt::minimal_truetype_with_glyph_count(33),
+            )),
+        );
+    }
     if case.starts_with("tt_symbolic_") {
         descriptor.set("Flags", 4);
     }
@@ -8031,7 +8048,11 @@ pub fn font_fixture_with_type1_program(
     }
     document.objects.insert(pages_id, Object::Dictionary(pages));
     let metadata_id = standard_metadata_stream(&mut document);
-    let output_intents = single_intent(&mut document, None, Some("GTS_PDFA1"));
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"GRAY", 2, 1),
+        Some("GTS_PDFA1"),
+    );
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
         "Pages" => pages_id,
@@ -8231,6 +8252,8 @@ pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
             );
             page_content = if case == "pattern_unembedded" {
                 content(vec![
+                    operation("re", vec![0.into(), 0.into(), 1.into(), 1.into()]),
+                    operation("f", vec![]),
                     operation("q", vec![]),
                     operation("cs", vec![Object::Name(b"CSP1".to_vec())]),
                     operation("scn", vec![Object::Name(b"P1".to_vec())]),

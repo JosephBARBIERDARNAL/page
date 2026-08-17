@@ -726,13 +726,71 @@ fn inspect_output_intent(
         Err(
             error @ lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }),
         ) => return Err(PdfError::IccDecodeLimit(error.to_string())),
-        Err(error) => {
-            summary.dest_output_profile_decode_error = Some(format!(
-                "could not decode ICC output profile stream: {error}"
-            ));
-        }
+        Err(error) => match decode_ascii_hex_stream(stream, limits.max_decoded_stream_size) {
+            Ok(Some(bytes)) => summary.dest_output_profile_header = IccHeader::parse(&bytes),
+            Ok(None) => {
+                summary.dest_output_profile_decode_error = Some(format!(
+                    "could not decode ICC output profile stream: {error}"
+                ));
+            }
+            Err(message) => {
+                summary.dest_output_profile_decode_error = Some(format!(
+                    "could not decode ICC output profile stream: {message}"
+                ));
+            }
+        },
     }
     Ok(summary)
+}
+
+fn decode_ascii_hex_stream(
+    stream: &lopdf::Stream,
+    max_decoded_size: usize,
+) -> Result<Option<Vec<u8>>, String> {
+    let is_ascii_hex = stream
+        .dict
+        .get(b"Filter")
+        .ok()
+        .and_then(|filter| filter.as_name().ok())
+        .is_some_and(|filter| filter == b"ASCIIHexDecode");
+    if !is_ascii_hex {
+        return Ok(None);
+    }
+    let mut decoded = Vec::with_capacity(stream.content.len() / 2);
+    let mut high_nibble = None;
+    for byte in &stream.content {
+        if byte.is_ascii_whitespace() {
+            continue;
+        }
+        if *byte == b'>' {
+            break;
+        }
+        let nibble = match byte {
+            b'0'..=b'9' => byte - b'0',
+            b'a'..=b'f' => byte - b'a' + 10,
+            b'A'..=b'F' => byte - b'A' + 10,
+            _ => return Err("invalid ASCII hexadecimal stream".to_owned()),
+        };
+        if let Some(high) = high_nibble.take() {
+            if decoded.len() >= max_decoded_size {
+                return Err(format!(
+                    "decoded stream exceeds configured limit of {max_decoded_size} bytes"
+                ));
+            }
+            decoded.push((high << 4) | nibble);
+        } else {
+            high_nibble = Some(nibble);
+        }
+    }
+    if let Some(high) = high_nibble {
+        if decoded.len() >= max_decoded_size {
+            return Err(format!(
+                "decoded stream exceeds configured limit of {max_decoded_size} bytes"
+            ));
+        }
+        decoded.push(high << 4);
+    }
+    Ok(Some(decoded))
 }
 
 fn signature(bytes: &[u8]) -> String {

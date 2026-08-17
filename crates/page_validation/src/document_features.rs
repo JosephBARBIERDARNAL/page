@@ -29,6 +29,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) language_failures: Vec<RuleFailure>,
+    pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
     pub(crate) invalid_page_boundaries: Vec<RuleFailure>,
     pub(crate) pages_with_pres_steps: Vec<RuleFailure>,
@@ -92,6 +93,7 @@ pub(crate) fn inspect(
 
     let structure_tree = inspect_structure_tree(document, catalog, limits)?;
     let mut language_failures = Vec::new();
+    let mut language_failures_pdfa23 = Vec::new();
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
         limits,
@@ -100,6 +102,15 @@ pub(crate) fn inspect(
         "document catalog",
     ) {
         language_failures.push(failure);
+    }
+    if let Some(failure) = crate::language::inspect_dictionary_pdfa23(
+        document,
+        limits,
+        catalog,
+        catalog_id,
+        "document catalog",
+    ) {
+        language_failures_pdfa23.push(failure);
     }
 
     let names = catalog
@@ -336,6 +347,16 @@ pub(crate) fn inspect(
             }
         }
     }
+    for object in document.objects.values() {
+        if let Some(dictionary) = dictionary_based(object) {
+            collect_associated_file_spec_ids(
+                document,
+                dictionary.get(b"AF").ok(),
+                limits,
+                &mut associated_file_spec_ids,
+            )?;
+        }
+    }
     let mut embedded_files_with_invalid_mime = Vec::new();
     let mut embedded_files_not_pdfa = Vec::new();
     let mut file_specs_missing_f_or_uf = Vec::new();
@@ -468,6 +489,11 @@ pub(crate) fn inspect(
             .language_failures
             .into_iter()
             .chain(language_failures)
+            .collect(),
+        language_failures_pdfa23: structure_tree
+            .language_failures_pdfa23
+            .into_iter()
+            .chain(language_failures_pdfa23)
             .collect(),
         invalid_unicode_structure_types: structure_tree.invalid_unicode_structure_types,
         invalid_page_boundaries,
@@ -722,6 +748,7 @@ struct StructureTreeSummary {
     role_map_has_standard_remap: bool,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
+    language_failures_pdfa23: Vec<RuleFailure>,
     invalid_unicode_structure_types: Vec<RuleFailure>,
 }
 
@@ -761,6 +788,7 @@ fn inspect_structure_tree(
         role_map_has_standard_remap: false,
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
+        language_failures_pdfa23: Vec::new(),
         invalid_unicode_structure_types: Vec::new(),
     };
     let role_map = root_dictionary
@@ -1024,6 +1052,15 @@ fn inspect_structure_element(
         "structure element",
     ) {
         summary.language_failures.push(failure);
+    }
+    if let Some(failure) = crate::language::inspect_dictionary_pdfa23(
+        document,
+        limits,
+        dictionary,
+        object_id,
+        "structure element",
+    ) {
+        summary.language_failures_pdfa23.push(failure);
     }
     let Some(structure_type) = dictionary
         .get(b"S")

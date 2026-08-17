@@ -66,6 +66,9 @@ pub(crate) fn inspect(
         invalid_devicen_components_pdfa2: Vec::new(),
         invalid_devicen_colorants: Vec::new(),
     };
+    if execution.uses_default_gray {
+        inspector.device_gray_context = Some("content default DeviceGray".to_owned());
+    }
     for selected in &execution.selected_color_spaces {
         inspector.inspect_selected_color_space(selected)?;
     }

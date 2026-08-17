@@ -112,7 +112,7 @@ let limits = SafetyLimits {
     max_input_size: 100 * 1024 * 1024,
     max_decoded_stream_size: 32 * 1024 * 1024,
     max_object_count: 500_000,
-    max_reference_depth: 128,
+    max_reference_depth: 256,
 };
 ```
 

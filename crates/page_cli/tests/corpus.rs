@@ -63,7 +63,9 @@ fn corpus_command_accepts_all_expected_failures_and_a_pass() {
 
     assert_eq!(output.status.code(), Some(0));
     let stderr = String::from_utf8(output.stderr).expect("UTF-8 corpus output");
-    assert!(stderr.contains("Corpus: 7/7 cases matched"), "{stderr}");
+    assert!(stderr.contains("Corpus validation"), "{stderr}");
+    assert!(stderr.contains("cases:       7"), "{stderr}");
+    assert!(stderr.contains("matched:     7"), "{stderr}");
 }
 
 #[test]
@@ -82,6 +84,7 @@ fn corpus_command_returns_two_for_an_expected_pass_failure() {
 
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("UTF-8 corpus output");
-    assert!(stderr.contains("corpus mismatch"), "{stderr}");
-    assert!(stderr.contains("1 mismatches"), "{stderr}");
+    assert!(stderr.contains("Corpus mismatch"), "{stderr}");
+    assert!(stderr.contains("mismatches:  1"), "{stderr}");
+    assert!(stderr.contains("result:      fail (exit 2)"), "{stderr}");
 }

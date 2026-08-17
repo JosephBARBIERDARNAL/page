@@ -21,6 +21,9 @@ const PDFA_TYPE_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/type#";
 const PDFA_FIELD_NAMESPACE: &str = "http://www.aiim.org/pdfa/ns/field#";
 const EXIF_NAMESPACE: &str = "http://ns.adobe.com/exif/1.0/";
 const XMP_DIMENSIONS_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Dimensions#";
+const XMP_DYNAMIC_MEDIA_NAMESPACE: &str = "http://ns.adobe.com/xmp/1.0/DynamicMedia/";
+const XMP_GRAPHICS_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/g/";
+const XMP_FONT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Font#";
 const XMP_JOB_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Job#";
 const XMP_RESOURCE_EVENT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#";
 const XMP_RESOURCE_REF_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
@@ -95,18 +98,27 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         return Ok(XmpMetadata::default());
     };
     validate_rdf_package(rdf, &xml)?;
+    let pdfa_parts = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "part");
+    let pdfa_2_or_3 = pdfa_parts
+        .iter()
+        .any(|part| matches!(part.as_str(), "2" | "3"));
     let extension_schema_failed_tests = inspect_extension_schemas(rdf, &xml);
-    let invalid_predefined_xmp_properties = inspect_predefined_xmp_properties(rdf, &xml);
-    let invalid_predefined_xmp_value_types = inspect_predefined_xmp_value_types(rdf, &xml);
+    let invalid_predefined_xmp_properties =
+        inspect_predefined_xmp_properties(rdf, &xml, pdfa_2_or_3);
+    let invalid_predefined_xmp_value_types =
+        inspect_predefined_xmp_value_types(rdf, &xml, pdfa_2_or_3);
     let extension_schema_definitions = extension_schema_property_definitions(rdf);
-    let undefined_extension_xmp_properties =
-        inspect_undefined_extension_xmp_properties(rdf, &xml, &extension_schema_definitions);
+    let undefined_extension_xmp_properties = inspect_undefined_extension_xmp_properties(
+        rdf,
+        &xml,
+        &extension_schema_definitions,
+        pdfa_2_or_3,
+    );
     let invalid_extension_xmp_value_types =
-        inspect_extension_xmp_value_types(rdf, &xml, &extension_schema_definitions);
+        inspect_extension_xmp_value_types(rdf, &xml, &extension_schema_definitions, pdfa_2_or_3);
     let identification_prefix_failed_tests = inspect_identification_prefixes(rdf, &xml);
 
     let pdfa_identification_present = contains_namespace_property(rdf, &xml, PDFA_ID_NAMESPACE);
-    let pdfa_parts = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "part");
     let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
     let pdfua_identification_present = contains_namespace_property(rdf, &xml, PDFUA_ID_NAMESPACE);
     let pdfua_parts = property_values(rdf, &xml, PDFUA_ID_NAMESPACE, "part");
@@ -702,11 +714,20 @@ fn rdf_term(namespace: Option<&str>, name: &str, _attribute: bool) -> RdfTerm {
     }
 }
 
-fn inspect_predefined_xmp_properties(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<String> {
+fn inspect_predefined_xmp_properties(
+    rdf: Node<'_, '_>,
+    xml: &str,
+    pdfa_2_or_3: bool,
+) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
     for property in xmp_properties(rdf, xml) {
         if let Some(namespace) = property.namespace() {
-            insert_invalid_predefined_property(&mut invalid, namespace, property.name());
+            insert_invalid_predefined_property(
+                &mut invalid,
+                namespace,
+                property.name(),
+                pdfa_2_or_3,
+            );
         }
     }
     invalid
@@ -716,42 +737,55 @@ fn insert_invalid_predefined_property(
     properties: &mut BTreeSet<String>,
     namespace: &str,
     name: &str,
+    pdfa_2_or_3: bool,
 ) {
-    if predefined_xmp2004_namespace(namespace) && predefined_xmp2004_type(namespace, name).is_none()
+    if predefined_xmp2004_namespace(namespace, pdfa_2_or_3)
+        && predefined_xmp2004_type(namespace, name, pdfa_2_or_3).is_none()
     {
         properties.insert(format!("{{{namespace}}}{name}"));
     }
 }
 
-fn predefined_xmp2004_namespace(namespace: &str) -> bool {
-    include_str!("xmp2004_properties.txt")
-        .lines()
-        .any(|line| line.starts_with(&format!("{{{namespace}}}")))
+fn predefined_xmp2004_namespace(namespace: &str, pdfa_2_or_3: bool) -> bool {
+    predefined_xmp2004_lines(pdfa_2_or_3).any(|line| line.starts_with(&format!("{{{namespace}}}")))
 }
 
-fn predefined_xmp2004_type(namespace: &str, name: &str) -> Option<&'static str> {
-    include_str!("xmp2004_properties.txt")
-        .lines()
-        .find_map(|line| {
-            let (property, value_type) = line.split_once('=')?;
-            (property == format!("{{{namespace}}}{name}")).then_some(value_type)
-        })
+fn predefined_xmp2004_type(namespace: &str, name: &str, pdfa_2_or_3: bool) -> Option<&'static str> {
+    predefined_xmp2004_lines(pdfa_2_or_3).find_map(|line| {
+        let (property, value_type) = line.split_once('=')?;
+        (property == format!("{{{namespace}}}{name}")).then_some(value_type)
+    })
 }
 
-fn inspect_predefined_xmp_value_types(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<String> {
+fn predefined_xmp2004_lines(pdfa_2_or_3: bool) -> impl Iterator<Item = &'static str> {
+    include_str!("xmp2004_pdfa23_properties.txt")
+        .lines()
+        .filter(move |_| pdfa_2_or_3)
+        .chain(include_str!("xmp2004_properties.txt").lines())
+}
+
+fn inspect_predefined_xmp_value_types(
+    rdf: Node<'_, '_>,
+    xml: &str,
+    pdfa_2_or_3: bool,
+) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
     for property in xmp_properties(rdf, xml) {
-        inspect_predefined_xmp_value_type(&mut invalid, property);
+        inspect_predefined_xmp_value_type(&mut invalid, property, pdfa_2_or_3);
     }
     invalid
 }
 
-fn inspect_predefined_xmp_value_type(properties: &mut BTreeSet<String>, property: XmpProperty<'_>) {
+fn inspect_predefined_xmp_value_type(
+    properties: &mut BTreeSet<String>,
+    property: XmpProperty<'_>,
+    pdfa_2_or_3: bool,
+) {
     let Some(namespace) = property.namespace() else {
         return;
     };
-    let Some(value_type) = predefined_xmp2004_type(namespace, property.name()) else {
-        if predefined_xmp2004_namespace(namespace) {
+    let Some(value_type) = predefined_xmp2004_type(namespace, property.name(), pdfa_2_or_3) else {
+        if predefined_xmp2004_namespace(namespace, pdfa_2_or_3) {
             properties.insert(format!("{{{namespace}}}{} (undefined)", property.name()));
         }
         return;
@@ -965,6 +999,89 @@ fn structured_xmp_type(
             XMP_DIMENSIONS_NAMESPACE,
             &[("h", "real"), ("unit", "text"), ("w", "real")],
         ),
+        "colorant" => (
+            XMP_GRAPHICS_NAMESPACE,
+            &[
+                ("swatchName", "text"),
+                ("mode", "text"),
+                ("type", "text"),
+                ("cyan", "real"),
+                ("magenta", "real"),
+                ("yellow", "real"),
+                ("black", "real"),
+                ("red", "integer"),
+                ("green", "integer"),
+                ("blue", "integer"),
+                ("L", "real"),
+                ("A", "integer"),
+                ("B", "integer"),
+            ],
+        ),
+        "font" => (
+            XMP_FONT_NAMESPACE,
+            &[
+                ("fontName", "text"),
+                ("fontFamily", "text"),
+                ("fontFace", "text"),
+                ("fontType", "text"),
+                ("versionString", "text"),
+                ("composite", "boolean"),
+                ("fontFileName", "text"),
+                ("childFontFiles", "seq text"),
+            ],
+        ),
+        "beatsplicestretch" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[
+                ("useFileBeatsMarker", "boolean"),
+                ("riseInDecibel", "real"),
+                ("riseInTimeDuration", "time"),
+            ],
+        ),
+        "marker" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[
+                ("startTime", "any"),
+                ("duration", "any"),
+                ("comment", "text"),
+                ("name", "text"),
+                ("location", "uri"),
+                ("target", "text"),
+                ("type", "text"),
+            ],
+        ),
+        "media" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[
+                ("path", "uri"),
+                ("track", "text"),
+                ("startTime", "time"),
+                ("duration", "time"),
+                ("managed", "boolean"),
+                ("webStatement", "uri"),
+            ],
+        ),
+        "projectlink" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[("path", "uri"), ("type", "text")],
+        ),
+        "resamplestretch" => (XMP_DYNAMIC_MEDIA_NAMESPACE, &[("quality", "text")]),
+        "time" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[("value", "integer"), ("scale", "rational")],
+        ),
+        "timecode" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[("timeValue", "text"), ("timeFormat", "text")],
+        ),
+        "timescalestretch" => (
+            XMP_DYNAMIC_MEDIA_NAMESPACE,
+            &[
+                ("frameSize", "real"),
+                ("frameOverlappingPercentage", "real"),
+                ("quality", "text"),
+            ],
+        ),
         _ => return None,
     })
 }
@@ -1081,7 +1198,9 @@ fn signed_decimal(value: &str, allow_decimal_point: bool) -> bool {
     let fraction_valid = fraction.is_some_and(|fraction| {
         !fraction.is_empty() && fraction.bytes().all(|byte| byte.is_ascii_digit())
     });
-    whole_valid || (allow_decimal_point && fraction_valid)
+    whole_valid && fraction.is_none()
+        || allow_decimal_point && whole_valid && fraction_valid
+        || allow_decimal_point && whole.is_empty() && fraction_valid
 }
 
 fn mime_type_byte(byte: u8) -> bool {
@@ -1092,13 +1211,14 @@ fn inspect_extension_xmp_value_types(
     rdf: Node<'_, '_>,
     xml: &str,
     definitions: &ExtensionSchemaDefinitions,
+    pdfa_2_or_3: bool,
 ) -> BTreeSet<String> {
     let mut invalid = BTreeSet::new();
     for property in xmp_properties(rdf, xml) {
         let Some(namespace) = property.namespace() else {
             continue;
         };
-        if predefined_xmp2004_namespace(namespace) {
+        if predefined_xmp2004_namespace(namespace, pdfa_2_or_3) {
             continue;
         }
         let Some(value_type) = definitions
@@ -1119,13 +1239,14 @@ fn inspect_undefined_extension_xmp_properties(
     rdf: Node<'_, '_>,
     xml: &str,
     definitions: &ExtensionSchemaDefinitions,
+    pdfa_2_or_3: bool,
 ) -> BTreeSet<String> {
     let mut undefined = BTreeSet::new();
     for property in xmp_properties(rdf, xml) {
         let Some(namespace) = property.namespace() else {
             continue;
         };
-        if !predefined_xmp2004_namespace(namespace)
+        if !predefined_xmp2004_namespace(namespace, pdfa_2_or_3)
             && !definitions
                 .properties
                 .contains_key(&(namespace.to_owned(), property.name().to_owned()))
