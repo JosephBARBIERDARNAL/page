@@ -350,6 +350,11 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
             "pdf:Keywords=\"rust,pdf\" pdf:Unknown=\"invalid\"",
         ),
         "id_alias_declaration_only" => {}
+        "id_corr_prefix" => replace(
+            &mut xmp,
+            "<dc:title>",
+            "<idAlias:corr>1</idAlias:corr><dc:title>",
+        ),
         "id_part_alias" => replace(&mut xmp, "pdfaid:part=\"1\"", "idAlias:part=\"1\""),
         "id_part_plus_one" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"+1\""),
         "id_part_leading_zero" => replace(&mut xmp, "pdfaid:part=\"1\"", "pdfaid:part=\"01\""),
@@ -6005,6 +6010,252 @@ pub fn canonical_a1b_header_offset_fixture() -> Vec<u8> {
     bytes.extend_from_slice(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"));
     bytes
 }
+
+pub fn pdfa_2_3_fixture(case: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let mut resources = Dictionary::new();
+    let mut contents = Vec::new();
+    let mut page = dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+    };
+
+    match case {
+        "catalog_needs_rendering"
+        | "file_spec_af_relationship"
+        | "file_spec_association"
+        | "pres_steps"
+        | "signature_byte_range"
+        | "signature_certificate"
+        | "signature_signer_count" => {}
+        "devicen_colorants" => {
+            let tint_transform = dictionary! {
+                "FunctionType" => 2,
+                "Domain" => vec![0.into(), 1.into()],
+                "C0" => vec![0.into(), 0.into(), 0.into()],
+                "C1" => vec![1.into(), 1.into(), 1.into()],
+                "N" => 1,
+            };
+            resources.set(
+                "ColorSpace",
+                dictionary! {
+                    "CS1" => Object::Array(vec![
+                        Object::Name(b"DeviceN".to_vec()),
+                        Object::Array(vec![Object::Name(b"Spot".to_vec())]),
+                        Object::Name(b"DeviceRGB".to_vec()),
+                        Object::Dictionary(tint_transform),
+                        Object::Dictionary(dictionary! { "Colorants" => Dictionary::new() }),
+                    ]),
+                },
+            );
+            contents = b"/CS1 cs\n0 0 0 scn\n".to_vec();
+        }
+        case if case.starts_with("jpeg2000_") => {
+            let image_id = document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 1,
+                    "Height" => 1,
+                    "BitsPerComponent" => 8,
+                    "Filter" => "JPXDecode",
+                },
+                jpeg2000_bytes(case),
+            ));
+            resources.set("XObject", dictionary! { "Im" => image_id });
+            contents = b"/Im Do\n".to_vec();
+        }
+        other => panic!("unknown PDF/A-2/3 fixture case {other}"),
+    }
+
+    if case == "pres_steps" {
+        page.set("PresSteps", Dictionary::new());
+    }
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), contents));
+    page.set("Resources", resources);
+    page.set("Contents", contents_id);
+    let page_id = document.add_object(page);
+    wrap_pages(&mut document, pages_id, page_id);
+
+    let metadata_id = standard_metadata_stream(&mut document);
+    let output_intents = single_profile_intent(
+        &mut document,
+        icc_header(*b"mntr", *b"RGB ", 2, 1),
+        Some("GTS_PDFA1"),
+    );
+    let mut catalog = dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+        "OutputIntents" => output_intents.expect("output intent"),
+    };
+
+    match case {
+        "catalog_needs_rendering" => catalog.set("NeedsRendering", true),
+        "file_spec_af_relationship" | "file_spec_association" => {
+            let embedded = document.add_object(Stream::new(
+                dictionary! { "Subtype" => "application/pdf" },
+                b"%PDF-1.4\n%%EOF\n".to_vec(),
+            ));
+            let mut file_spec = dictionary! {
+                "Type" => "Filespec",
+                "F" => Object::string_literal("attachment.pdf"),
+                "UF" => Object::string_literal("attachment.pdf"),
+                "EF" => dictionary! { "F" => embedded },
+            };
+            if case == "file_spec_association" {
+                file_spec.set("AFRelationship", "Data");
+            }
+            let file_spec_id = document.add_object(file_spec);
+            catalog.set(
+                "Names",
+                dictionary! {
+                    "EmbeddedFiles" => dictionary! {
+                        "Names" => vec![
+                            Object::string_literal("attachment"),
+                            Object::Reference(file_spec_id),
+                        ],
+                    },
+                },
+            );
+            if case == "file_spec_af_relationship" {
+                catalog.set("AF", vec![Object::Reference(file_spec_id)]);
+            }
+        }
+        "signature_byte_range" | "signature_certificate" | "signature_signer_count" => {
+            let (certificate, signer_count) = match case {
+                "signature_certificate" => (false, 1),
+                "signature_signer_count" => (true, 2),
+                _ => (false, 0),
+            };
+            let contents = if case == "signature_byte_range" {
+                vec![0; 8]
+            } else {
+                signature_pkcs7(certificate, signer_count)
+            };
+            let signature_id = document.add_object(dictionary! {
+                "Type" => "Sig",
+                "Filter" => "Adobe.PPKLite",
+                "SubFilter" => "adbe.pkcs7.detached",
+                "ByteRange" => vec![0.into(), 0.into(), 0.into(), 0.into()],
+                "Contents" => Object::String(contents, StringFormat::Hexadecimal),
+            });
+            catalog.set("Perms", dictionary! { "DocMDP" => signature_id });
+            let field = document.add_object(dictionary! {
+                "FT" => "Sig",
+                "T" => Object::string_literal("Signature1"),
+                "V" => signature_id,
+            });
+            catalog.set(
+                "AcroForm",
+                dictionary! { "Fields" => vec![Object::Reference(field)] },
+            );
+        }
+        _ => {}
+    }
+
+    let catalog_id = document.add_object(catalog);
+    let info_id = document.add_object(complete_info());
+    document.trailer.set("Root", catalog_id);
+    document.trailer.set("Info", info_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/A-2/3 fixture");
+    bytes
+}
+
+fn jpeg2000_bytes(case: &str) -> Vec<u8> {
+    let mut bytes = BASE_JPEG2000.to_vec();
+    let ihdr = bytes
+        .windows(4)
+        .position(|window| window == b"ihdr")
+        .expect("JPEG2000 ihdr box")
+        + 4;
+    let colr = bytes
+        .windows(4)
+        .position(|window| window == b"colr")
+        .expect("JPEG2000 colr box")
+        + 4;
+    match case {
+        "jpeg2000_bit_depth" => bytes[ihdr + 10] = 0x7f,
+        "jpeg2000_channels" => bytes[ihdr + 8..ihdr + 10].copy_from_slice(&2u16.to_be_bytes()),
+        "jpeg2000_color_method" => bytes[colr] = 4,
+        "jpeg2000_color_space" => bytes[colr + 3..colr + 7].copy_from_slice(&19u32.to_be_bytes()),
+        "jpeg2000_color_specs" => {
+            let jp2h = bytes
+                .windows(4)
+                .position(|window| window == b"jp2h")
+                .expect("JPEG2000 jp2h box");
+            let jp2c = bytes
+                .windows(4)
+                .position(|window| window == b"jp2c")
+                .expect("JPEG2000 jp2c box")
+                - 4;
+            let length = u32::from_be_bytes(bytes[jp2h - 4..jp2h].try_into().unwrap()) + 15;
+            bytes[jp2h - 4..jp2h].copy_from_slice(&length.to_be_bytes());
+            bytes.splice(
+                jp2c..jp2c,
+                [0, 0, 0, 15, b'c', b'o', b'l', b'r', 1, 0, 0, 0, 0, 0, 0],
+            );
+        }
+        other => panic!("unknown JPEG2000 fixture case {other}"),
+    }
+    bytes
+}
+
+fn signature_pkcs7(certificate: bool, signer_count: usize) -> Vec<u8> {
+    const SIGNED_DATA_OID: &[u8] = &[
+        0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02,
+    ];
+    let mut fields = Vec::new();
+    fields.extend(der_tlv(0x02, &[1]));
+    fields.extend(der_tlv(0x31, &[]));
+    fields.extend(der_tlv(0x30, &[]));
+    if certificate {
+        fields.extend(der_tlv(0xa0, &[]));
+    }
+    let mut signers = Vec::new();
+    for _ in 0..signer_count {
+        signers.extend(der_tlv(0x30, &[]));
+    }
+    fields.extend(der_tlv(0x31, &signers));
+    let signed_data = der_tlv(0x30, &fields);
+    let wrapper = der_tlv(0xa0, &signed_data);
+    let mut content_info = Vec::new();
+    content_info.extend_from_slice(SIGNED_DATA_OID);
+    content_info.extend_from_slice(&wrapper);
+    der_tlv(0x30, &content_info)
+}
+
+fn der_tlv(tag: u8, content: &[u8]) -> Vec<u8> {
+    assert!(
+        content.len() < 128,
+        "test DER helper only supports short lengths"
+    );
+    let mut bytes = vec![tag, content.len() as u8];
+    bytes.extend_from_slice(content);
+    bytes
+}
+
+const BASE_JPEG2000: &[u8] = &[
+    0x00, 0x00, 0x00, 0x0c, 0x6a, 0x50, 0x20, 0x20, 0x0d, 0x0a, 0x87, 0x0a, 0x00, 0x00, 0x00, 0x14,
+    0x66, 0x74, 0x79, 0x70, 0x6a, 0x70, 0x32, 0x20, 0x00, 0x00, 0x00, 0x00, 0x6a, 0x70, 0x32, 0x20,
+    0x00, 0x00, 0x00, 0x2d, 0x6a, 0x70, 0x32, 0x68, 0x00, 0x00, 0x00, 0x16, 0x69, 0x68, 0x64, 0x72,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x07, 0x07, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x0f, 0x63, 0x6f, 0x6c, 0x72, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
+    0x84, 0x6a, 0x70, 0x32, 0x63, 0xff, 0x4f, 0xff, 0x51, 0x00, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x07, 0x01, 0x01, 0xff, 0x52, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00,
+    0x01, 0xff, 0x5c, 0x00, 0x04, 0x40, 0x40, 0xff, 0x64, 0x00, 0x25, 0x00, 0x01, 0x43, 0x72, 0x65,
+    0x61, 0x74, 0x65, 0x64, 0x20, 0x62, 0x79, 0x20, 0x4f, 0x70, 0x65, 0x6e, 0x4a, 0x50, 0x45, 0x47,
+    0x20, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x32, 0x2e, 0x35, 0x2e, 0x34, 0xff, 0x90,
+    0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0xff, 0x93, 0xdf, 0x80, 0x08, 0x07,
+    0xff, 0xd9,
+];
 
 pub fn canonical_a1b_blend_mode_fixture() -> Vec<u8> {
     let mut document = Document::load_mem(include_bytes!("../fixtures/canonical-pdfa-1b.pdf"))

@@ -45,6 +45,8 @@ enum EvidenceKind {
     Fail,
     Pass,
     Inapplicable,
+    ReferenceParserDiscrepancy,
+    Unrepresentable,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -198,7 +200,7 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
             candidates_by_rule.insert(local_rule_id.clone(), candidate.clone());
         }
     }
-    let baseline = AtomicCandidate {
+    let inapplicable_baseline = AtomicCandidate {
         family: "document_feature".to_owned(),
         case: "baseline".to_owned(),
         path: None,
@@ -206,23 +208,26 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
         local_rule_ids: Vec::new(),
         kind: EvidenceKind::Pass,
     };
-    for mapping in mappings {
-        let canonical = mapping["canonical_local_rule_id"]
-            .as_str()
-            .expect("canonical local rule");
-        candidates_by_rule
-            .entry(canonical.to_owned())
-            .or_insert_with(|| baseline.clone());
-    }
     for canonical in inapplicable_rules() {
         candidates_by_rule.insert(
             (*canonical).to_owned(),
             AtomicCandidate {
                 kind: EvidenceKind::Inapplicable,
-                ..baseline.clone()
+                ..inapplicable_baseline.clone()
             },
         );
     }
+    let missing_candidates = mappings
+        .iter()
+        .filter_map(|mapping| {
+            let canonical = mapping["canonical_local_rule_id"].as_str()?;
+            (!candidates_by_rule.contains_key(canonical)).then_some(canonical)
+        })
+        .collect::<BTreeSet<_>>();
+    assert!(
+        missing_candidates.is_empty(),
+        "every mapped PDF/A-2/3 rule needs a dedicated atomic candidate; missing: {missing_candidates:?}"
+    );
     let profiles = [
         (ReferenceProfile::PdfA2a, "2a"),
         (ReferenceProfile::PdfA2b, "2b"),
@@ -318,11 +323,28 @@ fn pdfa_2_and_3_atomic_rule_evidence_is_complete_when_opted_in() {
                 EvidenceKind::Pass | EvidenceKind::Inapplicable => {
                     !local_failed && !reference_failed
                 }
+                EvidenceKind::ReferenceParserDiscrepancy => {
+                    !reference_failed
+                        && report.classification
+                            == ComparisonClassification::ReferenceParserDiscrepancy
+                }
+                EvidenceKind::Unrepresentable => {
+                    !local_failed
+                        && !reference_failed
+                        && matches!(
+                            report.classification,
+                            ComparisonClassification::Agreement
+                                | ComparisonClassification::BothNoncompliant
+                        )
+                }
             };
             if !satisfied {
                 missing.push(format!(
-                    "{profile_name}:{canonical}:{} {:?} local_failed={local_failed} reference_failed={reference_failed}",
-                    candidate.case, candidate.kind
+                    "{profile_name}:{canonical}:{} {:?} local_failed={local_failed} reference_failed={reference_failed} classification={:?} reference_rules={:?}",
+                    candidate.case,
+                    candidate.kind,
+                    report.classification,
+                    report.reference_result.as_ref().map(|result| &result.failed_rule_ids)
                 ));
             }
         }
@@ -414,6 +436,18 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
         reidentify: !local_rule_id.contains("-ID-"),
         local_rule_ids: vec![local_rule_id.to_owned()],
         kind: EvidenceKind::Fail,
+    };
+    let reference_parser_boundary = |path: &str, local_rule_id: &str| AtomicCandidate {
+        family: "checked_in".to_owned(),
+        case: path.to_owned(),
+        path: Some(PathBuf::from(path)),
+        reidentify: false,
+        local_rule_ids: vec![local_rule_id.to_owned()],
+        kind: EvidenceKind::ReferenceParserDiscrepancy,
+    };
+    let unrepresentable = |path: &str, local_rule_id: &str| AtomicCandidate {
+        kind: EvidenceKind::Unrepresentable,
+        ..checked_in(path, local_rule_id)
     };
 
     vec![
@@ -646,11 +680,98 @@ fn explicit_candidates() -> Vec<AtomicCandidate> {
             "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
         ),
         case(
+            "graphics",
+            "halftone_transfer_root_invalid",
+            "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+        ),
+        case(
+            "graphics",
+            "inherited_resource_calgray",
+            "PDFA1B-CONTENT-RESOURCES-001",
+        ),
+        case(
+            "graphics",
+            "extgstate_transparency_no_output_intent",
+            "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+        ),
+        case(
+            "metadata",
+            "xmp_utf16le_without_bom",
+            "PDFA1B-XMP-ENCODING-001",
+        ),
+        case(
             "document_feature",
             "stream_lzwdecode",
             "PDFA1B-STREAM-FILTER-001",
         ),
         case("metadata", "wrong_part_four", "PDFA1B-ID-PART-001"),
+        case("metadata", "id_corr_prefix", "PDFA1B-ID-CORR-PREFIX-001"),
+        case(
+            "pdfa_2_3",
+            "catalog_needs_rendering",
+            "PDFA1B-CATALOG-NEEDS-RENDERING-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "devicen_colorants",
+            "PDFA1B-DEVICEN-COLORANTS-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "file_spec_af_relationship",
+            "PDFA1B-FILE-SPEC-AF-RELATIONSHIP-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "file_spec_association",
+            "PDFA1B-FILE-SPEC-ASSOCIATION-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "jpeg2000_bit_depth",
+            "PDFA1B-JPEG2000-BIT-DEPTH-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "jpeg2000_channels",
+            "PDFA1B-JPEG2000-CHANNELS-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "jpeg2000_color_method",
+            "PDFA1B-JPEG2000-COLOR-METHOD-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "jpeg2000_color_space",
+            "PDFA1B-JPEG2000-COLOR-SPACE-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "jpeg2000_color_specs",
+            "PDFA1B-JPEG2000-COLOR-SPECS-001",
+        ),
+        case("pdfa_2_3", "pres_steps", "PDFA1B-PRES-STEPS-001"),
+        case(
+            "pdfa_2_3",
+            "signature_byte_range",
+            "PDFA1B-SIGNATURE-BYTERANGE-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "signature_certificate",
+            "PDFA1B-SIGNATURE-CERTIFICATE-001",
+        ),
+        case(
+            "pdfa_2_3",
+            "signature_signer_count",
+            "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+        ),
+        reference_parser_boundary("tests/fixtures/encrypted.pdf", "PDFA1B-ENCRYPTION-001"),
+        unrepresentable(
+            "tests/fixtures/typst-pdfa-1b.pdf",
+            "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+        ),
     ]
 }
 
@@ -672,6 +793,7 @@ fn atomic_fixture(candidate: &AtomicCandidate) -> Vec<u8> {
         "action" => common::action_fixture(&candidate.case),
         "form" => common::form_fixture(&candidate.case),
         "document_feature" => common::document_feature_fixture(&candidate.case),
+        "pdfa_2_3" => common::pdfa_2_3_fixture(&candidate.case),
         "object_limit" => common::object_limit_fixture(&candidate.case),
         "syntax" => common::syntax_fixture(&candidate.case),
         family => panic!("unknown atomic family {family}"),

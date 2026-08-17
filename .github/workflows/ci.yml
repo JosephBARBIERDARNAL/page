@@ -5,13 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      pdfa1b_release_gate:
-        description: Require the PDF/A-1B completion gate
-        required: false
-        default: false
-        type: boolean
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -93,13 +87,7 @@ jobs:
             "$GITHUB_WORKSPACE/.github/verapdf-auto-install.xml"
           /tmp/verapdf/verapdf --version
 
-      - name: Compare with veraPDF
+      - name: Enforce all implemented PDF/A profile coverage
         env:
           VERAPDF_BIN: /tmp/verapdf/verapdf
-        run: just verapdf
-
-      - name: Enforce PDF/A-1B release completion
-        if: ${{ inputs.pdfa1b_release_gate }}
-        env:
-          VERAPDF_BIN: /tmp/verapdf/verapdf
-        run: just pdfa1b-release-gate
+        run: just pdfa-release-gate
