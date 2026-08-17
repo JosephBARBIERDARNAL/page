@@ -27,20 +27,17 @@ cargo install --git https://github.com/pagestandards/page.git page_cli --bin pag
 ## Roadmap
 
 !!! failure "Important"
-      
-      page implements PDF/A-1, PDF/A-2, and PDF/A-3 validators based on ISO 19005-1, ISO 19005-2, and ISO 19005-3, with differential verification against veraPDF 1.30.2.
 
-- [x] PDF/A-1
-      - [x] PDF/A-1a
-      - [x] PDF/A-1b
+      page implements PDF/A-1, PDF/A-2, and PDF/A-3 validators based on ISO 19005-1, ISO 19005-2, and ISO 19005-3, with differential verification against veraPDF 1.30.2. A crossed checkbox means that the core of the rule has been implemented, but its behavior does not yet fully match veraPDF.
+
+- [x] PDF/A-1a
+- [x] PDF/A-1b
 - [x] PDF/A-2a
-      - [x] PDF/A-2a
-      - [x] PDF/A-2b
-      - [x] PDF/A-2u
+- [x] PDF/A-2b
+- [x] PDF/A-2u
 - [x] PDF/A-3a
-      - [x] PDF/A-3a
-      - [x] PDF/A-3b
-      - [x] PDF/A-3u
+- [x] PDF/A-3b
+- [x] PDF/A-3u
 - [ ] PDF/A-4
 - [ ] PDF/A-4e
 - [ ] PDF/A-4f

@@ -668,22 +668,22 @@
     {
       "name": "unicode_type0_identity_h",
       "fixture_family": "font",
-      "expected_local_failure": false,
+      "expected_local_failure": true,
       "expected_verapdf_failure": true,
       "expected_classification": "both_noncompliant",
       "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
       "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
-      "rationale": "veraPDF 1.30.2 reports a failure for Identity-H although the PDF/A-1 profile exception permits it."
+      "rationale": "veraPDF 1.30.2 reports a failure for Identity-H, so the local implementation follows the pinned reference behavior despite the profile text's exception wording."
     },
     {
       "name": "unicode_type0_identity_v",
       "fixture_family": "font",
-      "expected_local_failure": false,
+      "expected_local_failure": true,
       "expected_verapdf_failure": true,
       "expected_classification": "both_noncompliant",
       "local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
       "reference_rule_id": "ISO 19005-1:2005:6.3.8:1",
-      "rationale": "veraPDF 1.30.2 reports a failure for Identity-V although the PDF/A-1 profile exception permits it."
+      "rationale": "veraPDF 1.30.2 reports a failure for Identity-V, so the local implementation follows the pinned reference behavior despite the profile text's exception wording."
     }
   ]
 }

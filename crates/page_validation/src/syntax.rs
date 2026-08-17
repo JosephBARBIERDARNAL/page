@@ -41,12 +41,14 @@ pub(crate) struct SyntaxSummary {
 pub(crate) struct RawStreamLocation {
     pub(crate) data_start: usize,
     pub(crate) endstream: Option<usize>,
+    pub(crate) declared_length: Option<usize>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HeaderSummary {
     pub(crate) offset: usize,
     pub(crate) has_valid_header: bool,
+    pub(crate) has_valid_pdfa23_header: bool,
     pub(crate) has_binary_comment: bool,
     pub(crate) has_post_eof_data: bool,
     pub(crate) is_linearized: bool,
@@ -502,6 +504,7 @@ fn inspect_indirect_object(
         return Ok(None);
     }
     let mut parser = RawParser::at(bytes, offset, limits)?;
+    parser.skip_space_and_comments();
     let header_start = parser.position;
     let number = parser.take_unsigned_integer_token();
     let first_separator_start = parser.position;
@@ -523,13 +526,9 @@ fn inspect_indirect_object(
     summary.has_invalid_indirect_object_syntax |= !valid_header;
 
     parser.skip_space_and_comments();
+    let value_start = parser.position;
     let value = parser.parse_value(0);
-    if document
-        .objects
-        .get(&(object_id.object_number, object_id.generation))
-        .is_some_and(|object| object.as_stream().is_ok())
-        && let Some(location) = raw_stream_location(bytes, parser.position)
-    {
+    if let Some(location) = raw_stream_location(bytes, value_start, document) {
         summary.raw_stream_locations.insert(object_id, location);
     }
     let Some(mut cursor) = find_endobj_start(bytes, parser.position, document, object_id) else {
@@ -542,13 +541,102 @@ fn inspect_indirect_object(
     Ok(value)
 }
 
-fn raw_stream_location(bytes: &[u8], after_dictionary: usize) -> Option<RawStreamLocation> {
+fn raw_stream_location(
+    bytes: &[u8],
+    after_dictionary: usize,
+    document: &Document,
+) -> Option<RawStreamLocation> {
+    let endobj = find_bounded_keyword(bytes, b"endobj", after_dictionary)?;
     let keyword = find_bounded_keyword(bytes, b"stream", after_dictionary)?;
+    if keyword > endobj {
+        return None;
+    }
     let data_start = stream_data_start_after_keyword(bytes, keyword + b"stream".len())?;
     Some(RawStreamLocation {
         data_start,
         endstream: find_bounded_keyword(bytes, b"endstream", data_start),
+        declared_length: raw_stream_declared_length(bytes, after_dictionary, keyword, document),
     })
+}
+
+fn raw_stream_declared_length(
+    bytes: &[u8],
+    dictionary_start: usize,
+    stream_keyword: usize,
+    document: &Document,
+) -> Option<usize> {
+    let dictionary = bytes.get(dictionary_start..stream_keyword)?;
+    let length_key = dictionary
+        .windows(b"/Length".len())
+        .enumerate()
+        .rev()
+        .find_map(|(offset, window)| {
+            (window == b"/Length"
+                && is_pdf_boundary(dictionary.get(offset + b"/Length".len()).copied()))
+            .then_some(offset)
+        })?;
+    let mut cursor = length_key + b"/Length".len();
+    while dictionary
+        .get(cursor)
+        .copied()
+        .is_some_and(is_pdf_whitespace)
+    {
+        cursor += 1;
+    }
+    let number_start = cursor;
+    while dictionary
+        .get(cursor)
+        .copied()
+        .is_some_and(|byte| byte.is_ascii_digit())
+    {
+        cursor += 1;
+    }
+    let first = std::str::from_utf8(dictionary.get(number_start..cursor)?)
+        .ok()?
+        .parse::<usize>()
+        .ok()?;
+    let mut after_first = cursor;
+    while dictionary
+        .get(after_first)
+        .copied()
+        .is_some_and(is_pdf_whitespace)
+    {
+        after_first += 1;
+    }
+    let second_start = after_first;
+    while dictionary
+        .get(after_first)
+        .copied()
+        .is_some_and(|byte| byte.is_ascii_digit())
+    {
+        after_first += 1;
+    }
+    if second_start != after_first {
+        let mut after_second = after_first;
+        while dictionary
+            .get(after_second)
+            .copied()
+            .is_some_and(is_pdf_whitespace)
+        {
+            after_second += 1;
+        }
+        if dictionary
+            .get(after_second..)
+            .is_some_and(|tail| tail.starts_with(b"R"))
+        {
+            let object_number = u32::try_from(first).ok()?;
+            let generation = std::str::from_utf8(dictionary.get(second_start..after_first)?)
+                .ok()?
+                .parse::<u16>()
+                .ok()?;
+            return document
+                .objects
+                .get(&(object_number, generation))
+                .and_then(|object| object.as_i64().ok())
+                .and_then(|value| usize::try_from(value).ok());
+        }
+    }
+    (number_start != cursor).then_some(first)
 }
 
 fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
@@ -752,8 +840,8 @@ fn inspect_revisions(bytes: &[u8], limits: &SafetyLimits) -> Result<Vec<Revision
     let mut seen = BTreeSet::new();
     let mut revisions = Vec::new();
     while let Some(offset) = pending.pop() {
-        if revisions.len() >= limits.max_reference_depth {
-            return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+        if revisions.len() >= limits.max_xref_revisions {
+            return Err(PdfError::ReferenceDepth(limits.max_xref_revisions));
         }
         if !seen.insert(offset) {
             break;
@@ -823,7 +911,6 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
         }
         let (line, next) = read_line(bytes, cursor)?;
         if line.is_empty() {
-            eol_compliant = false;
             cursor = next;
             continue;
         }
@@ -888,8 +975,19 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
     let has_valid_header = marker.zip(header_end).is_some_and(|(start, end)| {
         start == 0
             && end == b"%PDF-1.0".len()
-            && bytes[..end].starts_with(b"%PDF-1.")
-            && matches!(bytes[7], b'0'..=b'7')
+            && bytes[..end].starts_with(b"%PDF-")
+            && bytes[5].is_ascii_digit()
+            && bytes[6] == b'.'
+            && bytes[7].is_ascii_digit()
+    });
+    let has_valid_pdfa23_header = marker.zip(header_end).is_some_and(|(start, end)| {
+        start == 0
+            && end == b"%PDF-1.0".len()
+            && bytes[..end].starts_with(b"%PDF-")
+            && bytes[5] == b'1'
+            && bytes[6] == b'.'
+            && bytes[7].is_ascii_digit()
+            && bytes[7] <= b'7'
     });
     let comment_start = header_end.and_then(|end| single_eol_end(bytes, end));
     let has_binary_comment = comment_start.is_some_and(|start| {
@@ -932,6 +1030,7 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
     HeaderSummary {
         offset: marker.unwrap_or(0),
         has_valid_header,
+        has_valid_pdfa23_header,
         has_binary_comment,
         has_post_eof_data,
         is_linearized,
@@ -999,9 +1098,29 @@ fn trailer_id(trailer: &RawValue) -> Option<Vec<u8>> {
 
 pub(crate) fn repair_for_lopdf(bytes: &[u8]) -> Option<Vec<u8>> {
     let mut repaired = bytes.to_vec();
-    let mut changed = repair_xref_syntax(&mut repaired);
+    let mut changed = repair_startxref_whitespace(&mut repaired);
+    changed |= repair_xref_syntax(&mut repaired);
     changed |= repair_hex_strings(&mut repaired);
     changed.then_some(repaired)
+}
+
+fn repair_startxref_whitespace(bytes: &mut [u8]) -> bool {
+    let Some((number_start, number_end, offset)) = final_startxref_parts(bytes) else {
+        return false;
+    };
+    let mut target = offset;
+    while target < bytes.len() && is_pdf_whitespace(bytes[target]) {
+        target += 1;
+    }
+    if target == offset || bytes.get(target..target + b"xref".len()) != Some(b"xref") {
+        return false;
+    }
+    let replacement = target.to_string();
+    if replacement.len() != number_end - number_start {
+        return false;
+    }
+    bytes[number_start..number_end].copy_from_slice(replacement.as_bytes());
+    true
 }
 
 fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
@@ -1135,6 +1254,15 @@ fn repair_hex_strings(bytes: &mut [u8]) -> bool {
 }
 
 fn final_startxref(bytes: &[u8]) -> Option<usize> {
+    let (_, _, offset) = final_startxref_parts(bytes)?;
+    let mut target = offset;
+    while target < bytes.len() && is_pdf_whitespace(bytes[target]) {
+        target += 1;
+    }
+    Some(target)
+}
+
+fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
     let eof = bytes
         .windows(b"%%EOF".len())
         .rposition(|window| window == b"%%EOF")?;
@@ -1151,7 +1279,14 @@ fn final_startxref(bytes: &[u8]) -> Option<usize> {
         .position(|byte| !byte.is_ascii_digit())
         .map(|length| cursor + length)
         .unwrap_or(bytes.len());
-    std::str::from_utf8(&bytes[cursor..end]).ok()?.parse().ok()
+    Some((
+        cursor,
+        end,
+        std::str::from_utf8(&bytes[cursor..end])
+            .ok()?
+            .parse()
+            .ok()?,
+    ))
 }
 
 fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
@@ -1287,18 +1422,25 @@ mod tests {
     }
 
     #[test]
-    fn pdfa_2_and_3_header_accepts_only_pdf_1_0_through_1_7() {
+    fn header_accepts_a_single_digit_pdf_version() {
         let revisions = [];
         for version in 0..=7 {
             let mut bytes = format!("%PDF-1.{version}\n%").into_bytes();
             bytes.extend_from_slice(&[128, 129, 130, 131, b'\n']);
             assert!(inspect_header(&bytes, &revisions).has_valid_header);
         }
-        for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n", b"%PDF-1.7 extra\n"] {
+        for header in [
+            b"%PDF-1.\n".as_slice(),
+            b"%PDF-2.0 extra\n",
+            b"%PDF-1.7 extra\n",
+        ] {
             assert!(
                 !inspect_header(header, &revisions).has_valid_header,
                 "{header:?}"
             );
+        }
+        for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n"] {
+            assert!(inspect_header(header, &revisions).has_valid_header);
         }
     }
 
@@ -1319,7 +1461,7 @@ mod tests {
     }
 
     #[test]
-    fn revision_inspection_preserves_the_configured_depth_limit() {
+    fn revision_inspection_preserves_the_configured_revision_limit() {
         let first = b"xref\n0 0\ntrailer\n<<>>\n";
         let second_offset = first.len();
         let bytes = [
@@ -1329,7 +1471,7 @@ mod tests {
         ]
         .concat();
         let limits = SafetyLimits {
-            max_reference_depth: 1,
+            max_xref_revisions: 1,
             ..SafetyLimits::default()
         };
 
@@ -1337,5 +1479,15 @@ mod tests {
             inspect_revisions(&bytes, &limits),
             Err(PdfError::ReferenceDepth(1))
         ));
+    }
+
+    #[test]
+    fn permits_a_blank_line_between_xref_entries_and_the_trailer() {
+        let bytes = b"xref\n0 1\n0000000000 65535 f \n\ntrailer\n<<>>\nstartxref\n0\n%%EOF\n";
+        let revisions = inspect_revisions(bytes, &SafetyLimits::default()).unwrap();
+        let [revision] = revisions.as_slice() else {
+            panic!("expected one xref revision");
+        };
+        assert!(revision.eol_compliant);
     }
 }

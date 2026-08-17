@@ -49,6 +49,8 @@ pub(crate) struct FontUse {
     pub(crate) rendering_mode: i64,
     pub(crate) shown_bytes: Vec<u8>,
     pub(crate) actual_text_present: bool,
+    pub(crate) page_object_id: Option<ObjectId>,
+    pub(crate) marked_content_id: Option<i64>,
 }
 
 /// Deterministic discoveries made while executing the bounded page, Form,
@@ -67,7 +69,15 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) inline_image_lzw_context: Option<String>,
     pub(crate) inline_image_invalid_filter_context: Option<String>,
     pub(crate) inline_image_interpolate_context: Option<String>,
+    pub(crate) has_odd_hex_string: bool,
+    pub(crate) has_non_hex_character: bool,
+    pub(crate) out_of_range_integers: Vec<RuleFailure>,
+    pub(crate) out_of_range_reals: Vec<RuleFailure>,
+    pub(crate) overlong_strings: Vec<RuleFailure>,
+    pub(crate) overlong_strings_pdfa_2: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
+    pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
+    pub(crate) uses_default_gray: bool,
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
     pub(crate) pages_with_transparency: BTreeSet<u32>,
@@ -243,13 +253,14 @@ pub(crate) fn execute_content(
         cache,
         summary: ContentExecutionSummary::default(),
         current_page: 0,
+        current_page_object_id: None,
     };
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
         let page = page_entry
             .resolve(document)
             .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
-        executor.execute_page(page_number, page)?;
+        executor.execute_page(page_number, page_entry.object_id(), page)?;
     }
     Ok(executor.summary)
 }
@@ -260,6 +271,7 @@ struct ContentExecutor<'a> {
     cache: &'a mut ContentCache,
     summary: ContentExecutionSummary,
     current_page: u32,
+    current_page_object_id: Option<ObjectId>,
 }
 
 #[derive(Clone, Copy)]
@@ -280,6 +292,8 @@ struct GraphicsState {
     overprint_mode: i64,
     stroking_icc_cmyk: bool,
     nonstroking_icc_cmyk: bool,
+    stroking_color_space_selected: bool,
+    nonstroking_color_space_selected: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -295,9 +309,21 @@ struct SelectedFont {
     description: String,
 }
 
+#[derive(Clone, Copy)]
+struct MarkedContent {
+    actual_text_present: bool,
+    mcid: Option<i64>,
+}
+
 impl ContentExecutor<'_> {
-    fn execute_page(&mut self, page_number: u32, page: &Dictionary) -> Result<(), PdfError> {
+    fn execute_page(
+        &mut self,
+        page_number: u32,
+        page_object_id: Option<ObjectId>,
+        page: &Dictionary,
+    ) -> Result<(), PdfError> {
         self.current_page = page_number;
+        self.current_page_object_id = page_object_id;
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let resources_are_inherited = page.get(b"Resources").is_err();
         let mut active_forms = BTreeSet::new();
@@ -451,7 +477,7 @@ impl ContentExecutor<'_> {
         resource_context: ResourceContext<'_>,
         graphics_state: &mut GraphicsState,
         graphics_stack: &mut Vec<GraphicsState>,
-        marked_content: &mut Vec<bool>,
+        marked_content: &mut Vec<MarkedContent>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -539,12 +565,26 @@ impl ContentExecutor<'_> {
         if !content_syntax_is_balanced(&inline_images.ordinary_content) {
             return Ok(());
         }
+        inspect_content_syntax_limits(
+            &inline_images.ordinary_content,
+            content_id.map(Into::into),
+            context,
+            &mut self.summary,
+        );
         let normalized_content =
             normalize_digit_suffixed_operators(&inline_images.ordinary_content);
         let Ok(content) = Content::decode(&normalized_content) else {
             return Ok(());
         };
         for operation in content.operations {
+            for operand in &operation.operands {
+                collect_content_object_limit_findings(
+                    operand,
+                    content_id.map(Into::into),
+                    &format!("{context}/{}", operation.operator),
+                    &mut self.summary,
+                );
+            }
             if !is_pdf_1_4_operator(&operation.operator) {
                 self.summary
                     .undefined_operators
@@ -552,7 +592,10 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
-                "BMC" => marked_content.push(false),
+                "BMC" => marked_content.push(MarkedContent {
+                    actual_text_present: false,
+                    mcid: None,
+                }),
                 "BDC" | "DP" => {
                     let properties = operation.operands.last();
                     let Some(properties) = properties else {
@@ -582,7 +625,13 @@ impl ContentExecutor<'_> {
                         let actual_text_present = properties
                             .and_then(|dictionary| dictionary.get(b"ActualText").ok())
                             .is_some_and(|value| matches!(value, Object::String(_, _)));
-                        marked_content.push(actual_text_present);
+                        let mcid = properties
+                            .and_then(|dictionary| dictionary.get(b"MCID").ok())
+                            .and_then(|value| value.as_i64().ok());
+                        marked_content.push(MarkedContent {
+                            actual_text_present,
+                            mcid,
+                        });
                     }
                     if let Some(dictionary) = properties
                         && let Some(failure) = crate::language::inspect_dictionary(
@@ -594,6 +643,17 @@ impl ContentExecutor<'_> {
                         )
                     {
                         self.summary.language_failures.push(failure);
+                    }
+                    if let Some(dictionary) = properties
+                        && let Some(failure) = crate::language::inspect_dictionary_pdfa23(
+                            self.document,
+                            self.limits,
+                            dictionary,
+                            None,
+                            &format!("{context} marked-content property list"),
+                        )
+                    {
+                        self.summary.language_failures_pdfa23.push(failure);
                     }
                 }
                 "EMC" => {
@@ -639,9 +699,11 @@ impl ContentExecutor<'_> {
                     if operation.operator == "CS" {
                         graphics_state.stroking_pattern = selection.is_pattern;
                         graphics_state.stroking_icc_cmyk = selection.is_icc_cmyk;
+                        graphics_state.stroking_color_space_selected = true;
                     } else {
                         graphics_state.nonstroking_pattern = selection.is_pattern;
                         graphics_state.nonstroking_icc_cmyk = selection.is_icc_cmyk;
+                        graphics_state.nonstroking_color_space_selected = true;
                     }
                 }
                 "g" | "G" => {
@@ -654,8 +716,10 @@ impl ContentExecutor<'_> {
                     )?;
                     if operation.operator == "G" {
                         graphics_state.stroking_pattern = false;
+                        graphics_state.stroking_color_space_selected = true;
                     } else {
                         graphics_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_color_space_selected = true;
                     }
                 }
                 "rg" | "RG" => {
@@ -668,8 +732,10 @@ impl ContentExecutor<'_> {
                     )?;
                     if operation.operator == "RG" {
                         graphics_state.stroking_pattern = false;
+                        graphics_state.stroking_color_space_selected = true;
                     } else {
                         graphics_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_color_space_selected = true;
                     }
                 }
                 "k" | "K" => {
@@ -682,8 +748,10 @@ impl ContentExecutor<'_> {
                     )?;
                     if operation.operator == "K" {
                         graphics_state.stroking_pattern = false;
+                        graphics_state.stroking_color_space_selected = true;
                     } else {
                         graphics_state.nonstroking_pattern = false;
+                        graphics_state.nonstroking_color_space_selected = true;
                     }
                 }
                 "ri" => {
@@ -792,6 +860,8 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "Tj" | "TJ" | "'" | "\"" => {
+                    self.summary.uses_default_gray |=
+                        !graphics_state.nonstroking_color_space_selected;
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
                     if !shown_bytes.is_empty()
                         && let Some(font) = graphics_state.font.clone()
@@ -802,7 +872,14 @@ impl ContentExecutor<'_> {
                             description: font.description.clone(),
                             rendering_mode: graphics_state.rendering_mode,
                             shown_bytes: shown_bytes.clone(),
-                            actual_text_present: marked_content.iter().copied().any(|value| value),
+                            actual_text_present: marked_content
+                                .iter()
+                                .any(|value| value.actual_text_present),
+                            page_object_id: self.current_page_object_id,
+                            marked_content_id: marked_content
+                                .iter()
+                                .rev()
+                                .find_map(|value| value.mcid),
                         });
                         self.execute_type3_glyphs(
                             &font,
@@ -936,6 +1013,9 @@ impl ContentExecutor<'_> {
                         operation.operator.as_str(),
                         "f" | "F" | "f*" | "B" | "B*" | "b" | "b*"
                     );
+                    self.summary.uses_default_gray |= (fill
+                        && !graphics_state.nonstroking_color_space_selected)
+                        || (stroke && !graphics_state.stroking_color_space_selected);
                     if ((stroke
                         && graphics_state.stroking_icc_cmyk
                         && graphics_state.stroking_overprint)
@@ -978,7 +1058,7 @@ impl ContentExecutor<'_> {
         kind: XObjectUseKind,
         resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
-        marked_content: &mut Vec<bool>,
+        marked_content: &mut Vec<MarkedContent>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1165,7 +1245,7 @@ impl ContentExecutor<'_> {
         object: &Object,
         resource_context: ResourceContext<'_>,
         graphics_state: &GraphicsState,
-        marked_content: &mut Vec<bool>,
+        marked_content: &mut Vec<MarkedContent>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1197,6 +1277,15 @@ impl ContentExecutor<'_> {
             }
             return Ok(());
         };
+        // A tiling Pattern may fall back to page resources for ordinary
+        // resource categories, but veraPDF does not inherit the page's
+        // DefaultGray/DefaultRGB/DefaultCMYK mappings into the Pattern's
+        // own color-space scope.
+        let pattern_page_resources = page_resources.map(|resources| {
+            let mut resources = resources.clone();
+            resources.remove(b"ColorSpace");
+            resources
+        });
         let pattern_type = resolved_integer(
             self.document,
             dictionary,
@@ -1207,7 +1296,7 @@ impl ContentExecutor<'_> {
             self.execute_shading_pattern(
                 dictionary,
                 resources,
-                page_resources,
+                pattern_page_resources.as_ref(),
                 resources_are_inherited,
                 context,
             )?;
@@ -1238,7 +1327,7 @@ impl ContentExecutor<'_> {
             object,
             ResourceContext {
                 resources: pattern_resources.as_ref(),
-                page_resources,
+                page_resources: pattern_page_resources.as_ref(),
                 resources_are_inherited: false,
             },
             &mut graphics_state.clone(),
@@ -1287,7 +1376,7 @@ impl ContentExecutor<'_> {
         shown_bytes: &[u8],
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
-        marked_content: &mut Vec<bool>,
+        marked_content: &mut Vec<MarkedContent>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         depth: usize,
@@ -1362,7 +1451,7 @@ impl ContentExecutor<'_> {
         fallback_resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
         graphics_state: &GraphicsState,
-        marked_content: &mut Vec<bool>,
+        marked_content: &mut Vec<MarkedContent>,
         active_forms: &mut BTreeSet<ObjectId>,
         decoded_bytes: &mut usize,
         context: &str,
@@ -1655,6 +1744,136 @@ impl ContentExecutor<'_> {
             &mut BTreeSet::new(),
         )
         .map(|_| ())
+    }
+}
+
+fn collect_content_object_limit_findings(
+    value: &Object,
+    object_id: Option<PdfObjectId>,
+    context: &str,
+    summary: &mut ContentExecutionSummary,
+) {
+    match value {
+        Object::Integer(value) if !(*value >= -2_147_483_648 && *value <= 2_147_483_647) => {
+            summary.out_of_range_integers.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "{context} contains integer value {value} outside the PDF/A range"
+                ),
+            });
+        }
+        Object::Real(value) if !value.is_finite() || value.abs() > 32_767.0 => {
+            summary.out_of_range_reals.push(RuleFailure {
+                object_id,
+                description: format!(
+                    "{context} contains real value {value} outside the PDF/A-1 range"
+                ),
+            });
+        }
+        Object::String(value, _) => {
+            if value.len() > 65_535 {
+                summary.overlong_strings.push(RuleFailure {
+                    object_id,
+                    description: format!("{context} contains a string of {} bytes", value.len()),
+                });
+            }
+            if value.len() > 32_767 {
+                summary.overlong_strings_pdfa_2.push(RuleFailure {
+                    object_id,
+                    description: format!("{context} contains a string of {} bytes", value.len()),
+                });
+            }
+        }
+        Object::Array(values) => {
+            for value in values {
+                collect_content_object_limit_findings(value, object_id, context, summary);
+            }
+        }
+        Object::Dictionary(dictionary) => {
+            for (_, value) in dictionary.iter() {
+                collect_content_object_limit_findings(value, object_id, context, summary);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn inspect_content_syntax_limits(
+    bytes: &[u8],
+    object_id: Option<PdfObjectId>,
+    context: &str,
+    summary: &mut ContentExecutionSummary,
+) {
+    let mut cursor = 0;
+    let mut literal_depth = 0_usize;
+    let mut literal_length = 0_usize;
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        if literal_depth > 0 {
+            literal_length = literal_length.saturating_add(1);
+            if byte == b'\\' {
+                cursor = cursor.saturating_add(2);
+                literal_length = literal_length.saturating_add(1);
+                continue;
+            }
+            if byte == b'(' {
+                literal_depth += 1;
+            } else if byte == b')' {
+                literal_depth -= 1;
+                if literal_depth == 0 {
+                    if literal_length > 65_535 {
+                        summary.overlong_strings.push(RuleFailure {
+                            object_id,
+                            description: format!(
+                                "{context} contains a literal string longer than 65535 bytes"
+                            ),
+                        });
+                    }
+                    if literal_length > 32_767 {
+                        summary.overlong_strings_pdfa_2.push(RuleFailure {
+                            object_id,
+                            description: format!(
+                                "{context} contains a literal string longer than 32767 bytes"
+                            ),
+                        });
+                    }
+                }
+            }
+            cursor += 1;
+            continue;
+        }
+        if byte == b'%' {
+            while cursor < bytes.len() && !matches!(bytes[cursor], b'\r' | b'\n') {
+                cursor += 1;
+            }
+            continue;
+        }
+        if byte == b'<' && bytes.get(cursor + 1) == Some(&b'<') {
+            cursor += 2;
+            continue;
+        }
+        if byte == b'<' {
+            cursor += 1;
+            let mut digit_count = 0;
+            while cursor < bytes.len() && bytes[cursor] != b'>' {
+                let value = bytes[cursor];
+                if !value.is_ascii_whitespace() {
+                    digit_count += 1;
+                    if !value.is_ascii_hexdigit() {
+                        summary.has_non_hex_character = true;
+                    }
+                }
+                cursor += 1;
+            }
+            summary.has_odd_hex_string |= digit_count % 2 != 0;
+            cursor += usize::from(cursor < bytes.len());
+            continue;
+        }
+        if byte == b'(' {
+            literal_depth = 1;
+            literal_length = 0;
+        }
+        cursor += 1;
     }
 }
 

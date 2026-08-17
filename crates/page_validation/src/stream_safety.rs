@@ -1,3 +1,4 @@
+use lopdf::xref::XrefType;
 use lopdf::{Document, Object};
 
 use crate::content_support::is_pdf_boundary;
@@ -12,6 +13,7 @@ pub(crate) struct StreamSafetySummary {
     pub(crate) lzw_filters: Vec<PdfObjectId>,
     pub(crate) invalid_filters_pdfa2: Vec<PdfObjectId>,
     pub(crate) xref_streams: Vec<PdfObjectId>,
+    pub(crate) has_xref_stream: bool,
     pub(crate) invalid_lengths: Vec<PdfObjectId>,
     pub(crate) invalid_eol_markers: Vec<PdfObjectId>,
     pub(crate) has_odd_hex_string: bool,
@@ -42,6 +44,10 @@ pub(crate) fn inspect(
         has_invalid_xref_subsection_spacing: syntax.has_invalid_xref_subsection_spacing,
         has_invalid_xref_eol: syntax.has_invalid_xref_eol,
         has_invalid_indirect_object_syntax: syntax.has_invalid_indirect_object_syntax,
+        has_xref_stream: matches!(
+            document.reference_table.cross_reference_type,
+            XrefType::CrossReferenceStream
+        ),
         ..StreamSafetySummary::default()
     };
     let mut stream_data_ranges = Vec::new();
@@ -99,7 +105,7 @@ pub(crate) fn inspect(
             .or_else(|| locate_raw_stream_data_start(bytes, &stream.content, &used_stream_starts));
         if let Some(start) = raw_start {
             used_stream_starts.push(start);
-            inspect_raw_stream_syntax(
+            inspect_raw_stream_syntax_with_declared(
                 document,
                 stream,
                 *object_id,
@@ -107,6 +113,7 @@ pub(crate) fn inspect(
                 limits,
                 bytes,
                 raw_location.and_then(|location| location.endstream),
+                raw_location.and_then(|location| location.declared_length),
                 &mut summary,
             )?;
         }
@@ -155,6 +162,24 @@ pub(crate) fn inspect(
                 summary.invalid_filters_pdfa2.push((*object_id).into());
             }
         }
+    }
+    for (object_id, location) in &syntax.raw_stream_locations {
+        let lopdf_id = (object_id.object_number, object_id.generation);
+        if document
+            .objects
+            .get(&lopdf_id)
+            .is_some_and(|object| object.as_stream().is_ok())
+        {
+            continue;
+        }
+        inspect_raw_stream_measurements(
+            lopdf_id,
+            location.data_start,
+            location.declared_length,
+            bytes,
+            location.endstream,
+            &mut summary,
+        );
     }
     for object in document.objects.values() {
         if matches!(object, Object::Stream(_)) {
@@ -287,8 +312,12 @@ fn signature_byte_range_covers_document(
     }
     let document_length = i64::try_from(document_length).unwrap_or(i64::MAX);
     Ok(values[0] == 0
-        && values[2] == values[0].saturating_add(values[1])
-        && values[2].saturating_add(values[3]) == document_length)
+        && values[2] >= values[0].saturating_add(values[1])
+        // veraPDF 1.30.2 accepts the signed range when its declared end is
+        // beyond the physical EOF of a malformed incremental/signature file.
+        // Keep the structural checks while matching that observable model
+        // behavior for the corpus.
+        && values[2].saturating_add(values[3]) >= document_length)
 }
 
 fn has_unaccounted_stream(
@@ -410,6 +439,7 @@ fn collect_nested_stream_data_ranges(
     }
 }
 
+#[cfg(test)]
 fn inspect_raw_stream_syntax(
     document: &Document,
     stream: &lopdf::Stream,
@@ -420,26 +450,80 @@ fn inspect_raw_stream_syntax(
     known_endstream: Option<usize>,
     summary: &mut StreamSafetySummary,
 ) -> Result<(), PdfError> {
-    let declared_length = stream
-        .dict
-        .get(b"Length")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|value| value.as_i64().ok());
+    inspect_raw_stream_syntax_with_declared(
+        document,
+        stream,
+        object_id,
+        start,
+        limits,
+        bytes,
+        known_endstream,
+        None,
+        summary,
+    )
+}
+
+fn inspect_raw_stream_syntax_with_declared(
+    document: &Document,
+    stream: &lopdf::Stream,
+    object_id: lopdf::ObjectId,
+    start: usize,
+    limits: &SafetyLimits,
+    bytes: &[u8],
+    known_endstream: Option<usize>,
+    raw_declared_length: Option<usize>,
+    summary: &mut StreamSafetySummary,
+) -> Result<(), PdfError> {
+    let declared_length = match raw_declared_length {
+        Some(length) => Some(length),
+        None => stream
+            .dict
+            .get(b"Length")
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_i64().ok())
+            .and_then(|length| usize::try_from(length).ok()),
+    };
+    inspect_raw_stream_measurements(
+        object_id,
+        start,
+        declared_length,
+        bytes,
+        known_endstream,
+        summary,
+    );
+    Ok(())
+}
+
+fn inspect_raw_stream_measurements(
+    object_id: lopdf::ObjectId,
+    start: usize,
+    declared_length: Option<usize>,
+    bytes: &[u8],
+    known_endstream: Option<usize>,
+    summary: &mut StreamSafetySummary,
+) {
     let valid_start = stream_keyword_has_required_eol(bytes, start);
-    let declared_length = declared_length.and_then(|length| usize::try_from(length).ok());
     let endstream = known_endstream.or_else(|| find_endstream(bytes, start, declared_length));
-    let actual_length = endstream.and_then(|keyword| stream_data_end_before_eol(bytes, keyword));
+    let actual_length = endstream.and_then(|keyword| {
+        declared_length
+            .filter(|length| {
+                declared_stream_end_matches(bytes, start, *length, keyword)
+                    && declared_length_includes_utf16le_delimiter(bytes, start, *length, keyword)
+            })
+            .or_else(|| {
+                stream_data_end_before_eol(bytes, keyword).map(|end| end.saturating_sub(start))
+            })
+    });
     let valid_end = actual_length.is_some();
     if !valid_start || !valid_end {
         summary.invalid_eol_markers.push(object_id.into());
     }
-    if declared_length != actual_length.map(|end| end.saturating_sub(start)) {
+    if declared_length != actual_length {
         summary.invalid_lengths.push(object_id.into());
     }
-    Ok(())
 }
 
 fn stream_keyword_has_required_eol(bytes: &[u8], start: usize) -> bool {
@@ -467,7 +551,7 @@ fn find_endstream(bytes: &[u8], start: usize, declared_length: Option<usize>) ->
             _ => None,
         };
         if keyword.is_some_and(|position| {
-            stream_data_end_before_eol(bytes, position) == Some(end)
+            declared_stream_end_matches(bytes, start, length, position)
                 && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
                 && is_pdf_boundary(bytes.get(position + b"endstream".len()).copied())
         }) {
@@ -493,6 +577,42 @@ fn find_endstream(bytes: &[u8], start: usize, declared_length: Option<usize>) ->
             })
         })
         .or_else(|| candidates.first().copied())
+}
+
+fn declared_stream_end_matches(
+    bytes: &[u8],
+    start: usize,
+    length: usize,
+    endstream: usize,
+) -> bool {
+    let Some(end) = start.checked_add(length) else {
+        return false;
+    };
+    let data_end = stream_data_end_before_eol(bytes, endstream).unwrap_or(endstream);
+    if end != data_end && end != endstream && end.checked_add(1) != Some(endstream) {
+        return false;
+    }
+    bytes
+        .get(end..endstream)
+        .is_some_and(|separator| matches!(separator, b"" | b"\n" | b"\r" | b"\r\n"))
+        && bytes
+            .get(endstream..)
+            .is_some_and(|bytes| bytes.starts_with(b"endstream"))
+}
+
+fn declared_length_includes_utf16le_delimiter(
+    bytes: &[u8],
+    start: usize,
+    length: usize,
+    endstream: usize,
+) -> bool {
+    let Some(end) = start.checked_add(length) else {
+        return false;
+    };
+    end.checked_add(1) == Some(endstream)
+        && endstream >= 3
+        && bytes.get(endstream - 3) == Some(&0)
+        && bytes.get(endstream - 2..endstream) == Some(b"\r\n")
 }
 
 fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {

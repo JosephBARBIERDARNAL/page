@@ -16,6 +16,8 @@ const INVALID_CASES: &[&str] = &[
     "unicode_scalar",
     "unicode_malformed",
     "unicode_incomplete",
+    "unicode_type0_identity_h",
+    "unicode_type0_identity_v",
 ];
 
 const EXCEPTION_CASES: &[&str] = &[
@@ -25,8 +27,6 @@ const EXCEPTION_CASES: &[&str] = &[
     "unicode_indirect",
     "unicode_type1_standard",
     "unicode_type1_symbol",
-    "unicode_type0_identity_h",
-    "unicode_type0_identity_v",
     "unicode_type0_gb1",
 ];
 

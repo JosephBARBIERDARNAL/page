@@ -387,13 +387,21 @@ fn validate_document(
         ));
         return finish_report(document, profile, failures, 2);
     }
-    validate_header(&inspections.header, &mut failures);
+    validate_header(profile, &inspections.header, &mut failures);
     let has_trailer_id = if profile.is_pdfa_2_or_3() {
-        inspections
-            .header
-            .last_trailer_id
-            .as_ref()
-            .is_some_and(|id| !id.is_empty())
+        if inspections.header.is_linearized {
+            inspections
+                .header
+                .first_linearized_trailer_id
+                .as_ref()
+                .is_some_and(|id| !id.is_empty())
+        } else {
+            inspections
+                .header
+                .last_trailer_id
+                .as_ref()
+                .is_some_and(|id| !id.is_empty())
+        }
     } else if inspections.header.is_linearized {
         inspections.header.has_first_linearized_trailer_id
     } else {
@@ -640,14 +648,24 @@ fn validate_document(
     if profile.requires_tagged_structure() {
         validate_tagged_document(&inspections.document_features, &mut failures);
         validate_structure_tree(&inspections.document_features, &mut failures);
+        let document_language_failures = if profile.is_pdfa_2_or_3() {
+            &inspections.document_features.language_failures_pdfa23
+        } else {
+            &inspections.document_features.language_failures
+        };
+        let content_language_failures = if profile.is_pdfa_2_or_3() {
+            &inspections.content.language_failures_pdfa23
+        } else {
+            &inspections.content.language_failures
+        };
         aggregate_failures_with_location(
-            &inspections.document_features.language_failures.to_vec(),
+            document_language_failures,
             "PDFA1A-LANG-001",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
-            &inspections.content.language_failures,
+            content_language_failures,
             "PDFA1A-LANG-001",
             None,
             &mut failures,
@@ -741,7 +759,12 @@ fn validate_document(
         &inspections.actions,
         &mut failures,
     );
-    validate_object_limits(profile, &inspections.object_limits, &mut failures);
+    validate_object_limits(
+        profile,
+        &inspections.object_limits,
+        &inspections.content,
+        &mut failures,
+    );
     validate_stream_safety(
         profile,
         &inspections.stream_safety,
@@ -751,8 +774,28 @@ fn validate_document(
 
     validate_font_dictionaries(profile, &inspections.font_embedding, &mut failures);
     if profile.requires_unicode_mapping() {
+        let invalid_unicode_mappings = if profile.is_pdfa_2_or_3() {
+            inspections
+                .font_embedding
+                .invalid_unicode_mappings
+                .iter()
+                .filter(|failure| {
+                    !inspections
+                        .font_embedding
+                        .unicode_mapping_type3_exemptions
+                        .iter()
+                        .any(|type3_failure| {
+                            type3_failure.object_id == failure.object_id
+                                && type3_failure.description == failure.description
+                        })
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            inspections.font_embedding.invalid_unicode_mappings.clone()
+        };
         aggregate_failures(
-            &inspections.font_embedding.invalid_unicode_mappings,
+            &invalid_unicode_mappings,
             "PDFA1A-UNICODE-MAPPING-001",
             &mut failures,
         );
@@ -840,8 +883,17 @@ fn validate_structure_tree(
     }
 }
 
-fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<ValidationFailure>) {
-    if !header.has_valid_header {
+fn validate_header(
+    profile: ValidationProfile,
+    header: &crate::syntax::HeaderSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    let valid = if profile.is_pdfa_2_or_3() {
+        header.has_valid_pdfa23_header
+    } else {
+        header.has_valid_header
+    };
+    if !valid {
         failures.push(failure(
             "PDFA1B-HEADER-001",
             "the file must start with a PDF header in the form %PDF-n.m",
@@ -870,6 +922,7 @@ fn validate_header(header: &crate::syntax::HeaderSummary, failures: &mut Vec<Val
 fn validate_object_limits(
     _profile: ValidationProfile,
     limits: &crate::object_limits::ObjectLimitsSummary,
+    content: &crate::content_support::ContentExecutionSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
     let checks = [
@@ -929,6 +982,33 @@ fn validate_object_limits(
                 FailureCategory::Conformance,
             ));
         }
+    }
+    aggregate_failures_with_location(
+        &content.out_of_range_integers,
+        "PDFA1B-INTEGER-RANGE-001",
+        None,
+        failures,
+    );
+    if !_profile.is_pdfa_2_or_3() {
+        aggregate_failures_with_location(
+            &content.out_of_range_reals,
+            "PDFA1B-REAL-RANGE-001",
+            None,
+            failures,
+        );
+        aggregate_failures_with_location(
+            &content.overlong_strings,
+            "PDFA1B-STRING-LENGTH-001",
+            None,
+            failures,
+        );
+    } else {
+        aggregate_failures_with_location(
+            &content.overlong_strings_pdfa_2,
+            "PDFA1B-STRING-LENGTH-001",
+            None,
+            failures,
+        );
     }
     if _profile.is_pdfa_2_or_3() && !limits.underflow_reals_pdfa_2.is_empty() {
         failures.push(failure(
@@ -1339,7 +1419,9 @@ fn validate_stream_safety(
             FailureCategory::Conformance,
         ));
     }
-    if !streams.xref_streams.is_empty() && !profile.permits_xref_streams() {
+    if (streams.has_xref_stream || !streams.xref_streams.is_empty())
+        && !profile.permits_xref_streams()
+    {
         let object_id = only(&streams.xref_streams).copied();
         failures.push(failure(
             "PDFA1B-XREF-STREAM-001",
@@ -1350,12 +1432,12 @@ fn validate_stream_safety(
     }
     for (invalid, rule_id, message) in [
         (
-            streams.has_odd_hex_string,
+            streams.has_odd_hex_string || content.has_odd_hex_string,
             "PDFA1B-HEX-STRING-LENGTH-001",
             "a hexadecimal string contains an odd number of non-whitespace characters",
         ),
         (
-            streams.has_non_hex_character,
+            streams.has_non_hex_character || content.has_non_hex_character,
             "PDFA1B-HEX-STRING-CHARACTERS-001",
             "a hexadecimal string contains a non-hexadecimal character",
         ),
@@ -1748,9 +1830,7 @@ fn validate_graphics(
             FailureCategory::Conformance,
         ));
     }
-    if profile.is_pdfa_2_or_3()
-        && let Some(context) = &content.inline_image_interpolate_context
-    {
+    if let Some(context) = &content.inline_image_interpolate_context {
         failures.push(failure(
             "PDFA1B-IMAGE-INTERPOLATE-001",
             format!("{context} sets the forbidden true inline-image interpolation flag"),
@@ -1886,7 +1966,11 @@ fn validate_font_dictionaries(
             "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
         ),
         (
-            fonts.invalid_cid_to_gid_maps.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts.invalid_cid_to_gid_maps_pdfa2.as_slice()
+            } else {
+                fonts.invalid_cid_to_gid_maps.as_slice()
+            },
             "PDFA1B-CIDTOGIDMAP-001",
         ),
         (
@@ -1928,7 +2012,13 @@ fn validate_font_dictionaries(
             "PDFA1B-CID-SUBSET-CIDSET-001",
         ),
         (
-            fonts.invalid_nonsymbolic_truetype_encodings.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts
+                    .invalid_nonsymbolic_truetype_encodings_pdfa2
+                    .as_slice()
+            } else {
+                fonts.invalid_nonsymbolic_truetype_encodings.as_slice()
+            },
             "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
         ),
         (
@@ -1957,6 +2047,13 @@ fn validate_font_dictionaries(
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
+    }
+    if !_profile.is_pdfa_2_or_3() {
+        aggregate_failures(
+            &fonts.missing_cid_subset_cidsets,
+            "PDFA1B-CID-SUBSET-CIDSET-001",
+            failures,
+        );
     }
     if _profile.is_pdfa_2_or_3() {
         aggregate_failures(

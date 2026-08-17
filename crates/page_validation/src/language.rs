@@ -11,6 +11,41 @@ pub(crate) fn inspect_dictionary(
     object_id: Option<PdfObjectId>,
     context: &str,
 ) -> Option<RuleFailure> {
+    inspect_dictionary_with(
+        document,
+        limits,
+        dictionary,
+        object_id,
+        context,
+        is_language_tag,
+    )
+}
+
+pub(crate) fn inspect_dictionary_pdfa23(
+    document: &Document,
+    limits: &SafetyLimits,
+    dictionary: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    context: &str,
+) -> Option<RuleFailure> {
+    inspect_dictionary_with(
+        document,
+        limits,
+        dictionary,
+        object_id,
+        context,
+        is_language_tag_pdfa23,
+    )
+}
+
+fn inspect_dictionary_with(
+    document: &Document,
+    limits: &SafetyLimits,
+    dictionary: &Dictionary,
+    object_id: Option<PdfObjectId>,
+    context: &str,
+    predicate: fn(&str) -> bool,
+) -> Option<RuleFailure> {
     let value = dictionary.get(b"Lang").ok()?;
     let value =
         crate::object_resolution::resolve_optional(document, value, limits.max_reference_depth)
@@ -18,7 +53,7 @@ pub(crate) fn inspect_dictionary(
             .flatten();
     let valid = match value {
         Some(Object::String(bytes, _)) => {
-            is_language_tag(&crate::model::decode_verapdf_pdf_string(bytes))
+            predicate(&crate::model::decode_verapdf_pdf_string(bytes))
         }
         // veraPDF creates a CosLang rule object only for string-valued Lang
         // entries; nulls and other COS types are not evaluated by 6.8.4-1.
@@ -39,9 +74,20 @@ pub(crate) fn is_language_tag(value: &str) -> bool {
         })
 }
 
+pub(crate) fn is_language_tag_pdfa23(value: &str) -> bool {
+    value.is_empty()
+        || value.split('-').enumerate().all(|(index, component)| {
+            (1..=8).contains(&component.len())
+                && component.is_ascii()
+                && component.bytes().all(|byte| {
+                    byte.is_ascii_alphanumeric() && (index > 0 || byte.is_ascii_alphabetic())
+                })
+        })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::is_language_tag;
+    use super::{is_language_tag, is_language_tag_pdfa23};
 
     #[test]
     fn matches_verapdf_language_tag_predicate() {
@@ -51,5 +97,13 @@ mod tests {
         for value in ["en-", "-en", "en--US", "englishhh", "en_US", "en-123", "é"] {
             assert!(!is_language_tag(value), "{value}");
         }
+    }
+
+    #[test]
+    fn pdfa23_language_tags_allow_alphanumeric_subtags() {
+        assert!(is_language_tag_pdfa23("ru-petr1708"));
+        assert!(is_language_tag_pdfa23("en-US-123"));
+        assert!(!is_language_tag_pdfa23("12-BE"));
+        assert!(!is_language_tag_pdfa23("en/US"));
     }
 }

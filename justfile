@@ -5,6 +5,9 @@ set export := true
 # veraPDF is resolved from PATH unless the caller supplies VERAPDF_BIN.
 
 verapdf_bin := env_var_or_default("VERAPDF_BIN", "verapdf")
+verapdf_corpus_repository := "https://github.com/veraPDF/veraPDF-corpus.git"
+verapdf_corpus_revision := "49de56cd987929932c9e4fbbbe67d052bf44ef83"
+verapdf_corpus_profiles := "PDF_A-1a PDF_A-1b PDF_A-2a PDF_A-2b PDF_A-2u PDF_A-3b"
 
 # Show the available project commands.
 default:
@@ -36,6 +39,18 @@ verapdf verapdf=verapdf_bin:
 # Run the opt-in differential suites for every implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
 verapdf-all verapdf=verapdf_bin:
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test canonical_compliance --test verapdf_diff --test pdfa_2_3_differential -- --nocapture
+
+# Run page's expected-result gate over the selected profiles in a veraPDF corpus checkout.
+verapdf-corpus corpus_dir=".cache/verapdf-corpus":
+    if ! test -d "{{ corpus_dir }}"; then \
+        mkdir -p "{{ corpus_dir }}"; \
+        git -C "{{ corpus_dir }}" init --quiet; \
+        git -C "{{ corpus_dir }}" remote add origin "{{ verapdf_corpus_repository }}"; \
+        git -C "{{ corpus_dir }}" fetch --quiet --filter=blob:none --depth=1 origin "{{ verapdf_corpus_revision }}"; \
+        git -C "{{ corpus_dir }}" sparse-checkout set --no-cone {{ verapdf_corpus_profiles }}; \
+        git -C "{{ corpus_dir }}" checkout --detach --quiet FETCH_HEAD; \
+    fi
+    cargo run --quiet --release -p page_cli --bin page -- corpus "{{ corpus_dir }}"
 
 # Regenerate checked-in rule-mapping documentation.
 rules-docs:

@@ -83,6 +83,28 @@ fn inspect_page_widgets(
             {
                 return Ok(());
             }
+            let zero_rect = annotation
+                .get(b"Rect")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_array().ok())
+                .is_some_and(|rect| {
+                    let [left, bottom, right, top] = rect.as_slice() else {
+                        return false;
+                    };
+                    matches!(
+                        (
+                            object_number(left),
+                            object_number(bottom),
+                            object_number(right),
+                            object_number(top),
+                        ),
+                        (Some(left), Some(bottom), Some(right), Some(top))
+                            if left == right && bottom == top
+                    )
+                });
             let has_appearance = annotation
                 .get(b"AP")
                 .ok()
@@ -90,7 +112,7 @@ fn inspect_page_widgets(
                 .transpose()?
                 .flatten()
                 .is_some_and(|object| object.as_dict().is_ok());
-            if !has_appearance {
+            if !zero_rect && !has_appearance {
                 summary.widgets_without_appearances.push(RuleFailure {
                     object_id,
                     description: format!(
@@ -101,4 +123,12 @@ fn inspect_page_widgets(
             Ok(())
         },
     )
+}
+
+fn object_number(value: &Object) -> Option<f64> {
+    value
+        .as_i64()
+        .map(|value| value as f64)
+        .or_else(|_| value.as_float().map(f64::from))
+        .ok()
 }

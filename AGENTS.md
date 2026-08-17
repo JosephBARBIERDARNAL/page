@@ -119,6 +119,16 @@ The classifications are:
 
 `agreement`, `both_noncompliant`, and `coverage_gap` exit with status `0`. Semantic or parser discrepancies exit with status `2`; operational failures exit with status `1`. Across multiple files, operational status takes precedence over discrepancy status.
 
+## veraPDF corpus conformance gate
+
+The CI veraPDF job also runs `page corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.
+
+The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-2u, and PDF/A-3b. A corpus filename must contain exactly one `-pass-` or `-fail-` marker; its profile is taken from the top-level `PDF_A-*` directory, and all nested rule-section directories are included.
+
+The gate requires a `pass` file to make `page` return exit code `0` and a `fail` file to make it return exit code `2`. Exit code `1`, an invalid corpus filename, a missing selected profile directory, or any other operational problem fails the gate with exit code `1`; mismatched validation results fail it with exit code `2`.
+
+Run the same gate locally with `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When another validation format is added, update the selected profile list in `crates/page_cli/src/corpus.rs`, the sparse-checkout lists in `justfile` and `.github/workflows/ci.yml`, and this section's documented revision and profile list.
+
 ### Pinned rule mapping
 
 The machine-readable source of truth for the shared PDF/A-1 rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1-rule-mapping.md` for the generated human-readable mapping.
