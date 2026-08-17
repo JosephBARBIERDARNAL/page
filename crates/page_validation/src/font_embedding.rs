@@ -4257,7 +4257,7 @@ fn invalid_embedded_font_subtype(
             continue;
         };
         if !matches!(subtype, b"Type1C" | b"CIDFontType0C") {
-            let valid_pdfa2 = key == b"FontFile3" && subtype == b"OpenType";
+            let valid_pdfa2 = subtype == b"OpenType";
             return Ok(Some((
                 String::from_utf8_lossy(subtype).into_owned(),
                 valid_pdfa2,

@@ -10084,7 +10084,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-EXTGSTATE-SMASK-001/shared-color_path-icc_soft_mask_group.pdf",
       "rationale": "veraPDF rejects the used SMask but does not expose an ICCBased colour space or PDGroup from its G Form.",
       "reference_rule_id": "ISO 19005-1:2005:6.4:1",
-      "sha256": "632630258cdee7dafc4f664e64b36a5143d7fe85f5d19bb469669f8552cd0cc2"
+      "sha256": "36cfff1ed52376aba58307a9af9744bb54b3dc3acca5d89bb7db9e0bc7e1f6e0"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10102,7 +10102,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-CIDTOGIDMAP-001/shared-composite_font-composite_cidmap_missing.pdf",
       "rationale": "A visible Type 2 CIDFont descendant has no CIDToGIDMap.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.3.2:1",
-      "sha256": "a1b32445952c43753bb321506571d9e934a15687a3101ba94dad5a999d8c9994"
+      "sha256": "442a9768d1e7380f06a1ffc3ae9f51de634fb29138404fc019c867a82c415d5a"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10122,7 +10122,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TYPE0-CID-SYSTEM-INFO-001/shared-composite_font-composite_named_cmap.pdf",
       "rationale": "A non-Identity named CMap is not embedded and its Adobe/Japan1 system information conflicts with the Adobe/Identity CIDFont.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.3.1:1",
-      "sha256": "3b0f30d8eeefea6bc26c0ae4e78d4bf77d7818a6b6547adfbdf2a231a1a5be4b"
+      "sha256": "6f2dab02e3a68d185fa874676b639bd8c60abb7387f7272ccd158a35d8bb656b"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10142,7 +10142,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-CMAP-EMBEDDING-001/shared-composite_font-composite_named_cmap.pdf",
       "rationale": "A non-Identity named CMap is not embedded and its Adobe/Japan1 system information conflicts with the Adobe/Identity CIDFont.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.3.3:1",
-      "sha256": "3b0f30d8eeefea6bc26c0ae4e78d4bf77d7818a6b6547adfbdf2a231a1a5be4b"
+      "sha256": "6f2dab02e3a68d185fa874676b639bd8c60abb7387f7272ccd158a35d8bb656b"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10167,7 +10167,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-CID-SUBSET-CIDSET-001/shared-composite_font-composite_named_cmap_cidset_real_program.pdf",
       "rationale": "The exact predefined UniJIS-UCS2-H CMap bundled by veraPDF maps rendered code 003F to CID 32, so the matching Adobe/Japan1 system info passes while the unembedded-CMap and missing-CIDSet predicates both fail.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.5:3",
-      "sha256": "ee767ca397e7da91561593e6fc935ca218b5e58bb27c50b6c833b1dc2a9c80c6"
+      "sha256": "c34509fb8c251363fbfa6469fe1effef1b17675480a3bf1652162f9d135848f3"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10186,7 +10186,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-CMAP-MAX-CID-001/shared-composite_font-composite_cmap_cid_too_large.pdf",
       "rationale": "An embedded CMap maps codes to CIDs above the PDF/A-1 maximum of 65,535.",
       "reference_rule_id": "ISO 19005-1:2005:6.1.12:10",
-      "sha256": "43554a06e23c2c13d7161ea7ef75a508284a3081b7ae4208ef128e603ff32b8e"
+      "sha256": "37fc72a311c1b2dc145e63aff8c52d713c6ca0b887b3d5e515f3db7681437c74"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10205,7 +10205,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-CMAP-WMODE-001/shared-composite_font-composite_cmap_wmode_mismatch.pdf",
       "rationale": "The embedded CMap stream declares WMode 0 while its dictionary declares WMode 1.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.3.3:2",
-      "sha256": "c1129ed48a145b66145f67b0b9ed62af968786c1dac98c753e38ff0a658ed5a9"
+      "sha256": "8eafda672ca6366fd3cb3ea8a1121dd27f2dc2f1c0418219990fed35f9aad721"
     },
     {
       "baseline_case": "composite_baseline",
@@ -10227,7 +10227,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-WIDTH-001/shared-composite_font-composite_identity_width_mismatch.pdf",
       "rationale": "An Identity-H rendered CID width differs from the embedded TrueType width.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.6:1",
-      "sha256": "37555d158956ab900a5f9567d342e2dfe080c736413365232fc184d9d05b7dd4"
+      "sha256": "f7a43e8e0aa4b6365b0b4000e7c10d81e6d3f5becad4e10438f3d465c66905e9"
     },
     {
       "baseline_case": "baseline",
@@ -10337,7 +10337,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-EMBEDDING-001/shared-font-unembedded_visible.pdf",
       "rationale": "A visible TrueType font has no embedded font program.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.4:1",
-      "sha256": "1c2a48d8e6d9dc3bd078d6ed2b00b6c8bbbc9ae1f141a160848b458eeae74a9a"
+      "sha256": "3e37cdc5e32d2aa40e22163b2193b62225ab84215cdabc2cfb54dcb83a8878c5"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10361,7 +10361,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TYPE1-GLYPH-PRESENCE-001/shared-font-type3_visible.pdf",
       "rationale": "Type3 is exempt from the embedding rule; incomplete synthetic glyph data triggers unrelated rules.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.5:1",
-      "sha256": "46d4f534753baa04179eefe23a701547880e0a348ad86039c4cbfa9bb596fdcb"
+      "sha256": "442889a4b17f91d170508016e5f18802dcaea14e4c46ce32d55705e53fc7d207"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10379,7 +10379,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-TYPE-001/shared-font-font_type_missing.pdf",
       "rationale": "A used Font dictionary has no required Type entry.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:1",
-      "sha256": "baadd479f6734727dd2464f02ae25749661bb9e1a34e7bc0be469e1e778666ea"
+      "sha256": "ea6abd9512db7fa58645d0b7c4d98135e054a43a78fde856f46d514ca6603199"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10397,7 +10397,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-BASEFONT-001/shared-font-font_basefont_missing.pdf",
       "rationale": "A used non-Type3 Font dictionary has no BaseFont name.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:3",
-      "sha256": "cd3e18e5dfdf8198b63c64fe10cf40b10e88d30e0e8bf5176e53995195e270c5"
+      "sha256": "26aa33c262d557562c8992ffcbeeb350262ef9dc255416437ddbb3fcbd304d3c"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10418,7 +10418,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-FIRSTCHAR-001/shared-font-font_firstchar_missing.pdf",
       "rationale": "A used non-standard simple font has no FirstChar; its Widths-size expression consequently also fails.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:4",
-      "sha256": "ca69eeb1ca2241d5f3809a4f5fddab8d207bde920c9cfeb554f21a8a657cd328"
+      "sha256": "8573fb2eca72f672d8455b50b456a27b0e0c5b9e30260b9489940b5f37e71bdc"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10439,7 +10439,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-WIDTHS-001/shared-font-font_firstchar_missing.pdf",
       "rationale": "A used non-standard simple font has no FirstChar; its Widths-size expression consequently also fails.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:6",
-      "sha256": "ca69eeb1ca2241d5f3809a4f5fddab8d207bde920c9cfeb554f21a8a657cd328"
+      "sha256": "8573fb2eca72f672d8455b50b456a27b0e0c5b9e30260b9489940b5f37e71bdc"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10460,7 +10460,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-LASTCHAR-001/shared-font-font_lastchar_missing.pdf",
       "rationale": "A used non-standard simple font has no LastChar; its Widths-size expression consequently also fails.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:5",
-      "sha256": "eb423da6e22765d67a062a33caa794d8b4610b8a3e28ecb309d53ebf7a541974"
+      "sha256": "c2370379148b2128aa6ddb280a56eef227d9a5b88cbaadbad7eea9493f70124e"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10478,7 +10478,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-FONT-FILE-SUBTYPE-001/shared-font-font_file_subtype_invalid.pdf",
       "rationale": "A used font's embedded font stream declares a Subtype other than Type1C or CIDFontType0C.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.2:7",
-      "sha256": "4cb7621acff57151595822c51e0760356e09fc071f0f010a2bd9fb11c7e610ac"
+      "sha256": "218a0a5da79f48ef1aa3172c8894f7825cf08d3afd8afb2adbc567d5b8daeda9"
     },
     {
       "baseline_case": "baseline_embedded",
@@ -10502,7 +10502,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TYPE1-SUBSET-CHARSET-001/shared-font-type1c_subset_incomplete.pdf",
       "rationale": "A subset Type1C font's PDF encoding maps the rendered byte to /space, but /CharSet omits that embedded glyph.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.5:2",
-      "sha256": "7bf70a580d43ce4d27f03d436bbbbf30c1056900416f8e2531041031e92b4bfa"
+      "sha256": "1dc24ad4e25dde04db98127bb078f924e5c4db0aba145160d18b8991ce92226c"
     },
     {
       "baseline_case": "baseline",
@@ -11862,7 +11862,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001/shared-truetype-tt_nonsymbolic_missing_encoding.pdf",
       "rationale": "A non-symbolic TrueType font has no Encoding.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.7:1",
-      "sha256": "7cc8271a8862255b0af4c814e0d5fc8fbedce3382e3d8c3f5d9175d094329598"
+      "sha256": "9289669ead697cd9ba502bb596e10b94c38f3fabae6114562807725062ed7514"
     },
     {
       "baseline_case": "baseline",
@@ -11881,7 +11881,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001/shared-truetype-tt_symbolic_with_encoding.pdf",
       "rationale": "A symbolic TrueType font specifies WinAnsiEncoding.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.7:2",
-      "sha256": "7bca2f1552b42529e1e7ff35ba0fb4986057d6e14167b8ea5a0808980de13cca"
+      "sha256": "3f56a46bf2d5cabc27cf9626f789087bb2241297c93f9c7fdd116170b1152988"
     },
     {
       "baseline_case": "baseline",
@@ -11900,7 +11900,7 @@
       "path": "tests/fixtures/mutations/PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001/shared-truetype-tt_symbolic_two_cmaps.pdf",
       "rationale": "A symbolic embedded TrueType program contains two cmap subtables.",
       "reference_rule_id": "ISO 19005-1:2005:6.3.7:3",
-      "sha256": "3b72330c6f21c84b0d6f3db24942da989e078de5136290cb4dd05ca1391ade9a"
+      "sha256": "8ffa9a2a3e69f0de25b2a9ceb3f219a9565665aafa37fccc46fd157c30d5241c"
     },
     {
       "baseline_case": "baseline",

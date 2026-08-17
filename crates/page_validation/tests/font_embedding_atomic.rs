@@ -82,6 +82,33 @@ fn pdfa2_rejects_rendered_notdef_glyphs() {
 }
 
 #[test]
+fn pdfa_2_and_3_accept_opentype_subtypes_on_fontfile2() {
+    let fixture = common::font_fixture("font_file_subtype_invalid");
+    let pdfa1 = validate_bytes_with_profile(
+        &fixture,
+        ValidationProfile::PdfA1b,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        pdfa1
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == "PDFA1B-FONT-FILE-SUBTYPE-001")
+    );
+
+    for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
+        let report = validate_bytes_with_profile(&fixture, profile, &SafetyLimits::default());
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != "PDFA1B-FONT-FILE-SUBTYPE-001"),
+            "{profile}: {report}"
+        );
+    }
+}
+
+#[test]
 fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
     let missing_cff_bytes = common::minimal_type1c(false);
     let missing_cff = ttf_parser::cff::Table::parse(&missing_cff_bytes).expect("parse missing CFF");
