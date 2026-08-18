@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
-const BENCHMARK_PDF: &str = "bench/long-pdfa-1b.pdf";
+const BENCHMARK_PDF: &str = "bench/budget.pdf";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -36,7 +36,7 @@ struct Cli {
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
-    #[arg(long, default_value_t = 15)]
+    #[arg(long, default_value_t = 10)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
@@ -272,7 +272,8 @@ fn main() -> io::Result<()> {
     println!(
         "\n\nPDF: {} with {} measured runs, {} warmup run\n",
         file.display(),
-        cli.runs, cli.warmup
+        cli.runs,
+        cli.warmup
     );
 
     for _ in 0..cli.warmup {
