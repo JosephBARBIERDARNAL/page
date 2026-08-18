@@ -820,7 +820,9 @@ fn profile_local_rule_id(profile: ReferenceProfile, canonical: &str) -> String {
         ReferenceProfile::PdfA2u => "PDFA2U",
         ReferenceProfile::PdfA3b => "PDFA3B",
         ReferenceProfile::PdfA3u => "PDFA3U",
-        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b => unreachable!(),
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
+            unreachable!()
+        }
     };
     canonical
         .strip_prefix("PDFA1A-")
@@ -836,13 +838,17 @@ fn reidentify_profile(bytes: &[u8], profile: ReferenceProfile) -> Vec<u8> {
     let part = match profile {
         ReferenceProfile::PdfA2a | ReferenceProfile::PdfA2b | ReferenceProfile::PdfA2u => b'2',
         ReferenceProfile::PdfA3a | ReferenceProfile::PdfA3b | ReferenceProfile::PdfA3u => b'3',
-        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b => unreachable!(),
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
+            unreachable!()
+        }
     };
     let conformance = match profile {
         ReferenceProfile::PdfA2a | ReferenceProfile::PdfA3a => b'A',
         ReferenceProfile::PdfA2b | ReferenceProfile::PdfA3b => b'B',
         ReferenceProfile::PdfA2u | ReferenceProfile::PdfA3u => b'U',
-        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b => unreachable!(),
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
+            unreachable!()
+        }
     };
     replace_first(
         &mut bytes,

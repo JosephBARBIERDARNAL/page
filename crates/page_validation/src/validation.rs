@@ -74,6 +74,7 @@ impl ValidationProfile {
                 | Self::PdfA3a
                 | Self::PdfA3b
                 | Self::PdfA3u
+                | Self::PdfUa1
         )
     }
 
@@ -154,6 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
+        ValidationProfile::PdfUa1 => 1,
         _ => 0,
     }
 }
@@ -377,6 +379,22 @@ fn validate_document(
     profile: ValidationProfile,
 ) -> ValidationReport {
     let mut failures = Vec::new();
+
+    if profile == ValidationProfile::PdfUa1 {
+        if !document
+            .xmp
+            .as_ref()
+            .is_some_and(|xmp| xmp.pdfua_identification_present)
+        {
+            failures.push(failure(
+                "PDFUA1-ID-SCHEMA-001",
+                "XMP does not contain the PDF/UA Identification schema",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        return finish_report(document, profile, failures, total_rule_count(profile));
+    }
 
     if document.encrypted {
         failures.push(failure(
@@ -2534,13 +2552,11 @@ mod tests {
           </x:xmpmeta>
           <?xpacket end="w"?>"#;
         let bytes = fixture(Some(xmp), true);
-        let error = validate_bytes(&bytes, &SafetyLimits::default())
-            .expect_err("PDF/UA-1 is not implemented");
-
-        assert!(matches!(
-            error,
-            ValidationError::UnsupportedProfile(ValidationProfile::PdfUa1)
-        ));
+        let report =
+            validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
+        assert_eq!(report.profile, ValidationProfile::PdfUa1);
+        assert!(report.checks_passed, "{report:#?}");
+        assert_eq!(report.checks.total, 1);
     }
 
     #[test]
@@ -2549,7 +2565,6 @@ mod tests {
             ValidationProfile::PdfA4,
             ValidationProfile::PdfA4e,
             ValidationProfile::PdfA4f,
-            ValidationProfile::PdfUa1,
             ValidationProfile::PdfUa2,
         ];
 

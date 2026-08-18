@@ -43,6 +43,8 @@ pub enum ReferenceProfile {
     PdfA3b,
     #[serde(rename = "3u")]
     PdfA3u,
+    #[serde(rename = "ua1")]
+    PdfUa1,
 }
 
 impl ReferenceProfile {
@@ -56,6 +58,7 @@ impl ReferenceProfile {
             Self::PdfA3a => "3a",
             Self::PdfA3b => "3b",
             Self::PdfA3u => "3u",
+            Self::PdfUa1 => "ua1",
         }
     }
 
@@ -69,6 +72,7 @@ impl ReferenceProfile {
             Self::PdfA3a => "PDF/A-3a validation profile",
             Self::PdfA3b => "PDF/A-3b validation profile",
             Self::PdfA3u => "PDF/A-3u validation profile",
+            Self::PdfUa1 => "PDF/UA-1 validation profile",
         }
     }
 }
@@ -90,6 +94,7 @@ impl From<ReferenceProfile> for ValidationProfile {
             ReferenceProfile::PdfA3a => Self::PdfA3a,
             ReferenceProfile::PdfA3b => Self::PdfA3b,
             ReferenceProfile::PdfA3u => Self::PdfA3u,
+            ReferenceProfile::PdfUa1 => Self::PdfUa1,
         }
     }
 }

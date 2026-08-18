@@ -15,7 +15,7 @@ use page_validation::differential::{
     name = "verapdf-diff",
     bin_name = "verapdf-diff",
     version,
-    about = "Compare local PDF/A-1/2/3 checks with pinned veraPDF"
+    about = "Compare local PDF/A-1/2/3 and PDF/UA-1 checks with pinned veraPDF"
 )]
 struct Cli {
     /// Path to the veraPDF executable.
@@ -73,6 +73,8 @@ enum ProfileArg {
     PdfA3b,
     #[value(name = "3u")]
     PdfA3u,
+    #[value(name = "ua1")]
+    PdfUa1,
 }
 
 impl From<ProfileArg> for ReferenceProfile {
@@ -86,6 +88,7 @@ impl From<ProfileArg> for ReferenceProfile {
             ProfileArg::PdfA3a => Self::PdfA3a,
             ProfileArg::PdfA3b => Self::PdfA3b,
             ProfileArg::PdfA3u => Self::PdfA3u,
+            ProfileArg::PdfUa1 => Self::PdfUa1,
         }
     }
 }

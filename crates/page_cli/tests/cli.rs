@@ -297,7 +297,6 @@ fn remaining_profiles_are_recognized_and_reported_as_unimplemented() {
         ("a-4", "PDF/A-4"),
         ("a-4e", "PDF/A-4e"),
         ("a-4f", "PDF/A-4f"),
-        ("ua-1", "PDF/UA-1"),
         ("ua-2", "PDF/UA-2"),
     ];
 
