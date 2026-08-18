@@ -1618,6 +1618,56 @@ pub fn pdfua1_rule_7_1_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_1_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 rule 7.1-2 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let pages_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"Pages")
+        .expect("PDF/UA-1 fixture pages")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture pages");
+    let page_id = document
+        .get_object(pages_id)
+        .expect("PDF/UA-1 fixture pages object")
+        .as_dict()
+        .expect("PDF/UA-1 fixture pages dictionary")
+        .get(b"Kids")
+        .expect("PDF/UA-1 fixture page kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture page kids array")
+        .first()
+        .expect("PDF/UA-1 fixture page")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture page");
+    let content = match case {
+        "tagged_outside_artifact" => b"/Artifact BMC\nEMC\n/P <</MCID 0>> BDC\nEMC\n".as_slice(),
+        "tagged_inside_artifact" => b"/Artifact BMC\n/P <</MCID 0>> BDC\nEMC\nEMC\n".as_slice(),
+        _ => panic!("unknown PDF/UA-1 rule 7.1-2 fixture case {case}"),
+    };
+    let content_id = document.add_object(Stream::new(Dictionary::new(), content.to_vec()));
+    document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page object")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .set("Contents", content_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-2 fixture");
+    bytes
+}
+
 pub fn output_intent_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();

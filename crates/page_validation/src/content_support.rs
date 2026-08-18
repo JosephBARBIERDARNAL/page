@@ -111,6 +111,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
+    pub(crate) tagged_content_inside_artifacts: Vec<RuleFailure>,
     pub(crate) uses_default_gray: bool,
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
@@ -354,6 +355,7 @@ struct SelectedFont {
 struct MarkedContent {
     actual_text_present: bool,
     mcid: Option<i64>,
+    is_artifact: bool,
     is_tagged_content: bool,
 }
 
@@ -648,6 +650,11 @@ impl ContentExecutor<'_> {
                     marked_content.push(MarkedContent {
                         actual_text_present: false,
                         mcid: None,
+                        is_artifact: operation
+                            .operands
+                            .first()
+                            .and_then(|operand| operand.as_name().ok())
+                            == Some(b"Artifact".as_slice()),
                         is_tagged_content: false,
                     });
                 }
@@ -693,9 +700,20 @@ impl ContentExecutor<'_> {
                         let mcid = properties
                             .and_then(|dictionary| dictionary.get(b"MCID").ok())
                             .and_then(|value| value.as_i64().ok());
+                        self.record_tagged_content_if_nested_in_artifact(
+                            mcid.is_some(),
+                            content_id,
+                            marked_content,
+                            context,
+                        );
                         marked_content.push(MarkedContent {
                             actual_text_present,
                             mcid,
+                            is_artifact: operation
+                                .operands
+                                .first()
+                                .and_then(|operand| operand.as_name().ok())
+                                == Some(b"Artifact".as_slice()),
                             is_tagged_content: mcid.is_some(),
                         });
                     }
@@ -1162,6 +1180,25 @@ impl ContentExecutor<'_> {
                     object_id: content_id.map(Into::into),
                     description: format!(
                         "{context} contains /Artifact marked content inside tagged content"
+                    ),
+                });
+        }
+    }
+
+    fn record_tagged_content_if_nested_in_artifact(
+        &mut self,
+        is_tagged_content: bool,
+        content_id: Option<ObjectId>,
+        marked_content: &[MarkedContent],
+        context: &str,
+    ) {
+        if is_tagged_content && marked_content.iter().any(|content| content.is_artifact) {
+            self.summary
+                .tagged_content_inside_artifacts
+                .push(RuleFailure {
+                    object_id: content_id.map(Into::into),
+                    description: format!(
+                        "{context} contains tagged content inside /Artifact marked content"
                     ),
                 });
         }
