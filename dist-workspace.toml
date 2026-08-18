@@ -9,6 +9,8 @@ cargo-dist-version = "0.32.0"
 ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell"]
+# The CLI bundles Adobe CMap Resources, whose notice must accompany every binary distribution.
+include = ["crates/page_validation/THIRD_PARTY_NOTICES.md"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",

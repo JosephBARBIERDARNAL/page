@@ -3,10 +3,10 @@ name = "page_validation"
 version.workspace = true
 edition.workspace = true
 description = "PDF/A and PDF/UA validation."
-documentation = "https://pagestandards.github.io/page/"
+documentation = "https://josephbarbierdarnal.github.io/page/"
 readme = "../../README.md"
-homepage = "https://pagestandards.github.io/page/"
-repository = "https://github.com/pagestandards/page"
+homepage = "https://josephbarbierdarnal.github.io/page/"
+repository = "https://github.com/josephbarbierdarnal/page"
 license = "MIT AND BSD-3-Clause"
 keywords = ["PDF", "profile", "validation", "verapdf"]
 
@@ -21,8 +21,8 @@ thiserror = "2"
 ttf-parser = "0.25.1"
 unicode-properties = "0.1"
 
-[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
-wait-timeout = "0.2"
-
 [dev-dependencies]
 sha2 = "0.11"
+
+[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
+wait-timeout = "0.2"

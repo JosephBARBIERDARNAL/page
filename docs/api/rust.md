@@ -12,7 +12,7 @@ Run `cargo add page_validation`, or add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-page_validation = "0.3.0"
+page_validation = "0.3.1"
 ```
 
 ## Validate a PDF

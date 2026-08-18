@@ -6,10 +6,12 @@
 
 ## Installation
 
+Prebuilt binaries for macOS, Linux, and Windows are available from the [latest release](https://github.com/josephbarbierdarnal/page/releases/latest).
+
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/pagestandards/page.git page_cli --bin page
+cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
 ```
 
 `page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.

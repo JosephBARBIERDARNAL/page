@@ -7,7 +7,7 @@
 With Rust and Cargo installed:
 
 ```sh
-cargo install --git https://github.com/pagestandards/page.git page_cli --bin page
+cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
 ```
 
 `page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
