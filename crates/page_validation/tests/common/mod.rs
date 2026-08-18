@@ -1658,6 +1658,47 @@ pub fn pdfua1_rule_7_1_5_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_1_6_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_5_fixture("indirect_mapping"))
+        .expect("load PDF/UA-1 rule 7.1-6 fixture");
+    if case == "circular_mapping" {
+        let root_id = document
+            .trailer
+            .get(b"Root")
+            .expect("PDF/UA-1 fixture root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture root");
+        let struct_tree_root_id = document
+            .get_object(root_id)
+            .expect("PDF/UA-1 fixture catalog")
+            .as_dict()
+            .expect("PDF/UA-1 fixture catalog dictionary")
+            .get(b"StructTreeRoot")
+            .expect("PDF/UA-1 fixture structure tree root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture structure tree root");
+        document
+            .get_object_mut(struct_tree_root_id)
+            .expect("PDF/UA-1 fixture structure tree root object")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture structure tree root dictionary")
+            .set(
+                "RoleMap",
+                dictionary! {
+                    "CustomHeading" => "IntermediateHeading",
+                    "IntermediateHeading" => "CustomHeading",
+                },
+            );
+    } else if case != "acyclic_mapping" {
+        panic!("unknown PDF/UA-1 rule 7.1-6 fixture case {case}");
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-6 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_1_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 rule 7.1-1 fixture");

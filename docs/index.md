@@ -4,13 +4,23 @@
 
 ## Installation
 
-With Rust and Cargo installed:
+=== "macOS/Linux"
 
-```sh
-cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
-```
+      ```sh
+      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.sh | sh
+      ```
 
-`page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
+=== "PowerShell"
+
+      ```sh
+      irm https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.ps1 | iex
+      ```
+
+=== "Cargo"
+
+      ```sh
+      cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
+      ```
 
 ## Usage
 
@@ -19,9 +29,7 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 
 ## Roadmap
 
-!!! failure "Important"
-
-      page implements PDF/A-1, PDF/A-2, and PDF/A-3 validators based on ISO 19005-1, ISO 19005-2, and ISO 19005-3, with differential verification against veraPDF 1.30.2. A crossed checkbox means that the core of the rule has been implemented, but its behavior does not yet fully match veraPDF.
+Current focus is on PDF/UA-1, see the [reference issue](https://github.com/JosephBARBIERDARNAL/page/issues/61).
 
 - [x] PDF/A-1a
 - [x] PDF/A-1b
@@ -31,8 +39,8 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 - [x] PDF/A-3a
 - [x] PDF/A-3b
 - [x] PDF/A-3u
+- [ ] PDF/UA-1
 - [ ] PDF/A-4
 - [ ] PDF/A-4e
 - [ ] PDF/A-4f
-- [ ] PDF/UA-1
 - [ ] PDF/UA-2

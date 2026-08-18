@@ -2752,7 +2752,7 @@ mod tests {
             tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
                 .ordinary_content
                 .as_ref(),
-            b"q  BI  Q  BI  /Im Do".as_slice()
+            b"q BI  Q BI  /Im Do".as_slice()
         );
     }
 

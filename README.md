@@ -6,15 +6,23 @@
 
 ## Installation
 
-Prebuilt binaries for macOS, Linux, and Windows are available from the [latest release](https://github.com/josephbarbierdarnal/page/releases/latest).
+- macOS/Linux
 
-With Rust and Cargo installed:
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.sh | sh
+```
+
+- PowerShell
+
+```sh
+irm https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.ps1 | iex
+```
+
+- Cargo (from source)
 
 ```sh
 cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
 ```
-
-`page` is installed to `~/.cargo/bin`; add that directory to your `PATH` if needed.
 
 <br>
 

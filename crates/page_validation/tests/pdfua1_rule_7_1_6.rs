@@ -8,55 +8,50 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:2";
+const RULE: &str = "PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:6";
 
 #[test]
-fn pdfua1_rule_7_1_2_rejects_tagged_content_inside_artifacts() {
-    let outside = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-1-2-outside-artifact.pdf"),
+fn pdfua1_rule_7_1_6_rejects_circular_role_map_mappings() {
+    let acyclic_mapping = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-1-6-acyclic-mapping.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(outside.checks_passed, "{outside}");
-    assert_eq!(outside.checks.total, 18);
-    assert_eq!(outside.checks.passed, 18);
+    assert!(acyclic_mapping.checks_passed, "{acyclic_mapping}");
+    assert_eq!(acyclic_mapping.checks.total, 18);
+    assert_eq!(acyclic_mapping.checks.passed, 18);
+    assert!(acyclic_mapping.failures.is_empty());
 
-    let inside = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-1-2-inside-artifact.pdf"),
+    let circular_mapping = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-1-6-circular-mapping.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!inside.checks_passed, "{inside}");
-    assert_eq!(inside.checks.total, 18);
-    assert_eq!(inside.checks.failed, 1);
-    assert_eq!(inside.failures.len(), 1);
-    assert_eq!(inside.failures[0].rule_id, RULE);
+    assert!(!circular_mapping.checks_passed, "{circular_mapping}");
+    assert_eq!(circular_mapping.checks.total, 18);
+    assert_eq!(circular_mapping.checks.failed, 1);
+    assert_eq!(circular_mapping.failures.len(), 1);
+    assert_eq!(circular_mapping.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.1-2 fixtures"]
-fn regenerate_pdfua1_rule_7_1_2_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.1-6 fixtures"]
+fn regenerate_pdfua1_rule_7_1_6_fixtures() {
     for (fixture, case) in [
-        (
-            "pdfua1-rule-7-1-2-outside-artifact.pdf",
-            "tagged_outside_artifact",
-        ),
-        (
-            "pdfua1-rule-7-1-2-inside-artifact.pdf",
-            "tagged_inside_artifact",
-        ),
+        ("pdfua1-rule-7-1-6-acyclic-mapping.pdf", "acyclic_mapping"),
+        ("pdfua1-rule-7-1-6-circular-mapping.pdf", "circular_mapping"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_1_2_fixture(case),
+            common::pdfua1_rule_7_1_6_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.1-2 fixture");
+        .expect("write PDF/UA-1 rule 7.1-6 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_1_2_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_1_6_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -64,8 +59,8 @@ fn pdfua1_rule_7_1_2_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-1-2-outside-artifact.pdf", false),
-        ("pdfua1-rule-7-1-2-inside-artifact.pdf", true),
+        ("pdfua1-rule-7-1-6-acyclic-mapping.pdf", false),
+        ("pdfua1-rule-7-1-6-circular-mapping.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")

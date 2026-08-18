@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 17,
+        ValidationProfile::PdfUa1 => 18,
         _ => 0,
     }
 }
@@ -482,6 +482,17 @@ fn validate_document(
             "PDFUA1-STRUCT-TREE-ROOT-001",
             "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
         );
+        if inspections.document_features.struct_tree_role_map_has_cycle {
+            failures.push(failure(
+                "PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+                "the StructTreeRoot RoleMap must not contain a circular mapping",
+                inspections
+                    .document_features
+                    .struct_tree_root_object_id
+                    .or(inspections.document_features.catalog_id),
+                FailureCategory::Conformance,
+            ));
+        }
         if inspections.document_features.struct_tree_has_unmapped_type {
             failures.push(failure(
                 "PDFUA1-STRUCT-TREE-ROLE-MAP-001",
@@ -2741,7 +2752,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 16);
+        assert_eq!(report.checks.total, 18);
     }
 
     #[test]
