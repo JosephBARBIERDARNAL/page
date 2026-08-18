@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
 use std::fs;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -13,6 +14,10 @@ pub(crate) struct CorpusArgs {
     /// Root directory of a veraPDF corpus checkout.
     #[arg(value_name = "DIRECTORY")]
     pub(crate) directory: PathBuf,
+
+    /// Maximum number of PDFs to validate concurrently; defaults to at most four workers.
+    #[arg(long, value_name = "JOBS")]
+    pub(crate) jobs: Option<NonZeroUsize>,
 }
 
 #[derive(Clone, Copy)]
@@ -77,6 +82,7 @@ struct CorpusCase {
 }
 
 const MAX_MISMATCH_DETAILS: usize = 50;
+const DEFAULT_MAX_WORKERS: usize = 4;
 
 pub(crate) fn run(args: &CorpusArgs) -> i32 {
     let cases = match discover_cases(&args.directory) {
@@ -95,7 +101,7 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
     };
 
     let limits = SafetyLimits::default();
-    let reports = validate_cases(&cases, &limits);
+    let reports = validate_cases(&cases, &limits, args.jobs);
 
     let mut mismatches = 0;
     let mut operational_failures = 0;
@@ -153,10 +159,17 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
 /// threads since each case's validation is independent CPU-bound work.
 /// Results are returned in the same order as `cases` regardless of which
 /// worker completed them, so mismatch reporting stays deterministic.
-fn validate_cases(cases: &[CorpusCase], limits: &SafetyLimits) -> Vec<(i32, ValidationReport)> {
-    let worker_count = std::thread::available_parallelism()
+fn validate_cases(
+    cases: &[CorpusCase],
+    limits: &SafetyLimits,
+    jobs: Option<NonZeroUsize>,
+) -> Vec<(i32, ValidationReport)> {
+    let available_workers = std::thread::available_parallelism()
         .map(std::num::NonZeroUsize::get)
-        .unwrap_or(1)
+        .unwrap_or(1);
+    let worker_count = jobs
+        .map(NonZeroUsize::get)
+        .unwrap_or_else(|| available_workers.min(DEFAULT_MAX_WORKERS))
         .min(cases.len().max(1));
 
     if worker_count <= 1 {

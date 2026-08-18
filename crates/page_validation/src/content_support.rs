@@ -24,7 +24,12 @@ pub(crate) struct SelectedColorSpace {
 pub(crate) struct XObjectUse {
     pub(crate) key: ResourceKey,
     pub(crate) object: Object,
-    pub(crate) kind: XObjectUseKind,
+    pub(crate) painted: bool,
+    pub(crate) alternate: bool,
+    pub(crate) explicit_mask: bool,
+    pub(crate) soft_mask: bool,
+    pub(crate) appearance: bool,
+    pub(crate) occurrences: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,6 +39,27 @@ pub(crate) enum XObjectUseKind {
     Alternate,
     ExplicitMask,
     SoftMask,
+}
+
+impl XObjectUse {
+    fn record(&mut self, kind: XObjectUseKind) {
+        self.occurrences += 1;
+        match kind {
+            XObjectUseKind::Painted => self.painted = true,
+            XObjectUseKind::Appearance => self.appearance = true,
+            XObjectUseKind::Alternate => self.alternate = true,
+            XObjectUseKind::ExplicitMask => self.explicit_mask = true,
+            XObjectUseKind::SoftMask => self.soft_mask = true,
+        }
+    }
+
+    pub(crate) fn is_ordinary_image(&self) -> bool {
+        self.painted || self.alternate || self.soft_mask
+    }
+
+    pub(crate) fn has_declared_xobject_role(&self) -> bool {
+        self.is_ordinary_image() || self.explicit_mask
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +93,7 @@ pub(crate) struct FontTextRun {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ContentExecutionSummary {
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
-    pub(crate) xobjects: Vec<XObjectUse>,
+    pub(crate) xobjects: BTreeMap<ResourceKey, XObjectUse>,
     pub(crate) extgstates: Vec<ExtGStateUse>,
     pub(crate) fonts: Vec<FontUse>,
     pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
@@ -104,23 +130,18 @@ pub(crate) fn is_pdf_boundary(byte: Option<u8>) -> bool {
 pub(crate) fn decode_content_stream(
     stream: &Stream,
     limits: &SafetyLimits,
-    decoded_bytes: &mut usize,
 ) -> Result<Vec<u8>, PdfError> {
-    let remaining = limits
-        .max_decoded_stream_size
-        .saturating_sub(*decoded_bytes);
-    let bytes = match stream.decompressed_content_with_limit(remaining) {
+    let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
         Ok(bytes) => bytes,
         Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
             return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
         }
-        Err(_) if stream.content.len() <= remaining => stream.content.clone(),
+        Err(_) if stream.content.len() <= limits.max_decoded_stream_size => stream.content.clone(),
         Err(_) => return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size)),
     };
-    if bytes.len() > remaining {
+    if bytes.len() > limits.max_decoded_stream_size {
         return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
     }
-    *decoded_bytes = decoded_bytes.saturating_add(bytes.len());
     Ok(bytes)
 }
 
@@ -136,29 +157,33 @@ pub(crate) type ContentCache = HashMap<ObjectId, Rc<[u8]>>;
 /// a directly embedded stream has no id to key on and is decoded but not
 /// cached, exactly as it always was.
 ///
-/// A cache hit still runs the same `decoded_bytes` budget accounting as a
-/// fresh decode would (using the cached length), so the configured
-/// `max_decoded_stream_size` limit applies identically either way.
+/// The cache is bounded by the document-wide decoded-content budget: only a
+/// fresh decode consumes it, while a cache hit reuses bytes already counted.
 pub(crate) fn decode_content_stream_cached(
     stream: &Stream,
     object_id: Option<ObjectId>,
     cache: &mut ContentCache,
     limits: &SafetyLimits,
-    decoded_bytes: &mut usize,
+    total_decoded_bytes: &mut usize,
 ) -> Result<Rc<[u8]>, PdfError> {
     if let Some(object_id) = object_id
         && let Some(cached) = cache.get(&object_id)
     {
-        let remaining = limits
-            .max_decoded_stream_size
-            .saturating_sub(*decoded_bytes);
-        if cached.len() > remaining {
-            return Err(PdfError::ContentDecodeLimit(limits.max_decoded_stream_size));
-        }
-        *decoded_bytes = decoded_bytes.saturating_add(cached.len());
         return Ok(Rc::clone(cached));
     }
-    let bytes: Rc<[u8]> = Rc::from(decode_content_stream(stream, limits, decoded_bytes)?);
+    let bytes: Rc<[u8]> = Rc::from(decode_content_stream(stream, limits)?);
+    let total =
+        total_decoded_bytes
+            .checked_add(bytes.len())
+            .ok_or(PdfError::TotalContentDecodeLimit(
+                limits.max_total_decoded_content_size,
+            ))?;
+    if total > limits.max_total_decoded_content_size {
+        return Err(PdfError::TotalContentDecodeLimit(
+            limits.max_total_decoded_content_size,
+        ));
+    }
+    *total_decoded_bytes = total;
     if let Some(object_id) = object_id {
         cache.insert(object_id, Rc::clone(&bytes));
     }
@@ -264,12 +289,18 @@ pub(crate) fn execute_content(
         current_page: 0,
         current_page_object_id: None,
     };
+    let mut total_decoded_bytes = 0usize;
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
         let page = page_entry
             .resolve(document)
             .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
-        executor.execute_page(page_number, page_entry.object_id(), page)?;
+        executor.execute_page(
+            page_number,
+            page_entry.object_id(),
+            page,
+            &mut total_decoded_bytes,
+        )?;
     }
     Ok(executor.summary)
 }
@@ -332,13 +363,13 @@ impl ContentExecutor<'_> {
         page_number: u32,
         page_object_id: Option<ObjectId>,
         page: &Dictionary,
+        decoded_bytes: &mut usize,
     ) -> Result<(), PdfError> {
         self.current_page = page_number;
         self.current_page_object_id = page_object_id;
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let resources_are_inherited = page.get(b"Resources").is_err();
         let mut active_forms = BTreeSet::new();
-        let mut decoded_bytes = 0usize;
         let mut graphics_state = GraphicsState::default();
         let mut graphics_stack = Vec::new();
         let mut marked_content = Vec::new();
@@ -360,7 +391,7 @@ impl ContentExecutor<'_> {
                 &mut graphics_stack,
                 &mut marked_content,
                 &mut active_forms,
-                &mut decoded_bytes,
+                decoded_bytes,
                 &format!("page {page_number}"),
                 0,
             )?;
@@ -370,7 +401,7 @@ impl ContentExecutor<'_> {
             page,
             resources.as_ref(),
             &mut active_forms,
-            &mut decoded_bytes,
+            decoded_bytes,
         )?;
         Ok(())
     }
@@ -1163,11 +1194,20 @@ impl ContentExecutor<'_> {
         else {
             return Ok(());
         };
-        self.summary.xobjects.push(XObjectUse {
-            key,
-            object: resolved.clone(),
-            kind,
-        });
+        self.summary
+            .xobjects
+            .entry(key.clone())
+            .or_insert_with(|| XObjectUse {
+                key,
+                object: resolved.clone(),
+                painted: false,
+                alternate: false,
+                explicit_mask: false,
+                soft_mask: false,
+                appearance: false,
+                occurrences: 0,
+            })
+            .record(kind);
         let Some(dictionary) = crate::object_resolution::dictionary_based(resolved) else {
             return Ok(());
         };
@@ -2719,12 +2759,12 @@ mod tests {
         assert_eq!(
             summary
                 .xobjects
-                .iter()
-                .filter(|use_| use_.key.object_id() == Some(form_id.into()))
-                .count(),
-            4,
+                .get(&crate::object_resolution::ResourceKey::Indirect(form_id))
+                .map(|use_| use_.occurrences),
+            Some(4),
             "two ordinary invocations and their two cycle-edge observations remain visible"
         );
+        assert_eq!(summary.xobjects.len(), 1);
     }
 
     #[test]
@@ -2944,7 +2984,7 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_content_decode_limit_is_preserved() {
+    fn individual_content_decode_limit_is_preserved() {
         let (mut document, page_id) = content_test_document(Dictionary::new());
         let contents = document.add_object(Stream::new(Dictionary::new(), vec![b'q'; 32]));
         document
@@ -2965,6 +3005,79 @@ mod tests {
         )
         .expect_err("decode limit");
         assert!(matches!(error, crate::PdfError::ContentDecodeLimit(16)));
+    }
+
+    #[test]
+    fn total_content_decode_limit_spans_pages() {
+        let (mut document, first_page) = content_test_document(Dictionary::new());
+        let second_page = document.add_object(dictionary! {
+            "Type" => "Page",
+            "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+        });
+        let first_contents = document.add_object(Stream::new(Dictionary::new(), vec![b'q'; 12]));
+        let second_contents = document.add_object(Stream::new(Dictionary::new(), vec![b'Q'; 12]));
+        for (page, contents) in [(first_page, first_contents), (second_page, second_contents)] {
+            document
+                .objects
+                .get_mut(&page)
+                .and_then(|object| object.as_dict_mut().ok())
+                .expect("page")
+                .set("Contents", contents);
+        }
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 16,
+            max_total_decoded_content_size: 16,
+            ..SafetyLimits::default()
+        };
+
+        let error = execute_content(
+            &document,
+            &[
+                PageEntry::Indirect(first_page),
+                PageEntry::Indirect(second_page),
+            ],
+            &mut ContentCache::new(),
+            &limits,
+        )
+        .expect_err("total decoded content limit");
+        assert!(matches!(
+            error,
+            crate::PdfError::TotalContentDecodeLimit(16)
+        ));
+    }
+
+    #[test]
+    fn cached_content_is_counted_once_across_pages() {
+        let (mut document, first_page) = content_test_document(Dictionary::new());
+        let second_page = document.add_object(dictionary! {
+            "Type" => "Page",
+            "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+        });
+        let contents = document.add_object(Stream::new(Dictionary::new(), vec![b'q'; 12]));
+        for page in [first_page, second_page] {
+            document
+                .objects
+                .get_mut(&page)
+                .and_then(|object| object.as_dict_mut().ok())
+                .expect("page")
+                .set("Contents", contents);
+        }
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 16,
+            max_total_decoded_content_size: 16,
+            ..SafetyLimits::default()
+        };
+
+        execute_content(
+            &document,
+            &[
+                PageEntry::Indirect(first_page),
+                PageEntry::Indirect(second_page),
+            ],
+            &mut ContentCache::new(),
+            &limits,
+        )
+        .expect("cached content fits the total decode budget once");
     }
 
     fn content_test_document(resources: Dictionary) -> (Document, (u32, u16)) {

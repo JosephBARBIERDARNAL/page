@@ -63,6 +63,15 @@ fn page_help_exposes_the_validate_command() {
             "a-1b, a-1a, a-2b, a-2a, a-2u, a-3b, a-3a, a-3u, a-4, a-4e, a-4f, ua-1, ua-2"
         )
     );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .args(["corpus", "--help"])
+        .output()
+        .expect("run page corpus --help");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
+    assert!(stdout.contains("--jobs <JOBS>"));
 }
 
 #[test]

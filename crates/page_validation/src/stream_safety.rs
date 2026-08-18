@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use lopdf::xref::XrefType;
 use lopdf::{Document, Object};
 
@@ -51,7 +53,8 @@ pub(crate) fn inspect(
         ..StreamSafetySummary::default()
     };
     let mut stream_data_ranges = Vec::new();
-    let mut used_stream_starts = Vec::new();
+    let raw_stream_starts = raw_stream_data_starts(bytes);
+    let mut used_stream_starts = BTreeSet::new();
     let mut all_stream_ranges_known = true;
     for (object_id, object) in &document.objects {
         if let Some(dictionary) = object.as_dict().ok()
@@ -102,9 +105,16 @@ pub(crate) fn inspect(
         let raw_start = raw_location
             .map(|location| location.data_start)
             .or(stream.start_position)
-            .or_else(|| locate_raw_stream_data_start(bytes, &stream.content, &used_stream_starts));
+            .or_else(|| {
+                locate_raw_stream_data_start(
+                    bytes,
+                    &stream.content,
+                    &raw_stream_starts,
+                    &used_stream_starts,
+                )
+            });
         if let Some(start) = raw_start {
-            used_stream_starts.push(start);
+            used_stream_starts.insert(start);
             inspect_raw_stream_syntax_with_declared(
                 document,
                 stream,
@@ -190,6 +200,7 @@ pub(crate) fn inspect(
             object,
             limits,
             bytes,
+            &raw_stream_starts,
             &mut used_stream_starts,
             &mut stream_data_ranges,
         )? {
@@ -323,7 +334,7 @@ fn signature_byte_range_covers_document(
 fn has_unaccounted_stream(
     bytes: &[u8],
     stream_data_ranges: &[std::ops::Range<usize>],
-    used_stream_starts: &[usize],
+    used_stream_starts: &BTreeSet<usize>,
 ) -> bool {
     let mut ranges = stream_data_ranges.to_vec();
     ranges.sort_unstable_by_key(|range| range.start);
@@ -381,17 +392,21 @@ fn collect_nested_stream_data_ranges(
     object: &Object,
     limits: &SafetyLimits,
     bytes: &[u8],
-    used_stream_starts: &mut Vec<usize>,
+    raw_stream_starts: &[usize],
+    used_stream_starts: &mut BTreeSet<usize>,
     stream_data_ranges: &mut Vec<std::ops::Range<usize>>,
 ) -> Result<bool, PdfError> {
     match object {
         Object::Stream(stream) => {
-            let Some(start) =
-                locate_raw_stream_data_start(bytes, &stream.content, used_stream_starts)
-            else {
+            let Some(start) = locate_raw_stream_data_start(
+                bytes,
+                &stream.content,
+                raw_stream_starts,
+                used_stream_starts,
+            ) else {
                 return Ok(false);
             };
-            used_stream_starts.push(start);
+            used_stream_starts.insert(start);
             let Some(range) = raw_stream_data_range(document, stream, start, limits)? else {
                 return Ok(false);
             };
@@ -401,6 +416,7 @@ fn collect_nested_stream_data_ranges(
                 &Object::Dictionary(stream.dict.clone()),
                 limits,
                 bytes,
+                raw_stream_starts,
                 used_stream_starts,
                 stream_data_ranges,
             )
@@ -412,6 +428,7 @@ fn collect_nested_stream_data_ranges(
                     value,
                     limits,
                     bytes,
+                    raw_stream_starts,
                     used_stream_starts,
                     stream_data_ranges,
                 )? {
@@ -427,6 +444,7 @@ fn collect_nested_stream_data_ranges(
                     value,
                     limits,
                     bytes,
+                    raw_stream_starts,
                     used_stream_starts,
                     stream_data_ranges,
                 )? {
@@ -647,22 +665,29 @@ fn raw_stream_data_range(
     Ok(start.checked_add(length).map(|end| start..end))
 }
 
-fn locate_raw_stream_data_start(
-    bytes: &[u8],
-    content: &[u8],
-    used_starts: &[usize],
-) -> Option<usize> {
+fn raw_stream_data_starts(bytes: &[u8]) -> Vec<usize> {
     bytes
         .windows(b"stream".len())
         .enumerate()
-        .find_map(|(offset, window)| {
+        .filter_map(|(offset, window)| {
             (window == b"stream"
                 && is_pdf_boundary(bytes.get(offset.wrapping_sub(1)).copied())
                 && is_pdf_boundary(bytes.get(offset + b"stream".len()).copied()))
             .then(|| stream_data_start_after_keyword(bytes, offset + b"stream".len()))?
-            .filter(|start| !used_starts.contains(start))
-            .filter(|start| bytes.get(*start..start.saturating_add(content.len())) == Some(content))
         })
+        .collect()
+}
+
+fn locate_raw_stream_data_start(
+    bytes: &[u8],
+    content: &[u8],
+    raw_stream_starts: &[usize],
+    used_starts: &BTreeSet<usize>,
+) -> Option<usize> {
+    raw_stream_starts.iter().copied().find(|start| {
+        !used_starts.contains(start)
+            && bytes.get(*start..start.saturating_add(content.len())) == Some(content)
+    })
 }
 
 fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
@@ -1038,9 +1063,14 @@ fn pdfa2_filter_is_allowed(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
-    use super::{StreamSafetySummary, inspect_raw_stream_syntax};
+    use super::{
+        StreamSafetySummary, inspect_raw_stream_syntax, locate_raw_stream_data_start,
+        raw_stream_data_starts,
+    };
     use crate::SafetyLimits;
 
     #[test]
@@ -1128,6 +1158,21 @@ mod tests {
         )
         .expect("inspect stream with extra keyword space");
         assert_eq!(summary.invalid_eol_markers.len(), 1);
+    }
+
+    #[test]
+    fn raw_stream_index_locates_distinct_streams_without_rescanning_input() {
+        let bytes = b"stream\nfirst\nendstream\nstream\nsecond\nendstream";
+        let starts = raw_stream_data_starts(bytes);
+        let mut used = BTreeSet::new();
+        let first = locate_raw_stream_data_start(bytes, b"first", &starts, &used)
+            .expect("first stream location");
+        used.insert(first);
+        let second = locate_raw_stream_data_start(bytes, b"second", &starts, &used)
+            .expect("second stream location");
+
+        assert_eq!(&bytes[first..first + b"first".len()], b"first");
+        assert_eq!(&bytes[second..second + b"second".len()], b"second");
     }
 
     #[test]

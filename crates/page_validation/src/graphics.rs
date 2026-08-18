@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document};
 
@@ -64,28 +64,11 @@ pub(crate) fn inspect(
         }
     }
 
-    let mut xobjects = BTreeMap::new();
-    for use_ in &content.xobjects {
-        let entry = xobjects
-            .entry(use_.key.clone())
-            .or_insert((&use_.object, false, false, false));
-        match use_.kind {
-            crate::content_support::XObjectUseKind::Appearance => entry.1 = true,
-            crate::content_support::XObjectUseKind::ExplicitMask => entry.2 = true,
-            crate::content_support::XObjectUseKind::Painted
-            | crate::content_support::XObjectUseKind::Alternate
-            | crate::content_support::XObjectUseKind::SoftMask => {
-                entry.2 = true;
-                entry.3 = true;
-            }
-        }
-    }
-    for (key, (object, is_appearance, has_declared_xobject_role, has_image_intent_role)) in xobjects
-    {
-        let Some(dictionary) = dictionary_based(object) else {
+    for use_ in content.xobjects.values() {
+        let Some(dictionary) = dictionary_based(&use_.object) else {
             continue;
         };
-        let reported_id = key.object_id();
+        let reported_id = use_.key.object_id();
         if contains_key(dictionary, b"SMask") {
             summary.xobject_soft_masks.push(RuleFailure {
                 object_id: reported_id,
@@ -93,7 +76,9 @@ pub(crate) fn inspect(
             });
         }
         let subtype = resolved_name(document, dictionary, b"Subtype", limits.max_reference_depth)?;
-        if (subtype == Some(b"Form".as_slice()) && has_declared_xobject_role) || is_appearance {
+        if (subtype == Some(b"Form".as_slice()) && use_.has_declared_xobject_role())
+            || use_.appearance
+        {
             inspect_group(
                 document,
                 dictionary,
@@ -103,7 +88,7 @@ pub(crate) fn inspect(
                 &mut summary,
             )?;
         }
-        if subtype == Some(b"Image".as_slice()) && has_image_intent_role {
+        if subtype == Some(b"Image".as_slice()) && use_.is_ordinary_image() {
             inspect_rendering_intent(
                 document,
                 dictionary,

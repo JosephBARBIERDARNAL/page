@@ -111,12 +111,15 @@ use page_validation::SafetyLimits;
 let limits = SafetyLimits {
     max_input_size: 100 * 1024 * 1024,
     max_decoded_stream_size: 32 * 1024 * 1024,
+    max_total_decoded_content_size: 100 * 1024 * 1024,
     max_object_count: 500_000,
     max_reference_depth: 256,
 };
 ```
 
 Use `SafetyLimits::default()` when the built-in defaults are sufficient.
+
+`max_decoded_stream_size` bounds one decoded stream. `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document.
 
 ## Inspect failures
 

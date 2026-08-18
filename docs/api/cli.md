@@ -87,7 +87,6 @@ Document: PDF 1.4, 1 page(s), 4 object(s)
 [PDFA1B-TRAILER-ID-001] Conformance: [.........]
 ```
 
-
 !!! note
 
       [ . . . . . . . . . ] are just placeholders of the actual messages

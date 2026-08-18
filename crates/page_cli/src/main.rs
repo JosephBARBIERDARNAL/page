@@ -65,6 +65,10 @@ struct ValidateArgs {
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE)]
     max_decoded_stream_size: usize,
 
+    /// Maximum total decoded size of page, Form, appearance, Pattern, and Type3 content streams.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
+    max_total_decoded_content_size: usize,
+
     /// Maximum number of parsed indirect objects.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT)]
     max_object_count: usize,
@@ -418,6 +422,7 @@ fn run_validate(cli: ValidateArgs) {
     let limits = SafetyLimits {
         max_input_size: cli.max_input_size,
         max_decoded_stream_size: cli.max_decoded_stream_size,
+        max_total_decoded_content_size: cli.max_total_decoded_content_size,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
         max_xref_revisions: SafetyLimits::DEFAULT_MAX_XREF_REVISIONS,

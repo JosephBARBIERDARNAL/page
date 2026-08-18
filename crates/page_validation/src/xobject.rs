@@ -1,14 +1,12 @@
-use std::borrow::Cow;
-use std::collections::BTreeMap;
-
 use lopdf::{Document, Object};
+use std::borrow::Cow;
 
-use crate::content_support::{ContentExecutionSummary, XObjectUseKind};
+use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{
-    ResourceKey, contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
+    contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
     resolved_name,
 };
 use crate::report::RuleFailure;
@@ -34,41 +32,31 @@ pub(crate) fn inspect(
     limits: &SafetyLimits,
 ) -> Result<XObjectSummary, PdfError> {
     let mut summary = XObjectSummary::default();
-    let mut uses = BTreeMap::<ResourceKey, (&Object, bool, bool, bool)>::new();
-    for use_ in &execution.xobjects {
-        let entry = uses
-            .entry(use_.key.clone())
-            .or_insert((&use_.object, false, false, false));
-        match use_.kind {
-            XObjectUseKind::Appearance => entry.3 = true,
-            XObjectUseKind::ExplicitMask => entry.2 = true,
-            _ => entry.1 = true,
-        }
-    }
-    for (key, (object, is_ordinary_image, is_explicit_mask, is_appearance)) in uses {
-        let Some(dictionary) = dictionary_based(object) else {
+    for use_ in execution.xobjects.values() {
+        let Some(dictionary) = dictionary_based(&use_.object) else {
             continue;
         };
-        let object_id = key.object_id();
+        let object_id = use_.key.object_id();
         let subtype = resolved_name(document, dictionary, b"Subtype", limits.max_reference_depth)?;
-        if subtype == Some(b"Image".as_slice()) && (is_ordinary_image || is_explicit_mask) {
+        if subtype == Some(b"Image".as_slice()) && (use_.is_ordinary_image() || use_.explicit_mask)
+        {
             inspect_image(
                 document,
                 dictionary,
-                object,
+                &use_.object,
                 object_id,
-                is_ordinary_image,
-                is_explicit_mask,
+                use_.is_ordinary_image(),
+                use_.explicit_mask,
                 limits,
                 &mut summary,
             )?;
         }
-        if (subtype == Some(b"Form".as_slice()) && (is_ordinary_image || is_explicit_mask))
-            || is_appearance
+        if (subtype == Some(b"Form".as_slice()) && use_.has_declared_xobject_role())
+            || use_.appearance
         {
             inspect_form(document, dictionary, object_id, limits, &mut summary)?;
         }
-        if subtype == Some(b"PS".as_slice()) && (is_ordinary_image || is_explicit_mask) {
+        if subtype == Some(b"PS".as_slice()) && use_.has_declared_xobject_role() {
             summary.postscript_xobject.push(RuleFailure {
                 object_id,
                 description: "XObject has /Subtype /PS".to_owned(),
