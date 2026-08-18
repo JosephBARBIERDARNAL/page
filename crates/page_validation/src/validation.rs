@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 18,
+        ValidationProfile::PdfUa1 => 19,
         _ => 0,
     }
 }
@@ -497,6 +497,20 @@ fn validate_document(
             failures.push(failure(
                 "PDFUA1-STRUCT-TREE-ROLE-MAP-001",
                 "every non-standard structure type must resolve through RoleMap to a standard structure type",
+                inspections
+                    .document_features
+                    .struct_tree_root_object_id
+                    .or(inspections.document_features.catalog_id),
+                FailureCategory::Conformance,
+            ));
+        }
+        if inspections
+            .document_features
+            .struct_tree_role_map_has_standard_remap
+        {
+            failures.push(failure(
+                "PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+                "a standard structure type must not be remapped",
                 inspections
                     .document_features
                     .struct_tree_root_object_id
@@ -1073,7 +1087,7 @@ fn validate_structure_tree(
     if features.struct_tree_role_map_has_standard_remap {
         failures.push(failure(
             "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
-            "a standard structure type must not be remapped to a non-standard type",
+            "a standard structure type must not be remapped",
             features.struct_tree_root_object_id,
             FailureCategory::Conformance,
         ));
@@ -2752,7 +2766,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 18);
+        assert_eq!(report.checks.total, 19);
     }
 
     #[test]

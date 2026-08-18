@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
-const BENCHMARK_PDF: &str = "bench/budget.pdf";
+const BENCHMARK_PDF: &str = "bench/history.pdf";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -36,7 +36,7 @@ struct Cli {
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
-    #[arg(long, default_value_t = 10)]
+    #[arg(long, default_value_t = 5)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
@@ -46,9 +46,7 @@ struct Cli {
 
 #[derive(Clone, Copy, Debug)]
 struct Summary {
-    min: Duration,
     median: Duration,
-    p95: Duration,
     mean: Duration,
 }
 
@@ -61,11 +59,8 @@ impl Summary {
         } else {
             samples[samples.len() / 2]
         };
-        let p95_index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
         Self {
-            min: samples[0],
             median,
-            p95: samples[p95_index],
             mean: total / samples.len() as u32,
         }
     }
@@ -73,9 +68,7 @@ impl Summary {
 
 #[derive(Clone, Copy, Debug)]
 struct MemSummary {
-    min: u64,
     median: u64,
-    p95: u64,
     mean: u64,
 }
 
@@ -95,11 +88,8 @@ impl MemSummary {
         } else {
             samples[samples.len() / 2]
         };
-        let p95_index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
         Self {
-            min: samples[0],
             median,
-            p95: samples[p95_index],
             mean: total / samples.len() as u64,
         }
     }
@@ -235,21 +225,17 @@ fn format_mb(bytes: u64) -> String {
 
 fn print_summary(label: &str, summary: Summary) {
     println!(
-        "  {label:8} median {:>12} mean {:>12} min {:>12} p95 {:>12}",
+        "  {label:8} median {:>12} mean {:>12}",
         format_ms(summary.median),
         format_ms(summary.mean),
-        format_ms(summary.min),
-        format_ms(summary.p95),
     );
 }
 
 fn print_mem_summary(label: &str, summary: MemSummary) {
     println!(
-        "  {label:8} median {:>12} mean {:>12} min {:>12} p95 {:>12}",
+        "  {label:8} median {:>12} mean {:>12}",
         format_mb(summary.median),
         format_mb(summary.mean),
-        format_mb(summary.min),
-        format_mb(summary.p95),
     );
 }
 

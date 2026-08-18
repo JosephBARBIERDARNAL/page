@@ -902,9 +902,10 @@ fn inspect_role_map(
         has_cycle: false,
         has_standard_remap: false,
     };
-    summary.has_standard_remap = summary.mappings.iter().any(|(source, target)| {
-        is_standard_structure_type(source) && !is_standard_structure_type(target)
-    });
+    summary.has_standard_remap = summary
+        .mappings
+        .iter()
+        .any(|(source, target)| is_standard_structure_type(source) && source != target);
     for source in summary.mappings.keys() {
         let mut path = BTreeSet::new();
         let mut current = source.as_slice();
