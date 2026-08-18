@@ -1537,7 +1537,7 @@ fn inspect_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8>
 }
 
 fn inspect_pdfua_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
-    [("part", 3), ("amd", 4)]
+    [("part", 3), ("amd", 4), ("corr", 5)]
         .into_iter()
         .filter_map(|(name, test)| {
             identification_property_has_wrong_prefix(rdf, xml, PDFUA_ID_NAMESPACE, name, "pdfuaid")

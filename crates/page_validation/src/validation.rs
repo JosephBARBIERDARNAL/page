@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 4,
+        ValidationProfile::PdfUa1 => 5,
         _ => 0,
     }
 }
@@ -424,6 +424,18 @@ fn validate_document(
             failures.push(failure(
                 "PDFUA1-ID-AMD-PREFIX-001",
                 "the PDF/UA identification amd property uses a lexical prefix other than pdfuaid",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if document
+            .xmp
+            .as_ref()
+            .is_some_and(|xmp| xmp.pdfua_identification_prefix_failed_tests.contains(&5))
+        {
+            failures.push(failure(
+                "PDFUA1-ID-CORR-PREFIX-001",
+                "the PDF/UA identification corr property uses a lexical prefix other than pdfuaid",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
@@ -2591,7 +2603,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 4);
+        assert_eq!(report.checks.total, 5);
     }
 
     #[test]

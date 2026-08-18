@@ -8,13 +8,13 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-ID-AMD-PREFIX-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:4";
+const RULE: &str = "PDFUA1-ID-CORR-PREFIX-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:5";
 
 #[test]
-fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
+fn pdfua1_rule_5_5_fixtures_require_pdfuaid_corr_prefix() {
     let canonical_prefix = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-5-4-canonical-prefix.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-5-5-canonical-prefix.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -24,7 +24,7 @@ fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
     assert!(canonical_prefix.failures.is_empty());
 
     let wrong_prefix = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-5-4-wrong-prefix.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-5-5-wrong-prefix.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -36,22 +36,22 @@ fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 5-4 fixtures"]
-fn regenerate_pdfua1_rule_5_4_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 5-5 fixtures"]
+fn regenerate_pdfua1_rule_5_5_fixtures() {
     fs::write(
-        "tests/fixtures/pdfua1-rule-5-4-canonical-prefix.pdf",
-        common::pdfua1_rule_5_4_fixture("canonical_prefix"),
+        "tests/fixtures/pdfua1-rule-5-5-canonical-prefix.pdf",
+        common::pdfua1_rule_5_5_fixture("canonical_prefix"),
     )
-    .expect("write PDF/UA-1 rule 5-4 pass fixture");
+    .expect("write PDF/UA-1 rule 5-5 pass fixture");
     fs::write(
-        "tests/fixtures/pdfua1-rule-5-4-wrong-prefix.pdf",
-        common::pdfua1_rule_5_4_fixture("wrong_prefix"),
+        "tests/fixtures/pdfua1-rule-5-5-wrong-prefix.pdf",
+        common::pdfua1_rule_5_5_fixture("wrong_prefix"),
     )
-    .expect("write PDF/UA-1 rule 5-4 fail fixture");
+    .expect("write PDF/UA-1 rule 5-5 fail fixture");
 }
 
 #[test]
-fn pdfua1_rule_5_4_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_5_5_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -59,8 +59,8 @@ fn pdfua1_rule_5_4_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-5-4-canonical-prefix.pdf", false),
-        ("pdfua1-rule-5-4-wrong-prefix.pdf", true),
+        ("pdfua1-rule-5-5-canonical-prefix.pdf", false),
+        ("pdfua1-rule-5-5-wrong-prefix.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
