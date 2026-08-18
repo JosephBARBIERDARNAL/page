@@ -1592,6 +1592,66 @@ pub fn pdfua1_rule_7_1_12_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_1_5_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 rule 7.1-5 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let structure_element_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root object")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .first()
+        .expect("PDF/UA-1 fixture structure tree root first kid")
+        .as_reference()
+        .expect("indirect PDF/UA-1 top-level structure element");
+    document
+        .get_object_mut(structure_element_id)
+        .expect("PDF/UA-1 fixture structure element")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure element dictionary")
+        .set("S", "CustomHeading");
+    match case {
+        "indirect_mapping" => document
+            .get_object_mut(struct_tree_root_id)
+            .expect("PDF/UA-1 fixture structure tree root object")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture structure tree root dictionary")
+            .set(
+                "RoleMap",
+                dictionary! {
+                    "CustomHeading" => "IntermediateHeading",
+                    "IntermediateHeading" => "H1",
+                },
+            ),
+        "unmapped" => {}
+        _ => panic!("unknown PDF/UA-1 rule 7.1-5 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-5 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_1_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 rule 7.1-1 fixture");

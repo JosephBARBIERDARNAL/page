@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 16,
+        ValidationProfile::PdfUa1 => 17,
         _ => 0,
     }
 }
@@ -482,6 +482,17 @@ fn validate_document(
             "PDFUA1-STRUCT-TREE-ROOT-001",
             "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
         );
+        if inspections.document_features.struct_tree_has_unmapped_type {
+            failures.push(failure(
+                "PDFUA1-STRUCT-TREE-ROLE-MAP-001",
+                "every non-standard structure type must resolve through RoleMap to a standard structure type",
+                inspections
+                    .document_features
+                    .struct_tree_root_object_id
+                    .or(inspections.document_features.catalog_id),
+                FailureCategory::Conformance,
+            ));
+        }
         aggregate_failures_with_location(
             &inspections
                 .document_features
