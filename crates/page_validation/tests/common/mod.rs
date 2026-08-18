@@ -1076,6 +1076,7 @@ pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
         "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
+        "StructTreeRoot" => Dictionary::new(),
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1121,6 +1122,7 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
         "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
+        "StructTreeRoot" => Dictionary::new(),
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1166,6 +1168,7 @@ pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
         "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
+        "StructTreeRoot" => Dictionary::new(),
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1211,6 +1214,7 @@ pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
         "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
+        "StructTreeRoot" => Dictionary::new(),
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1256,6 +1260,7 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
         "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
+        "StructTreeRoot" => Dictionary::new(),
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1421,6 +1426,143 @@ pub fn pdfua1_rule_7_1_10_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 rule 7.1-10 fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_1_11_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 rule 7.1-11 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    match case {
+        "present" => {}
+        "missing" => {
+            catalog.remove(b"StructTreeRoot");
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.1-11 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-11 fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_1_12_fixture(case: &str) -> Vec<u8> {
+    let base = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 metadata fixture");
+    let base_root_id = base
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 base fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 base fixture root");
+    let base_catalog = base
+        .get_object(base_root_id)
+        .expect("PDF/UA-1 base fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 base fixture catalog dictionary");
+    let metadata_id = base_catalog
+        .get(b"Metadata")
+        .expect("PDF/UA-1 base fixture metadata")
+        .as_reference()
+        .expect("indirect PDF/UA-1 base fixture metadata");
+    let xmp = base
+        .get_object(metadata_id)
+        .expect("PDF/UA-1 base fixture metadata object")
+        .as_stream()
+        .expect("PDF/UA-1 base fixture metadata stream")
+        .content
+        .clone();
+
+    let mut document = Document::load_mem(include_bytes!(
+        "../fixtures/canonical-pdfa-1a-structure.pdf"
+    ))
+    .expect("load tagged PDF/UA-1 rule 7.1-12 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let (metadata_id, struct_tree_root_id) = {
+        let catalog = document
+            .get_object_mut(root_id)
+            .expect("PDF/UA-1 fixture catalog")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture catalog dictionary");
+        catalog.set("MarkInfo", dictionary! { "Marked" => true });
+        catalog.set(
+            "ViewerPreferences",
+            dictionary! { "DisplayDocTitle" => true },
+        );
+        let metadata_id = catalog
+            .get(b"Metadata")
+            .expect("PDF/UA-1 fixture metadata")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture metadata");
+        let struct_tree_root_id = catalog
+            .get(b"StructTreeRoot")
+            .expect("PDF/UA-1 fixture structure tree root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture structure tree root");
+        (metadata_id, struct_tree_root_id)
+    };
+    document
+        .get_object_mut(metadata_id)
+        .expect("PDF/UA-1 fixture metadata object")
+        .as_stream_mut()
+        .expect("PDF/UA-1 fixture metadata stream")
+        .set_content(xmp);
+    if case == "missing" {
+        let top_level_structure_element_id = document
+            .get_object(struct_tree_root_id)
+            .expect("PDF/UA-1 fixture structure tree root object")
+            .as_dict()
+            .expect("PDF/UA-1 fixture structure tree root dictionary")
+            .get(b"K")
+            .expect("PDF/UA-1 fixture structure tree root kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture structure tree root kids array")
+            .first()
+            .expect("PDF/UA-1 fixture structure tree root first kid")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture structure element");
+        let structure_element_id = document
+            .get_object(top_level_structure_element_id)
+            .expect("PDF/UA-1 fixture top-level structure element")
+            .as_dict()
+            .expect("PDF/UA-1 fixture top-level structure element dictionary")
+            .get(b"K")
+            .expect("PDF/UA-1 fixture top-level structure element kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture top-level structure element kids array")
+            .first()
+            .expect("PDF/UA-1 fixture top-level structure element first kid")
+            .as_reference()
+            .expect("indirect PDF/UA-1 nested structure element");
+        document
+            .get_object_mut(structure_element_id)
+            .expect("PDF/UA-1 fixture structure element")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture structure element dictionary")
+            .remove(b"P");
+    } else if case != "present" {
+        panic!("unknown PDF/UA-1 rule 7.1-12 fixture case {case}");
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-12 fixture");
     bytes
 }
 

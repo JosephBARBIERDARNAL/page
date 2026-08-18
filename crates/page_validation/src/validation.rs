@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 10,
+        ValidationProfile::PdfUa1 => 12,
         _ => 0,
     }
 }
@@ -474,6 +474,20 @@ fn validate_document(
             &mut failures,
             "PDFUA1-TAGGED-DOCUMENT-001",
             "the document catalog MarkInfo dictionary must contain boolean /Marked true",
+        );
+        validate_struct_tree_root_presence(
+            &inspections.document_features,
+            &mut failures,
+            "PDFUA1-STRUCT-TREE-ROOT-001",
+            "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .structure_elements_missing_parent,
+            "PDFUA1-STRUCT-ELEMENT-PARENT-001",
+            None,
+            &mut failures,
         );
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
@@ -981,9 +995,7 @@ fn validate_structure_tree(
         failures.push(failure(
             "PDFA1A-STRUCT-TREE-ROOT-001",
             "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
-            features
-                .struct_tree_root_object_id
-                .or(features.catalog_id),
+            features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
     }
@@ -1008,6 +1020,22 @@ fn validate_structure_tree(
             "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
             "a standard structure type must not be remapped to a non-standard type",
             features.struct_tree_root_object_id,
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_struct_tree_root_presence(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+    rule_id: &'static str,
+    message: &'static str,
+) {
+    if !features.struct_tree_root_present {
+        failures.push(failure(
+            rule_id,
+            message,
+            features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
     }
@@ -2669,7 +2697,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 10);
+        assert_eq!(report.checks.total, 12);
     }
 
     #[test]

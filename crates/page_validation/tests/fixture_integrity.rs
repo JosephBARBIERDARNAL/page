@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 51] = [
+    let fixtures: [(&str, &[u8], &str); 55] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -156,117 +156,137 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-5-1-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-1-present.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-5-1-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-1-missing.pdf"),
-            "a6d4b37d0a42747bf8e66ef8bcc514e0045639e61ef5893636b93c205c1e870a",
+            "9eb1597982df39ca7261780516846ee70eab07e5da0743a72fd6d6f6d8be9cf1",
         ),
         (
             "pdfua1-rule-5-2-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-2-present.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-5-2-wrong-part.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-2-wrong-part.pdf"),
-            "09425fb5c817231674b5216dd0e142f793a56e9e24f1bb77cdf46f35aa0dad46",
+            "c189627b16cf8923376cdfcf40aadd51923a454f04fa0c80feeaa543cce7c77e",
         ),
         (
             "pdfua1-rule-5-3-canonical-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-3-canonical-prefix.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-5-3-wrong-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-3-wrong-prefix.pdf"),
-            "108a1f874103a7338500e672d83c7e341de3ad389d94bfda047edc8fbdc1fb48",
+            "0bd058bf0b4a475f7cf1aca3281e807c8531589c6b03618fd2a7f29c229a96fa",
         ),
         (
             "pdfua1-rule-5-4-canonical-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-4-canonical-prefix.pdf"),
-            "9ef46bfd04a5096b26e49c79491c26f2d901dc8d2f8230a957346923a3b81882",
+            "f6cff41d437b1552ef79c55b17e1bec0b5e7e45138a4ae93c3922f7ddd3b2f64",
         ),
         (
             "pdfua1-rule-5-4-wrong-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-4-wrong-prefix.pdf"),
-            "54d84dbb51d7416b5583ca79b305c5f486636cb2e8f9061591c5c649d619ec8f",
+            "6427204b5e6d35afd5605ef4f14ef85eeb83206f9b7a4486a2a444b9783f0437",
         ),
         (
             "pdfua1-rule-5-5-canonical-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-5-canonical-prefix.pdf"),
-            "f29c3d4b0f2bdd68f0d78da577cd508e81216f088d0bac2ff5aa4b9330363933",
+            "2718488574ebb8b2ce961013b41ba541a3ad3373f74be22ad495dd4b3aff146f",
         ),
         (
             "pdfua1-rule-5-5-wrong-prefix.pdf",
             include_bytes!("fixtures/pdfua1-rule-5-5-wrong-prefix.pdf"),
-            "8b52264be0ff98b12f72186c23d394bebf0d6a019067f601786147cd18f54253",
+            "53295af8f689cb647302582227e46219ff1a9a553ff8feda069af5b37d2f4a1f",
         ),
         (
             "pdfua1-rule-6-1-valid-header.pdf",
             include_bytes!("fixtures/pdfua1-rule-6-1-valid-header.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-6-1-invalid-header.pdf",
             include_bytes!("fixtures/pdfua1-rule-6-1-invalid-header.pdf"),
-            "3d42414e570bd16b9533bf6ba953ba3dbcb866e786e0710520c4b5aaa9396837",
+            "bde8b733879ea62f9b1cc700fe368cdaa66cceeb3f81220ba8fa697959d22c58",
         ),
         (
             "pdfua1-rule-6-2-marked.pdf",
             include_bytes!("fixtures/pdfua1-rule-6-2-marked.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-6-2-unmarked.pdf",
             include_bytes!("fixtures/pdfua1-rule-6-2-unmarked.pdf"),
-            "a3cf49819ad907d75b2b1ecb975113d9aca6e52b46d7ee665ed456b653f0d1bb",
+            "2d0966f71f05730acec9563c24fc3815575cdfc667be36af19e48bb8332b3334",
         ),
         (
             "pdfua1-rule-7-1-8-valid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-8-valid.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-7-1-8-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-8-missing.pdf"),
-            "96f8edd04e0ffd3d3c37eabc9852f510fff64841045f6286fcbd472d47ff9cd5",
+            "ed5c22e3116895d179a799acbbc1bdff257788763861d0e1d6648b4a564ca05f",
         ),
         (
             "pdfua1-rule-7-1-8-wrong-type.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-type.pdf"),
-            "3c0249e620e9495a9024a0d6cbe69d3a0e5ca7df51ad685d879c602af750dfdd",
+            "cf1f79efbd3676890132b808670682c1ff92ca12fbf281307da43801a19c7230",
         ),
         (
             "pdfua1-rule-7-1-8-wrong-subtype.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-subtype.pdf"),
-            "e01f956f75046ba7888943e02c7e7560ef8882ec747d0710c951eb03aa9edcac",
+            "b91a6dc3fdf3d581400a624d9e41deb0c073a297c167d736031c6233c6f2708c",
         ),
         (
             "pdfua1-rule-7-1-9-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-9-present.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-7-1-9-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-9-missing.pdf"),
-            "f8a9708eb48a71c368bf78e5da8d14b13dec67d8e36e53dba93b5e78f656d2f7",
+            "06e7496017b097dcbb140375350074045f48eb1026aced8dab3795cc1f67cf54",
         ),
         (
             "pdfua1-rule-7-1-10-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-10-present.pdf"),
-            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
         ),
         (
             "pdfua1-rule-7-1-10-false.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-10-false.pdf"),
-            "b668418a6f5a65b63df4bf17da07f925842b1f2b9303669b16e7c90c3e6213d5",
+            "c93b6490e8e2fa14f1191e60c72a315513c0e4d48ea424f8d700bdbff4611d5c",
         ),
         (
             "pdfua1-rule-7-1-10-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-10-missing.pdf"),
-            "59a26b7327bb29748bed04644f972ea36d41ac623f427aa224d702e45a15d66c",
+            "567d319727864f30805c81adfe22da906b064353c40c1222980756818a7a8e94",
+        ),
+        (
+            "pdfua1-rule-7-1-11-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-11-present.pdf"),
+            "75b1daaed8fdf82fe2f3384bd8a3edec979f0a7194da1234f9503961b2a60aff",
+        ),
+        (
+            "pdfua1-rule-7-1-11-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-11-missing.pdf"),
+            "ea2f744439881209a04b492e0d9b23880cfe60cfa6d935376108a79a63b678e5",
+        ),
+        (
+            "pdfua1-rule-7-1-12-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-12-present.pdf"),
+            "77cb36cbd78d93cd6882c364deb6ae62845a05679308ec5752f9041176498b56",
+        ),
+        (
+            "pdfua1-rule-7-1-12-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-12-missing.pdf"),
+            "0bfe34854b25b3d9a515190e9c897544c826d1e16731961c0a0240cf8f6e4a68",
         ),
     ];
 

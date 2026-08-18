@@ -20,9 +20,6 @@ cargo install --git https://github.com/pagestandards/page.git page_cli --bin pag
 
 - [CLI](api/cli.md)
 - [Rust](api/rust.md)
-- [Python](api/python.md)
-- [Node.js](api/nodejs.md)
-- [WASM](api/web-assembly.md)
 
 ## Roadmap
 

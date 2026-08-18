@@ -31,6 +31,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_cycle: bool,
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
+    pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
@@ -509,6 +510,7 @@ pub(crate) fn inspect(
         struct_tree_role_map_has_cycle: structure_tree.role_map_has_cycle,
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
+        structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -773,6 +775,7 @@ struct StructureTreeSummary {
     role_map_has_cycle: bool,
     has_unmapped_type: bool,
     role_map_has_standard_remap: bool,
+    structure_elements_missing_parent: Vec<RuleFailure>,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     language_failures_pdfa23: Vec<RuleFailure>,
@@ -813,6 +816,7 @@ fn inspect_structure_tree(
         role_map_has_cycle: false,
         has_unmapped_type: false,
         role_map_has_standard_remap: false,
+        structure_elements_missing_parent: Vec::new(),
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         language_failures_pdfa23: Vec::new(),
@@ -1104,6 +1108,13 @@ fn inspect_structure_element(
         return Ok(());
     };
     summary.structure_types.insert(structure_type.to_vec());
+    if !contains_key(dictionary, b"P") {
+        summary.structure_elements_missing_parent.push(RuleFailure {
+            object_id,
+            description: "a structure element dictionary does not contain the /P parent entry"
+                .to_owned(),
+        });
+    }
     if !crate::unicode_names::is_valid_utf8(structure_type) {
         summary.invalid_unicode_structure_types.push(RuleFailure {
             object_id,
