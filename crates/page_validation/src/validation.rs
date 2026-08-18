@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 5,
+        ValidationProfile::PdfUa1 => 6,
         _ => 0,
     }
 }
@@ -438,6 +438,14 @@ fn validate_document(
                 "the PDF/UA identification corr property uses a lexical prefix other than pdfuaid",
                 document.xmp_object,
                 FailureCategory::Metadata,
+            ));
+        }
+        if !inspections.header.has_valid_pdfa23_header {
+            failures.push(failure(
+                "PDFUA1-HEADER-001",
+                "the file header must match %PDF-1.n with n between 0 and 7",
+                None,
+                FailureCategory::Conformance,
             ));
         }
         return finish_report(document, profile, failures, total_rule_count(profile));
@@ -2603,7 +2611,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 5);
+        assert_eq!(report.checks.total, 6);
     }
 
     #[test]

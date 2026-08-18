@@ -1255,6 +1255,16 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_6_1_fixture(case: &str) -> Vec<u8> {
+    let mut bytes = pdfua1_rule_5_1_fixture("identification_present");
+    if case == "invalid_header" {
+        replace_once(&mut bytes, b"%PDF-1.4", b"%PDF-1.8");
+    } else if case != "valid_header" {
+        panic!("unknown PDF/UA-1 rule 6.1-1 fixture case {case}");
+    }
+    bytes
+}
+
 pub fn output_intent_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
