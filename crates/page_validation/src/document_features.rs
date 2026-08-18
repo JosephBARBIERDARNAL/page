@@ -84,8 +84,14 @@ pub(crate) fn inspect(
             let Some(dictionary) = resolved.and_then(|object| object.as_dict().ok()) else {
                 return Ok((object_id, false, None, None));
             };
-            let marked = resolved_bool(document, dictionary, b"Marked", limits.max_reference_depth)?;
-            let suspects = resolved_bool(document, dictionary, b"Suspects", limits.max_reference_depth)?;
+            let marked =
+                resolved_bool(document, dictionary, b"Marked", limits.max_reference_depth)?;
+            let suspects = resolved_bool(
+                document,
+                dictionary,
+                b"Suspects",
+                limits.max_reference_depth,
+            )?;
             Ok((object_id, true, marked, suspects))
         })
         .transpose()?

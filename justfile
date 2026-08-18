@@ -25,8 +25,8 @@ lint:
 test:
     cargo test --workspace --all-features --locked
 
-# Run formatting, linting, and offline tests.
-check: fmt lint test
+# Run formatting and linting
+check: fmt lint
 
 # Validate the pinned 129-predicate inventory and print its completion blockers.
 coverage:

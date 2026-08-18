@@ -1321,8 +1321,14 @@ pub fn pdfua1_rule_7_1_4_fixture(case: &str) -> Vec<u8> {
         .as_dict_mut()
         .expect("PDF/UA-1 fixture catalog dictionary");
     match case {
-        "false" => catalog.set("MarkInfo", dictionary! { "Marked" => true, "Suspects" => false }),
-        "true" => catalog.set("MarkInfo", dictionary! { "Marked" => true, "Suspects" => true }),
+        "false" => catalog.set(
+            "MarkInfo",
+            dictionary! { "Marked" => true, "Suspects" => false },
+        ),
+        "true" => catalog.set(
+            "MarkInfo",
+            dictionary! { "Marked" => true, "Suspects" => true },
+        ),
         _ => panic!("unknown PDF/UA-1 rule 7.1-4 fixture case {case}"),
     }
     let mut bytes = Vec::new();
