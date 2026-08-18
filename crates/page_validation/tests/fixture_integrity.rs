@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 42] = [
+    let fixtures: [(&str, &[u8], &str); 46] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -222,6 +222,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-6-2-unmarked.pdf",
             include_bytes!("fixtures/pdfua1-rule-6-2-unmarked.pdf"),
             "4667f5af0f44367ccd1b2686eca9e0f1e93b9aaba92e67ed7d7a8410f32bf67f",
+        ),
+        (
+            "pdfua1-rule-7-1-8-valid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-8-valid.pdf"),
+            "3f370fd367a8e2c859853ddfe49c92a1c5952ad407dadd3e94c1054b5dfbaae9",
+        ),
+        (
+            "pdfua1-rule-7-1-8-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-8-missing.pdf"),
+            "0a8bc02ce3eb568f98bb8a5d9a3ad4ffbd8faa751142197ba3dad90ce1762075",
+        ),
+        (
+            "pdfua1-rule-7-1-8-wrong-type.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-type.pdf"),
+            "966c71760be955da29d6e0be6e7a1a71832d1ca21eaade6e40627866cc6a3528",
+        ),
+        (
+            "pdfua1-rule-7-1-8-wrong-subtype.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-subtype.pdf"),
+            "e38975eaf99a47285b3140dd19182badabaef4f2d3823ac90f28c56cd618aeb9",
         ),
     ];
 

@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 7,
+        ValidationProfile::PdfUa1 => 8,
         _ => 0,
     }
 }
@@ -446,6 +446,14 @@ fn validate_document(
                 "the file header must match %PDF-1.n with n between 0 and 7",
                 None,
                 FailureCategory::Conformance,
+            ));
+        }
+        if !document.catalog_metadata.is_valid() {
+            failures.push(failure(
+                "PDFUA1-METADATA-STRUCTURE-001",
+                "the document catalog Metadata entry must resolve to a stream with /Type /Metadata and /Subtype /XML",
+                document.xmp_object,
+                FailureCategory::Metadata,
             ));
         }
         validate_mark_info(
@@ -2631,7 +2639,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 7);
+        assert_eq!(report.checks.total, 8);
     }
 
     #[test]

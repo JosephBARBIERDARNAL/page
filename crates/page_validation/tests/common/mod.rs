@@ -1296,6 +1296,53 @@ pub fn pdfua1_rule_6_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_1_8_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 rule 7.1-8 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    let metadata_id = catalog
+        .get(b"Metadata")
+        .expect("PDF/UA-1 fixture metadata")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture metadata");
+    match case {
+        "valid" => {}
+        "missing" => {
+            catalog.remove(b"Metadata");
+        }
+        "wrong_type" => document
+            .get_object_mut(metadata_id)
+            .expect("PDF/UA-1 fixture metadata stream")
+            .as_stream_mut()
+            .expect("PDF/UA-1 fixture metadata stream")
+            .dict
+            .set("Type", "NotMetadata"),
+        "wrong_subtype" => document
+            .get_object_mut(metadata_id)
+            .expect("PDF/UA-1 fixture metadata stream")
+            .as_stream_mut()
+            .expect("PDF/UA-1 fixture metadata stream")
+            .dict
+            .set("Subtype", "NotXML"),
+        _ => panic!("unknown PDF/UA-1 rule 7.1-8 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-8 fixture");
+    bytes
+}
+
 pub fn output_intent_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
