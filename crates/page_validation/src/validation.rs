@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 14,
+        ValidationProfile::PdfUa1 => 15,
         _ => 0,
     }
 }
@@ -498,6 +498,12 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections.content.tagged_content_inside_artifacts,
             "PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.content.untagged_content,
+            "PDFUA1-CONTENT-TAGGING-001",
             None,
             &mut failures,
         );

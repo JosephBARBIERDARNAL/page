@@ -112,6 +112,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
     pub(crate) tagged_content_inside_artifacts: Vec<RuleFailure>,
+    pub(crate) untagged_content: Vec<RuleFailure>,
     pub(crate) uses_default_gray: bool,
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
@@ -321,6 +322,7 @@ struct ResourceContext<'a> {
     resources: Option<&'a Dictionary>,
     page_resources: Option<&'a Dictionary>,
     resources_are_inherited: bool,
+    inspect_pdfua_content: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -388,6 +390,7 @@ impl ContentExecutor<'_> {
                     resources: resources.as_ref(),
                     page_resources: resources.as_ref(),
                     resources_are_inherited,
+                    inspect_pdfua_content: true,
                 },
                 &mut graphics_state,
                 &mut graphics_stack,
@@ -487,6 +490,7 @@ impl ContentExecutor<'_> {
                     resources: page_resources,
                     page_resources,
                     resources_are_inherited: false,
+                    inspect_pdfua_content: false,
                 },
                 &graphics_state,
                 &mut Vec::new(),
@@ -531,6 +535,7 @@ impl ContentExecutor<'_> {
             resources,
             page_resources,
             resources_are_inherited,
+            inspect_pdfua_content,
         } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
@@ -947,6 +952,9 @@ impl ContentExecutor<'_> {
                     self.summary.uses_default_gray |=
                         !graphics_state.nonstroking_color_space_selected;
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
+                    if !shown_bytes.is_empty() && inspect_pdfua_content {
+                        self.record_untagged_content(content_id, marked_content, context, "text");
+                    }
                     if !shown_bytes.is_empty()
                         && let Some(font) = graphics_state.font.clone()
                     {
@@ -1026,6 +1034,14 @@ impl ContentExecutor<'_> {
                     else {
                         continue;
                     };
+                    if inspect_pdfua_content {
+                        self.record_untagged_content(
+                            content_id,
+                            marked_content,
+                            context,
+                            "shading",
+                        );
+                    }
                     if let Ok(value) = shading.get(b"ColorSpace") {
                         let _ = self.record_color_space(
                             value.clone(),
@@ -1077,6 +1093,14 @@ impl ContentExecutor<'_> {
                         depth + 1,
                     )?;
                 }
+                "BI" if operation.operands.is_empty() && inspect_pdfua_content => {
+                    self.record_untagged_content(
+                        content_id,
+                        marked_content,
+                        context,
+                        "inline image",
+                    );
+                }
                 "S" | "s" | "f" | "F" | "f*" | "B" | "B*" | "b" | "b*"
                     if operation.operands.is_empty() =>
                 {
@@ -1106,6 +1130,14 @@ impl ContentExecutor<'_> {
                                 graphics_state.overprint_mode
                             ),
                         });
+                    }
+                    if inspect_pdfua_content {
+                        self.record_untagged_content(
+                            content_id,
+                            marked_content,
+                            context,
+                            "path painting",
+                        );
                     }
                 }
                 _ => {}
@@ -1204,6 +1236,26 @@ impl ContentExecutor<'_> {
         }
     }
 
+    fn record_untagged_content(
+        &mut self,
+        content_id: Option<ObjectId>,
+        marked_content: &[MarkedContent],
+        context: &str,
+        content_kind: &str,
+    ) {
+        if !marked_content
+            .iter()
+            .any(|content| content.is_artifact || content.is_tagged_content)
+        {
+            self.summary.untagged_content.push(RuleFailure {
+                object_id: content_id.map(Into::into),
+                description: format!(
+                    "{context} contains {content_kind} that is neither /Artifact nor tagged real content"
+                ),
+            });
+        }
+    }
+
     fn execute_xobject(
         &mut self,
         object: &Object,
@@ -1216,10 +1268,12 @@ impl ContentExecutor<'_> {
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        let inspect_pdfua_content = resource_context.inspect_pdfua_content;
         let ResourceContext {
             resources,
             page_resources,
             resources_are_inherited,
+            ..
         } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
@@ -1269,6 +1323,14 @@ impl ContentExecutor<'_> {
         }
         match modeled_subtype {
             Some(b"Image") => {
+                if kind == XObjectUseKind::Painted && inspect_pdfua_content {
+                    self.record_untagged_content(
+                        object_id,
+                        marked_content,
+                        context,
+                        "image XObject",
+                    );
+                }
                 if let Some(value) = dictionary
                     .get(b"SMask")
                     .ok()
@@ -1379,6 +1441,7 @@ impl ContentExecutor<'_> {
                             resources: form_resources.as_ref(),
                             page_resources,
                             resources_are_inherited: false,
+                            inspect_pdfua_content,
                         },
                         &mut form_graphics_state,
                         &mut form_graphics_stack,
@@ -1416,6 +1479,7 @@ impl ContentExecutor<'_> {
             resources,
             page_resources,
             resources_are_inherited,
+            ..
         } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
@@ -1490,6 +1554,7 @@ impl ContentExecutor<'_> {
                 resources: pattern_resources.as_ref(),
                 page_resources: pattern_page_resources.as_ref(),
                 resources_are_inherited: false,
+                inspect_pdfua_content: false,
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
@@ -1636,6 +1701,7 @@ impl ContentExecutor<'_> {
                 resources: resources.as_ref(),
                 page_resources,
                 resources_are_inherited: false,
+                inspect_pdfua_content: false,
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
@@ -2273,7 +2339,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                             ordinary_content
                                 .as_mut()
                                 .expect("ordinary content initialized")
-                                .push(b' ');
+                                .extend_from_slice(b" BI ");
                             retained = cursor;
                             images.push(image);
                             break;
@@ -2676,7 +2742,7 @@ mod tests {
         assert_eq!(tokenized.images.len(), 1);
         assert_eq!(
             tokenized.ordinary_content.as_ref(),
-            b" \n1 2 MaiUnknown\n".as_slice()
+            b" BI \n1 2 MaiUnknown\n".as_slice()
         );
     }
 
@@ -2686,7 +2752,7 @@ mod tests {
             tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
                 .ordinary_content
                 .as_ref(),
-            b"q  Q  /Im Do".as_slice()
+            b"q  BI  Q  BI  /Im Do".as_slice()
         );
     }
 
@@ -2696,7 +2762,7 @@ mod tests {
             tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q")
                 .ordinary_content
                 .as_ref(),
-            b" /Q".as_slice()
+            b" BI /Q".as_slice()
         );
     }
 
