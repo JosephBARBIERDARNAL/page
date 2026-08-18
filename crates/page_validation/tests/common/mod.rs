@@ -1044,12 +1044,12 @@ pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
     let xmp: &[u8] = match case {
         "identification_present" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         "identification_missing" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         _ => panic!("unknown PDF/UA-1 rule 5-1 fixture case {case}"),
@@ -1088,12 +1088,12 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
     let xmp: &[u8] = match case {
         "part_one" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         "part_two" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="2"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="2"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         _ => panic!("unknown PDF/UA-1 rule 5-2 fixture case {case}"),
@@ -1132,12 +1132,12 @@ pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
     let xmp: &[u8] = match case {
         "canonical_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         "wrong_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/"><rdf:Description wrong:part="1"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description wrong:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         _ => panic!("unknown PDF/UA-1 rule 5-3 fixture case {case}"),
@@ -1176,12 +1176,12 @@ pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
     let xmp: &[u8] = match case {
         "canonical_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1" pdfuaid:amd="1:2014"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1" pdfuaid:amd="1:2014"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         "wrong_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1" wrong:amd="1:2014"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1" wrong:amd="1:2014"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         _ => panic!("unknown PDF/UA-1 rule 5-4 fixture case {case}"),
@@ -1220,12 +1220,12 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
     let xmp: &[u8] = match case {
         "canonical_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1" pdfuaid:corr="1:2014"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1" pdfuaid:corr="1:2014"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         "wrong_prefix" => {
             br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1" wrong:corr="1:2014"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1" wrong:corr="1:2014"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>"#
         }
         _ => panic!("unknown PDF/UA-1 rule 5-5 fixture case {case}"),
@@ -1340,6 +1340,47 @@ pub fn pdfua1_rule_7_1_8_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 rule 7.1-8 fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_1_9_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 rule 7.1-9 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    let metadata_id = catalog
+        .get(b"Metadata")
+        .expect("PDF/UA-1 fixture metadata")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture metadata");
+    if case == "missing" {
+        let metadata = document
+            .get_object_mut(metadata_id)
+            .expect("PDF/UA-1 fixture metadata stream")
+            .as_stream_mut()
+            .expect("PDF/UA-1 fixture metadata stream");
+        replace(
+            &mut metadata.content,
+            "<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Document title</rdf:li></rdf:Alt></dc:title>",
+            "",
+        );
+        metadata.set_content(metadata.content.clone());
+    } else if case != "present" {
+        panic!("unknown PDF/UA-1 rule 7.1-9 fixture case {case}");
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-9 fixture");
     bytes
 }
 

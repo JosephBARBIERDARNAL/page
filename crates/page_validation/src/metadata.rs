@@ -48,6 +48,7 @@ pub struct XmpMetadata {
     pub pdfa_conformances: Vec<String>,
     pub pdfua_identification_present: bool,
     pub pdfua_parts: Vec<String>,
+    pub dc_title_present: bool,
     pub title_x_default: Vec<String>,
     pub creators: Vec<String>,
     pub creator_container_count: usize,
@@ -125,7 +126,12 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
     let pdfua_identification_present = contains_namespace_property(rdf, &xml, PDFUA_ID_NAMESPACE);
     let pdfua_parts = property_values(rdf, &xml, PDFUA_ID_NAMESPACE, "part");
-    let title_x_default = localized_text_values(rdf, DC_NAMESPACE, "title");
+    let dc_title_nodes = property_nodes(rdf, DC_NAMESPACE, "title");
+    let dc_title_present = !dc_title_nodes.is_empty();
+    let title_x_default = dc_title_nodes
+        .iter()
+        .filter_map(|node| localized_text_value(*node))
+        .collect();
     let creator_nodes = property_nodes(rdf, DC_NAMESPACE, "creator");
     let creators = creator_nodes
         .iter()
@@ -141,6 +147,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         pdfa_conformances,
         pdfua_identification_present,
         pdfua_parts,
+        dc_title_present,
         title_x_default,
         creators,
         creator_container_count: creator_nodes.len(),

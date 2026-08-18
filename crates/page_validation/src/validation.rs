@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 8,
+        ValidationProfile::PdfUa1 => 9,
         _ => 0,
     }
 }
@@ -452,6 +452,18 @@ fn validate_document(
             failures.push(failure(
                 "PDFUA1-METADATA-STRUCTURE-001",
                 "the document catalog Metadata entry must resolve to a stream with /Type /Metadata and /Subtype /XML",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !document
+            .xmp
+            .as_ref()
+            .is_some_and(|xmp| xmp.dc_title_present)
+        {
+            failures.push(failure(
+                "PDFUA1-METADATA-TITLE-001",
+                "the catalog Metadata stream must contain a dc:title entry",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
@@ -2628,9 +2640,10 @@ mod tests {
     fn inferred_validation_recognizes_pdfua_declarations() {
         let xmp = br#"<?xpacket begin=""?>
           <x:xmpmeta xmlns:x="adobe:ns:meta/">
-            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+              xmlns:dc="http://purl.org/dc/elements/1.1/">
               <rdf:Description xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"
-                pdfuaid:part="1"/>
+                pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description>
             </rdf:RDF>
           </x:xmpmeta>
           <?xpacket end="w"?>"#;
@@ -2639,7 +2652,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 8);
+        assert_eq!(report.checks.total, 9);
     }
 
     #[test]

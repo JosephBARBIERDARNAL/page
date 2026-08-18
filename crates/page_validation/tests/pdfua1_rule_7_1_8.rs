@@ -19,12 +19,12 @@ fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
         &SafetyLimits::default(),
     );
     assert!(valid.checks_passed, "{valid}");
-    assert_eq!(valid.checks.total, 8);
-    assert_eq!(valid.checks.passed, 8);
+    assert_eq!(valid.checks.total, 9);
+    assert_eq!(valid.checks.passed, 9);
     assert!(valid.failures.is_empty());
 
     for (fixture, expected_failed) in [
-        ("pdfua1-rule-7-1-8-missing.pdf", 3),
+        ("pdfua1-rule-7-1-8-missing.pdf", 4),
         ("pdfua1-rule-7-1-8-wrong-type.pdf", 1),
         ("pdfua1-rule-7-1-8-wrong-subtype.pdf", 1),
     ] {
@@ -45,7 +45,7 @@ fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
             &SafetyLimits::default(),
         );
         assert!(!report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 8);
+        assert_eq!(report.checks.total, 9);
         assert_eq!(report.checks.failed, expected_failed);
         assert_eq!(report.failures.len(), expected_failed);
         assert!(

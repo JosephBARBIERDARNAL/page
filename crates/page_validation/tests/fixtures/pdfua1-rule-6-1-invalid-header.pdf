@@ -7,9 +7,9 @@ endobj
 <</Type/Page/Parent 1 0 R/MediaBox[0 0 612 792]>>
 endobj
 3 0 obj
-<</Type/Metadata/Subtype/XML/Length 248>>stream
+<</Type/Metadata/Subtype/XML/Length 401>>stream
 <?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1"/></rdf:RDF></x:xmpmeta>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>
 endstream 
 endobj
@@ -22,9 +22,9 @@ xref
 0000000015 00000 n 
 0000000066 00000 n 
 0000000131 00000 n 
-0000000454 00000 n 
+0000000607 00000 n 
 trailer
 <</ID[(0123456789abcdef)(0123456789abcdef)]/Root 4 0 R/Size 5>>
 startxref
-539
+692
 %%EOF
