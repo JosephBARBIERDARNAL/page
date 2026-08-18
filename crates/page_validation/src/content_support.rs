@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;
 
@@ -533,6 +534,7 @@ impl ContentExecutor<'_> {
         )?;
         let mut inherited_resource_names = BTreeSet::new();
         let inline_images = tokenize_inline_images(&bytes);
+        let ordinary_content = inline_images.ordinary_content.as_ref();
         for inline in &inline_images.images {
             if let Some(name) = &inline.color_space {
                 let _ = self.record_color_space(
@@ -570,18 +572,17 @@ impl ContentExecutor<'_> {
             }
         }
 
-        if !content_syntax_is_balanced(&inline_images.ordinary_content) {
+        if !content_syntax_is_balanced(ordinary_content) {
             return Ok(());
         }
         inspect_content_syntax_limits(
-            &inline_images.ordinary_content,
+            ordinary_content,
             content_id.map(Into::into),
             context,
             &mut self.summary,
         );
-        let normalized_content =
-            normalize_digit_suffixed_operators(&inline_images.ordinary_content);
-        let Ok(content) = Content::decode(&normalized_content) else {
+        let normalized_content = normalize_digit_suffixed_operators(ordinary_content);
+        let Ok(content) = Content::decode(normalized_content.as_ref()) else {
             return Ok(());
         };
         for operation in content.operations {
@@ -2099,8 +2100,8 @@ struct InlineImage {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-struct InlineImageTokenization {
-    ordinary_content: Vec<u8>,
+struct InlineImageTokenization<'a> {
+    ordinary_content: Cow<'a, [u8]>,
     images: Vec<InlineImage>,
 }
 
@@ -2113,11 +2114,9 @@ enum ContentToken {
     Other,
 }
 
-fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
-    let mut result = InlineImageTokenization {
-        ordinary_content: Vec::with_capacity(bytes.len()),
-        images: Vec::new(),
-    };
+fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
+    let mut ordinary_content = None;
+    let mut images = Vec::new();
     let mut cursor = 0usize;
     let mut retained = 0usize;
     let mut array_depth = 0usize;
@@ -2142,12 +2141,15 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
                     match token {
                         ContentToken::Bare(token) if token == b"ID" => {
                             cursor = find_inline_image_end(bytes, cursor).unwrap_or(bytes.len());
-                            result
-                                .ordinary_content
+                            ordinary_content
+                                .get_or_insert_with(|| Vec::with_capacity(bytes.len()))
                                 .extend_from_slice(&bytes[retained..token_start]);
-                            result.ordinary_content.push(b' ');
+                            ordinary_content
+                                .as_mut()
+                                .expect("ordinary content initialized")
+                                .push(b' ');
                             retained = cursor;
-                            result.images.push(image);
+                            images.push(image);
                             break;
                         }
                         ContentToken::Name(name) if color_space_value => {
@@ -2200,10 +2202,17 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization {
             _ => {}
         }
     }
-    result
-        .ordinary_content
-        .extend_from_slice(&bytes[retained..]);
-    result
+    let ordinary_content = match ordinary_content {
+        Some(mut ordinary_content) => {
+            ordinary_content.extend_from_slice(&bytes[retained..]);
+            Cow::Owned(ordinary_content)
+        }
+        None => Cow::Borrowed(bytes),
+    };
+    InlineImageTokenization {
+        ordinary_content,
+        images,
+    }
 }
 
 fn is_lzw_filter(name: &[u8]) -> bool {
@@ -2381,21 +2390,27 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
 /// so replace only those exact bare tokens with the operand-free no-op `n`
 /// before decoding. Names, strings, hexadecimal strings, and comments are
 /// preserved because `next_content_token` reports their complete spans.
-fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Vec<u8> {
-    let mut normalized = Vec::with_capacity(bytes.len());
+fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Cow<'_, [u8]> {
+    let mut normalized = None;
     let mut cursor = 0usize;
     let mut copied = 0usize;
     while let Some((token, start, next)) = next_content_token(bytes, cursor) {
         if matches!(token, ContentToken::Bare(ref value) if matches!(value.as_slice(), b"d0" | b"d1"))
         {
+            let normalized = normalized.get_or_insert_with(|| Vec::with_capacity(bytes.len()));
             normalized.extend_from_slice(&bytes[copied..start]);
             normalized.push(b'n');
             copied = next;
         }
         cursor = next;
     }
-    normalized.extend_from_slice(&bytes[copied..]);
-    normalized
+    match normalized {
+        Some(mut normalized) => {
+            normalized.extend_from_slice(&bytes[copied..]);
+            Cow::Owned(normalized)
+        }
+        None => Cow::Borrowed(bytes),
+    }
 }
 
 fn find_inline_image_end(bytes: &[u8], cursor: usize) -> Option<usize> {
@@ -2477,12 +2492,36 @@ mod tests {
 
     #[test]
     fn type3_metric_operators_are_normalized_without_touching_data() {
-        assert_eq!(
-            normalize_digit_suffixed_operators(
-                b"1000 0 d0\n1 2 3 4 5 6 d1\n/d0 (d1) <6430> % d1\n"
-            ),
-            b"1000 0 n\n1 2 3 4 5 6 n\n/d0 (d1) <6430> % d1\n"
+        let normalized = normalize_digit_suffixed_operators(
+            b"1000 0 d0\n1 2 3 4 5 6 d1\n/d0 (d1) <6430> % d1\n",
         );
+        assert_eq!(
+            normalized.as_ref(),
+            b"1000 0 n\n1 2 3 4 5 6 n\n/d0 (d1) <6430> % d1\n".as_slice()
+        );
+        assert!(matches!(
+            normalize_digit_suffixed_operators(b"1000 0 d0\n"),
+            std::borrow::Cow::Owned(_)
+        ));
+    }
+
+    #[test]
+    fn ordinary_content_borrows_when_no_inline_image_is_present() {
+        let bytes = b"q 1 0 m 2 2 l S\n";
+        let tokenized = tokenize_inline_images(bytes);
+        assert!(matches!(
+            tokenized.ordinary_content,
+            std::borrow::Cow::Borrowed(_)
+        ));
+        assert_eq!(tokenized.ordinary_content, bytes.as_slice());
+    }
+
+    #[test]
+    fn normalized_content_borrows_when_no_type3_metric_operator_is_present() {
+        let bytes = b"/d0 (d1) <6430> q\n";
+        let normalized = normalize_digit_suffixed_operators(bytes);
+        assert!(matches!(normalized, std::borrow::Cow::Borrowed(_)));
+        assert_eq!(normalized, bytes.as_slice());
     }
 
     #[test]
@@ -2509,23 +2548,29 @@ mod tests {
     fn inline_image_data_false_ei_candidate_does_not_stop_tokenization() {
         let tokenized = tokenize_inline_images(b"BI /W 1 /H 1 ID abcEIx def EI\n1 2 MaiUnknown\n");
         assert_eq!(tokenized.images.len(), 1);
-        assert_eq!(tokenized.ordinary_content, b" \n1 2 MaiUnknown\n");
+        assert_eq!(
+            tokenized.ordinary_content.as_ref(),
+            b" \n1 2 MaiUnknown\n".as_slice()
+        );
     }
 
     #[test]
     fn ordinary_operation_parsing_resumes_after_each_inline_image() {
         assert_eq!(
             tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
-                .ordinary_content,
-            b"q  Q  /Im Do"
+                .ordinary_content
+                .as_ref(),
+            b"q  Q  /Im Do".as_slice()
         );
     }
 
     #[test]
     fn inline_image_ei_accepts_delimiter_boundaries() {
         assert_eq!(
-            tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q").ordinary_content,
-            b" /Q"
+            tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q")
+                .ordinary_content
+                .as_ref(),
+            b" /Q".as_slice()
         );
     }
 
