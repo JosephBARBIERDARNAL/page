@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 1,
+        ValidationProfile::PdfUa1 => 2,
         _ => 0,
     }
 }
@@ -392,6 +392,17 @@ fn validate_document(
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
+        }
+        if let Some(failure) = require_single_declared_value(
+            document.xmp.as_ref().map(|xmp| xmp.pdfua_parts.as_slice()),
+            |value| xmp_integer_value(value) == Some(1),
+            "PDFUA1-ID-PART-001",
+            "PDF/UA part",
+            "pdfuaid:part",
+            "one value 1",
+            document.xmp_object,
+        ) {
+            failures.push(failure);
         }
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
@@ -2556,7 +2567,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 1);
+        assert_eq!(report.checks.total, 2);
     }
 
     #[test]
