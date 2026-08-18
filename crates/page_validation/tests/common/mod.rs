@@ -1126,6 +1126,49 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
+    let xmp: &[u8] = match case {
+        "canonical_prefix" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><rdf:Description pdfuaid:part="1"/></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        "wrong_prefix" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:wrong="http://www.aiim.org/pdfua/ns/id/"><rdf:Description wrong:part="1"/></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        _ => panic!("unknown PDF/UA-1 rule 5-3 fixture case {case}"),
+    };
+
+    let mut document = pdf_document();
+    let pages_id = document.new_object_id();
+    let page_id = document.add_object(dictionary! {
+        "Type" => "Page",
+        "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+    });
+    wrap_pages(&mut document, pages_id, page_id);
+    let metadata_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "Metadata",
+            "Subtype" => "XML",
+        },
+        xmp.to_vec(),
+    ));
+    let catalog_id = document.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+        "Metadata" => metadata_id,
+    });
+    document.trailer.set("Root", catalog_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 5-3 fixture");
+    bytes
+}
+
 pub fn output_intent_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();

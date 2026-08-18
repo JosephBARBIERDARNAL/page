@@ -75,6 +75,8 @@ pub struct XmpMetadata {
     pub invalid_extension_xmp_value_types: BTreeSet<String>,
     #[serde(skip)]
     pub identification_prefix_failed_tests: BTreeSet<u8>,
+    #[serde(skip)]
+    pub pdfua_identification_prefix_failed_tests: BTreeSet<u8>,
 }
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
@@ -117,6 +119,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let invalid_extension_xmp_value_types =
         inspect_extension_xmp_value_types(rdf, &xml, &extension_schema_definitions, pdfa_2_or_3);
     let identification_prefix_failed_tests = inspect_identification_prefixes(rdf, &xml);
+    let pdfua_identification_prefix_failed_tests = inspect_pdfua_identification_prefixes(rdf, &xml);
 
     let pdfa_identification_present = contains_namespace_property(rdf, &xml, PDFA_ID_NAMESPACE);
     let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
@@ -158,6 +161,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         undefined_extension_xmp_properties,
         invalid_extension_xmp_value_types,
         identification_prefix_failed_tests,
+        pdfua_identification_prefix_failed_tests,
     })
 }
 
@@ -1526,12 +1530,29 @@ fn inspect_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8>
     [("part", 4), ("conformance", 5), ("amd", 6), ("corr", 7)]
         .into_iter()
         .filter_map(|(name, test)| {
-            first_document_property(rdf, xml, PDFA_ID_NAMESPACE, name)
-                .and_then(|property| property.prefix(xml))
-                .is_some_and(|prefix| prefix != "pdfaid")
+            identification_property_has_wrong_prefix(rdf, xml, PDFA_ID_NAMESPACE, name, "pdfaid")
                 .then_some(test)
         })
         .collect()
+}
+
+fn inspect_pdfua_identification_prefixes(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
+    identification_property_has_wrong_prefix(rdf, xml, PDFUA_ID_NAMESPACE, "part", "pdfuaid")
+        .then_some(3)
+        .into_iter()
+        .collect()
+}
+
+fn identification_property_has_wrong_prefix(
+    rdf: Node<'_, '_>,
+    xml: &str,
+    namespace: &str,
+    name: &str,
+    expected_prefix: &str,
+) -> bool {
+    first_document_property(rdf, xml, namespace, name)
+        .and_then(|property| property.prefix(xml))
+        .is_some_and(|prefix| prefix != expected_prefix)
 }
 
 fn first_document_property<'a>(
