@@ -84,6 +84,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) overlong_strings_pdfa_2: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
+    pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
     pub(crate) uses_default_gray: bool,
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
@@ -322,6 +323,7 @@ struct SelectedFont {
 struct MarkedContent {
     actual_text_present: bool,
     mcid: Option<i64>,
+    is_tagged_content: bool,
 }
 
 impl ContentExecutor<'_> {
@@ -601,10 +603,23 @@ impl ContentExecutor<'_> {
                     .or_insert_with(|| context.to_owned());
             }
             match operation.operator.as_str() {
-                "BMC" => marked_content.push(MarkedContent {
-                    actual_text_present: false,
-                    mcid: None,
-                }),
+                "BMC" => {
+                    self.record_artifact_if_nested(
+                        operation
+                            .operands
+                            .first()
+                            .and_then(|operand| operand.as_name().ok())
+                            == Some(b"Artifact".as_slice()),
+                        content_id,
+                        marked_content,
+                        context,
+                    );
+                    marked_content.push(MarkedContent {
+                        actual_text_present: false,
+                        mcid: None,
+                        is_tagged_content: false,
+                    });
+                }
                 "BDC" | "DP" => {
                     let properties = operation.operands.last();
                     let Some(properties) = properties else {
@@ -630,6 +645,16 @@ impl ContentExecutor<'_> {
                             .flatten()
                             .and_then(|object| object.as_dict().ok())
                     });
+                    self.record_artifact_if_nested(
+                        operation
+                            .operands
+                            .first()
+                            .and_then(|operand| operand.as_name().ok())
+                            == Some(b"Artifact".as_slice()),
+                        content_id,
+                        marked_content,
+                        context,
+                    );
                     if operation.operator == "BDC" {
                         let actual_text_present = properties
                             .and_then(|dictionary| dictionary.get(b"ActualText").ok())
@@ -640,6 +665,7 @@ impl ContentExecutor<'_> {
                         marked_content.push(MarkedContent {
                             actual_text_present,
                             mcid,
+                            is_tagged_content: mcid.is_some(),
                         });
                     }
                     if let Some(dictionary) = properties
@@ -1085,6 +1111,29 @@ impl ContentExecutor<'_> {
             page_object_id: self.current_page_object_id,
             marked_content_id: marked_content.iter().rev().find_map(|value| value.mcid),
         });
+    }
+
+    fn record_artifact_if_nested(
+        &mut self,
+        is_artifact: bool,
+        content_id: Option<ObjectId>,
+        marked_content: &[MarkedContent],
+        context: &str,
+    ) {
+        if is_artifact
+            && marked_content
+                .iter()
+                .any(|content| content.is_tagged_content)
+        {
+            self.summary
+                .artifacts_inside_tagged_content
+                .push(RuleFailure {
+                    object_id: content_id.map(Into::into),
+                    description: format!(
+                        "{context} contains /Artifact marked content inside tagged content"
+                    ),
+                });
+        }
     }
 
     fn execute_xobject(
