@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 15,
+        ValidationProfile::PdfUa1 => 16,
         _ => 0,
     }
 }
@@ -475,6 +475,7 @@ fn validate_document(
             "PDFUA1-TAGGED-DOCUMENT-001",
             "the document catalog MarkInfo dictionary must contain boolean /Marked true",
         );
+        validate_suspects(&inspections.document_features, &mut failures);
         validate_struct_tree_root_presence(
             &inspections.document_features,
             &mut failures,
@@ -983,6 +984,20 @@ fn validate_mark_info(
         failures.push(failure(
             rule_id,
             message,
+            features.mark_info_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_suspects(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if features.suspects == Some(true) {
+        failures.push(failure(
+            "PDFUA1-SUSPECTS-001",
+            "the document catalog MarkInfo dictionary must not contain boolean /Suspects true",
             features.mark_info_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
@@ -2715,7 +2730,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 14);
+        assert_eq!(report.checks.total, 16);
     }
 
     #[test]

@@ -19,6 +19,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) mark_info_object_id: Option<PdfObjectId>,
     pub(crate) mark_info_is_dictionary: bool,
     pub(crate) marked: Option<bool>,
+    pub(crate) suspects: Option<bool>,
     pub(crate) viewer_preferences_object_id: Option<PdfObjectId>,
     pub(crate) viewer_preferences_is_dictionary: bool,
     pub(crate) display_doc_title: Option<bool>,
@@ -74,26 +75,21 @@ pub(crate) fn inspect(
         });
     };
 
-    let (mark_info_object_id, mark_info_is_dictionary, marked) = catalog
+    let (mark_info_object_id, mark_info_is_dictionary, marked, suspects) = catalog
         .get(b"MarkInfo")
         .ok()
         .map(|value| -> Result<_, PdfError> {
             let object_id = value.as_reference().ok().map(Into::into);
             let resolved = resolve_optional(document, value, limits.max_reference_depth)?;
             let Some(dictionary) = resolved.and_then(|object| object.as_dict().ok()) else {
-                return Ok((object_id, false, None));
+                return Ok((object_id, false, None, None));
             };
-            let marked = dictionary
-                .get(b"Marked")
-                .ok()
-                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-                .transpose()?
-                .flatten()
-                .and_then(|object| object.as_bool().ok());
-            Ok((object_id, true, marked))
+            let marked = resolved_bool(document, dictionary, b"Marked", limits.max_reference_depth)?;
+            let suspects = resolved_bool(document, dictionary, b"Suspects", limits.max_reference_depth)?;
+            Ok((object_id, true, marked, suspects))
         })
         .transpose()?
-        .unwrap_or((None, false, None));
+        .unwrap_or((None, false, None, None));
 
     let (viewer_preferences_object_id, viewer_preferences_is_dictionary, display_doc_title) =
         catalog
@@ -501,6 +497,7 @@ pub(crate) fn inspect(
         mark_info_object_id,
         mark_info_is_dictionary,
         marked,
+        suspects,
         viewer_preferences_object_id,
         viewer_preferences_is_dictionary,
         display_doc_title,

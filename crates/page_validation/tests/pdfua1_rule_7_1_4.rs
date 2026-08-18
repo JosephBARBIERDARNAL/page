@@ -8,55 +8,50 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:2";
+const RULE: &str = "PDFUA1-SUSPECTS-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:4";
 
 #[test]
-fn pdfua1_rule_7_1_2_rejects_tagged_content_inside_artifacts() {
-    let outside = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-1-2-outside-artifact.pdf"),
+fn pdfua1_rule_7_1_4_fixtures_reject_suspects_true() {
+    let suspects_false = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-1-4-false.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(outside.checks_passed, "{outside}");
-    assert_eq!(outside.checks.total, 16);
-    assert_eq!(outside.checks.passed, 16);
+    assert!(suspects_false.checks_passed, "{suspects_false}");
+    assert_eq!(suspects_false.checks.total, 16);
+    assert_eq!(suspects_false.checks.passed, 16);
+    assert!(suspects_false.failures.is_empty());
 
-    let inside = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-1-2-inside-artifact.pdf"),
+    let suspects_true = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-1-4-true.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!inside.checks_passed, "{inside}");
-    assert_eq!(inside.checks.total, 16);
-    assert_eq!(inside.checks.failed, 1);
-    assert_eq!(inside.failures.len(), 1);
-    assert_eq!(inside.failures[0].rule_id, RULE);
+    assert!(!suspects_true.checks_passed, "{suspects_true}");
+    assert_eq!(suspects_true.checks.total, 16);
+    assert_eq!(suspects_true.checks.failed, 1);
+    assert_eq!(suspects_true.failures.len(), 1);
+    assert_eq!(suspects_true.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.1-2 fixtures"]
-fn regenerate_pdfua1_rule_7_1_2_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.1-4 fixtures"]
+fn regenerate_pdfua1_rule_7_1_4_fixtures() {
     for (fixture, case) in [
-        (
-            "pdfua1-rule-7-1-2-outside-artifact.pdf",
-            "tagged_outside_artifact",
-        ),
-        (
-            "pdfua1-rule-7-1-2-inside-artifact.pdf",
-            "tagged_inside_artifact",
-        ),
+        ("pdfua1-rule-7-1-4-false.pdf", "false"),
+        ("pdfua1-rule-7-1-4-true.pdf", "true"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_1_2_fixture(case),
+            common::pdfua1_rule_7_1_4_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.1-2 fixture");
+        .expect("write PDF/UA-1 rule 7.1-4 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_1_2_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_1_4_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -64,8 +59,8 @@ fn pdfua1_rule_7_1_2_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-1-2-outside-artifact.pdf", false),
-        ("pdfua1-rule-7-1-2-inside-artifact.pdf", true),
+        ("pdfua1-rule-7-1-4-false.pdf", false),
+        ("pdfua1-rule-7-1-4-true.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
