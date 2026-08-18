@@ -8,50 +8,50 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-ID-PART-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:2";
+const RULE: &str = "PDFUA1-TAGGED-DOCUMENT-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:6.2:1";
 
 #[test]
-fn pdfua1_rule_5_2_fixtures_require_pdfua_part_one() {
-    let present = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-5-2-present.pdf"),
+fn pdfua1_rule_6_2_fixtures_require_mark_info_marked_true() {
+    let marked = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-6-2-marked.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(present.checks_passed, "{present}");
-    assert_eq!(present.checks.total, 7);
-    assert_eq!(present.checks.passed, 7);
-    assert!(present.failures.is_empty());
+    assert!(marked.checks_passed, "{marked}");
+    assert_eq!(marked.checks.total, 7);
+    assert_eq!(marked.checks.passed, 7);
+    assert!(marked.failures.is_empty());
 
-    let wrong_part = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-5-2-wrong-part.pdf"),
+    let unmarked = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-6-2-unmarked.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!wrong_part.checks_passed, "{wrong_part}");
-    assert_eq!(wrong_part.checks.total, 7);
-    assert_eq!(wrong_part.checks.failed, 1);
-    assert_eq!(wrong_part.failures.len(), 1);
-    assert_eq!(wrong_part.failures[0].rule_id, RULE);
+    assert!(!unmarked.checks_passed, "{unmarked}");
+    assert_eq!(unmarked.checks.total, 7);
+    assert_eq!(unmarked.checks.failed, 1);
+    assert_eq!(unmarked.failures.len(), 1);
+    assert_eq!(unmarked.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 5-2 fixtures"]
-fn regenerate_pdfua1_rule_5_2_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 6.2-1 fixtures"]
+fn regenerate_pdfua1_rule_6_2_fixtures() {
     fs::write(
-        "tests/fixtures/pdfua1-rule-5-2-present.pdf",
-        common::pdfua1_rule_5_2_fixture("part_one"),
+        "tests/fixtures/pdfua1-rule-6-2-marked.pdf",
+        common::pdfua1_rule_6_2_fixture("marked_true"),
     )
-    .expect("write PDF/UA-1 rule 5-2 pass fixture");
+    .expect("write PDF/UA-1 rule 6.2-1 pass fixture");
     fs::write(
-        "tests/fixtures/pdfua1-rule-5-2-wrong-part.pdf",
-        common::pdfua1_rule_5_2_fixture("part_two"),
+        "tests/fixtures/pdfua1-rule-6-2-unmarked.pdf",
+        common::pdfua1_rule_6_2_fixture("marked_false"),
     )
-    .expect("write PDF/UA-1 rule 5-2 fail fixture");
+    .expect("write PDF/UA-1 rule 6.2-1 fail fixture");
 }
 
 #[test]
-fn pdfua1_rule_5_2_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_6_2_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -59,8 +59,8 @@ fn pdfua1_rule_5_2_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-5-2-present.pdf", false),
-        ("pdfua1-rule-5-2-wrong-part.pdf", true),
+        ("pdfua1-rule-6-2-marked.pdf", false),
+        ("pdfua1-rule-6-2-unmarked.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")

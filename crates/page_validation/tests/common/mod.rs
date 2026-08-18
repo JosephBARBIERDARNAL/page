@@ -1074,6 +1074,7 @@ pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
+        "MarkInfo" => dictionary! { "Marked" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1117,6 +1118,7 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
+        "MarkInfo" => dictionary! { "Marked" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1160,6 +1162,7 @@ pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
+        "MarkInfo" => dictionary! { "Marked" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1203,6 +1206,7 @@ pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
+        "MarkInfo" => dictionary! { "Marked" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1246,6 +1250,7 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
         "Type" => "Catalog",
         "Pages" => pages_id,
         "Metadata" => metadata_id,
+        "MarkInfo" => dictionary! { "Marked" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1262,6 +1267,32 @@ pub fn pdfua1_rule_6_1_fixture(case: &str) -> Vec<u8> {
     } else if case != "valid_header" {
         panic!("unknown PDF/UA-1 rule 6.1-1 fixture case {case}");
     }
+    bytes
+}
+
+pub fn pdfua1_rule_6_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 rule 6.2-1 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    match case {
+        "marked_true" => catalog.set("MarkInfo", dictionary! { "Marked" => true }),
+        "marked_false" => catalog.set("MarkInfo", dictionary! { "Marked" => false }),
+        _ => panic!("unknown PDF/UA-1 rule 6.2-1 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 6.2-1 fixture");
     bytes
 }
 

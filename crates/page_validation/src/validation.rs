@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 6,
+        ValidationProfile::PdfUa1 => 7,
         _ => 0,
     }
 }
@@ -448,6 +448,12 @@ fn validate_document(
                 FailureCategory::Conformance,
             ));
         }
+        validate_mark_info(
+            &inspections.document_features,
+            &mut failures,
+            "PDFUA1-TAGGED-DOCUMENT-001",
+            "the document catalog MarkInfo dictionary must contain boolean /Marked true",
+        );
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
 
@@ -906,10 +912,24 @@ fn validate_tagged_document(
     features: &crate::document_features::DocumentFeatureSummary,
     failures: &mut Vec<ValidationFailure>,
 ) {
+    validate_mark_info(
+        features,
+        failures,
+        "PDFA1A-TAGGED-DOCUMENT-001",
+        "the document catalog MarkInfo dictionary must contain boolean /Marked true",
+    );
+}
+
+fn validate_mark_info(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+    rule_id: &'static str,
+    message: &'static str,
+) {
     if !features.mark_info_is_dictionary || features.marked != Some(true) {
         failures.push(failure(
-            "PDFA1A-TAGGED-DOCUMENT-001",
-            "the document catalog MarkInfo dictionary must contain boolean /Marked true",
+            rule_id,
+            message,
             features.mark_info_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
@@ -2611,7 +2631,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 6);
+        assert_eq!(report.checks.total, 7);
     }
 
     #[test]
