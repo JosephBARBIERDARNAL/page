@@ -48,6 +48,12 @@ pub(crate) struct FontUse {
     pub(crate) description: String,
     pub(crate) rendering_mode: i64,
     pub(crate) shown_bytes: Vec<u8>,
+    pub(crate) text_runs: Vec<FontTextRun>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct FontTextRun {
+    pub(crate) shown_bytes: Vec<u8>,
     pub(crate) actual_text_present: bool,
     pub(crate) page_object_id: Option<ObjectId>,
     pub(crate) marked_content_id: Option<i64>,
@@ -252,6 +258,7 @@ pub(crate) fn execute_content(
         limits,
         cache,
         summary: ContentExecutionSummary::default(),
+        font_indices: BTreeMap::new(),
         current_page: 0,
         current_page_object_id: None,
     };
@@ -270,6 +277,7 @@ struct ContentExecutor<'a> {
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
     summary: ContentExecutionSummary,
+    font_indices: BTreeMap<ResourceKey, usize>,
     current_page: u32,
     current_page_object_id: Option<ObjectId>,
 }
@@ -866,21 +874,12 @@ impl ContentExecutor<'_> {
                     if !shown_bytes.is_empty()
                         && let Some(font) = graphics_state.font.clone()
                     {
-                        self.summary.fonts.push(FontUse {
-                            key: font.key.clone(),
-                            object: font.object.clone(),
-                            description: font.description.clone(),
-                            rendering_mode: graphics_state.rendering_mode,
-                            shown_bytes: shown_bytes.clone(),
-                            actual_text_present: marked_content
-                                .iter()
-                                .any(|value| value.actual_text_present),
-                            page_object_id: self.current_page_object_id,
-                            marked_content_id: marked_content
-                                .iter()
-                                .rev()
-                                .find_map(|value| value.mcid),
-                        });
+                        self.record_font_use(
+                            &font,
+                            graphics_state.rendering_mode,
+                            &shown_bytes,
+                            marked_content,
+                        );
                         self.execute_type3_glyphs(
                             &font,
                             &shown_bytes,
@@ -1050,6 +1049,41 @@ impl ContentExecutor<'_> {
             });
         }
         Ok(())
+    }
+
+    fn record_font_use(
+        &mut self,
+        font: &SelectedFont,
+        rendering_mode: i64,
+        shown_bytes: &[u8],
+        marked_content: &[MarkedContent],
+    ) {
+        let index = match self.font_indices.entry(font.key.clone()) {
+            std::collections::btree_map::Entry::Occupied(entry) => *entry.get(),
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                let index = self.summary.fonts.len();
+                self.summary.fonts.push(FontUse {
+                    key: font.key.clone(),
+                    object: font.object.clone(),
+                    description: font.description.clone(),
+                    rendering_mode,
+                    shown_bytes: Vec::new(),
+                    text_runs: Vec::new(),
+                });
+                entry.insert(index);
+                index
+            }
+        };
+        let usage = &mut self.summary.fonts[index];
+        if rendering_mode != 3 {
+            usage.shown_bytes.extend_from_slice(shown_bytes);
+        }
+        usage.text_runs.push(FontTextRun {
+            shown_bytes: shown_bytes.to_vec(),
+            actual_text_present: marked_content.iter().any(|value| value.actual_text_present),
+            page_object_id: self.current_page_object_id,
+            marked_content_id: marked_content.iter().rev().find_map(|value| value.mcid),
+        });
     }
 
     fn execute_xobject(
@@ -2764,7 +2798,8 @@ mod tests {
         page.set("Contents", contents);
 
         let summary = execute_test_document(&document, page_id).expect("execute cyclic Type3");
-        assert_eq!(summary.fonts.len(), 2);
+        assert_eq!(summary.fonts.len(), 1);
+        assert_eq!(summary.fonts[0].text_runs.len(), 2);
     }
 
     #[test]

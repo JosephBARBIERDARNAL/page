@@ -547,10 +547,7 @@ fn raw_stream_location(
     document: &Document,
 ) -> Option<RawStreamLocation> {
     let endobj = find_bounded_keyword(bytes, b"endobj", after_dictionary)?;
-    let keyword = find_bounded_keyword(bytes, b"stream", after_dictionary)?;
-    if keyword > endobj {
-        return None;
-    }
+    let keyword = find_bounded_keyword(bytes.get(..endobj)?, b"stream", after_dictionary)?;
     let data_start = stream_data_start_after_keyword(bytes, keyword + b"stream".len())?;
     Some(RawStreamLocation {
         data_start,

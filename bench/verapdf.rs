@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
-const BENCHMARK_PDF: &str = "bench/budget.pdf";
+const BENCHMARK_PDF: &str = "bench/long-pdfa-1b.pdf";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -23,6 +23,10 @@ const BENCHMARK_PDF: &str = "bench/budget.pdf";
     about = "Compare end-to-end page and veraPDF validation performance"
 )]
 struct Cli {
+    /// PDF file to validate with both validators.
+    #[arg(long, default_value = BENCHMARK_PDF)]
+    file: PathBuf,
+
     /// Path to the release page executable.
     #[arg(long, default_value = "target/release/page")]
     page: PathBuf,
@@ -32,7 +36,7 @@ struct Cli {
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
-    #[arg(long, default_value_t = 5)]
+    #[arg(long, default_value_t = 15)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
@@ -257,7 +261,7 @@ fn main() -> io::Result<()> {
             "--runs must be greater than zero",
         ));
     }
-    let file = Path::new(BENCHMARK_PDF);
+    let file = cli.file.as_path();
     if !file.is_file() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
@@ -266,7 +270,8 @@ fn main() -> io::Result<()> {
     }
 
     println!(
-        "\n\nPDF: {BENCHMARK_PDF} with {} measured runs, {} warmup run\n",
+        "\n\nPDF: {} with {} measured runs, {} warmup run\n",
+        file.display(),
         cli.runs, cli.warmup
     );
 

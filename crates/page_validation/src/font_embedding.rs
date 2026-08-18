@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
 
-use crate::content_support::ContentExecutionSummary;
+use crate::content_support::{ContentExecutionSummary, FontTextRun};
 use crate::error::PdfError;
 use crate::font_encodings::{self, PredefinedEncoding};
 use crate::limits::SafetyLimits;
@@ -195,9 +195,7 @@ pub(crate) fn inspect(
             },
             usage.rendering_mode,
             &usage.shown_bytes,
-            usage.actual_text_present,
-            usage.page_object_id,
-            usage.marked_content_id,
+            &usage.text_runs,
         )?;
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
@@ -312,17 +310,19 @@ impl Scanner<'_> {
         selected: &SelectedFont,
         rendering_mode: i64,
         shown_bytes: &[u8],
-        actual_text_present: bool,
-        page_object_id: Option<ObjectId>,
-        marked_content_id: Option<i64>,
+        text_runs: &[FontTextRun],
     ) -> Result<(), PdfError> {
         if let Some(font_use) = self.uses.get_mut(&selected.key) {
-            font_use.shown_text_actual_text.push((
-                shown_bytes.to_vec(),
-                actual_text_present,
-                page_object_id,
-                marked_content_id,
-            ));
+            font_use
+                .shown_text_actual_text
+                .extend(text_runs.iter().map(|run| {
+                    (
+                        run.shown_bytes.clone(),
+                        run.actual_text_present,
+                        run.page_object_id,
+                        run.marked_content_id,
+                    )
+                }));
             if rendering_mode != 3 {
                 font_use.shown_bytes.extend_from_slice(shown_bytes);
             }
@@ -382,17 +382,22 @@ impl Scanner<'_> {
             // veraPDF 1.30.2 associates the first observed rendering mode
             // with a font model object and does not revise it on later uses.
             visible: rendering_mode != 3,
-            shown_bytes: if rendering_mode == 3 {
-                Vec::new()
-            } else {
-                shown_bytes.to_vec()
-            },
-            shown_text_actual_text: vec![(
-                shown_bytes.to_vec(),
-                actual_text_present,
-                page_object_id,
-                marked_content_id,
-            )],
+            // `shown_bytes` is already aggregated across all visible runs in
+            // the content executor. Keep it even when the first observed use
+            // was rendering mode 3; veraPDF retains that first mode for
+            // visibility while later visible runs still feed glyph checks.
+            shown_bytes: shown_bytes.to_vec(),
+            shown_text_actual_text: text_runs
+                .iter()
+                .map(|run| {
+                    (
+                        run.shown_bytes.clone(),
+                        run.actual_text_present,
+                        run.page_object_id,
+                        run.marked_content_id,
+                    )
+                })
+                .collect(),
         });
 
         if subtype.as_deref() == Some("Type0")
@@ -417,7 +422,7 @@ impl Scanner<'_> {
                     object: descendant.clone(),
                     description: describe_descendant(descendant, &selected.description),
                 };
-                self.record_font(&descendant, rendering_mode, &[], false, None, None)?;
+                self.record_font(&descendant, rendering_mode, &[], &[])?;
             }
             self.active_descendant_fonts.remove(&selected.key);
         }

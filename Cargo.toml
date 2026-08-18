@@ -13,6 +13,7 @@ license = "MIT"
 # page is a CPU-bound, single-binary CLI with no plugin or dynamic-linking
 # need, so trade slower release builds for a faster validator.
 [profile.release]
+debug = true
 lto = "thin"
 codegen-units = 1
 
