@@ -8,7 +8,7 @@ use crate::file_spec;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{
-    contains_key, dictionary_based, resolve_optional, resolved_name, walk_inherited,
+    contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -19,6 +19,9 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) mark_info_object_id: Option<PdfObjectId>,
     pub(crate) mark_info_is_dictionary: bool,
     pub(crate) marked: Option<bool>,
+    pub(crate) viewer_preferences_object_id: Option<PdfObjectId>,
+    pub(crate) viewer_preferences_is_dictionary: bool,
+    pub(crate) display_doc_title: Option<bool>,
     pub(crate) contains_embedded_files_name: bool,
     pub(crate) contains_optional_content: bool,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
@@ -90,6 +93,27 @@ pub(crate) fn inspect(
         })
         .transpose()?
         .unwrap_or((None, false, None));
+
+    let (viewer_preferences_object_id, viewer_preferences_is_dictionary, display_doc_title) =
+        catalog
+            .get(b"ViewerPreferences")
+            .ok()
+            .map(|value| -> Result<_, PdfError> {
+                let object_id = value.as_reference().ok().map(Into::into);
+                let resolved = resolve_optional(document, value, limits.max_reference_depth)?;
+                let Some(dictionary) = resolved.and_then(|object| object.as_dict().ok()) else {
+                    return Ok((object_id, false, None));
+                };
+                let display_doc_title = resolved_bool(
+                    document,
+                    dictionary,
+                    b"DisplayDocTitle",
+                    limits.max_reference_depth,
+                )?;
+                Ok((object_id, true, display_doc_title))
+            })
+            .transpose()?
+            .unwrap_or((None, false, None));
 
     let structure_tree = inspect_structure_tree(document, catalog, limits)?;
     let mut language_failures = Vec::new();
@@ -476,6 +500,9 @@ pub(crate) fn inspect(
         mark_info_object_id,
         mark_info_is_dictionary,
         marked,
+        viewer_preferences_object_id,
+        viewer_preferences_is_dictionary,
+        display_doc_title,
         struct_tree_root_object_id: structure_tree.root_object_id,
         struct_tree_root_present: structure_tree.present,
         struct_tree_root_valid: structure_tree.valid,

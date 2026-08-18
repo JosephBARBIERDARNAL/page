@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 9,
+        ValidationProfile::PdfUa1 => 10,
         _ => 0,
     }
 }
@@ -468,6 +468,7 @@ fn validate_document(
                 FailureCategory::Metadata,
             ));
         }
+        validate_viewer_preferences(&inspections.document_features, &mut failures);
         validate_mark_info(
             &inspections.document_features,
             &mut failures,
@@ -951,6 +952,22 @@ fn validate_mark_info(
             rule_id,
             message,
             features.mark_info_object_id.or(features.catalog_id),
+            FailureCategory::Conformance,
+        ));
+    }
+}
+
+fn validate_viewer_preferences(
+    features: &crate::document_features::DocumentFeatureSummary,
+    failures: &mut Vec<ValidationFailure>,
+) {
+    if !features.viewer_preferences_is_dictionary || features.display_doc_title != Some(true) {
+        failures.push(failure(
+            "PDFUA1-VIEWER-PREFERENCES-001",
+            "the document catalog ViewerPreferences dictionary must contain boolean /DisplayDocTitle true",
+            features
+                .viewer_preferences_object_id
+                .or(features.catalog_id),
             FailureCategory::Conformance,
         ));
     }
@@ -2652,7 +2669,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 9);
+        assert_eq!(report.checks.total, 10);
     }
 
     #[test]
@@ -3297,6 +3314,7 @@ mod tests {
             "Type" => "Catalog",
             "Pages" => pages_id,
             "MarkInfo" => dictionary! { "Marked" => true },
+            "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
             "StructTreeRoot" => Dictionary::new(),
         };
         if let Some(xmp) = xmp {

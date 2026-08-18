@@ -1075,6 +1075,7 @@ pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
         "Pages" => pages_id,
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
+        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1119,6 +1120,7 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
         "Pages" => pages_id,
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
+        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1163,6 +1165,7 @@ pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
         "Pages" => pages_id,
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
+        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1207,6 +1210,7 @@ pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
         "Pages" => pages_id,
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
+        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1251,6 +1255,7 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
         "Pages" => pages_id,
         "Metadata" => metadata_id,
         "MarkInfo" => dictionary! { "Marked" => true },
+        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
@@ -1381,6 +1386,41 @@ pub fn pdfua1_rule_7_1_9_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 rule 7.1-9 fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_1_10_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 rule 7.1-10 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    match case {
+        "present" => catalog.set(
+            "ViewerPreferences",
+            dictionary! { "DisplayDocTitle" => true },
+        ),
+        "false" => catalog.set(
+            "ViewerPreferences",
+            dictionary! { "DisplayDocTitle" => false },
+        ),
+        "missing" => {
+            catalog.remove(b"ViewerPreferences");
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.1-10 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.1-10 fixture");
     bytes
 }
 

@@ -19,8 +19,8 @@ fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
         &SafetyLimits::default(),
     );
     assert!(canonical_prefix.checks_passed, "{canonical_prefix}");
-    assert_eq!(canonical_prefix.checks.total, 9);
-    assert_eq!(canonical_prefix.checks.passed, 9);
+    assert_eq!(canonical_prefix.checks.total, 10);
+    assert_eq!(canonical_prefix.checks.passed, 10);
     assert!(canonical_prefix.failures.is_empty());
 
     let wrong_prefix = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
         &SafetyLimits::default(),
     );
     assert!(!wrong_prefix.checks_passed, "{wrong_prefix}");
-    assert_eq!(wrong_prefix.checks.total, 9);
+    assert_eq!(wrong_prefix.checks.total, 10);
     assert_eq!(wrong_prefix.checks.failed, 1);
     assert_eq!(wrong_prefix.failures.len(), 1);
     assert_eq!(wrong_prefix.failures[0].rule_id, RULE);
