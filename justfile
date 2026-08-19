@@ -95,7 +95,6 @@ diff file format="text" verapdf=verapdf_bin:
 
 # Build the release validator and compare it with veraPDF on the checked-in long PDF.
 benchmark:
-    typst compile bench/long-pdfa-1b.typ bench/long-pdfa-1b.pdf --pdf-standard a-1b --ignore-system-fonts --creation-timestamp 1767225600
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/verapdf.rs
 

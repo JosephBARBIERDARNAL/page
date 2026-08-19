@@ -27,6 +27,7 @@ pub(crate) struct ActionSummary {
     pub(crate) fields_with_additional_actions: Vec<RuleFailure>,
     pub(crate) catalog_with_additional_actions: Vec<RuleFailure>,
     pub(crate) pages_with_additional_actions: Vec<RuleFailure>,
+    pub(crate) outline_entries: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
 }
@@ -293,6 +294,10 @@ impl Inspector<'_> {
         if object_id.is_some_and(|id| !self.seen_outlines.insert(id)) {
             return Ok(());
         }
+        self.summary.outline_entries.push(RuleFailure {
+            object_id: object_id.map(Into::into),
+            description: format!("{context} is an outline entry"),
+        });
         if let Ok(action) = outline.get(b"A") {
             self.inspect_action_value_with_shape(action, &format!("{context} /A"), depth, true)?;
         }

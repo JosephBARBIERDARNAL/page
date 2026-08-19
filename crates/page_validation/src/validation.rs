@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 19,
+        ValidationProfile::PdfUa1 => 20,
         _ => 0,
     }
 }
@@ -544,6 +544,14 @@ fn validate_document(
             None,
             &mut failures,
         );
+        if !inspections.document_features.catalog_contains_lang {
+            aggregate_failures_with_location(
+                &inspections.actions.outline_entries,
+                "PDFUA1-OUTLINE-LANGUAGE-001",
+                None,
+                &mut failures,
+            );
+        }
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
 
@@ -2766,7 +2774,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 19);
+        assert_eq!(report.checks.total, 20);
     }
 
     #[test]

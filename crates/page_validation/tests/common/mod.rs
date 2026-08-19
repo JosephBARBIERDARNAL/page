@@ -1598,6 +1598,47 @@ pub fn pdfua1_rule_7_1_12_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 rule 7.2-2 fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let outlines_id = document.new_object_id();
+    let outline_id = document.add_object(dictionary! {
+        "Title" => Object::string_literal("Outline entry"),
+        "Parent" => outlines_id,
+    });
+    document.objects.insert(
+        outlines_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Outlines",
+            "First" => outline_id,
+            "Last" => outline_id,
+            "Count" => 1,
+        }),
+    );
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.set("Outlines", outlines_id);
+    if case == "language_missing" {
+        catalog.remove(b"Lang");
+    } else if case != "language_present" {
+        panic!("unknown PDF/UA-1 rule 7.2-2 fixture case {case}");
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-2 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_1_5_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 rule 7.1-5 fixture");

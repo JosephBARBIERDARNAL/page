@@ -16,6 +16,7 @@ use crate::report::RuleFailure;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_id: Option<PdfObjectId>,
+    pub(crate) catalog_contains_lang: bool,
     pub(crate) mark_info_object_id: Option<PdfObjectId>,
     pub(crate) mark_info_is_dictionary: bool,
     pub(crate) marked: Option<bool>,
@@ -119,6 +120,7 @@ pub(crate) fn inspect(
             .unwrap_or((None, false, None));
 
     let structure_tree = inspect_structure_tree(document, catalog, limits)?;
+    let catalog_contains_lang = contains_key(catalog, b"Lang");
     let mut language_failures = Vec::new();
     let mut language_failures_pdfa23 = Vec::new();
     if let Some(failure) = crate::language::inspect_dictionary(
@@ -500,6 +502,7 @@ pub(crate) fn inspect(
 
     Ok(DocumentFeatureSummary {
         catalog_id,
+        catalog_contains_lang,
         mark_info_object_id,
         mark_info_is_dictionary,
         marked,

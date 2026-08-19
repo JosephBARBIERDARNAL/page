@@ -6,15 +6,12 @@ site/
 sandbox
 .cache
 .claude
-long-pdfa-1b.pdf
 
 veraPDF-library
 page-brand-guideline.typ
 page-brand-guideline.pdf
 brand-guideline.md
-budget*
-OBTN_2025-Final.pdf
 
 PDF-ISO
 
-bench/history.pdf
+bench/*.pdf
