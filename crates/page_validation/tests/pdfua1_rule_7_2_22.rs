@@ -19,8 +19,8 @@ fn pdfua1_rule_7_2_22_requires_language_for_structure_alt_text() {
         &SafetyLimits::default(),
     );
     assert!(language_present.checks_passed, "{language_present}");
-    assert_eq!(language_present.checks.total, 30);
-    assert_eq!(language_present.checks.passed, 30);
+    assert_eq!(language_present.checks.total, 31);
+    assert_eq!(language_present.checks.passed, 31);
     assert!(language_present.failures.is_empty());
 
     let language_missing = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_2_22_requires_language_for_structure_alt_text() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 30);
+    assert_eq!(language_missing.checks.total, 31);
     assert_eq!(language_missing.checks.failed, 1);
     assert_eq!(language_missing.failures.len(), 1);
     assert_eq!(language_missing.failures[0].rule_id, RULE);
