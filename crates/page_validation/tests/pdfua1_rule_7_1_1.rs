@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_1_rejects_artifacts_inside_tagged_content() {
         &SafetyLimits::default(),
     );
     assert!(outside.checks_passed, "{outside}");
-    assert_eq!(outside.checks.total, 20);
-    assert_eq!(outside.checks.passed, 20);
+    assert_eq!(outside.checks.total, 21);
+    assert_eq!(outside.checks.passed, 21);
 
     let inside = validate_bytes_with_profile(
         include_bytes!("fixtures/pdfua1-rule-7-1-1-inside-tagged-content.pdf"),
@@ -28,7 +28,7 @@ fn pdfua1_rule_7_1_1_rejects_artifacts_inside_tagged_content() {
         &SafetyLimits::default(),
     );
     assert!(!inside.checks_passed, "{inside}");
-    assert_eq!(inside.checks.total, 20);
+    assert_eq!(inside.checks.total, 21);
     assert_eq!(inside.checks.failed, 1);
     assert_eq!(inside.failures.len(), 1);
     assert_eq!(inside.failures[0].rule_id, RULE);

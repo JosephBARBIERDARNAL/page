@@ -34,6 +34,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
+    pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
@@ -517,6 +518,7 @@ pub(crate) fn inspect(
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
+        actual_text_language_failures: structure_tree.actual_text_language_failures,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -782,6 +784,7 @@ struct StructureTreeSummary {
     has_unmapped_type: bool,
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
+    actual_text_language_failures: Vec<RuleFailure>,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     language_failures_pdfa23: Vec<RuleFailure>,
@@ -823,6 +826,7 @@ fn inspect_structure_tree(
         has_unmapped_type: false,
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
+        actual_text_language_failures: Vec::new(),
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         language_failures_pdfa23: Vec::new(),
@@ -850,6 +854,7 @@ fn inspect_structure_tree(
             &mut ancestors,
             &mut steps,
             0,
+            false,
         )?;
     }
     summary.has_unmapped_type = summary.structure_types.iter().any(|structure_type| {
@@ -1016,6 +1021,7 @@ fn inspect_structure_kids(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
+    parent_has_lang: bool,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
@@ -1042,6 +1048,7 @@ fn inspect_structure_kids(
                     ancestors,
                     steps,
                     depth + 1,
+                    parent_has_lang,
                 )?;
             }
         }
@@ -1061,6 +1068,7 @@ fn inspect_structure_kids(
                 ancestors,
                 steps,
                 depth,
+                parent_has_lang,
             );
             if let Some(structure_id) = structure_id {
                 ancestors.remove(&structure_id);
@@ -1081,6 +1089,7 @@ fn inspect_structure_element(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
+    parent_has_lang: bool,
 ) -> Result<(), PdfError> {
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
@@ -1128,10 +1137,42 @@ fn inspect_structure_element(
             description: "a structure element /S name is not valid UTF-8".to_owned(),
         });
     }
+    let contains_lang = contains_key(dictionary, b"Lang");
+    if has_text_actual_text(document, dictionary, limits)? && !contains_lang && !parent_has_lang {
+        summary.actual_text_language_failures.push(RuleFailure {
+            object_id,
+            description:
+                "a structure element /ActualText string has no local, inherited, or catalog /Lang"
+                    .to_owned(),
+        });
+    }
     if let Ok(kids) = dictionary.get(b"K") {
-        inspect_structure_kids(document, kids, limits, summary, ancestors, steps, depth + 1)?;
+        inspect_structure_kids(
+            document,
+            kids,
+            limits,
+            summary,
+            ancestors,
+            steps,
+            depth + 1,
+            parent_has_lang || contains_lang,
+        )?;
     }
     Ok(())
+}
+
+fn has_text_actual_text(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(value) = dictionary.get(b"ActualText").ok() else {
+        return Ok(false);
+    };
+    Ok(matches!(
+        resolve_optional(document, value, limits.max_reference_depth)?,
+        Some(Object::String(_, _))
+    ))
 }
 
 /// Walks one name-tree node (an intermediate node with `/Kids`, a leaf with
