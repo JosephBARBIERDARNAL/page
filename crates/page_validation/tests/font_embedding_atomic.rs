@@ -153,6 +153,12 @@ fn type1_rendered_glyph_presence_is_checked_when_charstrings_are_parseable() {
 }
 
 #[test]
+fn type1c_default_iso_adobe_charset_finds_rendered_space_glyph() {
+    let failures = common::failure_ids(&common::font_fixture("type1c_default_charset_space"));
+    assert!(!failures.contains(TYPE1_GLYPH_PRESENCE), "{failures:?}");
+}
+
+#[test]
 fn type3_rendered_glyphs_must_have_charprocs() {
     let failures = common::failure_ids(&common::font_fixture("type3_visible"));
     assert!(failures.contains(TYPE1_GLYPH_PRESENCE));

@@ -8523,6 +8523,7 @@ pub fn font_fixture_with_type1_program(
         case,
         "type1c_glyph_missing"
             | "type1c_glyph_present"
+            | "type1c_default_charset_space"
             | "type1c_width_mismatch"
             | "type1c_subset_complete"
             | "type1c_subset_incomplete"
@@ -8535,7 +8536,11 @@ pub fn font_fixture_with_type1_program(
                 dictionary! {
                     "Subtype" => "Type1C",
                 },
-                minimal_type1c(case != "type1c_glyph_missing"),
+                if case == "type1c_default_charset_space" {
+                    minimal_type1c_default_charset(true)
+                } else {
+                    minimal_type1c(case != "type1c_glyph_missing")
+                },
             )),
         );
         if matches!(
@@ -8737,6 +8742,7 @@ pub fn font_fixture_with_type1_program(
             | "type1_width_mismatch"
             | "type1c_glyph_missing"
             | "type1c_glyph_present"
+            | "type1c_default_charset_space"
             | "type1c_width_mismatch"
             | "type1c_subset_complete"
             | "type1c_subset_incomplete"
@@ -8752,6 +8758,7 @@ pub fn font_fixture_with_type1_program(
             case,
             "type1c_glyph_missing"
                 | "type1c_glyph_present"
+                | "type1c_default_charset_space"
                 | "type1c_subset_complete"
                 | "type1c_subset_incomplete"
                 | "type1c_subset_program_encoding_ignored"
@@ -8770,6 +8777,14 @@ pub fn font_fixture_with_type1_program(
         }
         if case == "type1c_subset_program_encoding_ignored" {
             font.remove(b"Encoding");
+        }
+        if case == "type1c_default_charset_space" {
+            font.set(
+                "Encoding",
+                dictionary! {
+                    "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+                },
+            );
         }
         if matches!(
             case,
@@ -10706,6 +10721,32 @@ pub fn minimal_type1c(with_space: bool) -> Vec<u8> {
     bytes.push(0); // charset format 0
     if with_space {
         bytes.extend_from_slice(&1_u16.to_be_bytes()); // SID 1 = space
+    }
+    bytes
+}
+
+/// A raw CFF1 program that relies on the default ISOAdobe charset, with
+/// `.notdef` and, optionally, the standard `space` glyph.
+pub fn minimal_type1c_default_charset(with_space: bool) -> Vec<u8> {
+    let glyphs = usize::from(with_space) + 1;
+    let charstrings_offset = 17usize;
+    let mut bytes = vec![1, 0, 4, 0]; // header
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Name INDEX
+    bytes.extend_from_slice(&1_u16.to_be_bytes()); // Top DICT INDEX count
+    bytes.extend_from_slice(&[1, 1, 3]); // offset size, offsets
+    bytes.extend_from_slice(&[
+        (charstrings_offset + 139) as u8,
+        17, // CharStrings operator
+    ]);
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // String INDEX
+    bytes.extend_from_slice(&0_u16.to_be_bytes()); // Global Subrs INDEX
+    bytes.extend_from_slice(&(glyphs as u16).to_be_bytes());
+    bytes.push(1); // CharStrings INDEX offset size
+    for offset in 0..=glyphs {
+        bytes.push((offset * 2 + 1) as u8);
+    }
+    for _ in 0..glyphs {
+        bytes.extend_from_slice(&[139, 14]); // zero width then endchar
     }
     bytes
 }

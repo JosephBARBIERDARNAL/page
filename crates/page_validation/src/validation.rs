@@ -667,7 +667,9 @@ fn validate_document(
             None,
             FailureCategory::Conformance,
         ));
-        return finish_report(document, profile, failures, 2);
+        if document.encrypted_content_unavailable {
+            return finish_report(document, profile, failures, 2);
+        }
     }
     validate_header(profile, &inspections.header, &mut failures);
     let has_trailer_id = if profile.is_pdfa_2_or_3() {
@@ -2756,7 +2758,10 @@ fn remap_local_rule_id(profile: ValidationProfile, rule_id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use lopdf::xref::XrefType;
-    use lopdf::{Dictionary, Document, Object, Stream, StringFormat, dictionary};
+    use lopdf::{
+        Dictionary, Document, EncryptionState, EncryptionVersion, Object, Permissions, Stream,
+        StringFormat, dictionary,
+    };
 
     use super::*;
 
@@ -3367,6 +3372,40 @@ mod tests {
                 .all(|failure| failure.rule_id != "PDF-PARSE-001")
         );
         assert_eq!(report.exit_code(), 2);
+    }
+
+    #[test]
+    fn validates_after_decrypting_with_empty_user_password() {
+        let mut document =
+            Document::load_mem(&fixture(Some(VALID_XMP), true)).expect("load validation fixture");
+        let state = EncryptionState::try_from(EncryptionVersion::V1 {
+            document: &document,
+            owner_password: "owner",
+            user_password: "",
+            permissions: Permissions::all(),
+        })
+        .expect("create encryption state");
+        document
+            .encrypt(&state)
+            .expect("encrypt validation fixture");
+        let mut bytes = Vec::new();
+        document
+            .save_to(&mut bytes)
+            .expect("save encrypted fixture");
+
+        let report = validate_bytes_with_profile(
+            &bytes,
+            ValidationProfile::PdfA1b,
+            &SafetyLimits::default(),
+        );
+
+        assert_rule(&report, "PDFA1B-ENCRYPTION-001");
+        let document = report.document.as_ref().expect("encrypted PDF is parsed");
+        assert!(document.encrypted);
+        assert!(!document.encrypted_content_unavailable);
+        assert!(document.catalog_present);
+        assert!(document.xmp.is_some());
+        assert_eq!(report.checks.total, TOTAL_RULE_COUNT);
     }
 
     #[test]

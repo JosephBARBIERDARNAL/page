@@ -1151,7 +1151,7 @@ impl Scanner<'_> {
                     rendered_bytes.iter().copied().any(|byte| {
                         encoding
                             .glyph_name(byte)
-                            .and_then(|name| cff.glyph_index_by_name(name))
+                            .and_then(|name| cff_glyph_index_by_name(&cff, name))
                             .and_then(|glyph| cff.glyph_name(glyph))
                             .is_some_and(|name| !char_set.contains(name))
                     })
@@ -3776,9 +3776,23 @@ fn cff_glyph_for_byte(
     byte: u8,
 ) -> Option<ttf_parser::GlyphId> {
     match encoding.glyph_name(byte) {
-        Some(name) => cff.glyph_index_by_name(name),
+        Some(name) => cff_glyph_index_by_name(cff, name),
         None => cff.glyph_index(byte),
     }
+}
+
+fn cff_glyph_index_by_name(
+    cff: &ttf_parser::cff::Table<'_>,
+    name: &str,
+) -> Option<ttf_parser::GlyphId> {
+    cff.glyph_index_by_name(name).or_else(|| {
+        // ttf-parser cannot reverse-map names through predefined CFF
+        // charsets, although it can resolve the corresponding glyph name.
+        (0..cff.number_of_glyphs()).find_map(|index| {
+            let glyph = ttf_parser::GlyphId(index);
+            (cff.glyph_name(glyph) == Some(name)).then_some(glyph)
+        })
+    })
 }
 
 fn type3_charproc_width(stream: &Stream, limits: &SafetyLimits) -> Result<Option<f64>, PdfError> {

@@ -129,6 +129,8 @@ pub struct OutputIntentsSummary {
 pub struct PdfDocument {
     pub version: String,
     pub encrypted: bool,
+    #[serde(skip)]
+    pub(crate) encrypted_content_unavailable: bool,
     pub catalog_reference: Option<PdfObjectId>,
     pub catalog_present: bool,
     pub page_count: usize,
@@ -166,8 +168,8 @@ pub(crate) struct InspectionSummary {
 impl PdfDocument {
     pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
         let document = load_document(bytes, limits)?;
-        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
-        if !encrypted {
+        let (_, encrypted_content_unavailable) = encryption_status(&document);
+        if !encrypted_content_unavailable {
             enforce_object_limit(&document, limits)?;
         }
         Self::normalize(&document, limits, None)
@@ -178,11 +180,11 @@ impl PdfDocument {
         limits: &SafetyLimits,
     ) -> Result<(Self, InspectionSummary), PdfError> {
         let document = load_document(bytes, limits)?;
-        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
-        if !encrypted {
+        let (_, encrypted_content_unavailable) = encryption_status(&document);
+        if !encrypted_content_unavailable {
             enforce_object_limit(&document, limits)?;
         }
-        let pages = if encrypted {
+        let pages = if encrypted_content_unavailable {
             None
         } else {
             Some(match resolve_catalog(&document, limits)? {
@@ -193,7 +195,7 @@ impl PdfDocument {
         let normalized = Self::normalize(&document, limits, pages.as_ref().map(Vec::len))?;
         let syntax = crate::syntax::inspect(bytes, &document, limits)?;
         let header = syntax.header.clone();
-        let inspections = if normalized.encrypted {
+        let inspections = if normalized.encrypted_content_unavailable {
             InspectionSummary {
                 header,
                 content: crate::content_support::ContentExecutionSummary::default(),
@@ -271,7 +273,7 @@ impl PdfDocument {
         collected_page_count: Option<usize>,
     ) -> Result<Self, PdfError> {
         let catalog_reference = root_reference_id(document);
-        let encrypted = document.was_encrypted() || contains_key(&document.trailer, b"Encrypt");
+        let (encrypted, encrypted_content_unavailable) = encryption_status(document);
         let mut trailer_keys = document
             .trailer
             .iter()
@@ -284,10 +286,11 @@ impl PdfDocument {
         // referenced objects inaccessible. Encryption alone is enough to fail
         // PDF/A-1b, so retain the available structure without treating those
         // inaccessible objects as a syntax error.
-        if encrypted {
+        if encrypted_content_unavailable {
             return Ok(Self {
                 version: document.version.clone(),
                 encrypted: true,
+                encrypted_content_unavailable: true,
                 catalog_reference,
                 trailer_keys,
                 trailer_id,
@@ -322,7 +325,8 @@ impl PdfDocument {
 
         Ok(Self {
             version: document.version.clone(),
-            encrypted: false,
+            encrypted,
+            encrypted_content_unavailable: false,
             catalog_reference,
             catalog_present: catalog.is_some(),
             page_count,
@@ -340,6 +344,18 @@ impl PdfDocument {
             object_count: document.objects.len(),
         })
     }
+}
+
+/// Returns whether the original PDF was encrypted and whether its contents
+/// are still unavailable. `lopdf` removes `/Encrypt` after successfully
+/// authenticating with the empty password, while `was_encrypted()` remains
+/// true so callers can still report the PDF/A conformance failure.
+fn encryption_status(document: &Document) -> (bool, bool) {
+    let encrypted_content_unavailable = contains_key(&document.trailer, b"Encrypt");
+    (
+        document.was_encrypted() || encrypted_content_unavailable,
+        encrypted_content_unavailable,
+    )
 }
 
 fn extract_trailer_id(document: &Document) -> Option<Vec<Vec<u8>>> {
