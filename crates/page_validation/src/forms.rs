@@ -1,12 +1,13 @@
 use std::collections::BTreeSet;
 
-use lopdf::{Document, Object};
+use lopdf::{Dictionary, Document, Object, ObjectId};
 
 use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::object_resolution::{dictionary_based, resolve_optional, resolved_name};
+use crate::model::PdfObjectId;
+use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -14,6 +15,7 @@ use crate::report::RuleFailure;
 pub(crate) struct FormSummary {
     pub(crate) invalid_need_appearances: Vec<RuleFailure>,
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
+    pub(crate) tu_language_failures: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -59,7 +61,122 @@ fn inspect_acro_form(
                 .to_owned(),
         });
     }
+    let catalog_contains_lang = contains_key(catalog, b"Lang");
+    for_each_form_field(
+        document,
+        acro_form,
+        limits,
+        |field, object_id, context, _depth| {
+            if has_non_null_entry(document, field, b"TU", limits)? && !catalog_contains_lang {
+                summary.tu_language_failures.push(RuleFailure {
+                    object_id,
+                    description: format!("{context} has /TU without a catalog /Lang"),
+                });
+            }
+            Ok(())
+        },
+    )?;
     Ok(())
+}
+
+/// Visits every form field modeled from an AcroForm `/Fields` array and its
+/// named `/Kids`, sharing the field reachability rules used by action checks.
+pub(crate) fn for_each_form_field(
+    document: &Document,
+    acro_form: &Dictionary,
+    limits: &SafetyLimits,
+    mut visit: impl FnMut(&Dictionary, Option<PdfObjectId>, &str, usize) -> Result<(), PdfError>,
+) -> Result<(), PdfError> {
+    let Some(fields) = acro_form
+        .get(b"Fields")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|object| object.as_array().ok())
+    else {
+        return Ok(());
+    };
+    let mut seen_fields = BTreeSet::new();
+    for (index, field) in fields.iter().enumerate() {
+        visit_form_field(
+            document,
+            field,
+            &format!("AcroForm field {index}"),
+            0,
+            true,
+            limits,
+            &mut seen_fields,
+            &mut visit,
+        )?;
+    }
+    Ok(())
+}
+
+fn visit_form_field(
+    document: &Document,
+    value: &Object,
+    context: &str,
+    depth: usize,
+    top_level: bool,
+    limits: &SafetyLimits,
+    seen_fields: &mut BTreeSet<ObjectId>,
+    visit: &mut impl FnMut(&Dictionary, Option<PdfObjectId>, &str, usize) -> Result<(), PdfError>,
+) -> Result<(), PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    let object_id = value.as_reference().ok();
+    let Some(field) =
+        resolve_optional(document, value, limits.max_reference_depth)?.and_then(dictionary_based)
+    else {
+        return Ok(());
+    };
+    if !top_level && !contains_key(field, b"T") {
+        return Ok(());
+    }
+    if object_id.is_some_and(|id| !seen_fields.insert(id)) {
+        return Ok(());
+    }
+    visit(field, object_id.map(Into::into), context, depth)?;
+    let Some(kids) = field
+        .get(b"Kids")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|object| object.as_array().ok())
+    else {
+        return Ok(());
+    };
+    for (index, kid) in kids.iter().enumerate() {
+        visit_form_field(
+            document,
+            kid,
+            &format!("{context} child {index}"),
+            depth + 1,
+            false,
+            limits,
+            seen_fields,
+            visit,
+        )?;
+    }
+    Ok(())
+}
+
+fn has_non_null_entry(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(false);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .is_some_and(|value| !matches!(value, Object::Null)),
+    )
 }
 
 fn inspect_page_widgets(

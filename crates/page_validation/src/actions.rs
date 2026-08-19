@@ -50,7 +50,6 @@ pub(crate) fn inspect(
         summary: ActionSummary::default(),
         seen_actions: BTreeSet::new(),
         seen_annotations: BTreeSet::new(),
-        seen_fields: BTreeSet::new(),
         seen_outlines: BTreeSet::new(),
     };
     if contains_key(catalog, b"AA") {
@@ -85,7 +84,6 @@ struct Inspector<'a> {
     summary: ActionSummary,
     seen_actions: BTreeSet<ObjectId>,
     seen_annotations: BTreeSet<ObjectId>,
-    seen_fields: BTreeSet<ObjectId>,
     seen_outlines: BTreeSet<ObjectId>,
 }
 
@@ -192,74 +190,28 @@ impl Inspector<'_> {
         else {
             return Ok(());
         };
-        let Some(fields) = acro_form
-            .get(b"Fields")
-            .ok()
-            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
-            .transpose()?
-            .flatten()
-            .and_then(|object| object.as_array().ok())
-        else {
-            return Ok(());
-        };
-        for (index, field) in fields.iter().enumerate() {
-            self.inspect_field(field, &format!("AcroForm field {index}"), 0, true)?;
-        }
-        Ok(())
-    }
-
-    fn inspect_field(
-        &mut self,
-        value: &Object,
-        context: &str,
-        depth: usize,
-        top_level: bool,
-    ) -> Result<(), PdfError> {
-        self.ensure_depth(depth)?;
-        let object_id = value.as_reference().ok();
-        let Some(field) = resolve_optional(self.document, value, self.limits.max_reference_depth)?
-            .and_then(dictionary_based)
-        else {
-            return Ok(());
-        };
-        // veraPDF accepts every dictionary in AcroForm /Fields as a top-level
-        // form field, while child /Kids entries instantiate a field only when
-        // the dictionary contains /T.
-        if !top_level && !contains_key(field, b"T") {
-            return Ok(());
-        }
-        if object_id.is_some_and(|id| !self.seen_fields.insert(id)) {
-            return Ok(());
-        }
-        if contains_key(field, b"AA") {
-            self.summary
-                .fields_with_additional_actions
-                .push(RuleFailure {
-                    object_id: object_id.map(Into::into),
-                    description: format!("{context} contains /AA"),
-                });
-        }
-        self.inspect_additional_actions(
-            field.get(b"AA").ok(),
-            FIELD_ACTION_KEYS,
-            &format!("{context} /AA"),
-            depth,
-            true,
-        )?;
-        let Some(kids) = field
-            .get(b"Kids")
-            .ok()
-            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
-            .transpose()?
-            .flatten()
-            .and_then(|object| object.as_array().ok())
-        else {
-            return Ok(());
-        };
-        for (index, kid) in kids.iter().enumerate() {
-            self.inspect_field(kid, &format!("{context} child {index}"), depth + 1, false)?;
-        }
-        Ok(())
+        crate::forms::for_each_form_field(
+            self.document,
+            acro_form,
+            self.limits,
+            |field, object_id, context, depth| {
+                if contains_key(field, b"AA") {
+                    self.summary
+                        .fields_with_additional_actions
+                        .push(RuleFailure {
+                            object_id,
+                            description: format!("{context} contains /AA"),
+                        });
+                }
+                self.inspect_additional_actions(
+                    field.get(b"AA").ok(),
+                    FIELD_ACTION_KEYS,
+                    &format!("{context} /AA"),
+                    depth,
+                    true,
+                )
+            },
+        )
     }
 
     fn inspect_outlines(&mut self, value: Option<&Object>) -> Result<(), PdfError> {

@@ -1651,6 +1651,53 @@ pub fn pdfua1_rule_7_2_23_fixture(case: &str) -> Vec<u8> {
     pdfua1_rule_7_2_text_language_fixture(case, "E")
 }
 
+pub fn pdfua1_rule_7_2_25_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 form-field language fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let mut field = dictionary! {
+        "T" => Object::string_literal("field"),
+        "FT" => "Tx",
+    };
+    let catalog_language_present = match case {
+        "tu_absent" => false,
+        "tu_present_catalog_language" => {
+            field.set("TU", Object::string_literal("Field help"));
+            true
+        }
+        "tu_present_language_missing" => {
+            field.set("TU", Object::string_literal("Field help"));
+            false
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.2-25 fixture case {case}"),
+    };
+    let field_id = document.add_object(field);
+    let acro_form_id = document.add_object(dictionary! {
+        "Fields" => vec![Object::Reference(field_id)],
+    });
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.remove(b"Outlines");
+    catalog.remove(b"Lang");
+    catalog.set("AcroForm", acro_form_id);
+    if catalog_language_present {
+        catalog.set("Lang", Object::string_literal("en"));
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 form-field language fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_24_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 annotation-language fixture");

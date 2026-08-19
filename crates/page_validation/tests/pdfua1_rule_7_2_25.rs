@@ -8,24 +8,23 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:24";
+const RULE: &str = "PDFUA1-FORM-FIELD-TU-LANGUAGE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:25";
 
 #[test]
-fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
-    for (fixture, bytes) in [
+fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
+    for (fixture, case) in [
+        ("pdfua1-rule-7-2-25-tu-absent.pdf", "tu_absent"),
         (
-            "pdfua1-rule-7-2-24-annotation-language-present.pdf",
-            include_bytes!("fixtures/pdfua1-rule-7-2-24-annotation-language-present.pdf")
-                as &[u8],
-        ),
-        (
-            "pdfua1-rule-7-2-24-catalog-language-present.pdf",
-            include_bytes!("fixtures/pdfua1-rule-7-2-24-catalog-language-present.pdf") as &[u8],
+            "pdfua1-rule-7-2-25-tu-catalog-language.pdf",
+            "tu_present_catalog_language",
         ),
     ] {
-        let report =
-            validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
+        let report = validate_bytes_with_profile(
+            &common::pdfua1_rule_7_2_25_fixture(case),
+            ValidationProfile::PdfUa1,
+            &SafetyLimits::default(),
+        );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert_eq!(report.checks.total, 25);
         assert_eq!(report.checks.passed, 25);
@@ -33,7 +32,7 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
     }
 
     let language_missing = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-24-language-missing.pdf"),
+        &common::pdfua1_rule_7_2_25_fixture("tu_present_language_missing"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -45,32 +44,29 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-24 fixtures"]
-fn regenerate_pdfua1_rule_7_2_24_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-25 fixtures"]
+fn regenerate_pdfua1_rule_7_2_25_fixtures() {
     for (fixture, case) in [
+        ("pdfua1-rule-7-2-25-tu-absent.pdf", "tu_absent"),
         (
-            "pdfua1-rule-7-2-24-annotation-language-present.pdf",
-            "annotation_language_present",
+            "pdfua1-rule-7-2-25-tu-catalog-language.pdf",
+            "tu_present_catalog_language",
         ),
         (
-            "pdfua1-rule-7-2-24-catalog-language-present.pdf",
-            "catalog_language_present",
-        ),
-        (
-            "pdfua1-rule-7-2-24-language-missing.pdf",
-            "language_missing",
+            "pdfua1-rule-7-2-25-tu-language-missing.pdf",
+            "tu_present_language_missing",
         ),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_2_24_fixture(case),
+            common::pdfua1_rule_7_2_25_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-24 fixture");
+        .expect("write PDF/UA-1 rule 7.2-25 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_24_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_25_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -78,9 +74,9 @@ fn pdfua1_rule_7_2_24_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-2-24-annotation-language-present.pdf", false),
-        ("pdfua1-rule-7-2-24-catalog-language-present.pdf", false),
-        ("pdfua1-rule-7-2-24-language-missing.pdf", true),
+        ("pdfua1-rule-7-2-25-tu-absent.pdf", false),
+        ("pdfua1-rule-7-2-25-tu-catalog-language.pdf", false),
+        ("pdfua1-rule-7-2-25-tu-language-missing.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -89,7 +85,7 @@ fn pdfua1_rule_7_2_24_fixtures_match_verapdf_when_opted_in() {
         let failed = report
             .reference_result
             .as_ref()
-            .expect("veraPDF result")
+            .unwrap_or_else(|| panic!("{report}"))
             .failed_rule_ids
             .iter()
             .map(ToString::to_string)

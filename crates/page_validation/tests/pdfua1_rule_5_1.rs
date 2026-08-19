@@ -19,8 +19,8 @@ fn pdfua1_rule_5_1_fixtures_enforce_identification_schema_presence() {
         &SafetyLimits::default(),
     );
     assert!(present.checks_passed, "{present}");
-    assert_eq!(present.checks.total, 24);
-    assert_eq!(present.checks.passed, 24);
+    assert_eq!(present.checks.total, 25);
+    assert_eq!(present.checks.passed, 25);
     assert!(present.failures.is_empty());
 
     let missing = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_5_1_fixtures_enforce_identification_schema_presence() {
         &SafetyLimits::default(),
     );
     assert!(!missing.checks_passed, "{missing}");
-    assert_eq!(missing.checks.total, 24);
+    assert_eq!(missing.checks.total, 25);
     assert_eq!(missing.checks.failed, 2);
     assert_eq!(missing.failures.len(), 2);
     assert!(
