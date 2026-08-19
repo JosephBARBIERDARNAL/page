@@ -1,12 +1,15 @@
 use std::collections::BTreeSet;
 
-use lopdf::{Dictionary, Document};
+use lopdf::{Dictionary, Document, Object, ObjectId};
 
+use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{resolve_optional, resolved_integer, resolved_name, walk_inherited};
+use crate::object_resolution::{
+    dictionary_based, resolve_optional, resolved_integer, resolved_name, walk_inherited,
+};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -23,11 +26,13 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_appearance_entries: Vec<RuleFailure>,
     pub(crate) invalid_button_appearances: Vec<RuleFailure>,
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
+    pub(crate) contents_language_failures: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
+    catalog_contains_lang: bool,
     limits: &SafetyLimits,
 ) -> Result<AnnotationSummary, PdfError> {
     let mut summary = AnnotationSummary::default();
@@ -46,6 +51,7 @@ pub(crate) fn inspect(
                 dictionary,
                 object_id,
                 &format!("annotation {index} on page {page_number}"),
+                catalog_contains_lang,
                 limits,
                 &mut summary,
             )
@@ -59,6 +65,7 @@ fn inspect_annotation(
     annotation: &Dictionary,
     object_id: Option<PdfObjectId>,
     context: &str,
+    catalog_contains_lang: bool,
     limits: &SafetyLimits,
     summary: &mut AnnotationSummary,
 ) -> Result<(), PdfError> {
@@ -121,6 +128,17 @@ fn inspect_annotation(
             object_id,
             context,
             "has a missing or forbidden /Subtype",
+        ));
+    }
+
+    if has_non_null_entry(document, annotation, b"Contents", limits)?
+        && !annotation_has_language(document, annotation, limits)?
+        && !catalog_contains_lang
+    {
+        summary.contents_language_failures.push(annotation_failure(
+            object_id,
+            context,
+            "has /Contents without a tagged-structure or catalog /Lang",
         ));
     }
 
@@ -284,6 +302,155 @@ fn contains_array(
         resolve_optional(document, value, limits.max_reference_depth)?
             .is_some_and(|value| value.as_array().is_ok()),
     )
+}
+
+fn has_non_null_entry(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(false);
+    };
+    Ok(
+        resolve_optional(document, value, limits.max_reference_depth)?
+            .is_some_and(|value| !matches!(value, Object::Null)),
+    )
+}
+
+fn annotation_has_language(
+    document: &Document,
+    annotation: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    // veraPDF's PDAnnot.containsLang comes from the annotation's tagged
+    // structure association, not from an arbitrary /Lang key on the annotation.
+    let Some(struct_parent) = resolved_integer(
+        document,
+        annotation,
+        b"StructParent",
+        limits.max_reference_depth,
+    )?
+    else {
+        return Ok(false);
+    };
+    let Some(catalog) = resolve_catalog(document, limits)? else {
+        return Ok(false);
+    };
+    let Some(struct_tree_root) = catalog
+        .dictionary
+        .get(b"StructTreeRoot")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let Some(parent_tree) = struct_tree_root
+        .get(b"ParentTree")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let mut ancestors = BTreeSet::new();
+    let mut steps = 0;
+    let Some(structure_element) = find_number_tree_entry(
+        document,
+        parent_tree,
+        struct_parent,
+        limits,
+        &mut ancestors,
+        &mut steps,
+        0,
+    )?
+    else {
+        return Ok(false);
+    };
+    let Some(structure_element) =
+        resolve_optional(document, structure_element, limits.max_reference_depth)?
+    else {
+        return Ok(false);
+    };
+    let Some(structure_element) = structure_element.as_dict().ok() else {
+        return Ok(false);
+    };
+    has_non_null_entry(document, structure_element, b"Lang", limits)
+}
+
+fn find_number_tree_entry<'a>(
+    document: &'a Document,
+    node: &'a Dictionary,
+    key: i64,
+    limits: &SafetyLimits,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    depth: usize,
+) -> Result<Option<&'a Object>, PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    *steps += 1;
+    if *steps > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual: *steps,
+            limit: limits.max_object_count,
+        });
+    }
+    if let Ok(nums) = node.get(b"Nums")
+        && let Some(nums) = resolve_optional(document, nums, limits.max_reference_depth)?
+            .and_then(|value| value.as_array().ok())
+    {
+        for pair in nums.chunks(2) {
+            if pair.len() == 2 && pair[0].as_i64().ok() == Some(key) {
+                return Ok(Some(&pair[1]));
+            }
+        }
+    }
+    let Some(kids) = node
+        .get(b"Kids")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_array().ok())
+    else {
+        return Ok(None);
+    };
+    for kid in kids {
+        let Some(kid_object) = resolve_optional(document, kid, limits.max_reference_depth)? else {
+            continue;
+        };
+        let Some(kid_dictionary) = kid_object.as_dict().ok() else {
+            continue;
+        };
+        let Some(object_id) = kid.as_reference().ok() else {
+            continue;
+        };
+        if !ancestors.insert(object_id) {
+            return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+        }
+        let result = find_number_tree_entry(
+            document,
+            kid_dictionary,
+            key,
+            limits,
+            ancestors,
+            steps,
+            depth + 1,
+        );
+        ancestors.remove(&object_id);
+        if let Some(value) = result? {
+            return Ok(Some(value));
+        }
+    }
+    Ok(None)
 }
 
 fn contains_appearance_stream(

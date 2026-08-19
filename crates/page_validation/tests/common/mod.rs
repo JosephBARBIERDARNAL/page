@@ -1651,6 +1651,124 @@ pub fn pdfua1_rule_7_2_23_fixture(case: &str) -> Vec<u8> {
     pdfua1_rule_7_2_text_language_fixture(case, "E")
 }
 
+pub fn pdfua1_rule_7_2_24_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 annotation-language fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let pages_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"Pages")
+        .expect("PDF/UA-1 fixture pages")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture pages");
+    let page_id = document
+        .get_object(pages_id)
+        .expect("PDF/UA-1 fixture pages object")
+        .as_dict()
+        .expect("PDF/UA-1 fixture pages dictionary")
+        .get(b"Kids")
+        .expect("PDF/UA-1 fixture page kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture page kids array")
+        .first()
+        .expect("PDF/UA-1 fixture page")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture page");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let annotation = dictionary! {
+        "Type" => "Annot",
+        "Subtype" => "Text",
+        "Rect" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+        "Contents" => Object::string_literal("Annotation"),
+        "StructParent" => 1,
+    };
+    let annotation_id = document.add_object(annotation);
+    let structure_annotation_id = document.new_object_id();
+    let mut structure_annotation = dictionary! {
+        "Type" => "StructElem",
+        "S" => "Annot",
+        "P" => struct_tree_root_id,
+        "K" => annotation_id,
+        "Pg" => page_id,
+    };
+    let catalog_language_present = match case {
+        "annotation_language_present" => {
+            structure_annotation.set("Lang", Object::string_literal("en"));
+            false
+        }
+        "catalog_language_present" => true,
+        "language_missing" => false,
+        _ => panic!("unknown PDF/UA-1 rule 7.2-24 fixture case {case}"),
+    };
+    document.objects.insert(
+        structure_annotation_id,
+        Object::Dictionary(structure_annotation),
+    );
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.remove(b"Outlines");
+    if catalog_language_present {
+        catalog.set("Lang", Object::string_literal("en"));
+    } else {
+        catalog.remove(b"Lang");
+    }
+    let structure_tree_root = document
+        .get_object_mut(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure tree root dictionary");
+    structure_tree_root
+        .get_mut(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .push(Object::Reference(structure_annotation_id));
+    structure_tree_root
+        .get_mut(b"ParentTree")
+        .expect("PDF/UA-1 fixture parent tree")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture parent tree dictionary")
+        .get_mut(b"Nums")
+        .expect("PDF/UA-1 fixture parent tree numbers")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture parent tree numbers array")
+        .extend([
+            Object::Integer(1),
+            Object::Reference(structure_annotation_id),
+        ]);
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Tabs", "S");
+    page.set("Annots", vec![Object::Reference(annotation_id)]);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 annotation-language fixture");
+    bytes
+}
+
 fn pdfua1_rule_7_2_text_language_fixture(case: &str, attribute: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 text-language fixture");

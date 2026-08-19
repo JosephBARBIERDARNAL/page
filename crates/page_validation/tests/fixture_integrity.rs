@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 78] = [
+    let fixtures: [(&str, &[u8], &str); 81] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -367,6 +367,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-2-23-language-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-23-language-missing.pdf"),
             "98fe13530a67678f23af474d8a8f0c2bc5f8a7ebfe1a426c211e390ab4212d41",
+        ),
+        (
+            "pdfua1-rule-7-2-24-annotation-language-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-24-annotation-language-present.pdf"),
+            "849883c1427d0c8664345930a8d69f2b6e1a4e22ce504d545a4d5b789cd53bad",
+        ),
+        (
+            "pdfua1-rule-7-2-24-catalog-language-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-24-catalog-language-present.pdf"),
+            "7d3ffc0121be2149e15fb6f01a16945b4750e42033c921d438beb88afc15c42b",
+        ),
+        (
+            "pdfua1-rule-7-2-24-language-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-24-language-missing.pdf"),
+            "d7ce9c8c163b831ba2e079aedb48e83304c84ce748829b61965c53dcacc5a58b",
         ),
         (
             "pdfua1-rule-7-1-1-outside-tagged-content.pdf",

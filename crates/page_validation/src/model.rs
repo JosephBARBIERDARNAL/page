@@ -232,10 +232,15 @@ impl PdfDocument {
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
             let xobjects = crate::xobject::inspect(&document, &content, limits)?;
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
-            let annotations = crate::annotations::inspect(&document, &pages, limits)?;
             let actions = crate::actions::inspect(&document, &pages, limits)?;
             let forms = crate::forms::inspect(&document, &pages, limits)?;
             let document_features = crate::document_features::inspect(&document, &pages, limits)?;
+            let annotations = crate::annotations::inspect(
+                &document,
+                &pages,
+                document_features.catalog_contains_lang,
+                limits,
+            )?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
             let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;

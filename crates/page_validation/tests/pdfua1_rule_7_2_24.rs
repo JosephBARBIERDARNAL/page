@@ -8,23 +8,32 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-ACTUAL-TEXT-LANGUAGE-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:21";
+const RULE: &str = "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:24";
 
 #[test]
-fn pdfua1_rule_7_2_21_requires_language_for_structure_actual_text() {
-    let language_present = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-21-language-present.pdf"),
-        ValidationProfile::PdfUa1,
-        &SafetyLimits::default(),
-    );
-    assert!(language_present.checks_passed, "{language_present}");
-    assert_eq!(language_present.checks.total, 24);
-    assert_eq!(language_present.checks.passed, 24);
-    assert!(language_present.failures.is_empty());
+fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
+    for (fixture, bytes) in [
+        (
+            "pdfua1-rule-7-2-24-annotation-language-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-24-annotation-language-present.pdf")
+                as &[u8],
+        ),
+        (
+            "pdfua1-rule-7-2-24-catalog-language-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-24-catalog-language-present.pdf") as &[u8],
+        ),
+    ] {
+        let report =
+            validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
+        assert!(report.checks_passed, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 24);
+        assert_eq!(report.checks.passed, 24);
+        assert!(report.failures.is_empty());
+    }
 
     let language_missing = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-21-language-missing.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-7-2-24-language-missing.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -36,28 +45,32 @@ fn pdfua1_rule_7_2_21_requires_language_for_structure_actual_text() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-21 fixtures"]
-fn regenerate_pdfua1_rule_7_2_21_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-24 fixtures"]
+fn regenerate_pdfua1_rule_7_2_24_fixtures() {
     for (fixture, case) in [
         (
-            "pdfua1-rule-7-2-21-language-present.pdf",
-            "language_present",
+            "pdfua1-rule-7-2-24-annotation-language-present.pdf",
+            "annotation_language_present",
         ),
         (
-            "pdfua1-rule-7-2-21-language-missing.pdf",
+            "pdfua1-rule-7-2-24-catalog-language-present.pdf",
+            "catalog_language_present",
+        ),
+        (
+            "pdfua1-rule-7-2-24-language-missing.pdf",
             "language_missing",
         ),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_2_21_fixture(case),
+            common::pdfua1_rule_7_2_24_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-21 fixture");
+        .expect("write PDF/UA-1 rule 7.2-24 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_21_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_24_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -65,8 +78,9 @@ fn pdfua1_rule_7_2_21_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-2-21-language-present.pdf", false),
-        ("pdfua1-rule-7-2-21-language-missing.pdf", true),
+        ("pdfua1-rule-7-2-24-annotation-language-present.pdf", false),
+        ("pdfua1-rule-7-2-24-catalog-language-present.pdf", false),
+        ("pdfua1-rule-7-2-24-language-missing.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
