@@ -1698,6 +1698,71 @@ pub fn pdfua1_rule_7_2_25_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_26_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 TOCI containment fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let toci_id = document.new_object_id();
+    let parent_id = match case {
+        "contained" => {
+            let toc_id = document.new_object_id();
+            document.objects.insert(
+                toc_id,
+                Object::Dictionary(dictionary! {
+                    "S" => "TOC",
+                    "P" => struct_tree_root_id,
+                    "K" => vec![Object::Reference(toci_id)],
+                }),
+            );
+            toc_id
+        }
+        "not_contained" => struct_tree_root_id,
+        _ => panic!("unknown PDF/UA-1 rule 7.2-26 fixture case {case}"),
+    };
+    let top_level_id = if case == "contained" {
+        parent_id
+    } else {
+        toci_id
+    };
+    document.objects.insert(
+        toci_id,
+        Object::Dictionary(dictionary! {
+            "S" => "TOCI",
+            "P" => parent_id,
+        }),
+    );
+    let struct_tree_root = document
+        .get_object_mut(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure tree root dictionary");
+    struct_tree_root
+        .get_mut(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .push(Object::Reference(top_level_id));
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-26 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_24_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 annotation-language fixture");

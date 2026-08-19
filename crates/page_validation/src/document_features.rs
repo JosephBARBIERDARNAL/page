@@ -34,6 +34,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
+    pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -520,6 +521,7 @@ pub(crate) fn inspect(
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
+        toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -788,6 +790,7 @@ struct StructureTreeSummary {
     has_unmapped_type: bool,
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
+    toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -832,6 +835,7 @@ fn inspect_structure_tree(
         has_unmapped_type: false,
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
+        toci_elements_not_contained_in_toc: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -863,6 +867,10 @@ fn inspect_structure_tree(
             &mut steps,
             0,
             false,
+            StructureTraversalContext {
+                parent_standard_type: None,
+                role_map: &role_map.mappings,
+            },
         )?;
     }
     summary.has_unmapped_type = summary.structure_types.iter().any(|structure_type| {
@@ -966,6 +974,21 @@ fn resolves_to_standard_type(
     true
 }
 
+fn resolved_standard_type<'a>(
+    source: &'a [u8],
+    mappings: &'a BTreeMap<Vec<u8>, Vec<u8>>,
+    max_steps: usize,
+) -> Option<&'a [u8]> {
+    let mut current = source;
+    for _ in 0..max_steps {
+        if is_standard_structure_type(current) {
+            return Some(current);
+        }
+        current = mappings.get(current)?.as_slice();
+    }
+    None
+}
+
 fn is_standard_structure_type(value: &[u8]) -> bool {
     matches!(
         value,
@@ -1021,6 +1044,12 @@ fn is_standard_structure_type(value: &[u8]) -> bool {
     )
 }
 
+#[derive(Clone, Copy)]
+struct StructureTraversalContext<'parent, 'role_map> {
+    parent_standard_type: Option<&'parent [u8]>,
+    role_map: &'role_map BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
 fn inspect_structure_kids(
     document: &Document,
     value: &Object,
@@ -1030,6 +1059,7 @@ fn inspect_structure_kids(
     steps: &mut usize,
     depth: usize,
     parent_has_lang: bool,
+    context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
@@ -1057,6 +1087,7 @@ fn inspect_structure_kids(
                     steps,
                     depth + 1,
                     parent_has_lang,
+                    context,
                 )?;
             }
         }
@@ -1077,6 +1108,7 @@ fn inspect_structure_kids(
                 steps,
                 depth,
                 parent_has_lang,
+                context,
             );
             if let Some(structure_id) = structure_id {
                 ancestors.remove(&structure_id);
@@ -1098,6 +1130,7 @@ fn inspect_structure_element(
     steps: &mut usize,
     depth: usize,
     parent_has_lang: bool,
+    context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
@@ -1138,6 +1171,19 @@ fn inspect_structure_element(
             description: "a structure element dictionary does not contain the /P parent entry"
                 .to_owned(),
         });
+    }
+    if structure_type == b"TOCI"
+        && context
+            .parent_standard_type
+            .is_none_or(|parent| parent != b"TOC")
+    {
+        summary
+            .toci_elements_not_contained_in_toc
+            .push(RuleFailure {
+                object_id,
+                description: "a TOCI structure element is not contained in a TOC structure element"
+                    .to_owned(),
+            });
     }
     if !crate::unicode_names::is_valid_utf8(structure_type) {
         summary.invalid_unicode_structure_types.push(RuleFailure {
@@ -1186,6 +1232,14 @@ fn inspect_structure_element(
             steps,
             depth + 1,
             parent_has_lang || contains_lang,
+            StructureTraversalContext {
+                parent_standard_type: resolved_standard_type(
+                    structure_type,
+                    context.role_map,
+                    limits.max_object_count,
+                ),
+                role_map: context.role_map,
+            },
         )?;
     }
     Ok(())

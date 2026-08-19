@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_7_rejects_remapped_standard_types() {
         &SafetyLimits::default(),
     );
     assert!(standard_unmapped.checks_passed, "{standard_unmapped}");
-    assert_eq!(standard_unmapped.checks.total, 25);
-    assert_eq!(standard_unmapped.checks.passed, 25);
+    assert_eq!(standard_unmapped.checks.total, 26);
+    assert_eq!(standard_unmapped.checks.passed, 26);
     assert!(standard_unmapped.failures.is_empty());
 
     let standard_remapped = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_1_7_rejects_remapped_standard_types() {
         &SafetyLimits::default(),
     );
     assert!(!standard_remapped.checks_passed, "{standard_remapped}");
-    assert_eq!(standard_remapped.checks.total, 25);
+    assert_eq!(standard_remapped.checks.total, 26);
     assert_eq!(standard_remapped.checks.failed, 1);
     assert_eq!(standard_remapped.failures.len(), 1);
     assert_eq!(standard_remapped.failures[0].rule_id, RULE);
