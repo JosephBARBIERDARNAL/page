@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 85] = [
+    let fixtures: [(&str, &[u8], &str); 87] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -396,12 +396,22 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-2-27-allowed.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-27-allowed.pdf"),
-            "3f346ab8932b25f0a9fc85c384c7ea3d77d606d5b8683a74e8a14dea7e1e77af",
+            "34dd2cc23ed905ecc8347db6ec1c7cfca7089fb6b0b86654d1cbcc6aedeef89f",
         ),
         (
             "pdfua1-rule-7-2-27-invalid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-27-invalid.pdf"),
             "b9f32b6481d65a42142fc45e707f7a16da453dedfcc9f3186404920740a4bef5",
+        ),
+        (
+            "pdfua1-rule-7-2-28-caption-first.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-28-caption-first.pdf"),
+            "2684b5ee8495490a47bcac5fe42af9601a15ce50ce0777633299438a5471711f",
+        ),
+        (
+            "pdfua1-rule-7-2-28-caption-not-first.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-28-caption-not-first.pdf"),
+            "750ff0230a94e9ea5235704beb26d7247601421884ebccd82143ec50422c637f",
         ),
         (
             "pdfua1-rule-7-1-1-outside-tagged-content.pdf",

@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_11_fixtures_require_struct_tree_root() {
         &SafetyLimits::default(),
     );
     assert!(present.checks_passed, "{present}");
-    assert_eq!(present.checks.total, 27);
-    assert_eq!(present.checks.passed, 27);
+    assert_eq!(present.checks.total, 28);
+    assert_eq!(present.checks.passed, 28);
     assert!(present.failures.is_empty());
 
     let missing = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_1_11_fixtures_require_struct_tree_root() {
         &SafetyLimits::default(),
     );
     assert!(!missing.checks_passed, "{missing}");
-    assert_eq!(missing.checks.total, 27);
+    assert_eq!(missing.checks.total, 28);
     assert_eq!(missing.checks.failed, 1);
     assert_eq!(missing.failures.len(), 1);
     assert_eq!(missing.failures[0].rule_id, RULE);

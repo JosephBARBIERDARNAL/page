@@ -36,6 +36,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -524,6 +525,7 @@ pub(crate) fn inspect(
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
+        toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -794,6 +796,7 @@ struct StructureTreeSummary {
     structure_elements_missing_parent: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
+    toc_elements_with_caption_not_first: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -840,6 +843,7 @@ fn inspect_structure_tree(
         structure_elements_missing_parent: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
+        toc_elements_with_caption_not_first: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1203,6 +1207,24 @@ fn inspect_structure_element(
                         .to_owned(),
             });
     }
+    if resolved_type == Some(b"TOC".as_slice())
+        && toc_contains_caption_not_first(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .toc_elements_with_caption_not_first
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a TOC structure element contains a Caption child after its first child"
+                        .to_owned(),
+            });
+    }
     if !crate::unicode_names::is_valid_utf8(structure_type) {
         summary.invalid_unicode_structure_types.push(RuleFailure {
             object_id,
@@ -1261,6 +1283,49 @@ fn inspect_structure_element(
         )?;
     }
     Ok(())
+}
+
+fn toc_contains_caption_not_first(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    // Match veraPDF's `kidsStandardTypes`: only structure-element standard
+    // types participate in the order, so marked-content and integer kids are
+    // intentionally ignored.
+    let Ok(kids_value) = dictionary.get(b"K") else {
+        return Ok(false);
+    };
+    let Some(kids) = resolve_optional(document, kids_value, max_reference_depth)? else {
+        return Ok(false);
+    };
+    let Ok(kids) = kids.as_array() else {
+        return Ok(false);
+    };
+
+    let mut structure_kids = 0;
+    for kid in kids.iter().take(max_object_count) {
+        let Some(kid) = resolve_optional(document, kid, max_reference_depth)? else {
+            continue;
+        };
+        let Some(structure_type) = kid
+            .as_dict()
+            .ok()
+            .and_then(|dictionary| dictionary.get(b"S").ok())
+            .and_then(|value| value.as_name().ok())
+        else {
+            continue;
+        };
+        let resolved_type = resolved_standard_type(structure_type, role_map, max_object_count);
+        let is_caption = resolved_type == Some(b"Caption".as_slice());
+        if structure_kids > 0 && is_caption {
+            return Ok(true);
+        }
+        structure_kids += 1;
+    }
+    Ok(false)
 }
 
 fn has_text_attribute(

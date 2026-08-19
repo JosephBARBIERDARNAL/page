@@ -19,8 +19,8 @@ fn pdfua1_rule_6_1_fixtures_require_a_pdf_1_header_version_from_zero_to_seven() 
         &SafetyLimits::default(),
     );
     assert!(valid_header.checks_passed, "{valid_header}");
-    assert_eq!(valid_header.checks.total, 27);
-    assert_eq!(valid_header.checks.passed, 27);
+    assert_eq!(valid_header.checks.total, 28);
+    assert_eq!(valid_header.checks.passed, 28);
     assert!(valid_header.failures.is_empty());
 
     let invalid_header = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_6_1_fixtures_require_a_pdf_1_header_version_from_zero_to_seven() 
         &SafetyLimits::default(),
     );
     assert!(!invalid_header.checks_passed, "{invalid_header}");
-    assert_eq!(invalid_header.checks.total, 27);
+    assert_eq!(invalid_header.checks.total, 28);
     assert_eq!(invalid_header.checks.failed, 1);
     assert_eq!(invalid_header.failures.len(), 1);
     assert_eq!(invalid_header.failures[0].rule_id, RULE);

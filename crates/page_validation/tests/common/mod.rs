@@ -1764,6 +1764,24 @@ pub fn pdfua1_rule_7_2_26_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn pdfua1_rule_7_2_27_fixture(case: &str) -> Vec<u8> {
+    let child_types = match case {
+        "allowed" => ["Caption", "TOC", "TOCI"].as_slice(),
+        "invalid" => ["P"].as_slice(),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-27 fixture case {case}"),
+    };
+    pdfua1_toc_fixture(child_types)
+}
+
+pub fn pdfua1_rule_7_2_28_fixture(case: &str) -> Vec<u8> {
+    let child_types = match case {
+        "caption_first" => ["Caption", "TOCI"].as_slice(),
+        "caption_not_first" => ["TOCI", "Caption"].as_slice(),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-28 fixture case {case}"),
+    };
+    pdfua1_toc_fixture(child_types)
+}
+
+fn pdfua1_toc_fixture(child_types: &[&str]) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 TOC children fixture");
     let root_id = document
@@ -1782,11 +1800,6 @@ pub fn pdfua1_rule_7_2_27_fixture(case: &str) -> Vec<u8> {
         .as_reference()
         .expect("indirect PDF/UA-1 fixture structure tree root");
 
-    let child_types = match case {
-        "allowed" => ["TOC", "TOCI", "Caption"].as_slice(),
-        "invalid" => ["P"].as_slice(),
-        _ => panic!("unknown PDF/UA-1 rule 7.2-27 fixture case {case}"),
-    };
     let child_ids = child_types
         .iter()
         .map(|child_type| {
