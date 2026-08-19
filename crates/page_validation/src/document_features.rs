@@ -35,6 +35,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
+    pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
@@ -519,6 +520,7 @@ pub(crate) fn inspect(
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
+        alt_text_language_failures: structure_tree.alt_text_language_failures,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -785,6 +787,7 @@ struct StructureTreeSummary {
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
+    alt_text_language_failures: Vec<RuleFailure>,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     language_failures_pdfa23: Vec<RuleFailure>,
@@ -827,6 +830,7 @@ fn inspect_structure_tree(
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
         actual_text_language_failures: Vec::new(),
+        alt_text_language_failures: Vec::new(),
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         language_failures_pdfa23: Vec::new(),
@@ -1138,11 +1142,25 @@ fn inspect_structure_element(
         });
     }
     let contains_lang = contains_key(dictionary, b"Lang");
-    if has_text_actual_text(document, dictionary, limits)? && !contains_lang && !parent_has_lang {
+    if has_text_attribute(document, dictionary, limits, b"ActualText")?
+        && !contains_lang
+        && !parent_has_lang
+    {
         summary.actual_text_language_failures.push(RuleFailure {
             object_id,
             description:
                 "a structure element /ActualText string has no local, inherited, or catalog /Lang"
+                    .to_owned(),
+        });
+    }
+    if has_text_attribute(document, dictionary, limits, b"Alt")?
+        && !contains_lang
+        && !parent_has_lang
+    {
+        summary.alt_text_language_failures.push(RuleFailure {
+            object_id,
+            description:
+                "a structure element /Alt string has no local, inherited, or catalog /Lang"
                     .to_owned(),
         });
     }
@@ -1161,12 +1179,13 @@ fn inspect_structure_element(
     Ok(())
 }
 
-fn has_text_actual_text(
+fn has_text_attribute(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     limits: &SafetyLimits,
+    key: &[u8],
 ) -> Result<bool, PdfError> {
-    let Some(value) = dictionary.get(b"ActualText").ok() else {
+    let Some(value) = dictionary.get(key).ok() else {
         return Ok(false);
     };
     Ok(matches!(

@@ -1640,8 +1640,16 @@ pub fn pdfua1_rule_7_2_2_fixture(case: &str) -> Vec<u8> {
 }
 
 pub fn pdfua1_rule_7_2_21_fixture(case: &str) -> Vec<u8> {
+    pdfua1_rule_7_2_text_language_fixture(case, "ActualText")
+}
+
+pub fn pdfua1_rule_7_2_22_fixture(case: &str) -> Vec<u8> {
+    pdfua1_rule_7_2_text_language_fixture(case, "Alt")
+}
+
+fn pdfua1_rule_7_2_text_language_fixture(case: &str, attribute: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
-        .expect("load PDF/UA-1 rule 7.2-21 fixture");
+        .expect("load PDF/UA-1 text-language fixture");
     let root_id = document
         .trailer
         .get(b"Root")
@@ -1695,16 +1703,16 @@ pub fn pdfua1_rule_7_2_21_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 fixture structure element")
         .as_dict_mut()
         .expect("PDF/UA-1 fixture structure element dictionary");
-    structure_element.set("ActualText", Object::string_literal("Heading"));
+    structure_element.set(attribute, Object::string_literal("Heading"));
     if case == "language_present" {
         structure_element.set("Lang", Object::string_literal("en"));
     } else if case != "language_missing" {
-        panic!("unknown PDF/UA-1 rule 7.2-21 fixture case {case}");
+        panic!("unknown PDF/UA-1 text-language fixture case {case}");
     }
     let mut bytes = Vec::new();
     document
         .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 7.2-21 fixture");
+        .expect("save PDF/UA-1 text-language fixture");
     bytes
 }
 
