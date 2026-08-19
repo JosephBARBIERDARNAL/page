@@ -20,8 +20,8 @@ fn pdfua1_rule_7_2_29_requires_language_tags_at_all_allowed_locations() {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{case}: {report}");
-        assert_eq!(report.checks.total, 29);
-        assert_eq!(report.checks.passed, 29);
+        assert_eq!(report.checks.total, 30);
+        assert_eq!(report.checks.passed, 30);
         assert!(report.failures.is_empty());
     }
 
@@ -32,7 +32,7 @@ fn pdfua1_rule_7_2_29_requires_language_tags_at_all_allowed_locations() {
             &SafetyLimits::default(),
         );
         assert!(!report.checks_passed, "{case}: {report}");
-        assert_eq!(report.checks.total, 29);
+        assert_eq!(report.checks.total, 30);
         assert_eq!(report.checks.failed, 1);
         assert_eq!(report.failures.len(), 1);
         assert_eq!(report.failures[0].rule_id, RULE);

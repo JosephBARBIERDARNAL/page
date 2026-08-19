@@ -112,6 +112,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
     pub(crate) span_actual_text_language_failures: Vec<RuleFailure>,
+    pub(crate) span_alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
     pub(crate) tagged_content_inside_artifacts: Vec<RuleFailure>,
     pub(crate) untagged_content: Vec<RuleFailure>,
@@ -710,6 +711,18 @@ impl ContentExecutor<'_> {
                             == Some(b"Span".as_slice());
                         let actual_text_attribute_present = properties
                             .is_some_and(|dictionary| contains_key(dictionary, b"ActualText"));
+                        let alt_text_attribute_present = properties
+                            .and_then(|dictionary| dictionary.get(b"Alt").ok())
+                            .and_then(|value| {
+                                resolve_optional(
+                                    self.document,
+                                    value,
+                                    self.limits.max_reference_depth,
+                                )
+                                .ok()
+                                .flatten()
+                            })
+                            .is_some_and(|value| matches!(value, Object::String(_, _)));
                         let actual_text_present = properties
                             .and_then(|dictionary| dictionary.get(b"ActualText").ok())
                             .is_some_and(|value| matches!(value, Object::String(_, _)));
@@ -725,6 +738,20 @@ impl ContentExecutor<'_> {
                                     object_id: content_id.map(Into::into),
                                     description: format!(
                                         "{context} Span marked content /ActualText has no local, inherited, or catalog /Lang"
+                                    ),
+                                },
+                            );
+                        }
+                        if is_span
+                            && alt_text_attribute_present
+                            && !lang_present
+                            && !marked_content.iter().any(|value| value.lang_present)
+                        {
+                            self.summary.span_alt_text_language_failures.push(
+                                RuleFailure {
+                                    object_id: content_id.map(Into::into),
+                                    description: format!(
+                                        "{context} Span marked content /Alt has no local, inherited, or catalog /Lang"
                                     ),
                                 },
                             );
