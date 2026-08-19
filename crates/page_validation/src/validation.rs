@@ -608,6 +608,12 @@ fn validate_document(
                 &mut failures,
             );
             aggregate_failures_with_location(
+                &inspections.content.span_actual_text_language_failures,
+                "PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001",
+                None,
+                &mut failures,
+            );
+            aggregate_failures_with_location(
                 &inspections.annotations.contents_language_failures,
                 "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001",
                 None,

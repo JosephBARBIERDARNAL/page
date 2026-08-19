@@ -9,7 +9,7 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{
-    ResourceKey, resolve_optional, resolved_integer, resolved_name, walk_inherited,
+    ResourceKey, contains_key, resolve_optional, resolved_integer, resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -111,6 +111,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
+    pub(crate) span_actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
     pub(crate) tagged_content_inside_artifacts: Vec<RuleFailure>,
     pub(crate) untagged_content: Vec<RuleFailure>,
@@ -357,6 +358,7 @@ struct SelectedFont {
 #[derive(Clone, Copy)]
 struct MarkedContent {
     actual_text_present: bool,
+    lang_present: bool,
     mcid: Option<i64>,
     is_artifact: bool,
     is_tagged_content: bool,
@@ -655,6 +657,7 @@ impl ContentExecutor<'_> {
                     );
                     marked_content.push(MarkedContent {
                         actual_text_present: false,
+                        lang_present: false,
                         mcid: None,
                         is_artifact: operation
                             .operands
@@ -700,9 +703,32 @@ impl ContentExecutor<'_> {
                         context,
                     );
                     if operation.operator == "BDC" {
+                        let is_span = operation
+                            .operands
+                            .first()
+                            .and_then(|operand| operand.as_name().ok())
+                            == Some(b"Span".as_slice());
+                        let actual_text_attribute_present = properties
+                            .is_some_and(|dictionary| contains_key(dictionary, b"ActualText"));
                         let actual_text_present = properties
                             .and_then(|dictionary| dictionary.get(b"ActualText").ok())
                             .is_some_and(|value| matches!(value, Object::String(_, _)));
+                        let lang_present =
+                            properties.is_some_and(|dictionary| contains_key(dictionary, b"Lang"));
+                        if is_span
+                            && actual_text_attribute_present
+                            && !lang_present
+                            && !marked_content.iter().any(|value| value.lang_present)
+                        {
+                            self.summary.span_actual_text_language_failures.push(
+                                RuleFailure {
+                                    object_id: content_id.map(Into::into),
+                                    description: format!(
+                                        "{context} Span marked content /ActualText has no local, inherited, or catalog /Lang"
+                                    ),
+                                },
+                            );
+                        }
                         let mcid = properties
                             .and_then(|dictionary| dictionary.get(b"MCID").ok())
                             .and_then(|value| value.as_i64().ok());
@@ -714,6 +740,7 @@ impl ContentExecutor<'_> {
                         );
                         marked_content.push(MarkedContent {
                             actual_text_present,
+                            lang_present,
                             mcid,
                             is_artifact: operation
                                 .operands

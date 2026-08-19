@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 93] = [
+    let fixtures: [(&str, &[u8], &str); 97] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -442,6 +442,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-2-29-structure_valid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-29-structure_valid.pdf"),
             "b23990f39d600ac952e427466ecf8e9e05aa665b8e473b39f22dc41bd1c90249",
+        ),
+        (
+            "pdfua1-rule-7-2-30-property_language_present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-30-property_language_present.pdf"),
+            "84d4fa7929034fcf34924cf506f634dcb741501bc3899223efcbebc3df9eb464",
+        ),
+        (
+            "pdfua1-rule-7-2-30-inherited_language_present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-30-inherited_language_present.pdf"),
+            "1af130dea2d628d7bc7c5d79c9b6449ec9ee9b54ad1ebd74c08a660d45b7045a",
+        ),
+        (
+            "pdfua1-rule-7-2-30-catalog_language_present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-30-catalog_language_present.pdf"),
+            "d22dfd52f3a7c22a1cb243eb1ee4c70922df9ef3ac6a90596ddf28d4d94a97c7",
+        ),
+        (
+            "pdfua1-rule-7-2-30-language_missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-30-language_missing.pdf"),
+            "9be8684a5ccc7696c6580bb70b35df8a6576251933231517c8b20379129c0b1b",
         ),
         (
             "pdfua1-rule-7-1-1-outside-tagged-content.pdf",

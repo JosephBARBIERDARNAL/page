@@ -1651,6 +1651,85 @@ pub fn pdfua1_rule_7_2_23_fixture(case: &str) -> Vec<u8> {
     pdfua1_rule_7_2_text_language_fixture(case, "E")
 }
 
+pub fn pdfua1_rule_7_2_30_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 Span ActualText language fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let pages_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"Pages")
+        .expect("PDF/UA-1 fixture pages")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture pages");
+    let page_id = document
+        .get_object(pages_id)
+        .expect("PDF/UA-1 fixture pages object")
+        .as_dict()
+        .expect("PDF/UA-1 fixture pages dictionary")
+        .get(b"Kids")
+        .expect("PDF/UA-1 fixture page kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture page kids array")
+        .first()
+        .expect("PDF/UA-1 fixture page")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture page");
+    let (catalog_language, content) = match case {
+        "property_language_present" => (
+            false,
+            b"/Span <</MCID 0 /ActualText (replacement) /Lang (en)>> BDC\nBT /F1 12 Tf (x) Tj ET\nEMC\n"
+                .as_slice(),
+        ),
+        "inherited_language_present" => (
+            false,
+            b"/P <</MCID 0 /Lang (en)>> BDC\n/Span <</MCID 1 /ActualText (replacement)>> BDC\nBT /F1 12 Tf (x) Tj ET\nEMC\nEMC\n"
+                .as_slice(),
+        ),
+        "catalog_language_present" => (
+            true,
+            b"/Span <</MCID 0 /ActualText (replacement)>> BDC\nBT /F1 12 Tf (x) Tj ET\nEMC\n"
+                .as_slice(),
+        ),
+        "language_missing" => (
+            false,
+            b"/Span <</MCID 0 /ActualText (replacement)>> BDC\nBT /F1 12 Tf (x) Tj ET\nEMC\n"
+                .as_slice(),
+        ),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-30 fixture case {case}"),
+    };
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.remove(b"Outlines");
+    if catalog_language {
+        catalog.set("Lang", Object::string_literal("en"));
+    } else {
+        catalog.remove(b"Lang");
+    }
+    let contents_id = document.add_object(Stream::new(Dictionary::new(), content.to_vec()));
+    document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .set("Contents", contents_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 Span ActualText language fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_25_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 form-field language fixture");

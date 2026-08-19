@@ -1,0 +1,93 @@
+use std::collections::BTreeSet;
+use std::env;
+use std::fs;
+use std::path::Path;
+
+use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+
+pub mod common;
+
+const RULE: &str = "PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:30";
+
+#[test]
+fn pdfua1_rule_7_2_30_requires_language_for_span_actual_text() {
+    for case in [
+        "property_language_present",
+        "inherited_language_present",
+        "catalog_language_present",
+    ] {
+        let report = validate_bytes_with_profile(
+            &common::pdfua1_rule_7_2_30_fixture(case),
+            ValidationProfile::PdfUa1,
+            &SafetyLimits::default(),
+        );
+        assert!(report.checks_passed, "{case}: {report}");
+        assert_eq!(report.checks.total, 29);
+        assert_eq!(report.checks.passed, 29);
+        assert!(report.failures.is_empty());
+    }
+
+    let report = validate_bytes_with_profile(
+        &common::pdfua1_rule_7_2_30_fixture("language_missing"),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(!report.checks_passed, "{report}");
+    assert_eq!(report.checks.total, 29);
+    assert_eq!(report.checks.failed, 1);
+    assert_eq!(report.failures.len(), 1);
+    assert_eq!(report.failures[0].rule_id, RULE);
+}
+
+#[test]
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-30 fixtures"]
+fn regenerate_pdfua1_rule_7_2_30_fixtures() {
+    for case in [
+        "property_language_present",
+        "inherited_language_present",
+        "catalog_language_present",
+        "language_missing",
+    ] {
+        fs::write(
+            Path::new("tests/fixtures").join(format!("pdfua1-rule-7-2-30-{case}.pdf")),
+            common::pdfua1_rule_7_2_30_fixture(case),
+        )
+        .expect("write PDF/UA-1 rule 7.2-30 fixture");
+    }
+}
+
+#[test]
+fn pdfua1_rule_7_2_30_fixtures_match_verapdf_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let mut config = ReferenceConfig::pinned(executable);
+    config.profile = ReferenceProfile::PdfUa1;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+    for (case, should_fail) in [
+        ("property_language_present", false),
+        ("inherited_language_present", false),
+        ("catalog_language_present", false),
+        ("language_missing", true),
+    ] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(format!("pdfua1-rule-7-2-30-{case}.pdf"));
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let failed = report
+            .reference_result
+            .as_ref()
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            failed.contains(REFERENCE_RULE),
+            should_fail,
+            "{case}: {report}"
+        );
+    }
+}
