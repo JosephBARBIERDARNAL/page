@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 87] = [
+    let fixtures: [(&str, &[u8], &str); 93] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -412,6 +412,36 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-2-28-caption-not-first.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-28-caption-not-first.pdf"),
             "750ff0230a94e9ea5235704beb26d7247601421884ebccd82143ec50422c637f",
+        ),
+        (
+            "pdfua1-rule-7-2-29-catalog_invalid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-catalog_invalid.pdf"),
+            "5d641b623ba80b311676993ff911fa36495156b43f633ccf32aeef3072ab034f",
+        ),
+        (
+            "pdfua1-rule-7-2-29-catalog_valid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-catalog_valid.pdf"),
+            "4c5a67c9c341f49bbb4ff5de2d58deba07c6ea063e1a360d5b4845c6f36ce8a1",
+        ),
+        (
+            "pdfua1-rule-7-2-29-property_invalid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-property_invalid.pdf"),
+            "e488813f10ac1b9fbded235448286f4ae405996471170b2701882d771304f8dc",
+        ),
+        (
+            "pdfua1-rule-7-2-29-property_valid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-property_valid.pdf"),
+            "90622eaf41cba00b2fa6d89d197ec6fbbefebe1c034ca7f5545e89312bed5bea",
+        ),
+        (
+            "pdfua1-rule-7-2-29-structure_invalid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-structure_invalid.pdf"),
+            "d287f8329acf2d5a9c7cf6be131b5bc116bf8cb77834f4ee471763caab214115",
+        ),
+        (
+            "pdfua1-rule-7-2-29-structure_valid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-29-structure_valid.pdf"),
+            "b23990f39d600ac952e427466ecf8e9e05aa665b8e473b39f22dc41bd1c90249",
         ),
         (
             "pdfua1-rule-7-1-1-outside-tagged-content.pdf",

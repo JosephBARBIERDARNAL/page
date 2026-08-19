@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 28,
+        ValidationProfile::PdfUa1 => 29,
         _ => 0,
     }
 }
@@ -565,6 +565,18 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections.content.untagged_content,
             "PDFUA1-CONTENT-TAGGING-001",
+            None,
+            &mut failures,
+        );
+        let mut pdfua_language_failures = inspections
+            .document_features
+            .language_failures_pdfua1
+            .clone();
+        pdfua_language_failures
+            .extend(inspections.content.language_failures_pdfua1.iter().cloned());
+        aggregate_failures_with_location(
+            &pdfua_language_failures,
+            "PDFUA1-LANGUAGE-TAG-001",
             None,
             &mut failures,
         );
@@ -2830,7 +2842,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 28);
+        assert_eq!(report.checks.total, 29);
     }
 
     #[test]

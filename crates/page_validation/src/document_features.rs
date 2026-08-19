@@ -42,6 +42,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
+    pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_unicode_structure_types: Vec<RuleFailure>,
     pub(crate) invalid_page_boundaries: Vec<RuleFailure>,
     pub(crate) pages_with_pres_steps: Vec<RuleFailure>,
@@ -129,6 +130,7 @@ pub(crate) fn inspect(
     let catalog_contains_lang = contains_key(catalog, b"Lang");
     let mut language_failures = Vec::new();
     let mut language_failures_pdfa23 = Vec::new();
+    let mut language_failures_pdfua1 = Vec::new();
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
         limits,
@@ -146,6 +148,15 @@ pub(crate) fn inspect(
         "document catalog",
     ) {
         language_failures_pdfa23.push(failure);
+    }
+    if let Some(failure) = crate::language::inspect_dictionary_pdfua1(
+        document,
+        limits,
+        catalog,
+        catalog_id,
+        "document catalog",
+    ) {
+        language_failures_pdfua1.push(failure);
     }
 
     let names = catalog
@@ -542,6 +553,11 @@ pub(crate) fn inspect(
             .into_iter()
             .chain(language_failures_pdfa23)
             .collect(),
+        language_failures_pdfua1: structure_tree
+            .language_failures_pdfua1
+            .into_iter()
+            .chain(language_failures_pdfua1)
+            .collect(),
         invalid_unicode_structure_types: structure_tree.invalid_unicode_structure_types,
         invalid_page_boundaries,
         pages_with_pres_steps,
@@ -803,6 +819,7 @@ struct StructureTreeSummary {
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     language_failures_pdfa23: Vec<RuleFailure>,
+    language_failures_pdfua1: Vec<RuleFailure>,
     invalid_unicode_structure_types: Vec<RuleFailure>,
 }
 
@@ -850,6 +867,7 @@ fn inspect_structure_tree(
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         language_failures_pdfa23: Vec::new(),
+        language_failures_pdfua1: Vec::new(),
         invalid_unicode_structure_types: Vec::new(),
     };
     let role_map = root_dictionary
@@ -1157,6 +1175,15 @@ fn inspect_structure_element(
         "structure element",
     ) {
         summary.language_failures_pdfa23.push(failure);
+    }
+    if let Some(failure) = crate::language::inspect_dictionary_pdfua1(
+        document,
+        limits,
+        dictionary,
+        object_id,
+        "structure element",
+    ) {
+        summary.language_failures_pdfua1.push(failure);
     }
     let Some(structure_type) = dictionary
         .get(b"S")

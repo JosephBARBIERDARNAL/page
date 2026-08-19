@@ -110,6 +110,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) overlong_strings_pdfa_2: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
+    pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
     pub(crate) artifacts_inside_tagged_content: Vec<RuleFailure>,
     pub(crate) tagged_content_inside_artifacts: Vec<RuleFailure>,
     pub(crate) untagged_content: Vec<RuleFailure>,
@@ -743,6 +744,17 @@ impl ContentExecutor<'_> {
                         )
                     {
                         self.summary.language_failures_pdfa23.push(failure);
+                    }
+                    if let Some(dictionary) = properties
+                        && let Some(failure) = crate::language::inspect_dictionary_pdfua1(
+                            self.document,
+                            self.limits,
+                            dictionary,
+                            None,
+                            &format!("{context} marked-content property list"),
+                        )
+                    {
+                        self.summary.language_failures_pdfua1.push(failure);
                     }
                 }
                 "EMC" => {
