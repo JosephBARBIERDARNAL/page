@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 31,
+        ValidationProfile::PdfUa1 => 32,
         _ => 0,
     }
 }
@@ -464,6 +464,19 @@ fn validate_document(
             failures.push(failure(
                 "PDFUA1-METADATA-TITLE-001",
                 "the catalog Metadata stream must contain a dc:title entry",
+                document.xmp_object,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !inspections.document_features.catalog_contains_lang
+            && document
+                .xmp
+                .as_ref()
+                .is_some_and(|xmp| xmp.lang_alt_without_x_default)
+        {
+            failures.push(failure(
+                "PDFUA1-METADATA-LANGUAGE-001",
+                "natural language for document metadata must be determinable from an x-default language alternative or the catalog /Lang",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
@@ -2860,7 +2873,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 31);
+        assert_eq!(report.checks.total, 32);
     }
 
     #[test]

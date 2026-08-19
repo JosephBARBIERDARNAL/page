@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_5_requires_non_standard_types_to_resolve_to_standard_types() 
         &SafetyLimits::default(),
     );
     assert!(indirect_mapping.checks_passed, "{indirect_mapping}");
-    assert_eq!(indirect_mapping.checks.total, 31);
-    assert_eq!(indirect_mapping.checks.passed, 31);
+    assert_eq!(indirect_mapping.checks.total, 32);
+    assert_eq!(indirect_mapping.checks.passed, 32);
     assert!(indirect_mapping.failures.is_empty());
 
     let unmapped = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_1_5_requires_non_standard_types_to_resolve_to_standard_types() 
         &SafetyLimits::default(),
     );
     assert!(!unmapped.checks_passed, "{unmapped}");
-    assert_eq!(unmapped.checks.total, 31);
+    assert_eq!(unmapped.checks.total, 32);
     assert_eq!(unmapped.checks.failed, 1);
     assert_eq!(unmapped.failures.len(), 1);
     assert_eq!(unmapped.failures[0].rule_id, RULE);

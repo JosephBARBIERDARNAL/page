@@ -26,8 +26,8 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 31);
-        assert_eq!(report.checks.passed, 31);
+        assert_eq!(report.checks.total, 32);
+        assert_eq!(report.checks.passed, 32);
         assert!(report.failures.is_empty());
     }
 
@@ -37,7 +37,7 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 31);
+    assert_eq!(language_missing.checks.total, 32);
     assert_eq!(language_missing.checks.failed, 1);
     assert_eq!(language_missing.failures.len(), 1);
     assert_eq!(language_missing.failures[0].rule_id, RULE);

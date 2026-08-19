@@ -1888,6 +1888,66 @@ pub fn pdfua1_rule_7_2_32_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_33_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 metadata language fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let metadata_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"Metadata")
+        .expect("PDF/UA-1 fixture metadata")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture metadata");
+    let xmp: &[u8] = match case {
+        "x_default" | "catalog_language" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        "multiple_items" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="fr">Titre</rdf:li><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        "missing_x_default" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="en">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.2-33 fixture case {case}"),
+    };
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.remove(b"Outlines");
+    if case == "catalog_language" {
+        catalog.set("Lang", Object::string_literal("en"));
+    } else {
+        catalog.remove(b"Lang");
+    }
+    document
+        .get_object_mut(metadata_id)
+        .expect("PDF/UA-1 fixture metadata object")
+        .as_stream_mut()
+        .expect("PDF/UA-1 fixture metadata stream")
+        .set_content(xmp.to_vec());
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-33 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_25_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 form-field language fixture");
