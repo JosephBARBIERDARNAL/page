@@ -8,48 +8,42 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:30";
+const RULE: &str = "PDFUA1-TEXT-LANGUAGE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:34";
 
 #[test]
-fn pdfua1_rule_7_2_30_requires_language_for_span_actual_text() {
+fn pdfua1_rule_7_2_34_requires_language_for_page_text() {
     for case in [
         "property_language_present",
         "inherited_language_present",
         "catalog_language_present",
     ] {
         let report = validate_bytes_with_profile(
-            &common::pdfua1_rule_7_2_30_fixture(case),
+            &common::pdfua1_rule_7_2_34_fixture(case),
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
+        assert!(report.checks_passed, "{case}: {report}");
         assert_eq!(report.checks.total, 32);
-        assert!(
-            !report
-                .failures
-                .iter()
-                .any(|failure| failure.rule_id == RULE)
-        );
+        assert_eq!(report.checks.passed, 32);
+        assert!(report.failures.is_empty());
     }
 
     let report = validate_bytes_with_profile(
-        &common::pdfua1_rule_7_2_30_fixture("language_missing"),
+        &common::pdfua1_rule_7_2_34_fixture("language_missing"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{report}");
     assert_eq!(report.checks.total, 32);
-    assert!(
-        report
-            .failures
-            .iter()
-            .any(|failure| failure.rule_id == RULE)
-    );
+    assert_eq!(report.checks.failed, 1);
+    assert_eq!(report.failures.len(), 1);
+    assert_eq!(report.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-30 fixtures"]
-fn regenerate_pdfua1_rule_7_2_30_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-34 fixtures"]
+fn regenerate_pdfua1_rule_7_2_34_fixtures() {
     for case in [
         "property_language_present",
         "inherited_language_present",
@@ -57,15 +51,15 @@ fn regenerate_pdfua1_rule_7_2_30_fixtures() {
         "language_missing",
     ] {
         fs::write(
-            Path::new("tests/fixtures").join(format!("pdfua1-rule-7-2-30-{case}.pdf")),
-            common::pdfua1_rule_7_2_30_fixture(case),
+            Path::new("tests/fixtures").join(format!("pdfua1-rule-7-2-34-{case}.pdf")),
+            common::pdfua1_rule_7_2_34_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-30 fixture");
+        .expect("write PDF/UA-1 rule 7.2-34 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_30_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_34_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -80,7 +74,7 @@ fn pdfua1_rule_7_2_30_fixtures_match_verapdf_when_opted_in() {
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
-            .join(format!("pdfua1-rule-7-2-30-{case}.pdf"));
+            .join(format!("pdfua1-rule-7-2-34-{case}.pdf"));
         let report = runner.compare_file(&path, &SafetyLimits::default());
         let failed = report
             .reference_result

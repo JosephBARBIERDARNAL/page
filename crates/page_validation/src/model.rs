@@ -222,11 +222,13 @@ impl PdfDocument {
             let pages = pages.unwrap_or_default();
             // One shared execution establishes the exact resource population
             // used by colour, XObject, graphics, and font rule predicates.
+            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
             let mut content_cache = crate::content_support::ContentCache::new();
             let content = crate::content_support::execute_content(
                 &document,
                 &pages,
                 &mut content_cache,
+                &document_features.tagged_text_language,
                 limits,
             )?;
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
@@ -234,7 +236,6 @@ impl PdfDocument {
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
             let actions = crate::actions::inspect(&document, &pages, limits)?;
             let forms = crate::forms::inspect(&document, &pages, limits)?;
-            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
             let annotations = crate::annotations::inspect(
                 &document,
                 &pages,

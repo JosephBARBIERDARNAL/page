@@ -40,6 +40,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
+    pub(crate) tagged_text_language: BTreeSet<(ObjectId, i64)>,
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
@@ -540,6 +541,7 @@ pub(crate) fn inspect(
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
+        tagged_text_language: structure_tree.tagged_text_language,
         contains_embedded_files_name,
         contains_optional_content,
         file_specs_with_embedded_files,
@@ -816,6 +818,7 @@ struct StructureTreeSummary {
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
+    tagged_text_language: BTreeSet<(ObjectId, i64)>,
     structure_types: BTreeSet<Vec<u8>>,
     language_failures: Vec<RuleFailure>,
     language_failures_pdfa23: Vec<RuleFailure>,
@@ -864,6 +867,7 @@ fn inspect_structure_tree(
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
+        tagged_text_language: BTreeSet::new(),
         structure_types: BTreeSet::new(),
         language_failures: Vec::new(),
         language_failures_pdfa23: Vec::new(),
@@ -1118,6 +1122,23 @@ fn inspect_structure_kids(
             }
         }
         Object::Dictionary(dictionary) => {
+            if parent_has_lang
+                && dictionary
+                    .get(b"Type")
+                    .ok()
+                    .and_then(|value| value.as_name().ok())
+                    == Some(b"MCR".as_slice())
+                && let Some(page_id) = dictionary
+                    .get(b"Pg")
+                    .ok()
+                    .and_then(|value| value.as_reference().ok())
+                && let Some(mcid) = dictionary
+                    .get(b"MCID")
+                    .ok()
+                    .and_then(|value| value.as_i64().ok())
+            {
+                summary.tagged_text_language.insert((page_id, mcid));
+            }
             let structure_id = value.as_reference().ok();
             if let Some(structure_id) = structure_id
                 && !ancestors.insert(structure_id)
@@ -1288,6 +1309,28 @@ fn inspect_structure_element(
             description: "a structure element /E string has no local, inherited, or catalog /Lang"
                 .to_owned(),
         });
+    }
+    if (contains_lang || parent_has_lang)
+        && let Some(page_id) = dictionary
+            .get(b"Pg")
+            .ok()
+            .and_then(|value| value.as_reference().ok())
+        && let Ok(kids) = dictionary.get(b"K")
+        && let Some(kids) = resolve_optional(document, kids, limits.max_reference_depth)?
+    {
+        match kids {
+            Object::Integer(mcid) => {
+                summary.tagged_text_language.insert((page_id, *mcid));
+            }
+            Object::Array(kids) => {
+                for kid in kids {
+                    if let Ok(mcid) = kid.as_i64() {
+                        summary.tagged_text_language.insert((page_id, mcid));
+                    }
+                }
+            }
+            _ => {}
+        }
     }
     if let Ok(kids) = dictionary.get(b"K") {
         inspect_structure_kids(

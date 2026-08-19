@@ -111,6 +111,7 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) language_failures: Vec<RuleFailure>,
     pub(crate) language_failures_pdfa23: Vec<RuleFailure>,
     pub(crate) language_failures_pdfua1: Vec<RuleFailure>,
+    pub(crate) text_language_failures: Vec<RuleFailure>,
     pub(crate) span_actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) span_alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) span_expansion_text_language_failures: Vec<RuleFailure>,
@@ -284,12 +285,14 @@ pub(crate) fn execute_content(
     document: &Document,
     pages: &[PageEntry],
     cache: &mut ContentCache,
+    tagged_text_language: &BTreeSet<(ObjectId, i64)>,
     limits: &SafetyLimits,
 ) -> Result<ContentExecutionSummary, PdfError> {
     let mut executor = ContentExecutor {
         document,
         limits,
         cache,
+        tagged_text_language,
         summary: ContentExecutionSummary::default(),
         font_indices: BTreeMap::new(),
         current_page: 0,
@@ -315,6 +318,7 @@ struct ContentExecutor<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
+    tagged_text_language: &'a BTreeSet<(ObjectId, i64)>,
     summary: ContentExecutionSummary,
     font_indices: BTreeMap<ResourceKey, usize>,
     current_page: u32,
@@ -1046,6 +1050,23 @@ impl ContentExecutor<'_> {
                         !graphics_state.nonstroking_color_space_selected;
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
                     if !shown_bytes.is_empty() && inspect_pdfua_content {
+                        let language_is_determined =
+                            marked_content.iter().any(|value| value.lang_present)
+                                || self.current_page_object_id.is_some_and(|page_id| {
+                                    marked_content.iter().any(|value| {
+                                        value.mcid.is_some_and(|mcid| {
+                                            self.tagged_text_language.contains(&(page_id, mcid))
+                                        })
+                                    })
+                                });
+                        if !language_is_determined {
+                            self.summary.text_language_failures.push(RuleFailure {
+                                object_id: content_id.map(Into::into),
+                                description: format!(
+                                    "{context} text has no local, inherited, or catalog /Lang"
+                                ),
+                            });
+                        }
                         self.record_untagged_content(content_id, marked_content, context, "text");
                     }
                     if !shown_bytes.is_empty()
@@ -2746,6 +2767,7 @@ fn is_pdf_whitespace(byte: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
 
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
@@ -3029,6 +3051,7 @@ mod tests {
             &document,
             &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &SafetyLimits::default(),
         )
         .expect("cyclic nested appearance states stop after one state layer");
@@ -3074,6 +3097,7 @@ mod tests {
             &document,
             &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &limits,
         )
         .expect_err("cyclic linked images must be bounded");
@@ -3173,6 +3197,7 @@ mod tests {
             &document,
             &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &limits,
         )
         .expect_err("content graph depth limit");
@@ -3197,6 +3222,7 @@ mod tests {
             &document,
             &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &limits,
         )
         .expect_err("decode limit");
@@ -3233,6 +3259,7 @@ mod tests {
                 PageEntry::Indirect(second_page),
             ],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &limits,
         )
         .expect_err("total decoded content limit");
@@ -3271,6 +3298,7 @@ mod tests {
                 PageEntry::Indirect(second_page),
             ],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &limits,
         )
         .expect("cached content fits the total decode budget once");
@@ -3294,6 +3322,7 @@ mod tests {
             document,
             &[PageEntry::Indirect(page_id)],
             &mut ContentCache::new(),
+            &BTreeSet::new(),
             &SafetyLimits::default(),
         )
     }

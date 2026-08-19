@@ -11,9 +11,14 @@ nav = [
     "api/cli.md",
     "api/rust.md",
   ] },
-  { "Rule Reference" = ["rules/pdfa-1-rule-mapping.md", "rules/pdfa-2-3-rule-mapping.md"] },
-  { "PDF format" = "pdf-format.md" },
-  { "FAQ" = "faq.md" },
+  { "Rule Reference" = [
+    "rules/pdfa-1-rule-mapping.md",
+    "rules/pdfa-2-3-rule-mapping.md",
+  ] },
+  { "About" = [
+    "about/faq.md",
+    "about/pdf-format.md",
+  ] },
 ]
 
 [project.theme]

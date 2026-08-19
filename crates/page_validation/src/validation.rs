@@ -639,6 +639,12 @@ fn validate_document(
                 &mut failures,
             );
             aggregate_failures_with_location(
+                &inspections.content.text_language_failures,
+                "PDFUA1-TEXT-LANGUAGE-001",
+                None,
+                &mut failures,
+            );
+            aggregate_failures_with_location(
                 &inspections.annotations.contents_language_failures,
                 "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001",
                 None,

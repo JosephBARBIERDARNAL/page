@@ -2,6 +2,14 @@
 title: "FAQ"
 ---
 
+## What does `page` do?
+
+`page` is, at its core, a PDF validation engine. In more practical terms, it verifies that a given PDF file complies with certain standards. For example, for a PDF to be considered accessible, it is often required to be PDF/UA-1 compliant.
+
+Since the creation of the PDF format more than 30 years ago, many different variants have appeared, each with a different purpose. For example, all PDF/A formats (around 10) focus on archival preservation, ensuring that a PDF created in the 2000s will still open decades from now, while PDF/UA formats (UA-1 and UA-2) focus on accessibility, ensuring that everyone, including people with visual disabilities, can use a PDF.
+
+`page` aims to make that verification easy, fast, and free.
+
 ## What are the alternatives?
 
 There are multiple projects that attempt to provide a PDF validator, but only one is:
@@ -55,6 +63,4 @@ For example, PDF/A forbids features such as JavaScript or external dependencies 
 
 Because each profile defines **hundreds of requirements**, validating a PDF is much more involved than simply checking whether it "opens correctly." A validator must verify that every applicable rule is satisfied for the requested profile.
 
-## What is PDF validation?
-
-TODO
+[Learn more about the different PDF/A and PDF/UA formats.](./pdf-format.md)
