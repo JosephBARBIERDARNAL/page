@@ -35,6 +35,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
+    pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -522,6 +523,7 @@ pub(crate) fn inspect(
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
+        toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -791,6 +793,7 @@ struct StructureTreeSummary {
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
+    toc_elements_with_invalid_children: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -836,6 +839,7 @@ fn inspect_structure_tree(
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
+        toc_elements_with_invalid_children: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1183,6 +1187,20 @@ fn inspect_structure_element(
                 object_id,
                 description: "a TOCI structure element is not contained in a TOC structure element"
                     .to_owned(),
+            });
+    }
+    let resolved_type =
+        resolved_standard_type(structure_type, context.role_map, limits.max_object_count);
+    if context.parent_standard_type == Some(b"TOC".as_slice())
+        && !matches!(resolved_type, Some(b"TOC" | b"TOCI" | b"Caption"))
+    {
+        summary
+            .toc_elements_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a TOC structure element contains a child other than TOC, TOCI, or Caption"
+                        .to_owned(),
             });
     }
     if !crate::unicode_names::is_valid_utf8(structure_type) {

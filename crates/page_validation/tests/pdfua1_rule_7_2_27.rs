@@ -8,50 +8,50 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-TOCI-PARENT-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:26";
+const RULE: &str = "PDFUA1-TOC-KIDS-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:27";
 
 #[test]
-fn pdfua1_rule_7_2_26_requires_toci_to_be_contained_in_toc() {
-    let contained = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-26-contained.pdf"),
+fn pdfua1_rule_7_2_27_restricts_toc_children() {
+    let allowed = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-2-27-allowed.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(contained.checks_passed, "{contained}");
-    assert_eq!(contained.checks.total, 27);
-    assert_eq!(contained.checks.passed, 27);
-    assert!(contained.failures.is_empty());
+    assert!(allowed.checks_passed, "{allowed}");
+    assert_eq!(allowed.checks.total, 27);
+    assert_eq!(allowed.checks.passed, 27);
+    assert!(allowed.failures.is_empty());
 
-    let not_contained = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-26-not-contained.pdf"),
+    let invalid = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-2-27-invalid.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!not_contained.checks_passed, "{not_contained}");
-    assert_eq!(not_contained.checks.total, 27);
-    assert_eq!(not_contained.checks.failed, 1);
-    assert_eq!(not_contained.failures.len(), 1);
-    assert_eq!(not_contained.failures[0].rule_id, RULE);
+    assert!(!invalid.checks_passed, "{invalid}");
+    assert_eq!(invalid.checks.total, 27);
+    assert_eq!(invalid.checks.failed, 1);
+    assert_eq!(invalid.failures.len(), 1);
+    assert_eq!(invalid.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-26 fixtures"]
-fn regenerate_pdfua1_rule_7_2_26_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-27 fixtures"]
+fn regenerate_pdfua1_rule_7_2_27_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-2-26-contained.pdf", "contained"),
-        ("pdfua1-rule-7-2-26-not-contained.pdf", "not_contained"),
+        ("pdfua1-rule-7-2-27-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-2-27-invalid.pdf", "invalid"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_2_26_fixture(case),
+            common::pdfua1_rule_7_2_27_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-26 fixture");
+        .expect("write PDF/UA-1 rule 7.2-27 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_26_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_27_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -59,8 +59,8 @@ fn pdfua1_rule_7_2_26_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-2-26-contained.pdf", false),
-        ("pdfua1-rule-7-2-26-not-contained.pdf", true),
+        ("pdfua1-rule-7-2-27-allowed.pdf", false),
+        ("pdfua1-rule-7-2-27-invalid.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -69,7 +69,7 @@ fn pdfua1_rule_7_2_26_fixtures_match_verapdf_when_opted_in() {
         let failed = report
             .reference_result
             .as_ref()
-            .expect("veraPDF result")
+            .unwrap_or_else(|| panic!("{report}"))
             .failed_rule_ids
             .iter()
             .map(ToString::to_string)

@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_4_fixtures_reject_suspects_true() {
         &SafetyLimits::default(),
     );
     assert!(suspects_false.checks_passed, "{suspects_false}");
-    assert_eq!(suspects_false.checks.total, 26);
-    assert_eq!(suspects_false.checks.passed, 26);
+    assert_eq!(suspects_false.checks.total, 27);
+    assert_eq!(suspects_false.checks.passed, 27);
     assert!(suspects_false.failures.is_empty());
 
     let suspects_true = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_1_4_fixtures_reject_suspects_true() {
         &SafetyLimits::default(),
     );
     assert!(!suspects_true.checks_passed, "{suspects_true}");
-    assert_eq!(suspects_true.checks.total, 26);
+    assert_eq!(suspects_true.checks.total, 27);
     assert_eq!(suspects_true.checks.failed, 1);
     assert_eq!(suspects_true.failures.len(), 1);
     assert_eq!(suspects_true.failures[0].rule_id, RULE);

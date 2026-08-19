@@ -19,8 +19,8 @@ fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
         &SafetyLimits::default(),
     );
     assert!(present.checks_passed, "{present}");
-    assert_eq!(present.checks.total, 26);
-    assert_eq!(present.checks.passed, 26);
+    assert_eq!(present.checks.total, 27);
+    assert_eq!(present.checks.passed, 27);
     assert!(present.failures.is_empty());
 
     for fixture in [
@@ -41,7 +41,7 @@ fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
             &SafetyLimits::default(),
         );
         assert!(!report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 26);
+        assert_eq!(report.checks.total, 27);
         assert_eq!(report.checks.failed, 1);
         assert_eq!(report.failures.len(), 1);
         assert_eq!(report.failures[0].rule_id, RULE);

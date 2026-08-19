@@ -19,8 +19,8 @@ fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
         &SafetyLimits::default(),
     );
     assert!(language_present.checks_passed, "{language_present}");
-    assert_eq!(language_present.checks.total, 26);
-    assert_eq!(language_present.checks.passed, 26);
+    assert_eq!(language_present.checks.total, 27);
+    assert_eq!(language_present.checks.passed, 27);
     assert!(language_present.failures.is_empty());
 
     let language_missing = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 26);
+    assert_eq!(language_missing.checks.total, 27);
     assert_eq!(language_missing.checks.failed, 1);
     assert_eq!(language_missing.failures.len(), 1);
     assert_eq!(language_missing.failures[0].rule_id, RULE);
