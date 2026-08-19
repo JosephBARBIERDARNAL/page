@@ -1647,6 +1647,10 @@ pub fn pdfua1_rule_7_2_22_fixture(case: &str) -> Vec<u8> {
     pdfua1_rule_7_2_text_language_fixture(case, "Alt")
 }
 
+pub fn pdfua1_rule_7_2_23_fixture(case: &str) -> Vec<u8> {
+    pdfua1_rule_7_2_text_language_fixture(case, "E")
+}
+
 fn pdfua1_rule_7_2_text_language_fixture(case: &str, attribute: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 text-language fixture");
