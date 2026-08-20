@@ -39,6 +39,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -542,6 +543,7 @@ pub(crate) fn inspect(
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
+        tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -821,6 +823,7 @@ struct StructureTreeSummary {
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     table_elements_with_invalid_children: Vec<RuleFailure>,
     thead_elements_with_invalid_children: Vec<RuleFailure>,
+    tbody_elements_with_invalid_children: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -872,6 +875,7 @@ fn inspect_structure_tree(
         toc_elements_with_caption_not_first: Vec::new(),
         table_elements_with_invalid_children: Vec::new(),
         thead_elements_with_invalid_children: Vec::new(),
+        tbody_elements_with_invalid_children: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1304,7 +1308,7 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"THead".as_slice())
-        && thead_contains_invalid_child(
+        && table_section_contains_invalid_child(
             document,
             dictionary,
             context.role_map,
@@ -1317,6 +1321,22 @@ fn inspect_structure_element(
             .push(RuleFailure {
                 object_id,
                 description: "a THead structure element contains a child other than TR".to_owned(),
+            });
+    }
+    if resolved_type == Some(b"TBody".as_slice())
+        && table_section_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .tbody_elements_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "a TBody structure element contains a child other than TR".to_owned(),
             });
     }
     let contains_lang = contains_key(dictionary, b"Lang");
@@ -1445,7 +1465,7 @@ fn table_contains_invalid_child(
     )
 }
 
-fn thead_contains_invalid_child(
+fn table_section_contains_invalid_child(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
