@@ -49,6 +49,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
+    pub(crate) heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -565,6 +566,8 @@ pub(crate) fn inspect(
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
         structure_elements_with_multiple_h_children: structure_tree
             .structure_elements_with_multiple_h_children,
+        heading_elements_with_h_in_presence_of_hn: structure_tree
+            .heading_elements_with_h_in_presence_of_hn,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -853,7 +856,10 @@ struct StructureTreeSummary {
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
+    heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
     last_heading_level: Option<u8>,
+    h_heading_elements: Vec<RuleFailure>,
+    uses_hn: bool,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -914,7 +920,10 @@ fn inspect_structure_tree(
         figure_elements_missing_alternative_text: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
+        heading_elements_with_h_in_presence_of_hn: Vec::new(),
         last_heading_level: None,
+        h_heading_elements: Vec::new(),
+        uses_hn: false,
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -962,6 +971,10 @@ fn inspect_structure_tree(
                 limits.max_object_count,
             )
     });
+    if summary.uses_hn {
+        summary.heading_elements_with_h_in_presence_of_hn =
+            std::mem::take(&mut summary.h_heading_elements);
+    }
     Ok(summary)
 }
 
@@ -1309,6 +1322,15 @@ fn inspect_structure_element(
                 });
         }
         summary.last_heading_level = Some(heading_level);
+    }
+    if resolved_type == Some(b"H".as_slice()) {
+        summary.h_heading_elements.push(RuleFailure {
+            object_id,
+            description: "an H structure element is present together with H1-H6 structure elements"
+                .to_owned(),
+        });
+    } else if heading_level(resolved_type).is_some() {
+        summary.uses_hn = true;
     }
     if contains_multiple_h_children(
         document,

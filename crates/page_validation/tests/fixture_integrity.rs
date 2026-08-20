@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 134] = [
+    let fixtures: [(&str, &[u8], &str); 138] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -676,12 +676,32 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-4-4-1-multiple-h.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-4-4-1-multiple-h.pdf"),
-            "513480e03b6b1f5d3d2497a29cf3371c347f00508b85b1e0cbbfbd08d2266d8d",
+            "37daca61c86153cd69c4bebad09cfb1b657cdea11c07e798a305e3db575c711d",
         ),
         (
             "pdfua1-rule-7-4-4-1-single-h.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-4-4-1-single-h.pdf"),
-            "13572ab54c723d467ed91fe3cf4c477691fa9b9a831de79be2b20b9f4fa69990",
+            "02d9339e4774e2c9021052959dd52ae6f7edc30c0eb5cb61bc509c7cd0aecfef",
+        ),
+        (
+            "pdfua1-rule-7-4-4-2-h-only.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-4-4-2-h-only.pdf"),
+            "02d9339e4774e2c9021052959dd52ae6f7edc30c0eb5cb61bc509c7cd0aecfef",
+        ),
+        (
+            "pdfua1-rule-7-4-4-2-h-then-hn.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-4-4-2-h-then-hn.pdf"),
+            "93a92c4ac02cb5931931d8f7ec3749ff37e704cf61c76adc7aec02cb633a4e6b",
+        ),
+        (
+            "pdfua1-rule-7-4-4-2-hn-only.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-4-4-2-hn-only.pdf"),
+            "283a4ca4e1287211efefa43813cb4fdfc5dd03f3b7ac1cef3e6ca740d2a4bab1",
+        ),
+        (
+            "pdfua1-rule-7-4-4-2-hn-then-h.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-4-4-2-hn-then-h.pdf"),
+            "5a376a2a13b2083c2ccbfaa3add4bf560c3da798ad916fb23c52e66cb98334f3",
         ),
     ];
 

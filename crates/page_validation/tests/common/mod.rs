@@ -2537,34 +2537,32 @@ pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
-pub fn pdfua1_rule_7_4_4_1_fixture(case: &str) -> Vec<u8> {
-    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
-        .expect("load PDF/UA-1 heading-child-count fixture");
+fn pdfua1_heading_fixture(heading_types: &[&str], description: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 heading fixture");
     let root_id = document
         .trailer
         .get(b"Root")
         .expect("PDF/UA-1 fixture root")
         .as_reference()
         .expect("indirect PDF/UA-1 fixture root");
-    let struct_tree_root_id = document
-        .get_object(root_id)
+    let struct_tree_root_id = document.add_object(dictionary! {
+        "Type" => "StructTreeRoot",
+        "K" => Vec::<Object>::new(),
+    });
+    let catalog = document
+        .get_object_mut(root_id)
         .expect("PDF/UA-1 fixture catalog")
-        .as_dict()
-        .expect("PDF/UA-1 fixture catalog dictionary")
-        .get(b"StructTreeRoot")
-        .expect("PDF/UA-1 fixture structure tree root")
-        .as_reference()
-        .expect("indirect PDF/UA-1 fixture structure tree root");
-    let h_count = match case {
-        "single_h" => 1,
-        "multiple_h" => 2,
-        _ => panic!("unknown PDF/UA-1 rule 7.4.4-1 fixture case {case}"),
-    };
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.set("Lang", Object::string_literal("en"));
+    catalog.set("StructTreeRoot", Object::Reference(struct_tree_root_id));
     let parent_id = document.new_object_id();
-    let h_ids = (0..h_count)
-        .map(|_| {
+    let heading_ids = heading_types
+        .iter()
+        .map(|heading_type| {
             document.add_object(dictionary! {
-                "S" => "H",
+                "S" => *heading_type,
                 "P" => Object::Reference(parent_id),
             })
         })
@@ -2575,7 +2573,7 @@ pub fn pdfua1_rule_7_4_4_1_fixture(case: &str) -> Vec<u8> {
         dictionary! {
             "S" => "Div",
             "P" => Object::Reference(struct_tree_root_id),
-            "K" => h_ids,
+            "K" => heading_ids,
         }
         .into(),
     );
@@ -2590,10 +2588,28 @@ pub fn pdfua1_rule_7_4_4_1_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 fixture structure tree root kids array")
         .push(Object::Reference(parent_id));
     let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 heading-child-count fixture");
+    document.save_to(&mut bytes).expect(description);
     bytes
+}
+
+pub fn pdfua1_rule_7_4_4_1_fixture(case: &str) -> Vec<u8> {
+    let heading_types: &[&str] = match case {
+        "single_h" => &["H"],
+        "multiple_h" => &["H", "H"],
+        _ => panic!("unknown PDF/UA-1 rule 7.4.4-1 fixture case {case}"),
+    };
+    pdfua1_heading_fixture(heading_types, "save PDF/UA-1 heading-child-count fixture")
+}
+
+pub fn pdfua1_rule_7_4_4_2_fixture(case: &str) -> Vec<u8> {
+    let heading_types: &[&str] = match case {
+        "h_only" => &["H"],
+        "hn_only" => &["H1"],
+        "h_then_hn" => &["H", "H1"],
+        "hn_then_h" => &["H1", "H"],
+        _ => panic!("unknown PDF/UA-1 rule 7.4.4-2 fixture case {case}"),
+    };
+    pdfua1_heading_fixture(heading_types, "save PDF/UA-1 heading-structure fixture")
 }
 
 pub fn pdfua1_rule_7_2_36_fixture(case: &str) -> Vec<u8> {
