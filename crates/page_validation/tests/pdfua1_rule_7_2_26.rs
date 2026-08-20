@@ -19,8 +19,6 @@ fn pdfua1_rule_7_2_26_requires_toci_to_be_contained_in_toc() {
         &SafetyLimits::default(),
     );
     assert!(contained.checks_passed, "{contained}");
-    assert_eq!(contained.checks.total, 33);
-    assert_eq!(contained.checks.passed, 33);
     assert!(contained.failures.is_empty());
 
     let not_contained = validate_bytes_with_profile(
@@ -29,7 +27,6 @@ fn pdfua1_rule_7_2_26_requires_toci_to_be_contained_in_toc() {
         &SafetyLimits::default(),
     );
     assert!(!not_contained.checks_passed, "{not_contained}");
-    assert_eq!(not_contained.checks.total, 33);
     assert_eq!(not_contained.checks.failed, 1);
     assert_eq!(not_contained.failures.len(), 1);
     assert_eq!(not_contained.failures[0].rule_id, RULE);

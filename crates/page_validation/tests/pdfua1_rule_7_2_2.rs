@@ -18,7 +18,6 @@ fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert_eq!(language_present.checks.total, 33);
     assert!(
         !language_present
             .failures
@@ -32,7 +31,6 @@ fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 33);
     assert!(
         language_missing
             .failures

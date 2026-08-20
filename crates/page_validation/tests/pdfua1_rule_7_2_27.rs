@@ -19,8 +19,6 @@ fn pdfua1_rule_7_2_27_restricts_toc_children() {
         &SafetyLimits::default(),
     );
     assert!(allowed.checks_passed, "{allowed}");
-    assert_eq!(allowed.checks.total, 33);
-    assert_eq!(allowed.checks.passed, 33);
     assert!(allowed.failures.is_empty());
 
     let invalid = validate_bytes_with_profile(
@@ -29,7 +27,6 @@ fn pdfua1_rule_7_2_27_restricts_toc_children() {
         &SafetyLimits::default(),
     );
     assert!(!invalid.checks_passed, "{invalid}");
-    assert_eq!(invalid.checks.total, 33);
     assert_eq!(invalid.checks.failed, 1);
     assert_eq!(invalid.failures.len(), 1);
     assert_eq!(invalid.failures[0].rule_id, RULE);

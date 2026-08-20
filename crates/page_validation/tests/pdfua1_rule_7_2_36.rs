@@ -8,50 +8,47 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-TOC-CAPTION-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:28";
+const RULE: &str = "PDFUA1-THEAD-KIDS-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:36";
 
 #[test]
-fn pdfua1_rule_7_2_28_allows_caption_only_as_first_toc_kid() {
-    let caption_first = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-28-caption-first.pdf"),
+fn pdfua1_rule_7_2_36_restricts_thead_children_to_tr() {
+    let allowed = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-2-36-allowed.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(caption_first.checks_passed, "{caption_first}");
-    assert!(caption_first.failures.is_empty());
+    assert!(allowed.checks_passed, "{allowed}");
+    assert!(allowed.failures.is_empty());
 
-    let caption_not_first = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-28-caption-not-first.pdf"),
+    let invalid = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-2-36-invalid.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!caption_not_first.checks_passed, "{caption_not_first}");
-    assert_eq!(caption_not_first.checks.failed, 1);
-    assert_eq!(caption_not_first.failures.len(), 1);
-    assert_eq!(caption_not_first.failures[0].rule_id, RULE);
+    assert!(!invalid.checks_passed, "{invalid}");
+    assert_eq!(invalid.checks.failed, 1);
+    assert_eq!(invalid.failures.len(), 1);
+    assert_eq!(invalid.failures[0].rule_id, RULE);
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-28 fixtures"]
-fn regenerate_pdfua1_rule_7_2_28_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-36 fixtures"]
+fn regenerate_pdfua1_rule_7_2_36_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-2-28-caption-first.pdf", "caption_first"),
-        (
-            "pdfua1-rule-7-2-28-caption-not-first.pdf",
-            "caption_not_first",
-        ),
+        ("pdfua1-rule-7-2-36-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-2-36-invalid.pdf", "invalid"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_2_28_fixture(case),
+            common::pdfua1_rule_7_2_36_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-28 fixture");
+        .expect("write PDF/UA-1 rule 7.2-36 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_28_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_36_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -59,8 +56,8 @@ fn pdfua1_rule_7_2_28_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-2-28-caption-first.pdf", false),
-        ("pdfua1-rule-7-2-28-caption-not-first.pdf", true),
+        ("pdfua1-rule-7-2-36-allowed.pdf", false),
+        ("pdfua1-rule-7-2-36-invalid.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -69,7 +66,7 @@ fn pdfua1_rule_7_2_28_fixtures_match_verapdf_when_opted_in() {
         let failed = report
             .reference_result
             .as_ref()
-            .unwrap_or_else(|| panic!("{report}"))
+            .expect("veraPDF result")
             .failed_rule_ids
             .iter()
             .map(ToString::to_string)

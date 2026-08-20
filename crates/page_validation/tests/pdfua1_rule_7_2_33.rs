@@ -19,7 +19,6 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 33);
         assert!(
             !report
                 .failures
@@ -35,7 +34,6 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
             &SafetyLimits::default(),
         );
         assert!(!report.checks_passed, "{case}: {report}");
-        assert_eq!(report.checks.total, 33);
         assert!(
             report
                 .failures

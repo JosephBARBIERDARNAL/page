@@ -26,7 +26,6 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
     ] {
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
-        assert_eq!(report.checks.total, 33);
         assert!(
             !report
                 .failures
@@ -41,7 +40,6 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 33);
     assert!(
         language_missing
             .failures

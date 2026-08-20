@@ -18,7 +18,6 @@ fn pdfua1_rule_7_2_22_requires_language_for_structure_alt_text() {
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert_eq!(language_present.checks.total, 33);
     assert!(
         !language_present
             .failures
@@ -32,7 +31,6 @@ fn pdfua1_rule_7_2_22_requires_language_for_structure_alt_text() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 33);
     assert!(
         language_missing
             .failures

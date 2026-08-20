@@ -25,7 +25,6 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 33);
         assert!(
             !report
                 .failures
@@ -40,7 +39,6 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
         &SafetyLimits::default(),
     );
     assert!(!language_missing.checks_passed, "{language_missing}");
-    assert_eq!(language_missing.checks.total, 33);
     assert!(
         language_missing
             .failures

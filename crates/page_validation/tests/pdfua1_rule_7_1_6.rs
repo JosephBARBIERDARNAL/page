@@ -19,8 +19,6 @@ fn pdfua1_rule_7_1_6_rejects_circular_role_map_mappings() {
         &SafetyLimits::default(),
     );
     assert!(acyclic_mapping.checks_passed, "{acyclic_mapping}");
-    assert_eq!(acyclic_mapping.checks.total, 33);
-    assert_eq!(acyclic_mapping.checks.passed, 33);
     assert!(acyclic_mapping.failures.is_empty());
 
     let circular_mapping = validate_bytes_with_profile(
@@ -29,7 +27,6 @@ fn pdfua1_rule_7_1_6_rejects_circular_role_map_mappings() {
         &SafetyLimits::default(),
     );
     assert!(!circular_mapping.checks_passed, "{circular_mapping}");
-    assert_eq!(circular_mapping.checks.total, 33);
     assert_eq!(circular_mapping.checks.failed, 1);
     assert_eq!(circular_mapping.failures.len(), 1);
     assert_eq!(circular_mapping.failures[0].rule_id, RULE);

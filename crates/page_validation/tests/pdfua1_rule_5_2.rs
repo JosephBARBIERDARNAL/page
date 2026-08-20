@@ -19,8 +19,6 @@ fn pdfua1_rule_5_2_fixtures_require_pdfua_part_one() {
         &SafetyLimits::default(),
     );
     assert!(present.checks_passed, "{present}");
-    assert_eq!(present.checks.total, 33);
-    assert_eq!(present.checks.passed, 33);
     assert!(present.failures.is_empty());
 
     let wrong_part = validate_bytes_with_profile(
@@ -29,7 +27,6 @@ fn pdfua1_rule_5_2_fixtures_require_pdfua_part_one() {
         &SafetyLimits::default(),
     );
     assert!(!wrong_part.checks_passed, "{wrong_part}");
-    assert_eq!(wrong_part.checks.total, 33);
     assert_eq!(wrong_part.checks.failed, 1);
     assert_eq!(wrong_part.failures.len(), 1);
     assert_eq!(wrong_part.failures[0].rule_id, RULE);

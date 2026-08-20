@@ -2409,6 +2409,86 @@ pub fn pdfua1_rule_7_2_3_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_36_fixture(case: &str) -> Vec<u8> {
+    let child_type = match case {
+        "allowed" => "TR",
+        "invalid" => "P",
+        _ => panic!("unknown PDF/UA-1 rule 7.2-36 fixture case {case}"),
+    };
+    let mut document = Document::load_mem(&pdfua1_rule_7_2_3_fixture("allowed"))
+        .expect("load PDF/UA-1 THead children fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let table_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .last()
+        .expect("PDF/UA-1 fixture table")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture table");
+    let thead_id = {
+        let table = document
+            .get_object(table_id)
+            .expect("PDF/UA-1 fixture table")
+            .as_dict()
+            .expect("PDF/UA-1 fixture table dictionary");
+        table
+            .get(b"K")
+            .expect("PDF/UA-1 fixture table kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture table kids array")
+            .iter()
+            .find_map(|kid| {
+                let kid_id = kid.as_reference().ok()?;
+                let structure_type = document
+                    .get_object(kid_id)
+                    .ok()?
+                    .as_dict()
+                    .ok()?
+                    .get(b"S")
+                    .ok()?
+                    .as_name()
+                    .ok()?;
+                (structure_type == b"THead").then_some(kid_id)
+            })
+            .expect("PDF/UA-1 fixture THead")
+    };
+    let child_id = document.add_object(dictionary! {
+        "S" => child_type,
+        "P" => Object::Reference(thead_id),
+    });
+    document
+        .get_object_mut(thead_id)
+        .expect("PDF/UA-1 fixture THead")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture THead dictionary")
+        .set("K", vec![Object::Reference(child_id)]);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-36 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_24_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 annotation-language fixture");

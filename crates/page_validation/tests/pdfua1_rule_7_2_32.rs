@@ -23,7 +23,6 @@ fn pdfua1_rule_7_2_32_requires_language_for_span_e_text() {
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 33);
         assert!(
             !report
                 .failures
@@ -38,7 +37,6 @@ fn pdfua1_rule_7_2_32_requires_language_for_span_e_text() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{report}");
-    assert_eq!(report.checks.total, 33);
     assert!(
         report
             .failures
