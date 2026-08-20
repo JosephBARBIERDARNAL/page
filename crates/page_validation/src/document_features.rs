@@ -47,6 +47,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
+    pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
@@ -563,6 +564,7 @@ pub(crate) fn inspect(
         table_elements_with_unequal_row_column_spans: structure_tree
             .table_elements_with_unequal_row_column_spans,
         table_cells_with_undetermined_headers: structure_tree.table_cells_with_undetermined_headers,
+        table_cells_with_undefined_headers: structure_tree.table_cells_with_undefined_headers,
         figure_elements_missing_alternative_text: structure_tree
             .figure_elements_missing_alternative_text,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
@@ -856,6 +858,7 @@ struct StructureTreeSummary {
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
+    table_cells_with_undefined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
@@ -921,6 +924,7 @@ fn inspect_structure_tree(
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
+        table_cells_with_undefined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
@@ -1475,9 +1479,12 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"Table".as_slice()) {
-        summary.table_cells_with_undetermined_headers.extend(
-            table_cells_with_undetermined_headers(document, dictionary, context.role_map, limits)?,
-        );
+        let (undetermined, undefined) =
+            table_header_failures(document, dictionary, context.role_map, limits)?;
+        summary
+            .table_cells_with_undetermined_headers
+            .extend(undetermined);
+        summary.table_cells_with_undefined_headers.extend(undefined);
     }
     if resolved_type == Some(b"THead".as_slice())
         && table_section_contains_invalid_child(
@@ -2136,17 +2143,17 @@ fn table_has_connected_header(cells: &[Vec<Option<TableGridCell>>], cell: &Table
     false
 }
 
-fn table_cells_with_undetermined_headers(
+fn table_header_failures(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<Vec<RuleFailure>, PdfError> {
+) -> Result<(Vec<RuleFailure>, Vec<RuleFailure>), PdfError> {
     let Some(cells) = table_grid(document, dictionary, role_map, limits)? else {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), Vec::new()));
     };
     if cells.is_empty() {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), Vec::new()));
     }
 
     let mut header_ids = BTreeSet::new();
@@ -2171,9 +2178,11 @@ fn table_cells_with_undetermined_headers(
         }
     }
     if every_header_has_scope {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), Vec::new()));
     }
 
+    let mut undetermined = Vec::new();
+    let mut undefined = Vec::new();
     for (row_number, row) in cells.iter().enumerate() {
         for cell in row.iter().enumerate().filter_map(|(column_number, cell)| {
             cell.as_ref().filter(|cell| {
@@ -2193,21 +2202,36 @@ fn table_cells_with_undetermined_headers(
                 {
                     continue;
                 }
-                // Undefined /Headers values are the separate 7.5-2 check.
+                let unknown_headers = cell
+                    .headers
+                    .iter()
+                    .filter(|header| !header_ids.contains(*header))
+                    .map(|header| String::from_utf8_lossy(header).into_owned())
+                    .collect::<Vec<_>>();
+                if table_has_connected_header(&cells, cell) {
+                    continue;
+                }
+                undefined.push(RuleFailure {
+                    object_id: cell.object_id.map(Into::into),
+                    description: format!(
+                        "a TD references undefined header(s) {} and its headers cannot be determined algorithmically",
+                        unknown_headers.join(", ")
+                    ),
+                });
                 continue;
             }
             if table_has_connected_header(&cells, cell) {
                 continue;
             }
-            return Ok(vec![RuleFailure {
+            undetermined.push(RuleFailure {
                 object_id: cell.object_id.map(Into::into),
                 description:
                     "a TD has no /Headers attribute and its headers cannot be determined algorithmically"
                         .to_owned(),
-            }]);
+            });
         }
     }
-    Ok(Vec::new())
+    Ok((undetermined, undefined))
 }
 
 fn direct_structure_kids<'a>(

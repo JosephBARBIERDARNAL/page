@@ -638,6 +638,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .table_cells_with_undefined_headers,
+            "PDFUA1-TABLE-HEADERS-UNDEFINED-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .figure_elements_missing_alternative_text,
             "PDFUA1-FIGURE-ALTERNATIVE-TEXT-001",
             None,
