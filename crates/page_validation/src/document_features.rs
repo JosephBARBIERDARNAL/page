@@ -50,6 +50,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) formula_elements_missing_alternative_text: Vec<RuleFailure>,
+    pub(crate) note_elements_missing_id: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     pub(crate) heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -570,6 +571,7 @@ pub(crate) fn inspect(
             .figure_elements_missing_alternative_text,
         formula_elements_missing_alternative_text: structure_tree
             .formula_elements_missing_alternative_text,
+        note_elements_missing_id: structure_tree.note_elements_missing_id,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
         structure_elements_with_multiple_h_children: structure_tree
             .structure_elements_with_multiple_h_children,
@@ -864,6 +866,7 @@ struct StructureTreeSummary {
     table_cells_with_undefined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     formula_elements_missing_alternative_text: Vec<RuleFailure>,
+    note_elements_missing_id: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -931,6 +934,7 @@ fn inspect_structure_tree(
         table_cells_with_undefined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
         formula_elements_missing_alternative_text: Vec::new(),
+        note_elements_missing_id: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
         heading_elements_with_h_in_presence_of_hn: Vec::new(),
@@ -1395,6 +1399,15 @@ fn inspect_structure_element(
             description:
                 "a Formula structure element has neither a non-empty /Alt nor an /ActualText string"
                     .to_owned(),
+        });
+    }
+    if resolved_type == Some(b"Note".as_slice())
+        && !has_non_empty_text_attribute(document, dictionary, limits, b"ID")?
+    {
+        summary.note_elements_missing_id.push(RuleFailure {
+            object_id,
+            description: "a Note structure element does not contain a non-empty /ID string"
+                .to_owned(),
         });
     }
     if resolved_type == Some(b"TOC".as_slice())
