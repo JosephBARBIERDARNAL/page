@@ -7,13 +7,13 @@
 === "macOS/Linux"
 
       ```sh
-      curl -fsSL https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.sh | sh
+      curl -fsSL https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.sh | sh
       ```
 
 === "PowerShell"
 
       ```sh
-      irm https://github.com/josephbarbierdarnal/page/releases/download/v0.3.1/page_cli-installer.ps1 | iex
+      irm https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.ps1 | iex
       ```
 
 === "Cargo"
