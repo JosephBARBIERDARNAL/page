@@ -51,6 +51,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) formula_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) note_elements_missing_id: Vec<RuleFailure>,
+    pub(crate) note_elements_with_duplicate_id: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     pub(crate) heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -572,6 +573,7 @@ pub(crate) fn inspect(
         formula_elements_missing_alternative_text: structure_tree
             .formula_elements_missing_alternative_text,
         note_elements_missing_id: structure_tree.note_elements_missing_id,
+        note_elements_with_duplicate_id: structure_tree.note_elements_with_duplicate_id,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
         structure_elements_with_multiple_h_children: structure_tree
             .structure_elements_with_multiple_h_children,
@@ -867,6 +869,9 @@ struct StructureTreeSummary {
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     formula_elements_missing_alternative_text: Vec<RuleFailure>,
     note_elements_missing_id: Vec<RuleFailure>,
+    note_elements_with_duplicate_id: Vec<RuleFailure>,
+    note_id_owners: BTreeMap<Vec<u8>, Option<PdfObjectId>>,
+    duplicate_note_ids: BTreeSet<Vec<u8>>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -935,6 +940,9 @@ fn inspect_structure_tree(
         figure_elements_missing_alternative_text: Vec::new(),
         formula_elements_missing_alternative_text: Vec::new(),
         note_elements_missing_id: Vec::new(),
+        note_elements_with_duplicate_id: Vec::new(),
+        note_id_owners: BTreeMap::new(),
+        duplicate_note_ids: BTreeSet::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
         heading_elements_with_h_in_presence_of_hn: Vec::new(),
@@ -1401,14 +1409,32 @@ fn inspect_structure_element(
                     .to_owned(),
         });
     }
-    if resolved_type == Some(b"Note".as_slice())
-        && !has_non_empty_text_attribute(document, dictionary, limits, b"ID")?
-    {
-        summary.note_elements_missing_id.push(RuleFailure {
-            object_id,
-            description: "a Note structure element does not contain a non-empty /ID string"
-                .to_owned(),
-        });
+    if resolved_type == Some(b"Note".as_slice()) {
+        let note_id = non_empty_text_attribute_bytes(document, dictionary, limits, b"ID")?;
+        if let Some(note_id) = note_id {
+            if let Some(first_object_id) = summary.note_id_owners.get(&note_id).copied() {
+                if summary.duplicate_note_ids.insert(note_id) {
+                    summary.note_elements_with_duplicate_id.push(RuleFailure {
+                        object_id: first_object_id,
+                        description: "a Note structure element has an ID shared with another Note"
+                            .to_owned(),
+                    });
+                }
+                summary.note_elements_with_duplicate_id.push(RuleFailure {
+                    object_id,
+                    description: "a Note structure element has an ID shared with another Note"
+                        .to_owned(),
+                });
+            } else {
+                summary.note_id_owners.insert(note_id, object_id);
+            }
+        } else {
+            summary.note_elements_missing_id.push(RuleFailure {
+                object_id,
+                description: "a Note structure element does not contain a non-empty /ID string"
+                    .to_owned(),
+            });
+        }
     }
     if resolved_type == Some(b"TOC".as_slice())
         && contains_caption_not_first(
@@ -2430,6 +2456,23 @@ fn has_non_empty_text_attribute(
         resolve_optional(document, value, limits.max_reference_depth)?,
         Some(Object::String(bytes, _)) if !bytes.is_empty()
     ))
+}
+
+fn non_empty_text_attribute_bytes(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+    key: &[u8],
+) -> Result<Option<Vec<u8>>, PdfError> {
+    let Some(value) = dictionary.get(key).ok() else {
+        return Ok(None);
+    };
+    Ok(
+        match resolve_optional(document, value, limits.max_reference_depth)? {
+            Some(Object::String(bytes, _)) if !bytes.is_empty() => Some(bytes.clone()),
+            _ => None,
+        },
+    )
 }
 
 /// Walks one name-tree node (an intermediate node with `/Kids`, a leaf with
