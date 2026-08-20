@@ -49,6 +49,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) list_items_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
@@ -584,6 +585,7 @@ pub(crate) fn inspect(
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
         list_elements_with_invalid_children: structure_tree.list_elements_with_invalid_children,
+        list_items_with_invalid_children: structure_tree.list_items_with_invalid_children,
         table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
@@ -903,6 +905,7 @@ struct StructureTreeSummary {
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_invalid_children: Vec<RuleFailure>,
+    list_items_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_invalid_children: Vec<RuleFailure>,
     thead_elements_with_invalid_children: Vec<RuleFailure>,
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
@@ -990,6 +993,7 @@ fn inspect_structure_tree(
         toc_elements_with_caption_not_first: Vec::new(),
         list_elements_with_caption_not_first: Vec::new(),
         list_elements_with_invalid_children: Vec::new(),
+        list_items_with_invalid_children: Vec::new(),
         table_elements_with_invalid_children: Vec::new(),
         thead_elements_with_invalid_children: Vec::new(),
         tbody_elements_with_invalid_children: Vec::new(),
@@ -1661,6 +1665,21 @@ fn inspect_structure_element(
                     .to_owned(),
             });
     }
+    if resolved_type == Some(b"LI".as_slice())
+        && list_item_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary.list_items_with_invalid_children.push(RuleFailure {
+            object_id,
+            description: "an LI structure element contains a child other than Lbl or LBody"
+                .to_owned(),
+        });
+    }
     if !crate::unicode_names::is_valid_utf8(structure_type) {
         summary.invalid_unicode_structure_types.push(RuleFailure {
             object_id,
@@ -2077,6 +2096,23 @@ fn list_contains_invalid_child(
         max_reference_depth,
         max_object_count,
         |structure_type| !matches!(structure_type, Some(b"L" | b"LI" | b"Caption")),
+    )
+}
+
+fn list_item_contains_invalid_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| !matches!(structure_type, Some(b"Lbl" | b"LBody")),
     )
 }
 
