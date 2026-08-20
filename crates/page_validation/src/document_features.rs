@@ -46,6 +46,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
@@ -561,6 +562,7 @@ pub(crate) fn inspect(
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
             .table_elements_with_unequal_row_column_spans,
+        table_cells_with_undetermined_headers: structure_tree.table_cells_with_undetermined_headers,
         figure_elements_missing_alternative_text: structure_tree
             .figure_elements_missing_alternative_text,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
@@ -853,6 +855,7 @@ struct StructureTreeSummary {
     table_elements_with_multiple_captions: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    table_cells_with_undetermined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
@@ -917,6 +920,7 @@ fn inspect_structure_tree(
         table_elements_with_multiple_captions: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
+        table_cells_with_undetermined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
@@ -1470,6 +1474,11 @@ fn inspect_structure_element(
                         .to_owned(),
             });
     }
+    if resolved_type == Some(b"Table".as_slice()) {
+        summary.table_cells_with_undetermined_headers.extend(
+            table_cells_with_undetermined_headers(document, dictionary, context.role_map, limits)?,
+        );
+    }
     if resolved_type == Some(b"THead".as_slice())
         && table_section_contains_invalid_child(
             document,
@@ -1817,6 +1826,388 @@ fn table_grid_spans(
     }
 
     Ok((row_widths, column_ends))
+}
+
+#[derive(Clone)]
+struct TableStructureKid<'a> {
+    dictionary: &'a lopdf::Dictionary,
+    standard_type: Vec<u8>,
+    object_id: Option<ObjectId>,
+}
+
+#[derive(Clone)]
+struct TableGridCell {
+    standard_type: Vec<u8>,
+    object_id: Option<ObjectId>,
+    row: usize,
+    column: usize,
+    row_span: usize,
+    column_span: usize,
+    id: Option<Vec<u8>>,
+    headers: Vec<Vec<u8>>,
+    scope: Option<Vec<u8>>,
+}
+
+type TableCellMetadata = (Option<Vec<u8>>, Vec<Vec<u8>>, Option<Vec<u8>>);
+
+fn table_structure_kids<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<Vec<TableStructureKid<'a>>, PdfError> {
+    let Ok(kids_value) = dictionary.get(b"K") else {
+        return Ok(Vec::new());
+    };
+    let Some(kids) = resolve_optional(document, kids_value, max_reference_depth)? else {
+        return Ok(Vec::new());
+    };
+    let values = match kids {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    let mut result = Vec::new();
+    for kid in values.iter().take(max_object_count) {
+        let object_id = kid.as_reference().ok();
+        let Some(Object::Dictionary(dictionary)) =
+            resolve_optional(document, kid, max_reference_depth)?
+        else {
+            continue;
+        };
+        let Some(structure_type) = dictionary
+            .get(b"S")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+        else {
+            continue;
+        };
+        let Some(standard_type) =
+            resolved_standard_type(structure_type, role_map, max_object_count)
+        else {
+            continue;
+        };
+        result.push(TableStructureKid {
+            dictionary,
+            standard_type: standard_type.to_vec(),
+            object_id,
+        });
+    }
+    Ok(result)
+}
+
+fn table_attribute_dictionaries<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<Vec<&'a lopdf::Dictionary>, PdfError> {
+    let Some(attributes_value) = dictionary.get(b"A").ok() else {
+        return Ok(Vec::new());
+    };
+    let Some(attributes) = resolve_optional(document, attributes_value, max_reference_depth)?
+    else {
+        return Ok(Vec::new());
+    };
+    let attributes = match attributes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    let mut result = Vec::new();
+    for attribute in attributes.iter().take(max_object_count) {
+        let Some(attribute) = resolve_optional(document, attribute, max_reference_depth)?
+            .and_then(|object| object.as_dict().ok())
+        else {
+            continue;
+        };
+        if resolved_name(document, attribute, b"O", max_reference_depth)?
+            == Some(b"Table".as_slice())
+        {
+            result.push(attribute);
+        }
+    }
+    Ok(result)
+}
+
+fn table_cell_metadata(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<TableCellMetadata, PdfError> {
+    let id = match dictionary.get(b"ID") {
+        Ok(value) => {
+            resolve_optional(document, value, limits.max_reference_depth)?.and_then(|object| {
+                match object {
+                    Object::String(bytes, _) => Some(bytes.clone()),
+                    _ => None,
+                }
+            })
+        }
+        Err(_) => None,
+    };
+    let mut headers = Vec::new();
+    let mut scope = None;
+    for attribute in table_attribute_dictionaries(
+        document,
+        dictionary,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )? {
+        if let Ok(value) = attribute.get(b"Headers")
+            && let Some(Object::Array(values)) =
+                resolve_optional(document, value, limits.max_reference_depth)?
+        {
+            for header in values.iter().take(limits.max_object_count) {
+                if let Some(Object::String(bytes, _)) =
+                    resolve_optional(document, header, limits.max_reference_depth)?
+                {
+                    headers.push(bytes.clone());
+                }
+            }
+        }
+        if scope.is_none() {
+            scope = resolved_name(document, attribute, b"Scope", limits.max_reference_depth)?
+                .map(ToOwned::to_owned);
+        }
+    }
+    Ok((id, headers, scope))
+}
+
+fn table_grid(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Option<Vec<Vec<Option<TableGridCell>>>>, PdfError> {
+    let direct_kids = table_structure_kids(
+        document,
+        dictionary,
+        role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )?;
+    let mut rows = Vec::new();
+    for kid in direct_kids {
+        match kid.standard_type.as_slice() {
+            b"TR" => rows.push(kid),
+            b"THead" | b"TBody" | b"TFoot" => rows.extend(
+                table_structure_kids(
+                    document,
+                    kid.dictionary,
+                    role_map,
+                    limits.max_reference_depth,
+                    limits.max_object_count,
+                )?
+                .into_iter()
+                .filter(|child| child.standard_type == b"TR"),
+            ),
+            _ => {}
+        }
+    }
+    if rows.is_empty() {
+        return Ok(Some(Vec::new()));
+    }
+
+    let first_row = table_structure_kids(
+        document,
+        rows[0].dictionary,
+        role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )?;
+    let number_of_columns = first_row
+        .iter()
+        .filter(|kid| matches!(kid.standard_type.as_slice(), b"TH" | b"TD"))
+        .map(|kid| table_cell_spans(document, kid.dictionary, limits))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(_, column_span)| column_span)
+        .sum::<usize>();
+    let mut cells = vec![vec![None; number_of_columns]; rows.len()];
+
+    for (row_number, row) in rows.iter().enumerate() {
+        let mut column_number = 0;
+        let mut contains_cells = false;
+        for kid in table_structure_kids(
+            document,
+            row.dictionary,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )? {
+            if !matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
+                continue;
+            }
+            contains_cells = true;
+            let (row_span, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
+            while column_number < number_of_columns && cells[row_number][column_number].is_some() {
+                column_number += 1;
+            }
+            if column_number.saturating_add(column_span) > number_of_columns
+                || row_number.saturating_add(row_span) > rows.len()
+            {
+                return Ok(None);
+            }
+            if (row_number..row_number + row_span).any(|row_index| {
+                (column_number..column_number + column_span)
+                    .any(|column_index| cells[row_index][column_index].is_some())
+            }) {
+                return Ok(None);
+            }
+            let (id, headers, scope) = table_cell_metadata(document, kid.dictionary, limits)?;
+            let cell = TableGridCell {
+                standard_type: kid.standard_type,
+                object_id: kid.object_id,
+                row: row_number,
+                column: column_number,
+                row_span,
+                column_span,
+                id,
+                headers,
+                scope,
+            };
+            for row in cells.iter_mut().skip(row_number).take(row_span) {
+                for slot in row.iter_mut().skip(column_number).take(column_span) {
+                    *slot = Some(cell.clone());
+                }
+            }
+            column_number += column_span;
+        }
+        if !contains_cells && number_of_columns > 0 {
+            return Ok(None);
+        }
+    }
+    if cells.iter().any(|row| row.iter().any(Option::is_none)) {
+        return Ok(None);
+    }
+    Ok(Some(cells))
+}
+
+fn table_scope_matches(cell: &TableGridCell, expected: &[u8]) -> bool {
+    cell.scope
+        .as_deref()
+        .is_some_and(|scope| scope == b"Both" || scope == expected)
+}
+
+fn table_has_connected_header(cells: &[Vec<Option<TableGridCell>>], cell: &TableGridCell) -> bool {
+    if cell.row > 0 {
+        for (column_offset, _) in cells[0]
+            .iter()
+            .skip(cell.column)
+            .take(cell.column_span)
+            .enumerate()
+        {
+            let column = cell.column + column_offset;
+            let mut header_found = false;
+            for row in cells[..cell.row].iter().rev() {
+                let Some(header) = row[column].as_ref() else {
+                    continue;
+                };
+                if header.standard_type == b"TH" && table_scope_matches(header, b"Column") {
+                    return true;
+                }
+                if header.standard_type == b"TH" {
+                    header_found = true;
+                } else if header_found {
+                    break;
+                }
+            }
+        }
+    }
+    if cell.column > 0 {
+        for row in cells.iter().skip(cell.row).take(cell.row_span) {
+            let mut header_found = false;
+            for (column_offset, _) in cells[0].iter().take(cell.column).rev().enumerate() {
+                let column = cell.column - column_offset - 1;
+                let Some(header) = row[column].as_ref() else {
+                    continue;
+                };
+                if header.standard_type == b"TH" && table_scope_matches(header, b"Row") {
+                    return true;
+                }
+                if header.standard_type == b"TH" {
+                    header_found = true;
+                } else if header_found {
+                    break;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn table_cells_with_undetermined_headers(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let Some(cells) = table_grid(document, dictionary, role_map, limits)? else {
+        return Ok(Vec::new());
+    };
+    if cells.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut header_ids = BTreeSet::new();
+    let mut every_header_has_scope = true;
+    for (row_number, row) in cells.iter().enumerate() {
+        for (column_number, maybe_cell) in row.iter().enumerate() {
+            let Some(cell) = maybe_cell.as_ref() else {
+                continue;
+            };
+            if cell.standard_type != b"TH" || cell.row != row_number || cell.column != column_number
+            {
+                continue;
+            }
+            if let Some(id) = &cell.id
+                && !id.is_empty()
+            {
+                header_ids.insert(id.clone());
+            }
+            if cell.scope.is_none() {
+                every_header_has_scope = false;
+            }
+        }
+    }
+    if every_header_has_scope {
+        return Ok(Vec::new());
+    }
+
+    for (row_number, row) in cells.iter().enumerate() {
+        for cell in row.iter().enumerate().filter_map(|(column_number, cell)| {
+            cell.as_ref().filter(|cell| {
+                cell.standard_type == b"TD"
+                    && cell.row == row_number
+                    && cell.column == column_number
+            })
+        }) {
+            if cell.row == 0 && cell.column == 0 {
+                continue;
+            }
+            if !cell.headers.is_empty() {
+                if cell
+                    .headers
+                    .iter()
+                    .all(|header| header_ids.contains(header))
+                {
+                    continue;
+                }
+                // Undefined /Headers values are the separate 7.5-2 check.
+                continue;
+            }
+            if table_has_connected_header(&cells, cell) {
+                continue;
+            }
+            return Ok(vec![RuleFailure {
+                object_id: cell.object_id.map(Into::into),
+                description:
+                    "a TD has no /Headers attribute and its headers cannot be determined algorithmically"
+                        .to_owned(),
+            }]);
+        }
+    }
+    Ok(Vec::new())
 }
 
 fn direct_structure_kids<'a>(
