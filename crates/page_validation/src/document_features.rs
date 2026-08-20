@@ -45,6 +45,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
+    pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -554,6 +555,8 @@ pub(crate) fn inspect(
         table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
+        table_elements_with_unequal_row_column_spans: structure_tree
+            .table_elements_with_unequal_row_column_spans,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -838,6 +841,7 @@ struct StructureTreeSummary {
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_multiple_captions: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
+    table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -894,6 +898,7 @@ fn inspect_structure_tree(
         tfoot_elements_with_invalid_children: Vec::new(),
         table_elements_with_multiple_captions: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
+        table_elements_with_unequal_row_column_spans: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1372,6 +1377,18 @@ fn inspect_structure_element(
                         .to_owned(),
             });
     }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_has_unequal_row_column_spans(document, dictionary, context.role_map, limits)?
+    {
+        summary
+            .table_elements_with_unequal_row_column_spans
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a Table structure element has rows spanning different numbers of columns"
+                        .to_owned(),
+            });
+    }
     if resolved_type == Some(b"THead".as_slice())
         && table_section_contains_invalid_child(
             document,
@@ -1592,9 +1609,31 @@ fn table_has_unequal_column_row_spans(
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    // PDF/UA-1 7.2-41 is evaluated on the direct Table/section/TR/TH/TD structure hierarchy.
-    // Cell overlap and row-width consistency remain separate predicates, while ColSpan is read
-    // here only to locate the columns whose row spans are compared.
+    let (_, column_ends) = table_grid_spans(document, dictionary, role_map, limits)?;
+
+    Ok(column_ends
+        .first()
+        .is_some_and(|first| column_ends.iter().any(|end| end != first)))
+}
+
+fn table_has_unequal_row_column_spans(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let (row_widths, _) = table_grid_spans(document, dictionary, role_map, limits)?;
+    Ok(row_widths
+        .first()
+        .is_some_and(|first| row_widths.iter().any(|width| width != first)))
+}
+
+fn table_grid_spans(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<(Vec<usize>, Vec<usize>), PdfError> {
     let mut rows = Vec::new();
     for (child, structure_type) in direct_structure_kids(
         document,
@@ -1622,8 +1661,13 @@ fn table_has_unequal_column_row_spans(
         }
     }
 
+    let mut row_widths = Vec::with_capacity(rows.len());
     let mut column_ends = Vec::new();
     for (row_index, row) in rows.iter().enumerate() {
+        let mut row_width = column_ends
+            .iter()
+            .rposition(|end| *end > row_index)
+            .map_or(0, |column| column.saturating_add(1));
         let cells = direct_structure_kids(
             document,
             row,
@@ -1636,26 +1680,27 @@ fn table_has_unequal_column_row_spans(
                 continue;
             }
             let (row_span, column_span) = table_cell_spans(document, cell, limits)?;
-            let mut column = 0;
+            let mut column = 0_usize;
             loop {
-                if column + column_span > column_ends.len() {
-                    column_ends.resize(column + column_span, 0);
+                let column_after_cell = column.saturating_add(column_span);
+                if column_after_cell > column_ends.len() {
+                    column_ends.resize(column_after_cell, 0);
                 }
-                if (column..column + column_span).all(|index| column_ends[index] <= row_index) {
+                if (column..column_after_cell).all(|index| column_ends[index] <= row_index) {
+                    row_width = row_width.max(column_after_cell);
                     break;
                 }
-                column += 1;
+                column = column.saturating_add(1);
             }
             let row_end = row_index.saturating_add(row_span);
             for end in column_ends.iter_mut().skip(column).take(column_span) {
                 *end = (*end).max(row_end);
             }
         }
+        row_widths.push(row_width);
     }
 
-    Ok(column_ends
-        .first()
-        .is_some_and(|first| column_ends.iter().any(|end| end != first)))
+    Ok((row_widths, column_ends))
 }
 
 fn direct_structure_kids<'a>(
