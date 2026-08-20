@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 174] = [
+    let fixtures: [(&str, &[u8], &str); 177] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -467,6 +467,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-2-15-invalid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-2-15-invalid.pdf"),
             "6c70dc4d6ae28445225f29f1b0f69228145a558cf6cbfa95b2fca9d2719a1867",
+        ),
+        (
+            "pdfua1-rule-7-2-16-caption-first.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-16-caption-first.pdf"),
+            "66a2b4cfc986699bf6fcd9bde28e8e49feb1738e13d7fba14c1a1fee37c4a065",
+        ),
+        (
+            "pdfua1-rule-7-2-16-caption-last.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-16-caption-last.pdf"),
+            "ab629721f5b9541124849aef50fa615d399a544f20b566f51e563d735f510101",
+        ),
+        (
+            "pdfua1-rule-7-2-16-caption-middle.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-2-16-caption-middle.pdf"),
+            "701f25602c378a3f5ba338156b6a038130e63f395c8f9c34601a2a8c727afa6c",
         ),
         (
             "pdfua1-rule-7-2-36-allowed.pdf",
