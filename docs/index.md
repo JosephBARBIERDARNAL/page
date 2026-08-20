@@ -29,7 +29,7 @@
 
 ## Roadmap
 
-Current focus is on PDF/UA-1, see the [reference issue](https://github.com/JosephBARBIERDARNAL/page/issues/61).
+Current focus is on **PDF/UA-1**, see the [reference issue](https://github.com/JosephBARBIERDARNAL/page/issues/61).
 
 - [x] PDF/A-1a
 - [x] PDF/A-1b
