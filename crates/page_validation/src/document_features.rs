@@ -57,6 +57,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    pub(crate) table_cells_with_intersections: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
     pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
@@ -591,6 +592,7 @@ pub(crate) fn inspect(
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
             .table_elements_with_unequal_row_column_spans,
+        table_cells_with_intersections: structure_tree.table_cells_with_intersections,
         table_cells_with_undetermined_headers: structure_tree.table_cells_with_undetermined_headers,
         table_cells_with_undefined_headers: structure_tree.table_cells_with_undefined_headers,
         figure_elements_missing_alternative_text: structure_tree
@@ -900,6 +902,7 @@ struct StructureTreeSummary {
     table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    table_cells_with_intersections: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
     table_cells_with_undefined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
@@ -982,6 +985,7 @@ fn inspect_structure_tree(
         table_elements_with_thead_without_tbody: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
+        table_cells_with_intersections: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
         table_cells_with_undefined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
@@ -1741,6 +1745,16 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"Table".as_slice()) {
+        summary
+            .table_cells_with_intersections
+            .extend(table_cell_intersection_failures(
+                document,
+                dictionary,
+                context.role_map,
+                limits,
+            )?);
+    }
+    if resolved_type == Some(b"Table".as_slice()) {
         let (undetermined, undefined) =
             table_header_failures(document, dictionary, context.role_map, limits)?;
         summary
@@ -2286,21 +2300,20 @@ fn table_cell_metadata(
     Ok((id, headers, scope))
 }
 
-fn table_grid(
-    document: &Document,
-    dictionary: &lopdf::Dictionary,
-    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+fn table_rows<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<Option<Vec<Vec<Option<TableGridCell>>>>, PdfError> {
-    let direct_kids = table_structure_kids(
+) -> Result<Vec<TableStructureKid<'a>>, PdfError> {
+    let mut rows = Vec::new();
+    for kid in table_structure_kids(
         document,
         dictionary,
         role_map,
         limits.max_reference_depth,
         limits.max_object_count,
-    )?;
-    let mut rows = Vec::new();
-    for kid in direct_kids {
+    )? {
         match kid.standard_type.as_slice() {
             b"TR" => rows.push(kid),
             b"THead" | b"TBody" | b"TFoot" => rows.extend(
@@ -2317,6 +2330,109 @@ fn table_grid(
             _ => {}
         }
     }
+    Ok(rows)
+}
+
+fn table_cell_intersection_failures<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let rows = table_rows(document, dictionary, role_map, limits)?;
+    let Some(first_row) = rows.first() else {
+        return Ok(Vec::new());
+    };
+    let first_row_cells = table_structure_kids(
+        document,
+        first_row.dictionary,
+        role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )?;
+    let number_of_columns = first_row_cells
+        .iter()
+        .filter(|kid| matches!(kid.standard_type.as_slice(), b"TH" | b"TD"))
+        .map(|kid| table_cell_spans(document, kid.dictionary, limits))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(_, column_span)| column_span)
+        .sum::<usize>();
+    if number_of_columns == 0 {
+        return Ok(Vec::new());
+    }
+    let mut number_of_rows = rows.len();
+    for (row_number, row) in rows.iter().enumerate() {
+        for kid in table_structure_kids(
+            document,
+            row.dictionary,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )? {
+            if matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
+                let (row_span, _) = table_cell_spans(document, kid.dictionary, limits)?;
+                number_of_rows = number_of_rows.max(row_number.saturating_add(row_span));
+            }
+        }
+    }
+    let mut cells: Vec<Vec<Option<TableStructureKid<'a>>>> =
+        vec![vec![None; number_of_columns]; number_of_rows];
+    for (row_number, row) in rows.iter().enumerate() {
+        let mut column_number = 0;
+        for kid in table_structure_kids(
+            document,
+            row.dictionary,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )? {
+            if !matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
+                continue;
+            }
+            let (row_span, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
+            while column_number < number_of_columns && cells[row_number][column_number].is_some() {
+                column_number += 1;
+            }
+            if column_number.saturating_add(column_span) > number_of_columns
+                || row_number.saturating_add(row_span) > number_of_rows
+            {
+                return Ok(Vec::new());
+            }
+            if let Some(existing) = (row_number..row_number + row_span).find_map(|row_index| {
+                (column_number..column_number + column_span)
+                    .find_map(|column_index| cells[row_index][column_index].as_ref())
+            }) {
+                let mut object_ids = BTreeSet::new();
+                object_ids.insert(kid.object_id.map(Into::into));
+                object_ids.insert(existing.object_id.map(Into::into));
+                return Ok(object_ids
+                    .into_iter()
+                    .map(|object_id| RuleFailure {
+                        object_id,
+                        description: "a table cell has an intersection with another table cell"
+                            .to_owned(),
+                    })
+                    .collect());
+            }
+            for row in cells.iter_mut().skip(row_number).take(row_span) {
+                for slot in row.iter_mut().skip(column_number).take(column_span) {
+                    *slot = Some(kid.clone());
+                }
+            }
+            column_number += column_span;
+        }
+    }
+    Ok(Vec::new())
+}
+
+fn table_grid(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Option<Vec<Vec<Option<TableGridCell>>>>, PdfError> {
+    let rows = table_rows(document, dictionary, role_map, limits)?;
     if rows.is_empty() {
         return Ok(Some(Vec::new()));
     }

@@ -716,6 +716,12 @@ fn validate_document(
             &mut failures,
         );
         aggregate_failures_with_location(
+            &inspections.document_features.table_cells_with_intersections,
+            "PDFUA1-TABLE-CELL-INTERSECTION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
             &inspections
                 .document_features
                 .table_cells_with_undetermined_headers,
