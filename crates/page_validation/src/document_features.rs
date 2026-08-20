@@ -41,6 +41,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -546,6 +547,7 @@ pub(crate) fn inspect(
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
         tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
+        table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -827,6 +829,7 @@ struct StructureTreeSummary {
     thead_elements_with_invalid_children: Vec<RuleFailure>,
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
+    table_elements_with_multiple_captions: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -880,6 +883,7 @@ fn inspect_structure_tree(
         thead_elements_with_invalid_children: Vec::new(),
         tbody_elements_with_invalid_children: Vec::new(),
         tfoot_elements_with_invalid_children: Vec::new(),
+        table_elements_with_multiple_captions: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1311,6 +1315,23 @@ fn inspect_structure_element(
                 description: "a Table structure element contains a child other than TR, THead, TBody, TFoot, or Caption".to_owned(),
             });
     }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_multiple_captions(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .table_elements_with_multiple_captions
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains more than one Caption child"
+                    .to_owned(),
+            });
+    }
     if resolved_type == Some(b"THead".as_slice())
         && table_section_contains_invalid_child(
             document,
@@ -1481,6 +1502,29 @@ fn table_contains_invalid_child(
                 structure_type,
                 Some(b"TR" | b"THead" | b"TBody" | b"TFoot" | b"Caption")
             )
+        },
+    )
+}
+
+fn table_contains_multiple_captions(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    let mut captions = 0;
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| {
+            if structure_type == Some(b"Caption".as_slice()) {
+                captions += 1;
+            }
+            captions >= 2
         },
     )
 }

@@ -2421,6 +2421,64 @@ pub fn pdfua1_rule_7_2_38_fixture(case: &str) -> Vec<u8> {
     pdfua1_table_section_fixture(case, "TFoot", "7.2-38")
 }
 
+pub fn pdfua1_rule_7_2_39_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_2_3_fixture("allowed"))
+        .expect("load PDF/UA-1 table Caption fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let table_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .last()
+        .expect("PDF/UA-1 fixture table")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture table");
+
+    if case == "invalid" {
+        let caption_id = document.add_object(dictionary! {
+            "S" => "Caption",
+            "P" => Object::Reference(table_id),
+        });
+        document
+            .get_object_mut(table_id)
+            .expect("PDF/UA-1 fixture table")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture table dictionary")
+            .get_mut(b"K")
+            .expect("PDF/UA-1 fixture table kids")
+            .as_array_mut()
+            .expect("PDF/UA-1 fixture table kids array")
+            .insert(0, Object::Reference(caption_id));
+    } else if case != "allowed" {
+        panic!("unknown PDF/UA-1 rule 7.2-39 fixture case {case}");
+    }
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-39 fixture");
+    bytes
+}
+
 fn pdfua1_table_section_fixture(case: &str, section_type: &str, rule: &str) -> Vec<u8> {
     let child_type = match case {
         "allowed" => "TR",
