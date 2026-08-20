@@ -19,8 +19,8 @@ fn pdfua1_rule_7_2_28_allows_caption_only_as_first_toc_kid() {
         &SafetyLimits::default(),
     );
     assert!(caption_first.checks_passed, "{caption_first}");
-    assert_eq!(caption_first.checks.total, 32);
-    assert_eq!(caption_first.checks.passed, 32);
+    assert_eq!(caption_first.checks.total, 33);
+    assert_eq!(caption_first.checks.passed, 33);
     assert!(caption_first.failures.is_empty());
 
     let caption_not_first = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_2_28_allows_caption_only_as_first_toc_kid() {
         &SafetyLimits::default(),
     );
     assert!(!caption_not_first.checks_passed, "{caption_not_first}");
-    assert_eq!(caption_not_first.checks.total, 32);
+    assert_eq!(caption_not_first.checks.total, 33);
     assert_eq!(caption_not_first.checks.failed, 1);
     assert_eq!(caption_not_first.failures.len(), 1);
     assert_eq!(caption_not_first.failures[0].rule_id, RULE);

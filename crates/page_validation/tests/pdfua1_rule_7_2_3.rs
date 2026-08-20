@@ -8,13 +8,13 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-TOC-KIDS-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:27";
+const RULE: &str = "PDFUA1-TABLE-KIDS-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:3";
 
 #[test]
-fn pdfua1_rule_7_2_27_restricts_toc_children() {
+fn pdfua1_rule_7_2_3_restricts_table_children() {
     let allowed = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-27-allowed.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-7-2-3-allowed.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -24,7 +24,7 @@ fn pdfua1_rule_7_2_27_restricts_toc_children() {
     assert!(allowed.failures.is_empty());
 
     let invalid = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-2-27-invalid.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-7-2-3-invalid.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -36,22 +36,22 @@ fn pdfua1_rule_7_2_27_restricts_toc_children() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-27 fixtures"]
-fn regenerate_pdfua1_rule_7_2_27_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-3 fixtures"]
+fn regenerate_pdfua1_rule_7_2_3_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-2-27-allowed.pdf", "allowed"),
-        ("pdfua1-rule-7-2-27-invalid.pdf", "invalid"),
+        ("pdfua1-rule-7-2-3-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-2-3-invalid.pdf", "invalid"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_2_27_fixture(case),
+            common::pdfua1_rule_7_2_3_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.2-27 fixture");
+        .expect("write PDF/UA-1 rule 7.2-3 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_2_27_fixtures_match_verapdf_when_opted_in() {
+fn pdfua1_rule_7_2_3_fixtures_match_verapdf_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -59,8 +59,8 @@ fn pdfua1_rule_7_2_27_fixtures_match_verapdf_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-2-27-allowed.pdf", false),
-        ("pdfua1-rule-7-2-27-invalid.pdf", true),
+        ("pdfua1-rule-7-2-3-allowed.pdf", false),
+        ("pdfua1-rule-7-2-3-invalid.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -69,7 +69,7 @@ fn pdfua1_rule_7_2_27_fixtures_match_verapdf_when_opted_in() {
         let failed = report
             .reference_result
             .as_ref()
-            .unwrap_or_else(|| panic!("{report}"))
+            .expect("veraPDF result")
             .failed_rule_ids
             .iter()
             .map(ToString::to_string)

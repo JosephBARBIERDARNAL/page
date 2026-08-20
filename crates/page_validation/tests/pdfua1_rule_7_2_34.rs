@@ -24,8 +24,8 @@ fn pdfua1_rule_7_2_34_requires_language_for_page_text() {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{case}: {report}");
-        assert_eq!(report.checks.total, 32);
-        assert_eq!(report.checks.passed, 32);
+        assert_eq!(report.checks.total, 33);
+        assert_eq!(report.checks.passed, 33);
         assert!(report.failures.is_empty());
     }
 
@@ -35,7 +35,7 @@ fn pdfua1_rule_7_2_34_requires_language_for_page_text() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{report}");
-    assert_eq!(report.checks.total, 32);
+    assert_eq!(report.checks.total, 33);
     assert_eq!(report.checks.failed, 1);
     assert_eq!(report.failures.len(), 1);
     assert_eq!(report.failures[0].rule_id, RULE);

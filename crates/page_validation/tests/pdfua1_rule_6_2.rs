@@ -19,8 +19,8 @@ fn pdfua1_rule_6_2_fixtures_require_mark_info_marked_true() {
         &SafetyLimits::default(),
     );
     assert!(marked.checks_passed, "{marked}");
-    assert_eq!(marked.checks.total, 32);
-    assert_eq!(marked.checks.passed, 32);
+    assert_eq!(marked.checks.total, 33);
+    assert_eq!(marked.checks.passed, 33);
     assert!(marked.failures.is_empty());
 
     let unmarked = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_6_2_fixtures_require_mark_info_marked_true() {
         &SafetyLimits::default(),
     );
     assert!(!unmarked.checks_passed, "{unmarked}");
-    assert_eq!(unmarked.checks.total, 32);
+    assert_eq!(unmarked.checks.total, 33);
     assert_eq!(unmarked.checks.failed, 1);
     assert_eq!(unmarked.failures.len(), 1);
     assert_eq!(unmarked.failures[0].rule_id, RULE);

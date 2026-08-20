@@ -37,6 +37,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
+    pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -538,6 +539,7 @@ pub(crate) fn inspect(
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
+        table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -815,6 +817,7 @@ struct StructureTreeSummary {
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
+    table_elements_with_invalid_children: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -864,6 +867,7 @@ fn inspect_structure_tree(
         toci_elements_not_contained_in_toc: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
+        table_elements_with_invalid_children: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1279,6 +1283,22 @@ fn inspect_structure_element(
             description: "a structure element /S name is not valid UTF-8".to_owned(),
         });
     }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .table_elements_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains a child other than TR, THead, TBody, TFoot, or Caption".to_owned(),
+            });
+    }
     let contains_lang = contains_key(dictionary, b"Lang");
     if has_text_attribute(document, dictionary, limits, b"ActualText")?
         && !contains_lang
@@ -1365,20 +1385,66 @@ fn toc_contains_caption_not_first(
     // Match veraPDF's `kidsStandardTypes`: only structure-element standard
     // types participate in the order, so marked-content and integer kids are
     // intentionally ignored.
+    let mut structure_kids = 0;
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |resolved_type| {
+            let is_caption = resolved_type == Some(b"Caption".as_slice());
+            if structure_kids > 0 && is_caption {
+                return true;
+            }
+            structure_kids += 1;
+            false
+        },
+    )
+}
+
+fn table_contains_invalid_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| {
+            !matches!(
+                structure_type,
+                Some(b"TR" | b"THead" | b"TBody" | b"TFoot" | b"Caption")
+            )
+        },
+    )
+}
+
+fn any_direct_structure_kid<F>(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+    mut predicate: F,
+) -> Result<bool, PdfError>
+where
+    F: FnMut(Option<&[u8]>) -> bool,
+{
     let Ok(kids_value) = dictionary.get(b"K") else {
         return Ok(false);
     };
     let Some(kids) = resolve_optional(document, kids_value, max_reference_depth)? else {
         return Ok(false);
     };
-    let Ok(kids) = kids.as_array() else {
-        return Ok(false);
-    };
-
-    let mut structure_kids = 0;
-    for kid in kids.iter().take(max_object_count) {
+    let mut inspect_kid = |kid: &Object| -> Result<bool, PdfError> {
         let Some(kid) = resolve_optional(document, kid, max_reference_depth)? else {
-            continue;
+            return Ok(false);
         };
         let Some(structure_type) = kid
             .as_dict()
@@ -1386,14 +1452,23 @@ fn toc_contains_caption_not_first(
             .and_then(|dictionary| dictionary.get(b"S").ok())
             .and_then(|value| value.as_name().ok())
         else {
-            continue;
+            return Ok(false);
         };
-        let resolved_type = resolved_standard_type(structure_type, role_map, max_object_count);
-        let is_caption = resolved_type == Some(b"Caption".as_slice());
-        if structure_kids > 0 && is_caption {
-            return Ok(true);
+        Ok(predicate(resolved_standard_type(
+            structure_type,
+            role_map,
+            max_object_count,
+        )))
+    };
+    match kids {
+        Object::Array(kids) => {
+            for kid in kids.iter().take(max_object_count) {
+                if inspect_kid(kid)? {
+                    return Ok(true);
+                }
+            }
         }
-        structure_kids += 1;
+        kid => return inspect_kid(kid),
     }
     Ok(false)
 }
