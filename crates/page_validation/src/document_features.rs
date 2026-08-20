@@ -42,6 +42,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
     pub(crate) th_elements_not_contained_in_tr: Vec<RuleFailure>,
     pub(crate) td_elements_not_contained_in_tr: Vec<RuleFailure>,
+    pub(crate) tr_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -567,6 +568,7 @@ pub(crate) fn inspect(
         tfoot_elements_not_contained_in_table: structure_tree.tfoot_elements_not_contained_in_table,
         th_elements_not_contained_in_tr: structure_tree.th_elements_not_contained_in_tr,
         td_elements_not_contained_in_tr: structure_tree.td_elements_not_contained_in_tr,
+        tr_elements_with_invalid_children: structure_tree.tr_elements_with_invalid_children,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
@@ -873,6 +875,7 @@ struct StructureTreeSummary {
     tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
     th_elements_not_contained_in_tr: Vec<RuleFailure>,
     td_elements_not_contained_in_tr: Vec<RuleFailure>,
+    tr_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -950,6 +953,7 @@ fn inspect_structure_tree(
         tfoot_elements_not_contained_in_table: Vec::new(),
         th_elements_not_contained_in_tr: Vec::new(),
         td_elements_not_contained_in_tr: Vec::new(),
+        tr_elements_with_invalid_children: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
         list_elements_with_caption_not_first: Vec::new(),
@@ -1426,6 +1430,20 @@ fn inspect_structure_element(
                 .to_owned(),
         });
     }
+    if resolved_type == Some(b"TR".as_slice())
+        && table_row_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary.tr_elements_with_invalid_children.push(RuleFailure {
+            object_id,
+            description: "a TR structure element contains a child other than TH or TD".to_owned(),
+        });
+    }
     if let Some(heading_level) = heading_level(resolved_type) {
         let has_correct_nesting = summary
             .last_heading_level
@@ -1883,6 +1901,23 @@ fn table_section_contains_invalid_child(
         max_reference_depth,
         max_object_count,
         |structure_type| structure_type != Some(b"TR".as_slice()),
+    )
+}
+
+fn table_row_contains_invalid_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| !matches!(structure_type, Some(b"TH" | b"TD") | None),
     )
 }
 
