@@ -37,6 +37,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    pub(crate) thead_elements_not_contained_in_table: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -557,6 +558,7 @@ pub(crate) fn inspect(
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         tr_elements_not_contained_in_table_section: structure_tree
             .tr_elements_not_contained_in_table_section,
+        thead_elements_not_contained_in_table: structure_tree.thead_elements_not_contained_in_table,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
@@ -858,6 +860,7 @@ struct StructureTreeSummary {
     structure_elements_missing_parent: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    thead_elements_not_contained_in_table: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -930,6 +933,7 @@ fn inspect_structure_tree(
         structure_elements_missing_parent: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
         tr_elements_not_contained_in_table_section: Vec::new(),
+        thead_elements_not_contained_in_table: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
         list_elements_with_caption_not_first: Vec::new(),
@@ -1349,6 +1353,18 @@ fn inspect_structure_element(
                 object_id,
                 description:
                     "a TR structure element is not contained in a Table, THead, TBody, or TFoot structure element"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"THead".as_slice())
+        && context.parent_standard_type != Some(b"Table".as_slice())
+    {
+        summary
+            .thead_elements_not_contained_in_table
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a THead structure element is not contained in a Table structure element"
                         .to_owned(),
             });
     }
