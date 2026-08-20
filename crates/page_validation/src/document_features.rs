@@ -8,7 +8,8 @@ use crate::file_spec;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{
-    contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_name, walk_inherited,
+    contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
+    resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -43,6 +44,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
+    pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -550,6 +552,8 @@ pub(crate) fn inspect(
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
         tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
         table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
+        table_elements_with_unequal_column_row_spans: structure_tree
+            .table_elements_with_unequal_column_row_spans,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -833,6 +837,7 @@ struct StructureTreeSummary {
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_multiple_captions: Vec<RuleFailure>,
+    table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -888,6 +893,7 @@ fn inspect_structure_tree(
         tbody_elements_with_invalid_children: Vec::new(),
         tfoot_elements_with_invalid_children: Vec::new(),
         table_elements_with_multiple_captions: Vec::new(),
+        table_elements_with_unequal_column_row_spans: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1354,6 +1360,18 @@ fn inspect_structure_element(
                     .to_owned(),
             });
     }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_has_unequal_column_row_spans(document, dictionary, context.role_map, limits)?
+    {
+        summary
+            .table_elements_with_unequal_column_row_spans
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a Table structure element has columns spanning different numbers of rows"
+                        .to_owned(),
+            });
+    }
     if resolved_type == Some(b"THead".as_slice())
         && table_section_contains_invalid_child(
             document,
@@ -1566,6 +1584,167 @@ fn table_section_contains_invalid_child(
         max_object_count,
         |structure_type| structure_type != Some(b"TR".as_slice()),
     )
+}
+
+fn table_has_unequal_column_row_spans(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    // PDF/UA-1 7.2-41 is evaluated on the direct Table/section/TR/TH/TD structure hierarchy.
+    // Cell overlap and row-width consistency remain separate predicates, while ColSpan is read
+    // here only to locate the columns whose row spans are compared.
+    let mut rows = Vec::new();
+    for (child, structure_type) in direct_structure_kids(
+        document,
+        dictionary,
+        role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )? {
+        match structure_type {
+            b"TR" => rows.push(child),
+            b"THead" | b"TBody" | b"TFoot" => {
+                for (row, row_type) in direct_structure_kids(
+                    document,
+                    child,
+                    role_map,
+                    limits.max_reference_depth,
+                    limits.max_object_count,
+                )? {
+                    if row_type == b"TR" {
+                        rows.push(row);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut column_ends = Vec::new();
+    for (row_index, row) in rows.iter().enumerate() {
+        let cells = direct_structure_kids(
+            document,
+            row,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?;
+        for (cell, structure_type) in cells {
+            if !matches!(structure_type, b"TH" | b"TD") {
+                continue;
+            }
+            let (row_span, column_span) = table_cell_spans(document, cell, limits)?;
+            let mut column = 0;
+            loop {
+                if column + column_span > column_ends.len() {
+                    column_ends.resize(column + column_span, 0);
+                }
+                if (column..column + column_span).all(|index| column_ends[index] <= row_index) {
+                    break;
+                }
+                column += 1;
+            }
+            let row_end = row_index.saturating_add(row_span);
+            for end in column_ends.iter_mut().skip(column).take(column_span) {
+                *end = (*end).max(row_end);
+            }
+        }
+    }
+
+    Ok(column_ends
+        .first()
+        .is_some_and(|first| column_ends.iter().any(|end| end != first)))
+}
+
+fn direct_structure_kids<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<Vec<(&'a lopdf::Dictionary, &'a [u8])>, PdfError> {
+    let Ok(kids_value) = dictionary.get(b"K") else {
+        return Ok(Vec::new());
+    };
+    let Some(kids) = resolve_optional(document, kids_value, max_reference_depth)? else {
+        return Ok(Vec::new());
+    };
+    let values = match kids {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    let mut result = Vec::new();
+    for kid in values.iter().take(max_object_count) {
+        let Some(Object::Dictionary(dictionary)) =
+            resolve_optional(document, kid, max_reference_depth)?
+        else {
+            continue;
+        };
+        let Some(structure_type) = dictionary
+            .get(b"S")
+            .ok()
+            .and_then(|value| value.as_name().ok())
+        else {
+            continue;
+        };
+        let Some(structure_type) =
+            resolved_standard_type(structure_type, role_map, max_object_count)
+        else {
+            continue;
+        };
+        result.push((dictionary, structure_type));
+    }
+    Ok(result)
+}
+
+fn table_cell_spans(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<(usize, usize), PdfError> {
+    let mut row_span = 1;
+    let mut column_span = 1;
+    let Some(attributes_value) = dictionary.get(b"A").ok() else {
+        return Ok((row_span, column_span));
+    };
+    let Some(attributes) =
+        resolve_optional(document, attributes_value, limits.max_reference_depth)?
+    else {
+        return Ok((row_span, column_span));
+    };
+    let attributes = match attributes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    for attribute in attributes.iter().take(limits.max_object_count) {
+        let Some(Object::Dictionary(attribute)) =
+            resolve_optional(document, attribute, limits.max_reference_depth)?
+        else {
+            continue;
+        };
+        if resolved_name(document, attribute, b"O", limits.max_reference_depth)?
+            != Some(b"Table".as_slice())
+        {
+            continue;
+        }
+        if let Some(value) =
+            resolved_integer(document, attribute, b"RowSpan", limits.max_reference_depth)?
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|value| *value > 0)
+        {
+            row_span = value;
+        }
+        if let Some(value) =
+            resolved_integer(document, attribute, b"ColSpan", limits.max_reference_depth)?
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|value| *value > 0)
+        {
+            column_span = value;
+        }
+    }
+    Ok((row_span, column_span))
 }
 
 fn any_direct_structure_kid<F>(
