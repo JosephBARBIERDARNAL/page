@@ -550,6 +550,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .tr_elements_not_contained_in_table_section,
+            "PDFUA1-TR-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .toc_elements_with_invalid_children,
             "PDFUA1-TOC-KIDS-001",
             None,

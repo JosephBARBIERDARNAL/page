@@ -36,6 +36,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
+    pub(crate) tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -554,6 +555,8 @@ pub(crate) fn inspect(
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
+        tr_elements_not_contained_in_table_section: structure_tree
+            .tr_elements_not_contained_in_table_section,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
@@ -854,6 +857,7 @@ struct StructureTreeSummary {
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
+    tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_caption_not_first: Vec<RuleFailure>,
@@ -925,6 +929,7 @@ fn inspect_structure_tree(
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
+        tr_elements_not_contained_in_table_section: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
         list_elements_with_caption_not_first: Vec::new(),
@@ -1332,6 +1337,21 @@ fn inspect_structure_element(
     }
     let resolved_type =
         resolved_standard_type(structure_type, context.role_map, limits.max_object_count);
+    if resolved_type == Some(b"TR".as_slice())
+        && !matches!(
+            context.parent_standard_type,
+            Some(b"Table" | b"THead" | b"TBody" | b"TFoot")
+        )
+    {
+        summary
+            .tr_elements_not_contained_in_table_section
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a TR structure element is not contained in a Table, THead, TBody, or TFoot structure element"
+                        .to_owned(),
+            });
+    }
     if let Some(heading_level) = heading_level(resolved_type) {
         let has_correct_nesting = summary
             .last_heading_level

@@ -2426,6 +2426,104 @@ pub fn pdfua1_rule_7_2_3_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_4_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_2_3_fixture("allowed"))
+        .expect("load PDF/UA-1 TR parent fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+
+    let table_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .last()
+        .expect("PDF/UA-1 fixture table")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture table");
+
+    match case {
+        "contained" => {
+            let section_ids = document
+                .get_object(table_id)
+                .expect("PDF/UA-1 fixture table")
+                .as_dict()
+                .expect("PDF/UA-1 fixture table dictionary")
+                .get(b"K")
+                .expect("PDF/UA-1 fixture table kids")
+                .as_array()
+                .expect("PDF/UA-1 fixture table kids array")
+                .iter()
+                .filter_map(|kid| {
+                    let kid_id = kid.as_reference().ok()?;
+                    let structure_type = document
+                        .get_object(kid_id)
+                        .ok()?
+                        .as_dict()
+                        .ok()?
+                        .get(b"S")
+                        .ok()?
+                        .as_name()
+                        .ok()?;
+                    matches!(structure_type, b"THead" | b"TBody" | b"TFoot").then_some(kid_id)
+                })
+                .collect::<Vec<_>>();
+            for section_id in section_ids {
+                let row_id = document.add_object(dictionary! {
+                    "S" => "TR",
+                    "P" => Object::Reference(section_id),
+                });
+                document
+                    .get_object_mut(section_id)
+                    .expect("PDF/UA-1 fixture table section")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 fixture table section dictionary")
+                    .set("K", vec![Object::Reference(row_id)]);
+            }
+        }
+        "not_contained" => {
+            let row_id = document.add_object(dictionary! {
+                "S" => "TR",
+                "P" => Object::Reference(struct_tree_root_id),
+            });
+            document
+                .get_object_mut(struct_tree_root_id)
+                .expect("PDF/UA-1 fixture structure tree root")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture structure tree root dictionary")
+                .get_mut(b"K")
+                .expect("PDF/UA-1 fixture structure tree root kids")
+                .as_array_mut()
+                .expect("PDF/UA-1 fixture structure tree root kids array")
+                .push(Object::Reference(row_id));
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.2-4 fixture case {case}"),
+    }
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-4 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Figure alternative-text fixture");
