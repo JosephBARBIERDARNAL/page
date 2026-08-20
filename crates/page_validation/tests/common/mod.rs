@@ -2712,6 +2712,111 @@ pub fn pdfua1_rule_7_2_8_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_9_fixture(case: &str) -> Vec<u8> {
+    let source = match case {
+        "contained" => pdfua1_rule_7_2_4_fixture("contained"),
+        "not_contained" => pdfua1_rule_7_2_3_fixture("allowed"),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-9 fixture case {case}"),
+    };
+    let mut document = Document::load_mem(&source).expect("load PDF/UA-1 TD parent fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+
+    match case {
+        "contained" => {
+            let table_id = document
+                .get_object(struct_tree_root_id)
+                .expect("PDF/UA-1 fixture structure tree root")
+                .as_dict()
+                .expect("PDF/UA-1 fixture structure tree root dictionary")
+                .get(b"K")
+                .expect("PDF/UA-1 fixture structure tree root kids")
+                .as_array()
+                .expect("PDF/UA-1 fixture structure tree root kids array")
+                .last()
+                .expect("PDF/UA-1 fixture table")
+                .as_reference()
+                .expect("indirect PDF/UA-1 fixture table");
+            let row_ids = document
+                .get_object(table_id)
+                .expect("PDF/UA-1 fixture table")
+                .as_dict()
+                .expect("PDF/UA-1 fixture table dictionary")
+                .get(b"K")
+                .expect("PDF/UA-1 fixture table kids")
+                .as_array()
+                .expect("PDF/UA-1 fixture table kids array")
+                .iter()
+                .filter_map(|kid| {
+                    let kid_id = kid.as_reference().ok()?;
+                    let dictionary = document.get_object(kid_id).ok()?.as_dict().ok()?;
+                    let structure_type = dictionary.get(b"S").ok()?.as_name().ok()?;
+                    match structure_type {
+                        b"TR" => Some(kid_id),
+                        b"THead" | b"TBody" | b"TFoot" => dictionary
+                            .get(b"K")
+                            .ok()?
+                            .as_array()
+                            .ok()?
+                            .first()?
+                            .as_reference()
+                            .ok(),
+                        _ => None,
+                    }
+                })
+                .collect::<Vec<_>>();
+            for row_id in row_ids {
+                let cell_id = document.add_object(dictionary! {
+                    "S" => "TD",
+                    "P" => Object::Reference(row_id),
+                });
+                document
+                    .get_object_mut(row_id)
+                    .expect("PDF/UA-1 fixture row")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 fixture row dictionary")
+                    .set("K", Object::Reference(cell_id));
+            }
+        }
+        "not_contained" => {
+            let cell_id = document.add_object(dictionary! {
+                "S" => "TD",
+                "P" => Object::Reference(struct_tree_root_id),
+            });
+            document
+                .get_object_mut(struct_tree_root_id)
+                .expect("PDF/UA-1 fixture structure tree root")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture structure tree root dictionary")
+                .get_mut(b"K")
+                .expect("PDF/UA-1 fixture structure tree root kids")
+                .as_array_mut()
+                .expect("PDF/UA-1 fixture structure tree root kids array")
+                .push(Object::Reference(cell_id));
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.2-9 fixture case {case}"),
+    }
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-9 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Figure alternative-text fixture");
