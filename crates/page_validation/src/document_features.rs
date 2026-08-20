@@ -46,6 +46,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -557,6 +558,8 @@ pub(crate) fn inspect(
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
             .table_elements_with_unequal_row_column_spans,
+        figure_elements_missing_alternative_text: structure_tree
+            .figure_elements_missing_alternative_text,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -842,6 +845,7 @@ struct StructureTreeSummary {
     table_elements_with_multiple_captions: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    figure_elements_missing_alternative_text: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -899,6 +903,7 @@ fn inspect_structure_tree(
         table_elements_with_multiple_captions: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
+        figure_elements_missing_alternative_text: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1278,6 +1283,19 @@ fn inspect_structure_element(
     }
     let resolved_type =
         resolved_standard_type(structure_type, context.role_map, limits.max_object_count);
+    if resolved_type == Some(b"Figure".as_slice())
+        && !has_non_empty_text_attribute(document, dictionary, limits, b"Alt")?
+        && !has_text_attribute(document, dictionary, limits, b"ActualText")?
+    {
+        summary
+            .figure_elements_missing_alternative_text
+            .push(RuleFailure {
+            object_id,
+            description:
+                "a Figure structure element has neither a non-empty /Alt nor an /ActualText string"
+                    .to_owned(),
+        });
+    }
     if context.parent_standard_type == Some(b"TOC".as_slice())
         && !matches!(resolved_type, Some(b"TOC" | b"TOCI" | b"Caption"))
     {
@@ -1852,6 +1870,21 @@ fn has_text_attribute(
     Ok(matches!(
         resolve_optional(document, value, limits.max_reference_depth)?,
         Some(Object::String(_, _))
+    ))
+}
+
+fn has_non_empty_text_attribute(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+    key: &[u8],
+) -> Result<bool, PdfError> {
+    let Some(value) = dictionary.get(key).ok() else {
+        return Ok(false);
+    };
+    Ok(matches!(
+        resolve_optional(document, value, limits.max_reference_depth)?,
+        Some(Object::String(bytes, _)) if !bytes.is_empty()
     ))
 }
 

@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 125] = [
+    let fixtures: [(&str, &[u8], &str); 129] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -637,6 +637,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-1-3-untagged.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-1-3-untagged.pdf"),
             "70c123184872f6191f3eec7f674b0557e9df3b6b38c49738513f48da5a1078ed",
+        ),
+        (
+            "pdfua1-rule-7-3-1-alt-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-3-1-alt-present.pdf"),
+            "624e041b01fda732dc823740e9e64b5c9b713525ef9dac4ab680f443c71968fd",
+        ),
+        (
+            "pdfua1-rule-7-3-1-alt-empty.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-3-1-alt-empty.pdf"),
+            "10d5b6ef7e71a5d1431989f29020c25cd74389f0a6e22e50b31f191949526c40",
+        ),
+        (
+            "pdfua1-rule-7-3-1-actual-text-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-3-1-actual-text-present.pdf"),
+            "0aac7835b794208b5ffc882fb6714c7d74710a5c5a92de23f1f4d5571654893f",
+        ),
+        (
+            "pdfua1-rule-7-3-1-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-3-1-missing.pdf"),
+            "c2664c13ba995f12b6a17902b96182175cf424611ea99441a4b0b47b43731338",
         ),
     ];
 
