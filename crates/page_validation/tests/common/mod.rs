@@ -2479,6 +2479,64 @@ pub fn pdfua1_rule_7_3_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
+    let heading_levels = match case {
+        "valid" => vec![1, 1, 2, 3, 3, 4, 2, 3, 1],
+        "first_heading_h2" => vec![2],
+        "skips_h2" => vec![1, 3],
+        _ => panic!("unknown PDF/UA-1 rule 7.4.2-1 fixture case {case}"),
+    };
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 heading-nesting fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let heading_ids = heading_levels
+        .into_iter()
+        .map(|level| {
+            document.add_object(dictionary! {
+                "S" => format!("H{level}"),
+                "P" => Object::Reference(struct_tree_root_id),
+            })
+        })
+        .collect::<Vec<_>>();
+    let heading_objects = heading_ids
+        .into_iter()
+        .map(Object::Reference)
+        .collect::<Vec<_>>();
+    let kids = document
+        .get_object_mut(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get_mut(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture structure tree root kids array");
+    if case == "first_heading_h2" {
+        kids.splice(0..0, heading_objects);
+    } else {
+        kids.extend(heading_objects);
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 heading-nesting fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_36_fixture(case: &str) -> Vec<u8> {
     pdfua1_table_section_fixture(case, "THead", "7.2-36")
 }
