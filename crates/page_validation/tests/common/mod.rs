@@ -2537,6 +2537,65 @@ pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_4_4_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 heading-child-count fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let h_count = match case {
+        "single_h" => 1,
+        "multiple_h" => 2,
+        _ => panic!("unknown PDF/UA-1 rule 7.4.4-1 fixture case {case}"),
+    };
+    let parent_id = document.new_object_id();
+    let h_ids = (0..h_count)
+        .map(|_| {
+            document.add_object(dictionary! {
+                "S" => "H",
+                "P" => Object::Reference(parent_id),
+            })
+        })
+        .map(Object::Reference)
+        .collect::<Vec<_>>();
+    document.objects.insert(
+        parent_id,
+        dictionary! {
+            "S" => "Div",
+            "P" => Object::Reference(struct_tree_root_id),
+            "K" => h_ids,
+        }
+        .into(),
+    );
+    document
+        .get_object_mut(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get_mut(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .push(Object::Reference(parent_id));
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 heading-child-count fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_36_fixture(case: &str) -> Vec<u8> {
     pdfua1_table_section_fixture(case, "THead", "7.2-36")
 }

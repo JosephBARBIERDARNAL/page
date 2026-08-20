@@ -48,6 +48,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
+    pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -562,6 +563,8 @@ pub(crate) fn inspect(
         figure_elements_missing_alternative_text: structure_tree
             .figure_elements_missing_alternative_text,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
+        structure_elements_with_multiple_h_children: structure_tree
+            .structure_elements_with_multiple_h_children,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -849,6 +852,7 @@ struct StructureTreeSummary {
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
+    structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     last_heading_level: Option<u8>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
@@ -909,6 +913,7 @@ fn inspect_structure_tree(
         table_elements_with_unequal_row_column_spans: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
+        structure_elements_with_multiple_h_children: Vec::new(),
         last_heading_level: None,
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
@@ -1305,6 +1310,20 @@ fn inspect_structure_element(
         }
         summary.last_heading_level = Some(heading_level);
     }
+    if contains_multiple_h_children(
+        document,
+        dictionary,
+        context.role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )? {
+        summary
+            .structure_elements_with_multiple_h_children
+            .push(RuleFailure {
+                object_id,
+                description: "a structure element contains more than one H child".to_owned(),
+            });
+    }
     if resolved_type == Some(b"Figure".as_slice())
         && !has_non_empty_text_attribute(document, dictionary, limits, b"Alt")?
         && !has_text_attribute(document, dictionary, limits, b"ActualText")?
@@ -1563,6 +1582,29 @@ fn heading_level(structure_type: Option<&[u8]>) -> Option<u8> {
         Some(b"H6") => Some(6),
         _ => None,
     }
+}
+
+fn contains_multiple_h_children(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    let mut h_children = 0;
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |resolved_type| {
+            if resolved_type == Some(b"H".as_slice()) {
+                h_children += 1;
+            }
+            h_children > 1
+        },
+    )
 }
 
 fn contains_caption_not_first(
