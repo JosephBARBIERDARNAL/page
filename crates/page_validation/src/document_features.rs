@@ -37,6 +37,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    pub(crate) li_elements_not_contained_in_list: Vec<RuleFailure>,
     pub(crate) thead_elements_not_contained_in_table: Vec<RuleFailure>,
     pub(crate) tbody_elements_not_contained_in_table: Vec<RuleFailure>,
     pub(crate) tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
@@ -569,6 +570,7 @@ pub(crate) fn inspect(
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         tr_elements_not_contained_in_table_section: structure_tree
             .tr_elements_not_contained_in_table_section,
+        li_elements_not_contained_in_list: structure_tree.li_elements_not_contained_in_list,
         thead_elements_not_contained_in_table: structure_tree.thead_elements_not_contained_in_table,
         tbody_elements_not_contained_in_table: structure_tree.tbody_elements_not_contained_in_table,
         tfoot_elements_not_contained_in_table: structure_tree.tfoot_elements_not_contained_in_table,
@@ -885,6 +887,7 @@ struct StructureTreeSummary {
     structure_elements_missing_parent: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    li_elements_not_contained_in_list: Vec<RuleFailure>,
     thead_elements_not_contained_in_table: Vec<RuleFailure>,
     tbody_elements_not_contained_in_table: Vec<RuleFailure>,
     tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
@@ -969,6 +972,7 @@ fn inspect_structure_tree(
         structure_elements_missing_parent: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
         tr_elements_not_contained_in_table_section: Vec::new(),
+        li_elements_not_contained_in_list: Vec::new(),
         thead_elements_not_contained_in_table: Vec::new(),
         tbody_elements_not_contained_in_table: Vec::new(),
         tfoot_elements_not_contained_in_table: Vec::new(),
@@ -1402,6 +1406,15 @@ fn inspect_structure_element(
                     "a TR structure element is not contained in a Table, THead, TBody, or TFoot structure element"
                         .to_owned(),
             });
+    }
+    if resolved_type == Some(b"LI".as_slice())
+        && context.parent_standard_type != Some(b"L".as_slice())
+    {
+        summary.li_elements_not_contained_in_list.push(RuleFailure {
+            object_id,
+            description: "an LI structure element is not contained in an L structure element"
+                .to_owned(),
+        });
     }
     if resolved_type == Some(b"THead".as_slice())
         && context.parent_standard_type != Some(b"Table".as_slice())
