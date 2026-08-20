@@ -40,6 +40,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -544,6 +545,7 @@ pub(crate) fn inspect(
         table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
+        tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -824,6 +826,7 @@ struct StructureTreeSummary {
     table_elements_with_invalid_children: Vec<RuleFailure>,
     thead_elements_with_invalid_children: Vec<RuleFailure>,
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
+    tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -876,6 +879,7 @@ fn inspect_structure_tree(
         table_elements_with_invalid_children: Vec::new(),
         thead_elements_with_invalid_children: Vec::new(),
         tbody_elements_with_invalid_children: Vec::new(),
+        tfoot_elements_with_invalid_children: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1337,6 +1341,22 @@ fn inspect_structure_element(
             .push(RuleFailure {
                 object_id,
                 description: "a TBody structure element contains a child other than TR".to_owned(),
+            });
+    }
+    if resolved_type == Some(b"TFoot".as_slice())
+        && table_section_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .tfoot_elements_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "a TFoot structure element contains a child other than TR".to_owned(),
             });
     }
     let contains_lang = contains_key(dictionary, b"Lang");

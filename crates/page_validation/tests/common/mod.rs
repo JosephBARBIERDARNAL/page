@@ -2417,6 +2417,10 @@ pub fn pdfua1_rule_7_2_37_fixture(case: &str) -> Vec<u8> {
     pdfua1_table_section_fixture(case, "TBody", "7.2-37")
 }
 
+pub fn pdfua1_rule_7_2_38_fixture(case: &str) -> Vec<u8> {
+    pdfua1_table_section_fixture(case, "TFoot", "7.2-38")
+}
+
 fn pdfua1_table_section_fixture(case: &str, section_type: &str, rule: &str) -> Vec<u8> {
     let child_type = match case {
         "allowed" => "TR",
