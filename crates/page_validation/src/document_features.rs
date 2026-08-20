@@ -52,6 +52,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_theads: Vec<RuleFailure>,
+    pub(crate) table_elements_with_multiple_tfoots: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -579,6 +580,7 @@ pub(crate) fn inspect(
         tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
         table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
         table_elements_with_multiple_theads: structure_tree.table_elements_with_multiple_theads,
+        table_elements_with_multiple_tfoots: structure_tree.table_elements_with_multiple_tfoots,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
@@ -887,6 +889,7 @@ struct StructureTreeSummary {
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_multiple_captions: Vec<RuleFailure>,
     table_elements_with_multiple_theads: Vec<RuleFailure>,
+    table_elements_with_multiple_tfoots: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -966,6 +969,7 @@ fn inspect_structure_tree(
         tfoot_elements_with_invalid_children: Vec::new(),
         table_elements_with_multiple_captions: Vec::new(),
         table_elements_with_multiple_theads: Vec::new(),
+        table_elements_with_multiple_tfoots: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
@@ -1643,6 +1647,24 @@ fn inspect_structure_element(
             .push(RuleFailure {
                 object_id,
                 description: "a Table structure element contains more than one THead child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_multiple_children(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"TFoot",
+        )?
+    {
+        summary
+            .table_elements_with_multiple_tfoots
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains more than one TFoot child"
                     .to_owned(),
             });
     }
