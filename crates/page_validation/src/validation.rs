@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 55,
+        ValidationProfile::PdfUa1 => 56,
         _ => 0,
     }
 }
@@ -680,6 +680,14 @@ fn validate_document(
                 .document_features
                 .table_elements_with_multiple_tfoots,
             "PDFUA1-TABLE-TFOOT-COUNT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_tfoot_without_tbody,
+            "PDFUA1-TABLE-TFOOT-TBODY-001",
             None,
             &mut failures,
         );
@@ -3090,7 +3098,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 55);
+        assert_eq!(report.checks.total, 56);
     }
 
     #[test]
