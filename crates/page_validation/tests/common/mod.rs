@@ -2154,6 +2154,15 @@ pub fn pdfua1_rule_7_2_28_fixture(case: &str) -> Vec<u8> {
     pdfua1_toc_fixture(child_types)
 }
 
+pub fn pdfua1_rule_7_2_40_fixture(case: &str) -> Vec<u8> {
+    let child_types = match case {
+        "caption_first" => ["Caption", "LI"].as_slice(),
+        "caption_not_first" => ["LI", "Caption"].as_slice(),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-40 fixture case {case}"),
+    };
+    pdfua1_list_fixture(child_types)
+}
+
 pub fn pdfua1_rule_7_2_29_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 language-tag fixture");
@@ -2281,6 +2290,10 @@ pub fn pdfua1_rule_7_2_29_fixture(case: &str) -> Vec<u8> {
 }
 
 fn pdfua1_toc_fixture(child_types: &[&str]) -> Vec<u8> {
+    pdfua1_structure_fixture("TOC", child_types)
+}
+
+fn pdfua1_structure_fixture(structure_type: &str, child_types: &[&str]) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 TOC children fixture");
     let root_id = document
@@ -2309,7 +2322,7 @@ fn pdfua1_toc_fixture(child_types: &[&str]) -> Vec<u8> {
         })
         .collect::<Vec<_>>();
     let toc_id = document.add_object(dictionary! {
-        "S" => "TOC",
+        "S" => structure_type,
         "P" => Object::Reference(struct_tree_root_id),
         "K" => child_ids
             .iter()
@@ -2339,8 +2352,12 @@ fn pdfua1_toc_fixture(child_types: &[&str]) -> Vec<u8> {
     let mut bytes = Vec::new();
     document
         .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 7.2-27 fixture");
+        .expect("save PDF/UA-1 structure fixture");
     bytes
+}
+
+fn pdfua1_list_fixture(child_types: &[&str]) -> Vec<u8> {
+    pdfua1_structure_fixture("L", child_types)
 }
 
 pub fn pdfua1_rule_7_2_3_fixture(case: &str) -> Vec<u8> {

@@ -37,6 +37,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
+    pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
@@ -543,6 +544,7 @@ pub(crate) fn inspect(
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
+        list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
         table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
@@ -825,6 +827,7 @@ struct StructureTreeSummary {
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
+    list_elements_with_caption_not_first: Vec<RuleFailure>,
     table_elements_with_invalid_children: Vec<RuleFailure>,
     thead_elements_with_invalid_children: Vec<RuleFailure>,
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
@@ -879,6 +882,7 @@ fn inspect_structure_tree(
         toci_elements_not_contained_in_toc: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
+        list_elements_with_caption_not_first: Vec::new(),
         table_elements_with_invalid_children: Vec::new(),
         thead_elements_with_invalid_children: Vec::new(),
         tbody_elements_with_invalid_children: Vec::new(),
@@ -1276,7 +1280,7 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"TOC".as_slice())
-        && toc_contains_caption_not_first(
+        && contains_caption_not_first(
             document,
             dictionary,
             context.role_map,
@@ -1290,6 +1294,24 @@ fn inspect_structure_element(
                 object_id,
                 description:
                     "a TOC structure element contains a Caption child after its first child"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"L".as_slice())
+        && contains_caption_not_first(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .list_elements_with_caption_not_first
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "an L structure element contains a Caption child after its first child"
                         .to_owned(),
             });
     }
@@ -1456,7 +1478,7 @@ fn inspect_structure_element(
     Ok(())
 }
 
-fn toc_contains_caption_not_first(
+fn contains_caption_not_first(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,

@@ -86,7 +86,7 @@ Operational and parser failures are kept separate from metadata and conformance 
 
 ## Differential testing against veraPDF
 
-Entire source code of the veraPDF-library lives in `veraPDF-library/`, and it's exactly the one for 1.30.\* (all versions after 1.30 are OK). It's excluded from git tracking.
+Entire source code of the veraPDF-library lives in `veraPDF-library/`, and it's exactly the one for 1.30.x (all versions after 1.30 are OK). Do not install other veraPDF version, unless explicitely asked for it, use whatever 1.30.x version is available on PATH. It's excluded from git tracking.
 
 The `verapdf-diff` binary compares the local subset with an explicitly pinned
 veraPDF installation:
@@ -94,7 +94,7 @@ veraPDF installation:
 ```bash
 cargo run -p page_cli --bin verapdf-diff -- \
   --verapdf /path/to/verapdf \
-  --expected-version 1.30.2 \
+  --expected-version 1.30.0 \
   --profile 1b \
   --format text \
   file.pdf another.pdf
