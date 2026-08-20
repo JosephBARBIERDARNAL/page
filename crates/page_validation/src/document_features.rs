@@ -54,6 +54,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_multiple_theads: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_tfoots: Vec<RuleFailure>,
     pub(crate) table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
+    pub(crate) table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -584,6 +585,8 @@ pub(crate) fn inspect(
         table_elements_with_multiple_tfoots: structure_tree.table_elements_with_multiple_tfoots,
         table_elements_with_tfoot_without_tbody: structure_tree
             .table_elements_with_tfoot_without_tbody,
+        table_elements_with_thead_without_tbody: structure_tree
+            .table_elements_with_thead_without_tbody,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
@@ -894,6 +897,7 @@ struct StructureTreeSummary {
     table_elements_with_multiple_theads: Vec<RuleFailure>,
     table_elements_with_multiple_tfoots: Vec<RuleFailure>,
     table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
+    table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -975,6 +979,7 @@ fn inspect_structure_tree(
         table_elements_with_multiple_theads: Vec::new(),
         table_elements_with_multiple_tfoots: Vec::new(),
         table_elements_with_tfoot_without_tbody: Vec::new(),
+        table_elements_with_thead_without_tbody: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
@@ -1689,6 +1694,25 @@ fn inspect_structure_element(
             .push(RuleFailure {
                 object_id,
                 description: "a Table structure element contains a TFoot child but no TBody child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_child_without_other_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"THead",
+            b"TBody",
+        )?
+    {
+        summary
+            .table_elements_with_thead_without_tbody
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains a THead child but no TBody child"
                     .to_owned(),
             });
     }
