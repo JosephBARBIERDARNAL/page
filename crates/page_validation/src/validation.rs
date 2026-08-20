@@ -646,6 +646,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .list_elements_with_invalid_children,
+            "PDFUA1-L-KIDS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .table_elements_with_invalid_children,
             "PDFUA1-TABLE-KIDS-001",
             None,

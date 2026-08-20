@@ -2513,6 +2513,15 @@ pub fn pdfua1_rule_7_2_18_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_19_fixture(case: &str) -> Vec<u8> {
+    let child_types = match case {
+        "allowed" => ["Caption", "L", "LI"].as_slice(),
+        "invalid" => ["P"].as_slice(),
+        _ => panic!("unknown PDF/UA-1 rule 7.2-19 fixture case {case}"),
+    };
+    pdfua1_structure_fixture("L", child_types)
+}
+
 pub fn pdfua1_rule_7_2_3_fixture(case: &str) -> Vec<u8> {
     let child_types = match case {
         "allowed" => ["TR", "THead", "TBody", "TFoot", "Caption"].as_slice(),
