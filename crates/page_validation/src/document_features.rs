@@ -51,6 +51,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
+    pub(crate) table_elements_with_multiple_theads: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -577,6 +578,7 @@ pub(crate) fn inspect(
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
         tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
         table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
+        table_elements_with_multiple_theads: structure_tree.table_elements_with_multiple_theads,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
@@ -884,6 +886,7 @@ struct StructureTreeSummary {
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_multiple_captions: Vec<RuleFailure>,
+    table_elements_with_multiple_theads: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
@@ -962,6 +965,7 @@ fn inspect_structure_tree(
         tbody_elements_with_invalid_children: Vec::new(),
         tfoot_elements_with_invalid_children: Vec::new(),
         table_elements_with_multiple_captions: Vec::new(),
+        table_elements_with_multiple_theads: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
@@ -1607,12 +1611,13 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"Table".as_slice())
-        && table_contains_multiple_captions(
+        && table_contains_multiple_children(
             document,
             dictionary,
             context.role_map,
             limits.max_reference_depth,
             limits.max_object_count,
+            b"Caption",
         )?
     {
         summary
@@ -1620,6 +1625,24 @@ fn inspect_structure_element(
             .push(RuleFailure {
                 object_id,
                 description: "a Table structure element contains more than one Caption child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_multiple_children(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"THead",
+        )?
+    {
+        summary
+            .table_elements_with_multiple_theads
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains more than one THead child"
                     .to_owned(),
             });
     }
@@ -1864,14 +1887,15 @@ fn table_contains_invalid_child(
     )
 }
 
-fn table_contains_multiple_captions(
+fn table_contains_multiple_children(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     max_reference_depth: usize,
     max_object_count: usize,
+    child_type: &[u8],
 ) -> Result<bool, PdfError> {
-    let mut captions = 0;
+    let mut children = 0;
     any_direct_structure_kid(
         document,
         dictionary,
@@ -1879,10 +1903,10 @@ fn table_contains_multiple_captions(
         max_reference_depth,
         max_object_count,
         |structure_type| {
-            if structure_type == Some(b"Caption".as_slice()) {
-                captions += 1;
+            if structure_type == Some(child_type) {
+                children += 1;
             }
-            captions >= 2
+            children >= 2
         },
     )
 }
