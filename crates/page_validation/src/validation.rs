@@ -566,6 +566,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .lbody_elements_not_contained_in_li,
+            "PDFUA1-LBODY-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .thead_elements_not_contained_in_table,
             "PDFUA1-THEAD-PARENT-001",
             None,

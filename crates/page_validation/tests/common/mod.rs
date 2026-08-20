@@ -2408,6 +2408,111 @@ pub fn pdfua1_rule_7_2_17_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_2_18_fixture(case: &str) -> Vec<u8> {
+    if case == "contained" {
+        let mut document = Document::load_mem(&pdfua1_rule_7_2_17_fixture("contained"))
+            .expect("load PDF/UA-1 LBody parent fixture");
+        let root_id = document
+            .trailer
+            .get(b"Root")
+            .expect("PDF/UA-1 fixture root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture root");
+        let struct_tree_root_id = document
+            .get_object(root_id)
+            .expect("PDF/UA-1 fixture catalog")
+            .as_dict()
+            .expect("PDF/UA-1 fixture catalog dictionary")
+            .get(b"StructTreeRoot")
+            .expect("PDF/UA-1 fixture structure tree root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture structure tree root");
+        let list_id = document
+            .get_object(struct_tree_root_id)
+            .expect("PDF/UA-1 fixture structure tree root")
+            .as_dict()
+            .expect("PDF/UA-1 fixture structure tree root dictionary")
+            .get(b"K")
+            .expect("PDF/UA-1 fixture structure tree root kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture structure tree root kids array")
+            .last()
+            .expect("PDF/UA-1 fixture list")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture list");
+        let li_id = document
+            .get_object(list_id)
+            .expect("PDF/UA-1 fixture list")
+            .as_dict()
+            .expect("PDF/UA-1 fixture list dictionary")
+            .get(b"K")
+            .expect("PDF/UA-1 fixture list kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture list kids array")
+            .first()
+            .expect("PDF/UA-1 fixture list item")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture list item");
+        let lbody_id = document.add_object(dictionary! {
+            "S" => "LBody",
+            "P" => Object::Reference(li_id),
+        });
+        document
+            .get_object_mut(li_id)
+            .expect("PDF/UA-1 fixture list item")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture list item dictionary")
+            .set("K", vec![Object::Reference(lbody_id)]);
+        let mut bytes = Vec::new();
+        document
+            .save_to(&mut bytes)
+            .expect("save PDF/UA-1 rule 7.2-18 fixture");
+        return bytes;
+    }
+
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 LBody parent fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let lbody_id = document.add_object(dictionary! {
+        "S" => "LBody",
+        "P" => Object::Reference(struct_tree_root_id),
+    });
+    document
+        .get_object_mut(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get_mut(b"K")
+        .expect("PDF/UA-1 fixture structure tree root kids")
+        .as_array_mut()
+        .expect("PDF/UA-1 fixture structure tree root kids array")
+        .push(Object::Reference(lbody_id));
+
+    match case {
+        "not_contained" => {}
+        _ => panic!("unknown PDF/UA-1 rule 7.2-18 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.2-18 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_3_fixture(case: &str) -> Vec<u8> {
     let child_types = match case {
         "allowed" => ["TR", "THead", "TBody", "TFoot", "Caption"].as_slice(),
