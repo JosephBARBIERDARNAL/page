@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 142] = [
+    let fixtures: [(&str, &[u8], &str); 146] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -722,6 +722,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-5-2-scope-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-5-2-scope-present.pdf"),
             "945bc5266b7b06be8b67434a77b0d1f58298f78216feb35f95bbe9cde9f0e246",
+        ),
+        (
+            "pdfua1-rule-7-7-1-actual-text-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-7-1-actual-text-present.pdf"),
+            "4013ba4e67c4ca066e2f9e48aa1cc3ac53d00ba5556d91510e1105c3e1f249ad",
+        ),
+        (
+            "pdfua1-rule-7-7-1-alt-empty.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-7-1-alt-empty.pdf"),
+            "2d7cb4456da128f6f8bbb3562bdb8360e062d0b00afb40b13ce739db310ed55f",
+        ),
+        (
+            "pdfua1-rule-7-7-1-alt-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-7-1-alt-present.pdf"),
+            "f06ea550db8797cdd8bc072a1f65e83135d6260ba73f5054180f5cea75585365",
+        ),
+        (
+            "pdfua1-rule-7-7-1-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-7-1-missing.pdf"),
+            "71e1c4753bb7452235f027bd266f001a8884db8652522f5389522ec1dd339267",
         ),
     ];
 

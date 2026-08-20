@@ -49,6 +49,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
     pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
+    pub(crate) formula_elements_missing_alternative_text: Vec<RuleFailure>,
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     pub(crate) heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -567,6 +568,8 @@ pub(crate) fn inspect(
         table_cells_with_undefined_headers: structure_tree.table_cells_with_undefined_headers,
         figure_elements_missing_alternative_text: structure_tree
             .figure_elements_missing_alternative_text,
+        formula_elements_missing_alternative_text: structure_tree
+            .formula_elements_missing_alternative_text,
         heading_elements_with_invalid_nesting: structure_tree.heading_elements_with_invalid_nesting,
         structure_elements_with_multiple_h_children: structure_tree
             .structure_elements_with_multiple_h_children,
@@ -860,6 +863,7 @@ struct StructureTreeSummary {
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
     table_cells_with_undefined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
+    formula_elements_missing_alternative_text: Vec<RuleFailure>,
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
@@ -926,6 +930,7 @@ fn inspect_structure_tree(
         table_cells_with_undetermined_headers: Vec::new(),
         table_cells_with_undefined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
+        formula_elements_missing_alternative_text: Vec::new(),
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
         heading_elements_with_h_in_presence_of_hn: Vec::new(),
@@ -1378,6 +1383,19 @@ fn inspect_structure_element(
                     "a TOC structure element contains a child other than TOC, TOCI, or Caption"
                         .to_owned(),
             });
+    }
+    if resolved_type == Some(b"Formula".as_slice())
+        && !has_non_empty_text_attribute(document, dictionary, limits, b"Alt")?
+        && !has_text_attribute(document, dictionary, limits, b"ActualText")?
+    {
+        summary
+            .formula_elements_missing_alternative_text
+            .push(RuleFailure {
+            object_id,
+            description:
+                "a Formula structure element has neither a non-empty /Alt nor an /ActualText string"
+                    .to_owned(),
+        });
     }
     if resolved_type == Some(b"TOC".as_slice())
         && contains_caption_not_first(
