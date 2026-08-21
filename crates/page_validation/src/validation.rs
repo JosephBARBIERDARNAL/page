@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 62,
+        ValidationProfile::PdfUa1 => 63,
         _ => 0,
     }
 }
@@ -445,6 +445,18 @@ fn validate_document(
                 "PDFUA1-HEADER-001",
                 "the file header must match %PDF-1.n with n between 0 and 7",
                 None,
+                FailureCategory::Conformance,
+            ));
+        }
+        if document.encrypted
+            && !document
+                .encryption_permissions
+                .is_some_and(|permissions| permissions & 512 == 512)
+        {
+            failures.push(failure(
+                "PDFUA1-ENCRYPTION-P-001",
+                "an encrypted document must contain an encryption-dictionary /P entry with bit 10 set",
+                document.encryption_dictionary_object,
                 FailureCategory::Conformance,
             ));
         }
@@ -3183,7 +3195,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 62);
+        assert_eq!(report.checks.total, 63);
     }
 
     #[test]

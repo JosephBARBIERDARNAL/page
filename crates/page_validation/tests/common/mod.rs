@@ -3,7 +3,10 @@ use std::io::Write;
 
 use lopdf::content::{Content, Operation};
 use lopdf::xref::XrefType;
-use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
+use lopdf::{
+    Dictionary, Document, EncryptionState, EncryptionVersion, Object, ObjectId, Permissions,
+    Stream, StringFormat, dictionary,
+};
 use page_validation::{
     SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport,
     validate_bytes_with_profile,
@@ -3522,6 +3525,45 @@ pub fn pdfua1_rule_7_15_1_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 dynamic-XFA fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_16_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 encryption fixture");
+    let permissions = match case {
+        "valid" => Permissions::all(),
+        "bit_10_false" | "missing_p" => Permissions::empty(),
+        _ => panic!("unknown PDF/UA-1 rule 7.16-1 fixture case {case}"),
+    };
+    let state = EncryptionState::try_from(EncryptionVersion::V1 {
+        document: &document,
+        owner_password: "owner",
+        user_password: "",
+        permissions,
+    })
+    .expect("create PDF/UA-1 encryption state");
+    document
+        .encrypt(&state)
+        .expect("encrypt PDF/UA-1 rule 7.16-1 fixture");
+    if case == "missing_p" {
+        let encryption_id = document
+            .trailer
+            .get(b"Encrypt")
+            .expect("PDF/UA-1 encryption dictionary reference")
+            .as_reference()
+            .expect("indirect PDF/UA-1 encryption dictionary");
+        document
+            .get_object_mut(encryption_id)
+            .expect("PDF/UA-1 encryption dictionary")
+            .as_dict_mut()
+            .expect("PDF/UA-1 encryption dictionary")
+            .remove(b"P");
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.16-1 fixture");
     bytes
 }
 

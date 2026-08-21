@@ -16,7 +16,7 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 - don't add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant.
 - always check for ways to reuse code
 - minimize useless abstraction
-- when making changes, update documentation too, if relevant. Documentation should always be as concise as possible and go straight to the point
+- never update documentation (readme + docs/\*.md files), unless explicitely asked to
 
 ## Project Structure & Module Organization
 

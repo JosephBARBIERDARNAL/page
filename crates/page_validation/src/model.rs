@@ -130,6 +130,10 @@ pub struct PdfDocument {
     pub version: String,
     pub encrypted: bool,
     #[serde(skip)]
+    pub(crate) encryption_permissions: Option<u64>,
+    #[serde(skip)]
+    pub(crate) encryption_dictionary_object: Option<PdfObjectId>,
+    #[serde(skip)]
     pub(crate) encrypted_content_unavailable: bool,
     pub catalog_reference: Option<PdfObjectId>,
     pub catalog_present: bool,
@@ -274,6 +278,8 @@ impl PdfDocument {
     ) -> Result<Self, PdfError> {
         let catalog_reference = root_reference_id(document);
         let (encrypted, encrypted_content_unavailable) = encryption_status(document);
+        let (encryption_permissions, encryption_dictionary_object) =
+            encryption_permissions(document);
         let mut trailer_keys = document
             .trailer
             .iter()
@@ -290,6 +296,8 @@ impl PdfDocument {
             return Ok(Self {
                 version: document.version.clone(),
                 encrypted: true,
+                encryption_permissions,
+                encryption_dictionary_object,
                 encrypted_content_unavailable: true,
                 catalog_reference,
                 trailer_keys,
@@ -326,6 +334,8 @@ impl PdfDocument {
         Ok(Self {
             version: document.version.clone(),
             encrypted,
+            encryption_permissions,
+            encryption_dictionary_object,
             encrypted_content_unavailable: false,
             catalog_reference,
             catalog_present: catalog.is_some(),
@@ -344,6 +354,38 @@ impl PdfDocument {
             object_count: document.objects.len(),
         })
     }
+}
+
+/// Returns the raw `/P` permission bits while retaining access to them after
+/// lopdf authenticates an encrypted document and removes its encryption
+/// dictionary from the normalized object graph.
+fn encryption_permissions(document: &Document) -> (Option<u64>, Option<PdfObjectId>) {
+    let encryption_dictionary_object = document
+        .trailer
+        .get(b"Encrypt")
+        .ok()
+        .and_then(|object| object.as_reference().ok())
+        .map(PdfObjectId::from)
+        .or_else(|| {
+            document
+                .encryption_state
+                .as_ref()
+                .and_then(|state| state.encrypt_object_id())
+                .map(PdfObjectId::from)
+        });
+    let permissions = document
+        .get_encrypted()
+        .ok()
+        .and_then(|dictionary| dictionary.get(b"P").ok())
+        .and_then(|object| object.as_i64().ok())
+        .map(|value| value as u64)
+        .or_else(|| {
+            document
+                .encryption_state
+                .as_ref()
+                .map(|state| state.permissions().bits())
+        });
+    (permissions, encryption_dictionary_object)
 }
 
 /// Returns whether the original PDF was encrypted and whether its contents
