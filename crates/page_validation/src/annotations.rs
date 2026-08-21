@@ -33,6 +33,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) links_missing_contents: Vec<RuleFailure>,
     pub(crate) annotations_missing_contents_or_alt: Vec<RuleFailure>,
     pub(crate) trapnet_annotations: Vec<RuleFailure>,
+    pub(crate) printer_mark_annotations: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
 }
 
@@ -134,6 +135,21 @@ fn inspect_annotation(
     let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
         .is_some_and(|flags| flags & 2 == 2);
     let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
+    // PDF/UA-1 7.18.8-1 requires PrinterMark annotations to be incidental
+    // artifacts. As in veraPDF, hidden or outside-crop-box annotations are
+    // already treated as artifacts, while a visible in-crop-box annotation
+    // fails when it resolves through the structure tree.
+    if subtype == Some(b"PrinterMark".as_slice())
+        && !hidden
+        && !outside_crop_box
+        && annotation_structure_element(document, annotation, limits)?.is_some()
+    {
+        summary.printer_mark_annotations.push(annotation_failure(
+            object_id,
+            context,
+            "is a visible, in-crop-box PrinterMark annotation included in logical structure",
+        ));
+    }
     // PDF/UA-1 7.18.5-1 follows veraPDF's PDLinkAnnot predicate: the
     // shared page-annotation traversal is the intentional scope, and hidden
     // or crop-box-outside links are exempt from this check.

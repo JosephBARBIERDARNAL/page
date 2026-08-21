@@ -5649,6 +5649,99 @@ pub fn pdfua1_rule_7_18_5_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_18_8_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
+        .expect("load PDF/UA-1 PrinterMark fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let pages_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"Pages")
+        .expect("PDF/UA-1 fixture pages")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture pages");
+    let page_id = document
+        .get_object(pages_id)
+        .expect("PDF/UA-1 fixture pages object")
+        .as_dict()
+        .expect("PDF/UA-1 fixture pages dictionary")
+        .get(b"Kids")
+        .expect("PDF/UA-1 fixture page kids")
+        .as_array()
+        .expect("PDF/UA-1 fixture page kids array")
+        .first()
+        .expect("PDF/UA-1 fixture page")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture page");
+    let annotation_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Annots")
+        .expect("PDF/UA-1 fixture annotations")
+        .as_array()
+        .expect("PDF/UA-1 fixture annotations array")
+        .first()
+        .expect("PDF/UA-1 fixture annotation")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture annotation");
+    document
+        .get_object_mut(annotation_id)
+        .expect("PDF/UA-1 fixture annotation")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture annotation dictionary")
+        .set("Subtype", "PrinterMark");
+    match case {
+        "allowed" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .remove(b"StructParent");
+        }
+        "hidden" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .set("F", 2);
+        }
+        "outside_crop_box" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .set(
+                    "Rect",
+                    vec![
+                        Object::Integer(-10),
+                        Object::Integer(-10),
+                        Object::Integer(-1),
+                        Object::Integer(-1),
+                    ],
+                );
+        }
+        "included" => {}
+        _ => panic!("unknown PDF/UA-1 rule 7.18.8-1 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 PrinterMark fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_18_6_2_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
         .expect("load PDF/UA-1 media clip fixture");

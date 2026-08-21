@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 230] = [
+    let fixtures: [(&str, &[u8], &str); 234] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1162,6 +1162,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-18-6-2-2-missing-alt.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-18-6-2-2-missing-alt.pdf"),
             "1f3e604ca6207e4f899a7a5b8700df234340250ed89a9d29059574fa81f2e883",
+        ),
+        (
+            "pdfua1-rule-7-18-8-1-allowed.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-8-1-allowed.pdf"),
+            "eacdf9848027daa53802d326f87a16a3a35a5aeef73ce300a1d735a9f4e5b327",
+        ),
+        (
+            "pdfua1-rule-7-18-8-1-hidden.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-8-1-hidden.pdf"),
+            "3ebd202d65edcbcb5acd5dfeb5cb3906acfae14494ebc8e394c61016fdec2e4d",
+        ),
+        (
+            "pdfua1-rule-7-18-8-1-outside-crop-box.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-8-1-outside-crop-box.pdf"),
+            "177133bce7ad1f19c527307e8fdde3f30ec7d64c832f287f3939e29f175e2a36",
+        ),
+        (
+            "pdfua1-rule-7-18-8-1-included.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-8-1-included.pdf"),
+            "fe06ee288a9097c7d46b37186296d89792aafe54f639e243fcd1e80395bbb256",
         ),
     ];
 
