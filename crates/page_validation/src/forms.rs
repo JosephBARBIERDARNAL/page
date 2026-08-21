@@ -1,13 +1,21 @@
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};
+use roxmltree::Document as XmlDocument;
 
+use crate::annotations::{
+    annotation_is_outside_crop_box, annotation_struct_parent_standard_type,
+    annotation_structure_element,
+};
 use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
+use crate::object_resolution::{
+    contains_key, dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
+    resolved_name, walk_inherited,
+};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -15,7 +23,10 @@ use crate::report::RuleFailure;
 pub(crate) struct FormSummary {
     pub(crate) invalid_need_appearances: Vec<RuleFailure>,
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
+    pub(crate) widgets_missing_tu_or_alt: Vec<RuleFailure>,
+    pub(crate) widgets_not_nested_in_form: Vec<RuleFailure>,
     pub(crate) tu_language_failures: Vec<RuleFailure>,
+    pub(crate) dynamic_xfa_forms: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -61,6 +72,12 @@ fn inspect_acro_form(
                 .to_owned(),
         });
     }
+    if xfa_is_dynamic(document, acro_form.get(b"XFA").ok(), limits)? {
+        summary.dynamic_xfa_forms.push(RuleFailure {
+            object_id,
+            description: "the catalog AcroForm contains dynamic XFA".to_owned(),
+        });
+    }
     let catalog_contains_lang = contains_key(catalog, b"Lang");
     for_each_form_field(
         document,
@@ -77,6 +94,75 @@ fn inspect_acro_form(
         },
     )?;
     Ok(())
+}
+
+fn xfa_is_dynamic(
+    document: &Document,
+    xfa: Option<&Object>,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(xfa) = xfa else {
+        return Ok(false);
+    };
+    let Some(xfa) = resolve_optional(document, xfa, limits.max_reference_depth)? else {
+        return Ok(false);
+    };
+    match xfa {
+        Object::Stream(stream) => xfa_stream_is_dynamic(stream, limits),
+        Object::Array(packets) => {
+            let mut config_stream = None;
+            let mut stream_entries = Vec::new();
+            for (index, packet) in packets.iter().enumerate() {
+                let Some(packet) = resolve_optional(document, packet, limits.max_reference_depth)?
+                else {
+                    continue;
+                };
+                if index % 2 == 0 {
+                    if packet.as_str().ok() == Some(b"config") {
+                        config_stream = packets.get(index + 1);
+                    }
+                } else if packet.as_stream().is_ok() {
+                    stream_entries.push(packet);
+                }
+            }
+            if let Some(config_stream) = config_stream
+                && let Some(config_stream) =
+                    resolve_optional(document, config_stream, limits.max_reference_depth)?
+                && let Ok(config_stream) = config_stream.as_stream()
+            {
+                return xfa_stream_is_dynamic(config_stream, limits);
+            }
+            for packet in stream_entries {
+                if let Ok(stream) = packet.as_stream()
+                    && xfa_stream_is_dynamic(stream, limits)?
+                {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        _ => Ok(false),
+    }
+}
+
+fn xfa_stream_is_dynamic(stream: &lopdf::Stream, limits: &SafetyLimits) -> Result<bool, PdfError> {
+    let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
+        Ok(bytes) => bytes,
+        Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
+            return Err(PdfError::XfaDecodeLimit(limits.max_decoded_stream_size));
+        }
+        Err(_) => return Ok(false),
+    };
+    let Ok(xml) = std::str::from_utf8(&bytes) else {
+        return Ok(false);
+    };
+    let Ok(document) = XmlDocument::parse(xml) else {
+        return Ok(false);
+    };
+    Ok(document.descendants().any(|node| {
+        node.tag_name().name() == "dynamicRender"
+            && node.text().is_some_and(|value| value == "required")
+    }))
 }
 
 /// Visits every form field modeled from an AcroForm `/Fields` array and its
@@ -191,7 +277,7 @@ fn inspect_page_widgets(
         pages,
         limits,
         &mut inspected,
-        |page_number, index, object_id, value| {
+        |page_number, index, object_id, page, value| {
             let Ok(annotation) = value.as_dict() else {
                 return Ok(());
             };
@@ -199,6 +285,48 @@ fn inspect_page_widgets(
                 != Some(b"Widget".as_slice())
             {
                 return Ok(());
+            }
+            let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
+                .is_some_and(|flags| flags & 2 == 2);
+            let outside_crop_box =
+                annotation_is_outside_crop_box(document, page, annotation, limits)?;
+            let structure_element = annotation_structure_element(document, annotation, limits)?;
+            // This population is page-reached Widgets, matching veraPDF's
+            // PDWidgetAnnot scope for the rule.
+            if !hidden
+                && !outside_crop_box
+                && annotation_struct_parent_standard_type(document, structure_element, limits)?
+                    != Some(b"Form".as_slice())
+            {
+                summary.widgets_not_nested_in_form.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "Widget annotation {index} on page {page_number} is not nested within a Form structure element"
+                    ),
+                });
+            }
+            let has_alt = structure_element
+                .map(|structure_element| {
+                    has_non_empty_string_entry(
+                        document,
+                        structure_element,
+                        b"Alt",
+                        limits.max_reference_depth,
+                    )
+                })
+                .transpose()?
+                .unwrap_or(false);
+            if !hidden
+                && !outside_crop_box
+                && !widget_has_non_empty_tu(document, annotation, limits)?
+                && !has_alt
+            {
+                summary.widgets_missing_tu_or_alt.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "Widget annotation {index} on page {page_number} has neither a non-empty inherited /TU entry nor a non-empty /Alt entry in its enclosing structure element"
+                    ),
+                });
             }
             let zero_rect = annotation
                 .get(b"Rect")
@@ -240,6 +368,27 @@ fn inspect_page_widgets(
             Ok(())
         },
     )
+}
+
+fn widget_has_non_empty_tu(
+    document: &Document,
+    widget: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    Ok(walk_inherited(
+        document,
+        widget,
+        limits,
+        b"TU",
+        |document, value, limits| {
+            Ok(Some(
+                resolve_optional(document, value, limits.max_reference_depth)?
+                    .and_then(|value| value.as_str().ok())
+                    .is_some_and(|value| !value.is_empty()),
+            ))
+        },
+    )?
+    .unwrap_or(false))
 }
 
 fn object_number(value: &Object) -> Option<f64> {

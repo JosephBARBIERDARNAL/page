@@ -2,6 +2,7 @@ use lopdf::{Document, Object};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
+pub(crate) use crate::object_resolution::has_non_empty_string_entry;
 use crate::object_resolution::{dictionary_based, resolve_optional};
 use crate::report::RuleFailure;
 

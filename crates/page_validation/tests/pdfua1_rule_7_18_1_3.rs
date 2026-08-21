@@ -1,0 +1,113 @@
+use std::collections::BTreeSet;
+use std::env;
+use std::fs;
+use std::path::Path;
+
+use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+
+pub mod common;
+
+const RULE: &str = "PDFUA1-FORM-FIELD-TU-ALT-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.1:3";
+
+#[test]
+fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
+    for fixture in [
+        "pdfua1-rule-7-18-1-3-tu.pdf",
+        "pdfua1-rule-7-18-1-3-alt.pdf",
+    ] {
+        let report = validate_bytes_with_profile(
+            fixture_bytes(fixture),
+            ValidationProfile::PdfUa1,
+            &SafetyLimits::default(),
+        );
+        assert!(report.checks_passed, "{fixture}: {report}");
+        assert!(report.failures.is_empty(), "{fixture}: {report}");
+        assert_eq!(report.checks.total, 72, "{fixture}: {report}");
+    }
+
+    for fixture in [
+        "pdfua1-rule-7-18-1-3-missing.pdf",
+        "pdfua1-rule-7-18-1-3-empty-tu.pdf",
+    ] {
+        let report = validate_bytes_with_profile(
+            fixture_bytes(fixture),
+            ValidationProfile::PdfUa1,
+            &SafetyLimits::default(),
+        );
+        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
+        assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
+        assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");
+    }
+}
+
+#[test]
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.1-3 fixtures"]
+fn regenerate_pdfua1_rule_7_18_1_3_fixtures() {
+    for (fixture, case) in [
+        ("pdfua1-rule-7-18-1-3-tu.pdf", "tu"),
+        ("pdfua1-rule-7-18-1-3-alt.pdf", "alt"),
+        ("pdfua1-rule-7-18-1-3-missing.pdf", "missing"),
+        ("pdfua1-rule-7-18-1-3-empty-tu.pdf", "empty_tu"),
+    ] {
+        fs::write(
+            Path::new("tests/fixtures").join(fixture),
+            common::pdfua1_rule_7_18_1_3_fixture(case),
+        )
+        .expect("write PDF/UA-1 rule 7.18.1-3 fixture");
+    }
+}
+
+#[test]
+fn pdfua1_rule_7_18_1_3_fixtures_match_verapdf_1302_when_opted_in() {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let mut config = ReferenceConfig::pinned(executable);
+    config.profile = ReferenceProfile::PdfUa1;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
+    for (fixture, should_fail) in [
+        ("pdfua1-rule-7-18-1-3-tu.pdf", false),
+        ("pdfua1-rule-7-18-1-3-alt.pdf", false),
+        ("pdfua1-rule-7-18-1-3-missing.pdf", true),
+        ("pdfua1-rule-7-18-1-3-empty-tu.pdf", true),
+    ] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(fixture);
+        let report = runner.compare_file(&path, &SafetyLimits::default());
+        let failed = report
+            .reference_result
+            .as_ref()
+            .expect("veraPDF result")
+            .failed_rule_ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            failed.contains(REFERENCE_RULE),
+            should_fail,
+            "{fixture}: {report}"
+        );
+    }
+}
+
+fn fixture_bytes(fixture: &str) -> &'static [u8] {
+    match fixture {
+        "pdfua1-rule-7-18-1-3-tu.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-tu.pdf")
+        }
+        "pdfua1-rule-7-18-1-3-alt.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-alt.pdf")
+        }
+        "pdfua1-rule-7-18-1-3-missing.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-missing.pdf")
+        }
+        "pdfua1-rule-7-18-1-3-empty-tu.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-empty-tu.pdf")
+        }
+        _ => panic!("unknown fixture {fixture}"),
+    }
+}

@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 47,
+        ValidationProfile::PdfUa1 => 72,
         _ => 0,
     }
 }
@@ -448,6 +448,18 @@ fn validate_document(
                 FailureCategory::Conformance,
             ));
         }
+        if document.encrypted
+            && !document
+                .encryption_permissions
+                .is_some_and(|permissions| permissions & 512 == 512)
+        {
+            failures.push(failure(
+                "PDFUA1-ENCRYPTION-P-001",
+                "an encrypted document must contain an encryption-dictionary /P entry with bit 10 set",
+                document.encryption_dictionary_object,
+                FailureCategory::Conformance,
+            ));
+        }
         if !document.catalog_metadata.is_valid() {
             failures.push(failure(
                 "PDFUA1-METADATA-STRUCTURE-001",
@@ -542,6 +554,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .form_elements_without_role_with_invalid_children,
+            "PDFUA1-FORM-CHILDREN-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .toci_elements_not_contained_in_toc,
             "PDFUA1-TOCI-PARENT-001",
             None,
@@ -552,6 +572,70 @@ fn validate_document(
                 .document_features
                 .tr_elements_not_contained_in_table_section,
             "PDFUA1-TR-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .li_elements_not_contained_in_list,
+            "PDFUA1-LI-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .lbody_elements_not_contained_in_li,
+            "PDFUA1-LBODY-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .thead_elements_not_contained_in_table,
+            "PDFUA1-THEAD-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tbody_elements_not_contained_in_table,
+            "PDFUA1-TBODY-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tfoot_elements_not_contained_in_table,
+            "PDFUA1-TFOOT-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .th_elements_not_contained_in_tr,
+            "PDFUA1-TH-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .td_elements_not_contained_in_tr,
+            "PDFUA1-TD-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tr_elements_with_invalid_children,
+            "PDFUA1-TR-KIDS-001",
             None,
             &mut failures,
         );
@@ -576,6 +660,22 @@ fn validate_document(
                 .document_features
                 .list_elements_with_caption_not_first,
             "PDFUA1-L-CAPTION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .list_elements_with_invalid_children,
+            "PDFUA1-L-KIDS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .list_items_with_invalid_children,
+            "PDFUA1-LI-KIDS-001",
             None,
             &mut failures,
         );
@@ -622,6 +722,46 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .table_elements_with_caption_not_first_or_last,
+            "PDFUA1-TABLE-CAPTION-POSITION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_multiple_theads,
+            "PDFUA1-TABLE-THEAD-COUNT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_multiple_tfoots,
+            "PDFUA1-TABLE-TFOOT-COUNT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_tfoot_without_tbody,
+            "PDFUA1-TABLE-TFOOT-TBODY-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_thead_without_tbody,
+            "PDFUA1-TABLE-THEAD-TBODY-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .table_elements_with_unequal_column_row_spans,
             "PDFUA1-TABLE-COLUMN-ROWSPAN-001",
             None,
@@ -632,6 +772,12 @@ fn validate_document(
                 .document_features
                 .table_elements_with_unequal_row_column_spans,
             "PDFUA1-TABLE-ROW-COLUMNSPAN-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.document_features.table_cells_with_intersections,
+            "PDFUA1-TABLE-CELL-INTERSECTION-001",
             None,
             &mut failures,
         );
@@ -678,6 +824,32 @@ fn validate_document(
                 .document_features
                 .note_elements_with_duplicate_id,
             "PDFUA1-NOTE-ID-UNIQUE-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.document_features.optional_content_missing_names,
+            "PDFUA1-OPTIONAL-CONTENT-NAME-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.document_features.optional_content_as_entries,
+            "PDFUA1-OPTIONAL-CONTENT-AS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .file_specs_missing_or_empty_f_or_uf,
+            "PDFUA1-FILE-SPEC-F-AND-UF-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.actions.file_specs_missing_or_empty_f_or_uf,
+            "PDFUA1-FILE-SPEC-F-AND-UF-001",
             None,
             &mut failures,
         );
@@ -798,7 +970,60 @@ fn validate_document(
                 None,
                 &mut failures,
             );
+            aggregate_failures(
+                &inspections.forms.dynamic_xfa_forms,
+                "PDFUA1-DYNAMIC-XFA-001",
+                &mut failures,
+            );
         }
+        aggregate_failures_with_location(
+            &inspections.annotations.annotations_not_nested_in_annot,
+            "PDFUA1-ANNOTATION-ANNOT-TAG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.links_not_nested_in_link,
+            "PDFUA1-LINK-LINK-TAG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.links_missing_contents,
+            "PDFUA1-LINK-CONTENTS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.annotations_missing_contents_or_alt,
+            "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.trapnet_annotations,
+            "PDFUA1-TRAPNET-ANNOTATION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.pages_missing_tabs,
+            "PDFUA1-PAGE-TABS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.forms.widgets_missing_tu_or_alt,
+            "PDFUA1-FORM-FIELD-TU-ALT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.forms.widgets_not_nested_in_form,
+            "PDFUA1-WIDGET-FORM-TAG-001",
+            None,
+            &mut failures,
+        );
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
 
@@ -3026,7 +3251,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 47);
+        assert_eq!(report.checks.total, 72);
     }
 
     #[test]

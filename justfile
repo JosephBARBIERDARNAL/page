@@ -109,3 +109,10 @@ doc: rules-docs
 # Install locally
 install:
     cargo install --path crates/page_cli --force
+
+# Recreate the logo files
+logo:
+    typst compile docs/images/logo.typ docs/images/logo-mark-on-dark.svg --input surface=dark --ppi 300
+    typst compile docs/images/logo.typ docs/images/logo-mark-on-light.svg --input surface=light --ppi 300
+    typst compile docs/images/logo.typ docs/images/logo-on-dark.svg --input label=false --input surface=dark --ppi 300
+    typst compile docs/images/logo.typ docs/images/logo-on-light.svg --input label=false --input surface=light --ppi 300

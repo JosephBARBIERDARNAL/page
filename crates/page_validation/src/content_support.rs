@@ -227,7 +227,13 @@ pub(crate) fn for_each_page_annotation<'a>(
     pages: &'a [PageEntry],
     limits: &SafetyLimits,
     inspected: &mut BTreeSet<ObjectId>,
-    mut visit: impl FnMut(u32, usize, Option<PdfObjectId>, &'a Object) -> Result<(), PdfError>,
+    mut visit: impl FnMut(
+        u32,
+        usize,
+        Option<PdfObjectId>,
+        &'a Dictionary,
+        &'a Object,
+    ) -> Result<(), PdfError>,
 ) -> Result<(), PdfError> {
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
@@ -253,7 +259,13 @@ pub(crate) fn for_each_page_annotation<'a>(
             else {
                 continue;
             };
-            visit(page_number, index, object_id.map(Into::into), resolved)?;
+            visit(
+                page_number,
+                index,
+                object_id.map(Into::into),
+                page,
+                resolved,
+            )?;
         }
     }
     Ok(())

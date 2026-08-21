@@ -101,6 +101,24 @@ pub(crate) fn dictionary_based(object: &Object) -> Option<&Dictionary> {
     }
 }
 
+pub(crate) fn has_non_empty_string_entry(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<bool, PdfError> {
+    let Some(value) = dictionary
+        .get(key)
+        .ok()
+        .map(|value| resolve_optional(document, value, maximum_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(false);
+    };
+    Ok(value.as_str().is_ok_and(|value| !value.is_empty()))
+}
+
 /// Whether `dictionary` has `key` as a *meaningfully present* entry for a
 /// veraPDF `containsX` boolean predicate: a direct `Object::Null` value is
 /// treated as absent, matching veraPDF's own convention confirmed against

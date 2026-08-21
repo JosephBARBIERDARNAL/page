@@ -2422,12 +2422,10 @@ enum CmapDecoder {
 impl CmapDecoder {
     fn codes(&self, shown_bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
         match self {
-            Self::IdentityBytes => shown_bytes.chunks_exact(2).next().is_some().then(|| {
-                shown_bytes
-                    .chunks_exact(2)
-                    .map(|code| code.to_vec())
-                    .collect()
-            }),
+            Self::IdentityBytes => {
+                let (codes, _) = shown_bytes.as_chunks::<2>();
+                (!codes.is_empty()).then(|| codes.iter().map(|code| code.to_vec()).collect())
+            }
             Self::Parsed(parsed) => parsed.codes(shown_bytes),
             Self::Unavailable => None,
         }
@@ -2445,12 +2443,12 @@ impl CmapDecoder {
 }
 
 fn identity_cids(shown_bytes: &[u8]) -> Option<Vec<u16>> {
-    let mut chunks = shown_bytes.chunks_exact(2);
+    let (chunks, remainder) = shown_bytes.as_chunks::<2>();
     let mut cids = chunks
-        .by_ref()
-        .map(|cid| u16::from_be_bytes([cid[0], cid[1]]))
+        .iter()
+        .map(|cid| u16::from_be_bytes(*cid))
         .collect::<Vec<_>>();
-    match chunks.remainder() {
+    match remainder {
         [] => Some(cids),
         [byte] => {
             cids.push(u16::from(*byte));
@@ -3325,9 +3323,11 @@ impl UnicodeCmap {
         (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
             .then_some(Self {
                 has_reserved_values: mappings.values().any(|value| {
-                    value.chunks_exact(2).any(|pair| {
-                        matches!(u16::from_be_bytes([pair[0], pair[1]]), 0 | 0xFEFF | 0xFFFE)
-                    })
+                    value
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .any(|pair| matches!(u16::from_be_bytes(*pair), 0 | 0xFEFF | 0xFFFE))
                 }),
                 mappings,
             })
@@ -3343,8 +3343,10 @@ impl UnicodeCmap {
         self.mappings.get(code).is_some_and(|value| {
             String::from_utf16(
                 &value
-                    .chunks_exact(2)
-                    .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|pair| u16::from_be_bytes(*pair))
                     .collect::<Vec<_>>(),
             )
             .is_ok_and(|value| {
@@ -3393,8 +3395,10 @@ fn valid_unicode_bytes(bytes: &[u8]) -> bool {
         && !bytes.is_empty()
         && String::from_utf16(
             &bytes
-                .chunks_exact(2)
-                .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| u16::from_be_bytes(*pair))
                 .collect::<Vec<_>>(),
         )
         .is_ok()
@@ -3721,7 +3725,9 @@ fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
             .filter(|byte| !byte.is_ascii_whitespace())
             .collect::<Vec<_>>();
         return hex
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|pair| {
                 let digit = |byte| match byte {
                     b'0'..=b'9' => byte - b'0',

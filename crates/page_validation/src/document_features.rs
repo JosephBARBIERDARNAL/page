@@ -35,18 +35,35 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
+    pub(crate) form_elements_without_role_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    pub(crate) li_elements_not_contained_in_list: Vec<RuleFailure>,
+    pub(crate) lbody_elements_not_contained_in_li: Vec<RuleFailure>,
+    pub(crate) thead_elements_not_contained_in_table: Vec<RuleFailure>,
+    pub(crate) tbody_elements_not_contained_in_table: Vec<RuleFailure>,
+    pub(crate) tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
+    pub(crate) th_elements_not_contained_in_tr: Vec<RuleFailure>,
+    pub(crate) td_elements_not_contained_in_tr: Vec<RuleFailure>,
+    pub(crate) tr_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toc_elements_with_caption_not_first: Vec<RuleFailure>,
     pub(crate) list_elements_with_caption_not_first: Vec<RuleFailure>,
+    pub(crate) list_elements_with_invalid_children: Vec<RuleFailure>,
+    pub(crate) list_items_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) thead_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tbody_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     pub(crate) table_elements_with_multiple_captions: Vec<RuleFailure>,
+    pub(crate) table_elements_with_caption_not_first_or_last: Vec<RuleFailure>,
+    pub(crate) table_elements_with_multiple_theads: Vec<RuleFailure>,
+    pub(crate) table_elements_with_multiple_tfoots: Vec<RuleFailure>,
+    pub(crate) table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
+    pub(crate) table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    pub(crate) table_cells_with_intersections: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
     pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
     pub(crate) figure_elements_missing_alternative_text: Vec<RuleFailure>,
@@ -75,6 +92,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
     pub(crate) embedded_files_not_pdfa: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
     pub(crate) file_specs_missing_af_relationship: Vec<RuleFailure>,
     pub(crate) file_specs_not_associated: Vec<RuleFailure>,
     pub(crate) optional_content_missing_names: Vec<RuleFailure>,
@@ -195,6 +213,7 @@ pub(crate) fn inspect(
             .is_ok_and(|value| !matches!(value, Object::Null))
     });
     let mut file_specs_with_embedded_files = Vec::new();
+    let mut file_specs_missing_or_empty_f_or_uf = Vec::new();
     if let Some(names) = names
         && let Ok(embedded_files) = names.get(b"EmbeddedFiles")
     {
@@ -205,6 +224,7 @@ pub(crate) fn inspect(
             embedded_files,
             limits,
             &mut file_specs_with_embedded_files,
+            &mut file_specs_missing_or_empty_f_or_uf,
             &mut ancestors,
             &mut steps,
             0,
@@ -443,6 +463,23 @@ pub(crate) fn inspect(
                 description: "embedded-file specification is missing /F or /UF".to_owned(),
             });
         }
+        if !file_spec::has_non_empty_string_entry(
+            document,
+            dictionary,
+            b"F",
+            limits.max_reference_depth,
+        )? || !file_spec::has_non_empty_string_entry(
+            document,
+            dictionary,
+            b"UF",
+            limits.max_reference_depth,
+        )? {
+            file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                object_id,
+                description: "embedded-file specification is missing or has an empty /F or /UF"
+                    .to_owned(),
+            });
+        }
         if resolved_name(
             document,
             dictionary,
@@ -554,21 +591,42 @@ pub(crate) fn inspect(
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
+        form_elements_without_role_with_invalid_children: structure_tree
+            .form_elements_without_role_with_invalid_children,
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         tr_elements_not_contained_in_table_section: structure_tree
             .tr_elements_not_contained_in_table_section,
+        li_elements_not_contained_in_list: structure_tree.li_elements_not_contained_in_list,
+        lbody_elements_not_contained_in_li: structure_tree.lbody_elements_not_contained_in_li,
+        thead_elements_not_contained_in_table: structure_tree.thead_elements_not_contained_in_table,
+        tbody_elements_not_contained_in_table: structure_tree.tbody_elements_not_contained_in_table,
+        tfoot_elements_not_contained_in_table: structure_tree.tfoot_elements_not_contained_in_table,
+        th_elements_not_contained_in_tr: structure_tree.th_elements_not_contained_in_tr,
+        td_elements_not_contained_in_tr: structure_tree.td_elements_not_contained_in_tr,
+        tr_elements_with_invalid_children: structure_tree.tr_elements_with_invalid_children,
         toc_elements_with_invalid_children: structure_tree.toc_elements_with_invalid_children,
         toc_elements_with_caption_not_first: structure_tree.toc_elements_with_caption_not_first,
         list_elements_with_caption_not_first: structure_tree.list_elements_with_caption_not_first,
+        list_elements_with_invalid_children: structure_tree.list_elements_with_invalid_children,
+        list_items_with_invalid_children: structure_tree.list_items_with_invalid_children,
         table_elements_with_invalid_children: structure_tree.table_elements_with_invalid_children,
         thead_elements_with_invalid_children: structure_tree.thead_elements_with_invalid_children,
         tbody_elements_with_invalid_children: structure_tree.tbody_elements_with_invalid_children,
         tfoot_elements_with_invalid_children: structure_tree.tfoot_elements_with_invalid_children,
         table_elements_with_multiple_captions: structure_tree.table_elements_with_multiple_captions,
+        table_elements_with_caption_not_first_or_last: structure_tree
+            .table_elements_with_caption_not_first_or_last,
+        table_elements_with_multiple_theads: structure_tree.table_elements_with_multiple_theads,
+        table_elements_with_multiple_tfoots: structure_tree.table_elements_with_multiple_tfoots,
+        table_elements_with_tfoot_without_tbody: structure_tree
+            .table_elements_with_tfoot_without_tbody,
+        table_elements_with_thead_without_tbody: structure_tree
+            .table_elements_with_thead_without_tbody,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
         table_elements_with_unequal_row_column_spans: structure_tree
             .table_elements_with_unequal_row_column_spans,
+        table_cells_with_intersections: structure_tree.table_cells_with_intersections,
         table_cells_with_undetermined_headers: structure_tree.table_cells_with_undetermined_headers,
         table_cells_with_undefined_headers: structure_tree.table_cells_with_undefined_headers,
         figure_elements_missing_alternative_text: structure_tree
@@ -616,6 +674,7 @@ pub(crate) fn inspect(
         embedded_files_with_invalid_mime,
         embedded_files_not_pdfa,
         file_specs_missing_f_or_uf,
+        file_specs_missing_or_empty_f_or_uf,
         file_specs_missing_af_relationship,
         file_specs_not_associated,
         optional_content_missing_names,
@@ -630,6 +689,10 @@ fn inspect_optional_content(
     catalog: &lopdf::Dictionary,
     limits: &SafetyLimits,
 ) -> Result<OptionalContentFailures, PdfError> {
+    // The configuration list is shared by PDF/A-2/3 naming and /AS checks and
+    // PDF/UA-1 rules 7.10-1/2. Only dictionaries addressed by /D or /Configs
+    // are configurations; optional-content group dictionaries are separate
+    // objects and are intentionally not evaluated by these checks.
     let Some(properties) = catalog
         .get(b"OCProperties")
         .ok()
@@ -856,18 +919,35 @@ struct StructureTreeSummary {
     has_unmapped_type: bool,
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
+    form_elements_without_role_with_invalid_children: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
+    li_elements_not_contained_in_list: Vec<RuleFailure>,
+    lbody_elements_not_contained_in_li: Vec<RuleFailure>,
+    thead_elements_not_contained_in_table: Vec<RuleFailure>,
+    tbody_elements_not_contained_in_table: Vec<RuleFailure>,
+    tfoot_elements_not_contained_in_table: Vec<RuleFailure>,
+    th_elements_not_contained_in_tr: Vec<RuleFailure>,
+    td_elements_not_contained_in_tr: Vec<RuleFailure>,
+    tr_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_invalid_children: Vec<RuleFailure>,
     toc_elements_with_caption_not_first: Vec<RuleFailure>,
     list_elements_with_caption_not_first: Vec<RuleFailure>,
+    list_elements_with_invalid_children: Vec<RuleFailure>,
+    list_items_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_invalid_children: Vec<RuleFailure>,
     thead_elements_with_invalid_children: Vec<RuleFailure>,
     tbody_elements_with_invalid_children: Vec<RuleFailure>,
     tfoot_elements_with_invalid_children: Vec<RuleFailure>,
     table_elements_with_multiple_captions: Vec<RuleFailure>,
+    table_elements_with_caption_not_first_or_last: Vec<RuleFailure>,
+    table_elements_with_multiple_theads: Vec<RuleFailure>,
+    table_elements_with_multiple_tfoots: Vec<RuleFailure>,
+    table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
+    table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
     table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    table_cells_with_intersections: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
     table_cells_with_undefined_headers: Vec<RuleFailure>,
     figure_elements_missing_alternative_text: Vec<RuleFailure>,
@@ -928,18 +1008,35 @@ fn inspect_structure_tree(
         has_unmapped_type: false,
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
+        form_elements_without_role_with_invalid_children: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
         tr_elements_not_contained_in_table_section: Vec::new(),
+        li_elements_not_contained_in_list: Vec::new(),
+        lbody_elements_not_contained_in_li: Vec::new(),
+        thead_elements_not_contained_in_table: Vec::new(),
+        tbody_elements_not_contained_in_table: Vec::new(),
+        tfoot_elements_not_contained_in_table: Vec::new(),
+        th_elements_not_contained_in_tr: Vec::new(),
+        td_elements_not_contained_in_tr: Vec::new(),
+        tr_elements_with_invalid_children: Vec::new(),
         toc_elements_with_invalid_children: Vec::new(),
         toc_elements_with_caption_not_first: Vec::new(),
         list_elements_with_caption_not_first: Vec::new(),
+        list_elements_with_invalid_children: Vec::new(),
+        list_items_with_invalid_children: Vec::new(),
         table_elements_with_invalid_children: Vec::new(),
         thead_elements_with_invalid_children: Vec::new(),
         tbody_elements_with_invalid_children: Vec::new(),
         tfoot_elements_with_invalid_children: Vec::new(),
         table_elements_with_multiple_captions: Vec::new(),
+        table_elements_with_caption_not_first_or_last: Vec::new(),
+        table_elements_with_multiple_theads: Vec::new(),
+        table_elements_with_multiple_tfoots: Vec::new(),
+        table_elements_with_tfoot_without_tbody: Vec::new(),
+        table_elements_with_thead_without_tbody: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
         table_elements_with_unequal_row_column_spans: Vec::new(),
+        table_cells_with_intersections: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
         table_cells_with_undefined_headers: Vec::new(),
         figure_elements_missing_alternative_text: Vec::new(),
@@ -1337,6 +1434,17 @@ fn inspect_structure_element(
     }
     let resolved_type =
         resolved_standard_type(structure_type, context.role_map, limits.max_object_count);
+    if resolved_type == Some(b"Form".as_slice())
+        && !has_role_attribute(document, dictionary, limits)?
+        && !has_one_interactive_child(document, dictionary, limits)?
+    {
+        summary
+            .form_elements_without_role_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "a Form structure element without a /Role attribute does not have exactly one OBJR child identifying a Widget annotation".to_owned(),
+            });
+    }
     if resolved_type == Some(b"TR".as_slice())
         && !matches!(
             context.parent_standard_type,
@@ -1351,6 +1459,95 @@ fn inspect_structure_element(
                     "a TR structure element is not contained in a Table, THead, TBody, or TFoot structure element"
                         .to_owned(),
             });
+    }
+    if resolved_type == Some(b"LI".as_slice())
+        && context.parent_standard_type != Some(b"L".as_slice())
+    {
+        summary.li_elements_not_contained_in_list.push(RuleFailure {
+            object_id,
+            description: "an LI structure element is not contained in an L structure element"
+                .to_owned(),
+        });
+    }
+    if resolved_type == Some(b"LBody".as_slice())
+        && context.parent_standard_type != Some(b"LI".as_slice())
+    {
+        summary
+            .lbody_elements_not_contained_in_li
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "an LBody structure element is not contained in an LI structure element"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"THead".as_slice())
+        && context.parent_standard_type != Some(b"Table".as_slice())
+    {
+        summary
+            .thead_elements_not_contained_in_table
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a THead structure element is not contained in a Table structure element"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"TBody".as_slice())
+        && context.parent_standard_type != Some(b"Table".as_slice())
+    {
+        summary
+            .tbody_elements_not_contained_in_table
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a TBody structure element is not contained in a Table structure element"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"TFoot".as_slice())
+        && context.parent_standard_type != Some(b"Table".as_slice())
+    {
+        summary
+            .tfoot_elements_not_contained_in_table
+            .push(RuleFailure {
+                object_id,
+                description:
+                    "a TFoot structure element is not contained in a Table structure element"
+                        .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"TH".as_slice())
+        && context.parent_standard_type != Some(b"TR".as_slice())
+    {
+        summary.th_elements_not_contained_in_tr.push(RuleFailure {
+            object_id,
+            description: "a TH structure element is not contained in a TR structure element"
+                .to_owned(),
+        });
+    }
+    if resolved_type == Some(b"TD".as_slice())
+        && context.parent_standard_type != Some(b"TR".as_slice())
+    {
+        summary.td_elements_not_contained_in_tr.push(RuleFailure {
+            object_id,
+            description: "a TD structure element is not contained in a TR structure element"
+                .to_owned(),
+        });
+    }
+    if resolved_type == Some(b"TR".as_slice())
+        && table_row_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary.tr_elements_with_invalid_children.push(RuleFailure {
+            object_id,
+            description: "a TR structure element contains a child other than TH or TD".to_owned(),
+        });
     }
     if let Some(heading_level) = heading_level(resolved_type) {
         let has_correct_nesting = summary
@@ -1492,6 +1689,38 @@ fn inspect_structure_element(
                         .to_owned(),
             });
     }
+    if resolved_type == Some(b"L".as_slice())
+        && list_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary
+            .list_elements_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "an L structure element contains a child other than L, LI, or Caption"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"LI".as_slice())
+        && list_item_contains_invalid_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )?
+    {
+        summary.list_items_with_invalid_children.push(RuleFailure {
+            object_id,
+            description: "an LI structure element contains a child other than Lbl or LBody"
+                .to_owned(),
+        });
+    }
     if !crate::unicode_names::is_valid_utf8(structure_type) {
         summary.invalid_unicode_structure_types.push(RuleFailure {
             object_id,
@@ -1515,7 +1744,25 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"Table".as_slice())
-        && table_contains_multiple_captions(
+        && table_contains_multiple_children(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"Caption",
+        )?
+    {
+        summary
+            .table_elements_with_multiple_captions
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains more than one Caption child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_caption_not_first_or_last(
             document,
             dictionary,
             context.role_map,
@@ -1524,10 +1771,85 @@ fn inspect_structure_element(
         )?
     {
         summary
-            .table_elements_with_multiple_captions
+            .table_elements_with_caption_not_first_or_last
+            .push(RuleFailure {
+            object_id,
+            description:
+                "a Table structure element contains a Caption child that is neither first nor last"
+                    .to_owned(),
+        });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_multiple_children(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"THead",
+        )?
+    {
+        summary
+            .table_elements_with_multiple_theads
             .push(RuleFailure {
                 object_id,
-                description: "a Table structure element contains more than one Caption child"
+                description: "a Table structure element contains more than one THead child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_multiple_children(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"TFoot",
+        )?
+    {
+        summary
+            .table_elements_with_multiple_tfoots
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains more than one TFoot child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_child_without_other_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"TFoot",
+            b"TBody",
+        )?
+    {
+        summary
+            .table_elements_with_tfoot_without_tbody
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains a TFoot child but no TBody child"
+                    .to_owned(),
+            });
+    }
+    if resolved_type == Some(b"Table".as_slice())
+        && table_contains_child_without_other_child(
+            document,
+            dictionary,
+            context.role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+            b"THead",
+            b"TBody",
+        )?
+    {
+        summary
+            .table_elements_with_thead_without_tbody
+            .push(RuleFailure {
+                object_id,
+                description: "a Table structure element contains a THead child but no TBody child"
                     .to_owned(),
             });
     }
@@ -1554,6 +1876,16 @@ fn inspect_structure_element(
                     "a Table structure element has rows spanning different numbers of columns"
                         .to_owned(),
             });
+    }
+    if resolved_type == Some(b"Table".as_slice()) {
+        summary
+            .table_cells_with_intersections
+            .extend(table_cell_intersection_failures(
+                document,
+                dictionary,
+                context.role_map,
+                limits,
+            )?);
     }
     if resolved_type == Some(b"Table".as_slice()) {
         let (undetermined, undefined) =
@@ -1687,6 +2019,154 @@ fn inspect_structure_element(
     Ok(())
 }
 
+fn has_role_attribute(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    if let Some(attributes) = dictionary
+        .get(b"A")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        && attributes_contain_role(document, attributes, limits)?
+    {
+        return Ok(true);
+    }
+    let Some(classes) = dictionary
+        .get(b"C")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(false);
+    };
+    let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
+        return Ok(false);
+    };
+    let Some(struct_tree_root) = catalog
+        .get(b"StructTreeRoot")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let Some(class_map) = struct_tree_root
+        .get(b"ClassMap")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let class_names = match classes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    for class_name in class_names.iter().take(limits.max_object_count) {
+        let Some(class_name) = resolve_optional(document, class_name, limits.max_reference_depth)?
+            .and_then(|object| object.as_name().ok())
+        else {
+            continue;
+        };
+        let Some(attributes) = class_map
+            .get(class_name)
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+        else {
+            continue;
+        };
+        if attributes_contain_role(document, attributes, limits)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn attributes_contain_role(
+    document: &Document,
+    attributes: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let attributes = match attributes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    for attribute in attributes.iter().take(limits.max_object_count) {
+        let Some(attribute) = resolve_optional(document, attribute, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok())
+        else {
+            continue;
+        };
+        if resolved_name(document, attribute, b"O", limits.max_reference_depth)?
+            == Some(b"PrintField".as_slice())
+            && resolved_name(document, attribute, b"Role", limits.max_reference_depth)?.is_some()
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn has_one_interactive_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(kid) = dictionary
+        .get(b"K")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|kids| match kids {
+            Object::Array(values) if values.len() == 1 => values.first(),
+            Object::Dictionary(_) => Some(kids),
+            _ => None,
+        })
+    else {
+        return Ok(false);
+    };
+    let Some(object_reference) = resolve_optional(document, kid, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    if resolved_name(
+        document,
+        object_reference,
+        b"Type",
+        limits.max_reference_depth,
+    )? != Some(b"OBJR".as_slice())
+    {
+        return Ok(false);
+    }
+    let Some(widget_reference) = object_reference.get(b"Obj").ok() else {
+        return Ok(false);
+    };
+    if widget_reference.as_reference().is_err() {
+        return Ok(false);
+    }
+    let Some(widget) = resolve_optional(document, widget_reference, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, widget, b"Subtype", limits.max_reference_depth)?
+            == Some(b"Widget".as_slice()),
+    )
+}
+
 fn heading_level(structure_type: Option<&[u8]>) -> Option<u8> {
     match structure_type {
         Some(b"H1") => Some(1),
@@ -1750,6 +2230,25 @@ fn contains_caption_not_first(
     )
 }
 
+fn table_contains_caption_not_first_or_last(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    let kids = direct_structure_kids(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+    )?;
+    Ok(kids.iter().enumerate().any(|(index, (_, structure_type))| {
+        *structure_type == b"Caption" && index != 0 && index.saturating_add(1) < kids.len()
+    }))
+}
+
 fn table_contains_invalid_child(
     document: &Document,
     dictionary: &lopdf::Dictionary,
@@ -1772,14 +2271,49 @@ fn table_contains_invalid_child(
     )
 }
 
-fn table_contains_multiple_captions(
+fn list_contains_invalid_child(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     max_reference_depth: usize,
     max_object_count: usize,
 ) -> Result<bool, PdfError> {
-    let mut captions = 0;
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| !matches!(structure_type, Some(b"L" | b"LI" | b"Caption")),
+    )
+}
+
+fn list_item_contains_invalid_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| !matches!(structure_type, Some(b"Lbl" | b"LBody")),
+    )
+}
+
+fn table_contains_multiple_children(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+    child_type: &[u8],
+) -> Result<bool, PdfError> {
+    let mut children = 0;
     any_direct_structure_kid(
         document,
         dictionary,
@@ -1787,12 +2321,38 @@ fn table_contains_multiple_captions(
         max_reference_depth,
         max_object_count,
         |structure_type| {
-            if structure_type == Some(b"Caption".as_slice()) {
-                captions += 1;
+            if structure_type == Some(child_type) {
+                children += 1;
             }
-            captions >= 2
+            children >= 2
         },
     )
+}
+
+fn table_contains_child_without_other_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+    child_type: &[u8],
+    required_child_type: &[u8],
+) -> Result<bool, PdfError> {
+    let mut contains_child = false;
+    let mut contains_required_child = false;
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| {
+            contains_child |= structure_type == Some(child_type);
+            contains_required_child |= structure_type == Some(required_child_type);
+            contains_child && contains_required_child
+        },
+    )?;
+    Ok(contains_child && !contains_required_child)
 }
 
 fn table_section_contains_invalid_child(
@@ -1809,6 +2369,23 @@ fn table_section_contains_invalid_child(
         max_reference_depth,
         max_object_count,
         |structure_type| structure_type != Some(b"TR".as_slice()),
+    )
+}
+
+fn table_row_contains_invalid_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    max_reference_depth: usize,
+    max_object_count: usize,
+) -> Result<bool, PdfError> {
+    any_direct_structure_kid(
+        document,
+        dictionary,
+        role_map,
+        max_reference_depth,
+        max_object_count,
+        |structure_type| !matches!(structure_type, Some(b"TH" | b"TD") | None),
     )
 }
 
@@ -2057,21 +2634,20 @@ fn table_cell_metadata(
     Ok((id, headers, scope))
 }
 
-fn table_grid(
-    document: &Document,
-    dictionary: &lopdf::Dictionary,
-    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+fn table_rows<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<Option<Vec<Vec<Option<TableGridCell>>>>, PdfError> {
-    let direct_kids = table_structure_kids(
+) -> Result<Vec<TableStructureKid<'a>>, PdfError> {
+    let mut rows = Vec::new();
+    for kid in table_structure_kids(
         document,
         dictionary,
         role_map,
         limits.max_reference_depth,
         limits.max_object_count,
-    )?;
-    let mut rows = Vec::new();
-    for kid in direct_kids {
+    )? {
         match kid.standard_type.as_slice() {
             b"TR" => rows.push(kid),
             b"THead" | b"TBody" | b"TFoot" => rows.extend(
@@ -2088,6 +2664,109 @@ fn table_grid(
             _ => {}
         }
     }
+    Ok(rows)
+}
+
+fn table_cell_intersection_failures<'a>(
+    document: &'a Document,
+    dictionary: &'a lopdf::Dictionary,
+    role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Vec<RuleFailure>, PdfError> {
+    let rows = table_rows(document, dictionary, role_map, limits)?;
+    let Some(first_row) = rows.first() else {
+        return Ok(Vec::new());
+    };
+    let first_row_cells = table_structure_kids(
+        document,
+        first_row.dictionary,
+        role_map,
+        limits.max_reference_depth,
+        limits.max_object_count,
+    )?;
+    let number_of_columns = first_row_cells
+        .iter()
+        .filter(|kid| matches!(kid.standard_type.as_slice(), b"TH" | b"TD"))
+        .map(|kid| table_cell_spans(document, kid.dictionary, limits))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(_, column_span)| column_span)
+        .sum::<usize>();
+    if number_of_columns == 0 {
+        return Ok(Vec::new());
+    }
+    let mut number_of_rows = rows.len();
+    for (row_number, row) in rows.iter().enumerate() {
+        for kid in table_structure_kids(
+            document,
+            row.dictionary,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )? {
+            if matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
+                let (row_span, _) = table_cell_spans(document, kid.dictionary, limits)?;
+                number_of_rows = number_of_rows.max(row_number.saturating_add(row_span));
+            }
+        }
+    }
+    let mut cells: Vec<Vec<Option<TableStructureKid<'a>>>> =
+        vec![vec![None; number_of_columns]; number_of_rows];
+    for (row_number, row) in rows.iter().enumerate() {
+        let mut column_number = 0;
+        for kid in table_structure_kids(
+            document,
+            row.dictionary,
+            role_map,
+            limits.max_reference_depth,
+            limits.max_object_count,
+        )? {
+            if !matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
+                continue;
+            }
+            let (row_span, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
+            while column_number < number_of_columns && cells[row_number][column_number].is_some() {
+                column_number += 1;
+            }
+            if column_number.saturating_add(column_span) > number_of_columns
+                || row_number.saturating_add(row_span) > number_of_rows
+            {
+                return Ok(Vec::new());
+            }
+            if let Some(existing) = (row_number..row_number + row_span).find_map(|row_index| {
+                (column_number..column_number + column_span)
+                    .find_map(|column_index| cells[row_index][column_index].as_ref())
+            }) {
+                let mut object_ids = BTreeSet::new();
+                object_ids.insert(kid.object_id.map(Into::into));
+                object_ids.insert(existing.object_id.map(Into::into));
+                return Ok(object_ids
+                    .into_iter()
+                    .map(|object_id| RuleFailure {
+                        object_id,
+                        description: "a table cell has an intersection with another table cell"
+                            .to_owned(),
+                    })
+                    .collect());
+            }
+            for row in cells.iter_mut().skip(row_number).take(row_span) {
+                for slot in row.iter_mut().skip(column_number).take(column_span) {
+                    *slot = Some(kid.clone());
+                }
+            }
+            column_number += column_span;
+        }
+    }
+    Ok(Vec::new())
+}
+
+fn table_grid(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
+    limits: &SafetyLimits,
+) -> Result<Option<Vec<Vec<Option<TableGridCell>>>>, PdfError> {
+    let rows = table_rows(document, dictionary, role_map, limits)?;
     if rows.is_empty() {
         return Ok(Some(Vec::new()));
     }
@@ -2518,6 +3197,7 @@ fn inspect_name_tree(
     node: &Object,
     limits: &SafetyLimits,
     failures: &mut Vec<RuleFailure>,
+    file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
@@ -2538,7 +3218,16 @@ fn inspect_name_tree(
     {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
-    let result = inspect_name_tree_node(document, node, limits, failures, ancestors, steps, depth);
+    let result = inspect_name_tree_node(
+        document,
+        node,
+        limits,
+        failures,
+        file_specs_missing_or_empty_f_or_uf,
+        ancestors,
+        steps,
+        depth,
+    );
     if let Some(id) = object_id {
         ancestors.remove(&id);
     }
@@ -2550,6 +3239,7 @@ fn inspect_name_tree_node(
     node: &Object,
     limits: &SafetyLimits,
     failures: &mut Vec<RuleFailure>,
+    file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
@@ -2564,6 +3254,29 @@ fn inspect_name_tree_node(
             .and_then(|object| object.as_array().ok())
     {
         for value in names.iter().skip(1).step_by(2) {
+            if value.as_reference().is_err()
+                && let Some(file_spec_dictionary) =
+                    resolve_optional(document, value, limits.max_reference_depth)?
+                        .and_then(dictionary_based)
+                && contains_key(file_spec_dictionary, b"EF")
+                && (!file_spec::has_non_empty_string_entry(
+                    document,
+                    file_spec_dictionary,
+                    b"F",
+                    limits.max_reference_depth,
+                )? || !file_spec::has_non_empty_string_entry(
+                    document,
+                    file_spec_dictionary,
+                    b"UF",
+                    limits.max_reference_depth,
+                )?)
+            {
+                file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                    object_id: None,
+                    description: "embedded-file specification is missing or has an empty /F or /UF"
+                        .to_owned(),
+                });
+            }
             if let Some(failure) = file_spec::inspect(
                 document,
                 value,
@@ -2584,6 +3297,7 @@ fn inspect_name_tree_node(
                 value,
                 limits,
                 failures,
+                file_specs_missing_or_empty_f_or_uf,
                 ancestors,
                 steps,
                 depth + 1,
