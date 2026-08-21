@@ -3348,6 +3348,50 @@ pub fn pdfua1_rule_7_9_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_10_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 optional-content configuration fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+
+    let default = match case {
+        "valid" | "missing_config_name" => dictionary! {
+            "Name" => Object::string_literal("Default configuration"),
+        },
+        "missing_default_name" => Dictionary::new(),
+        _ => panic!("unknown PDF/UA-1 rule 7.10-1 fixture case {case}"),
+    };
+    let config = match case {
+        "valid" | "missing_default_name" => dictionary! {
+            "Name" => Object::string_literal("Alternate configuration"),
+        },
+        "missing_config_name" => Dictionary::new(),
+        _ => panic!("unknown PDF/UA-1 rule 7.10-1 fixture case {case}"),
+    };
+    catalog.set(
+        "OCProperties",
+        dictionary! {
+            "D" => default,
+            "Configs" => vec![Object::Dictionary(config)],
+        },
+    );
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.10-1 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
     let heading_levels = match case {
         "valid" => vec![1, 1, 2, 3, 3, 4, 2, 3, 1],
