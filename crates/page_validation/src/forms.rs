@@ -3,12 +3,16 @@ use std::collections::BTreeSet;
 use lopdf::{Dictionary, Document, Object, ObjectId};
 use roxmltree::Document as XmlDocument;
 
+use crate::annotations::{annotation_is_outside_crop_box, annotation_structure_element};
 use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
-use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
+use crate::object_resolution::{
+    contains_key, dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
+    resolved_name, walk_inherited,
+};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
@@ -16,6 +20,7 @@ use crate::report::RuleFailure;
 pub(crate) struct FormSummary {
     pub(crate) invalid_need_appearances: Vec<RuleFailure>,
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
+    pub(crate) widgets_missing_tu_or_alt: Vec<RuleFailure>,
     pub(crate) tu_language_failures: Vec<RuleFailure>,
     pub(crate) dynamic_xfa_forms: Vec<RuleFailure>,
 }
@@ -268,7 +273,7 @@ fn inspect_page_widgets(
         pages,
         limits,
         &mut inspected,
-        |page_number, index, object_id, _page, value| {
+        |page_number, index, object_id, page, value| {
             let Ok(annotation) = value.as_dict() else {
                 return Ok(());
             };
@@ -276,6 +281,33 @@ fn inspect_page_widgets(
                 != Some(b"Widget".as_slice())
             {
                 return Ok(());
+            }
+            let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
+                .is_some_and(|flags| flags & 2 == 2);
+            let outside_crop_box =
+                annotation_is_outside_crop_box(document, page, annotation, limits)?;
+            let has_alt = annotation_structure_element(document, annotation, limits)?
+                .map(|structure_element| {
+                    has_non_empty_string_entry(
+                        document,
+                        structure_element,
+                        b"Alt",
+                        limits.max_reference_depth,
+                    )
+                })
+                .transpose()?
+                .unwrap_or(false);
+            if !hidden
+                && !outside_crop_box
+                && !widget_has_non_empty_tu(document, annotation, limits)?
+                && !has_alt
+            {
+                summary.widgets_missing_tu_or_alt.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "Widget annotation {index} on page {page_number} has neither a non-empty inherited /TU entry nor a non-empty /Alt entry in its enclosing structure element"
+                    ),
+                });
             }
             let zero_rect = annotation
                 .get(b"Rect")
@@ -317,6 +349,27 @@ fn inspect_page_widgets(
             Ok(())
         },
     )
+}
+
+fn widget_has_non_empty_tu(
+    document: &Document,
+    widget: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    Ok(walk_inherited(
+        document,
+        widget,
+        limits,
+        b"TU",
+        |document, value, limits| {
+            Ok(Some(
+                resolve_optional(document, value, limits.max_reference_depth)?
+                    .and_then(|value| value.as_str().ok())
+                    .is_some_and(|value| !value.is_empty()),
+            ))
+        },
+    )?
+    .unwrap_or(false))
 }
 
 fn object_number(value: &Object) -> Option<f64> {

@@ -363,7 +363,7 @@ fn annotation_struct_parent_standard_type(
     Ok(None)
 }
 
-fn annotation_structure_element<'a>(
+pub(crate) fn annotation_structure_element<'a>(
     document: &'a Document,
     annotation: &Dictionary,
     limits: &SafetyLimits,
@@ -420,7 +420,7 @@ fn annotation_structure_element<'a>(
     )
 }
 
-fn annotation_is_outside_crop_box(
+pub(crate) fn annotation_is_outside_crop_box(
     document: &Document,
     page: &Dictionary,
     annotation: &Dictionary,
