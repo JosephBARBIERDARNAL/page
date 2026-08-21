@@ -24,7 +24,7 @@ fn pdfua1_rule_7_18_1_2_requires_annotation_contents_or_structure_alt() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 70, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 71, "{fixture}: {report}");
     }
 
     for fixture in [

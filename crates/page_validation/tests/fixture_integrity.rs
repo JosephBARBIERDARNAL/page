@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 215] = [
+    let fixtures: [(&str, &[u8], &str); 220] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1087,6 +1087,31 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-18-4-2-invalid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-18-4-2-invalid.pdf"),
             "dbfc697e028f58deb1e19f72fa5daff64eabe305e902e4d9f716dc1caea9649c",
+        ),
+        (
+            "pdfua1-rule-7-18-5-1-allowed.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-allowed.pdf"),
+            "d6f7344833dc87e2f4dc119d52fe444dd1ee9823a8bdf7a1728eacae774b17e8",
+        ),
+        (
+            "pdfua1-rule-7-18-5-1-role-mapped.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-role-mapped.pdf"),
+            "f3b711a31c44e5dfd2abf3d27ecdbf3ee3dc6b68dad010465270b052cf0bd862",
+        ),
+        (
+            "pdfua1-rule-7-18-5-1-hidden.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-hidden.pdf"),
+            "0b0c0de6a038779a3f22acf32f3c896e7dc8228eabceaf8b8e3104671f1b91f8",
+        ),
+        (
+            "pdfua1-rule-7-18-5-1-outside-crop-box.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-outside-crop-box.pdf"),
+            "6502c257c07d0187d902cbca99a91b9b5671ac5f7d9c8390746df2125af3fe12",
+        ),
+        (
+            "pdfua1-rule-7-18-5-1-not-nested.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-not-nested.pdf"),
+            "11793e298cc6653ed29f8746066d467648d56428957c68155b28b5f89f52d5f0",
         ),
     ];
 

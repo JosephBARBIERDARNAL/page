@@ -29,6 +29,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_button_appearances: Vec<RuleFailure>,
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
     pub(crate) annotations_not_nested_in_annot: Vec<RuleFailure>,
+    pub(crate) links_not_nested_in_link: Vec<RuleFailure>,
     pub(crate) annotations_missing_contents_or_alt: Vec<RuleFailure>,
     pub(crate) trapnet_annotations: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
@@ -132,6 +133,24 @@ fn inspect_annotation(
     let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
         .is_some_and(|flags| flags & 2 == 2);
     let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
+    // PDF/UA-1 7.18.5-1 follows veraPDF's PDLinkAnnot predicate: the
+    // shared page-annotation traversal is the intentional scope, and hidden
+    // or crop-box-outside links are exempt from this check.
+    if subtype == Some(b"Link".as_slice())
+        && !hidden
+        && !outside_crop_box
+        && annotation_struct_parent_standard_type(
+            document,
+            annotation_structure_element(document, annotation, limits)?,
+            limits,
+        )? != Some(b"Link".as_slice())
+    {
+        summary.links_not_nested_in_link.push(annotation_failure(
+            object_id,
+            context,
+            "is not nested within a Link structure element",
+        ));
+    }
     if !annotation_is_exempt && !hidden && !outside_crop_box {
         if subtype == Some(b"TrapNet".as_slice()) {
             summary.trapnet_annotations.push(annotation_failure(
@@ -351,8 +370,11 @@ pub(crate) fn annotation_struct_parent_standard_type(
     if structure_type == b"Form" {
         return Ok(Some(b"Form"));
     }
+    if structure_type == b"Link" {
+        return Ok(Some(b"Link"));
+    }
 
-    // A custom structure type may be role-mapped to a standard Annot or Form type.
+    // A custom structure type may be role-mapped to a standard Annot, Form, or Link type.
     let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
         return Ok(None);
     };
@@ -383,6 +405,9 @@ pub(crate) fn annotation_struct_parent_standard_type(
         }
         if current == b"Form" {
             return Ok(Some(b"Form"));
+        }
+        if current == b"Link" {
+            return Ok(Some(b"Link"));
         }
         let Some(mapped) = role_map
             .get(current)

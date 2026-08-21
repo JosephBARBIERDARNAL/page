@@ -8,14 +8,16 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-WIDGET-FORM-TAG-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.4:1";
+const RULE: &str = "PDFUA1-LINK-LINK-TAG-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.5:1";
 
 #[test]
-fn pdfua1_rule_7_18_4_1_requires_widgets_inside_form_tags() {
+fn pdfua1_rule_7_18_5_1_requires_links_inside_link_tags() {
     for fixture in [
-        "pdfua1-rule-7-18-4-1-allowed.pdf",
-        "pdfua1-rule-7-18-4-1-role-mapped.pdf",
+        "pdfua1-rule-7-18-5-1-allowed.pdf",
+        "pdfua1-rule-7-18-5-1-role-mapped.pdf",
+        "pdfua1-rule-7-18-5-1-hidden.pdf",
+        "pdfua1-rule-7-18-5-1-outside-crop-box.pdf",
     ] {
         let report = validate_bytes_with_profile(
             fixture_bytes(fixture),
@@ -28,7 +30,7 @@ fn pdfua1_rule_7_18_4_1_requires_widgets_inside_form_tags() {
     }
 
     let invalid = validate_bytes_with_profile(
-        fixture_bytes("pdfua1-rule-7-18-4-1-not-nested.pdf"),
+        fixture_bytes("pdfua1-rule-7-18-5-1-not-nested.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -39,23 +41,28 @@ fn pdfua1_rule_7_18_4_1_requires_widgets_inside_form_tags() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.4-1 fixtures"]
-fn regenerate_pdfua1_rule_7_18_4_1_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.5-1 fixtures"]
+fn regenerate_pdfua1_rule_7_18_5_1_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-18-4-1-allowed.pdf", "allowed"),
-        ("pdfua1-rule-7-18-4-1-role-mapped.pdf", "role_mapped"),
-        ("pdfua1-rule-7-18-4-1-not-nested.pdf", "not_nested"),
+        ("pdfua1-rule-7-18-5-1-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-18-5-1-role-mapped.pdf", "role_mapped"),
+        ("pdfua1-rule-7-18-5-1-hidden.pdf", "hidden"),
+        (
+            "pdfua1-rule-7-18-5-1-outside-crop-box.pdf",
+            "outside_crop_box",
+        ),
+        ("pdfua1-rule-7-18-5-1-not-nested.pdf", "not_nested"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_18_4_1_fixture(case),
+            common::pdfua1_rule_7_18_5_1_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.18.4-1 fixture");
+        .expect("write PDF/UA-1 rule 7.18.5-1 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_18_4_1_fixtures_match_verapdf_1302_when_opted_in() {
+fn pdfua1_rule_7_18_5_1_fixtures_match_verapdf_1302_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -63,9 +70,11 @@ fn pdfua1_rule_7_18_4_1_fixtures_match_verapdf_1302_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-18-4-1-allowed.pdf", false),
-        ("pdfua1-rule-7-18-4-1-role-mapped.pdf", false),
-        ("pdfua1-rule-7-18-4-1-not-nested.pdf", true),
+        ("pdfua1-rule-7-18-5-1-allowed.pdf", false),
+        ("pdfua1-rule-7-18-5-1-role-mapped.pdf", false),
+        ("pdfua1-rule-7-18-5-1-hidden.pdf", false),
+        ("pdfua1-rule-7-18-5-1-outside-crop-box.pdf", false),
+        ("pdfua1-rule-7-18-5-1-not-nested.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -89,14 +98,20 @@ fn pdfua1_rule_7_18_4_1_fixtures_match_verapdf_1302_when_opted_in() {
 
 fn fixture_bytes(fixture: &str) -> &'static [u8] {
     match fixture {
-        "pdfua1-rule-7-18-4-1-allowed.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-4-1-allowed.pdf")
+        "pdfua1-rule-7-18-5-1-allowed.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-allowed.pdf")
         }
-        "pdfua1-rule-7-18-4-1-role-mapped.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-4-1-role-mapped.pdf")
+        "pdfua1-rule-7-18-5-1-role-mapped.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-role-mapped.pdf")
         }
-        "pdfua1-rule-7-18-4-1-not-nested.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-4-1-not-nested.pdf")
+        "pdfua1-rule-7-18-5-1-hidden.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-hidden.pdf")
+        }
+        "pdfua1-rule-7-18-5-1-outside-crop-box.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-outside-crop-box.pdf")
+        }
+        "pdfua1-rule-7-18-5-1-not-nested.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-1-not-nested.pdf")
         }
         _ => panic!("unknown fixture {fixture}"),
     }
