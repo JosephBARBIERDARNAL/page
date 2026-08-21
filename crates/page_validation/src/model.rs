@@ -544,8 +544,10 @@ fn verapdf_object_string(object: &Object) -> String {
 pub(crate) fn decode_verapdf_pdf_string(bytes: &[u8]) -> String {
     if let Some(bytes) = bytes.strip_prefix(&[0xFE, 0xFF]) {
         let mut units = bytes
-            .chunks_exact(2)
-            .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u16::from_be_bytes(*pair))
             .collect::<Vec<_>>();
         if !bytes.len().is_multiple_of(2) {
             units.push(0xFFFD);

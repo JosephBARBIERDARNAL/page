@@ -2327,7 +2327,9 @@ fn decode_xml(bytes: &[u8]) -> Result<String, String> {
 
 fn decode_utf16_lossy(bytes: &[u8], convert: fn([u8; 2]) -> u16) -> String {
     let mut units = bytes
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| convert([pair[0], pair[1]]))
         .collect::<Vec<_>>();
     if !bytes.len().is_multiple_of(2) {
@@ -2338,9 +2340,9 @@ fn decode_utf16_lossy(bytes: &[u8], convert: fn([u8; 2]) -> u16) -> String {
 
 fn decode_utf32(bytes: &[u8], big_endian: bool) -> String {
     let mut result = String::new();
-    let mut chunks = bytes.chunks_exact(4);
-    for bytes in &mut chunks {
-        let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
+    let (chunks, remainder) = bytes.as_chunks::<4>();
+    for bytes in chunks {
+        let bytes = *bytes;
         let value = if big_endian {
             u32::from_be_bytes(bytes)
         } else {
@@ -2348,7 +2350,7 @@ fn decode_utf32(bytes: &[u8], big_endian: bool) -> String {
         };
         result.push(char::from_u32(value).unwrap_or('\u{FFFD}'));
     }
-    if !chunks.remainder().is_empty() {
+    if !remainder.is_empty() {
         result.push('\u{FFFD}');
     }
     result

@@ -12840,7 +12840,9 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
             .collect::<Vec<_>>();
         if !hex.is_empty() && hex.len() % 2 == 0 && hex.iter().all(u8::is_ascii_hexdigit) {
             let encrypted = hex
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|pair| {
                     let digit = |byte| match byte {
                         b'0'..=b'9' => byte - b'0',

@@ -883,7 +883,8 @@ fn assert_checked_in_mutations(
         paths.push(case.path.clone());
     }
     let reports = runner.compare_files(&paths, &SafetyLimits::default());
-    for (case, pair) in cases.iter().zip(reports.chunks_exact(2)) {
+    let (report_pairs, _) = reports.as_chunks::<2>();
+    for (case, pair) in cases.iter().zip(report_pairs) {
         let baseline = &pair[0];
         let mutation = &pair[1];
         assert!(
