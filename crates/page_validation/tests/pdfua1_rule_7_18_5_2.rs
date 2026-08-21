@@ -8,14 +8,15 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-FORM-FIELD-TU-ALT-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.1:3";
+const RULE: &str = "PDFUA1-LINK-CONTENTS-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.5:2";
 
 #[test]
-fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
+fn pdfua1_rule_7_18_5_2_requires_link_contents_alternate_descriptions() {
     for fixture in [
-        "pdfua1-rule-7-18-1-3-tu.pdf",
-        "pdfua1-rule-7-18-1-3-alt.pdf",
+        "pdfua1-rule-7-18-5-2-allowed.pdf",
+        "pdfua1-rule-7-18-5-2-hidden.pdf",
+        "pdfua1-rule-7-18-5-2-outside-crop-box.pdf",
     ] {
         let report = validate_bytes_with_profile(
             fixture_bytes(fixture),
@@ -28,8 +29,8 @@ fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
     }
 
     for fixture in [
-        "pdfua1-rule-7-18-1-3-missing.pdf",
-        "pdfua1-rule-7-18-1-3-empty-tu.pdf",
+        "pdfua1-rule-7-18-5-2-missing.pdf",
+        "pdfua1-rule-7-18-5-2-empty-contents.pdf",
     ] {
         let report = validate_bytes_with_profile(
             fixture_bytes(fixture),
@@ -44,24 +45,28 @@ fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.1-3 fixtures"]
-fn regenerate_pdfua1_rule_7_18_1_3_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.5-2 fixtures"]
+fn regenerate_pdfua1_rule_7_18_5_2_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-18-1-3-tu.pdf", "tu"),
-        ("pdfua1-rule-7-18-1-3-alt.pdf", "alt"),
-        ("pdfua1-rule-7-18-1-3-missing.pdf", "missing"),
-        ("pdfua1-rule-7-18-1-3-empty-tu.pdf", "empty_tu"),
+        ("pdfua1-rule-7-18-5-2-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-18-5-2-missing.pdf", "missing"),
+        ("pdfua1-rule-7-18-5-2-empty-contents.pdf", "empty_contents"),
+        ("pdfua1-rule-7-18-5-2-hidden.pdf", "hidden"),
+        (
+            "pdfua1-rule-7-18-5-2-outside-crop-box.pdf",
+            "outside_crop_box",
+        ),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_18_1_3_fixture(case),
+            common::pdfua1_rule_7_18_5_2_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.18.1-3 fixture");
+        .expect("write PDF/UA-1 rule 7.18.5-2 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_18_1_3_fixtures_match_verapdf_1302_when_opted_in() {
+fn pdfua1_rule_7_18_5_2_fixtures_match_verapdf_1302_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -69,10 +74,11 @@ fn pdfua1_rule_7_18_1_3_fixtures_match_verapdf_1302_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-18-1-3-tu.pdf", false),
-        ("pdfua1-rule-7-18-1-3-alt.pdf", false),
-        ("pdfua1-rule-7-18-1-3-missing.pdf", true),
-        ("pdfua1-rule-7-18-1-3-empty-tu.pdf", true),
+        ("pdfua1-rule-7-18-5-2-allowed.pdf", false),
+        ("pdfua1-rule-7-18-5-2-missing.pdf", true),
+        ("pdfua1-rule-7-18-5-2-empty-contents.pdf", true),
+        ("pdfua1-rule-7-18-5-2-hidden.pdf", false),
+        ("pdfua1-rule-7-18-5-2-outside-crop-box.pdf", false),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -96,17 +102,20 @@ fn pdfua1_rule_7_18_1_3_fixtures_match_verapdf_1302_when_opted_in() {
 
 fn fixture_bytes(fixture: &str) -> &'static [u8] {
     match fixture {
-        "pdfua1-rule-7-18-1-3-tu.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-tu.pdf")
+        "pdfua1-rule-7-18-5-2-allowed.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-2-allowed.pdf")
         }
-        "pdfua1-rule-7-18-1-3-alt.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-alt.pdf")
+        "pdfua1-rule-7-18-5-2-missing.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-2-missing.pdf")
         }
-        "pdfua1-rule-7-18-1-3-missing.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-missing.pdf")
+        "pdfua1-rule-7-18-5-2-empty-contents.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-2-empty-contents.pdf")
         }
-        "pdfua1-rule-7-18-1-3-empty-tu.pdf" => {
-            include_bytes!("fixtures/pdfua1-rule-7-18-1-3-empty-tu.pdf")
+        "pdfua1-rule-7-18-5-2-hidden.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-2-hidden.pdf")
+        }
+        "pdfua1-rule-7-18-5-2-outside-crop-box.pdf" => {
+            include_bytes!("fixtures/pdfua1-rule-7-18-5-2-outside-crop-box.pdf")
         }
         _ => panic!("unknown fixture {fixture}"),
     }

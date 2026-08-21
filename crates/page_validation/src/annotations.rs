@@ -30,6 +30,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
     pub(crate) annotations_not_nested_in_annot: Vec<RuleFailure>,
     pub(crate) links_not_nested_in_link: Vec<RuleFailure>,
+    pub(crate) links_missing_contents: Vec<RuleFailure>,
     pub(crate) annotations_missing_contents_or_alt: Vec<RuleFailure>,
     pub(crate) trapnet_annotations: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
@@ -149,6 +150,25 @@ fn inspect_annotation(
             object_id,
             context,
             "is not nested within a Link structure element",
+        ));
+    }
+    // PDF/UA-1 7.18.5-2 applies the same hidden and crop-box exemptions as
+    // veraPDF's PDLinkAnnot predicate and requires a non-empty string /Contents
+    // entry on every remaining Link annotation.
+    if subtype == Some(b"Link".as_slice())
+        && !hidden
+        && !outside_crop_box
+        && !has_non_empty_string_entry(
+            document,
+            annotation,
+            b"Contents",
+            limits.max_reference_depth,
+        )?
+    {
+        summary.links_missing_contents.push(annotation_failure(
+            object_id,
+            context,
+            "does not include a non-empty /Contents alternate description",
         ));
     }
     if !annotation_is_exempt && !hidden && !outside_crop_box {
