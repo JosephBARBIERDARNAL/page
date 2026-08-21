@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 212] = [
+    let fixtures: [(&str, &[u8], &str); 215] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1072,6 +1072,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-18-4-1-not-nested.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-18-4-1-not-nested.pdf"),
             "e5c421174cfce476f35e357b7d37d6f2bde0ba633bb0cfe4013277fa9864afae",
+        ),
+        (
+            "pdfua1-rule-7-18-4-2-allowed.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-4-2-allowed.pdf"),
+            "32ccb72f7ca2abfd46693773ce43211b1e160740f22dcd8c62054438387c1f72",
+        ),
+        (
+            "pdfua1-rule-7-18-4-2-role-attribute.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-4-2-role-attribute.pdf"),
+            "d0ba5de60db0b9881bfb61fc5b8117f1a4840fd1c357a9048987617351a007cf",
+        ),
+        (
+            "pdfua1-rule-7-18-4-2-invalid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-4-2-invalid.pdf"),
+            "dbfc697e028f58deb1e19f72fa5daff64eabe305e902e4d9f716dc1caea9649c",
         ),
     ];
 

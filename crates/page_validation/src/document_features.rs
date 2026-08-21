@@ -35,6 +35,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) struct_tree_has_unmapped_type: bool,
     pub(crate) struct_tree_role_map_has_standard_remap: bool,
     pub(crate) structure_elements_missing_parent: Vec<RuleFailure>,
+    pub(crate) form_elements_without_role_with_invalid_children: Vec<RuleFailure>,
     pub(crate) toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     pub(crate) tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
     pub(crate) li_elements_not_contained_in_list: Vec<RuleFailure>,
@@ -590,6 +591,8 @@ pub(crate) fn inspect(
         struct_tree_has_unmapped_type: structure_tree.has_unmapped_type,
         struct_tree_role_map_has_standard_remap: structure_tree.role_map_has_standard_remap,
         structure_elements_missing_parent: structure_tree.structure_elements_missing_parent,
+        form_elements_without_role_with_invalid_children: structure_tree
+            .form_elements_without_role_with_invalid_children,
         toci_elements_not_contained_in_toc: structure_tree.toci_elements_not_contained_in_toc,
         tr_elements_not_contained_in_table_section: structure_tree
             .tr_elements_not_contained_in_table_section,
@@ -916,6 +919,7 @@ struct StructureTreeSummary {
     has_unmapped_type: bool,
     role_map_has_standard_remap: bool,
     structure_elements_missing_parent: Vec<RuleFailure>,
+    form_elements_without_role_with_invalid_children: Vec<RuleFailure>,
     toci_elements_not_contained_in_toc: Vec<RuleFailure>,
     tr_elements_not_contained_in_table_section: Vec<RuleFailure>,
     li_elements_not_contained_in_list: Vec<RuleFailure>,
@@ -1004,6 +1008,7 @@ fn inspect_structure_tree(
         has_unmapped_type: false,
         role_map_has_standard_remap: false,
         structure_elements_missing_parent: Vec::new(),
+        form_elements_without_role_with_invalid_children: Vec::new(),
         toci_elements_not_contained_in_toc: Vec::new(),
         tr_elements_not_contained_in_table_section: Vec::new(),
         li_elements_not_contained_in_list: Vec::new(),
@@ -1429,6 +1434,17 @@ fn inspect_structure_element(
     }
     let resolved_type =
         resolved_standard_type(structure_type, context.role_map, limits.max_object_count);
+    if resolved_type == Some(b"Form".as_slice())
+        && !has_role_attribute(document, dictionary, limits)?
+        && !has_one_interactive_child(document, dictionary, limits)?
+    {
+        summary
+            .form_elements_without_role_with_invalid_children
+            .push(RuleFailure {
+                object_id,
+                description: "a Form structure element without a /Role attribute does not have exactly one OBJR child identifying a Widget annotation".to_owned(),
+            });
+    }
     if resolved_type == Some(b"TR".as_slice())
         && !matches!(
             context.parent_standard_type,
@@ -2001,6 +2017,154 @@ fn inspect_structure_element(
         )?;
     }
     Ok(())
+}
+
+fn has_role_attribute(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    if let Some(attributes) = dictionary
+        .get(b"A")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        && attributes_contain_role(document, attributes, limits)?
+    {
+        return Ok(true);
+    }
+    let Some(classes) = dictionary
+        .get(b"C")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(false);
+    };
+    let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
+        return Ok(false);
+    };
+    let Some(struct_tree_root) = catalog
+        .get(b"StructTreeRoot")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let Some(class_map) = struct_tree_root
+        .get(b"ClassMap")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(false);
+    };
+    let class_names = match classes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    for class_name in class_names.iter().take(limits.max_object_count) {
+        let Some(class_name) = resolve_optional(document, class_name, limits.max_reference_depth)?
+            .and_then(|object| object.as_name().ok())
+        else {
+            continue;
+        };
+        let Some(attributes) = class_map
+            .get(class_name)
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+        else {
+            continue;
+        };
+        if attributes_contain_role(document, attributes, limits)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn attributes_contain_role(
+    document: &Document,
+    attributes: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let attributes = match attributes {
+        Object::Array(values) => values.as_slice(),
+        value => std::slice::from_ref(value),
+    };
+    for attribute in attributes.iter().take(limits.max_object_count) {
+        let Some(attribute) = resolve_optional(document, attribute, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok())
+        else {
+            continue;
+        };
+        if resolved_name(document, attribute, b"O", limits.max_reference_depth)?
+            == Some(b"PrintField".as_slice())
+            && resolved_name(document, attribute, b"Role", limits.max_reference_depth)?.is_some()
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn has_one_interactive_child(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(kid) = dictionary
+        .get(b"K")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|kids| match kids {
+            Object::Array(values) if values.len() == 1 => values.first(),
+            Object::Dictionary(_) => Some(kids),
+            _ => None,
+        })
+    else {
+        return Ok(false);
+    };
+    let Some(object_reference) = resolve_optional(document, kid, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    if resolved_name(
+        document,
+        object_reference,
+        b"Type",
+        limits.max_reference_depth,
+    )? != Some(b"OBJR".as_slice())
+    {
+        return Ok(false);
+    }
+    let Some(widget_reference) = object_reference.get(b"Obj").ok() else {
+        return Ok(false);
+    };
+    if widget_reference.as_reference().is_err() {
+        return Ok(false);
+    }
+    let Some(widget) = resolve_optional(document, widget_reference, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, widget, b"Subtype", limits.max_reference_depth)?
+            == Some(b"Widget".as_slice()),
+    )
 }
 
 fn heading_level(structure_type: Option<&[u8]>) -> Option<u8> {
