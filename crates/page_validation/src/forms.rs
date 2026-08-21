@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};
+use roxmltree::Document as XmlDocument;
 
 use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
@@ -16,6 +17,7 @@ pub(crate) struct FormSummary {
     pub(crate) invalid_need_appearances: Vec<RuleFailure>,
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
     pub(crate) tu_language_failures: Vec<RuleFailure>,
+    pub(crate) dynamic_xfa_forms: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -61,6 +63,12 @@ fn inspect_acro_form(
                 .to_owned(),
         });
     }
+    if xfa_is_dynamic(document, acro_form.get(b"XFA").ok(), limits)? {
+        summary.dynamic_xfa_forms.push(RuleFailure {
+            object_id,
+            description: "the catalog AcroForm contains dynamic XFA".to_owned(),
+        });
+    }
     let catalog_contains_lang = contains_key(catalog, b"Lang");
     for_each_form_field(
         document,
@@ -77,6 +85,75 @@ fn inspect_acro_form(
         },
     )?;
     Ok(())
+}
+
+fn xfa_is_dynamic(
+    document: &Document,
+    xfa: Option<&Object>,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(xfa) = xfa else {
+        return Ok(false);
+    };
+    let Some(xfa) = resolve_optional(document, xfa, limits.max_reference_depth)? else {
+        return Ok(false);
+    };
+    match xfa {
+        Object::Stream(stream) => xfa_stream_is_dynamic(stream, limits),
+        Object::Array(packets) => {
+            let mut config_stream = None;
+            let mut stream_entries = Vec::new();
+            for (index, packet) in packets.iter().enumerate() {
+                let Some(packet) = resolve_optional(document, packet, limits.max_reference_depth)?
+                else {
+                    continue;
+                };
+                if index % 2 == 0 {
+                    if packet.as_str().ok() == Some(b"config") {
+                        config_stream = packets.get(index + 1);
+                    }
+                } else if packet.as_stream().is_ok() {
+                    stream_entries.push(packet);
+                }
+            }
+            if let Some(config_stream) = config_stream
+                && let Some(config_stream) =
+                    resolve_optional(document, config_stream, limits.max_reference_depth)?
+                && let Ok(config_stream) = config_stream.as_stream()
+            {
+                return xfa_stream_is_dynamic(config_stream, limits);
+            }
+            for packet in stream_entries {
+                if let Ok(stream) = packet.as_stream()
+                    && xfa_stream_is_dynamic(stream, limits)?
+                {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        _ => Ok(false),
+    }
+}
+
+fn xfa_stream_is_dynamic(stream: &lopdf::Stream, limits: &SafetyLimits) -> Result<bool, PdfError> {
+    let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
+        Ok(bytes) => bytes,
+        Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
+            return Err(PdfError::XfaDecodeLimit(limits.max_decoded_stream_size));
+        }
+        Err(_) => return Ok(false),
+    };
+    let Ok(xml) = std::str::from_utf8(&bytes) else {
+        return Ok(false);
+    };
+    let Ok(document) = XmlDocument::parse(xml) else {
+        return Ok(false);
+    };
+    Ok(document.descendants().any(|node| {
+        node.tag_name().name() == "dynamicRender"
+            && node.text().is_some_and(|value| value == "required")
+    }))
 }
 
 /// Visits every form field modeled from an AcroForm `/Fields` array and its

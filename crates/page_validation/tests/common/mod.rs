@@ -3484,6 +3484,47 @@ pub fn pdfua1_rule_7_11_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_15_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_5_1_fixture("identification_present"))
+        .expect("load PDF/UA-1 dynamic-XFA fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let xfa_stream = match case {
+        "no_xfa" => None,
+        "static_xfa" => Some(
+            br#"<config><acrobat><acrobat7><dynamicRender>requiredForDynamicForms</dynamicRender></acrobat7></acrobat></config>"#
+                .as_slice(),
+        ),
+        "dynamic_xfa" => Some(
+            br#"<config><acrobat><acrobat7><dynamicRender>required</dynamicRender></acrobat7></acrobat></config>"#
+                .as_slice(),
+        ),
+        _ => panic!("unknown PDF/UA-1 rule 7.15-1 fixture case {case}"),
+    };
+    let acro_form = match xfa_stream {
+        None => dictionary! {},
+        Some(xfa_stream) => dictionary! {
+            "XFA" => document.add_object(Stream::new(Dictionary::new(), xfa_stream.to_vec())),
+        },
+    };
+    let acro_form_id = document.add_object(acro_form);
+    document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .set("AcroForm", acro_form_id);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 dynamic-XFA fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
     let heading_levels = match case {
         "valid" => vec![1, 1, 2, 3, 3, 4, 2, 3, 1],
