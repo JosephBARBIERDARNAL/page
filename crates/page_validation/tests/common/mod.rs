@@ -5703,15 +5703,32 @@ pub fn pdfua1_rule_7_18_6_2_1_fixture(case: &str) -> Vec<u8> {
             Object::string_literal("Video"),
         ],
     });
-    if case == "missing_ct" {
+    match case {
+        "allowed" | "missing_alt" | "invalid_alt" => {}
+        "missing_ct" => {
+            document
+                .get_object_mut(media_clip_id)
+                .expect("PDF/UA-1 fixture media clip")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture media clip dictionary")
+                .remove(b"CT");
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.18.6.2 fixture case {case}"),
+    }
+    if case == "missing_alt" {
         document
             .get_object_mut(media_clip_id)
             .expect("PDF/UA-1 fixture media clip")
             .as_dict_mut()
             .expect("PDF/UA-1 fixture media clip dictionary")
-            .remove(b"CT");
-    } else if case != "allowed" {
-        panic!("unknown PDF/UA-1 rule 7.18.6.2-1 fixture case {case}");
+            .remove(b"Alt");
+    } else if case == "invalid_alt" {
+        document
+            .get_object_mut(media_clip_id)
+            .expect("PDF/UA-1 fixture media clip")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture media clip dictionary")
+            .set("Alt", vec![Object::string_literal("en")]);
     }
     let rendition_id = document.add_object(dictionary! {
         "Type" => "Rendition",

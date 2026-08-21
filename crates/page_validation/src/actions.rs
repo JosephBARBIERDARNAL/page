@@ -32,6 +32,7 @@ pub(crate) struct ActionSummary {
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
     pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
     pub(crate) media_clips_missing_ct: Vec<RuleFailure>,
+    pub(crate) media_clips_missing_alt: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -500,25 +501,61 @@ impl Inspector<'_> {
             .transpose()?
             .flatten()
             .is_some_and(|value| !matches!(value, Object::Null));
-        let Some(media_clip_object_id) = media_clip_object_id else {
-            if !has_ct {
-                self.summary.media_clips_missing_ct.push(RuleFailure {
-                    object_id: None,
-                    description: format!("{context} media clip is missing /CT"),
-                });
-            }
-            return Ok(());
-        };
-        if !self.seen_media_clips.insert(media_clip_object_id) {
+        let has_correct_alt = self.has_correct_media_clip_alt(media_clip)?;
+        if media_clip_object_id.is_some_and(|id| !self.seen_media_clips.insert(id)) {
             return Ok(());
         }
         if !has_ct {
             self.summary.media_clips_missing_ct.push(RuleFailure {
-                object_id: Some(media_clip_object_id.into()),
+                object_id: media_clip_object_id.map(Into::into),
                 description: format!("{context} media clip is missing /CT"),
             });
         }
+        if !has_correct_alt {
+            self.summary.media_clips_missing_alt.push(RuleFailure {
+                object_id: media_clip_object_id.map(Into::into),
+                description: format!(
+                    "{context} media clip is missing /Alt or /Alt has an incorrect value"
+                ),
+            });
+        }
         Ok(())
+    }
+
+    // Match veraPDF 1.30.2's hasCorrectAlt predicate: /Alt is an array with
+    // paired entries, and every description (the odd entry) is a non-empty
+    // string. The language entries are intentionally left unconstrained
+    // because veraPDF does the same.
+    fn has_correct_media_clip_alt(&self, media_clip: &lopdf::Dictionary) -> Result<bool, PdfError> {
+        let Some(alt) = media_clip
+            .get(b"Alt")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_array().ok())
+        else {
+            return Ok(false);
+        };
+        if alt.len() % 2 != 0 {
+            return Ok(false);
+        }
+        for (index, value) in alt.iter().enumerate() {
+            if index % 2 == 1 {
+                let Some(value) =
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                else {
+                    return Ok(false);
+                };
+                if !value
+                    .as_str()
+                    .is_ok_and(|description| !description.is_empty())
+                {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(true)
     }
 
     fn ensure_depth(&self, depth: usize) -> Result<(), PdfError> {
