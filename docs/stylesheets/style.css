@@ -339,42 +339,6 @@ h4 {
   color: var(--color-slate);
 }
 
-/* Admonition colors using brand palette */
-.md-typeset .admonition.note,
-.md-typeset details.note {
-  border-color: var(--color-sky);
-}
-
-.md-typeset .note > .admonition-title,
-.md-typeset .note > summary {
-  background-color: rgba(56, 189, 248, 0.1);
-}
-
-.md-typeset .admonition.tip,
-.md-typeset details.tip {
-  border-color: var(--color-success);
-}
-
-.md-typeset .tip > .admonition-title,
-.md-typeset .tip > summary {
-  background-color: rgba(22, 163, 74, 0.1);
-}
-
-.md-typeset .admonition.warning,
-.md-typeset details.warning {
-  border-color: var(--color-warning);
-}
-
-.md-typeset .admonition.danger,
-.md-typeset details.danger {
-  border-color: var(--color-error);
-}
-
-.md-typeset .danger > .admonition-title,
-.md-typeset .danger > summary {
-  background-color: rgba(239, 68, 68, 0.1);
-}
-
 .md-header__button.md-logo {
   padding: 0;
   margin: 0;
@@ -387,16 +351,19 @@ h4 {
   height: 1.8rem;
 }
 
-.md-logo--dark {
+.md-header__button.md-logo img.md-logo--dark,
+.md-nav__button.md-logo img.md-logo--dark {
   display: none;
 }
 
-[data-md-color-scheme="slate"] .md-logo--light {
+[data-md-color-scheme="slate"] .md-header__button.md-logo img.md-logo--light,
+[data-md-color-scheme="slate"] .md-nav__button.md-logo img.md-logo--light {
   display: none;
 }
 
-[data-md-color-scheme="slate"] .md-logo--dark {
-  display: inline;
+[data-md-color-scheme="slate"] .md-header__button.md-logo img.md-logo--dark,
+[data-md-color-scheme="slate"] .md-nav__button.md-logo img.md-logo--dark {
+  display: block;
 }
 
 [dir="ltr"] .md-header__title {
