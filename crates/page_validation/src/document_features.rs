@@ -665,10 +665,10 @@ fn inspect_optional_content(
     catalog: &lopdf::Dictionary,
     limits: &SafetyLimits,
 ) -> Result<OptionalContentFailures, PdfError> {
-    // The configuration list is shared by PDF/A-2/3 naming checks and
-    // PDF/UA-1 rule 7.10-1. Only dictionaries addressed by /D or /Configs
+    // The configuration list is shared by PDF/A-2/3 naming and /AS checks and
+    // PDF/UA-1 rules 7.10-1/2. Only dictionaries addressed by /D or /Configs
     // are configurations; optional-content group dictionaries are separate
-    // objects and are intentionally not evaluated by this check.
+    // objects and are intentionally not evaluated by these checks.
     let Some(properties) = catalog
         .get(b"OCProperties")
         .ok()
