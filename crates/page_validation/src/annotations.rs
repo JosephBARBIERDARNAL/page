@@ -8,7 +8,8 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{
-    dictionary_based, resolve_optional, resolved_integer, resolved_name, walk_inherited,
+    dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
+    resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -27,6 +28,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_button_appearances: Vec<RuleFailure>,
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
     pub(crate) annotations_not_nested_in_annot: Vec<RuleFailure>,
+    pub(crate) annotations_missing_contents_or_alt: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
 }
 
@@ -107,19 +109,45 @@ fn inspect_annotation(
     let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
         .is_some_and(|flags| flags & 2 == 2);
     let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
-    if !annotation_is_exempt
-        && !hidden
-        && !outside_crop_box
-        && annotation_struct_parent_standard_type(document, annotation, limits)?
+    if !annotation_is_exempt && !hidden && !outside_crop_box {
+        let structure_element = annotation_structure_element(document, annotation, limits)?;
+        if annotation_struct_parent_standard_type(document, structure_element, limits)?
             != Some(b"Annot".as_slice())
-    {
-        summary
-            .annotations_not_nested_in_annot
-            .push(annotation_failure(
-                object_id,
-                context,
-                "is not nested within an Annot structure element",
-            ));
+        {
+            summary
+                .annotations_not_nested_in_annot
+                .push(annotation_failure(
+                    object_id,
+                    context,
+                    "is not nested within an Annot structure element",
+                ));
+        }
+        let has_alt = structure_element
+            .map(|structure_element| {
+                has_non_empty_string_entry(
+                    document,
+                    structure_element,
+                    b"Alt",
+                    limits.max_reference_depth,
+                )
+            })
+            .transpose()?
+            .unwrap_or(false);
+        if !has_non_empty_string_entry(
+            document,
+            annotation,
+            b"Contents",
+            limits.max_reference_depth,
+        )? && !has_alt
+        {
+            summary
+                .annotations_missing_contents_or_alt
+                .push(annotation_failure(
+                    object_id,
+                    context,
+                    "has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element",
+                ));
+        }
     }
     if !matches!(
         subtype,
@@ -274,11 +302,10 @@ fn inspect_annotation(
 
 fn annotation_struct_parent_standard_type(
     document: &Document,
-    annotation: &Dictionary,
+    structure_element: Option<&Dictionary>,
     limits: &SafetyLimits,
 ) -> Result<Option<&'static [u8]>, PdfError> {
-    let Some(structure_element) = annotation_structure_element(document, annotation, limits)?
-    else {
+    let Some(structure_element) = structure_element else {
         return Ok(None);
     };
     let Some(structure_type) = structure_element

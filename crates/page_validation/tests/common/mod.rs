@@ -4850,12 +4850,16 @@ pub fn pdfua1_rule_7_18_1_1_fixture(case: &str) -> Vec<u8> {
             .expect("indirect PDF/UA-1 fixture structure tree root");
         (page_id, struct_tree_root_id)
     };
-    let annotation_id = document.add_object(dictionary! {
+    let mut annotation = dictionary! {
         "Type" => "Annot",
         "Subtype" => "Text",
         "Rect" => vec![10.into(), 10.into(), 20.into(), 20.into()],
         "StructParent" => 100,
-    });
+    };
+    if matches!(case, "valid" | "invalid") {
+        annotation.set("Contents", Object::string_literal("Annotation"));
+    }
+    let annotation_id = document.add_object(annotation);
     if case == "valid" {
         let object_reference_id = document.add_object(dictionary! {
             "Type" => "OBJR",
@@ -4867,6 +4871,7 @@ pub fn pdfua1_rule_7_18_1_1_fixture(case: &str) -> Vec<u8> {
             "P" => struct_tree_root_id,
             "K" => object_reference_id,
             "Pg" => page_id,
+            "Lang" => Object::string_literal("en"),
         });
         let structure_tree_root = document
             .get_object_mut(struct_tree_root_id)
@@ -4906,6 +4911,120 @@ pub fn pdfua1_rule_7_18_1_1_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 annotation-tag fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_18_1_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
+        .expect("load PDF/UA-1 annotation-alt-text fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let (page_id, struct_tree_root_id) = {
+        let catalog = document
+            .get_object(root_id)
+            .expect("PDF/UA-1 fixture catalog")
+            .as_dict()
+            .expect("PDF/UA-1 fixture catalog dictionary");
+        let pages_id = catalog
+            .get(b"Pages")
+            .expect("PDF/UA-1 fixture pages")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture pages");
+        let page_id = document
+            .get_object(pages_id)
+            .expect("PDF/UA-1 fixture pages object")
+            .as_dict()
+            .expect("PDF/UA-1 fixture pages dictionary")
+            .get(b"Kids")
+            .expect("PDF/UA-1 fixture page kids")
+            .as_array()
+            .expect("PDF/UA-1 fixture page kids array")
+            .first()
+            .expect("PDF/UA-1 fixture page")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture page");
+        let struct_tree_root_id = catalog
+            .get(b"StructTreeRoot")
+            .expect("PDF/UA-1 fixture structure tree root")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture structure tree root");
+        (page_id, struct_tree_root_id)
+    };
+    let annotation_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Annots")
+        .expect("PDF/UA-1 fixture annotations")
+        .as_array()
+        .expect("PDF/UA-1 fixture annotations array")
+        .first()
+        .expect("PDF/UA-1 fixture annotation")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture annotation");
+    let structure_annotation_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"ParentTree")
+        .expect("PDF/UA-1 fixture parent tree")
+        .as_dict()
+        .expect("PDF/UA-1 fixture parent tree dictionary")
+        .get(b"Nums")
+        .expect("PDF/UA-1 fixture parent tree numbers")
+        .as_array()
+        .expect("PDF/UA-1 fixture parent tree numbers array")
+        .chunks(2)
+        .find_map(|pair| {
+            (pair.first()?.as_i64().ok()? == 100)
+                .then(|| pair.get(1)?.as_reference().ok())
+                .flatten()
+        })
+        .expect("PDF/UA-1 fixture annotation structure element");
+    match case {
+        "contents" => {}
+        "alt" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .remove(b"Contents");
+            document
+                .get_object_mut(structure_annotation_id)
+                .expect("PDF/UA-1 fixture annotation structure element")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation structure element dictionary")
+                .set("Alt", Object::string_literal("Alternative"));
+        }
+        "missing" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .remove(b"Contents");
+        }
+        "empty_contents" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .set("Contents", Object::string_literal(""));
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.18.1-2 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 annotation-alt-text fixture");
     bytes
 }
 

@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 200] = [
+    let fixtures: [(&str, &[u8], &str); 204] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1006,12 +1006,32 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-18-1-1-valid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-18-1-1-valid.pdf"),
-            "402e0c0fb5f793dae02c5d1439941b0e88a69d7aff4ff21dd2e999f7316d58bb",
+            "05bd2194b4defcfa05cf02a9274e78fa1fb0300c1ac5e506883a72195869a9ff",
         ),
         (
             "pdfua1-rule-7-18-1-1-invalid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-18-1-1-invalid.pdf"),
-            "266e16a73fd92f3ae3c27ab037fbec1d9b00ddd8df78960f33c293eb2a4fd6ec",
+            "e81e986cc5dfc1b2a4927f1260c7df9e7caabca10145603c416f29371be9ae19",
+        ),
+        (
+            "pdfua1-rule-7-18-1-2-contents.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-2-contents.pdf"),
+            "05bd2194b4defcfa05cf02a9274e78fa1fb0300c1ac5e506883a72195869a9ff",
+        ),
+        (
+            "pdfua1-rule-7-18-1-2-alt.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-2-alt.pdf"),
+            "fcf133de1bc865b02822275cd0c471bc45063114b9e55708261f6900cbf570a0",
+        ),
+        (
+            "pdfua1-rule-7-18-1-2-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-2-missing.pdf"),
+            "9ec42e5e35d365c15af01999d13831add580b259444f35633df69be1d88b0b17",
+        ),
+        (
+            "pdfua1-rule-7-18-1-2-empty-contents.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-18-1-2-empty-contents.pdf"),
+            "174b564ecc83ac16d32d6bb53b90589e60a5917bfa58478e0d234e17b4222733",
         ),
     ];
 
