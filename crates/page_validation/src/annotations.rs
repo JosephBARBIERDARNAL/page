@@ -16,6 +16,7 @@ use crate::report::RuleFailure;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct AnnotationSummary {
+    pub(crate) pages_missing_tabs: Vec<RuleFailure>,
     pub(crate) invalid_subtypes: Vec<RuleFailure>,
     pub(crate) invalid_subtypes_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_opacities: Vec<RuleFailure>,
@@ -40,6 +41,27 @@ pub(crate) fn inspect(
     limits: &SafetyLimits,
 ) -> Result<AnnotationSummary, PdfError> {
     let mut summary = AnnotationSummary::default();
+    for (index, page_entry) in pages.iter().enumerate() {
+        let Some(page) = page_entry.resolve(document) else {
+            continue;
+        };
+        let has_annotations = page
+            .get(b"Annots")
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .and_then(|value| value.and_then(|value| value.as_array().ok()))
+            .is_some_and(|annotations| !annotations.is_empty());
+        if has_annotations
+            && resolved_name(document, page, b"Tabs", limits.max_reference_depth)?
+                != Some(b"S".as_slice())
+        {
+            summary.pages_missing_tabs.push(RuleFailure {
+                object_id: page_entry.object_id().map(Into::into),
+                description: format!("page {} has annotations but no /Tabs /S entry", index + 1),
+            });
+        }
+    }
     let mut inspected = BTreeSet::new();
     for_each_page_annotation(
         document,

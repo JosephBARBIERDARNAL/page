@@ -22,6 +22,7 @@ nav = [
 ]
 
 [project.theme]
+logo = "images/logo-on-light.svg"
 language = "en"
 custom_dir = "docs/overrides"
 features = [

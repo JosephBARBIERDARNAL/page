@@ -27,7 +27,7 @@ fn pdfua1_rule_7_10_2_rejects_as_in_optional_content_configurations() {
         &SafetyLimits::default(),
     );
     assert!(!as_present.checks_passed, "{as_present}");
-    assert_eq!(as_present.checks.total, 67, "{as_present}");
+    assert_eq!(as_present.checks.total, 68, "{as_present}");
     assert_eq!(as_present.checks.failed, 1, "{as_present}");
     assert_eq!(as_present.failures.len(), 1, "{as_present}");
     assert_eq!(as_present.failures[0].rule_id, RULE, "{as_present}");
