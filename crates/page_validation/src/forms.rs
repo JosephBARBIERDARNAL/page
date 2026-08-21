@@ -3,7 +3,10 @@ use std::collections::BTreeSet;
 use lopdf::{Dictionary, Document, Object, ObjectId};
 use roxmltree::Document as XmlDocument;
 
-use crate::annotations::{annotation_is_outside_crop_box, annotation_structure_element};
+use crate::annotations::{
+    annotation_is_outside_crop_box, annotation_struct_parent_standard_type,
+    annotation_structure_element,
+};
 use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
@@ -21,6 +24,7 @@ pub(crate) struct FormSummary {
     pub(crate) invalid_need_appearances: Vec<RuleFailure>,
     pub(crate) widgets_without_appearances: Vec<RuleFailure>,
     pub(crate) widgets_missing_tu_or_alt: Vec<RuleFailure>,
+    pub(crate) widgets_not_nested_in_form: Vec<RuleFailure>,
     pub(crate) tu_language_failures: Vec<RuleFailure>,
     pub(crate) dynamic_xfa_forms: Vec<RuleFailure>,
 }
@@ -286,7 +290,22 @@ fn inspect_page_widgets(
                 .is_some_and(|flags| flags & 2 == 2);
             let outside_crop_box =
                 annotation_is_outside_crop_box(document, page, annotation, limits)?;
-            let has_alt = annotation_structure_element(document, annotation, limits)?
+            let structure_element = annotation_structure_element(document, annotation, limits)?;
+            // This population is page-reached Widgets, matching veraPDF's
+            // PDWidgetAnnot scope for the rule.
+            if !hidden
+                && !outside_crop_box
+                && annotation_struct_parent_standard_type(document, structure_element, limits)?
+                    != Some(b"Form".as_slice())
+            {
+                summary.widgets_not_nested_in_form.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "Widget annotation {index} on page {page_number} is not nested within a Form structure element"
+                    ),
+                });
+            }
+            let has_alt = structure_element
                 .map(|structure_element| {
                     has_non_empty_string_entry(
                         document,

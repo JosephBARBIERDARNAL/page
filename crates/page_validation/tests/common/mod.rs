@@ -5268,6 +5268,77 @@ pub fn pdfua1_rule_7_18_3_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_18_4_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_18_1_3_fixture("tu"))
+        .expect("load PDF/UA-1 Widget Form-tag fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let struct_tree_root_id = document
+        .get_object(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict()
+        .expect("PDF/UA-1 fixture catalog dictionary")
+        .get(b"StructTreeRoot")
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture structure tree root");
+    let structure_form_id = document
+        .get_object(struct_tree_root_id)
+        .expect("PDF/UA-1 fixture structure tree root")
+        .as_dict()
+        .expect("PDF/UA-1 fixture structure tree root dictionary")
+        .get(b"ParentTree")
+        .expect("PDF/UA-1 fixture parent tree")
+        .as_dict()
+        .expect("PDF/UA-1 fixture parent tree dictionary")
+        .get(b"Nums")
+        .expect("PDF/UA-1 fixture parent tree numbers")
+        .as_array()
+        .expect("PDF/UA-1 fixture parent tree numbers array")
+        .chunks(2)
+        .find_map(|pair| {
+            (pair.first()?.as_i64().ok()? == 200)
+                .then(|| pair.get(1)?.as_reference().ok())
+                .flatten()
+        })
+        .expect("PDF/UA-1 fixture Widget structure element");
+    match case {
+        "allowed" => {}
+        "role_mapped" => {
+            document
+                .get_object_mut(struct_tree_root_id)
+                .expect("PDF/UA-1 fixture structure tree root")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture structure tree root dictionary")
+                .set("RoleMap", dictionary! {"CustomForm" => "Form"});
+            document
+                .get_object_mut(structure_form_id)
+                .expect("PDF/UA-1 fixture Widget structure element")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture Widget structure element dictionary")
+                .set("S", "CustomForm");
+        }
+        "not_nested" => {
+            document
+                .get_object_mut(structure_form_id)
+                .expect("PDF/UA-1 fixture Widget structure element")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture Widget structure element dictionary")
+                .set("S", "P");
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.18.4-1 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 Widget Form-tag fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_2_24_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 annotation-language fixture");

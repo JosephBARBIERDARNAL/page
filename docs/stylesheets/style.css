@@ -119,7 +119,7 @@ h4 {
   --md-code-hl-punctuation-color: #c9d1d9;
 
   /* Links */
-  --md-typeset-a-color: var(--color-teal);
+  --md-typeset-a-color: var(--color-sky);
 }
 
 [data-md-color-scheme="default"] .md-header {
@@ -381,8 +381,22 @@ h4 {
 }
 
 .md-header__button.md-logo img,
-.md-header__button.md-logo svg {
+.md-header__button.md-logo svg,
+.md-nav__button.md-logo img,
+.md-nav__button.md-logo svg {
   height: 1.8rem;
+}
+
+.md-logo--dark {
+  display: none;
+}
+
+[data-md-color-scheme="slate"] .md-logo--light {
+  display: none;
+}
+
+[data-md-color-scheme="slate"] .md-logo--dark {
+  display: inline;
 }
 
 [dir="ltr"] .md-header__title {
@@ -569,5 +583,8 @@ table code {
 
 .pretty-highlight {
   background-color: var(--color-mint);
-  text-decoration: underline;
+}
+
+[data-md-color-scheme="slate"] .pretty-highlight {
+  background-color: var(--color-teal);
 }

@@ -330,7 +330,7 @@ fn inspect_annotation(
     Ok(())
 }
 
-fn annotation_struct_parent_standard_type(
+pub(crate) fn annotation_struct_parent_standard_type(
     document: &Document,
     structure_element: Option<&Dictionary>,
     limits: &SafetyLimits,
@@ -348,8 +348,11 @@ fn annotation_struct_parent_standard_type(
     if structure_type == b"Annot" {
         return Ok(Some(b"Annot"));
     }
+    if structure_type == b"Form" {
+        return Ok(Some(b"Form"));
+    }
 
-    // A custom structure type may be role-mapped to the standard Annot type.
+    // A custom structure type may be role-mapped to a standard Annot or Form type.
     let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
         return Ok(None);
     };
@@ -377,6 +380,9 @@ fn annotation_struct_parent_standard_type(
     for _ in 0..limits.max_object_count {
         if current == b"Annot" {
             return Ok(Some(b"Annot"));
+        }
+        if current == b"Form" {
+            return Ok(Some(b"Form"));
         }
         let Some(mapped) = role_map
             .get(current)
