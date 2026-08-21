@@ -2,7 +2,7 @@
 site_name = "page"
 repo_url = "https://github.com/josephbarbierdarnal/page"
 site_url = "https://josephbarbierdarnal.github.io/page/"
-site_description = "Experimental veraPDF-compliant PDF/A validation, written in Rust"
+site_description = "PDF/A and PDF/UA validation engine, written in Rust"
 site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]
 nav = [
