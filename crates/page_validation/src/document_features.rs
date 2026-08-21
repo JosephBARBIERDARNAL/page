@@ -91,6 +91,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) embedded_files_with_invalid_mime: Vec<RuleFailure>,
     pub(crate) embedded_files_not_pdfa: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
     pub(crate) file_specs_missing_af_relationship: Vec<RuleFailure>,
     pub(crate) file_specs_not_associated: Vec<RuleFailure>,
     pub(crate) optional_content_missing_names: Vec<RuleFailure>,
@@ -211,6 +212,7 @@ pub(crate) fn inspect(
             .is_ok_and(|value| !matches!(value, Object::Null))
     });
     let mut file_specs_with_embedded_files = Vec::new();
+    let mut file_specs_missing_or_empty_f_or_uf = Vec::new();
     if let Some(names) = names
         && let Ok(embedded_files) = names.get(b"EmbeddedFiles")
     {
@@ -221,6 +223,7 @@ pub(crate) fn inspect(
             embedded_files,
             limits,
             &mut file_specs_with_embedded_files,
+            &mut file_specs_missing_or_empty_f_or_uf,
             &mut ancestors,
             &mut steps,
             0,
@@ -459,6 +462,23 @@ pub(crate) fn inspect(
                 description: "embedded-file specification is missing /F or /UF".to_owned(),
             });
         }
+        if !file_spec::has_non_empty_string_entry(
+            document,
+            dictionary,
+            b"F",
+            limits.max_reference_depth,
+        )? || !file_spec::has_non_empty_string_entry(
+            document,
+            dictionary,
+            b"UF",
+            limits.max_reference_depth,
+        )? {
+            file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                object_id,
+                description: "embedded-file specification is missing or has an empty /F or /UF"
+                    .to_owned(),
+            });
+        }
         if resolved_name(
             document,
             dictionary,
@@ -651,6 +671,7 @@ pub(crate) fn inspect(
         embedded_files_with_invalid_mime,
         embedded_files_not_pdfa,
         file_specs_missing_f_or_uf,
+        file_specs_missing_or_empty_f_or_uf,
         file_specs_missing_af_relationship,
         file_specs_not_associated,
         optional_content_missing_names,
@@ -3012,6 +3033,7 @@ fn inspect_name_tree(
     node: &Object,
     limits: &SafetyLimits,
     failures: &mut Vec<RuleFailure>,
+    file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
@@ -3032,7 +3054,16 @@ fn inspect_name_tree(
     {
         return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
     }
-    let result = inspect_name_tree_node(document, node, limits, failures, ancestors, steps, depth);
+    let result = inspect_name_tree_node(
+        document,
+        node,
+        limits,
+        failures,
+        file_specs_missing_or_empty_f_or_uf,
+        ancestors,
+        steps,
+        depth,
+    );
     if let Some(id) = object_id {
         ancestors.remove(&id);
     }
@@ -3044,6 +3075,7 @@ fn inspect_name_tree_node(
     node: &Object,
     limits: &SafetyLimits,
     failures: &mut Vec<RuleFailure>,
+    file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
@@ -3058,6 +3090,29 @@ fn inspect_name_tree_node(
             .and_then(|object| object.as_array().ok())
     {
         for value in names.iter().skip(1).step_by(2) {
+            if value.as_reference().is_err()
+                && let Some(file_spec_dictionary) =
+                    resolve_optional(document, value, limits.max_reference_depth)?
+                        .and_then(dictionary_based)
+                && contains_key(file_spec_dictionary, b"EF")
+                && (!file_spec::has_non_empty_string_entry(
+                    document,
+                    file_spec_dictionary,
+                    b"F",
+                    limits.max_reference_depth,
+                )? || !file_spec::has_non_empty_string_entry(
+                    document,
+                    file_spec_dictionary,
+                    b"UF",
+                    limits.max_reference_depth,
+                )?)
+            {
+                file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                    object_id: None,
+                    description: "embedded-file specification is missing or has an empty /F or /UF"
+                        .to_owned(),
+                });
+            }
             if let Some(failure) = file_spec::inspect(
                 document,
                 value,
@@ -3078,6 +3133,7 @@ fn inspect_name_tree_node(
                 value,
                 limits,
                 failures,
+                file_specs_missing_or_empty_f_or_uf,
                 ancestors,
                 steps,
                 depth + 1,

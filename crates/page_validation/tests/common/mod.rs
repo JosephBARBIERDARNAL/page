@@ -3432,6 +3432,58 @@ pub fn pdfua1_rule_7_10_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_11_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 embedded-file specification fixture");
+    let root_id = document
+        .trailer
+        .get(b"Root")
+        .expect("PDF/UA-1 fixture root")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture root");
+    let embedded = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "EmbeddedFile",
+            "Subtype" => "text/plain",
+        },
+        b"embedded data".to_vec(),
+    ));
+    let file_spec = document.add_object(dictionary! {
+        "Type" => "Filespec",
+        "F" => Object::string_literal("attachment.txt"),
+        "UF" => if case == "valid" {
+            Object::string_literal("attachment.txt")
+        } else if case == "empty_uf" {
+            Object::string_literal("")
+        } else {
+            panic!("unknown PDF/UA-1 rule 7.11-1 fixture case {case}")
+        },
+        "EF" => dictionary! { "F" => embedded },
+    });
+    let catalog = document
+        .get_object_mut(root_id)
+        .expect("PDF/UA-1 fixture catalog")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture catalog dictionary");
+    catalog.set(
+        "Names",
+        dictionary! {
+            "EmbeddedFiles" => dictionary! {
+                "Names" => vec![
+                    Object::string_literal("attachment"),
+                    Object::Reference(file_spec),
+                ],
+            },
+        },
+    );
+
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.11-1 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_4_2_1_fixture(case: &str) -> Vec<u8> {
     let heading_levels = match case {
         "valid" => vec![1, 1, 2, 3, 3, 4, 2, 3, 1],

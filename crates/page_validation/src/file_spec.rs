@@ -1,9 +1,30 @@
-use lopdf::{Document, Object};
+use lopdf::{Dictionary, Document, Object};
 
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::object_resolution::{dictionary_based, resolve_optional};
 use crate::report::RuleFailure;
+
+/// Returns whether a file-specification string entry resolves to a non-empty
+/// string. This is intentionally stricter than the PDF/A key-presence check;
+/// PDF/UA-1 rule 7.11-1 requires both `/F` and `/UF` values to be non-empty.
+pub(crate) fn has_non_empty_string_entry(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<bool, PdfError> {
+    let Some(value) = dictionary
+        .get(key)
+        .ok()
+        .map(|value| resolve_optional(document, value, maximum_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(false);
+    };
+    Ok(value.as_str().is_ok_and(|value| !value.is_empty()))
+}
 
 /// Checks a resolved file-specification dictionary for the forbidden `/EF`
 /// key (`PDFA1B-FILE-SPEC-EMBEDDED-FILE-001`, `ISO 19005-1:2005:6.1.11:1`).

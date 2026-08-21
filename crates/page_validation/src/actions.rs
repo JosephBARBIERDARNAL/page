@@ -30,6 +30,7 @@ pub(crate) struct ActionSummary {
     pub(crate) outline_entries: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -381,6 +382,35 @@ impl Inspector<'_> {
                 object_id: object_id.map(Into::into),
                 description: format!(
                     "{context} /F embedded-file specification is missing /F or /UF"
+                ),
+            });
+        }
+        if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
+            && let Ok(file_spec_value) = action.get(b"F")
+            && file_spec_value.as_reference().is_err()
+            && let Some(file_spec_dictionary) = resolve_optional(
+                self.document,
+                file_spec_value,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(dictionary_based)
+            && contains_key(file_spec_dictionary, b"EF")
+            && (!file_spec::has_non_empty_string_entry(
+                self.document,
+                file_spec_dictionary,
+                b"F",
+                self.limits.max_reference_depth,
+            )? || !file_spec::has_non_empty_string_entry(
+                self.document,
+                file_spec_dictionary,
+                b"UF",
+                self.limits.max_reference_depth,
+            )?)
+        {
+            self.summary.file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                object_id: object_id.map(Into::into),
+                description: format!(
+                    "{context} /F embedded-file specification is missing or has an empty /F or /UF"
                 ),
             });
         }
