@@ -29,6 +29,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
     pub(crate) annotations_not_nested_in_annot: Vec<RuleFailure>,
     pub(crate) annotations_missing_contents_or_alt: Vec<RuleFailure>,
+    pub(crate) trapnet_annotations: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
 }
 
@@ -110,6 +111,13 @@ fn inspect_annotation(
         .is_some_and(|flags| flags & 2 == 2);
     let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
     if !annotation_is_exempt && !hidden && !outside_crop_box {
+        if subtype == Some(b"TrapNet".as_slice()) {
+            summary.trapnet_annotations.push(annotation_failure(
+                object_id,
+                context,
+                "is a visible, in-crop-box TrapNet annotation",
+            ));
+        }
         let structure_element = annotation_structure_element(document, annotation, limits)?;
         if annotation_struct_parent_standard_type(document, structure_element, limits)?
             != Some(b"Annot".as_slice())
