@@ -268,7 +268,7 @@ fn inspect_page_widgets(
         pages,
         limits,
         &mut inspected,
-        |page_number, index, object_id, value| {
+        |page_number, index, object_id, _page, value| {
             let Ok(annotation) = value.as_dict() else {
                 return Ok(());
             };

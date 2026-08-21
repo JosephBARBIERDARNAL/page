@@ -26,6 +26,7 @@ pub(crate) struct AnnotationSummary {
     pub(crate) invalid_appearance_entries: Vec<RuleFailure>,
     pub(crate) invalid_button_appearances: Vec<RuleFailure>,
     pub(crate) invalid_other_appearances: Vec<RuleFailure>,
+    pub(crate) annotations_not_nested_in_annot: Vec<RuleFailure>,
     pub(crate) contents_language_failures: Vec<RuleFailure>,
 }
 
@@ -42,12 +43,13 @@ pub(crate) fn inspect(
         pages,
         limits,
         &mut inspected,
-        |page_number, index, object_id, annotation| {
+        |page_number, index, object_id, page, annotation| {
             let Some(dictionary) = annotation.as_dict().ok() else {
                 return Ok(());
             };
             inspect_annotation(
                 document,
+                page,
                 dictionary,
                 object_id,
                 &format!("annotation {index} on page {page_number}"),
@@ -62,6 +64,7 @@ pub(crate) fn inspect(
 
 fn inspect_annotation(
     document: &Document,
+    page: &Dictionary,
     annotation: &Dictionary,
     object_id: Option<PdfObjectId>,
     context: &str,
@@ -96,6 +99,27 @@ fn inspect_annotation(
             context,
             "has a missing or forbidden /Subtype",
         ));
+    }
+
+    let annotation_is_exempt = matches!(subtype, Some(b"Widget" | b"PrinterMark" | b"Link"));
+    // The official veraPDF predicate also treats hidden and crop-box-outside
+    // annotations as artifacts for this rule.
+    let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
+        .is_some_and(|flags| flags & 2 == 2);
+    let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
+    if !annotation_is_exempt
+        && !hidden
+        && !outside_crop_box
+        && annotation_struct_parent_standard_type(document, annotation, limits)?
+            != Some(b"Annot".as_slice())
+    {
+        summary
+            .annotations_not_nested_in_annot
+            .push(annotation_failure(
+                object_id,
+                context,
+                "is not nested within an Annot structure element",
+            ));
     }
     if !matches!(
         subtype,
@@ -248,6 +272,206 @@ fn inspect_annotation(
     Ok(())
 }
 
+fn annotation_struct_parent_standard_type(
+    document: &Document,
+    annotation: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<&'static [u8]>, PdfError> {
+    let Some(structure_element) = annotation_structure_element(document, annotation, limits)?
+    else {
+        return Ok(None);
+    };
+    let Some(structure_type) = structure_element
+        .get(b"S")
+        .ok()
+        .and_then(|value| value.as_name().ok())
+    else {
+        return Ok(None);
+    };
+    if structure_type == b"Annot" {
+        return Ok(Some(b"Annot"));
+    }
+
+    // A custom structure type may be role-mapped to the standard Annot type.
+    let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
+        return Ok(None);
+    };
+    let Some(struct_tree_root) = catalog
+        .get(b"StructTreeRoot")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(None);
+    };
+    let Some(role_map) = struct_tree_root
+        .get(b"RoleMap")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(None);
+    };
+    let mut current = structure_type;
+    for _ in 0..limits.max_object_count {
+        if current == b"Annot" {
+            return Ok(Some(b"Annot"));
+        }
+        let Some(mapped) = role_map
+            .get(current)
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_name().ok())
+        else {
+            return Ok(None);
+        };
+        current = mapped;
+    }
+    Ok(None)
+}
+
+fn annotation_structure_element<'a>(
+    document: &'a Document,
+    annotation: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<Option<&'a Dictionary>, PdfError> {
+    let Some(struct_parent) = resolved_integer(
+        document,
+        annotation,
+        b"StructParent",
+        limits.max_reference_depth,
+    )?
+    else {
+        return Ok(None);
+    };
+    let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
+        return Ok(None);
+    };
+    let Some(struct_tree_root) = catalog
+        .get(b"StructTreeRoot")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(None);
+    };
+    let Some(parent_tree) = struct_tree_root
+        .get(b"ParentTree")
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(dictionary_based)
+    else {
+        return Ok(None);
+    };
+    let mut ancestors = BTreeSet::new();
+    let mut steps = 0;
+    let Some(structure_element) = find_number_tree_entry(
+        document,
+        parent_tree,
+        struct_parent,
+        limits,
+        &mut ancestors,
+        &mut steps,
+        0,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(
+        resolve_optional(document, structure_element, limits.max_reference_depth)?
+            .and_then(|object| object.as_dict().ok()),
+    )
+}
+
+fn annotation_is_outside_crop_box(
+    document: &Document,
+    page: &Dictionary,
+    annotation: &Dictionary,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(rect) = resolved_rectangle(document, annotation, b"Rect", limits)? else {
+        return Ok(false);
+    };
+    let Some(crop_box) = walk_inherited(
+        document,
+        page,
+        limits,
+        b"CropBox",
+        |document, value, limits| resolve_optional(document, value, limits.max_reference_depth),
+    )?
+    .or(walk_inherited(
+        document,
+        page,
+        limits,
+        b"MediaBox",
+        |document, value, limits| resolve_optional(document, value, limits.max_reference_depth),
+    )?)
+    .and_then(rectangle) else {
+        return Ok(false);
+    };
+    let [left, bottom, right, top] = normalized_rectangle(rect);
+    let [crop_left, crop_bottom, crop_right, crop_top] = normalized_rectangle(crop_box);
+    Ok(left < crop_left || bottom < crop_bottom || right > crop_right || top > crop_top)
+}
+
+fn normalized_rectangle([first_x, first_y, second_x, second_y]: [f64; 4]) -> [f64; 4] {
+    [
+        first_x.min(second_x),
+        first_y.min(second_y),
+        first_x.max(second_x),
+        first_y.max(second_y),
+    ]
+}
+
+fn resolved_rectangle(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    limits: &SafetyLimits,
+) -> Result<Option<[f64; 4]>, PdfError> {
+    let Some(value) = dictionary
+        .get(key)
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(None);
+    };
+    Ok(rectangle(value))
+}
+
+fn rectangle(value: &Object) -> Option<[f64; 4]> {
+    let values = value.as_array().ok()?;
+    let [left, bottom, right, top] = values.as_slice() else {
+        return None;
+    };
+    Some([
+        object_number(left)?,
+        object_number(bottom)?,
+        object_number(right)?,
+        object_number(top)?,
+    ])
+}
+
+fn object_number(value: &Object) -> Option<f64> {
+    value
+        .as_i64()
+        .map(|value| value as f64)
+        .or_else(|_| value.as_float().map(f64::from))
+        .ok()
+}
+
 fn zero_annotation_rect(
     document: &Document,
     annotation: &Dictionary,
@@ -326,59 +550,8 @@ fn annotation_has_language(
 ) -> Result<bool, PdfError> {
     // veraPDF's PDAnnot.containsLang comes from the annotation's tagged
     // structure association, not from an arbitrary /Lang key on the annotation.
-    let Some(struct_parent) = resolved_integer(
-        document,
-        annotation,
-        b"StructParent",
-        limits.max_reference_depth,
-    )?
+    let Some(structure_element) = annotation_structure_element(document, annotation, limits)?
     else {
-        return Ok(false);
-    };
-    let Some(catalog) = resolve_catalog(document, limits)? else {
-        return Ok(false);
-    };
-    let Some(struct_tree_root) = catalog
-        .dictionary
-        .get(b"StructTreeRoot")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(dictionary_based)
-    else {
-        return Ok(false);
-    };
-    let Some(parent_tree) = struct_tree_root
-        .get(b"ParentTree")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(dictionary_based)
-    else {
-        return Ok(false);
-    };
-    let mut ancestors = BTreeSet::new();
-    let mut steps = 0;
-    let Some(structure_element) = find_number_tree_entry(
-        document,
-        parent_tree,
-        struct_parent,
-        limits,
-        &mut ancestors,
-        &mut steps,
-        0,
-    )?
-    else {
-        return Ok(false);
-    };
-    let Some(structure_element) =
-        resolve_optional(document, structure_element, limits.max_reference_depth)?
-    else {
-        return Ok(false);
-    };
-    let Some(structure_element) = structure_element.as_dict().ok() else {
         return Ok(false);
     };
     has_non_null_entry(document, structure_element, b"Lang", limits)

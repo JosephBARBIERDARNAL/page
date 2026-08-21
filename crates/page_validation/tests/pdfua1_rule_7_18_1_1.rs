@@ -8,48 +8,53 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-OPTIONAL-CONTENT-AS-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.10:2";
+const RULE: &str = "PDFUA1-ANNOTATION-ANNOT-TAG-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.1:1";
 
 #[test]
-fn pdfua1_rule_7_10_2_rejects_as_in_optional_content_configurations() {
+fn pdfua1_rule_7_18_1_1_requires_non_exempt_annotations_inside_annot_tags() {
     let valid = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-10-2-valid.pdf"),
+        include_bytes!("fixtures/pdfua1-rule-7-18-1-1-valid.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
     assert!(valid.checks_passed, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
+    assert_eq!(valid.checks.total, 64);
 
-    let as_present = validate_bytes_with_profile(
-        include_bytes!("fixtures/pdfua1-rule-7-10-2-as-present.pdf"),
+    let invalid = validate_bytes_with_profile(
+        include_bytes!("fixtures/pdfua1-rule-7-18-1-1-invalid.pdf"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
-    assert!(!as_present.checks_passed, "{as_present}");
-    assert_eq!(as_present.checks.total, 64, "{as_present}");
-    assert_eq!(as_present.checks.failed, 1, "{as_present}");
-    assert_eq!(as_present.failures.len(), 1, "{as_present}");
-    assert_eq!(as_present.failures[0].rule_id, RULE, "{as_present}");
+    assert!(!invalid.checks_passed, "{invalid}");
+    assert_eq!(invalid.checks.failed, 1, "{invalid}");
+    assert!(
+        invalid
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == RULE),
+        "{invalid}"
+    );
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.10-2 fixtures"]
-fn regenerate_pdfua1_rule_7_10_2_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.1-1 fixtures"]
+fn regenerate_pdfua1_rule_7_18_1_1_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-10-2-valid.pdf", "valid"),
-        ("pdfua1-rule-7-10-2-as-present.pdf", "as_present"),
+        ("pdfua1-rule-7-18-1-1-valid.pdf", "valid"),
+        ("pdfua1-rule-7-18-1-1-invalid.pdf", "invalid"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_10_2_fixture(case),
+            common::pdfua1_rule_7_18_1_1_fixture(case),
         )
-        .expect("write PDF/UA-1 rule 7.10-2 fixture");
+        .expect("write PDF/UA-1 rule 7.18.1-1 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_10_2_fixtures_match_verapdf_1302_when_opted_in() {
+fn pdfua1_rule_7_18_1_1_fixtures_match_verapdf_1302_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -57,8 +62,8 @@ fn pdfua1_rule_7_10_2_fixtures_match_verapdf_1302_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-10-2-valid.pdf", false),
-        ("pdfua1-rule-7-10-2-as-present.pdf", true),
+        ("pdfua1-rule-7-18-1-1-valid.pdf", false),
+        ("pdfua1-rule-7-18-1-1-invalid.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
