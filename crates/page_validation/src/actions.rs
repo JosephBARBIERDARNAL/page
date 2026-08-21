@@ -31,6 +31,7 @@ pub(crate) struct ActionSummary {
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
     pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
+    pub(crate) media_clips_missing_ct: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -52,6 +53,7 @@ pub(crate) fn inspect(
         seen_actions: BTreeSet::new(),
         seen_annotations: BTreeSet::new(),
         seen_outlines: BTreeSet::new(),
+        seen_media_clips: BTreeSet::new(),
     };
     if contains_key(catalog, b"AA") {
         inspector
@@ -86,6 +88,7 @@ struct Inspector<'a> {
     seen_actions: BTreeSet<ObjectId>,
     seen_annotations: BTreeSet<ObjectId>,
     seen_outlines: BTreeSet<ObjectId>,
+    seen_media_clips: BTreeSet<ObjectId>,
 }
 
 impl Inspector<'_> {
@@ -331,6 +334,9 @@ impl Inspector<'_> {
         }
         let failure_id = object_id.map(Into::into);
         let subtype = resolved_name(self.document, action, b"S", self.limits.max_reference_depth)?;
+        if subtype == Some(b"Rendition".as_slice()) {
+            self.inspect_rendition_media_clip(action, context)?;
+        }
         if !matches!(
             subtype,
             Some(b"GoTo" | b"GoToR" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
@@ -444,6 +450,73 @@ impl Inspector<'_> {
                     depth + 1,
                 )?;
             }
+        }
+        Ok(())
+    }
+
+    fn inspect_rendition_media_clip(
+        &mut self,
+        action: &lopdf::Dictionary,
+        context: &str,
+    ) -> Result<(), PdfError> {
+        // veraPDF exposes PDMediaClip through an MR rendition's /C link.
+        // Keep the inspection on the same bounded, reachable action graph
+        // instead of scanning arbitrary unreferenced dictionaries.
+        let Some(rendition) = action
+            .get(b"R")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(dictionary_based)
+        else {
+            return Ok(());
+        };
+        if resolved_name(
+            self.document,
+            rendition,
+            b"S",
+            self.limits.max_reference_depth,
+        )? != Some(b"MR".as_slice())
+        {
+            return Ok(());
+        }
+        let Some(media_clip_value) = rendition.get(b"C").ok() else {
+            return Ok(());
+        };
+        let media_clip_object_id = media_clip_value.as_reference().ok();
+        let Some(media_clip) = resolve_optional(
+            self.document,
+            media_clip_value,
+            self.limits.max_reference_depth,
+        )?
+        .and_then(dictionary_based) else {
+            return Ok(());
+        };
+        let has_ct = media_clip
+            .get(b"CT")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .is_some_and(|value| !matches!(value, Object::Null));
+        let Some(media_clip_object_id) = media_clip_object_id else {
+            if !has_ct {
+                self.summary.media_clips_missing_ct.push(RuleFailure {
+                    object_id: None,
+                    description: format!("{context} media clip is missing /CT"),
+                });
+            }
+            return Ok(());
+        };
+        if !self.seen_media_clips.insert(media_clip_object_id) {
+            return Ok(());
+        }
+        if !has_ct {
+            self.summary.media_clips_missing_ct.push(RuleFailure {
+                object_id: Some(media_clip_object_id.into()),
+                description: format!("{context} media clip is missing /CT"),
+            });
         }
         Ok(())
     }

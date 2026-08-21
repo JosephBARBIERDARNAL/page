@@ -39,7 +39,7 @@ fn pdfua1_rule_7_16_1_requires_p_with_bit_10_set_for_encrypted_files() {
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
         assert!(!report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 72, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 73, "{fixture}: {report}");
         assert!(
             report
                 .failures
