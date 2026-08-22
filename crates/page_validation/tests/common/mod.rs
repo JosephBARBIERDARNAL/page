@@ -5217,6 +5217,89 @@ pub fn pdfua1_rule_7_18_2_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_20_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 reference XObject fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let form_id = document.add_object(Stream::new(
+        {
+            let mut dictionary = dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Form",
+                "BBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+            };
+            match case {
+                "allowed" => {}
+                "forbidden" => dictionary.set("Ref", dictionary! {}),
+                _ => panic!("unknown PDF/UA-1 rule 7.20-1 fixture case {case}"),
+            }
+            dictionary
+        },
+        Vec::new(),
+    ));
+    let extra_content_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"/Artifact BMC\n/Fm Do\nEMC\n".to_vec(),
+    ));
+    let (resources, contents) = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        (
+            page.get(b"Resources").ok().cloned(),
+            page.get(b"Contents").ok().cloned(),
+        )
+    };
+    let mut resources = match resources {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    let mut xobjects = match resources.get(b"XObject").ok().cloned() {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture XObject resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture XObject resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    xobjects.set("Fm", form_id);
+    resources.set("XObject", xobjects);
+    let contents = match contents {
+        Some(Object::Array(mut contents)) => {
+            contents.push(Object::Reference(extra_content_id));
+            Object::Array(contents)
+        }
+        Some(contents) => vec![contents, Object::Reference(extra_content_id)].into(),
+        None => Object::Reference(extra_content_id),
+    };
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    page.set("Contents", contents);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 rule 7.20-1 fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_18_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
         .expect("load PDF/UA-1 page Tabs fixture");

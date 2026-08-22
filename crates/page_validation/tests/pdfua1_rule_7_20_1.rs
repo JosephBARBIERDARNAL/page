@@ -8,13 +8,13 @@ use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profi
 
 pub mod common;
 
-const RULE: &str = "PDFUA1-MEDIA-CLIP-ALT-001";
-const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.6.2:2";
+const RULE: &str = "PDFUA1-FORM-REFERENCE-001";
+const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.20:1";
 
 #[test]
-fn pdfua1_rule_7_18_6_2_2_requires_media_clip_alt() {
+fn pdfua1_rule_7_20_1_rejects_reference_xobjects() {
     let allowed = validate_bytes_with_profile(
-        fixture_bytes("allowed"),
+        &fixture_bytes("allowed"),
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -22,37 +22,34 @@ fn pdfua1_rule_7_18_6_2_2_requires_media_clip_alt() {
     assert!(allowed.failures.is_empty(), "{allowed}");
     assert_eq!(allowed.checks.total, 76, "{allowed}");
 
-    for case in ["missing_alt", "invalid_alt"] {
-        let invalid = validate_bytes_with_profile(
-            fixture_bytes(case),
-            ValidationProfile::PdfUa1,
-            &SafetyLimits::default(),
-        );
-        assert!(!invalid.checks_passed, "{case}: {invalid}");
-        assert_eq!(invalid.checks.failed, 1, "{case}: {invalid}");
-        assert_eq!(invalid.failures.len(), 1, "{case}: {invalid}");
-        assert_eq!(invalid.failures[0].rule_id, RULE, "{case}: {invalid}");
-    }
+    let forbidden = validate_bytes_with_profile(
+        &fixture_bytes("forbidden"),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(!forbidden.checks_passed, "{forbidden}");
+    assert_eq!(forbidden.checks.failed, 1, "{forbidden}");
+    assert_eq!(forbidden.failures.len(), 1, "{forbidden}");
+    assert_eq!(forbidden.failures[0].rule_id, RULE, "{forbidden}");
 }
 
 #[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.18.6.2-2 fixtures"]
-fn regenerate_pdfua1_rule_7_18_6_2_2_fixtures() {
+#[ignore = "maintenance generator for PDF/UA-1 rule 7.20-1 fixtures"]
+fn regenerate_pdfua1_rule_7_20_1_fixtures() {
     for (fixture, case) in [
-        ("pdfua1-rule-7-18-6-2-2-allowed.pdf", "allowed"),
-        ("pdfua1-rule-7-18-6-2-2-missing-alt.pdf", "missing_alt"),
-        ("pdfua1-rule-7-18-6-2-2-invalid-alt.pdf", "invalid_alt"),
+        ("pdfua1-rule-7-20-1-allowed.pdf", "allowed"),
+        ("pdfua1-rule-7-20-1-forbidden.pdf", "forbidden"),
     ] {
         fs::write(
             Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_18_6_2_1_fixture(case),
+            common::pdfua1_rule_7_20_1_fixture(case),
         )
-        .expect("write PDF/UA-1 media clip fixture");
+        .expect("write PDF/UA-1 rule 7.20-1 fixture");
     }
 }
 
 #[test]
-fn pdfua1_rule_7_18_6_2_2_fixtures_match_verapdf_1302_when_opted_in() {
+fn pdfua1_rule_7_20_1_fixtures_match_verapdf_1302_when_opted_in() {
     let Some(executable) = env::var_os("VERAPDF_BIN") else {
         return;
     };
@@ -60,9 +57,8 @@ fn pdfua1_rule_7_18_6_2_2_fixtures_match_verapdf_1302_when_opted_in() {
     config.profile = ReferenceProfile::PdfUa1;
     let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
     for (fixture, should_fail) in [
-        ("pdfua1-rule-7-18-6-2-2-allowed.pdf", false),
-        ("pdfua1-rule-7-18-6-2-2-missing-alt.pdf", true),
-        ("pdfua1-rule-7-18-6-2-2-invalid-alt.pdf", true),
+        ("pdfua1-rule-7-20-1-allowed.pdf", false),
+        ("pdfua1-rule-7-20-1-forbidden.pdf", true),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
@@ -86,9 +82,8 @@ fn pdfua1_rule_7_18_6_2_2_fixtures_match_verapdf_1302_when_opted_in() {
 
 fn fixture_bytes(case: &str) -> &'static [u8] {
     match case {
-        "allowed" => include_bytes!("fixtures/pdfua1-rule-7-18-6-2-2-allowed.pdf"),
-        "missing_alt" => include_bytes!("fixtures/pdfua1-rule-7-18-6-2-2-missing-alt.pdf"),
-        "invalid_alt" => include_bytes!("fixtures/pdfua1-rule-7-18-6-2-2-invalid-alt.pdf"),
-        _ => panic!("unknown fixture {case}"),
+        "allowed" => include_bytes!("fixtures/pdfua1-rule-7-20-1-allowed.pdf"),
+        "forbidden" => include_bytes!("fixtures/pdfua1-rule-7-20-1-forbidden.pdf"),
+        _ => panic!("unknown PDF/UA-1 rule 7.20-1 fixture case {case}"),
     }
 }
