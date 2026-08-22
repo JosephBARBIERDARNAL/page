@@ -5426,6 +5426,139 @@ pub fn pdfua1_rule_7_20_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 Type0 font fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let (resources, contents) = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        (
+            page.get(b"Resources").ok().cloned(),
+            page.get(b"Contents").ok().cloned(),
+        )
+    };
+    let mut resources = match resources {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    let mut fonts = match resources.get(b"Font").ok().cloned() {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture font resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture font resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    let descendant_id = type0_descendant_dictionary(&mut document, true, true);
+    let (cmap_ordering, cmap_supplement) = match case {
+        "identity" => ("Different", 0),
+        "matching" => ("Identity", 1),
+        "registry_mismatch" => ("Identity", 1),
+        "supplement_mismatch" => ("Identity", 0),
+        _ => panic!("unknown PDF/UA-1 rule 7.21.3.1-1 fixture case {case}"),
+    };
+    if case == "registry_mismatch" {
+        document
+            .get_object_mut(descendant_id)
+            .expect("Type0 descendant")
+            .as_dict_mut()
+            .expect("Type0 descendant dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Other"),
+                    "Ordering" => Object::string_literal("Identity"),
+                    "Supplement" => 0,
+                },
+            );
+    } else if case == "supplement_mismatch" {
+        document
+            .get_object_mut(descendant_id)
+            .expect("Type0 descendant")
+            .as_dict_mut()
+            .expect("Type0 descendant dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Identity"),
+                    "Supplement" => 2,
+                },
+            );
+    }
+    let cmap_content =
+        b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 1 >> def\n\
+/CMapName /Test-CMap def\n\
+1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n\
+1 begincidrange\n<0000> <FFFF> 0\nendcidrange\n";
+    let cmap_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "CMap",
+            "CMapName" => "Test-CMap",
+            "CIDSystemInfo" => dictionary! {
+                "Registry" => Object::string_literal("Adobe"),
+                "Ordering" => Object::string_literal(cmap_ordering),
+                "Supplement" => cmap_supplement,
+            },
+        },
+        cmap_content.to_vec(),
+    ));
+    let encoding = if case == "identity" {
+        Object::Name(b"Identity-H".to_vec())
+    } else {
+        cmap_id.into()
+    };
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type0",
+        "BaseFont" => "MaiTestFont",
+        "Encoding" => encoding,
+        "DescendantFonts" => vec![Object::Reference(descendant_id)],
+    });
+    fonts.set("FUA", font_id);
+    resources.set("Font", fonts);
+    let extra_content_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"/Artifact BMC\nBT\n/FUA 12 Tf\n<0001> Tj\nET\nEMC\n".to_vec(),
+    ));
+    let contents = match contents {
+        Some(Object::Array(mut contents)) => {
+            contents.push(Object::Reference(extra_content_id));
+            Object::Array(contents)
+        }
+        Some(contents) => vec![contents, Object::Reference(extra_content_id)].into(),
+        None => Object::Reference(extra_content_id),
+    };
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    page.set("Contents", contents);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 Type0 font fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_18_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
         .expect("load PDF/UA-1 page Tabs fixture");

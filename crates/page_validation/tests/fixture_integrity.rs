@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 238] = [
+    let fixtures: [(&str, &[u8], &str); 242] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1062,6 +1062,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-20-2-invalid.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-20-2-invalid.pdf"),
             "eadcd0a2d2525386fb8d5b096f1ae740b1d6de6aca0014f10007a88dd4266fa1",
+        ),
+        (
+            "pdfua1-rule-7-21-3-1-identity.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-1-identity.pdf"),
+            "918062f5d28e79fc0d8247df835103fa84ab3914e24429ce2b6114c559a72100",
+        ),
+        (
+            "pdfua1-rule-7-21-3-1-matching.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-1-matching.pdf"),
+            "37f84b367eeb780a00b219c339e786c71376c9e0f8b98c3ad3080bad1ab5f393",
+        ),
+        (
+            "pdfua1-rule-7-21-3-1-registry-mismatch.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-1-registry-mismatch.pdf"),
+            "a83f96d453ac8b28b2bc7b4290221b9a502edc16825fd1694925b20cb109a730",
+        ),
+        (
+            "pdfua1-rule-7-21-3-1-supplement-mismatch.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-1-supplement-mismatch.pdf"),
+            "f8c06b28fd5f6265affa61199a670a2fa8e2912747f44593170902ff37daa0c3",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",

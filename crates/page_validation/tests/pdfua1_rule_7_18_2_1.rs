@@ -20,7 +20,7 @@ fn pdfua1_rule_7_18_2_1_forbids_trapnet_annotations() {
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 76, "{allowed}");
+    assert_eq!(allowed.checks.total, 77, "{allowed}");
 
     let forbidden = validate_bytes_with_profile(
         fixture_bytes("forbidden"),

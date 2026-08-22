@@ -24,7 +24,7 @@ fn pdfua1_rule_7_18_4_2_requires_roleless_forms_to_have_one_widget_object_refere
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 76, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 77, "{fixture}: {report}");
     }
 
     let invalid = validate_bytes_with_profile(

@@ -25,6 +25,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     pub(crate) incompatible_type0_system_info: Vec<RuleFailure>,
     pub(crate) incompatible_type0_system_info_pdfa2: Vec<RuleFailure>,
+    pub(crate) incompatible_type0_system_info_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_cid_to_gid_maps: Vec<RuleFailure>,
     pub(crate) invalid_cid_to_gid_maps_pdfa2: Vec<RuleFailure>,
     pub(crate) unembedded_cmaps: Vec<RuleFailure>,
@@ -112,6 +113,7 @@ struct Scanner<'a> {
     invalid_font_file_subtypes_pdfa2: Vec<RuleFailure>,
     incompatible_type0_system_info: Vec<RuleFailure>,
     incompatible_type0_system_info_pdfa2: Vec<RuleFailure>,
+    incompatible_type0_system_info_pdfua1: Vec<RuleFailure>,
     invalid_cid_to_gid_maps: Vec<RuleFailure>,
     invalid_cid_to_gid_maps_pdfa2: Vec<RuleFailure>,
     unembedded_cmaps: Vec<RuleFailure>,
@@ -160,6 +162,7 @@ pub(crate) fn inspect(
         invalid_font_file_subtypes_pdfa2: Vec::new(),
         incompatible_type0_system_info: Vec::new(),
         incompatible_type0_system_info_pdfa2: Vec::new(),
+        incompatible_type0_system_info_pdfua1: Vec::new(),
         invalid_cid_to_gid_maps: Vec::new(),
         invalid_cid_to_gid_maps_pdfa2: Vec::new(),
         unembedded_cmaps: Vec::new(),
@@ -251,6 +254,7 @@ pub(crate) fn inspect(
         invalid_font_file_subtypes_pdfa2: scanner.invalid_font_file_subtypes_pdfa2,
         incompatible_type0_system_info: scanner.incompatible_type0_system_info,
         incompatible_type0_system_info_pdfa2: scanner.incompatible_type0_system_info_pdfa2,
+        incompatible_type0_system_info_pdfua1: scanner.incompatible_type0_system_info_pdfua1,
         invalid_cid_to_gid_maps: scanner.invalid_cid_to_gid_maps,
         invalid_cid_to_gid_maps_pdfa2: scanner.invalid_cid_to_gid_maps_pdfa2,
         unembedded_cmaps: scanner.unembedded_cmaps,
@@ -1722,12 +1726,20 @@ impl Scanner<'_> {
                 "has incompatible CIDSystemInfo Registry or Ordering values in its CIDFont and CMap",
             ));
         }
+        // PDF/UA-1 shares PDF/A-2/3's strict relation here; the caller has
+        // already exempted Identity-H and Identity-V encodings.
         let pdfa2_matches = cid_font
             .as_ref()
             .zip(cmap.as_ref())
             .is_some_and(|(cid_font, cmap)| cid_font.matches_pdfa2_or_3(cmap));
         if !pdfa2_matches {
             self.incompatible_type0_system_info_pdfa2
+                .push(font_failure(
+                    object_id,
+                    description,
+                    "has incompatible CIDSystemInfo Registry, Ordering, or Supplement values in its CIDFont and CMap",
+                ));
+            self.incompatible_type0_system_info_pdfua1
                 .push(font_failure(
                     object_id,
                     description,
