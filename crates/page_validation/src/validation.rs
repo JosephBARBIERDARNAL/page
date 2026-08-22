@@ -895,6 +895,19 @@ fn validate_document(
             None,
             &mut failures,
         );
+        for (object_id, form) in &inspections.content.form_xobjects {
+            if form.contains_mcid && form.references > 1 {
+                failures.push(failure(
+                    "PDFUA1-FORM-STRUCTURE-001",
+                    format!(
+                        "Form XObject {object_id:?} contains marked content with MCIDs and is referenced {} times; its semantic parent is not unique",
+                        form.references
+                    ),
+                    Some((*object_id).into()),
+                    FailureCategory::Conformance,
+                ));
+            }
+        }
         let mut pdfua_language_failures = inspections
             .document_features
             .language_failures_pdfua1
