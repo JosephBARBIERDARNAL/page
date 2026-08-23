@@ -1086,6 +1086,15 @@ fn validate_document(
             None,
             &mut failures,
         );
+        // Reuse the shared embedded-CMap WMode comparison. Its applicability
+        // is already limited to the embedded Type 0 CMaps inspected by the
+        // font scanner, matching veraPDF's PDF/UA CMapFile population.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cmap_wmodes,
+            "PDFUA1-CMAP-WMODE-001",
+            None,
+            &mut failures,
+        );
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
 

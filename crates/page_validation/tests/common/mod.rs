@@ -5692,6 +5692,55 @@ pub fn pdfua1_rule_7_21_3_3_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 CMap embedding fixture")
 }
 
+pub fn pdfua1_rule_7_21_3_3_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 CMap WMode fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .get(b"FUA")
+        .expect("PDF/UA-1 fixture Type0 font")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture Type0 font");
+    let cmap_id = document
+        .get_object(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .get(b"Encoding")
+        .expect("PDF/UA-1 Type0 encoding")
+        .as_reference()
+        .expect("indirect PDF/UA-1 CMap");
+    let content_wmode = match case {
+        "matching" | "mismatched" => 0,
+        _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-2 fixture case {case}"),
+    };
+    let dictionary_wmode = if case == "mismatched" { 1 } else { 0 };
+    let cmap = document
+        .get_object_mut(cmap_id)
+        .expect("PDF/UA-1 CMap")
+        .as_stream_mut()
+        .expect("PDF/UA-1 CMap stream");
+    cmap.dict.set("WMode", dictionary_wmode);
+    cmap.set_content(embedded_cmap("Identity", content_wmode, 0));
+    save_document(document, "PDF/UA-1 CMap WMode fixture")
+}
+
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect(description);
