@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 77,
+        ValidationProfile::PdfUa1 => 78,
         _ => 0,
     }
 }
@@ -1066,6 +1066,15 @@ fn validate_document(
                 .font_embedding
                 .incompatible_type0_system_info_pdfua1,
             "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 uses the same embedded Type 2 CIDFont population and
+        // CIDToGIDMap shape as PDF/A-2 and PDF/A-3, without their rendering
+        // mode exemption. Reuse the already broader applicability vector.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cid_to_gid_maps_pdfa2,
+            "PDFUA1-CIDTOGIDMAP-001",
             None,
             &mut failures,
         );
@@ -3296,7 +3305,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 77);
+        assert_eq!(report.checks.total, 78);
     }
 
     #[test]

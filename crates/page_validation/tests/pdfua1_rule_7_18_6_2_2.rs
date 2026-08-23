@@ -20,7 +20,7 @@ fn pdfua1_rule_7_18_6_2_2_requires_media_clip_alt() {
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 77, "{allowed}");
+    assert_eq!(allowed.checks.total, 78, "{allowed}");
 
     for case in ["missing_alt", "invalid_alt"] {
         let invalid = validate_bytes_with_profile(

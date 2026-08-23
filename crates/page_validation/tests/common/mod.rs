@@ -5559,6 +5559,69 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_21_3_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("identity"))
+        .expect("load PDF/UA-1 CIDToGIDMap fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        let resources = page
+            .get(b"Resources")
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary");
+        resources
+            .get(b"Font")
+            .expect("PDF/UA-1 fixture fonts")
+            .as_dict()
+            .expect("PDF/UA-1 fixture fonts dictionary")
+            .get(b"FUA")
+            .expect("PDF/UA-1 fixture Type0 font")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture Type0 font")
+    };
+    let descendant_id = document
+        .get_object(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .get(b"DescendantFonts")
+        .expect("PDF/UA-1 Type0 descendants")
+        .as_array()
+        .expect("PDF/UA-1 Type0 descendants array")
+        .first()
+        .expect("PDF/UA-1 Type0 first descendant")
+        .as_reference()
+        .expect("indirect PDF/UA-1 Type0 descendant");
+    let descendant = document
+        .get_object_mut(descendant_id)
+        .expect("PDF/UA-1 Type0 descendant")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 descendant dictionary");
+    match case {
+        "identity" => {}
+        "stream" => descendant.set("CIDToGIDMap", Stream::new(Dictionary::new(), vec![0, 0])),
+        "missing" => {
+            descendant.remove(b"CIDToGIDMap");
+        }
+        "invalid" => descendant.set("CIDToGIDMap", 7),
+        _ => panic!("unknown PDF/UA-1 rule 7.21.3.2-1 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 CIDToGIDMap fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_18_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
         .expect("load PDF/UA-1 page Tabs fixture");
