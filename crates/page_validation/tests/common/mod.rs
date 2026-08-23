@@ -5622,6 +5622,82 @@ pub fn pdfua1_rule_7_21_3_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_21_3_3_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 CMap embedding fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        page.get(b"Resources")
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary")
+            .get(b"Font")
+            .expect("PDF/UA-1 fixture fonts")
+            .as_dict()
+            .expect("PDF/UA-1 fixture fonts dictionary")
+            .get(b"FUA")
+            .expect("PDF/UA-1 fixture Type0 font")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture Type0 font")
+    };
+    let encoding = match case {
+        "embedded" => return save_document(document, "PDF/UA-1 CMap embedding fixture"),
+        "predefined" => Object::Name(b"GB-EUC-H".to_vec()),
+        "unembedded" => Object::Name(b"Test-CMap".to_vec()),
+        _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-1 fixture case {case}"),
+    };
+    if case == "predefined" {
+        let descendant_id = document
+            .get_object(font_id)
+            .expect("PDF/UA-1 Type0 font")
+            .as_dict()
+            .expect("PDF/UA-1 Type0 font dictionary")
+            .get(b"DescendantFonts")
+            .expect("PDF/UA-1 Type0 descendants")
+            .as_array()
+            .expect("PDF/UA-1 Type0 descendants array")
+            .first()
+            .expect("PDF/UA-1 Type0 first descendant")
+            .as_reference()
+            .expect("indirect PDF/UA-1 Type0 descendant");
+        document
+            .get_object_mut(descendant_id)
+            .expect("PDF/UA-1 Type0 descendant")
+            .as_dict_mut()
+            .expect("PDF/UA-1 Type0 descendant dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("GB1"),
+                    "Supplement" => 0,
+                },
+            );
+    }
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("Encoding", encoding);
+    save_document(document, "PDF/UA-1 CMap embedding fixture")
+}
+
+fn save_document(mut document: Document, description: &str) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    document.save_to(&mut bytes).expect(description);
+    bytes
+}
+
 pub fn pdfua1_rule_7_18_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_18_1_1_fixture("valid"))
         .expect("load PDF/UA-1 page Tabs fixture");

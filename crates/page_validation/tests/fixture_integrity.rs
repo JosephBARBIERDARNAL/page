@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 242] = [
+    let fixtures: [(&str, &[u8], &str); 245] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1082,6 +1082,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-21-3-1-supplement-mismatch.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-supplement-mismatch.pdf"),
             "f8c06b28fd5f6265affa61199a670a2fa8e2912747f44593170902ff37daa0c3",
+        ),
+        (
+            "pdfua1-rule-7-21-3-3-1-embedded.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-embedded.pdf"),
+            "37f84b367eeb780a00b219c339e786c71376c9e0f8b98c3ad3080bad1ab5f393",
+        ),
+        (
+            "pdfua1-rule-7-21-3-3-1-predefined.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-predefined.pdf"),
+            "3be773cef91e9cb8071f890ad743d28acb22aa6065038a38187d25317e59c69f",
+        ),
+        (
+            "pdfua1-rule-7-21-3-3-1-unembedded.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-unembedded.pdf"),
+            "93cc955c8f727417e85bc2655d900a791e24d71764a517b6f22154108764bb97",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",
