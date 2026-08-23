@@ -1685,7 +1685,7 @@ impl Scanner<'_> {
             self.invalid_cmap_references.push(font_failure(
                 object_id,
                 description,
-                "references a CMap outside the PDF/A-2 and PDF/A-3 predefined CMap set",
+                "references a CMap outside the ISO 32000-1:2008 Table 118 predefined CMap set",
             ));
         }
         if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {

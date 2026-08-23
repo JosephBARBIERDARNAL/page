@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_3_3_2_requires_matching_cmap_wmodes() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 79, "{matching}");
+    assert_eq!(matching.checks.total, 80, "{matching}");
 
     let mismatched = validate_bytes_with_profile(
         fixture_bytes("mismatched"),
