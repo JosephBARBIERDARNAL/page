@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 80,
+        ValidationProfile::PdfUa1 => 81,
         _ => 0,
     }
 }
@@ -1066,6 +1066,14 @@ fn validate_document(
                 .font_embedding
                 .incompatible_type0_system_info_pdfua1,
             "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.4.1-1 shares the content-reached font population and
+        // validated font-program recognition used by PDF/A font embedding.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.failures,
+            "PDFUA1-FONT-EMBEDDING-001",
             None,
             &mut failures,
         );
@@ -3331,7 +3339,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 80);
+        assert_eq!(report.checks.total, 81);
     }
 
     #[test]
