@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 84,
+        ValidationProfile::PdfUa1 => 85,
         _ => 0,
     }
 }
@@ -1107,6 +1107,16 @@ fn validate_document(
         aggregate_failures_with_location(
             &glyph_presence_failures,
             "PDFUA1-FONT-GLYPH-PRESENCE-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.5-1 shares the rendered embedded-font width scanner
+        // with PDF/A. It already applies the veraPDF tolerance of one font
+        // unit and covers simple, composite, Type 1, Type 1C, and Type 3
+        // font programs.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.inconsistent_truetype_widths,
+            "PDFUA1-FONT-GLYPH-WIDTH-001",
             None,
             &mut failures,
         );
@@ -3372,7 +3382,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 84);
+        assert_eq!(report.checks.total, 85);
     }
 
     #[test]

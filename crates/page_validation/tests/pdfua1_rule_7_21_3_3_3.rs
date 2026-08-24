@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_3_3_3_allows_table_118_cmaps_and_rejects_other_references() 
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 84, "{allowed}");
+    assert_eq!(allowed.checks.total, 85, "{allowed}");
 
     for fixture in ["embedded_unknown", "dictionary_unknown"] {
         let report = validate_bytes_with_profile(
@@ -29,7 +29,7 @@ fn pdfua1_rule_7_21_3_3_3_allows_table_118_cmaps_and_rejects_other_references() 
             &SafetyLimits::default(),
         );
         assert!(!report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 84, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 85, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

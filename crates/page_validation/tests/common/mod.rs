@@ -5935,6 +5935,57 @@ pub fn pdfua1_rule_7_21_4_1_2_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 glyph presence fixture")
 }
 
+pub fn pdfua1_rule_7_21_5_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 glyph width fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .get(b"FUA")
+        .expect("PDF/UA-1 fixture Type0 font")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture Type0 font");
+    let descendant_id = document
+        .get_object(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .get(b"DescendantFonts")
+        .expect("PDF/UA-1 Type0 descendants")
+        .as_array()
+        .expect("PDF/UA-1 Type0 descendants array")
+        .first()
+        .expect("PDF/UA-1 Type0 first descendant")
+        .as_reference()
+        .expect("indirect PDF/UA-1 Type0 descendant");
+    match case {
+        "matching" => {}
+        "mismatched" => document
+            .get_object_mut(descendant_id)
+            .expect("PDF/UA-1 Type0 descendant")
+            .as_dict_mut()
+            .expect("PDF/UA-1 Type0 descendant dictionary")
+            .set("DW", 400),
+        _ => panic!("unknown PDF/UA-1 rule 7.21.5-1 fixture case {case}"),
+    }
+    save_document(document, "PDF/UA-1 glyph width fixture")
+}
+
 pub fn pdfua1_rule_7_21_4_2_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Type1 CharSet fixture");

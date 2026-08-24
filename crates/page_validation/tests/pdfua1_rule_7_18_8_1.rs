@@ -21,7 +21,7 @@ fn pdfua1_rule_7_18_8_1_requires_printer_marks_to_be_artifacts() {
         );
         assert!(report.checks_passed, "{case}: {report}");
         assert!(report.failures.is_empty(), "{case}: {report}");
-        assert_eq!(report.checks.total, 84, "{case}: {report}");
+        assert_eq!(report.checks.total, 85, "{case}: {report}");
     }
 
     let included = validate_bytes_with_profile(

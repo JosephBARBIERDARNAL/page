@@ -26,7 +26,7 @@ fn pdfua1_rule_7_21_4_1_2_requires_rendered_glyphs_to_be_present() {
                 .any(|failure| failure.rule_id == RULE),
             "{fixture}: {report}"
         );
-        assert_eq!(report.checks.total, 84, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 85, "{fixture}: {report}");
     }
 
     let report = validate_bytes_with_profile(
@@ -41,7 +41,7 @@ fn pdfua1_rule_7_21_4_1_2_requires_rendered_glyphs_to_be_present() {
             .any(|failure| failure.rule_id == RULE),
         "{report}"
     );
-    assert_eq!(report.checks.total, 84, "{report}");
+    assert_eq!(report.checks.total, 85, "{report}");
 }
 
 #[test]
