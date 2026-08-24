@@ -35,6 +35,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_cmap_references: Vec<RuleFailure>,
     pub(crate) oversized_cmap_cids: Vec<RuleFailure>,
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
+    pub(crate) invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) missing_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -123,6 +124,7 @@ struct Scanner<'a> {
     invalid_cmap_references: Vec<RuleFailure>,
     oversized_cmap_cids: Vec<RuleFailure>,
     invalid_type1_subset_charsets: Vec<RuleFailure>,
+    invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
     missing_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -172,6 +174,7 @@ pub(crate) fn inspect(
         invalid_cmap_references: Vec::new(),
         oversized_cmap_cids: Vec::new(),
         invalid_type1_subset_charsets: Vec::new(),
+        invalid_type1_charsets_pdfua1: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
         missing_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
@@ -264,6 +267,7 @@ pub(crate) fn inspect(
         invalid_cmap_references: scanner.invalid_cmap_references,
         oversized_cmap_cids: scanner.oversized_cmap_cids,
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
+        invalid_type1_charsets_pdfua1: scanner.invalid_type1_charsets_pdfua1,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
         missing_cid_subset_cidsets: scanner.missing_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
@@ -1552,16 +1556,52 @@ impl Scanner<'_> {
         if !is_subset {
             return Ok(());
         }
-        let has_charset = font_descriptor_dictionary(self.document, font, self.limits)?
-            .map(|descriptor| resolved_string(self.document, descriptor, b"CharSet", self.limits))
-            .transpose()?
-            .flatten()
-            .is_some();
-        if !has_charset {
+        let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)? else {
             self.invalid_type1_subset_charsets.push(font_failure(
                 object_id,
                 description,
                 "is a Type1 subset without a descriptor /CharSet string",
+            ));
+            return Ok(());
+        };
+        let Some(char_set_bytes) =
+            resolved_string(self.document, descriptor, b"CharSet", self.limits)?
+        else {
+            self.invalid_type1_subset_charsets.push(font_failure(
+                object_id,
+                description,
+                "is a Type1 subset without a descriptor /CharSet string",
+            ));
+            return Ok(());
+        };
+        // PDF/UA-1 7.21.4.2-1 compares /CharSet with every glyph in the
+        // embedded Type 1 /CharStrings dictionary, not only rendered glyphs.
+        // Its veraPDF predicate applies to /FontFile; Type1C /FontFile3 is
+        // covered by the existing rendered-glyph inspection instead.
+        let Some(font_file) = descriptor
+            .get(b"FontFile")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_stream().ok())
+        else {
+            return Ok(());
+        };
+        if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
+            return Ok(());
+        }
+        let program_names = type1_program_char_names(&decode_font_stream(font_file, self.limits)?);
+        let char_set = type1_charset_names(&char_set_bytes);
+        if !program_names.is_empty()
+            && program_names
+                .iter()
+                .any(|name| !char_set.contains(name.as_str()))
+        {
+            self.invalid_type1_charsets_pdfua1.push(font_failure(
+                object_id,
+                description,
+                "has a descriptor /CharSet that omits a glyph from its embedded Type1 program",
             ));
         }
         Ok(())
@@ -3486,18 +3526,54 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
     else {
         return BTreeSet::new();
     };
-    plaintext[start..]
-        .split(|byte| *byte == b'/')
-        .skip(1)
-        .filter_map(|entry| {
-            let name = entry
-                .iter()
-                .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'.')
-                .copied()
-                .collect::<Vec<_>>();
-            (!name.is_empty()).then(|| String::from_utf8_lossy(&name).into_owned())
-        })
-        .collect()
+    let region = &plaintext[start..];
+    let mut names = BTreeSet::new();
+    let mut position = 0;
+    while let Some(relative) = region[position..].iter().position(|byte| *byte == b'/') {
+        let slash = position + relative;
+        let name_start = slash + 1;
+        let name_end = region[name_start..]
+            .iter()
+            .position(|byte| byte.is_ascii_whitespace() || b"()<>[]{}/%".contains(byte))
+            .map_or(region.len(), |offset| name_start + offset);
+        if name_end > name_start
+            && is_type1_charstring_definition(&region[name_end..])
+            && let Ok(name) = std::str::from_utf8(&region[name_start..name_end])
+        {
+            names.insert(name.to_owned());
+        }
+        position = name_end.max(name_start).min(region.len());
+        if position == region.len() {
+            break;
+        }
+    }
+    names
+}
+
+fn is_type1_charstring_definition(bytes: &[u8]) -> bool {
+    let mut position = 0;
+    while bytes.get(position).is_some_and(u8::is_ascii_whitespace) {
+        position += 1;
+    }
+    if bytes.get(position) == Some(&b'{') {
+        return true;
+    }
+    if bytes.get(position) == Some(&b'-') {
+        position += 1;
+    }
+    let digit_start = position;
+    while bytes.get(position).is_some_and(u8::is_ascii_digit) {
+        position += 1;
+    }
+    if position == digit_start {
+        return false;
+    }
+    while bytes.get(position).is_some_and(u8::is_ascii_whitespace) {
+        position += 1;
+    }
+    bytes
+        .get(position..)
+        .is_some_and(|tail| tail.starts_with(b"RD"))
 }
 
 struct Type1ProgramEncoding {

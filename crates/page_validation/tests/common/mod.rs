@@ -5935,6 +5935,101 @@ pub fn pdfua1_rule_7_21_4_1_2_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 glyph presence fixture")
 }
 
+pub fn pdfua1_rule_7_21_4_2_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
+        .expect("load PDF/UA-1 Type1 CharSet fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let page = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary");
+    let mut resources = match page.get(b"Resources").expect("PDF/UA-1 fixture resources") {
+        Object::Reference(id) => document
+            .get_object(*id)
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary")
+            .clone(),
+        Object::Dictionary(resources) => resources.clone(),
+        _ => panic!("PDF/UA-1 fixture resources dictionary has unexpected type"),
+    };
+    let mut fonts = match resources.get(b"Font").expect("PDF/UA-1 fixture fonts") {
+        Object::Reference(id) => document
+            .get_object(*id)
+            .expect("PDF/UA-1 fixture fonts")
+            .as_dict()
+            .expect("PDF/UA-1 fixture fonts dictionary")
+            .clone(),
+        Object::Dictionary(fonts) => fonts.clone(),
+        _ => panic!("PDF/UA-1 fixture fonts dictionary has unexpected type"),
+    };
+    let (program, length1, length2, length3) =
+        pdf_type1_program(include_bytes!("../fixtures/fonts/usyr.pfa"));
+    let mut descriptor = font_descriptor(&mut document, false);
+    descriptor.set("FontName", "StandardSymL");
+    descriptor.set(
+        "FontFile",
+        document.add_object(Stream::new(
+            dictionary! {
+                "Length1" => i64::try_from(length1).expect("Type1 clear length"),
+                "Length2" => i64::try_from(length2).expect("Type1 encrypted length"),
+                "Length3" => i64::try_from(length3).expect("Type1 trailer length"),
+            },
+            program,
+        )),
+    );
+    descriptor.set(
+        "CharSet",
+        Object::string_literal(if case == "complete" {
+            "/space/exclam/universal/numbersign/existential/percent/ampersand/suchthat/parenleft/parenright/asteriskmath/plus/comma/minus/period/slash/zero/one/two/three/four/five/six/seven/eight/nine/colon/semicolon/less/equal/greater/question/congruent/Alpha/Beta/Chi/Delta/Epsilon/Phi/Gamma/Eta/Iota/theta1/Kappa/Lambda/Mu/Nu/Omicron/Pi/Theta/Rho/Sigma/Tau/Upsilon/sigma1/Omega/Xi/Psi/Zeta/bracketleft/therefore/bracketright/perpendicular/underscore/radicalex/alpha/beta/chi/delta/epsilon/phi/gamma/eta/iota/phi1/kappa/lambda/mu/nu/omicron/pi/theta/rho/sigma/tau/upsilon/omega1/omega/xi/psi/zeta/braceleft/bar/braceright/similar/Upsilon1/Euro/minute/lessequal/fraction/infinity/florin/club/diamond/heart/spade/arrowboth/arrowleft/arrowup/arrowright/arrowdown/degree/plusminus/second/greaterequal/multiply/proportional/partialdiff/bullet/divide/notequal/equivalence/approxequal/ellipsis/arrowvertex/arrowhorizex/carriagereturn/aleph/Ifraktur/Rfraktur/weierstrass/circlemultiply/circleplus/emptyset/intersection/union/propersuperset/reflexsuperset/notsubset/propersubset/reflexsubset/element/notelement/angle/gradient/registerserif/copyrightserif/trademarkserif/product/radical/dotmath/logicalnot/logicaland/logicalor/arrowdblboth/arrowdblleft/arrowdblup/arrowdblright/arrowdbldown/lozenge/angleleft/registersans/copyrightsans/trademarksans/summation/parenlefttp/parenleftex/parenleftbt/bracketlefttp/bracketleftex/bracketleftbt/bracelefttp/braceleftmid/braceleftbt/braceex/angleright/integral/integraltp/integralex/integralbt/parenrighttp/parenrightex/parenrightbt/bracketrighttp/bracerighttp/bracerightmid/bracerightbt/.notdef"
+        } else {
+            "/.notdef"
+        }),
+    );
+    let descriptor_id = document.add_object(descriptor);
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <22> <22> endcodespacerange 1 beginbfchar <22> <0021> endbfchar"
+            .to_vec(),
+    ));
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "ABCDEF+StandardSymL",
+        "Encoding" => dictionary! {
+            "Differences" => vec![34.into(), Object::Name(b"universal".to_vec())],
+        },
+        "FirstChar" => 34,
+        "LastChar" => 34,
+        "Widths" => vec![713.into()],
+        "FontDescriptor" => descriptor_id,
+        "ToUnicode" => to_unicode,
+    });
+    fonts.set("FT1", font_id);
+    resources.set("Font", fonts);
+    let content_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"/Artifact BMC BT /FT1 12 Tf <22> Tj ET EMC".to_vec(),
+    ));
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    let contents = page
+        .get(b"Contents")
+        .expect("PDF/UA-1 fixture contents")
+        .clone();
+    page.set("Contents", vec![contents, Object::Reference(content_id)]);
+    save_document(document, "PDF/UA-1 Type1 CharSet fixture")
+}
+
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect(description);

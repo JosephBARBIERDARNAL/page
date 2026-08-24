@@ -20,7 +20,7 @@ fn pdfua1_rule_7_20_1_rejects_reference_xobjects() {
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 82, "{allowed}");
+    assert_eq!(allowed.checks.total, 83, "{allowed}");
 
     let forbidden = validate_bytes_with_profile(
         fixture_bytes("forbidden"),
