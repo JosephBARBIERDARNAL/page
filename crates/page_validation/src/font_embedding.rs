@@ -646,11 +646,9 @@ impl Scanner<'_> {
                 let Some(decoder) = resolve_cmap_decoder(self.document, encoding, self.limits)?
                     .codes(&usage.shown_bytes)
                 else {
-                    self.invalid_unicode_mapping(
-                        &usage,
-                        "has rendered codes that cannot be decoded",
-                        false,
-                    );
+                    // The encoding rule owns unresolved Type 0 CMaps. Without
+                    // decoded character codes, this rule cannot determine
+                    // which Unicode mappings are required.
                     continue;
                 };
                 decoder

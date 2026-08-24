@@ -20,7 +20,7 @@ fn pdfua1_rule_7_18_6_2_1_requires_media_clip_ct() {
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 89, "{allowed}");
+    assert_eq!(allowed.checks.total, 90, "{allowed}");
 
     let invalid = validate_bytes_with_profile(
         fixture_bytes("missing_ct"),

@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 261] = [
+    let fixtures: [(&str, &[u8], &str); 263] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1066,62 +1066,62 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-21-3-1-identity.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-identity.pdf"),
-            "918062f5d28e79fc0d8247df835103fa84ab3914e24429ce2b6114c559a72100",
+            "1f2d64a2e0f3ff6027943c2ec3a5fc39eadaa7b2e208cf964373e986b1517dd2",
         ),
         (
             "pdfua1-rule-7-21-3-1-matching.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-matching.pdf"),
-            "37f84b367eeb780a00b219c339e786c71376c9e0f8b98c3ad3080bad1ab5f393",
+            "058944d8aee50e5fad2be05adae7ea61e731326fee7690ff561b1b5a710b1809",
         ),
         (
             "pdfua1-rule-7-21-3-1-registry-mismatch.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-registry-mismatch.pdf"),
-            "a83f96d453ac8b28b2bc7b4290221b9a502edc16825fd1694925b20cb109a730",
+            "6421ef385f058f083027dd7003dbb1f0fc2f4e7875d776cdd7ae230cab4f14b8",
         ),
         (
             "pdfua1-rule-7-21-3-1-supplement-mismatch.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-supplement-mismatch.pdf"),
-            "f8c06b28fd5f6265affa61199a670a2fa8e2912747f44593170902ff37daa0c3",
+            "bb197d36be1d8ba0574e8ef0d5179af9516bcc0eba48a797a1b6f8258b16d864",
         ),
         (
             "pdfua1-rule-7-21-3-3-1-embedded.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-embedded.pdf"),
-            "37f84b367eeb780a00b219c339e786c71376c9e0f8b98c3ad3080bad1ab5f393",
+            "058944d8aee50e5fad2be05adae7ea61e731326fee7690ff561b1b5a710b1809",
         ),
         (
             "pdfua1-rule-7-21-3-3-1-predefined.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-predefined.pdf"),
-            "3be773cef91e9cb8071f890ad743d28acb22aa6065038a38187d25317e59c69f",
+            "3ec2fb37363ae38d6cc5f2cbf78627d3e11d91ee134ccc838cce09e894a08880",
         ),
         (
             "pdfua1-rule-7-21-3-3-1-unembedded.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-unembedded.pdf"),
-            "93cc955c8f727417e85bc2655d900a791e24d71764a517b6f22154108764bb97",
+            "8cafe7bf22a27347b56cff00bb25278cb5b4fbc13baf2aa8b3dfd14040ee0672",
         ),
         (
             "pdfua1-rule-7-21-3-3-2-matching.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-2-matching.pdf"),
-            "51f3cad6ee103fadf9214f5c8dd8c7eb7bcd2096a52814f6c4c224a4755f43da",
+            "28eb2c3a569885c54b1ec3c693c2332c2cd91bc6aa62864039777d664431948f",
         ),
         (
             "pdfua1-rule-7-21-3-3-2-mismatched.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-2-mismatched.pdf"),
-            "6fad9b0a4cfacf454a22133b11688200b1642fa23df014f0948ade4faf5e2826",
+            "fa56f930293c5696ed8ac941f16ef9423936f414d68c50dbb2aa3996334d7f9c",
         ),
         (
             "pdfua1-rule-7-21-4-1-2-present.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-present.pdf"),
-            "1a7c510174c545330a5dc392e4835c6f8fe25f595617e7ec35d19f4d7cb7a966",
+            "9c78a37a00425c41738e04f927759cabe67618d2e96e6b3947cbc608c4c79202",
         ),
         (
             "pdfua1-rule-7-21-4-1-2-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-missing.pdf"),
-            "da509a8f5f29bd05738bbbc1f740be1e2e02fbbd595dfae61821911077a5630b",
+            "458ded4891e46d3875402480f10c41482e60801e959d08a689f850fa04e409e6",
         ),
         (
             "pdfua1-rule-7-21-4-1-2-invisible.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-invisible.pdf"),
-            "2df0685ab0285246d71d63ef2f1502b5867b952b13b00b72c3b73a0e61c29478",
+            "3e9417e98170fe70694b0d620fbcb7aa563508a7eecd9bfc8cd6f000304af66c",
         ),
         (
             "pdfua1-rule-7-21-4-2-1-complete.pdf",
@@ -1136,47 +1136,57 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-21-4-2-2-complete.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-2-2-complete.pdf"),
-            "09426241027c634765ec85c07ac39e6c33815ed6603cc8620504ef1fa5ec4efb",
+            "6b76c59dc9b3ac611fd0f8c5798dfd30f90b444c917b6f3ae1f86238ce7e8912",
         ),
         (
             "pdfua1-rule-7-21-4-2-2-incomplete.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-2-2-incomplete.pdf"),
-            "cc7022395985af68a4af22f4df5611a4b8a1008ddc430cf21d3517fb931ca978",
+            "cd099c0607c2b6ab5bdf8f17c81789299939ab48b022d1e94c7f1804bb639c9a",
         ),
         (
             "pdfua1-rule-7-21-5-1-matching.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-5-1-matching.pdf"),
-            "37f84b367eeb780a00b219c339e786c71376c9e0f8b98c3ad3080bad1ab5f393",
+            "058944d8aee50e5fad2be05adae7ea61e731326fee7690ff561b1b5a710b1809",
         ),
         (
             "pdfua1-rule-7-21-5-1-mismatched.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-5-1-mismatched.pdf"),
-            "52c3ec2511395e56d7416490ae3a185a91aecc70cddc9ac73e2e96f62b720eaf",
+            "a8ac468efc0cec617551516940dd5932457cfa1b6597db30b9f0751398194756",
         ),
         (
             "pdfua1-rule-7-21-6-1-matching.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-1-matching.pdf"),
-            "a924d112927a6881306d29a84c5c0a8029afc973d93ee8738583f5d4740d2506",
+            "11b7b4932752f12e3a0d6d28981ec6a5af8bd2e333452ce9466fadc6c360aa6e",
         ),
         (
             "pdfua1-rule-7-21-6-1-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-1-missing.pdf"),
-            "c1c322db3e399aa7c6eeaf1ad4ccf437471145d0c7d6989c839ef7ed4fd041bc",
+            "b3b6ce2746fda85eb630c5a4e288fe39814da74f6fe5bdeb0d8d8abbc4a4af05",
+        ),
+        (
+            "pdfua1-rule-7-21-7-1-matching.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-7-1-matching.pdf"),
+            "04e4b500bbe66f88443956907be3e3c1226f2c7086178fcd812614e248997550",
+        ),
+        (
+            "pdfua1-rule-7-21-7-1-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-7-1-missing.pdf"),
+            "509caede5f39cd9ac2c596c390bf65407860ed552868c4816ae053e931b04f07",
         ),
         (
             "pdfua1-rule-7-21-6-4-one-cmap.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-4-one-cmap.pdf"),
-            "555967758dbe5dabb03aacc396186030d3317ca5c50d028e03a33f184170a2cc",
+            "aa37fa63fde573989330e8d23ecc48c2ee2624bef9d37b527a6329ce16bf8b96",
         ),
         (
             "pdfua1-rule-7-21-6-4-two-cmaps.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-4-two-cmaps.pdf"),
-            "994ed30b24d171358d858f2839ec1431f8f0c8e20cbac6741f43c25ec56e354e",
+            "faf7ec6b9aef61ea4bc55cfb8cccf056d9d2ce432458dae9d03c7d0ad7a0beaf",
         ),
         (
             "pdfua1-rule-7-21-6-4-two-cmaps-with-cmap30.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-4-two-cmaps-with-cmap30.pdf"),
-            "ea95ef62d3bbc177f356d63e4b217d6b068c80dcc6bedcad6c40443ceb4db8fc",
+            "c57dce49a07a9232424d672057b77305a42cb1a5933aa3b81628397b89489846",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",

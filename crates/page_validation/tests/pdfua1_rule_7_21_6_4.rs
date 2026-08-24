@@ -23,7 +23,7 @@ fn pdfua1_rule_7_21_6_4_requires_a_single_or_symbol_cmap_for_symbolic_truetype()
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 89, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 90, "{fixture}: {report}");
         match expected_rule {
             Some(rule) => assert!(
                 report

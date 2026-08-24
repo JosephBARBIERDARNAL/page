@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 89,
+        ValidationProfile::PdfUa1 => 90,
         _ => 0,
     }
 }
@@ -1162,6 +1162,16 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_symbolic_truetype_cmaps,
             "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.7-1 reuses the shared rendered-glyph Unicode mapper.
+        // It applies the same effective Unicode mapping exceptions used by
+        // veraPDF for standard simple-font encodings, Type 1 character names,
+        // and Adobe character collections.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_unicode_mappings,
+            "PDFUA1-FONT-UNICODE-MAPPING-001",
             None,
             &mut failures,
         );
@@ -3427,7 +3437,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 89);
+        assert_eq!(report.checks.total, 90);
     }
 
     #[test]

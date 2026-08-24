@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_4_1_1_requires_rendered_font_programs_to_be_embedded() {
     );
     assert!(embedded.checks_passed, "{embedded}");
     assert!(embedded.failures.is_empty(), "{embedded}");
-    assert_eq!(embedded.checks.total, 89, "{embedded}");
+    assert_eq!(embedded.checks.total, 90, "{embedded}");
 
     let unembedded = validate_bytes_with_profile(
         fixture_bytes("unembedded"),

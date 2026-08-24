@@ -5531,6 +5531,16 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
         "Encoding" => encoding,
         "DescendantFonts" => vec![Object::Reference(descendant_id)],
     });
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <0001> <0001> endcodespacerange 1 beginbfchar <0001> <0020> endbfchar".to_vec(),
+    ));
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("ToUnicode", to_unicode);
     fonts.set("FUA", font_id);
     resources.set("Font", fonts);
     let extra_content_id = document.add_object(Stream::new(
@@ -5556,6 +5566,65 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
     document
         .save_to(&mut bytes)
         .expect("save PDF/UA-1 Type0 font fixture");
+    bytes
+}
+
+pub fn pdfua1_rule_7_21_7_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 Unicode mapping fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        let resources = page
+            .get(b"Resources")
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary");
+        resources
+            .get(b"Font")
+            .expect("PDF/UA-1 fixture fonts")
+            .as_dict()
+            .expect("PDF/UA-1 fixture fonts dictionary")
+            .get(b"FUA")
+            .expect("PDF/UA-1 fixture Type0 font")
+            .as_reference()
+            .expect("indirect PDF/UA-1 fixture Type0 font")
+    };
+    match case {
+        "matching" => {
+            let to_unicode = document.add_object(Stream::new(
+                Dictionary::new(),
+                b"1 begincodespacerange <0001> <0001> endcodespacerange 1 beginbfchar <0001> <0020> endbfchar".to_vec(),
+            ));
+            let font = document
+                .get_object_mut(font_id)
+                .expect("PDF/UA-1 Type0 font")
+                .as_dict_mut()
+                .expect("PDF/UA-1 Type0 font dictionary");
+            font.set("ToUnicode", to_unicode);
+        }
+        "missing" => {
+            document
+                .get_object_mut(font_id)
+                .expect("PDF/UA-1 Type0 font")
+                .as_dict_mut()
+                .expect("PDF/UA-1 Type0 font dictionary")
+                .remove(b"ToUnicode");
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.21.7-1 fixture case {case}"),
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 Unicode mapping fixture");
     bytes
 }
 
@@ -5738,6 +5807,17 @@ pub fn pdfua1_rule_7_21_3_3_2_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 CMap stream");
     cmap.dict.set("WMode", dictionary_wmode);
     cmap.set_content(embedded_cmap("Identity", content_wmode, 0));
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <00> <ff> endcodespacerange 2 beginbfchar <00> <0020> <01> <0020> endbfchar"
+            .to_vec(),
+    ));
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("ToUnicode", to_unicode);
     save_document(document, "PDF/UA-1 CMap WMode fixture")
 }
 
@@ -5800,6 +5880,19 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
         }
         _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-3 fixture case {case}"),
     }
+    let to_unicode_content = if case == "allowed" {
+        b"1 begincodespacerange <0000> <ffff> endcodespacerange 1 beginbfchar <0001> <0020> endbfchar".as_slice()
+    } else {
+        b"1 begincodespacerange <00> <ff> endcodespacerange 2 beginbfchar <00> <0020> <01> <0020> endbfchar".as_slice()
+    };
+    let to_unicode =
+        document.add_object(Stream::new(Dictionary::new(), to_unicode_content.to_vec()));
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("ToUnicode", to_unicode);
     save_document(document, "PDF/UA-1 CMap reference fixture")
 }
 
@@ -6437,6 +6530,17 @@ pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
             .expect("PDF/UA-1 Type0 content stream")
             .set_content(b"/Artifact BMC\nBT\n/FUA 12 Tf\n<0000> Tj\nET\nEMC\n".to_vec());
     }
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <0000> <ffff> endcodespacerange 1 beginbfchar <0000> <0020> endbfchar"
+            .to_vec(),
+    ));
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("ToUnicode", to_unicode);
     save_document(document, "PDF/UA-1 CIDSet fixture")
 }
 
