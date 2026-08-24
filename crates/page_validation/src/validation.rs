@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 87,
+        ValidationProfile::PdfUa1 => 88,
         _ => 0,
     }
 }
@@ -1142,6 +1142,17 @@ fn validate_document(
                 .font_embedding
                 .invalid_nonsymbolic_truetype_encodings_pdfua1,
             "PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-3 reuses the shared TrueType descriptor and
+        // dictionary inspection: symbolic TrueType fonts must not contain
+        // an /Encoding entry in the font dictionary.
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .invalid_symbolic_truetype_encodings,
+            "PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001",
             None,
             &mut failures,
         );
@@ -3407,7 +3418,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 87);
+        assert_eq!(report.checks.total, 88);
     }
 
     #[test]

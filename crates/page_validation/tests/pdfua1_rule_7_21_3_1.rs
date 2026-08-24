@@ -24,7 +24,7 @@ fn pdfua1_rule_7_21_3_1_allows_identity_and_checks_nonidentity_system_info() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 87, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 88, "{fixture}: {report}");
     }
 
     for fixture in [

@@ -6051,6 +6051,61 @@ pub fn pdfua1_rule_7_21_6_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 TrueType cmap fixture")
 }
 
+pub fn pdfua1_rule_7_21_6_3_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_6_1_fixture("matching"))
+        .expect("load PDF/UA-1 symbolic TrueType encoding fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .get(b"FTT")
+        .expect("PDF/UA-1 fixture TrueType font")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture TrueType font");
+    let descriptor_id = document
+        .get_object(font_id)
+        .expect("PDF/UA-1 fixture TrueType font")
+        .as_dict()
+        .expect("PDF/UA-1 fixture TrueType font dictionary")
+        .get(b"FontDescriptor")
+        .expect("PDF/UA-1 TrueType descriptor")
+        .as_reference()
+        .expect("indirect PDF/UA-1 TrueType descriptor");
+    document
+        .get_object_mut(descriptor_id)
+        .expect("PDF/UA-1 TrueType descriptor")
+        .as_dict_mut()
+        .expect("PDF/UA-1 TrueType descriptor dictionary")
+        .set("Flags", 4);
+    let font = document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 fixture TrueType font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture TrueType font dictionary");
+    match case {
+        "matching" => {
+            font.remove(b"Encoding");
+        }
+        "encoding" => {}
+        _ => panic!("unknown PDF/UA-1 rule 7.21.6-3 fixture case {case}"),
+    }
+    save_document(document, "PDF/UA-1 symbolic TrueType encoding fixture")
+}
+
 pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_21_6_1_fixture("matching"))
         .expect("load PDF/UA-1 TrueType encoding fixture");

@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_5_1_requires_consistent_embedded_font_widths() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 87, "{matching}");
+    assert_eq!(matching.checks.total, 88, "{matching}");
 
     let mismatched = validate_bytes_with_profile(
         fixture_bytes("mismatched"),
