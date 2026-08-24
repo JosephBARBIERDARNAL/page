@@ -37,7 +37,7 @@ fn pdfua1_rule_7_10_1_requires_names_for_default_and_named_configurations() {
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
         assert!(!report.checks_passed, "{fixture}: {report}");
-        assert_eq!(report.checks.total, 81, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 82, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

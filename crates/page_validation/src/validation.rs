@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 81,
+        ValidationProfile::PdfUa1 => 82,
         _ => 0,
     }
 }
@@ -1074,6 +1074,27 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections.font_embedding.failures,
             "PDFUA1-FONT-EMBEDDING-001",
+            None,
+            &mut failures,
+        );
+        // Reuse the shared rendered-glyph scanners: mode-3-only text has no
+        // shown bytes, while unresolved mappings remain inapplicable like
+        // veraPDF's `isGlyphPresent == null` predicate.
+        let mut glyph_presence_failures = inspections
+            .font_embedding
+            .missing_truetype_glyphs
+            .iter()
+            .chain(&inspections.font_embedding.missing_type1_glyphs)
+            .cloned()
+            .collect::<Vec<_>>();
+        glyph_presence_failures.sort_by(|left, right| {
+            left.object_id
+                .cmp(&right.object_id)
+                .then_with(|| left.description.cmp(&right.description))
+        });
+        aggregate_failures_with_location(
+            &glyph_presence_failures,
+            "PDFUA1-FONT-GLYPH-PRESENCE-001",
             None,
             &mut failures,
         );
@@ -3339,7 +3360,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 81);
+        assert_eq!(report.checks.total, 82);
     }
 
     #[test]

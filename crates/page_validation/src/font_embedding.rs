@@ -371,12 +371,11 @@ impl Scanner<'_> {
         } else if subtype.as_deref() == Some("Type1") {
             self.inspect_type1_subset_font(font, object_id, &selected.description)?;
         }
-        let embedded =
-            if rendering_mode == 3 || matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
-                false
-            } else {
-                font_is_embedded(self.document, font, self.limits)?
-            };
+        let embedded = if matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
+            false
+        } else {
+            font_is_embedded(self.document, font, self.limits)?
+        };
         self.uses.entry(selected.key.clone()).or_insert(FontUse {
             object: selected.object.clone(),
             object_id,
@@ -715,8 +714,7 @@ impl Scanner<'_> {
     fn inspect_rendered_truetype_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || !usage.embedded
+            if !usage.embedded
                 || usage.subtype.as_deref() != Some("TrueType")
                 || usage.shown_bytes.is_empty()
             {
@@ -896,10 +894,7 @@ impl Scanner<'_> {
     fn inspect_rendered_cidfont_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || usage.subtype.as_deref() != Some("Type0")
-                || usage.shown_bytes.is_empty()
-            {
+            if usage.subtype.as_deref() != Some("Type0") || usage.shown_bytes.is_empty() {
                 continue;
             }
             let Some(object) = resolve_optional(
@@ -1080,8 +1075,7 @@ impl Scanner<'_> {
     fn inspect_rendered_type1_subset_charsets(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
+            if !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
             {
                 continue;
@@ -1179,8 +1173,7 @@ impl Scanner<'_> {
     fn inspect_rendered_type1_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || !usage.embedded
+            if !usage.embedded
                 || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
             {
@@ -1277,10 +1270,7 @@ impl Scanner<'_> {
     fn inspect_rendered_type3_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || usage.subtype.as_deref() != Some("Type3")
-                || usage.shown_bytes.is_empty()
-            {
+            if usage.subtype.as_deref() != Some("Type3") || usage.shown_bytes.is_empty() {
                 continue;
             }
             let Some(object) = resolve_optional(
@@ -1378,8 +1368,7 @@ impl Scanner<'_> {
     fn inspect_rendered_cff_type1_glyphs(&mut self) -> Result<(), PdfError> {
         let uses: Vec<_> = self.uses.values().cloned().collect();
         for usage in uses {
-            if !usage.visible
-                || !usage.embedded
+            if !usage.embedded
                 || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
             {

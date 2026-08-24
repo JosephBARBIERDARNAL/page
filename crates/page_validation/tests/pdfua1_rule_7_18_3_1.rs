@@ -20,7 +20,7 @@ fn pdfua1_rule_7_18_3_1_requires_tabs_s_on_pages_with_annotations() {
     );
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
-    assert_eq!(allowed.checks.total, 81, "{allowed}");
+    assert_eq!(allowed.checks.total, 82, "{allowed}");
 
     for case in ["missing", "wrong"] {
         let invalid = validate_bytes_with_profile(

@@ -5863,6 +5863,78 @@ pub fn pdfua1_rule_7_21_4_1_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 font embedding fixture")
 }
 
+pub fn pdfua1_rule_7_21_4_1_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 glyph presence fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let mut resources = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .clone();
+    let mut fonts = resources
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .clone();
+    let glyph_count = match case {
+        "present" | "invisible" => 2,
+        "missing" => 1,
+        _ => panic!("unknown PDF/UA-1 rule 7.21.4.1-2 fixture case {case}"),
+    };
+    let mut descriptor = font_descriptor(&mut document, false);
+    descriptor.set(
+        "FontFile2",
+        document.add_object(Stream::new(
+            Dictionary::new(),
+            sfnt::minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(1, 33, glyph_count),
+        )),
+    );
+    let descriptor_id = document.add_object(descriptor);
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <21> <0021> endbfchar"
+            .to_vec(),
+    ));
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "TrueType",
+        "BaseFont" => "MaiTestFont",
+        "Encoding" => "WinAnsiEncoding",
+        "FirstChar" => 33,
+        "LastChar" => 33,
+        "Widths" => vec![500.into()],
+        "FontDescriptor" => descriptor_id,
+        "ToUnicode" => to_unicode,
+    });
+    fonts.set("FTT", font_id);
+    resources.set("Font", fonts);
+    let content = if case == "invisible" {
+        b"BT /FTT 12 Tf 3 Tr (!) Tj ET".to_vec()
+    } else {
+        b"BT /FTT 12 Tf (!) Tj ET".to_vec()
+    };
+    let content_id = document.add_object(Stream::new(Dictionary::new(), content));
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    page.set("Contents", content_id);
+    save_document(document, "PDF/UA-1 glyph presence fixture")
+}
+
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect(description);

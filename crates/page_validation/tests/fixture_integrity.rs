@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 247] = [
+    let fixtures: [(&str, &[u8], &str); 250] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1107,6 +1107,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-21-3-3-2-mismatched.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-2-mismatched.pdf"),
             "6fad9b0a4cfacf454a22133b11688200b1642fa23df014f0948ade4faf5e2826",
+        ),
+        (
+            "pdfua1-rule-7-21-4-1-2-present.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-present.pdf"),
+            "1a7c510174c545330a5dc392e4835c6f8fe25f595617e7ec35d19f4d7cb7a966",
+        ),
+        (
+            "pdfua1-rule-7-21-4-1-2-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-missing.pdf"),
+            "da509a8f5f29bd05738bbbc1f740be1e2e02fbbd595dfae61821911077a5630b",
+        ),
+        (
+            "pdfua1-rule-7-21-4-1-2-invisible.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-4-1-2-invisible.pdf"),
+            "2df0685ab0285246d71d63ef2f1502b5867b952b13b00b72c3b73a0e61c29478",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",

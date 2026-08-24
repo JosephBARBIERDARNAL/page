@@ -13,10 +13,8 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.3.3:1";
 
 #[test]
 fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
-    for fixture in [
-        "pdfua1-rule-7-21-3-3-1-embedded.pdf",
-        "pdfua1-rule-7-21-3-3-1-predefined.pdf",
-    ] {
+    let fixture = "pdfua1-rule-7-21-3-3-1-embedded.pdf";
+    {
         let report = validate_bytes_with_profile(
             fixture_bytes(fixture),
             ValidationProfile::PdfUa1,
@@ -24,8 +22,23 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 81, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 82, "{fixture}: {report}");
     }
+
+    let fixture = "pdfua1-rule-7-21-3-3-1-predefined.pdf";
+    let report = validate_bytes_with_profile(
+        fixture_bytes(fixture),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(!report.checks_passed, "{fixture}: {report}");
+    assert_eq!(report.checks.total, 82, "{fixture}: {report}");
+    assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
+    assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
+    assert_eq!(
+        report.failures[0].rule_id, "PDFUA1-FONT-GLYPH-PRESENCE-001",
+        "{fixture}: {report}"
+    );
 
     let fixture = "pdfua1-rule-7-21-3-3-1-unembedded.pdf";
     let report = validate_bytes_with_profile(
@@ -34,7 +47,7 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{fixture}: {report}");
-    assert_eq!(report.checks.total, 81, "{fixture}: {report}");
+    assert_eq!(report.checks.total, 82, "{fixture}: {report}");
     assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
     assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
     assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

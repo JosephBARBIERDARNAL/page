@@ -25,7 +25,7 @@ fn pdfua1_rule_7_18_5_2_requires_link_contents_alternate_descriptions() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 81, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 82, "{fixture}: {report}");
     }
 
     for fixture in [
