@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 258] = [
+    let fixtures: [(&str, &[u8], &str); 261] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1162,6 +1162,21 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-21-6-1-missing.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-6-1-missing.pdf"),
             "c1c322db3e399aa7c6eeaf1ad4ccf437471145d0c7d6989c839ef7ed4fd041bc",
+        ),
+        (
+            "pdfua1-rule-7-21-6-4-one-cmap.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-6-4-one-cmap.pdf"),
+            "555967758dbe5dabb03aacc396186030d3317ca5c50d028e03a33f184170a2cc",
+        ),
+        (
+            "pdfua1-rule-7-21-6-4-two-cmaps.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-6-4-two-cmaps.pdf"),
+            "994ed30b24d171358d858f2839ec1431f8f0c8e20cbac6741f43c25ec56e354e",
+        ),
+        (
+            "pdfua1-rule-7-21-6-4-two-cmaps-with-cmap30.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-6-4-two-cmaps-with-cmap30.pdf"),
+            "ea95ef62d3bbc177f356d63e4b217d6b068c80dcc6bedcad6c40443ceb4db8fc",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",

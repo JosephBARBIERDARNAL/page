@@ -22,7 +22,7 @@ fn pdfua1_rule_7_21_6_2_requires_valid_nonsymbolic_truetype_encoding() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 88, "{matching}");
+    assert_eq!(matching.checks.total, 89, "{matching}");
 
     for fixture in [
         "invalid_encoding",

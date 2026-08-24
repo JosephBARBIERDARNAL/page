@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 88,
+        ValidationProfile::PdfUa1 => 89,
         _ => 0,
     }
 }
@@ -1153,6 +1153,15 @@ fn validate_document(
                 .font_embedding
                 .invalid_symbolic_truetype_encodings,
             "PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-4 reuses the bounded embedded TrueType cmap
+        // summary. The scanner applies the rule only to recognized embedded
+        // programs, matching veraPDF's applicability for TrueTypeFontProgram.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_symbolic_truetype_cmaps,
+            "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
             None,
             &mut failures,
         );
@@ -3418,7 +3427,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 88);
+        assert_eq!(report.checks.total, 89);
     }
 
     #[test]
