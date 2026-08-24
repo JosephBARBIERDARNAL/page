@@ -6030,6 +6030,97 @@ pub fn pdfua1_rule_7_21_4_2_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 Type1 CharSet fixture")
 }
 
+pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("identity"))
+        .expect("load PDF/UA-1 CIDSet fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .get(b"FUA")
+        .expect("PDF/UA-1 fixture Type0 font")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture Type0 font");
+    let descendant_id = document
+        .get_object(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .get(b"DescendantFonts")
+        .expect("PDF/UA-1 Type0 descendants")
+        .as_array()
+        .expect("PDF/UA-1 Type0 descendants array")
+        .first()
+        .expect("PDF/UA-1 Type0 first descendant")
+        .as_reference()
+        .expect("indirect PDF/UA-1 Type0 descendant");
+    let descriptor_id = document
+        .get_object(descendant_id)
+        .expect("PDF/UA-1 Type0 descendant")
+        .as_dict()
+        .expect("PDF/UA-1 Type0 descendant dictionary")
+        .get(b"FontDescriptor")
+        .expect("PDF/UA-1 Type0 font descriptor")
+        .as_reference()
+        .expect("indirect PDF/UA-1 Type0 font descriptor");
+    let descendant = document
+        .get_object_mut(descendant_id)
+        .expect("PDF/UA-1 Type0 descendant")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 descendant dictionary");
+    descendant.set("BaseFont", "ABCDEF+MaiTestFont");
+    let cid_set = match case {
+        "complete" => vec![0xc0],
+        "incomplete" => vec![0x80],
+        _ => panic!("unknown PDF/UA-1 rule 7.21.4.2-2 fixture case {case}"),
+    };
+    let cid_set_id = document.add_object(Stream::new(Dictionary::new(), cid_set));
+    document
+        .get_object_mut(descriptor_id)
+        .expect("PDF/UA-1 Type0 font descriptor")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font descriptor dictionary")
+        .set("CIDSet", cid_set_id);
+
+    // Render only CID 0 so the missing CID 1 in the failing fixture is
+    // intentionally unreferenced by the PDF content.
+    let content_ids = document
+        .objects
+        .iter()
+        .filter_map(|(object_id, object)| {
+            let stream = object.as_stream().ok()?;
+            let bytes = stream.decompressed_content().ok()?;
+            bytes
+                .windows(b"/FUA".len())
+                .any(|window| window == b"/FUA")
+                .then_some(*object_id)
+        })
+        .collect::<Vec<_>>();
+    for content_id in content_ids {
+        document
+            .get_object_mut(content_id)
+            .expect("PDF/UA-1 Type0 content stream")
+            .as_stream_mut()
+            .expect("PDF/UA-1 Type0 content stream")
+            .set_content(b"/Artifact BMC\nBT\n/FUA 12 Tf\n<0000> Tj\nET\nEMC\n".to_vec());
+    }
+    save_document(document, "PDF/UA-1 CIDSet fixture")
+}
+
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect(description);

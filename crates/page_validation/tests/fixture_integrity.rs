@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 252] = [
+    let fixtures: [(&str, &[u8], &str); 254] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1132,6 +1132,16 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-21-4-2-1-incomplete.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-4-2-1-incomplete.pdf"),
             "eb815fdc5f1c47ddec070c9b77ec8242b51f7091fe92d05562c53353756abcb4",
+        ),
+        (
+            "pdfua1-rule-7-21-4-2-2-complete.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-4-2-2-complete.pdf"),
+            "09426241027c634765ec85c07ac39e6c33815ed6603cc8620504ef1fa5ec4efb",
+        ),
+        (
+            "pdfua1-rule-7-21-4-2-2-incomplete.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-4-2-2-incomplete.pdf"),
+            "cc7022395985af68a4af22f4df5611a4b8a1008ddc430cf21d3517fb931ca978",
         ),
         (
             "pdfua1-rule-7-18-3-1-allowed.pdf",

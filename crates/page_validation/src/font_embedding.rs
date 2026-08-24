@@ -37,6 +37,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    pub(crate) invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     pub(crate) missing_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings_pdfa2: Vec<RuleFailure>,
@@ -126,6 +127,7 @@ struct Scanner<'a> {
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     missing_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings_pdfa2: Vec<RuleFailure>,
@@ -176,6 +178,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: Vec::new(),
         invalid_type1_charsets_pdfua1: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
+        invalid_cid_subset_cidsets_pdfua1: Vec::new(),
         missing_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_nonsymbolic_truetype_encodings_pdfa2: Vec::new(),
@@ -231,6 +234,7 @@ pub(crate) fn inspect(
     scanner.inspect_unicode_pua_actual_text()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
+    scanner.inspect_cid_subset_sets_pdfua1()?;
 
     let failures = scanner
         .uses
@@ -269,6 +273,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_type1_charsets_pdfua1: scanner.invalid_type1_charsets_pdfua1,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
+        invalid_cid_subset_cidsets_pdfua1: scanner.invalid_cid_subset_cidsets_pdfua1,
         missing_cid_subset_cidsets: scanner.missing_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_nonsymbolic_truetype_encodings_pdfa2: scanner
@@ -1541,6 +1546,79 @@ impl Scanner<'_> {
                 &usage.description,
                 "has a rendered CID absent from its descriptor /CIDSet",
             ));
+        }
+        Ok(())
+    }
+
+    /// Checks PDF/UA-1 7.21.4.2-2 against every CID represented by an
+    /// embedded subset program, not only CIDs reached by shown text.
+    ///
+    /// The scanner's font population is still the content-reached Type 0
+    /// population, matching veraPDF's `PDCIDFont` model. The rule's CID
+    /// coverage itself is deliberately independent of rendering mode and
+    /// shown bytes.
+    fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if usage.subtype.as_deref() != Some("Type0") {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else {
+                continue;
+            };
+            let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
+            else {
+                continue;
+            };
+            let descendant_subtype =
+                resolved_name(self.document, descendant, b"Subtype", self.limits)?;
+            if !matches!(descendant_subtype, Some(b"CIDFontType2" | b"CIDFontType0"))
+                || !resolved_name(self.document, descendant, b"BaseFont", self.limits)?
+                    .is_some_and(is_subset_font_name)
+            {
+                continue;
+            }
+            let Some(descriptor) =
+                font_descriptor_dictionary(self.document, descendant, self.limits)?
+            else {
+                continue;
+            };
+            let Some(cid_set) = descriptor
+                .get(b"CIDSet")
+                .ok()
+                .map(|value| {
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)
+                })
+                .transpose()?
+                .flatten()
+                .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
+            let Some(program_cids) =
+                cid_font_program_cids(self.document, descendant, descendant_subtype, self.limits)?
+            else {
+                continue;
+            };
+            if program_cids
+                .into_iter()
+                .any(|cid| !cid_set_contains(&cid_set_bytes, cid))
+            {
+                self.invalid_cid_subset_cidsets_pdfua1.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "does not identify every CID present in its embedded font program",
+                ));
+            }
         }
         Ok(())
     }
@@ -3481,6 +3559,80 @@ fn cid_set_contains(bytes: &[u8], cid: u16) -> bool {
     bytes
         .get(usize::from(cid) / 8)
         .is_some_and(|byte| byte & (1 << (7 - (cid % 8))) != 0)
+}
+
+fn cid_font_program_cids(
+    document: &Document,
+    font: &Dictionary,
+    subtype: Option<&[u8]>,
+    limits: &SafetyLimits,
+) -> Result<Option<BTreeSet<u16>>, PdfError> {
+    let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
+        return Ok(None);
+    };
+    let (stream_key, expected_stream_subtype) = match subtype {
+        Some(b"CIDFontType2") => (b"FontFile2".as_slice(), None),
+        Some(b"CIDFontType0") => (b"FontFile3".as_slice(), Some(b"CIDFontType0C".as_slice())),
+        _ => return Ok(None),
+    };
+    let Some(stream) = descriptor
+        .get(stream_key)
+        .ok()
+        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+        .transpose()?
+        .flatten()
+        .and_then(|value| value.as_stream().ok())
+    else {
+        return Ok(None);
+    };
+    if expected_stream_subtype.is_some()
+        && resolved_name(document, &stream.dict, b"Subtype", limits)? != expected_stream_subtype
+    {
+        return Ok(None);
+    }
+    let bytes = decode_font_stream(stream, limits)?;
+
+    if subtype == Some(b"CIDFontType2".as_slice()) {
+        let Some(face) = RawTrueType::parse(&bytes) else {
+            return Ok(None);
+        };
+        let Ok(cid_to_gid) = font.get(b"CIDToGIDMap") else {
+            return Ok(None);
+        };
+        let map = resolve_cid_to_gid_map(document, cid_to_gid, limits)?;
+        let mut cids = BTreeSet::new();
+        match map {
+            CidToGidMap::Identity => {
+                let glyph_count = face.glyph_count.unwrap_or(0).min(usize::from(u16::MAX) + 1);
+                for glyph in 1..glyph_count {
+                    cids.insert(u16::try_from(glyph).expect("glyph count is bounded to u16"));
+                }
+            }
+            CidToGidMap::Table(bytes) => {
+                let (entries, _) = bytes.as_chunks::<2>();
+                for (cid, entry) in entries.iter().enumerate() {
+                    let Ok(cid) = u16::try_from(cid) else {
+                        break;
+                    };
+                    let glyph = ttf_parser::GlyphId(u16::from_be_bytes([entry[0], entry[1]]));
+                    if cid != 0 && glyph.0 != 0 && face.glyph_is_present(glyph) {
+                        cids.insert(cid);
+                    }
+                }
+            }
+            CidToGidMap::Unavailable => return Ok(None),
+        }
+        return Ok(Some(cids));
+    }
+
+    let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+        return Ok(None);
+    };
+    let cids = (1..cff.number_of_glyphs())
+        .filter_map(|glyph| cff.glyph_cid(ttf_parser::GlyphId(glyph)))
+        .filter(|cid| *cid != 0)
+        .collect();
+    Ok(Some(cids))
 }
 
 fn type1_charset_names(bytes: &[u8]) -> BTreeSet<&str> {
