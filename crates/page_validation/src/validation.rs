@@ -155,7 +155,7 @@ fn total_rule_count(profile: ValidationProfile) -> usize {
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 85,
+        ValidationProfile::PdfUa1 => 86,
         _ => 0,
     }
 }
@@ -1117,6 +1117,19 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections.font_embedding.inconsistent_truetype_widths,
             "PDFUA1-FONT-GLYPH-WIDTH-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-1 shares the bounded embedded TrueType cmap
+        // summary with the PDF/A-2/3 implementation. It applies the
+        // veraPDF predicate exactly: non-symbolic fonts need at least one
+        // non-symbol cmap, and need more than one when a Microsoft Symbol
+        // cmap is present.
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .invalid_nonsymbolic_truetype_cmaps,
+            "PDFUA1-TRUETYPE-NONSYMBOLIC-CMAP-001",
             None,
             &mut failures,
         );
@@ -3382,7 +3395,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 85);
+        assert_eq!(report.checks.total, 86);
     }
 
     #[test]

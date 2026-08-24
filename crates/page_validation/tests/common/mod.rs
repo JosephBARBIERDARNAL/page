@@ -5986,6 +5986,71 @@ pub fn pdfua1_rule_7_21_5_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 glyph width fixture")
 }
 
+pub fn pdfua1_rule_7_21_6_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 TrueType cmap fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let page = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary");
+    let mut resources = page
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .clone();
+    let mut fonts = resources
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .clone();
+    let cmap_count = match case {
+        "matching" => 1,
+        "missing" => 0,
+        _ => panic!("unknown PDF/UA-1 rule 7.21.6-1 fixture case {case}"),
+    };
+    let mut descriptor = font_descriptor(&mut document, false);
+    descriptor.set(
+        "FontFile2",
+        document.add_object(Stream::new(
+            Dictionary::new(),
+            sfnt::minimal_truetype_with_cmap_count(cmap_count),
+        )),
+    );
+    let descriptor_id = document.add_object(descriptor);
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "TrueType",
+        "BaseFont" => "MaiTestFont",
+        "Encoding" => "WinAnsiEncoding",
+        "FirstChar" => 33,
+        "LastChar" => 33,
+        "Widths" => vec![500.into()],
+        "FontDescriptor" => descriptor_id,
+    });
+    fonts.set("FTT", font_id);
+    resources.set("Font", fonts);
+    let content_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"/Artifact BMC BT /FTT 12 Tf 3 Tr (!) Tj ET EMC".to_vec(),
+    ));
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    page.set("Contents", content_id);
+    save_document(document, "PDF/UA-1 TrueType cmap fixture")
+}
+
 pub fn pdfua1_rule_7_21_4_2_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Type1 CharSet fixture");

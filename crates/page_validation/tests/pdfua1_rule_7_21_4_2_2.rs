@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_4_2_2_requires_cidset_to_list_unreferenced_program_cids() {
     );
     assert!(complete.checks_passed, "{complete}");
     assert!(complete.failures.is_empty(), "{complete}");
-    assert_eq!(complete.checks.total, 85, "{complete}");
+    assert_eq!(complete.checks.total, 86, "{complete}");
 
     let incomplete = validate_bytes_with_profile(
         fixture_bytes("incomplete"),

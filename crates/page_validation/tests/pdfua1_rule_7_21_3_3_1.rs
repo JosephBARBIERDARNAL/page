@@ -22,7 +22,7 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 85, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 86, "{fixture}: {report}");
     }
 
     let fixture = "pdfua1-rule-7-21-3-3-1-predefined.pdf";
@@ -32,7 +32,7 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{fixture}: {report}");
-    assert_eq!(report.checks.total, 85, "{fixture}: {report}");
+    assert_eq!(report.checks.total, 86, "{fixture}: {report}");
     assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
     assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
     assert_eq!(
@@ -47,7 +47,7 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{fixture}: {report}");
-    assert_eq!(report.checks.total, 85, "{fixture}: {report}");
+    assert_eq!(report.checks.total, 86, "{fixture}: {report}");
     assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
     assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
     assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");
