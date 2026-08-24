@@ -41,6 +41,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) missing_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings_pdfa2: Vec<RuleFailure>,
+    pub(crate) invalid_nonsymbolic_truetype_encodings_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
@@ -131,6 +132,7 @@ struct Scanner<'a> {
     missing_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings_pdfa2: Vec<RuleFailure>,
+    invalid_nonsymbolic_truetype_encodings_pdfua1: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
@@ -182,6 +184,7 @@ pub(crate) fn inspect(
         missing_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
         invalid_nonsymbolic_truetype_encodings_pdfa2: Vec::new(),
+        invalid_nonsymbolic_truetype_encodings_pdfua1: Vec::new(),
         invalid_nonsymbolic_truetype_cmaps: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
@@ -278,6 +281,8 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
         invalid_nonsymbolic_truetype_encodings_pdfa2: scanner
             .invalid_nonsymbolic_truetype_encodings_pdfa2,
+        invalid_nonsymbolic_truetype_encodings_pdfua1: scanner
+            .invalid_nonsymbolic_truetype_encodings_pdfua1,
         invalid_nonsymbolic_truetype_cmaps: scanner.invalid_nonsymbolic_truetype_cmaps,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
@@ -490,7 +495,7 @@ impl Scanner<'_> {
                     "is symbolic but specifies an /Encoding",
                 ));
             }
-            if let Some((cmap_count, cmap30_present)) =
+            if let Some((cmap_count, cmap30_present, _)) =
                 truetype_cmap_summary(self.document, descriptor, self.limits)?
                 && cmap_count != 1
                 && !cmap30_present
@@ -504,9 +509,10 @@ impl Scanner<'_> {
                 ));
             }
         } else {
-            if font_is_embedded(self.document, font, self.limits)?
-                && let Some((cmap_count, cmap30_present)) =
-                    truetype_cmap_summary(self.document, descriptor, self.limits)?
+            let embedded = font_is_embedded(self.document, font, self.limits)?;
+            let cmap_summary = truetype_cmap_summary(self.document, descriptor, self.limits)?;
+            if embedded
+                && let Some((cmap_count, cmap30_present, _)) = cmap_summary
                 && ((cmap30_present && cmap_count <= 1) || (!cmap30_present && cmap_count == 0))
             {
                 self.invalid_nonsymbolic_truetype_cmaps.push(font_failure(
@@ -526,6 +532,8 @@ impl Scanner<'_> {
                 encoding.as_deref(),
                 Some(b"MacRomanEncoding" | b"WinAnsiEncoding")
             );
+            let valid_encoding =
+                !invalid_base_encoding && (!contains_differences || differences_unicode_compliant);
             if invalid_base_encoding || contains_differences {
                 self.invalid_nonsymbolic_truetype_encodings
                     .push(font_failure(
@@ -540,6 +548,16 @@ impl Scanner<'_> {
                         object_id,
                         description,
                         "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
+                    ));
+            }
+            let has_microsoft_unicode_cmap =
+                !embedded || cmap_summary.is_some_and(|(_, _, cmap31_present)| cmap31_present);
+            if !valid_encoding || !has_microsoft_unicode_cmap {
+                self.invalid_nonsymbolic_truetype_encodings_pdfua1
+                    .push(font_failure(
+                        object_id,
+                        description,
+                        "is non-symbolic but does not define a correct MacRomanEncoding or WinAnsiEncoding mapping to the Adobe Glyph List and Microsoft Unicode cmap",
                     ));
             }
         }
@@ -4458,7 +4476,7 @@ fn truetype_cmap_summary(
     document: &Document,
     descriptor: Option<&Dictionary>,
     limits: &SafetyLimits,
-) -> Result<Option<(usize, bool)>, PdfError> {
+) -> Result<Option<(usize, bool, bool)>, PdfError> {
     let Some(descriptor) = descriptor else {
         return Ok(None);
     };
@@ -4484,10 +4502,20 @@ fn truetype_cmap_summary(
         .and_then(ttf_parser::cmap::Table::parse)
         .map(|cmap| {
             let cmap_count = usize::from(cmap.subtables.len());
-            let cmap30_present = cmap.subtables.into_iter().any(|subtable| {
-                subtable.platform_id == ttf_parser::PlatformId::Windows && subtable.encoding_id == 0
-            });
-            (cmap_count, cmap30_present)
+            let (cmap30_present, cmap31_present) = cmap.subtables.into_iter().fold(
+                (false, false),
+                |(cmap30_present, cmap31_present), subtable| {
+                    (
+                        cmap30_present
+                            || (subtable.platform_id == ttf_parser::PlatformId::Windows
+                                && subtable.encoding_id == 0),
+                        cmap31_present
+                            || (subtable.platform_id == ttf_parser::PlatformId::Windows
+                                && subtable.encoding_id == 1),
+                    )
+                },
+            );
+            (cmap_count, cmap30_present, cmap31_present)
         }))
 }
 

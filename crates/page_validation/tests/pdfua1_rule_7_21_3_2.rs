@@ -24,7 +24,7 @@ fn pdfua1_rule_7_21_3_2_requires_embedded_type2_cidfonts_to_define_cid_to_gid_ma
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 86, "{fixture}: {report}");
+        assert_eq!(report.checks.total, 87, "{fixture}: {report}");
     }
 
     for fixture in [

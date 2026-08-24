@@ -27,7 +27,7 @@ fn pdfua1_rule_7_11_1_requires_non_empty_f_and_uf_keys() {
         &SafetyLimits::default(),
     );
     assert!(!empty_uf.checks_passed, "{empty_uf}");
-    assert_eq!(empty_uf.checks.total, 86, "{empty_uf}");
+    assert_eq!(empty_uf.checks.total, 87, "{empty_uf}");
     assert_eq!(empty_uf.checks.failed, 1, "{empty_uf}");
     assert_eq!(empty_uf.failures.len(), 1, "{empty_uf}");
     assert_eq!(empty_uf.failures[0].rule_id, RULE, "{empty_uf}");

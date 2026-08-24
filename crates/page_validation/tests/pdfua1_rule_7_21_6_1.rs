@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_6_1_requires_non_symbolic_truetype_cmaps() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 86, "{matching}");
+    assert_eq!(matching.checks.total, 87, "{matching}");
 
     let missing = validate_bytes_with_profile(
         fixture_bytes("missing"),
@@ -28,9 +28,15 @@ fn pdfua1_rule_7_21_6_1_requires_non_symbolic_truetype_cmaps() {
         &SafetyLimits::default(),
     );
     assert!(!missing.checks_passed, "{missing}");
-    assert_eq!(missing.checks.failed, 1, "{missing}");
-    assert_eq!(missing.failures.len(), 1, "{missing}");
-    assert_eq!(missing.failures[0].rule_id, RULE, "{missing}");
+    assert_eq!(missing.checks.failed, 2, "{missing}");
+    assert_eq!(missing.failures.len(), 2, "{missing}");
+    assert!(
+        missing
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == RULE),
+        "{missing}"
+    );
 }
 
 #[test]

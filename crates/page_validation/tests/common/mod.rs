@@ -6051,6 +6051,104 @@ pub fn pdfua1_rule_7_21_6_1_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 TrueType cmap fixture")
 }
 
+pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_6_1_fixture("matching"))
+        .expect("load PDF/UA-1 TrueType encoding fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let (font_id, resources) = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        (
+            page.get(b"Resources")
+                .expect("PDF/UA-1 fixture resources")
+                .as_dict()
+                .expect("PDF/UA-1 fixture resources dictionary")
+                .get(b"Font")
+                .expect("PDF/UA-1 fixture fonts")
+                .as_dict()
+                .expect("PDF/UA-1 fixture fonts dictionary")
+                .get(b"FTT")
+                .expect("PDF/UA-1 fixture TrueType font")
+                .as_reference()
+                .expect("indirect PDF/UA-1 fixture TrueType font"),
+            page.get(b"Resources")
+                .expect("PDF/UA-1 fixture resources")
+                .as_dict()
+                .expect("PDF/UA-1 fixture resources dictionary")
+                .clone(),
+        )
+    };
+    let descriptor_id = if case == "missing_unicode_cmap" {
+        Some(
+            document
+                .get_object(font_id)
+                .expect("PDF/UA-1 fixture TrueType font")
+                .as_dict()
+                .expect("PDF/UA-1 fixture TrueType font dictionary")
+                .get(b"FontDescriptor")
+                .expect("PDF/UA-1 TrueType descriptor")
+                .as_reference()
+                .expect("indirect PDF/UA-1 TrueType descriptor"),
+        )
+    } else {
+        None
+    };
+    let replacement_font_file = (case == "missing_unicode_cmap").then(|| {
+        document.add_object(Stream::new(
+            Dictionary::new(),
+            sfnt::minimal_truetype_with_cmap_encoding(2),
+        ))
+    });
+    match case {
+        "matching" => {}
+        "invalid_encoding" => document
+            .get_object_mut(font_id)
+            .expect("PDF/UA-1 fixture TrueType font")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture TrueType font dictionary")
+            .set("Encoding", "StandardEncoding"),
+        "invalid_differences" => document
+            .get_object_mut(font_id)
+            .expect("PDF/UA-1 fixture TrueType font")
+            .as_dict_mut()
+            .expect("PDF/UA-1 fixture TrueType font dictionary")
+            .set(
+                "Encoding",
+                dictionary! {
+                    "Type" => "Encoding",
+                    "BaseEncoding" => "WinAnsiEncoding",
+                    "Differences" => vec![32.into(), Object::Name(b"notAnAdobeGlyph".to_vec())],
+                },
+            ),
+        "missing_unicode_cmap" => {
+            document
+                .get_object_mut(descriptor_id.expect("missing Unicode descriptor"))
+                .expect("PDF/UA-1 TrueType descriptor")
+                .as_dict_mut()
+                .expect("PDF/UA-1 TrueType descriptor dictionary")
+                .set(
+                    "FontFile2",
+                    replacement_font_file.expect("missing Unicode font program"),
+                );
+        }
+        _ => panic!("unknown PDF/UA-1 rule 7.21.6-2 fixture case {case}"),
+    }
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    save_document(document, "PDF/UA-1 TrueType encoding fixture")
+}
+
 pub fn pdfua1_rule_7_21_4_2_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Type1 CharSet fixture");
