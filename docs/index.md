@@ -1,6 +1,6 @@
 # page
 
-`page` is an <u>experimental</u> PDF/A and PDF/UA validation engine written in Rust. It can currently be used either as a CLI or as a Rust crate.
+`page` is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust. It can currently be used either as a **CLI** or as a **Rust crate**.
 
 ## Installation
 

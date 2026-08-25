@@ -30,6 +30,9 @@ pub(crate) struct ActionSummary {
     pub(crate) outline_entries: Vec<RuleFailure>,
     pub(crate) file_specs_with_embedded_files: Vec<RuleFailure>,
     pub(crate) file_specs_missing_f_or_uf: Vec<RuleFailure>,
+    pub(crate) file_specs_missing_or_empty_f_or_uf: Vec<RuleFailure>,
+    pub(crate) media_clips_missing_ct: Vec<RuleFailure>,
+    pub(crate) media_clips_missing_alt: Vec<RuleFailure>,
 }
 
 pub(crate) fn inspect(
@@ -51,6 +54,7 @@ pub(crate) fn inspect(
         seen_actions: BTreeSet::new(),
         seen_annotations: BTreeSet::new(),
         seen_outlines: BTreeSet::new(),
+        seen_media_clips: BTreeSet::new(),
     };
     if contains_key(catalog, b"AA") {
         inspector
@@ -85,6 +89,7 @@ struct Inspector<'a> {
     seen_actions: BTreeSet<ObjectId>,
     seen_annotations: BTreeSet<ObjectId>,
     seen_outlines: BTreeSet<ObjectId>,
+    seen_media_clips: BTreeSet<ObjectId>,
 }
 
 impl Inspector<'_> {
@@ -330,6 +335,9 @@ impl Inspector<'_> {
         }
         let failure_id = object_id.map(Into::into);
         let subtype = resolved_name(self.document, action, b"S", self.limits.max_reference_depth)?;
+        if subtype == Some(b"Rendition".as_slice()) {
+            self.inspect_rendition_media_clip(action, context)?;
+        }
         if !matches!(
             subtype,
             Some(b"GoTo" | b"GoToR" | b"Thread" | b"URI" | b"Named" | b"SubmitForm")
@@ -386,6 +394,35 @@ impl Inspector<'_> {
         }
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
+            && file_spec_value.as_reference().is_err()
+            && let Some(file_spec_dictionary) = resolve_optional(
+                self.document,
+                file_spec_value,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(dictionary_based)
+            && contains_key(file_spec_dictionary, b"EF")
+            && (!file_spec::has_non_empty_string_entry(
+                self.document,
+                file_spec_dictionary,
+                b"F",
+                self.limits.max_reference_depth,
+            )? || !file_spec::has_non_empty_string_entry(
+                self.document,
+                file_spec_dictionary,
+                b"UF",
+                self.limits.max_reference_depth,
+            )?)
+        {
+            self.summary.file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                object_id: object_id.map(Into::into),
+                description: format!(
+                    "{context} /F embedded-file specification is missing or has an empty /F or /UF"
+                ),
+            });
+        }
+        if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
+            && let Ok(file_spec_value) = action.get(b"F")
             && let Some(failure) = file_spec::inspect(
                 self.document,
                 file_spec_value,
@@ -416,6 +453,109 @@ impl Inspector<'_> {
             }
         }
         Ok(())
+    }
+
+    fn inspect_rendition_media_clip(
+        &mut self,
+        action: &lopdf::Dictionary,
+        context: &str,
+    ) -> Result<(), PdfError> {
+        // veraPDF exposes PDMediaClip through an MR rendition's /C link.
+        // Keep the inspection on the same bounded, reachable action graph
+        // instead of scanning arbitrary unreferenced dictionaries.
+        let Some(rendition) = action
+            .get(b"R")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(dictionary_based)
+        else {
+            return Ok(());
+        };
+        if resolved_name(
+            self.document,
+            rendition,
+            b"S",
+            self.limits.max_reference_depth,
+        )? != Some(b"MR".as_slice())
+        {
+            return Ok(());
+        }
+        let Some(media_clip_value) = rendition.get(b"C").ok() else {
+            return Ok(());
+        };
+        let media_clip_object_id = media_clip_value.as_reference().ok();
+        let Some(media_clip) = resolve_optional(
+            self.document,
+            media_clip_value,
+            self.limits.max_reference_depth,
+        )?
+        .and_then(dictionary_based) else {
+            return Ok(());
+        };
+        let has_ct = media_clip
+            .get(b"CT")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .is_some_and(|value| !matches!(value, Object::Null));
+        let has_correct_alt = self.has_correct_media_clip_alt(media_clip)?;
+        if media_clip_object_id.is_some_and(|id| !self.seen_media_clips.insert(id)) {
+            return Ok(());
+        }
+        if !has_ct {
+            self.summary.media_clips_missing_ct.push(RuleFailure {
+                object_id: media_clip_object_id.map(Into::into),
+                description: format!("{context} media clip is missing /CT"),
+            });
+        }
+        if !has_correct_alt {
+            self.summary.media_clips_missing_alt.push(RuleFailure {
+                object_id: media_clip_object_id.map(Into::into),
+                description: format!(
+                    "{context} media clip is missing /Alt or /Alt has an incorrect value"
+                ),
+            });
+        }
+        Ok(())
+    }
+
+    // Match veraPDF 1.30.2's hasCorrectAlt predicate: /Alt is an array with
+    // paired entries, and every description (the odd entry) is a non-empty
+    // string. The language entries are intentionally left unconstrained
+    // because veraPDF does the same.
+    fn has_correct_media_clip_alt(&self, media_clip: &lopdf::Dictionary) -> Result<bool, PdfError> {
+        let Some(alt) = media_clip
+            .get(b"Alt")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_array().ok())
+        else {
+            return Ok(false);
+        };
+        if alt.len() % 2 != 0 {
+            return Ok(false);
+        }
+        for (index, value) in alt.iter().enumerate() {
+            if index % 2 == 1 {
+                let Some(value) =
+                    resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                else {
+                    return Ok(false);
+                };
+                if !value
+                    .as_str()
+                    .is_ok_and(|description| !description.is_empty())
+                {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(true)
     }
 
     fn ensure_depth(&self, depth: usize) -> Result<(), PdfError> {

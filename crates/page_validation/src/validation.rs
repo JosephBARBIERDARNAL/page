@@ -142,20 +142,17 @@ impl ValidationProfile {
     }
 }
 
-/// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 134;
-
 fn total_rule_count(profile: ValidationProfile) -> usize {
     match profile {
-        ValidationProfile::PdfA1b => TOTAL_RULE_COUNT,
-        ValidationProfile::PdfA1a => TOTAL_RULE_COUNT + 6,
+        ValidationProfile::PdfA1b => 134,
+        ValidationProfile::PdfA1a => 140,
         ValidationProfile::PdfA2b => 144,
         ValidationProfile::PdfA2a => 154,
         ValidationProfile::PdfA2u => 146,
         ValidationProfile::PdfA3b => 146,
         ValidationProfile::PdfA3a => 156,
         ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 47,
+        ValidationProfile::PdfUa1 => 91,
         _ => 0,
     }
 }
@@ -448,6 +445,18 @@ fn validate_document(
                 FailureCategory::Conformance,
             ));
         }
+        if document.encrypted
+            && !document
+                .encryption_permissions
+                .is_some_and(|permissions| permissions & 512 == 512)
+        {
+            failures.push(failure(
+                "PDFUA1-ENCRYPTION-P-001",
+                "an encrypted document must contain an encryption-dictionary /P entry with bit 10 set",
+                document.encryption_dictionary_object,
+                FailureCategory::Conformance,
+            ));
+        }
         if !document.catalog_metadata.is_valid() {
             failures.push(failure(
                 "PDFUA1-METADATA-STRUCTURE-001",
@@ -542,6 +551,14 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .form_elements_without_role_with_invalid_children,
+            "PDFUA1-FORM-CHILDREN-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .toci_elements_not_contained_in_toc,
             "PDFUA1-TOCI-PARENT-001",
             None,
@@ -552,6 +569,70 @@ fn validate_document(
                 .document_features
                 .tr_elements_not_contained_in_table_section,
             "PDFUA1-TR-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .li_elements_not_contained_in_list,
+            "PDFUA1-LI-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .lbody_elements_not_contained_in_li,
+            "PDFUA1-LBODY-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .thead_elements_not_contained_in_table,
+            "PDFUA1-THEAD-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tbody_elements_not_contained_in_table,
+            "PDFUA1-TBODY-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tfoot_elements_not_contained_in_table,
+            "PDFUA1-TFOOT-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .th_elements_not_contained_in_tr,
+            "PDFUA1-TH-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .td_elements_not_contained_in_tr,
+            "PDFUA1-TD-PARENT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .tr_elements_with_invalid_children,
+            "PDFUA1-TR-KIDS-001",
             None,
             &mut failures,
         );
@@ -576,6 +657,22 @@ fn validate_document(
                 .document_features
                 .list_elements_with_caption_not_first,
             "PDFUA1-L-CAPTION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .list_elements_with_invalid_children,
+            "PDFUA1-L-KIDS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .list_items_with_invalid_children,
+            "PDFUA1-LI-KIDS-001",
             None,
             &mut failures,
         );
@@ -622,6 +719,46 @@ fn validate_document(
         aggregate_failures_with_location(
             &inspections
                 .document_features
+                .table_elements_with_caption_not_first_or_last,
+            "PDFUA1-TABLE-CAPTION-POSITION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_multiple_theads,
+            "PDFUA1-TABLE-THEAD-COUNT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_multiple_tfoots,
+            "PDFUA1-TABLE-TFOOT-COUNT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_tfoot_without_tbody,
+            "PDFUA1-TABLE-TFOOT-TBODY-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_thead_without_tbody,
+            "PDFUA1-TABLE-THEAD-TBODY-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
                 .table_elements_with_unequal_column_row_spans,
             "PDFUA1-TABLE-COLUMN-ROWSPAN-001",
             None,
@@ -632,6 +769,12 @@ fn validate_document(
                 .document_features
                 .table_elements_with_unequal_row_column_spans,
             "PDFUA1-TABLE-ROW-COLUMNSPAN-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.document_features.table_cells_with_intersections,
+            "PDFUA1-TABLE-CELL-INTERSECTION-001",
             None,
             &mut failures,
         );
@@ -682,6 +825,32 @@ fn validate_document(
             &mut failures,
         );
         aggregate_failures_with_location(
+            &inspections.document_features.optional_content_missing_names,
+            "PDFUA1-OPTIONAL-CONTENT-NAME-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.document_features.optional_content_as_entries,
+            "PDFUA1-OPTIONAL-CONTENT-AS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .file_specs_missing_or_empty_f_or_uf,
+            "PDFUA1-FILE-SPEC-F-AND-UF-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.actions.file_specs_missing_or_empty_f_or_uf,
+            "PDFUA1-FILE-SPEC-F-AND-UF-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
             &inspections
                 .document_features
                 .heading_elements_with_invalid_nesting,
@@ -723,6 +892,19 @@ fn validate_document(
             None,
             &mut failures,
         );
+        for (object_id, form) in &inspections.content.form_xobjects {
+            if form.contains_mcid && form.references > 1 {
+                failures.push(failure(
+                    "PDFUA1-FORM-STRUCTURE-001",
+                    format!(
+                        "Form XObject {object_id:?} contains marked content with MCIDs and is referenced {} times; its semantic parent is not unique",
+                        form.references
+                    ),
+                    Some((*object_id).into()),
+                    FailureCategory::Conformance,
+                ));
+            }
+        }
         let mut pdfua_language_failures = inspections
             .document_features
             .language_failures_pdfua1
@@ -798,7 +980,250 @@ fn validate_document(
                 None,
                 &mut failures,
             );
+            aggregate_failures(
+                &inspections.forms.dynamic_xfa_forms,
+                "PDFUA1-DYNAMIC-XFA-001",
+                &mut failures,
+            );
         }
+        aggregate_failures_with_location(
+            &inspections.annotations.annotations_not_nested_in_annot,
+            "PDFUA1-ANNOTATION-ANNOT-TAG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.links_not_nested_in_link,
+            "PDFUA1-LINK-LINK-TAG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.links_missing_contents,
+            "PDFUA1-LINK-CONTENTS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.annotations_missing_contents_or_alt,
+            "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.trapnet_annotations,
+            "PDFUA1-TRAPNET-ANNOTATION-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.printer_mark_annotations,
+            "PDFUA1-PRINTER-MARK-ARTIFACT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.annotations.pages_missing_tabs,
+            "PDFUA1-PAGE-TABS-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.forms.widgets_missing_tu_or_alt,
+            "PDFUA1-FORM-FIELD-TU-ALT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.forms.widgets_not_nested_in_form,
+            "PDFUA1-WIDGET-FORM-TAG-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.xobjects.form_reference,
+            "PDFUA1-FORM-REFERENCE-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.actions.media_clips_missing_ct,
+            "PDFUA1-MEDIA-CLIP-CT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.actions.media_clips_missing_alt,
+            "PDFUA1-MEDIA-CLIP-ALT-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .incompatible_type0_system_info_pdfua1,
+            "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.4.1-1 shares the content-reached font population and
+        // validated font-program recognition used by PDF/A font embedding.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.failures,
+            "PDFUA1-FONT-EMBEDDING-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_type1_charsets_pdfua1,
+            "PDFUA1-FONT-TYPE1-CHARSET-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cid_subset_cidsets_pdfua1,
+            "PDFUA1-CID-SUBSET-CIDSET-001",
+            None,
+            &mut failures,
+        );
+        // Reuse the shared rendered-glyph scanners: mode-3-only text has no
+        // shown bytes, while unresolved mappings remain inapplicable like
+        // veraPDF's `isGlyphPresent == null` predicate.
+        let mut glyph_presence_failures = inspections
+            .font_embedding
+            .missing_truetype_glyphs
+            .iter()
+            .chain(&inspections.font_embedding.missing_type1_glyphs)
+            .cloned()
+            .collect::<Vec<_>>();
+        glyph_presence_failures.sort_by(|left, right| {
+            left.object_id
+                .cmp(&right.object_id)
+                .then_with(|| left.description.cmp(&right.description))
+        });
+        aggregate_failures_with_location(
+            &glyph_presence_failures,
+            "PDFUA1-FONT-GLYPH-PRESENCE-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.5-1 shares the rendered embedded-font width scanner
+        // with PDF/A. It already applies the veraPDF tolerance of one font
+        // unit and covers simple, composite, Type 1, Type 1C, and Type 3
+        // font programs.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.inconsistent_truetype_widths,
+            "PDFUA1-FONT-GLYPH-WIDTH-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-1 shares the bounded embedded TrueType cmap
+        // summary with the PDF/A-2/3 implementation. It applies the
+        // veraPDF predicate exactly: non-symbolic fonts need at least one
+        // non-symbol cmap, and need more than one when a Microsoft Symbol
+        // cmap is present.
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .invalid_nonsymbolic_truetype_cmaps,
+            "PDFUA1-TRUETYPE-NONSYMBOLIC-CMAP-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-2 reuses the shared simple-font encoding parser and
+        // embedded TrueType cmap scanner. Its cmap requirement is stricter
+        // than 7.21.6-1: an embedded non-symbolic TrueType font must contain
+        // Microsoft Unicode (3,1), regardless of whether Differences exists.
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .invalid_nonsymbolic_truetype_encodings_pdfua1,
+            "PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-3 reuses the shared TrueType descriptor and
+        // dictionary inspection: symbolic TrueType fonts must not contain
+        // an /Encoding entry in the font dictionary.
+        aggregate_failures_with_location(
+            &inspections
+                .font_embedding
+                .invalid_symbolic_truetype_encodings,
+            "PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.6-4 reuses the bounded embedded TrueType cmap
+        // summary. The scanner applies the rule only to recognized embedded
+        // programs, matching veraPDF's applicability for TrueTypeFontProgram.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_symbolic_truetype_cmaps,
+            "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.7-1 reuses the shared rendered-glyph Unicode mapper.
+        // It applies the same effective Unicode mapping exceptions used by
+        // veraPDF for standard simple-font encodings, Type 1 character names,
+        // and Adobe character collections.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_unicode_mappings,
+            "PDFUA1-FONT-UNICODE-MAPPING-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.7-2 reuses the shared ToUnicode CMap parser and
+        // reserved-value scanner. The scanner rejects U+0000, U+FEFF, and
+        // U+FFFE for every font usage, including invisible text.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_unicode_values_pdfua1,
+            "PDFUA1-FONT-UNICODE-VALUE-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 7.21.8-1 reuses the shared glyph-name/CID resolution but
+        // retains text-showing operators made invisible by rendering mode 3.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.notdef_glyphs_pdfua1,
+            "PDFUA1-NOTDEF-GLYPH-001",
+            None,
+            &mut failures,
+        );
+        // PDF/UA-1 uses the same embedded Type 2 CIDFont population and
+        // CIDToGIDMap shape as PDF/A-2 and PDF/A-3, without their rendering
+        // mode exemption. Reuse the already broader applicability vector.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cid_to_gid_maps_pdfa2,
+            "PDFUA1-CIDTOGIDMAP-001",
+            None,
+            &mut failures,
+        );
+        // Reuse the font scanner's PDCMap applicability: it records used
+        // Type 0 encoding CMaps that are neither embedded nor in Table 118.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.unembedded_cmaps,
+            "PDFUA1-CMAP-EMBEDDING-001",
+            None,
+            &mut failures,
+        );
+        // Reuse the shared embedded-CMap WMode comparison. Its applicability
+        // is already limited to the embedded Type 0 CMaps inspected by the
+        // font scanner, matching veraPDF's PDF/UA CMapFile population.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cmap_wmodes,
+            "PDFUA1-CMAP-WMODE-001",
+            None,
+            &mut failures,
+        );
+        // The shared CMap reference inspection follows the existing PDCMap
+        // applicability for used Type 0 encoding CMaps and accepts only the
+        // Table 118 predefined CMaps, which is also PDF/UA-1 rule 7.21.3.3-3.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.invalid_cmap_references,
+            "PDFUA1-CMAP-REFERENCE-001",
+            None,
+            &mut failures,
+        );
         return finish_report(document, profile, failures, total_rule_count(profile));
     }
 
@@ -2959,7 +3384,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
+        assert_eq!(report.checks.passed, 134);
     }
 
     #[test]
@@ -2991,7 +3416,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 6);
+        assert_eq!(report.checks.total, 140);
     }
 
     #[test]
@@ -3026,7 +3451,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 47);
+        assert_eq!(report.checks.total, 91);
     }
 
     #[test]
@@ -3471,7 +3896,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 6);
+        assert_eq!(a.checks.total, 140);
     }
 
     #[test]
@@ -3547,7 +3972,7 @@ mod tests {
         assert!(!document.encrypted_content_unavailable);
         assert!(document.catalog_present);
         assert!(document.xmp.is_some());
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT);
+        assert_eq!(report.checks.total, 134);
     }
 
     #[test]

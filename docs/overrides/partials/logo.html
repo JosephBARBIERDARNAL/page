@@ -1,0 +1,7 @@
+{% if config.theme.logo %}
+  <img class="md-logo--light" src="{{ 'images/logo-on-light.svg' | url }}" alt="{{ config.site_name }}">
+  <img class="md-logo--dark" src="{{ 'images/logo-on-dark.svg' | url }}" alt="{{ config.site_name }}">
+{% else %}
+  {% set icon = config.theme.icon.logo or "material/library" %}
+  {% include ".icons/" ~ icon ~ ".svg" %}
+{% endif %}

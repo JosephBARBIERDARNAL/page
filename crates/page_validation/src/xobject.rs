@@ -22,6 +22,8 @@ pub(crate) struct XObjectSummary {
     pub(crate) mask_bits_per_component: Vec<RuleFailure>,
     pub(crate) form_opi: Vec<RuleFailure>,
     pub(crate) form_postscript: Vec<RuleFailure>,
+    // Shared by PDF/A and PDF/UA-1: both profiles forbid /Ref on reachable
+    // Form XObjects discovered by the bounded content execution graph.
     pub(crate) form_reference: Vec<RuleFailure>,
     pub(crate) postscript_xobject: Vec<RuleFailure>,
 }

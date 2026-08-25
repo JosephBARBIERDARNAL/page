@@ -32,6 +32,12 @@ pub(crate) struct XObjectUse {
     pub(crate) occurrences: usize,
 }
 
+#[derive(Clone, Debug, Default)]
+pub(crate) struct FormXObjectUse {
+    pub(crate) contains_mcid: bool,
+    pub(crate) references: usize,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum XObjectUseKind {
     Painted,
@@ -94,6 +100,9 @@ pub(crate) struct FontTextRun {
 pub(crate) struct ContentExecutionSummary {
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
     pub(crate) xobjects: BTreeMap<ResourceKey, XObjectUse>,
+    // Keyed by indirect object identity so aliases in different resource
+    // dictionaries still share the PDF/UA-1 7.20-2 reference count.
+    pub(crate) form_xobjects: BTreeMap<ObjectId, FormXObjectUse>,
     pub(crate) extgstates: Vec<ExtGStateUse>,
     pub(crate) fonts: Vec<FontUse>,
     pub(crate) excessive_graphics_state_nesting: Vec<RuleFailure>,
@@ -227,7 +236,13 @@ pub(crate) fn for_each_page_annotation<'a>(
     pages: &'a [PageEntry],
     limits: &SafetyLimits,
     inspected: &mut BTreeSet<ObjectId>,
-    mut visit: impl FnMut(u32, usize, Option<PdfObjectId>, &'a Object) -> Result<(), PdfError>,
+    mut visit: impl FnMut(
+        u32,
+        usize,
+        Option<PdfObjectId>,
+        &'a Dictionary,
+        &'a Object,
+    ) -> Result<(), PdfError>,
 ) -> Result<(), PdfError> {
     for (index, page_entry) in pages.iter().enumerate() {
         let page_number = (index + 1) as u32;
@@ -253,7 +268,13 @@ pub(crate) fn for_each_page_annotation<'a>(
             else {
                 continue;
             };
-            visit(page_number, index, object_id.map(Into::into), resolved)?;
+            visit(
+                page_number,
+                index,
+                object_id.map(Into::into),
+                page,
+                resolved,
+            )?;
         }
     }
     Ok(())
@@ -295,6 +316,7 @@ pub(crate) fn execute_content(
         tagged_text_language,
         summary: ContentExecutionSummary::default(),
         font_indices: BTreeMap::new(),
+        form_stack: Vec::new(),
         current_page: 0,
         current_page_object_id: None,
     };
@@ -321,6 +343,7 @@ struct ContentExecutor<'a> {
     tagged_text_language: &'a BTreeSet<(ObjectId, i64)>,
     summary: ContentExecutionSummary,
     font_indices: BTreeMap<ResourceKey, usize>,
+    form_stack: Vec<ObjectId>,
     current_page: u32,
     current_page_object_id: Option<ObjectId>,
 }
@@ -790,6 +813,9 @@ impl ContentExecutor<'_> {
                         let mcid = properties
                             .and_then(|dictionary| dictionary.get(b"MCID").ok())
                             .and_then(|value| value.as_i64().ok());
+                        if mcid.is_some() {
+                            self.record_form_mcid();
+                        }
                         self.record_tagged_content_if_nested_in_artifact(
                             mcid.is_some(),
                             content_id,
@@ -1370,6 +1396,14 @@ impl ContentExecutor<'_> {
         }
     }
 
+    fn record_form_mcid(&mut self) {
+        for object_id in &self.form_stack {
+            if let Some(form) = self.summary.form_xobjects.get_mut(object_id) {
+                form.contains_mcid = true;
+            }
+        }
+    }
+
     fn execute_xobject(
         &mut self,
         object: &Object,
@@ -1428,6 +1462,15 @@ impl ContentExecutor<'_> {
         } else {
             declared_subtype
         };
+        if modeled_subtype == Some(b"Form".as_slice())
+            && let Some(object_id) = object_id
+        {
+            self.summary
+                .form_xobjects
+                .entry(object_id)
+                .or_default()
+                .references += 1;
+        }
         if modeled_subtype == Some(b"Form".as_slice())
             && self.transparency_group_present(dictionary)?
         {
@@ -1546,7 +1589,11 @@ impl ContentExecutor<'_> {
                     page_resources,
                     &format!("{context}/Group"),
                 )?;
+                let pushed_form = resolved.as_stream().is_ok() && object_id.is_some();
                 let result = if resolved.as_stream().is_ok() {
+                    if let Some(id) = object_id {
+                        self.form_stack.push(id);
+                    }
                     let mut form_graphics_state = graphics_state.clone();
                     let mut form_graphics_stack = Vec::new();
                     self.execute_contents(
@@ -1568,6 +1615,9 @@ impl ContentExecutor<'_> {
                 } else {
                     Ok(())
                 };
+                if pushed_form {
+                    self.form_stack.pop();
+                }
                 if let Some(id) = object_id {
                     active_forms.remove(&id);
                 }

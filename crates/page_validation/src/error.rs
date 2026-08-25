@@ -36,6 +36,9 @@ pub enum PdfError {
 
     #[error("embedded font program exceeds the decoded-size limit of {0} bytes")]
     FontDecodeLimit(usize),
+
+    #[error("an XFA stream exceeds the decoded-size limit of {0} bytes")]
+    XfaDecodeLimit(usize),
 }
 
 impl PdfError {
@@ -50,6 +53,7 @@ impl PdfError {
                 | Self::ContentDecodeLimit(_)
                 | Self::TotalContentDecodeLimit(_)
                 | Self::FontDecodeLimit(_)
+                | Self::XfaDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(
                     lopdf::DecompressError::MemoryLimitExceeded { .. }
                 ))

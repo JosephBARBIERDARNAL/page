@@ -98,6 +98,8 @@ PDF/UA-1 defines accessibility requirements for PDF documents based on PDF 1.7.
 
 A conforming PDF/UA-1 document must use tagged PDF and provide a meaningful logical structure. Requirements cover areas such as headings, paragraphs, lists, tables, links, annotations, forms, alternative descriptions for non-text content, document and content languages, and the relationship between content and its semantic structure.
 
+Rule 7.15-1 rejects an AcroForm whose XFA configuration contains `<dynamicRender>required</dynamicRender>`. Static XFA and forms without XFA remain outside this rule’s failure condition, matching veraPDF 1.30.2.
+
 PDF/UA-1 conformance is primarily concerned with whether the PDF file itself satisfies the technical accessibility requirements of the standard. Accessibility in a broader context may also depend on the PDF reader, assistive technology, and the way the content is authored.
 
 ### PDF/UA-2

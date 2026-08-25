@@ -32,12 +32,19 @@ pub fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count(
     code: u8,
     glyph_count: u16,
 ) -> Vec<u8> {
-    minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
-        cmap_count,
-        code,
-        glyph_count,
-        false,
-    )
+    let encodings = (0..usize::from(cmap_count))
+        .map(|index| {
+            (
+                3,
+                u16::try_from(index + 1).expect("small cmap encoding count"),
+            )
+        })
+        .collect::<Vec<_>>();
+    minimal_truetype_with_cmap_encodings(&encodings, code, glyph_count)
+}
+
+pub fn minimal_truetype_with_cmap_encoding(encoding_id: u16) -> Vec<u8> {
+    minimal_truetype_with_cmap_encodings(&[(3, encoding_id)], 32, 2)
 }
 
 fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
@@ -45,6 +52,26 @@ fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap
     code: u8,
     glyph_count: u16,
     symbol_cmap: bool,
+) -> Vec<u8> {
+    let encodings = (0..usize::from(cmap_count))
+        .map(|index| {
+            (
+                3,
+                if symbol_cmap && index == 0 {
+                    0
+                } else {
+                    u16::try_from(index + 1).expect("small cmap encoding count")
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+    minimal_truetype_with_cmap_encodings(&encodings, code, glyph_count)
+}
+
+fn minimal_truetype_with_cmap_encodings(
+    encodings: &[(u16, u16)],
+    code: u8,
+    glyph_count: u16,
 ) -> Vec<u8> {
     let mut head = vec![0; 54];
     put_u32(&mut head, 0, 0x0001_0000);
@@ -68,21 +95,17 @@ fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap
     put_u32(&mut maxp, 0, 0x0001_0000);
     put_u16(&mut maxp, 4, glyph_count);
 
-    let cmap_header_length = 4 + usize::from(cmap_count) * 8;
+    let cmap_header_length = 4 + encodings.len() * 8;
     let mut cmap = vec![0; cmap_header_length + 262];
-    put_u16(&mut cmap, 2, cmap_count);
-    for index in 0..usize::from(cmap_count) {
+    put_u16(
+        &mut cmap,
+        2,
+        u16::try_from(encodings.len()).expect("small cmap count"),
+    );
+    for (index, &(platform_id, encoding_id)) in encodings.iter().enumerate() {
         let record = 4 + index * 8;
-        put_u16(&mut cmap, record, 3);
-        put_u16(
-            &mut cmap,
-            record + 2,
-            if symbol_cmap && index == 0 {
-                0
-            } else {
-                u16::try_from(index + 1).expect("small cmap count")
-            },
-        );
+        put_u16(&mut cmap, record, platform_id);
+        put_u16(&mut cmap, record + 2, encoding_id);
         put_u32(
             &mut cmap,
             record + 4,
