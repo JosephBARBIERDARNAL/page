@@ -48,6 +48,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
     pub(crate) unicode_mapping_type3_exemptions: Vec<RuleFailure>,
     pub(crate) invalid_unicode_values: Vec<RuleFailure>,
+    pub(crate) invalid_unicode_values_pdfua1: Vec<RuleFailure>,
     pub(crate) unicode_pua_without_actual_text: Vec<RuleFailure>,
     pub(crate) notdef_glyphs: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
@@ -139,6 +140,7 @@ struct Scanner<'a> {
     invalid_unicode_mappings: Vec<RuleFailure>,
     unicode_mapping_type3_exemptions: Vec<RuleFailure>,
     invalid_unicode_values: Vec<RuleFailure>,
+    invalid_unicode_values_pdfua1: Vec<RuleFailure>,
     unicode_pua_without_actual_text: Vec<RuleFailure>,
     notdef_glyphs: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
@@ -191,6 +193,7 @@ pub(crate) fn inspect(
         invalid_unicode_mappings: Vec::new(),
         unicode_mapping_type3_exemptions: Vec::new(),
         invalid_unicode_values: Vec::new(),
+        invalid_unicode_values_pdfua1: Vec::new(),
         unicode_pua_without_actual_text: Vec::new(),
         notdef_glyphs: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
@@ -234,6 +237,7 @@ pub(crate) fn inspect(
     scanner.inspect_rendered_cff_type1_glyphs()?;
     scanner.inspect_rendered_cidfont_glyphs()?;
     scanner.inspect_rendered_unicode_mappings()?;
+    scanner.inspect_unicode_values()?;
     scanner.inspect_unicode_pua_actual_text()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
@@ -289,6 +293,7 @@ pub(crate) fn inspect(
         invalid_unicode_mappings: scanner.invalid_unicode_mappings,
         unicode_mapping_type3_exemptions: scanner.unicode_mapping_type3_exemptions,
         invalid_unicode_values: scanner.invalid_unicode_values,
+        invalid_unicode_values_pdfua1: scanner.invalid_unicode_values_pdfua1,
         unicode_pua_without_actual_text: scanner.unicode_pua_without_actual_text,
         notdef_glyphs: scanner.notdef_glyphs,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
@@ -633,11 +638,13 @@ impl Scanner<'_> {
                 continue;
             };
             if map.has_reserved_values {
-                self.invalid_unicode_values.push(font_failure(
+                let failure = font_failure(
                     usage.object_id,
                     &usage.description,
                     "has a ToUnicode CMap value of U+0000, U+FEFF, or U+FFFE",
-                ));
+                );
+                self.invalid_unicode_values.push(failure.clone());
+                self.invalid_unicode_values_pdfua1.push(failure);
             }
             let rendered_codes = if usage.subtype.as_deref() == Some("Type0") {
                 let Some(encoding) = font.get(b"Encoding").ok() else {
@@ -661,6 +668,47 @@ impl Scanner<'_> {
                     "has rendered character codes missing from or invalid in its ToUnicode CMap",
                     false,
                 );
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_unicode_values(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            // PDF/UA-1 applies this value predicate to invisible text too;
+            // keep its broader population separate from PDF/A-2/3's
+            // existing rendered-glyph population.
+            if usage.visible && !usage.shown_bytes.is_empty() {
+                continue;
+            }
+            let Some(object) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            else {
+                continue;
+            };
+            let Ok(font) = object.as_dict() else { continue };
+            let Some(value) = font.get(b"ToUnicode").ok() else {
+                continue;
+            };
+            let Some(stream) =
+                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                    .and_then(|value| value.as_stream().ok())
+            else {
+                continue;
+            };
+            let Some(map) = UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?) else {
+                continue;
+            };
+            if map.has_reserved_values {
+                self.invalid_unicode_values_pdfua1.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "has a ToUnicode CMap value of U+0000, U+FEFF, or U+FFFE",
+                ));
             }
         }
         Ok(())

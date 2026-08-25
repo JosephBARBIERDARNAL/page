@@ -20,7 +20,7 @@ fn pdfua1_rule_7_18_1_1_requires_non_exempt_annotations_inside_annot_tags() {
     );
     assert!(valid.checks_passed, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
-    assert_eq!(valid.checks.total, 90);
+    assert_eq!(valid.checks.total, 91);
 
     let invalid = validate_bytes_with_profile(
         include_bytes!("fixtures/pdfua1-rule-7-18-1-1-invalid.pdf"),

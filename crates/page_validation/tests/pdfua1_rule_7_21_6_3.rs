@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_6_3_rejects_symbolic_truetype_encoding_entries() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 90, "{matching}");
+    assert_eq!(matching.checks.total, 91, "{matching}");
 
     let encoding = validate_bytes_with_profile(
         fixture_bytes("encoding"),

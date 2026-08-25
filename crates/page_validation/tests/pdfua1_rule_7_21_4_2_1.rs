@@ -20,7 +20,7 @@ fn pdfua1_rule_7_21_4_2_1_requires_charset_to_list_all_type1_program_glyphs() {
     );
     assert!(pass.checks_passed, "{pass}");
     assert!(pass.failures.is_empty(), "{pass}");
-    assert_eq!(pass.checks.total, 90, "{pass}");
+    assert_eq!(pass.checks.total, 91, "{pass}");
 
     let fail = validate_bytes_with_profile(
         fixture_bytes("incomplete"),

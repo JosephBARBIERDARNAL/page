@@ -5628,6 +5628,54 @@ pub fn pdfua1_rule_7_21_7_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_21_7_2_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_7_1_fixture("matching"))
+        .expect("load PDF/UA-1 Unicode value fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Resources")
+        .expect("PDF/UA-1 fixture resources")
+        .as_dict()
+        .expect("PDF/UA-1 fixture resources dictionary")
+        .get(b"Font")
+        .expect("PDF/UA-1 fixture fonts")
+        .as_dict()
+        .expect("PDF/UA-1 fixture fonts dictionary")
+        .get(b"FUA")
+        .expect("PDF/UA-1 fixture Type0 font")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture Type0 font");
+    let unicode_value = match case {
+        "matching" => "0020",
+        "zero" => "0000",
+        "feff" => "FEFF",
+        "fffe" => "FFFE",
+        _ => panic!("unknown PDF/UA-1 rule 7.21.7-2 fixture case {case}"),
+    };
+    let to_unicode = document.add_object(Stream::new(
+        Dictionary::new(),
+        format!(
+            "1 begincodespacerange <0001> <0001> endcodespacerange 1 beginbfchar <0001> <{unicode_value}> endbfchar"
+        )
+        .into_bytes(),
+    ));
+    document
+        .get_object_mut(font_id)
+        .expect("PDF/UA-1 Type0 font")
+        .as_dict_mut()
+        .expect("PDF/UA-1 Type0 font dictionary")
+        .set("ToUnicode", to_unicode);
+    save_document(document, "save PDF/UA-1 Unicode value fixture")
+}
+
 pub fn pdfua1_rule_7_21_3_2_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("identity"))
         .expect("load PDF/UA-1 CIDToGIDMap fixture");
