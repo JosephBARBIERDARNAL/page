@@ -1,0 +1,2058 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="PDF/A and PDF/UA validation engine, written in Rust">
+      
+      
+        <meta name="author" content="Joseph Barbier">
+      
+      
+        <link rel="canonical" href="https://josephbarbierdarnal.github.io/page/rules/pdfua-1-rule-mapping/">
+      
+      
+        <link rel="prev" href="../pdfa-2-3-rule-mapping/">
+      
+      
+        <link rel="next" href="../../about/faq/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.57">
+    
+    
+      
+        <title>PDF/UA-1 pinned rule mapping - page</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.5da3a30f.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.812a03bb.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#local-only-checks" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+              <button class="md-banner__button md-icon" aria-label="Don't show this again">
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            
+            
+<span class="announcement">
+  <strong>Warning</strong>: <code>page</code> is an experimental project and not
+  ready for practical usage.
+</span>
+
+          </div>
+          
+            <script>var el=document.querySelector("[data-md-component=announce]");if(el){var content=el.querySelector(".md-typeset");__md_hash(content.innerHTML)===__md_get("__announce")&&(el.hidden=!0)}</script>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="page" class="md-header__button md-logo" aria-label="page" data-md-component="logo">
+      
+  <img class="md-logo--light" src="../../images/logo-on-light.svg" alt="page">
+  <img class="md-logo--dark" src="../../images/logo-on-dark.svg" alt="page">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            page
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PDF/UA-1 pinned rule mapping
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/josephbarbierdarnal/page" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/cli/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../pdfa-1-rule-mapping/" class="md-tabs__link">
+          
+  
+  Rule Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../about/faq/" class="md-tabs__link">
+          
+  
+  About
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="page" class="md-nav__button md-logo" aria-label="page" data-md-component="logo">
+      
+  <img class="md-logo--light" src="../../images/logo-on-light.svg" alt="page">
+  <img class="md-logo--dark" src="../../images/logo-on-dark.svg" alt="page">
+
+    </a>
+    page
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/josephbarbierdarnal/page" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../api/cli/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Usage
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rule Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Rule Reference
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pdfa-1-rule-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/A-1 pinned rule mapping
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pdfa-2-3-rule-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/A-2 and PDF/A-3 pinned rule mapping
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/UA-1 pinned rule mapping
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PDF/UA-1 pinned rule mapping
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-only-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Local-only checks
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Metadata mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syntax-and-document-feature-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Syntax and document-feature mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-and-content-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Artifact and content mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structure-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Structure mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#language-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Language mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternative-text-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternative-text mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#annotation-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Annotation mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Page mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#font-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Font mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../about/faq/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  About
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-only-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Local-only checks
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Metadata mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syntax-and-document-feature-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Syntax and document-feature mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-and-content-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Artifact and content mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structure-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Structure mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#language-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Language mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternative-text-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternative-text mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#annotation-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Annotation mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Page mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#font-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Font mappings
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../pdfa-1-rule-mapping/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Rule Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+  <h1 id="__skip">PDF/UA-1 pinned rule mapping</h1>
+
+<!-- Generated by `just rules-docs`; do not edit manually. -->
+
+<h2 id="local-only-checks">Local-only checks<a class="headerlink" href="#local-only-checks" title="Permanent link">&para;</a></h2>
+<p>These checks support parsing, bounded inspection, or local model preconditions and do not map to a standalone veraPDF profile predicate.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>Semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="metadata-mappings">Metadata mappings<a class="headerlink" href="#metadata-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 metadata and identification predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-ID-SCHEMA-001</code></td>
+<td><code>ISO 14289-1:2014:5:1</code></td>
+<td>§5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The PDF/UA version and conformance level of a file shall be specified using the PDF/UA Identification extension schema.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ID-PART-001</code></td>
+<td><code>ISO 14289-1:2014:5:2</code></td>
+<td>§5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The value of "pdfuaid:part" shall be the part number of the International Standard to which the file conforms.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ID-PART-PREFIX-001</code></td>
+<td><code>ISO 14289-1:2014:5:3</code></td>
+<td>§5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property "part" of the PDF/UA Identification Schema shall have namespace prefix "pdfuaid".</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ID-AMD-PREFIX-001</code></td>
+<td><code>ISO 14289-1:2014:5:4</code></td>
+<td>§5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property "amd" of the PDF/UA Identification Schema shall have namespace prefix "pdfuaid".</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ID-CORR-PREFIX-001</code></td>
+<td><code>ISO 14289-1:2014:5:5</code></td>
+<td>§5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property "corr" of the PDF/UA Identification Schema shall have namespace prefix "pdfuaid".</td>
+</tr>
+<tr>
+<td><code>PDFUA1-METADATA-STRUCTURE-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:8</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Catalog dictionary of a conforming file shall contain the Metadata key whose value is a metadata stream as defined in ISO 32000-1:2008, 14.3.2. The metadata stream dictionary shall contain entry Type with value /Metadata and entry Subtype with value /XML.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-METADATA-TITLE-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:9</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Metadata stream in the document's catalog dictionary shall contain a dc:title entry, where dc is the recommended prefix for the Dublin Core metadata schema as defined in the XMP specification, which clearly identifies the document.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="syntax-and-document-feature-mappings">Syntax and document-feature mappings<a class="headerlink" href="#syntax-and-document-feature-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 syntax and document-feature predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-HEADER-001</code></td>
+<td><code>ISO 14289-1:2014:6.1:1</code></td>
+<td>§6.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The file header shall consist of "%PDF-1.n" followed by a single EOL marker, where 'n' is a single digit number between 0 (30h) and 7 (37h).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TAGGED-DOCUMENT-001</code></td>
+<td><code>ISO 14289-1:2014:6.2:1</code></td>
+<td>§6.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The document catalog dictionary shall include a MarkInfo dictionary containing an entry, Marked, whose value shall be true.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-SUSPECTS-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:4</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Files shall have a Suspects value of false(ISO 32000-1:2008, Table 321).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-VIEWER-PREFERENCES-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:10</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The document catalog dictionary shall include a ViewerPreferences dictionary containing a DisplayDocTitle key, whose value shall be true.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-OPTIONAL-CONTENT-NAME-001</code></td>
+<td><code>ISO 14289-1:2014:7.10:1</code></td>
+<td>§7.10</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each optional content configuration dictionary that forms the value of the D key, or that is an element in the array that forms the value of the Configs key in the OCProperties dictionary, shall contain the Name key.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-OPTIONAL-CONTENT-AS-001</code></td>
+<td><code>ISO 14289-1:2014:7.10:2</code></td>
+<td>§7.10</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The AS key shall not appear in any optional content configuration dictionary.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FILE-SPEC-F-AND-UF-001</code></td>
+<td><code>ISO 14289-1:2014:7.11:1</code></td>
+<td>§7.11</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The file specification dictionary for an embedded file shall contain the non-empty F and UF keys.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-DYNAMIC-XFA-001</code></td>
+<td><code>ISO 14289-1:2014:7.15:1</code></td>
+<td>§7.15</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Dynamic XFA forms shall not be used.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ENCRYPTION-P-001</code></td>
+<td><code>ISO 14289-1:2014:7.16:1</code></td>
+<td>§7.16</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An encrypted conforming file shall contain a P key in its encryption dictionary (ISO 32000-1:2008, 7.6.3.2, Table 21). The 10<sup>th</sup> bit position of the P key shall be true.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-MEDIA-CLIP-CT-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.6.2:1</code></td>
+<td>§7.18.6.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: In the media clip data dictionary, the optional CT key (ISO 32000-1:2008, 13.2.4.2, Table 274) is required.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORM-REFERENCE-001</code></td>
+<td><code>ISO 14289-1:2014:7.20:1</code></td>
+<td>§7.20</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A conforming file shall not contain any reference XObjects.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORM-STRUCTURE-001</code></td>
+<td><code>ISO 14289-1:2014:7.20:2</code></td>
+<td>§7.20</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The content of Form XObjects shall be incorporated into structure elements according to ISO 32000-1:2008, 14.7.2.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="artifact-and-content-mappings">Artifact and content mappings<a class="headerlink" href="#artifact-and-content-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 artifact and marked-content predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-ARTIFACT-NESTED-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:1</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Content marked as Artifact should not be present inside tagged content.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:2</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Tagged content should not be present inside content marked as Artifact.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CONTENT-TAGGING-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:3</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Content shall be marked as Artifact or tagged as real content.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="structure-mappings">Structure mappings<a class="headerlink" href="#structure-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 logical-structure predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-STRUCT-TREE-ROLE-MAP-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:5</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All non-standard structure types shall be mapped to the nearest functionally equivalent standard type, as defined in ISO 32000-1:2008, 14.8.4, in the role map dictionary of the structure tree root. This mapping may be indirect; within the role map a non-standard type can map directly to another non-standard type, but eventually the mapping shall terminate at a standard type.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:6</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A circular mapping shall not exist.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:7</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Standard tags defined in ISO 32000-1:2008, 14.8.4, shall not be remapped.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-STRUCT-TREE-ROOT-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:11</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The logical structure of the conforming file shall be described by a structure hierarchy rooted in the StructTreeRoot entry of the document catalog dictionary, as described in ISO 32000-1:2008, 14.7.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-STRUCT-ELEMENT-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.1:12</code></td>
+<td>§7.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A structure element dictionary shall contain the P (parent) entry according to ISO 32000-1:2008, 14.7.2, Table 355.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:3</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain only TR, THead, TBody, TFoot and Caption elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TR-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:4</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TR element should be contained in Table, THead, TBody or TFoot element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-THEAD-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:5</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: THead element should be contained in Table element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TBODY-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:6</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TBody element should be contained in Table element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TFOOT-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:7</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TFoot element should be contained in Table element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TH-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:8</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TH element should be contained in TR element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TD-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:9</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TD element should be contained in TR element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TR-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:10</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TR element may contain only TH and TD elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-THEAD-COUNT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:11</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element should contain zero or one THead kid.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-TFOOT-COUNT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:12</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element should contain zero or one TFoot kid.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-TFOOT-TBODY-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:13</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If Table element contains TFoot kid, Table element should contain one or more TBody kids.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-THEAD-TBODY-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:14</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If Table element contains THead kid, Table element should contain one or more TBody kids.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-CELL-INTERSECTION-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:15</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A table cell shall not have intersection with other cells.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-CAPTION-POSITION-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:16</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain a Caption element as its first or last kid.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LI-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:17</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LI element should be contained in L element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LBODY-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:18</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LBody element should be contained in LI element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-L-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:19</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: L element may contain only L, LI and Caption elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LI-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:20</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LI element may contain only Lbl and LBody elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ACTUAL-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:21</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in ActualText attribute shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ALT-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:22</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in Alt attribute shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-E-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:23</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in E attribute shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORM-FIELD-TU-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:25</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the TU key for form fields shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TOCI-PARENT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:26</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOCI element should be contained in TOC element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TOC-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:27</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOC element may contain only TOC, TOCI and Caption elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TOC-CAPTION-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:28</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOC element may contain a Caption element only as its first kid.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-THEAD-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:36</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: THead element may contain only TR elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TBODY-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:37</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TBody element may contain only TR elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TFOOT-KIDS-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:38</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TFoot element may contain only TR elements.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-CAPTION-COUNT-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:39</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain only one Caption element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-L-CAPTION-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:40</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: L element may contain a Caption element only as its first kid.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-COLUMN-ROWSPAN-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:41</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table columns shall have the same number of rows (taking into account row spans).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-ROW-COLUMNSPAN-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:42</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table rows shall have the same number of columns (taking into account column spans).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-OUTLINE-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:43</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table rows shall have the same number of columns (taking into account column spans).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-HEADING-NESTING-001</code></td>
+<td><code>ISO 14289-1:2014:7.4.2:1</code></td>
+<td>§7.4.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For documents that are not strongly structured, as described in ISO 32000-1:2008, 14.8.4.3.5, heading tags shall be used as follows: (<em>) If any heading tags are used, H1 shall be the first. (</em>) A document may use more than one instance of any specific tag level. For example, a tag level may be repeated if document content requires it. (<em>) If document semantics require a descending sequence of headers, such a sequence shall proceed in strict numerical order and shall not skip an intervening heading level. (</em>) A document may increment its heading sequence without restarting at H1 if document semantics require it.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-HEADING-CHILD-COUNT-001</code></td>
+<td><code>ISO 14289-1:2014:7.4.4:1</code></td>
+<td>§7.4.4</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each node in the tag tree shall contain at most one child H tag.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-HEADING-STRUCTURE-001</code></td>
+<td><code>ISO 14289-1:2014:7.4.4:2</code></td>
+<td>§7.4.4</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All documents shall be either strongly or weakly structured, but not both.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-HEADING-STRUCTURE-001</code></td>
+<td><code>ISO 14289-1:2014:7.4.4:3</code></td>
+<td>§7.4.4</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All documents shall be either strongly or weakly structured, but not both.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-HEADERS-SCOPE-001</code></td>
+<td><code>ISO 14289-1:2014:7.5:1</code></td>
+<td>§7.5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the table's structure is not determinable via Headers and IDs, then structure elements of type TH shall have a Scope attribute.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TABLE-HEADERS-UNDEFINED-001</code></td>
+<td><code>ISO 14289-1:2014:7.5:2</code></td>
+<td>§7.5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the table's structure is not determinable via Headers and IDs, then structure elements of type TH shall have a Scope attribute.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORMULA-ALTERNATIVE-TEXT-001</code></td>
+<td><code>ISO 14289-1:2014:7.7:1</code></td>
+<td>§7.7</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All mathematical expressions shall be enclosed within a Formula tag as detailed in ISO 32000-1:2008, 14.8.4.5 and shall have Alt or ActualText attributes.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-NOTE-ID-001</code></td>
+<td><code>ISO 14289-1:2014:7.9:1</code></td>
+<td>§7.9</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Note tag shall have ID entry.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-NOTE-ID-UNIQUE-001</code></td>
+<td><code>ISO 14289-1:2014:7.9:2</code></td>
+<td>§7.9</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each Note tag shall have unique ID key.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORM-CHILDREN-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.4:2</code></td>
+<td>§7.18.4</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the Form element omits a Role attribute (Table 348), it shall have only one child: an object reference (14.7.4.3) identifying the widget annotation per ISO 32000-1:2008, 14.8.4.5, Table 340.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LINK-CONTENTS-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.5:2</code></td>
+<td>§7.18.5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Links shall contain an alternate description via their Contents key as described in ISO 32000-1:2008, 14.9.3.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="language-mappings">Language mappings<a class="headerlink" href="#language-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 language predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-OUTLINE-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:2</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the Outline entries shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:24</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the Contents entry for annotations shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LANGUAGE-TAG-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:29</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the Lang entry is present in the document's Catalog dictionary or in a structure element dictionary or property list, its value shall be a language identifier as described in ISO 32000-1:2008, 14.9.2. A language identifier shall be a Language-Tag as defined in RFC 3066, Tags for the Identification of Languages.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:30</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in ActualText attribute in Span Marked Content shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-SPAN-ALT-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:31</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in Alt attribute in Span Marked Content shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-SPAN-E-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:32</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in E attribute in Span Marked Content shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-METADATA-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:33</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for document metadata shall be determined.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TEXT-LANGUAGE-001</code></td>
+<td><code>ISO 14289-1:2014:7.2:34</code></td>
+<td>§7.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in page content shall be determined.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="alternative-text-mappings">Alternative-text mappings<a class="headerlink" href="#alternative-text-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 alternative-text predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-FIGURE-ALTERNATIVE-TEXT-001</code></td>
+<td><code>ISO 14289-1:2014:7.3:1</code></td>
+<td>§7.3</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Figure tags shall include an alternative representation or replacement text that represents the contents marked with the Figure tag as noted in ISO 32000-1:2008, 14.7.2, Table 323.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-MEDIA-CLIP-ALT-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.6.2:2</code></td>
+<td>§7.18.6.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: In the media clip data dictionary, the optional Alt key (ISO 32000-1:2008, 13.2.4.2, Table 274) is required.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="annotation-mappings">Annotation mappings<a class="headerlink" href="#annotation-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 annotation predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-ANNOTATION-ANNOT-TAG-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.1:1</code></td>
+<td>§7.18.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An annotation, excluding annotations of subtype Widget, PrinterMark or Link, shall be nested within an Annot tag.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-ANNOTATION-CONTENTS-ALT-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.1:2</code></td>
+<td>§7.18.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An annotation (except Widget annotations or hidden annotations, or those having rectangle outside the crop-box) shall have either Contents key or an Alt entry in the enclosing structure element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FORM-FIELD-TU-ALT-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.1:3</code></td>
+<td>§7.18.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A form field shall have a TU key present or all its Widget annotations shall have alternative descriptions (in the form of an Alt entry in the enclosing structure elements).</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TRAPNET-ANNOTATION-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.2:1</code></td>
+<td>§7.18.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Annotations of subtype TrapNet shall not be permitted.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-WIDGET-FORM-TAG-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.4:1</code></td>
+<td>§7.18.4</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A Widget annotation shall be nested within a Form tag per ISO 32000-1:2008, 14.8.4.5, Table 340.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-LINK-LINK-TAG-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.5:1</code></td>
+<td>§7.18.5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Links shall be tagged according to ISO 32000-1:2008, 14.8.4.4.2, Link Element.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-PRINTER-MARK-ARTIFACT-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.8:1</code></td>
+<td>§7.18.8</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: PrinterMark annotations, if present, shall be considered Incidental Artifacts, as if they are hidden page elements as defined in ISO 32000-1:2008, 14.8.2.2.3.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="page-mappings">Page mappings<a class="headerlink" href="#page-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 page predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-PAGE-TABS-001</code></td>
+<td><code>ISO 14289-1:2014:7.18.3:1</code></td>
+<td>§7.18.3</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Every page on which there is an annotation shall contain in its page dictionary the key Tabs, and its value shall be S.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="font-mappings">Font mappings<a class="headerlink" href="#font-mappings" title="Permanent link">&para;</a></h2>
+<p>These mappings cover PDF/UA-1 font predicates.</p>
+<!-- prettier-ignore -->
+<table>
+<thead>
+<tr>
+<th>Local rule</th>
+<th>veraPDF rule</th>
+<th>Clause</th>
+<th>Strength</th>
+<th>Pinned semantic note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFUA1-TYPE0-CID-SYSTEM-INFO-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.3.1:1</code></td>
+<td>§7.21.3.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For any given composite (Type 0) font within a conforming file, the CIDSystemInfo entry in its CIDFont dictionary and its Encoding dictionary shall have the following relationship: - If the Encoding key in the Type 0 font dictionary is Identity-H or Identity-V, any values of Registry, Ordering, and Supplement may be used in the CIDSystemInfo entry of the CIDFont. - Otherwise, the corresponding Registry and Ordering strings in both CIDSystemInfo dictionaries shall be identical, and the value of the Supplement key in the CIDSystemInfo dictionary of the CIDFont shall be less than or equal to the Supplement key in the CIDSystemInfo dictionary of the CMap.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CIDTOGIDMAP-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.3.2:1</code></td>
+<td>§7.21.3.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: ISO 32000-1:2008, 9.7.4, Table 117 requires that all embedded Type 2 CIDFonts in the CIDFont dictionary shall contain a CIDToGIDMap entry that shall be a stream mapping from CIDs to glyph indices or the name Identity, as described in ISO 32000-1:2008, 9.7.4, Table 117.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CMAP-EMBEDDING-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.3.3:1</code></td>
+<td>§7.21.3.3</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All CMaps used within a PDF/UA file, except those listed in ISO 32000-1:2008, 9.7.5.2, Table 118, shall be embedded in that file as described in ISO 32000-1:2008, 9.7.5.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CMAP-WMODE-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.3.3:2</code></td>
+<td>§7.21.3.3</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For those CMaps that are embedded, the integer value of the WMode entry in the CMap dictionary shall be identical to the WMode value in the embedded CMap stream.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CMAP-REFERENCE-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.3.3:3</code></td>
+<td>§7.21.3.3</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A CMap shall not reference any other CMap except those listed in ISO 32000-1:2008, 9.7.5.2, Table 118.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-EMBEDDING-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.4.1:1</code></td>
+<td>§7.21.4.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The font programs for all fonts used for rendering within a conforming file shall be embedded within that file, as defined in ISO 32000-1:2008, 9.9.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-GLYPH-PRESENCE-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.4.1:2</code></td>
+<td>§7.21.4.1</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Embedded fonts shall define all glyphs referenced for rendering within the conforming file. A font referenced solely in text rendering mode 3 is not rendered and is thus exempt from the requirements that impact the visual representation of the glyphs of a font. In all cases for TrueType fonts that are to be rendered, character codes shall be able to be mapped to glyphs according to ISO 32000-1:2008, 9.6.6.4 without the use of a non-standard mapping chosen by the conforming processor.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-TYPE1-CHARSET-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.4.2:1</code></td>
+<td>§7.21.4.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the FontDescriptor dictionary of an embedded Type 1 font contains a CharSet string, then it shall list the character names of all glyphs present in the font program, regardless of whether a glyph in the font is referenced or used by the PDF or not.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-CID-SUBSET-CIDSET-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.4.2:2</code></td>
+<td>§7.21.4.2</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the FontDescriptor dictionary of an embedded CID font contains a CIDSet stream, then it shall identify all CIDs which are present in the font program, regardless of whether a CID in the font is referenced or used by the PDF or not.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-GLYPH-WIDTH-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.5:1</code></td>
+<td>§7.21.5</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For every font embedded in a conforming file and used for rendering, the glyph width information in the font dictionary and in the embedded font program shall be consistent.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TRUETYPE-NONSYMBOLIC-CMAP-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.6:1</code></td>
+<td>§7.21.6</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For all non-symbolic TrueType fonts used for rendering, the embedded TrueType font program shall contain one or several non-symbolic cmap entries such that all necessary glyph lookups can be carried out.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.6:2</code></td>
+<td>§7.21.6</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All non-symbolic TrueType fonts shall have either MacRomanEncoding or WinAnsiEncoding as the value for the Encoding key in the Font dictionary or as the value for the BaseEncoding key in the dictionary which is the value of the Encoding key in the Font dictionary. In addition, no non-symbolic TrueType font shall define a Differences array unless all of the glyph names in the Differences array are listed in the Adobe Glyph List and, if the font program is embedded, it shall contain at least the Microsoft Unicode (3,1 – Platform ID = 3, Encoding ID = 1) encoding in the 'cmap' table.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.6:3</code></td>
+<td>§7.21.6</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Symbolic TrueType fonts shall not contain an Encoding entry in the font dictionary.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.6:4</code></td>
+<td>§7.21.6</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The 'cmap' table in the embedded font program for a symbolic TrueType font shall contain either exactly one encoding or it shall contain, at least, the Microsoft Symbol (3,0 - Platform ID=3, Encoding ID=0) encoding.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-UNICODE-MAPPING-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.7:1</code></td>
+<td>§7.21.7</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Font dictionary of all fonts shall define the map of all used character codes to Unicode values, either via a ToUnicode entry, or other mechanisms as defined in ISO 14289-1, 7.21.7.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-FONT-UNICODE-VALUE-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.7:2</code></td>
+<td>§7.21.7</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Unicode values specified in the ToUnicode CMap shall all be greater than zero (0), but not equal to either U+FEFF or U+FFFE.</td>
+</tr>
+<tr>
+<td><code>PDFUA1-NOTDEF-GLYPH-001</code></td>
+<td><code>ISO 14289-1:2014:7.21.8:1</code></td>
+<td>§7.21.8</td>
+<td>partial/proxy</td>
+<td>Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A PDF/UA compliant document shall not contain a reference to the .notdef glyph from any of the text showing operators, regardless of text rendering mode, in any content stream.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../pdfa-2-3-rule-mapping/" class="md-footer__link md-footer__link--prev" aria-label="Previous: PDF&#x2f;A-2 and PDF&#x2f;A-3 pinned rule mapping">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                PDF/A-2 and PDF/A-3 pinned rule mapping
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../about/faq/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                FAQ
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.sections","navigation.top","navigation.tracking","search.highlight","navigation.prune"],"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.49251538.min.js"></script>
+      
+    
+  </body>
+</html>
