@@ -286,12 +286,10 @@ fn validate_profiles<'a>(
             .and_then(|(without_test, _)| without_test.rsplit_once(':'))
             .map(|(specification, _)| specification)
             .expect("profile predicate specification");
-        let part = specification
+        let expected_xml_specification = specification
             .split_once(':')
-            .map(|(standard, _)| standard)
-            .and_then(|standard| standard.strip_prefix("ISO 19005-"))
-            .expect("ISO 19005 profile specification");
-        let expected_xml_specification = format!("ISO_19005_{part}");
+            .map(|(standard, _)| standard.replace([' ', '-'], "_"))
+            .expect("profile specification");
 
         let rules = xml
             .descendants()

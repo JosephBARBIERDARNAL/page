@@ -14,6 +14,7 @@ nav = [
   { "Rule Reference" = [
     "rules/pdfa-1-rule-mapping.md",
     "rules/pdfa-2-3-rule-mapping.md",
+    "rules/pdfua-1-rule-mapping.md",
   ] },
   { "About" = [
     "about/faq.md",

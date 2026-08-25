@@ -1,0 +1,1617 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "product": "veraPDF",
+    "version": "1.30.2",
+    "specifications": [
+      "ISO 14289-1:2014"
+    ],
+    "profiles": {
+      "ua1": {
+        "flavour": "PDFUA_1",
+        "profile_file": "tests/fixtures/PDFUA-1-1.30.2.xml",
+        "profile_sha256": "9b5edb80559364657c54f5e3fb85c7fde1b0c290e7ad6219330a16da90adea18",
+        "predicate_count": 106,
+        "predicate_ids": [
+          "ISO 14289-1:2014:5:1",
+          "ISO 14289-1:2014:5:2",
+          "ISO 14289-1:2014:5:3",
+          "ISO 14289-1:2014:5:4",
+          "ISO 14289-1:2014:5:5",
+          "ISO 14289-1:2014:6.1:1",
+          "ISO 14289-1:2014:6.2:1",
+          "ISO 14289-1:2014:7.1:1",
+          "ISO 14289-1:2014:7.1:2",
+          "ISO 14289-1:2014:7.1:3",
+          "ISO 14289-1:2014:7.1:4",
+          "ISO 14289-1:2014:7.1:5",
+          "ISO 14289-1:2014:7.1:6",
+          "ISO 14289-1:2014:7.1:7",
+          "ISO 14289-1:2014:7.1:8",
+          "ISO 14289-1:2014:7.1:9",
+          "ISO 14289-1:2014:7.1:10",
+          "ISO 14289-1:2014:7.1:11",
+          "ISO 14289-1:2014:7.1:12",
+          "ISO 14289-1:2014:7.2:2",
+          "ISO 14289-1:2014:7.2:3",
+          "ISO 14289-1:2014:7.2:4",
+          "ISO 14289-1:2014:7.2:5",
+          "ISO 14289-1:2014:7.2:6",
+          "ISO 14289-1:2014:7.2:7",
+          "ISO 14289-1:2014:7.2:8",
+          "ISO 14289-1:2014:7.2:9",
+          "ISO 14289-1:2014:7.2:10",
+          "ISO 14289-1:2014:7.2:11",
+          "ISO 14289-1:2014:7.2:12",
+          "ISO 14289-1:2014:7.2:13",
+          "ISO 14289-1:2014:7.2:14",
+          "ISO 14289-1:2014:7.2:15",
+          "ISO 14289-1:2014:7.2:16",
+          "ISO 14289-1:2014:7.2:17",
+          "ISO 14289-1:2014:7.2:18",
+          "ISO 14289-1:2014:7.2:19",
+          "ISO 14289-1:2014:7.2:20",
+          "ISO 14289-1:2014:7.2:21",
+          "ISO 14289-1:2014:7.2:22",
+          "ISO 14289-1:2014:7.2:23",
+          "ISO 14289-1:2014:7.2:24",
+          "ISO 14289-1:2014:7.2:25",
+          "ISO 14289-1:2014:7.2:26",
+          "ISO 14289-1:2014:7.2:27",
+          "ISO 14289-1:2014:7.2:28",
+          "ISO 14289-1:2014:7.2:29",
+          "ISO 14289-1:2014:7.2:30",
+          "ISO 14289-1:2014:7.2:31",
+          "ISO 14289-1:2014:7.2:32",
+          "ISO 14289-1:2014:7.2:33",
+          "ISO 14289-1:2014:7.2:34",
+          "ISO 14289-1:2014:7.2:36",
+          "ISO 14289-1:2014:7.2:37",
+          "ISO 14289-1:2014:7.2:38",
+          "ISO 14289-1:2014:7.2:39",
+          "ISO 14289-1:2014:7.2:40",
+          "ISO 14289-1:2014:7.2:41",
+          "ISO 14289-1:2014:7.2:42",
+          "ISO 14289-1:2014:7.2:43",
+          "ISO 14289-1:2014:7.3:1",
+          "ISO 14289-1:2014:7.4.2:1",
+          "ISO 14289-1:2014:7.4.4:1",
+          "ISO 14289-1:2014:7.4.4:2",
+          "ISO 14289-1:2014:7.4.4:3",
+          "ISO 14289-1:2014:7.5:1",
+          "ISO 14289-1:2014:7.5:2",
+          "ISO 14289-1:2014:7.7:1",
+          "ISO 14289-1:2014:7.9:1",
+          "ISO 14289-1:2014:7.9:2",
+          "ISO 14289-1:2014:7.10:1",
+          "ISO 14289-1:2014:7.10:2",
+          "ISO 14289-1:2014:7.11:1",
+          "ISO 14289-1:2014:7.15:1",
+          "ISO 14289-1:2014:7.16:1",
+          "ISO 14289-1:2014:7.18.1:1",
+          "ISO 14289-1:2014:7.18.1:2",
+          "ISO 14289-1:2014:7.18.1:3",
+          "ISO 14289-1:2014:7.18.2:1",
+          "ISO 14289-1:2014:7.18.3:1",
+          "ISO 14289-1:2014:7.18.4:1",
+          "ISO 14289-1:2014:7.18.4:2",
+          "ISO 14289-1:2014:7.18.5:1",
+          "ISO 14289-1:2014:7.18.5:2",
+          "ISO 14289-1:2014:7.18.6.2:1",
+          "ISO 14289-1:2014:7.18.6.2:2",
+          "ISO 14289-1:2014:7.18.8:1",
+          "ISO 14289-1:2014:7.20:1",
+          "ISO 14289-1:2014:7.20:2",
+          "ISO 14289-1:2014:7.21.3.1:1",
+          "ISO 14289-1:2014:7.21.3.2:1",
+          "ISO 14289-1:2014:7.21.3.3:1",
+          "ISO 14289-1:2014:7.21.3.3:2",
+          "ISO 14289-1:2014:7.21.3.3:3",
+          "ISO 14289-1:2014:7.21.4.1:1",
+          "ISO 14289-1:2014:7.21.4.1:2",
+          "ISO 14289-1:2014:7.21.4.2:1",
+          "ISO 14289-1:2014:7.21.4.2:2",
+          "ISO 14289-1:2014:7.21.5:1",
+          "ISO 14289-1:2014:7.21.6:1",
+          "ISO 14289-1:2014:7.21.6:2",
+          "ISO 14289-1:2014:7.21.6:3",
+          "ISO 14289-1:2014:7.21.6:4",
+          "ISO 14289-1:2014:7.21.7:1",
+          "ISO 14289-1:2014:7.21.7:2",
+          "ISO 14289-1:2014:7.21.8:1"
+        ]
+      }
+    }
+  },
+  "rule_mapping": {
+    "schema_version": 1,
+    "document": {
+      "title": "PDF/UA-1 pinned rule mapping",
+      "output_path": "docs/rules/pdfua-1-rule-mapping.md",
+      "local_only_description": "These checks support parsing, bounded inspection, or local model preconditions and do not map to a standalone veraPDF profile predicate."
+    },
+    "applicability_sections": [
+      {
+        "key": "metadata",
+        "heading": "Metadata mappings",
+        "description": "These mappings cover PDF/UA-1 metadata and identification predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "syntax",
+        "heading": "Syntax and document-feature mappings",
+        "description": "These mappings cover PDF/UA-1 syntax and document-feature predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "artifact",
+        "heading": "Artifact and content mappings",
+        "description": "These mappings cover PDF/UA-1 artifact and marked-content predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "structure",
+        "heading": "Structure mappings",
+        "description": "These mappings cover PDF/UA-1 logical-structure predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "lang",
+        "heading": "Language mappings",
+        "description": "These mappings cover PDF/UA-1 language predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "alt-text",
+        "heading": "Alternative-text mappings",
+        "description": "These mappings cover PDF/UA-1 alternative-text predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "annotation",
+        "heading": "Annotation mappings",
+        "description": "These mappings cover PDF/UA-1 annotation predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "page",
+        "heading": "Page mappings",
+        "description": "These mappings cover PDF/UA-1 page predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      },
+      {
+        "key": "font",
+        "heading": "Font mappings",
+        "description": "These mappings cover PDF/UA-1 font predicates.",
+        "profiles": [
+          "ua1"
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "key": "ua1",
+        "label": "PDF/UA-1",
+        "flavour": "PDFUA_1",
+        "local_rule_prefix": "PDFUA1",
+        "remap_local_rule_ids": false,
+        "profile_file": "tests/fixtures/PDFUA-1-1.30.2.xml",
+        "profile_sha256": "9b5edb80559364657c54f5e3fb85c7fde1b0c290e7ad6219330a16da90adea18",
+        "predicate_count": 106,
+        "predicate_ids": [
+          "ISO 14289-1:2014:5:1",
+          "ISO 14289-1:2014:5:2",
+          "ISO 14289-1:2014:5:3",
+          "ISO 14289-1:2014:5:4",
+          "ISO 14289-1:2014:5:5",
+          "ISO 14289-1:2014:6.1:1",
+          "ISO 14289-1:2014:6.2:1",
+          "ISO 14289-1:2014:7.1:1",
+          "ISO 14289-1:2014:7.1:2",
+          "ISO 14289-1:2014:7.1:3",
+          "ISO 14289-1:2014:7.1:4",
+          "ISO 14289-1:2014:7.1:5",
+          "ISO 14289-1:2014:7.1:6",
+          "ISO 14289-1:2014:7.1:7",
+          "ISO 14289-1:2014:7.1:8",
+          "ISO 14289-1:2014:7.1:9",
+          "ISO 14289-1:2014:7.1:10",
+          "ISO 14289-1:2014:7.1:11",
+          "ISO 14289-1:2014:7.1:12",
+          "ISO 14289-1:2014:7.2:2",
+          "ISO 14289-1:2014:7.2:3",
+          "ISO 14289-1:2014:7.2:4",
+          "ISO 14289-1:2014:7.2:5",
+          "ISO 14289-1:2014:7.2:6",
+          "ISO 14289-1:2014:7.2:7",
+          "ISO 14289-1:2014:7.2:8",
+          "ISO 14289-1:2014:7.2:9",
+          "ISO 14289-1:2014:7.2:10",
+          "ISO 14289-1:2014:7.2:11",
+          "ISO 14289-1:2014:7.2:12",
+          "ISO 14289-1:2014:7.2:13",
+          "ISO 14289-1:2014:7.2:14",
+          "ISO 14289-1:2014:7.2:15",
+          "ISO 14289-1:2014:7.2:16",
+          "ISO 14289-1:2014:7.2:17",
+          "ISO 14289-1:2014:7.2:18",
+          "ISO 14289-1:2014:7.2:19",
+          "ISO 14289-1:2014:7.2:20",
+          "ISO 14289-1:2014:7.2:21",
+          "ISO 14289-1:2014:7.2:22",
+          "ISO 14289-1:2014:7.2:23",
+          "ISO 14289-1:2014:7.2:24",
+          "ISO 14289-1:2014:7.2:25",
+          "ISO 14289-1:2014:7.2:26",
+          "ISO 14289-1:2014:7.2:27",
+          "ISO 14289-1:2014:7.2:28",
+          "ISO 14289-1:2014:7.2:29",
+          "ISO 14289-1:2014:7.2:30",
+          "ISO 14289-1:2014:7.2:31",
+          "ISO 14289-1:2014:7.2:32",
+          "ISO 14289-1:2014:7.2:33",
+          "ISO 14289-1:2014:7.2:34",
+          "ISO 14289-1:2014:7.2:36",
+          "ISO 14289-1:2014:7.2:37",
+          "ISO 14289-1:2014:7.2:38",
+          "ISO 14289-1:2014:7.2:39",
+          "ISO 14289-1:2014:7.2:40",
+          "ISO 14289-1:2014:7.2:41",
+          "ISO 14289-1:2014:7.2:42",
+          "ISO 14289-1:2014:7.2:43",
+          "ISO 14289-1:2014:7.3:1",
+          "ISO 14289-1:2014:7.4.2:1",
+          "ISO 14289-1:2014:7.4.4:1",
+          "ISO 14289-1:2014:7.4.4:2",
+          "ISO 14289-1:2014:7.4.4:3",
+          "ISO 14289-1:2014:7.5:1",
+          "ISO 14289-1:2014:7.5:2",
+          "ISO 14289-1:2014:7.7:1",
+          "ISO 14289-1:2014:7.9:1",
+          "ISO 14289-1:2014:7.9:2",
+          "ISO 14289-1:2014:7.10:1",
+          "ISO 14289-1:2014:7.10:2",
+          "ISO 14289-1:2014:7.11:1",
+          "ISO 14289-1:2014:7.15:1",
+          "ISO 14289-1:2014:7.16:1",
+          "ISO 14289-1:2014:7.18.1:1",
+          "ISO 14289-1:2014:7.18.1:2",
+          "ISO 14289-1:2014:7.18.1:3",
+          "ISO 14289-1:2014:7.18.2:1",
+          "ISO 14289-1:2014:7.18.3:1",
+          "ISO 14289-1:2014:7.18.4:1",
+          "ISO 14289-1:2014:7.18.4:2",
+          "ISO 14289-1:2014:7.18.5:1",
+          "ISO 14289-1:2014:7.18.5:2",
+          "ISO 14289-1:2014:7.18.6.2:1",
+          "ISO 14289-1:2014:7.18.6.2:2",
+          "ISO 14289-1:2014:7.18.8:1",
+          "ISO 14289-1:2014:7.20:1",
+          "ISO 14289-1:2014:7.20:2",
+          "ISO 14289-1:2014:7.21.3.1:1",
+          "ISO 14289-1:2014:7.21.3.2:1",
+          "ISO 14289-1:2014:7.21.3.3:1",
+          "ISO 14289-1:2014:7.21.3.3:2",
+          "ISO 14289-1:2014:7.21.3.3:3",
+          "ISO 14289-1:2014:7.21.4.1:1",
+          "ISO 14289-1:2014:7.21.4.1:2",
+          "ISO 14289-1:2014:7.21.4.2:1",
+          "ISO 14289-1:2014:7.21.4.2:2",
+          "ISO 14289-1:2014:7.21.5:1",
+          "ISO 14289-1:2014:7.21.6:1",
+          "ISO 14289-1:2014:7.21.6:2",
+          "ISO 14289-1:2014:7.21.6:3",
+          "ISO 14289-1:2014:7.21.6:4",
+          "ISO 14289-1:2014:7.21.7:1",
+          "ISO 14289-1:2014:7.21.7:2",
+          "ISO 14289-1:2014:7.21.8:1"
+        ]
+      }
+    ],
+    "local_only_checks": [],
+    "mappings": [
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:5:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ID-SCHEMA-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The PDF/UA version and conformance level of a file shall be specified using the PDF/UA Identification extension schema.",
+        "object": "MainXMPPackage",
+        "predicate": "containsPDFUAIdentification == true"
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:5:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ID-PART-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The value of \"pdfuaid:part\" shall be the part number of the International Standard to which the file conforms.",
+        "object": "PDFUAIdentification",
+        "predicate": "part == 1"
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:5:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ID-PART-PREFIX-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property \"part\" of the PDF/UA Identification Schema shall have namespace prefix \"pdfuaid\".",
+        "object": "PDFUAIdentification",
+        "predicate": "partPrefix == null || partPrefix == \"pdfuaid\""
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:5:4",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ID-AMD-PREFIX-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property \"amd\" of the PDF/UA Identification Schema shall have namespace prefix \"pdfuaid\".",
+        "object": "PDFUAIdentification",
+        "predicate": "amdPrefix == null || amdPrefix == \"pdfuaid\""
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:5:5",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ID-CORR-PREFIX-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Property \"corr\" of the PDF/UA Identification Schema shall have namespace prefix \"pdfuaid\".",
+        "object": "PDFUAIdentification",
+        "predicate": "corrPrefix == null || corrPrefix == \"pdfuaid\""
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:6.1:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-HEADER-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The file header shall consist of \"%PDF-1.n\" followed by a single EOL marker, where 'n' is a single digit number between 0 (30h) and 7 (37h).",
+        "object": "CosDocument",
+        "predicate": "/^%PDF-1\\.[0-7]$/.test(header)"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:6.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TAGGED-DOCUMENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The document catalog dictionary shall include a MarkInfo dictionary containing an entry, Marked, whose value shall be true.",
+        "object": "CosDocument",
+        "predicate": "Marked == true"
+      },
+      {
+        "section": "artifact",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ARTIFACT-NESTED-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Content marked as Artifact should not be present inside tagged content.",
+        "object": "SEMarkedContent",
+        "predicate": "tag != 'Artifact' || isTaggedContent == false"
+      },
+      {
+        "section": "artifact",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Tagged content should not be present inside content marked as Artifact.",
+        "object": "SEMarkedContent",
+        "predicate": "isTaggedContent == false || parentsTags.contains('Artifact') == false"
+      },
+      {
+        "section": "artifact",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CONTENT-TAGGING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Content shall be marked as Artifact or tagged as real content.",
+        "object": "SESimpleContentItem",
+        "predicate": "isTaggedContent == true || parentsTags.contains('Artifact') == true"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:4",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-SUSPECTS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Files shall have a Suspects value of false(ISO 32000-1:2008, Table 321).",
+        "object": "CosDocument",
+        "predicate": "Suspects != true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:5",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-STRUCT-TREE-ROLE-MAP-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All non-standard structure types shall be mapped to the nearest functionally equivalent standard type, as defined in ISO 32000-1:2008, 14.8.4, in the role map dictionary of the structure tree root. This mapping may be indirect; within the role map a non-standard type can map directly to another non-standard type, but eventually the mapping shall terminate at a standard type.",
+        "object": "SENonStandard",
+        "predicate": "isNotMappedToStandardType == false"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:6",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A circular mapping shall not exist.",
+        "object": "PDStructElem",
+        "predicate": "circularMappingExist != true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:7",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Standard tags defined in ISO 32000-1:2008, 14.8.4, shall not be remapped.",
+        "object": "PDStructElem",
+        "predicate": "remappedStandardType == null"
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:8",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-METADATA-STRUCTURE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Catalog dictionary of a conforming file shall contain the Metadata key whose value is a metadata stream as defined in ISO 32000-1:2008, 14.3.2. The metadata stream dictionary shall contain entry Type with value /Metadata and entry Subtype with value /XML.",
+        "object": "PDDocument",
+        "predicate": "containsMetadata == true"
+      },
+      {
+        "section": "metadata",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:9",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-METADATA-TITLE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Metadata stream in the document's catalog dictionary shall contain a dc:title entry, where dc is the recommended prefix for the Dublin Core metadata schema as defined in the XMP specification, which clearly identifies the document.",
+        "object": "MainXMPPackage",
+        "predicate": "dc_title != null"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:10",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-VIEWER-PREFERENCES-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The document catalog dictionary shall include a ViewerPreferences dictionary containing a DisplayDocTitle key, whose value shall be true.",
+        "object": "CosDocument",
+        "predicate": "DisplayDocTitle == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:11",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-STRUCT-TREE-ROOT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The logical structure of the conforming file shall be described by a structure hierarchy rooted in the StructTreeRoot entry of the document catalog dictionary, as described in ISO 32000-1:2008, 14.7.",
+        "object": "PDDocument",
+        "predicate": "containsStructTreeRoot == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.1:12",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-STRUCT-ELEMENT-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A structure element dictionary shall contain the P (parent) entry according to ISO 32000-1:2008, 14.7.2, Table 355.",
+        "object": "PDStructElem",
+        "predicate": "containsParent == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-OUTLINE-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the Outline entries shall be determined.",
+        "object": "PDOutline",
+        "predicate": "gContainsCatalogLang == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain only TR, THead, TBody, TFoot and Caption elements.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'TR' && elem != 'THead' && elem != 'TBody' && elem != 'TFoot' && elem != 'Caption').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:4",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TR-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TR element should be contained in Table, THead, TBody or TFoot element.",
+        "object": "SETR",
+        "predicate": "/^(Table|THead|TBody|TFoot)$/.test(parentStandardType)"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:5",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-THEAD-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: THead element should be contained in Table element.",
+        "object": "SETHead",
+        "predicate": "parentStandardType == 'Table'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:6",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TBODY-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TBody element should be contained in Table element.",
+        "object": "SETBody",
+        "predicate": "parentStandardType == 'Table'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:7",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TFOOT-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TFoot element should be contained in Table element.",
+        "object": "SETFoot",
+        "predicate": "parentStandardType == 'Table'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:8",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TH-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TH element should be contained in TR element.",
+        "object": "SETH",
+        "predicate": "parentStandardType == 'TR'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:9",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TD-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TD element should be contained in TR element.",
+        "object": "SETD",
+        "predicate": "parentStandardType == 'TR'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:10",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TR-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TR element may contain only TH and TD elements.",
+        "object": "SETR",
+        "predicate": "/^(TH|TD)(&(TH|TD))*$/.test(kidsStandardTypes) || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:11",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-THEAD-COUNT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element should contain zero or one THead kid.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'THead').length <= 1"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:12",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-TFOOT-COUNT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element should contain zero or one TFoot kid.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'TFoot').length <= 1"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:13",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-TFOOT-TBODY-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If Table element contains TFoot kid, Table element should contain one or more TBody kids.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'TFoot').length == 0 || kidsStandardTypes.split('&').filter(elem => elem == 'TBody').length > 0"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:14",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-THEAD-TBODY-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If Table element contains THead kid, Table element should contain one or more TBody kids.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'THead').length == 0 || kidsStandardTypes.split('&').filter(elem => elem == 'TBody').length > 0"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:15",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-CELL-INTERSECTION-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A table cell shall not have intersection with other cells.",
+        "object": "SETableCell",
+        "predicate": "hasIntersection != true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:16",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-CAPTION-POSITION-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain a Caption element as its first or last kid.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.indexOf('&Caption&') < 0"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:17",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LI-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LI element should be contained in L element.",
+        "object": "SELI",
+        "predicate": "parentStandardType == 'L'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:18",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LBODY-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LBody element should be contained in LI element.",
+        "object": "SELBody",
+        "predicate": "parentStandardType == 'LI'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:19",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-L-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: L element may contain only L, LI and Caption elements.",
+        "object": "SEL",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'L' && elem != 'LI' && elem != 'Caption').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:20",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LI-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: LI element may contain only Lbl and LBody elements.",
+        "object": "SELI",
+        "predicate": "/^(Lbl|LBody)(&(Lbl|LBody))*$/.test(kidsStandardTypes) || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:21",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ACTUAL-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in ActualText attribute shall be determined.",
+        "object": "PDStructElem",
+        "predicate": "ActualText == null || containsLang == true || parentLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:22",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ALT-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in Alt attribute shall be determined.",
+        "object": "PDStructElem",
+        "predicate": "Alt == null || containsLang == true || parentLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:23",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-E-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in E attribute shall be determined.",
+        "object": "PDStructElem",
+        "predicate": "E == null || containsLang == true || parentLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:24",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the Contents entry for annotations shall be determined.",
+        "object": "PDAnnot",
+        "predicate": "Contents == null || containsLang == true || gContainsCatalogLang == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:25",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORM-FIELD-TU-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language in the TU key for form fields shall be determined.",
+        "object": "PDFormField",
+        "predicate": "TU == null || containsLang == true || gContainsCatalogLang == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:26",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TOCI-PARENT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOCI element should be contained in TOC element.",
+        "object": "SETOCI",
+        "predicate": "parentStandardType == 'TOC'"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:27",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TOC-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOC element may contain only TOC, TOCI and Caption elements.",
+        "object": "SETOC",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'TOC' && elem != 'TOCI' && elem != 'Caption').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:28",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TOC-CAPTION-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TOC element may contain a Caption element only as its first kid.",
+        "object": "SETOC",
+        "predicate": "kidsStandardTypes == '' || kidsStandardTypes.split('&').slice(1).findIndex(elem => elem == 'Caption') < 0"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:29",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LANGUAGE-TAG-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the Lang entry is present in the document's Catalog dictionary or in a structure element dictionary or property list, its value shall be a language identifier as described in ISO 32000-1:2008, 14.9.2. A language identifier shall be a Language-Tag as defined in RFC 3066, Tags for the Identification of Languages.",
+        "object": "CosLang",
+        "predicate": "/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/.test(unicodeValue)"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:30",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in ActualText attribute in Span Marked Content shall be determined.",
+        "object": "SEMarkedContent",
+        "predicate": "tag != 'Span' || ActualText == null || Lang != null || inheritedLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:31",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-SPAN-ALT-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in Alt attribute in Span Marked Content shall be determined.",
+        "object": "SEMarkedContent",
+        "predicate": "tag != 'Span' || Alt == null || Lang != null || inheritedLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:32",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-SPAN-E-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in E attribute in Span Marked Content shall be determined.",
+        "object": "SEMarkedContent",
+        "predicate": "tag != 'Span' || E == null || Lang != null || inheritedLang != null || gContainsCatalogLang == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:33",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-METADATA-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for document metadata shall be determined.",
+        "object": "XMPLangAlt",
+        "predicate": "xDefault == false || gContainsCatalogLang == true"
+      },
+      {
+        "section": "lang",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:34",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TEXT-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Natural language for text in page content shall be determined.",
+        "object": "SETextItem",
+        "predicate": "gContainsCatalogLang == true || Lang != null"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:36",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-THEAD-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: THead element may contain only TR elements.",
+        "object": "SETHead",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'TR').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:37",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TBODY-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TBody element may contain only TR elements.",
+        "object": "SETBody",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'TR').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:38",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TFOOT-KIDS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: TFoot element may contain only TR elements.",
+        "object": "SETFoot",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem != 'TR').length == 0 || kidsStandardTypes == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:39",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-CAPTION-COUNT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table element may contain only one Caption element.",
+        "object": "SETable",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'Caption').length < 2"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:40",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-L-CAPTION-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: L element may contain a Caption element only as its first kid.",
+        "object": "SEL",
+        "predicate": "kidsStandardTypes == '' || kidsStandardTypes.split('&').slice(1).findIndex(elem => elem == 'Caption') < 0"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:41",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-COLUMN-ROWSPAN-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table columns shall have the same number of rows (taking into account row spans).",
+        "object": "SETable",
+        "predicate": "numberOfColumnWithWrongRowSpan == null"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:42",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-ROW-COLUMNSPAN-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table rows shall have the same number of columns (taking into account column spans).",
+        "object": "SETable",
+        "predicate": "numberOfRowWithWrongColumnSpan == null || wrongColumnSpan != null"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.2:43",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-OUTLINE-LANGUAGE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Table rows shall have the same number of columns (taking into account column spans).",
+        "object": "SETable",
+        "predicate": "numberOfRowWithWrongColumnSpan == null || wrongColumnSpan == null"
+      },
+      {
+        "section": "alt-text",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.3:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FIGURE-ALTERNATIVE-TEXT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Figure tags shall include an alternative representation or replacement text that represents the contents marked with the Figure tag as noted in ISO 32000-1:2008, 14.7.2, Table 323.",
+        "object": "SEFigure",
+        "predicate": "(Alt != null && Alt != '') || ActualText != null"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.4.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-HEADING-NESTING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For documents that are not strongly structured, as described in ISO 32000-1:2008, 14.8.4.3.5, heading tags shall be used as follows: (*) If any heading tags are used, H1 shall be the first. (*) A document may use more than one instance of any specific tag level. For example, a tag level may be repeated if document content requires it. (*) If document semantics require a descending sequence of headers, such a sequence shall proceed in strict numerical order and shall not skip an intervening heading level. (*) A document may increment its heading sequence without restarting at H1 if document semantics require it.",
+        "object": "SEHn",
+        "predicate": "hasCorrectNestingLevel == true"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.4.4:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-HEADING-CHILD-COUNT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each node in the tag tree shall contain at most one child H tag.",
+        "object": "PDStructElem",
+        "predicate": "kidsStandardTypes.split('&').filter(elem => elem == 'H').length <= 1"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.4.4:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-HEADING-STRUCTURE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All documents shall be either strongly or weakly structured, but not both.",
+        "object": "SEH",
+        "predicate": "usesHn == false"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.4.4:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-HEADING-STRUCTURE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All documents shall be either strongly or weakly structured, but not both.",
+        "object": "SEHn",
+        "predicate": "usesH == false"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.5:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-HEADERS-SCOPE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the table's structure is not determinable via Headers and IDs, then structure elements of type TH shall have a Scope attribute.",
+        "object": "SETD",
+        "predicate": "hasConnectedHeader != false || unknownHeaders != ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.5:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TABLE-HEADERS-UNDEFINED-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the table's structure is not determinable via Headers and IDs, then structure elements of type TH shall have a Scope attribute.",
+        "object": "SETD",
+        "predicate": "hasConnectedHeader != false || unknownHeaders == ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.7:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORMULA-ALTERNATIVE-TEXT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All mathematical expressions shall be enclosed within a Formula tag as detailed in ISO 32000-1:2008, 14.8.4.5 and shall have Alt or ActualText attributes.",
+        "object": "SEFormula",
+        "predicate": "(Alt != null && Alt != '') || ActualText != null"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.9:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-NOTE-ID-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Note tag shall have ID entry.",
+        "object": "SENote",
+        "predicate": "noteID != null && noteID != ''"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.9:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-NOTE-ID-UNIQUE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each Note tag shall have unique ID key.",
+        "object": "SENote",
+        "predicate": "hasDuplicateNoteID == false"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.10:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-OPTIONAL-CONTENT-NAME-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Each optional content configuration dictionary that forms the value of the D key, or that is an element in the array that forms the value of the Configs key in the OCProperties dictionary, shall contain the Name key.",
+        "object": "PDOCConfig",
+        "predicate": "Name != null && Name.length() > 0"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.10:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-OPTIONAL-CONTENT-AS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The AS key shall not appear in any optional content configuration dictionary.",
+        "object": "PDOCConfig",
+        "predicate": "AS == null"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.11:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FILE-SPEC-F-AND-UF-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The file specification dictionary for an embedded file shall contain the non-empty F and UF keys.",
+        "object": "CosFileSpecification",
+        "predicate": "containsEF == false || (F != null && F != '' && UF != null && UF != '')"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.15:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-DYNAMIC-XFA-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Dynamic XFA forms shall not be used.",
+        "object": "PDAcroForm",
+        "predicate": "dynamicRender != 'required'"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.16:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ENCRYPTION-P-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An encrypted conforming file shall contain a P key in its encryption dictionary (ISO 32000-1:2008, 7.6.3.2, Table 21). The 10th bit position of the P key shall be true.",
+        "object": "PDEncryption",
+        "predicate": "P != null && (P & 512) == 512"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.1:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ANNOTATION-ANNOT-TAG-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An annotation, excluding annotations of subtype Widget, PrinterMark or Link, shall be nested within an Annot tag.",
+        "object": "PDAnnot",
+        "predicate": "Subtype == 'Widget' || Subtype == 'PrinterMark' || Subtype == 'Link' || isOutsideCropBox == true || (F & 2) == 2 || structParentStandardType == 'Annot'"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.1:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: An annotation (except Widget annotations or hidden annotations, or those having rectangle outside the crop-box) shall have either Contents key or an Alt entry in the enclosing structure element.",
+        "object": "PDAnnot",
+        "predicate": "Subtype == 'Widget' || isOutsideCropBox == true || (F & 2) == 2 || (Contents != null && Contents != '') || (Alt != null && Alt != '')"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.1:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORM-FIELD-TU-ALT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A form field shall have a TU key present or all its Widget annotations shall have alternative descriptions (in the form of an Alt entry in the enclosing structure elements).",
+        "object": "PDWidgetAnnot",
+        "predicate": "isOutsideCropBox == true || (F & 2) == 2 || (TU != null && TU != '') || (Alt != null && Alt != '')"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TRAPNET-ANNOTATION-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Annotations of subtype TrapNet shall not be permitted.",
+        "object": "PDTrapNetAnnot",
+        "predicate": "isOutsideCropBox == true || (F & 2) == 2"
+      },
+      {
+        "section": "page",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.3:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-PAGE-TABS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Every page on which there is an annotation shall contain in its page dictionary the key Tabs, and its value shall be S.",
+        "object": "PDPage",
+        "predicate": "containsAnnotations == false || Tabs == 'S'"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.4:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-WIDGET-FORM-TAG-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A Widget annotation shall be nested within a Form tag per ISO 32000-1:2008, 14.8.4.5, Table 340.",
+        "object": "PDWidgetAnnot",
+        "predicate": "structParentStandardType == 'Form' || isOutsideCropBox == true || (F & 2) == 2"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.4:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORM-CHILDREN-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the Form element omits a Role attribute (Table 348), it shall have only one child: an object reference (14.7.4.3) identifying the widget annotation per ISO 32000-1:2008, 14.8.4.5, Table 340.",
+        "object": "SEForm",
+        "predicate": "roleAttribute != null || hasOneInteractiveChild == true"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.5:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LINK-LINK-TAG-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Links shall be tagged according to ISO 32000-1:2008, 14.8.4.4.2, Link Element.",
+        "object": "PDLinkAnnot",
+        "predicate": "structParentStandardType == 'Link' || isOutsideCropBox == true || (F & 2) == 2"
+      },
+      {
+        "section": "structure",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.5:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-LINK-CONTENTS-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Links shall contain an alternate description via their Contents key as described in ISO 32000-1:2008, 14.9.3.",
+        "object": "PDLinkAnnot",
+        "predicate": "(Contents != null && Contents != '') || isOutsideCropBox == true || (F & 2) == 2"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.6.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-MEDIA-CLIP-CT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: In the media clip data dictionary, the optional CT key (ISO 32000-1:2008, 13.2.4.2, Table 274) is required.",
+        "object": "PDMediaClip",
+        "predicate": "CT != null"
+      },
+      {
+        "section": "alt-text",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.6.2:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-MEDIA-CLIP-ALT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: In the media clip data dictionary, the optional Alt key (ISO 32000-1:2008, 13.2.4.2, Table 274) is required.",
+        "object": "PDMediaClip",
+        "predicate": "hasCorrectAlt == true"
+      },
+      {
+        "section": "annotation",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.18.8:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-PRINTER-MARK-ARTIFACT-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: PrinterMark annotations, if present, shall be considered Incidental Artifacts, as if they are hidden page elements as defined in ISO 32000-1:2008, 14.8.2.2.3.",
+        "object": "PDPrinterMarkAnnot",
+        "predicate": "structParentType == null || isOutsideCropBox == true || (F & 2) == 2"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.20:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORM-REFERENCE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A conforming file shall not contain any reference XObjects.",
+        "object": "PDXForm",
+        "predicate": "containsRef == false"
+      },
+      {
+        "section": "syntax",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.20:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FORM-STRUCTURE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The content of Form XObjects shall be incorporated into structure elements according to ISO 32000-1:2008, 14.7.2.",
+        "object": "PDXForm",
+        "predicate": "isUniqueSemanticParent == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.3.1:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For any given composite (Type 0) font within a conforming file, the CIDSystemInfo entry in its CIDFont dictionary and its Encoding dictionary shall have the following relationship: - If the Encoding key in the Type 0 font dictionary is Identity-H or Identity-V, any values of Registry, Ordering, and Supplement may be used in the CIDSystemInfo entry of the CIDFont. - Otherwise, the corresponding Registry and Ordering strings in both CIDSystemInfo dictionaries shall be identical, and the value of the Supplement key in the CIDSystemInfo dictionary of the CIDFont shall be less than or equal to the Supplement key in the CIDSystemInfo dictionary of the CMap.",
+        "object": "PDType0Font",
+        "predicate": "cmapName == \"Identity-H\" || cmapName == \"Identity-V\" || (CIDFontOrdering != null && CIDFontOrdering == CMapOrdering && CIDFontRegistry != null && CIDFontRegistry == CMapRegistry && CIDFontSupplement != null && CMapSupplement != null && CIDFontSupplement <= CMapSupplement)"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.3.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CIDTOGIDMAP-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: ISO 32000-1:2008, 9.7.4, Table 117 requires that all embedded Type 2 CIDFonts in the CIDFont dictionary shall contain a CIDToGIDMap entry that shall be a stream mapping from CIDs to glyph indices or the name Identity, as described in ISO 32000-1:2008, 9.7.4, Table 117.",
+        "object": "PDCIDFont",
+        "predicate": "Subtype != \"CIDFontType2\" || CIDToGIDMap != null || containsFontFile == false"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.3.3:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CMAP-EMBEDDING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All CMaps used within a PDF/UA file, except those listed in ISO 32000-1:2008, 9.7.5.2, Table 118, shall be embedded in that file as described in ISO 32000-1:2008, 9.7.5.",
+        "object": "PDCMap",
+        "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\" || containsEmbeddedFile == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.3.3:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CMAP-WMODE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For those CMaps that are embedded, the integer value of the WMode entry in the CMap dictionary shall be identical to the WMode value in the embedded CMap stream.",
+        "object": "CMapFile",
+        "predicate": "WMode == dictWMode"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.3.3:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CMAP-REFERENCE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A CMap shall not reference any other CMap except those listed in ISO 32000-1:2008, 9.7.5.2, Table 118.",
+        "object": "PDReferencedCMap",
+        "predicate": "CMapName == \"Identity-H\" || CMapName == \"Identity-V\" || CMapName == \"GB-EUC-H\" || CMapName == \"GB-EUC-V\" || CMapName == \"GBpc-EUC-H\" || CMapName == \"GBpc-EUC-V\" || CMapName == \"GBK-EUC-H\" || CMapName == \"GBK-EUC-V\" || CMapName == \"GBKp-EUC-H\" || CMapName == \"GBKp-EUC-V\" || CMapName == \"GBK2K-H\" || CMapName == \"GBK2K-V\" || CMapName == \"UniGB-UCS2-H\" || CMapName == \"UniGB-UCS2-V\" || CMapName == \"UniGB-UTF16-H\" || CMapName == \"UniGB-UTF16-V\" || CMapName == \"B5pc-H\" || CMapName == \"B5pc-V\" || CMapName == \"HKscs-B5-H\" || CMapName == \"HKscs-B5-V\" || CMapName == \"ETen-B5-H\" || CMapName == \"ETen-B5-V\" || CMapName == \"ETenms-B5-H\" || CMapName == \"ETenms-B5-V\" || CMapName == \"CNS-EUC-H\" || CMapName == \"CNS-EUC-V\" || CMapName == \"UniCNS-UCS2-H\" || CMapName == \"UniCNS-UCS2-V\" || CMapName == \"UniCNS-UTF16-H\" || CMapName == \"UniCNS-UTF16-V\" || CMapName == \"83pv-RKSJ-H\" || CMapName == \"90ms-RKSJ-H\" || CMapName == \"90ms-RKSJ-V\" || CMapName == \"90msp-RKSJ-H\" || CMapName == \"90msp-RKSJ-V\" || CMapName == \"90pv-RKSJ-H\" || CMapName == \"Add-RKSJ-H\" || CMapName == \"Add-RKSJ-V\" || CMapName == \"EUC-H\" || CMapName == \"EUC-V\" || CMapName == \"Ext-RKSJ-H\" || CMapName == \"Ext-RKSJ-V\" || CMapName == \"H\" || CMapName == \"V\" || CMapName == \"UniJIS-UCS2-H\" || CMapName == \"UniJIS-UCS2-V\" || CMapName == \"UniJIS-UCS2-HW-H\" || CMapName == \"UniJIS-UCS2-HW-V\" || CMapName == \"UniJIS-UTF16-H\" || CMapName == \"UniJIS-UTF16-V\" || CMapName == \"KSC-EUC-H\" || CMapName == \"KSC-EUC-V\" || CMapName == \"KSCms-UHC-H\" || CMapName == \"KSCms-UHC-V\" || CMapName == \"KSCms-UHC-HW-H\" || CMapName == \"KSCms-UHC-HW-V\" || CMapName == \"KSCpc-EUC-H\" || CMapName == \"UniKS-UCS2-H\" || CMapName == \"UniKS-UCS2-V\" || CMapName == \"UniKS-UTF16-H\" || CMapName == \"UniKS-UTF16-V\""
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.4.1:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-EMBEDDING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The font programs for all fonts used for rendering within a conforming file shall be embedded within that file, as defined in ISO 32000-1:2008, 9.9.",
+        "object": "PDFont",
+        "predicate": "Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.4.1:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-GLYPH-PRESENCE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Embedded fonts shall define all glyphs referenced for rendering within the conforming file. A font referenced solely in text rendering mode 3 is not rendered and is thus exempt from the requirements that impact the visual representation of the glyphs of a font. In all cases for TrueType fonts that are to be rendered, character codes shall be able to be mapped to glyphs according to ISO 32000-1:2008, 9.6.6.4 without the use of a non-standard mapping chosen by the conforming processor.",
+        "object": "Glyph",
+        "predicate": "renderingMode == 3 || isGlyphPresent == null || isGlyphPresent == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.4.2:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-TYPE1-CHARSET-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the FontDescriptor dictionary of an embedded Type 1 font contains a CharSet string, then it shall list the character names of all glyphs present in the font program, regardless of whether a glyph in the font is referenced or used by the PDF or not.",
+        "object": "PDType1Font",
+        "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || CharSet == null || charSetListsAllGlyphs == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.4.2:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-CID-SUBSET-CIDSET-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: If the FontDescriptor dictionary of an embedded CID font contains a CIDSet stream, then it shall identify all CIDs which are present in the font program, regardless of whether a CID in the font is referenced or used by the PDF or not.",
+        "object": "PDCIDFont",
+        "predicate": "containsFontFile == false || fontName.search(/[A-Z]{6}\\+/) != 0 || containsCIDSet == false || cidSetListsAllGlyphs == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.5:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-GLYPH-WIDTH-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For every font embedded in a conforming file and used for rendering, the glyph width information in the font dictionary and in the embedded font program shall be consistent.",
+        "object": "Glyph",
+        "predicate": "renderingMode == 3 || widthFromFontProgram == null || widthFromDictionary == null || Math.abs(widthFromFontProgram - widthFromDictionary) <= 1"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.6:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TRUETYPE-NONSYMBOLIC-CMAP-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: For all non-symbolic TrueType fonts used for rendering, the embedded TrueType font program shall contain one or several non-symbolic cmap entries such that all necessary glyph lookups can be carried out.",
+        "object": "TrueTypeFontProgram",
+        "predicate": "isSymbolic == true || (cmap30Present == true ? nrCmaps > 1 : nrCmaps > 0)"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.6:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: All non-symbolic TrueType fonts shall have either MacRomanEncoding or WinAnsiEncoding as the value for the Encoding key in the Font dictionary or as the value for the BaseEncoding key in the dictionary which is the value of the Encoding key in the Font dictionary. In addition, no non-symbolic TrueType font shall define a Differences array unless all of the glyph names in the Differences array are listed in the Adobe Glyph List and, if the font program is embedded, it shall contain at least the Microsoft Unicode (3,1 – Platform ID = 3, Encoding ID = 1) encoding in the 'cmap' table.",
+        "object": "PDTrueTypeFont",
+        "predicate": "isSymbolic == true || ((Encoding == \"MacRomanEncoding\" || Encoding == \"WinAnsiEncoding\") && (containsDifferences == false || differencesAreUnicodeCompliant == true))"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.6:3",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: Symbolic TrueType fonts shall not contain an Encoding entry in the font dictionary.",
+        "object": "PDTrueTypeFont",
+        "predicate": "isSymbolic == false || Encoding == null"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.6:4",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The 'cmap' table in the embedded font program for a symbolic TrueType font shall contain either exactly one encoding or it shall contain, at least, the Microsoft Symbol (3,0 - Platform ID=3, Encoding ID=0) encoding.",
+        "object": "TrueTypeFontProgram",
+        "predicate": "isSymbolic == false || nrCmaps == 1 || cmap30Present == true"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.7:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-UNICODE-MAPPING-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Font dictionary of all fonts shall define the map of all used character codes to Unicode values, either via a ToUnicode entry, or other mechanisms as defined in ISO 14289-1, 7.21.7.",
+        "object": "Glyph",
+        "predicate": "toUnicode != null"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.7:2",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-FONT-UNICODE-VALUE-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: The Unicode values specified in the ToUnicode CMap shall all be greater than zero (0), but not equal to either U+FEFF or U+FFFE.",
+        "object": "Glyph",
+        "predicate": "toUnicode == null || (toUnicode.indexOf(\"\\u0000\") == -1 && toUnicode.indexOf(\"\\uFFFE\") == -1 && toUnicode.indexOf(\"\\uFEFF\") == -1)"
+      },
+      {
+        "section": "font",
+        "verapdf_rule_id": "ISO 14289-1:2014:7.21.8:1",
+        "applicable_profiles": [
+          "ua1"
+        ],
+        "canonical_local_rule_id": "PDFUA1-NOTDEF-GLYPH-001",
+        "implementation_strength": "partial/proxy",
+        "semantic_note": "Checks the PDF/UA-1 requirement described by the pinned veraPDF predicate: A PDF/UA compliant document shall not contain a reference to the .notdef glyph from any of the text showing operators, regardless of text rendering mode, in any content stream.",
+        "object": "Glyph",
+        "predicate": "name != \".notdef\""
+      }
+    ],
+    "coverage_gaps": []
+  },
+  "completion_gate": {
+    "status": "complete",
+    "coverage_gap_is_success": false,
+    "profiles": [
+      "ua1"
+    ],
+    "required_evidence_states": [
+      "applicable_pass",
+      "applicable_fail",
+      "inapplicable"
+    ],
+    "blockers": []
+  }
+}
