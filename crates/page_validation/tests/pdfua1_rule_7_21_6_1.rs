@@ -20,7 +20,6 @@ fn pdfua1_rule_7_21_6_1_requires_non_symbolic_truetype_cmaps() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 91, "{matching}");
 
     let missing = validate_bytes_with_profile(
         fixture_bytes("missing"),

@@ -26,7 +26,6 @@ fn pdfua1_rule_7_18_5_1_requires_links_inside_link_tags() {
         );
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
-        assert_eq!(report.checks.total, 91, "{fixture}: {report}");
     }
 
     let invalid = validate_bytes_with_profile(

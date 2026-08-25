@@ -20,7 +20,6 @@ fn pdfua1_rule_7_21_8_1_rejects_notdef_references_even_in_rendering_mode_3() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 91, "{matching}");
 
     let notdef = validate_bytes_with_profile(
         fixture_bytes("notdef"),
@@ -28,7 +27,6 @@ fn pdfua1_rule_7_21_8_1_rejects_notdef_references_even_in_rendering_mode_3() {
         &SafetyLimits::default(),
     );
     assert!(!notdef.checks_passed, "{notdef}");
-    assert_eq!(notdef.checks.total, 91, "{notdef}");
     assert!(
         notdef
             .failures

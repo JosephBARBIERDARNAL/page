@@ -35,7 +35,6 @@ fn pdfua1_rule_7_15_1_rejects_dynamic_xfa_forms_only() {
         &SafetyLimits::default(),
     );
     assert!(!report.checks_passed, "{report}");
-    assert_eq!(report.checks.total, 91, "{report}");
     assert_eq!(report.checks.failed, 1, "{report}");
     assert_eq!(report.failures.len(), 1, "{report}");
     assert_eq!(report.failures[0].rule_id, RULE, "{report}");

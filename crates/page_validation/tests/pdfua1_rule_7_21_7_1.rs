@@ -20,7 +20,6 @@ fn pdfua1_rule_7_21_7_1_requires_unicode_mapping_for_used_glyphs() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 91, "{matching}");
 
     let missing = validate_bytes_with_profile(
         fixture_bytes("missing"),

@@ -142,13 +142,10 @@ impl ValidationProfile {
     }
 }
 
-/// The number of validation rules implemented by [`ValidationProfile::PdfA1b`].
-const TOTAL_RULE_COUNT: usize = 134;
-
 fn total_rule_count(profile: ValidationProfile) -> usize {
     match profile {
-        ValidationProfile::PdfA1b => TOTAL_RULE_COUNT,
-        ValidationProfile::PdfA1a => TOTAL_RULE_COUNT + 6,
+        ValidationProfile::PdfA1b => 134,
+        ValidationProfile::PdfA1a => 140,
         ValidationProfile::PdfA2b => 144,
         ValidationProfile::PdfA2a => 154,
         ValidationProfile::PdfA2u => 146,
@@ -3387,7 +3384,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.passed, TOTAL_RULE_COUNT);
+        assert_eq!(report.checks.passed, 134);
     }
 
     #[test]

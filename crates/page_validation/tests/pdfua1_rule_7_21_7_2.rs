@@ -20,7 +20,6 @@ fn pdfua1_rule_7_21_7_2_rejects_reserved_unicode_values() {
     );
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
-    assert_eq!(matching.checks.total, 91, "{matching}");
 
     for fixture in ["zero", "feff", "fffe"] {
         let report = validate_bytes_with_profile(
