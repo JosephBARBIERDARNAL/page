@@ -51,6 +51,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_unicode_values_pdfua1: Vec<RuleFailure>,
     pub(crate) unicode_pua_without_actual_text: Vec<RuleFailure>,
     pub(crate) notdef_glyphs: Vec<RuleFailure>,
+    pub(crate) notdef_glyphs_pdfua1: Vec<RuleFailure>,
     pub(crate) missing_truetype_glyphs: Vec<RuleFailure>,
     pub(crate) missing_type1_glyphs: Vec<RuleFailure>,
     pub(crate) inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -143,6 +144,7 @@ struct Scanner<'a> {
     invalid_unicode_values_pdfua1: Vec<RuleFailure>,
     unicode_pua_without_actual_text: Vec<RuleFailure>,
     notdef_glyphs: Vec<RuleFailure>,
+    notdef_glyphs_pdfua1: Vec<RuleFailure>,
     missing_truetype_glyphs: Vec<RuleFailure>,
     missing_type1_glyphs: Vec<RuleFailure>,
     inconsistent_truetype_widths: Vec<RuleFailure>,
@@ -196,6 +198,7 @@ pub(crate) fn inspect(
         invalid_unicode_values_pdfua1: Vec::new(),
         unicode_pua_without_actual_text: Vec::new(),
         notdef_glyphs: Vec::new(),
+        notdef_glyphs_pdfua1: Vec::new(),
         missing_truetype_glyphs: Vec::new(),
         missing_type1_glyphs: Vec::new(),
         inconsistent_truetype_widths: Vec::new(),
@@ -215,6 +218,7 @@ pub(crate) fn inspect(
     }
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.inspect_rendered_notdef_glyphs()?;
+    scanner.inspect_pdfua1_notdef_glyphs()?;
     scanner.invalid_cmap_cids.sort_by(|left, right| {
         left.object_id
             .cmp(&right.object_id)
@@ -232,6 +236,14 @@ pub(crate) fn inspect(
             .then_with(|| left.description.cmp(&right.description))
     });
     scanner.notdef_glyphs.dedup_by(|left, right| {
+        left.object_id == right.object_id && left.description == right.description
+    });
+    scanner.notdef_glyphs_pdfua1.sort_by(|left, right| {
+        left.object_id
+            .cmp(&right.object_id)
+            .then_with(|| left.description.cmp(&right.description))
+    });
+    scanner.notdef_glyphs_pdfua1.dedup_by(|left, right| {
         left.object_id == right.object_id && left.description == right.description
     });
     scanner.inspect_rendered_cff_type1_glyphs()?;
@@ -296,6 +308,7 @@ pub(crate) fn inspect(
         invalid_unicode_values_pdfua1: scanner.invalid_unicode_values_pdfua1,
         unicode_pua_without_actual_text: scanner.unicode_pua_without_actual_text,
         notdef_glyphs: scanner.notdef_glyphs,
+        notdef_glyphs_pdfua1: scanner.notdef_glyphs_pdfua1,
         missing_truetype_glyphs: scanner.missing_truetype_glyphs,
         missing_type1_glyphs: scanner.missing_type1_glyphs,
         inconsistent_truetype_widths: scanner.inconsistent_truetype_widths,
@@ -959,6 +972,57 @@ impl Scanner<'_> {
                         "references the .notdef glyph for a rendered byte",
                     ));
                 }
+            }
+        }
+        Ok(())
+    }
+
+    /// PDF/UA-1 7.21.8-1 applies to every text showing operator, including
+    /// text rendered with mode 3. shown_text_actual_text retains one entry
+    /// per operator for that reason, while shown_bytes intentionally keeps
+    /// the older visible-only population used by PDF/A checks.
+    fn inspect_pdfua1_notdef_glyphs(&mut self) -> Result<(), PdfError> {
+        let uses: Vec<_> = self.uses.values().cloned().collect();
+        for usage in uses {
+            if usage.shown_text_actual_text.is_empty() {
+                continue;
+            }
+            let Some(font) = resolve_optional(
+                self.document,
+                &usage.object,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(|object| object.as_dict().ok()) else {
+                continue;
+            };
+            let has_notdef = if usage.subtype.as_deref() == Some("Type0") {
+                let Some(encoding) = font.get(b"Encoding").ok() else {
+                    continue;
+                };
+                let decoder = resolve_cmap_decoder(self.document, encoding, self.limits)?;
+                usage
+                    .shown_text_actual_text
+                    .iter()
+                    .any(|(bytes, ..)| decoder.decode(bytes).is_some_and(|cids| cids.contains(&0)))
+            } else if matches!(
+                usage.subtype.as_deref(),
+                Some("Type1" | "MMType1" | "TrueType" | "Type3")
+            ) {
+                let encoding = simple_font_encoding(self.document, font, self.limits)?;
+                usage
+                    .shown_text_actual_text
+                    .iter()
+                    .flat_map(|(bytes, ..)| bytes.iter().copied())
+                    .any(|byte| encoding.glyph_name(byte) == Some(".notdef"))
+            } else {
+                false
+            };
+            if has_notdef {
+                self.notdef_glyphs_pdfua1.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "references the .notdef glyph from a PDF/UA-1 text showing operator",
+                ));
             }
         }
         Ok(())

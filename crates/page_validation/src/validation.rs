@@ -1184,6 +1184,14 @@ fn validate_document(
             None,
             &mut failures,
         );
+        // PDF/UA-1 7.21.8-1 reuses the shared glyph-name/CID resolution but
+        // retains text-showing operators made invisible by rendering mode 3.
+        aggregate_failures_with_location(
+            &inspections.font_embedding.notdef_glyphs_pdfua1,
+            "PDFUA1-NOTDEF-GLYPH-001",
+            None,
+            &mut failures,
+        );
         // PDF/UA-1 uses the same embedded Type 2 CIDFont population and
         // CIDToGIDMap shape as PDF/A-2 and PDF/A-3, without their rendering
         // mode exemption. Reuse the already broader applicability vector.

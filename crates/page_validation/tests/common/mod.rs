@@ -5628,6 +5628,99 @@ pub fn pdfua1_rule_7_21_7_1_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn pdfua1_rule_7_21_8_1_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load PDF/UA-1 .notdef fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("PDF/UA-1 fixture page");
+    let (resources, contents) = {
+        let page = document
+            .get_object(page_id)
+            .expect("PDF/UA-1 fixture page")
+            .as_dict()
+            .expect("PDF/UA-1 fixture page dictionary");
+        (
+            page.get(b"Resources").ok().cloned(),
+            page.get(b"Contents").ok().cloned(),
+        )
+    };
+    let mut resources = match resources {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    let mut fonts = match resources.get(b"Font").ok().cloned() {
+        Some(Object::Reference(id)) => document
+            .get_object(id)
+            .expect("PDF/UA-1 fixture font resources")
+            .as_dict()
+            .expect("PDF/UA-1 fixture font resources dictionary")
+            .clone(),
+        Some(Object::Dictionary(dictionary)) => dictionary,
+        _ => Dictionary::new(),
+    };
+    let mut char_procs = Dictionary::new();
+    char_procs.set(
+        if case == "fail" { ".notdef" } else { "space" },
+        document.add_object(Stream::new(Dictionary::new(), b"500 0 d0\n".to_vec())),
+    );
+    let encoding_name = if case == "fail" { ".notdef" } else { "space" };
+    let to_unicode_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"1 begincodespacerange <20> <20> endcodespacerange 1 beginbfchar <20> <0020> endbfchar"
+            .to_vec(),
+    ));
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type3",
+        "FontBBox" => vec![0.into(), 0.into(), 500.into(), 700.into()],
+        "FontMatrix" => vec![0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into()],
+        "CharProcs" => char_procs,
+        "Encoding" => dictionary! {
+            "Type" => "Encoding",
+            "Differences" => vec![32.into(), Object::Name(encoding_name.as_bytes().to_vec())],
+        },
+        "FirstChar" => 32,
+        "LastChar" => 32,
+        "Widths" => vec![500.into()],
+        "ToUnicode" => to_unicode_id,
+    });
+    fonts.set("FND", font_id);
+    resources.set("Font", fonts);
+    let extra_content_id = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"/Artifact BMC\nBT\n/FND 12 Tf\n3 Tr\n<20> Tj\nET\nEMC\n".to_vec(),
+    ));
+    let contents = match contents {
+        Some(Object::Array(mut contents)) => {
+            contents.push(Object::Reference(extra_content_id));
+            Object::Array(contents)
+        }
+        Some(contents) => vec![contents, Object::Reference(extra_content_id)].into(),
+        None => Object::Reference(extra_content_id),
+    };
+    let page = document
+        .get_object_mut(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict_mut()
+        .expect("PDF/UA-1 fixture page dictionary");
+    page.set("Resources", resources);
+    page.set("Contents", contents);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save PDF/UA-1 .notdef fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_21_7_2_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_21_7_1_fixture("matching"))
         .expect("load PDF/UA-1 Unicode value fixture");
