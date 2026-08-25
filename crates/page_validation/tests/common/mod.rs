@@ -5959,6 +5959,25 @@ pub fn pdfua1_rule_7_21_3_3_2_fixture(case: &str) -> Vec<u8> {
         .as_dict_mut()
         .expect("PDF/UA-1 Type0 font dictionary")
         .set("ToUnicode", to_unicode);
+    let content_id = document
+        .get_object(page_id)
+        .expect("PDF/UA-1 fixture page")
+        .as_dict()
+        .expect("PDF/UA-1 fixture page dictionary")
+        .get(b"Contents")
+        .expect("PDF/UA-1 fixture contents")
+        .as_array()
+        .expect("PDF/UA-1 fixture contents array")
+        .last()
+        .expect("PDF/UA-1 fixture final content stream")
+        .as_reference()
+        .expect("indirect PDF/UA-1 fixture final content stream");
+    document
+        .get_object_mut(content_id)
+        .expect("PDF/UA-1 fixture final content stream")
+        .as_stream_mut()
+        .expect("PDF/UA-1 fixture final content stream dictionary")
+        .set_content(b"/Artifact BMC\nBT\n/FUA 12 Tf\n<01> Tj\nET\nEMC\n".to_vec());
     save_document(document, "PDF/UA-1 CMap WMode fixture")
 }
 

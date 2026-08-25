@@ -1101,12 +1101,12 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "pdfua1-rule-7-21-3-3-2-matching.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-2-matching.pdf"),
-            "28eb2c3a569885c54b1ec3c693c2332c2cd91bc6aa62864039777d664431948f",
+            "5caf45df197cd4e8fe71d36562165870b68835d91bb9c680d2c26e1c9404804f",
         ),
         (
             "pdfua1-rule-7-21-3-3-2-mismatched.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-3-2-mismatched.pdf"),
-            "fa56f930293c5696ed8ac941f16ef9423936f414d68c50dbb2aa3996334d7f9c",
+            "a9a22558d6b89bf420114b7e65f07941c70933e73d2915fe5346df3e1245bd74",
         ),
         (
             "pdfua1-rule-7-21-4-1-2-present.pdf",
