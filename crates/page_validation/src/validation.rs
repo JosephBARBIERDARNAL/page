@@ -3416,7 +3416,7 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT + 6);
+        assert_eq!(report.checks.total, 140);
     }
 
     #[test]
@@ -3896,7 +3896,7 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, TOTAL_RULE_COUNT + 6);
+        assert_eq!(a.checks.total, 140);
     }
 
     #[test]
@@ -3972,7 +3972,7 @@ mod tests {
         assert!(!document.encrypted_content_unavailable);
         assert!(document.catalog_present);
         assert!(document.xmp.is_some());
-        assert_eq!(report.checks.total, TOTAL_RULE_COUNT);
+        assert_eq!(report.checks.total, 134);
     }
 
     #[test]

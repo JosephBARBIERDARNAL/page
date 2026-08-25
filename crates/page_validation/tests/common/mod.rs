@@ -6668,8 +6668,9 @@ pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 font descriptor dictionary")
         .set("CIDSet", cid_set_id);
 
-    // Render only CID 0 so the missing CID 1 in the failing fixture is
-    // intentionally unreferenced by the PDF content.
+    // Render only CID 1 so CID 0 remains the font program's unreferenced
+    // .notdef glyph and the missing CID 1 in the failing fixture is still
+    // intentionally covered by the CIDSet check.
     let content_ids = document
         .objects
         .iter()
@@ -6688,11 +6689,11 @@ pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
             .expect("PDF/UA-1 Type0 content stream")
             .as_stream_mut()
             .expect("PDF/UA-1 Type0 content stream")
-            .set_content(b"/Artifact BMC\nBT\n/FUA 12 Tf\n<0000> Tj\nET\nEMC\n".to_vec());
+            .set_content(b"/Artifact BMC\nBT\n/FUA 12 Tf\n<0001> Tj\nET\nEMC\n".to_vec());
     }
     let to_unicode = document.add_object(Stream::new(
         Dictionary::new(),
-        b"1 begincodespacerange <0000> <ffff> endcodespacerange 1 beginbfchar <0000> <0020> endbfchar"
+        b"1 begincodespacerange <0001> <0001> endcodespacerange 1 beginbfchar <0001> <0020> endbfchar"
             .to_vec(),
     ));
     document
