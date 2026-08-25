@@ -15,7 +15,8 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 
-const BENCHMARK_PDF: &str = "bench/PDF32000_2008.pdf";
+//const BENCHMARK_PDF: &str = "bench/PDF32000_2008.pdf";
+const BENCHMARK_PDF: &str = "../state-immunization-reports/documents/west_virginia.pdf";
 
 #[derive(Debug, Parser)]
 #[command(
