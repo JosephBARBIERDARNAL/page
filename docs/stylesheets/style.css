@@ -199,7 +199,7 @@ h4 {
 }
 
 .md-nav__item--section > .md-nav__link > .md-ellipsis {
-  margin-top: 1rem;
+  margin-top: 2rem;
 }
 
 [data-md-color-scheme="default"]
@@ -454,6 +454,14 @@ table code {
   padding: 0.25rem 0.5rem;
   border-top-left-radius: var(--radius-sm) !important;
   border-top-right-radius: var(--radius-sm) !important;
+}
+
+/* Wrap long shell commands instead of scrolling horizontally */
+.md-typeset .highlight.language-sh pre > code,
+.md-typeset .highlight.language-bash pre > code,
+.md-typeset .highlight.language-powershell pre > code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* Avoid tab overflow on small screens */

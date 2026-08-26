@@ -2,30 +2,10 @@
 
 `page` is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust.
 
-## Installation
-
-=== "macOS/Linux"
-
-      ```sh
-      curl -fsSL https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.sh | sh
-      ```
-
-=== "PowerShell"
-
-      ```sh
-      irm https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.ps1 | iex
-      ```
-
-=== "Cargo"
-
-      ```sh
-      cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
-      ```
-
 ## Usage
 
-- [CLI](api/cli.md)
-- [Rust](api/rust.md)
+- [CLI](api/cli/quick-start.md)
+- [Rust](api/rust/quick-start.md)
 
 ## Roadmap
 

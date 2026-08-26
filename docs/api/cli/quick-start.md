@@ -1,6 +1,12 @@
 ---
-title: "CLI"
+title: "Quick start"
 ---
+
+!!! info
+
+     Check out [the dedicated page](../../installation.md) for install instructions.
+
+<br>
 
 Validate one PDF (by default against the profile declared in its XMP metadata):
 
