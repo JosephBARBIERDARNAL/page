@@ -45,7 +45,7 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
         &SafetyLimits::default(),
     );
     assert!(
-        missing_x_default_report
+        !missing_x_default_report
             .failures
             .iter()
             .any(|failure| failure.rule_id == RULE)

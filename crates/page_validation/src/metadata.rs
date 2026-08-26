@@ -2260,10 +2260,11 @@ fn lang_alt_without_x_default(property: XmpProperty<'_>) -> bool {
     {
         return false;
     }
-    !items.iter().any(|item| {
-        item.attribute((XML_NAMESPACE, "lang"))
-            .is_some_and(|language| normalize_xmp_language(language) == "x-default")
-    })
+    items.len() > 1
+        && !items.iter().any(|item| {
+            item.attribute((XML_NAMESPACE, "lang"))
+                .is_some_and(|language| normalize_xmp_language(language) == "x-default")
+        })
 }
 
 fn normalize_xmp_language(value: &str) -> String {

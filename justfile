@@ -48,7 +48,7 @@ verapdf-corpus corpus_dir=".cache/verapdf-corpus":
         git -C "{{ corpus_dir }}" sparse-checkout set --no-cone {{ verapdf_corpus_profiles }}; \
         git -C "{{ corpus_dir }}" checkout --detach --quiet FETCH_HEAD; \
     fi
-    cargo run --quiet --release -p page_cli --features internal --bin page-corpus -- "{{ corpus_dir }}"
+    cargo run --release -p page_cli --features internal --bin page-corpus -- "{{ corpus_dir }}"
 
 # Regenerate checked-in rule-mapping documentation.
 rules-docs:
