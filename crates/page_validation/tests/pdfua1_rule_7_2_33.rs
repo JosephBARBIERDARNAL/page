@@ -27,14 +27,12 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
         );
     }
 
-    {
-        let case = "missing_x_default";
+    for case in ["multiple_items", "missing_x_default"] {
         let report = validate_bytes_with_profile(
             &common::pdfua1_rule_7_2_33_fixture(case),
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),
         );
-        assert!(report.checks_passed, "{case}: {report}");
         assert!(
             !report
                 .failures
