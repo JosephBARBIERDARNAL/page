@@ -43,7 +43,7 @@ fn page_help_exposes_the_validate_command() {
     let root_stdout = String::from_utf8(root.stdout).expect("UTF-8 root help");
     assert!(root_stdout.contains("Usage: page <COMMAND>"));
     assert!(root_stdout.contains("validate"));
-    assert!(root_stdout.contains("corpus"));
+    assert!(!root_stdout.contains("corpus"));
 
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
         .args(["validate", "--help"])
@@ -69,9 +69,7 @@ fn page_help_exposes_the_validate_command() {
         .output()
         .expect("run page corpus --help");
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("--jobs <JOBS>"));
+    assert!(!output.status.success());
 }
 
 #[test]

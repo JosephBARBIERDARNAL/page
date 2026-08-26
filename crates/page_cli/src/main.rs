@@ -13,8 +13,6 @@ use page_validation::{
     validate_file, validate_file_with_profile,
 };
 
-mod corpus;
-
 #[derive(Debug, Parser)]
 #[command(
     name = "page",
@@ -31,9 +29,6 @@ struct Cli {
 enum Command {
     /// Validate a PDF document.
     Validate(ValidateArgs),
-
-    /// Validate the selected profiles from a veraPDF corpus checkout.
-    Corpus(corpus::CorpusArgs),
 }
 
 #[derive(Debug, Args)]
@@ -395,7 +390,6 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
 fn main() {
     match Cli::parse().command {
         Command::Validate(cli) => run_validate(cli),
-        Command::Corpus(args) => std::process::exit(corpus::run(&args)),
     }
 }
 
