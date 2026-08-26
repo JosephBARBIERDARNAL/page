@@ -46,8 +46,9 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             .any(|failure| failure.rule_id == RULE)
     );
 
+    let tagged_widget_bytes = common::pdfua1_rule_7_18_1_3_fixture("tu");
     let tagged_widget = validate_bytes_with_profile(
-        &common::pdfua1_rule_7_18_1_3_fixture("tu"),
+        &tagged_widget_bytes,
         ValidationProfile::PdfUa1,
         &SafetyLimits::default(),
     );
@@ -57,6 +58,29 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             .iter()
             .any(|failure| failure.rule_id == RULE)
     );
+
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        return;
+    };
+    let path = env::temp_dir().join(format!(
+        "page-pdfua1-rule-7-2-25-tagged-widget-{}.pdf",
+        std::process::id()
+    ));
+    fs::write(&path, tagged_widget_bytes).expect("write tagged-widget differential fixture");
+    let mut config = ReferenceConfig::pinned(executable);
+    config.profile = ReferenceProfile::PdfUa1;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
+    let report = runner.compare_file(&path, &SafetyLimits::default());
+    let failed = report
+        .reference_result
+        .as_ref()
+        .expect("veraPDF result")
+        .failed_rule_ids
+        .iter()
+        .map(ToString::to_string)
+        .collect::<BTreeSet<_>>();
+    assert!(!failed.contains(REFERENCE_RULE), "{report}");
+    fs::remove_file(path).expect("remove tagged-widget differential fixture");
 }
 
 #[test]
