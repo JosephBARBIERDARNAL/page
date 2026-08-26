@@ -114,3 +114,6 @@ logo:
     typst compile docs/images/logo.typ docs/images/logo-mark-on-light.svg --input surface=light --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-dark.svg --input label=false --input surface=dark --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-light.svg --input label=false --input surface=light --ppi 300
+
+build-doc:
+    uv run scripts/doc.py

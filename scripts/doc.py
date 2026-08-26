@@ -1,11 +1,5 @@
-# /// script
-# requires-python = ">=3.12"
-# dependencies = []
-# ///
-
-from __future__ import annotations
-
 import json
+import os
 import re
 import subprocess
 import sys
@@ -66,7 +60,13 @@ class ApiItem:
     raw: dict[str, Any]
 
 
-def run(command: list[str], *, cwd: Path, capture: bool = False) -> str:
+def run(
+    command: list[str],
+    *,
+    cwd: Path,
+    capture: bool = False,
+    env: dict[str, str] | None = None,
+) -> str:
     print("+", " ".join(command), file=sys.stderr)
 
     result = subprocess.run(
@@ -75,6 +75,7 @@ def run(command: list[str], *, cwd: Path, capture: bool = False) -> str:
         text=True,
         check=True,
         stdout=subprocess.PIPE if capture else None,
+        env=env,
     )
 
     return result.stdout if capture else ""
@@ -119,21 +120,21 @@ def library_target(package: dict[str, Any]) -> dict[str, Any]:
 
 
 def generate_rustdoc_json(root: Path, package: dict[str, Any]) -> None:
+    env = dict(os.environ)
+    env["RUSTDOCFLAGS"] = "-Z unstable-options --output-format json"
+
     run(
         [
             "cargo",
             "+nightly",
             "doc",
-            "-Z",
-            "unstable-options",
-            "--output-format",
-            "json",
             "--no-deps",
             "--package",
             package["name"],
             "--lib",
         ],
         cwd=root,
+        env=env,
     )
 
 
