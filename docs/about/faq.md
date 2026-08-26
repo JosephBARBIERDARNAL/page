@@ -1,7 +1,3 @@
----
-title: "FAQ"
----
-
 ## What does `page` do?
 
 `page` is, at its core, a PDF validation engine. In more practical terms, it verifies that a given PDF file complies with certain standards. For example, for a PDF to be considered accessible, it is often required to be PDF/UA-1 compliant.

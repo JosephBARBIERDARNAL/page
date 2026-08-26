@@ -11,9 +11,19 @@ nav = [
   { "Usage" = [
     { "CLI" = ["api/cli/quick-start.md"] },
     { "Rust" = [
-      "api/rust/quick-start.md",
-      "api/rust/safety-limits.md",
-      "api/rust/faillures.md",
+      { "Quick start" = "api/rust/quick-start.md" },
+      { "ValidationReport" = "api/rust/ValidationReport.md" },
+      { "SafetyLimits" = "api/rust/SafetyLimits.md" },
+      { "validate_bytes_with_profile" = "api/rust/validate_bytes_with_profile.md" },
+      { "validate_bytes" = "api/rust/validate_bytes.md" },
+      { "validate_file_with_profile" = "api/rust/validate_file_with_profile.md" },
+      { "validate_file" = "api/rust/validate_file.md" },
+      { "FailureCategory" = "api/rust/FailureCategory.md" },
+      { "ValidationCounts" = "api/rust/ValidationCounts.md" },
+      { "ValidationError" = "api/rust/ValidationError.md" },
+      { "ValidationFailure" = "api/rust/ValidationFailure.md" },
+      { "ValidationProfile" = "api/rust/ValidationProfile.md" },
+      { "PdfError" = "api/rust/PdfError.md" },
     ] },
   ] },
   { "Reference" = [
@@ -21,7 +31,7 @@ nav = [
     "rules/pdfa-2-3-rules.md",
     "rules/pdfua-1-rules.md",
   ] },
-  { "About" = ["about/faq.md", "about/pdf-format.md"] },
+  { "About" = [{ "FAQ" = "about/faq.md" }, { "PDF Format" = "about/pdf-format.md" }] },
 ]
 
 [project.theme]

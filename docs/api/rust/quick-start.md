@@ -1,7 +1,3 @@
----
-title: "Quick start"
----
-
 # Using the `page_validation` crate
 
 The `page_validation` crate validates PDF files against a supported PDF/A or PDF/UA profile.
@@ -45,9 +41,27 @@ if report.checks_passed {
 `validate_file` takes:
 
 - The path to the PDF.
-- A reference to [`SafetyLimits`](./safety-limits.md).
+- A reference to [`SafetyLimits`](#safety-limits).
 
 It reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<ValidationReport, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
+
+## Safety limits
+
+The goal of the safety limits protect the validator from excessively large or complex inputs. Defaults are the following and should be sufficient for most cases:
+
+```rust
+use page_validation::SafetyLimits;
+
+let limits = SafetyLimits {
+    max_input_size: 100 * 1024 * 1024,                 // 100 MiB
+    max_decoded_stream_size: 32 * 1024 * 1024,         // 32 MiB
+    max_total_decoded_content_size: 100 * 1024 * 1024, // 100 MiB
+    max_object_count: 500_000,                         // 500,000 objects
+    max_reference_depth: 256,                          // 256 levels
+};
+```
+
+`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document.
 
 ## Select a profile explicitly
 
@@ -90,4 +104,45 @@ let explicit_report = validate_bytes_with_profile(
 );
 ```
 
-For error handling, check out [faillures page](./faillures.md).
+## Failures
+
+Each report contains a list of failures:
+
+```rust
+use std::path::Path;
+use page_validation::{SafetyLimits, validate_file};
+
+let report = validate_file(Path::new("file.pdf"), &SafetyLimits::default())?;
+
+for failure in &report.failures {
+    println!("Rule: {}", failure.rule_id);
+    println!("Category: {:?}", failure.category);
+    println!("Message: {}", failure.message);
+}
+```
+
+Failure categories distinguish conformance problems from parser or operational errors:
+
+```rust
+use page_validation::FailureCategory;
+
+match failure.category {
+    FailureCategory::Metadata | FailureCategory::Conformance => {
+        // The PDF was parsed, but failed a validation rule.
+    }
+    FailureCategory::Parser => {
+        // The PDF could not be parsed correctly.
+    }
+    FailureCategory::Operational => {
+        // Validation failed because of I/O or another runtime issue.
+    }
+}
+```
+
+## Use the exit code
+
+For command-line integrations or automated checks, the report can provide an appropriate process exit code:
+
+```rust
+std::process::exit(report.exit_code());
+```

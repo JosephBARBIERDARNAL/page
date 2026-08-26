@@ -199,7 +199,7 @@ h4 {
 }
 
 .md-nav__item--section > .md-nav__link > .md-ellipsis {
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 [data-md-color-scheme="default"]
@@ -245,7 +245,7 @@ h4 {
 .md-typeset h6 {
   font-family: var(--font-display);
   font-weight: 400;
-  padding-top: 0.5rem;
+  padding-top: 0.9rem;
   margin: 0;
 }
 
@@ -562,4 +562,8 @@ table code {
 
 [data-md-color-scheme="slate"] .pretty-highlight {
   background-color: var(--color-teal);
+}
+
+.md-nav__link {
+  padding: 0.15rem 0.5rem;
 }

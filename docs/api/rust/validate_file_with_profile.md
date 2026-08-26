@@ -4,7 +4,7 @@
 
 Reads a file from disk and validates it against an explicitly selected profile, ignoring any profile the document declares in its own XMP metadata.
 
-This is the file-based counterpart of [`validate_bytes_with_profile`]: it never fails outright. An unreadable file, an oversized file, or any error [`validate_bytes_with_profile`] can absorb becomes an operational or parser [`ValidationFailure`](crate::ValidationFailure) inside the returned report instead of a thrown error. The returned report has its `source` set to `path`.
+This is the file-based counterpart of `validate_bytes_with_profile`: it never fails outright. An unreadable file, an oversized file, or any error `validate_bytes_with_profile` can absorb becomes an operational or parser `ValidationFailure` inside the returned report instead of a thrown error. The returned report has its `source` set to `path`.
 
 ## Arguments
 
@@ -14,11 +14,11 @@ This is the file-based counterpart of [`validate_bytes_with_profile`]: it never 
 
 ## Returns
 
-A [`ValidationReport`] whose `checks_passed` is `true` only when every implemented check for `profile` passed, with `source` set to `path` and `failures` explaining every recorded problem, including operational ones such as an unreadable file.
+A `ValidationReport` whose `checks_passed` is `true` only when every implemented check for `profile` passed, with `source` set to `path` and `failures` explaining every recorded problem, including operational ones such as an unreadable file.
 
 ## Examples
 
-```no_run
+```rs
 use std::path::Path;
 
 use page_validation::{SafetyLimits, ValidationProfile, validate_file_with_profile};

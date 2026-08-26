@@ -8,13 +8,12 @@ from pathlib import Path
 from typing import Any
 
 PACKAGE_NAME = "page_validation"
-OUTPUT_DIR = Path("docs/api/rust/references")
+OUTPUT_DIR = Path("docs/api/rust")
 
 API_ITEMS = (
     "PdfError",
     "ValidationError",
     "SafetyLimits",
-    "DocumentMetadata",
     "FailureCategory",
     "ValidationCounts",
     "ValidationFailure",
