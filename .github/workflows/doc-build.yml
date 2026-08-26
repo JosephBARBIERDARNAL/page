@@ -22,4 +22,5 @@ jobs:
         with:
           enable-cache: true
 
-      - run: just doc-build
+      - name: Build documentation
+        run: just doc-clean

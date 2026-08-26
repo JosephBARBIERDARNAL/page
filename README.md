@@ -4,10 +4,7 @@
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](https://josephbarbierdarnal.github.io/page/#installation)
-- Usage: [CLI](https://josephbarbierdarnal.github.io/page/api/cli/) or [Rust](https://josephbarbierdarnal.github.io/page/api/rust/)
-
-> [!NOTE]
-> The engine currently implements PDF/A-1, PDF/A-2 and PDF/A-3 validation. The focus is currently on **PDF/UA-1**.
+- Usage: [CLI](./docs/api/cli/quick-start.md) or [Rust](./docs/api/rust/quick-start.md)
 
 <br>
 
