@@ -129,9 +129,3 @@ page validate document.pdf --format details --output report.txt
 ```
 
 Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
-
-<br>
-
-!!! note
-
-      Human-readable output uses colors when writing to a terminal. Set the `NO_COLOR` environment variable or pass `--no-color` to disable them.

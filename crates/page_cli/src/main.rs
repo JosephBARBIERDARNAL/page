@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use anstyle::{AnsiColor, Style};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
+use page_cli::spinner::Spinner;
 use page_validation::{
     FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
     validate_file, validate_file_with_profile,
@@ -421,11 +422,20 @@ fn run_validate(cli: ValidateArgs) {
         max_reference_depth: cli.max_reference_depth,
         max_xref_revisions: SafetyLimits::DEFAULT_MAX_XREF_REVISIONS,
     };
+    let spinner_enabled = selected_format != SelectedFormat::Json
+        && io::stdout().is_terminal()
+        && io::stderr().is_terminal();
     let started_at = Instant::now();
+    let spinner = Spinner::new(
+        spinner_enabled,
+        stderr_colors,
+        format!("Validating {}", cli.file.display()),
+    );
     let report = match cli.profile {
         Some(profile) => {
             let validation_profile: ValidationProfile = profile.into();
             if !validation_profile.is_implemented() {
+                spinner.finish_and_clear();
                 print_error(
                     format_args!("validation profile {validation_profile} is not implemented yet"),
                     stderr_colors,
@@ -437,6 +447,7 @@ fn run_validate(cli: ValidateArgs) {
         None => match validate_file(&cli.file, &limits) {
             Ok(report) => report,
             Err(ValidationError::InputIo(error)) => {
+                spinner.finish_and_clear();
                 print_error(
                     format_args!("could not read '{}': {error}", cli.file.display()),
                     stderr_colors,
@@ -444,11 +455,13 @@ fn run_validate(cli: ValidateArgs) {
                 std::process::exit(1);
             }
             Err(error) => {
+                spinner.finish_and_clear();
                 print_error(error, stderr_colors);
                 std::process::exit(1);
             }
         },
     };
+    spinner.finish_and_clear();
     let elapsed = started_at.elapsed();
     let status = if let Some(failure) = report
         .failures

@@ -96,6 +96,10 @@ benchmark:
 doc-rules:
     cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
 
+# Clean documentation cache
+doc-clean:
+    uvx zensical build --clean
+
 # Serve documentation
 preview:
     uvx zensical serve

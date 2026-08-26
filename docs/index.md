@@ -9,18 +9,4 @@
 
 ## Roadmap
 
-Current focus is on **PDF/UA-1**, see the [reference issue](https://github.com/JosephBARBIERDARNAL/page/issues/61).
-
-- [x] PDF/A-1a
-- [x] PDF/A-1b
-- [x] PDF/A-2a
-- [x] PDF/A-2b
-- [x] PDF/A-2u
-- [x] PDF/A-3a
-- [x] PDF/A-3b
-- [x] PDF/A-3u
-- [ ] PDF/UA-1
-- [ ] PDF/A-4
-- [ ] PDF/A-4e
-- [ ] PDF/A-4f
-- [ ] PDF/UA-2
+So far, <span class="pretty-highlight">all PDF/A and PDF/UA-1 formats have been implemented</span>. The current focus is on consolidating those, making sure they are heavily tested against a large corpus of documents. The goal is to have those foundations completed by **the end of 2026**.

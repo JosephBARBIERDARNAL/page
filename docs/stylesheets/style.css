@@ -371,11 +371,6 @@ h4 {
   font-size: 1.1rem;
 }
 
-table code {
-  white-space: nowrap;
-  word-break: keep-all;
-}
-
 /* YAML/code syntax highlighting with Pygments classes */
 /* Light mode - darker yellows for readability */
 [data-md-color-scheme="default"] .highlight .nt, /* YAML key/tag */

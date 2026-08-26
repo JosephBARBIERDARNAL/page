@@ -1,10 +1,12 @@
 use std::ffi::OsStr;
 use std::fs;
+use std::io::IsTerminal;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
+use page_cli::spinner::Spinner;
 use page_validation::{
     SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
 };
@@ -108,7 +110,13 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
     };
 
     let limits = SafetyLimits::default();
-    let reports = validate_cases(&cases, &limits, args.jobs);
+    let spinner = Spinner::new(
+        std::io::stderr().is_terminal(),
+        std::env::var_os("NO_COLOR").is_none(),
+        format!("Validating corpus (0/{} cases)", cases.len()),
+    );
+    let reports = validate_cases(&cases, &limits, args.jobs, &spinner);
+    spinner.finish_and_clear();
 
     let mut mismatches = 0;
     let mut operational_failures = 0;
@@ -170,6 +178,7 @@ fn validate_cases(
     cases: &[CorpusCase],
     limits: &SafetyLimits,
     jobs: Option<NonZeroUsize>,
+    spinner: &Spinner,
 ) -> Vec<(i32, ValidationReport)> {
     let available_workers = std::thread::available_parallelism()
         .map(std::num::NonZeroUsize::get)
@@ -179,12 +188,19 @@ fn validate_cases(
         .unwrap_or_else(|| available_workers.min(DEFAULT_MAX_WORKERS))
         .min(cases.len().max(1));
 
+    let completed = AtomicUsize::new(0);
+
     if worker_count <= 1 {
         return cases
             .iter()
             .map(|case| {
                 let report = validate_file_with_profile(&case.path, case.profile, limits);
                 let actual = report.exit_code();
+                let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
+                spinner.set_message(format!(
+                    "Validating corpus ({completed}/{} cases)",
+                    cases.len()
+                ));
                 (actual, report)
             })
             .collect();
@@ -195,6 +211,7 @@ fn validate_cases(
         let handles: Vec<_> = (0..worker_count)
             .map(|_| {
                 let next_index = &next_index;
+                let completed = &completed;
                 scope.spawn(move || {
                     let mut results = Vec::new();
                     loop {
@@ -204,6 +221,11 @@ fn validate_cases(
                         };
                         let report = validate_file_with_profile(&case.path, case.profile, limits);
                         let actual = report.exit_code();
+                        let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
+                        spinner.set_message(format!(
+                            "Validating corpus ({completed}/{} cases)",
+                            cases.len()
+                        ));
                         results.push((index, actual, report));
                     }
                     results
