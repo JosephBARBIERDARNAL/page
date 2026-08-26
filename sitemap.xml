@@ -4,19 +4,61 @@
         <loc>https://josephbarbierdarnal.github.io/page/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/cli/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/installation/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/cli/quick-start/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfa-1-rule-mapping/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/cli/colors/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfa-2-3-rule-mapping/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/quick-start/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfua-1-rule-mapping/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationReport/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/SafetyLimits/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_bytes_with_profile/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_bytes/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_file_with_profile/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_file/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/FailureCategory/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationCounts/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationError/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationFailure/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationProfile/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/PdfError/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfa-1-rules/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfa-2-3-rules/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/rules/pdfua-1-rules/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/about/faq/</loc>

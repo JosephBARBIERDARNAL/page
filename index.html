@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="PDF/A and PDF/UA validation engine, written in Rust">
+        <meta name="description" content="PDF/A and PDF/UA validation engine">
       
       
         <meta name="author" content="Joseph Barbier">
@@ -16,7 +16,7 @@
       
       
       
-        <link rel="next" href="./api/cli/">
+        <link rel="next" href="./installation/">
       
       
         
@@ -240,6 +240,38 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="./installation/" class="md-tabs__link">
+        
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+  
+  
+  
+  
     
       
       
@@ -252,7 +284,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./api/cli/" class="md-tabs__link">
+        <a href="./api/cli/quick-start/" class="md-tabs__link">
           
   
   Usage
@@ -262,6 +294,9 @@
     
   
 
+    
+  
+
       
         
   
@@ -282,10 +317,10 @@
     
     
       <li class="md-tabs__item">
-        <a href="./rules/pdfa-1-rule-mapping/" class="md-tabs__link">
+        <a href="./rules/pdfa-1-rules/" class="md-tabs__link">
           
   
-  Rule Reference
+  Rules
 
         </a>
       </li>
@@ -432,21 +467,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Usage
+        Features
       </span>
     </span>
   </a>
@@ -478,6 +502,32 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="./installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -505,7 +555,11 @@
   
   
   
-    <a href="./api/cli/" class="md-nav__link">
+    
+  
+  
+  
+    <a href="./api/cli/quick-start/" class="md-nav__link">
       
   
   
@@ -523,6 +577,8 @@
         <span class="md-nav__icon md-icon"></span>
       
     </a>
+  
+
   
 
       
@@ -565,14 +621,14 @@
   
   
   
-    <a href="./rules/pdfa-1-rule-mapping/" class="md-nav__link">
+    <a href="./rules/pdfa-1-rules/" class="md-nav__link">
       
   
   
   <span class="md-ellipsis">
     
   
-  Rule Reference
+  Rules
 
     
   </span>
@@ -689,21 +745,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Usage
+        Features
       </span>
     </span>
   </a>
@@ -748,46 +793,17 @@
 
 
 <h1 id="page">page<a class="headerlink" href="#page" title="Permanent link">&para;</a></h1>
-<p><code>page</code> is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust. It can currently be used either as a <strong>CLI</strong> or as a <strong>Rust crate</strong>.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">macOS/Linux</label><label for="__tabbed_1_2">PowerShell</label><label for="__tabbed_1_3">Cargo</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>irm<span class="w"> </span>https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.ps1<span class="w"> </span><span class="p">|</span><span class="w"> </span>iex
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo<span class="w"> </span>install<span class="w"> </span>--git<span class="w"> </span>https://github.com/josephbarbierdarnal/page.git<span class="w"> </span>page_cli<span class="w"> </span>--bin<span class="w"> </span>page
-</span></code></pre></div>
-</div>
-</div>
-</div>
-<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<p><code>page</code> is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust.</p>
+<p>You can currently use it as a <a href="api/cli/quick-start/">CLI</a> or via <a href="api/rust/quick-start/">Rust</a></p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="api/cli/">CLI</a></li>
-<li><a href="api/rust/">Rust</a></li>
+<li><strong>Compliant</strong>: validate all PDF/A-1, PDF/A-2, PDF/A-3 and PDF/UA-1 formats</li>
+<li><strong>Tested</strong>: uses the same test corpus as <em>veraPDF</em> <span class="twemoji" title="veraPDF is the gold standard of PDF/A validation, which is why it's used as a reference."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z"/></svg></span></li>
+<li><strong>Fast</strong>: preliminary tests suggest that <code>page</code> is between 3x to 15x faster than veraPDF</li>
+<li><strong>Lightweight</strong>: binary size is ~9MB and peak RSS is between 3x to 8x lower than veraPDF</li>
 </ul>
 <h2 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h2>
-<p>Current focus is on <strong>PDF/UA-1</strong>, see the <a href="https://github.com/JosephBARBIERDARNAL/page/issues/61">reference issue</a>.</p>
-<ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-1a</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-1b</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-2a</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-2b</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-2u</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-3a</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-3b</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> PDF/A-3u</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/UA-1</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-4</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-4e</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/A-4f</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PDF/UA-2</li>
-</ul>
+<p>So far, all PDF/A and PDF/UA-1 formats have been implemented. The current focus is on consolidating those, making sure they are heavily tested against a large corpus of documents. The goal is to have those foundations completed by <strong>the end of 2026</strong>.</p>
 
 
 
@@ -826,13 +842,13 @@
         
         
           
-          <a href="./api/cli/" class="md-footer__link md-footer__link--next" aria-label="Next: CLI">
+          <a href="./installation/" class="md-footer__link md-footer__link--next" aria-label="Next: Installation">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                CLI
+                Installation
               </div>
             </div>
             <div class="md-footer__button md-icon">
