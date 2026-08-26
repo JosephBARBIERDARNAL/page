@@ -10,8 +10,9 @@ fn typst_pdfa_1b_fixture_passes_all_implemented_checks() {
 
     assert!(report.checks_passed, "{report}");
     assert!(report.failures.is_empty(), "{report}");
-    assert_eq!(report.checks.total, 134);
-    assert_eq!(report.checks.passed, 134);
+    let total = ValidationProfile::PdfA1b.implemented_check_count();
+    assert_eq!(report.checks.total, total);
+    assert_eq!(report.checks.passed, total);
     assert_eq!(report.checks.failed, 0);
 
     let document = report.document.expect("parsed PDF document");

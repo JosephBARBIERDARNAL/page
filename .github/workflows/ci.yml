@@ -55,20 +55,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Check out pinned veraPDF corpus
-        uses: actions/checkout@v6
-        with:
-          repository: veraPDF/veraPDF-corpus
-          ref: 49de56cd987929932c9e4fbbbe67d052bf44ef83
-          path: .ci/verapdf-corpus
-          sparse-checkout: |
-            PDF_A-1a
-            PDF_A-1b
-            PDF_A-2a
-            PDF_A-2b
-            PDF_A-2u
-            PDF_A-3b
-
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
 

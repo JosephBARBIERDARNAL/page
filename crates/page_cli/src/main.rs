@@ -20,7 +20,7 @@ mod corpus;
     name = "page",
     bin_name = "page",
     version,
-    about = "Experimental PDF/A and PDF/UA validator"
+    about = "PDF/A and PDF/UA validaton engine"
 )]
 struct Cli {
     #[command(subcommand)]

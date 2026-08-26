@@ -2,6 +2,7 @@
 name = "page_validation"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 description = "PDF/A and PDF/UA validation."
 documentation = "https://josephbarbierdarnal.github.io/page/"
 readme = "../../README.md"
@@ -26,3 +27,6 @@ sha2 = "0.11"
 
 [target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
 wait-timeout = "0.2"
+
+[lints]
+workspace = true

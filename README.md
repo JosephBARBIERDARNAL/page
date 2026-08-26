@@ -1,12 +1,10 @@
 # page
 
-`page` is an <u>experimental</u> PDF/A and PDF/UA validation engine, written in Rust. It can currently be used either as a CLI or as a Rust crate.
+`page` is an <u>experimental</u> PDF/A and PDF/UA validation engine, written in Rust.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](https://josephbarbierdarnal.github.io/page/#installation)
-- Usage
-  - [CLI](https://josephbarbierdarnal.github.io/page/api/cli/)
-  - [Rust](https://josephbarbierdarnal.github.io/page/api/rust/)
+- Usage: [CLI](https://josephbarbierdarnal.github.io/page/api/cli/) or [Rust](https://josephbarbierdarnal.github.io/page/api/rust/)
 
 > [!NOTE]
 > The engine currently implements PDF/A-1, PDF/A-2 and PDF/A-3 validation. The focus is currently on **PDF/UA-1**.

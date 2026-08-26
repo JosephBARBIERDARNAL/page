@@ -29,7 +29,11 @@ fn structure_tree_root_cases_are_distinguished() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 140, "{case}");
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfA1a.implemented_check_count(),
+            "{case}"
+        );
         assert_eq!(
             report
                 .failures
@@ -55,7 +59,11 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 140, "{case}");
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfA1a.implemented_check_count(),
+            "{case}"
+        );
         assert_eq!(
             report
                 .failures
@@ -82,7 +90,11 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
             ValidationProfile::PdfA1a,
             &SafetyLimits::default(),
         );
-        assert_eq!(report.checks.total, 140, "{case}");
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfA1a.implemented_check_count(),
+            "{case}"
+        );
         assert_eq!(
             report
                 .failures

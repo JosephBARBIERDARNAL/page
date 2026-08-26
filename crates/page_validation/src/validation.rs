@@ -63,6 +63,22 @@ impl fmt::Display for ValidationProfile {
 }
 
 impl ValidationProfile {
+    /// Returns the number of checks implemented for this profile.
+    pub const fn implemented_check_count(self) -> usize {
+        match self {
+            Self::PdfA1b => 134,
+            Self::PdfA1a => 140,
+            Self::PdfA2b => 144,
+            Self::PdfA2a => 154,
+            Self::PdfA2u => 146,
+            Self::PdfA3b => 146,
+            Self::PdfA3a => 156,
+            Self::PdfA3u => 148,
+            Self::PdfUa1 => 91,
+            _ => 0,
+        }
+    }
+
     pub const fn is_implemented(self) -> bool {
         matches!(
             self,
@@ -139,21 +155,6 @@ impl ValidationProfile {
             }),
             _ => None,
         }
-    }
-}
-
-fn total_rule_count(profile: ValidationProfile) -> usize {
-    match profile {
-        ValidationProfile::PdfA1b => 134,
-        ValidationProfile::PdfA1a => 140,
-        ValidationProfile::PdfA2b => 144,
-        ValidationProfile::PdfA2a => 154,
-        ValidationProfile::PdfA2u => 146,
-        ValidationProfile::PdfA3b => 146,
-        ValidationProfile::PdfA3a => 156,
-        ValidationProfile::PdfA3u => 148,
-        ValidationProfile::PdfUa1 => 91,
-        _ => 0,
     }
 }
 
@@ -1224,7 +1225,12 @@ fn validate_document(
             None,
             &mut failures,
         );
-        return finish_report(document, profile, failures, total_rule_count(profile));
+        return finish_report(
+            document,
+            profile,
+            failures,
+            profile.implemented_check_count(),
+        );
     }
 
     if document.encrypted {
@@ -1677,7 +1683,12 @@ fn validate_document(
     }
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
-    finish_report(document, profile, failures, total_rule_count(profile))
+    finish_report(
+        document,
+        profile,
+        failures,
+        profile.implemented_check_count(),
+    )
 }
 
 fn validate_tagged_document(
@@ -3384,7 +3395,10 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.passed, 134);
+        assert_eq!(
+            report.checks.passed,
+            ValidationProfile::PdfA1b.implemented_check_count()
+        );
     }
 
     #[test]
@@ -3416,7 +3430,10 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.checks_passed, "{:#?}", report.failures);
-        assert_eq!(report.checks.total, 140);
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfA1a.implemented_check_count()
+        );
     }
 
     #[test]
@@ -3451,7 +3468,10 @@ mod tests {
             validate_bytes(&bytes, &SafetyLimits::default()).expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.checks_passed, "{report:#?}");
-        assert_eq!(report.checks.total, 91);
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfUa1.implemented_check_count()
+        );
     }
 
     #[test]
@@ -3896,7 +3916,10 @@ mod tests {
             &SafetyLimits::default(),
         );
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
-        assert_eq!(a.checks.total, 140);
+        assert_eq!(
+            a.checks.total,
+            ValidationProfile::PdfA1a.implemented_check_count()
+        );
     }
 
     #[test]
@@ -3972,7 +3995,10 @@ mod tests {
         assert!(!document.encrypted_content_unavailable);
         assert!(document.catalog_present);
         assert!(document.xmp.is_some());
-        assert_eq!(report.checks.total, 134);
+        assert_eq!(
+            report.checks.total,
+            ValidationProfile::PdfA1b.implemented_check_count()
+        );
     }
 
     #[test]

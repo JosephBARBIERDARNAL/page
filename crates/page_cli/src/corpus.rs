@@ -26,32 +26,38 @@ struct CorpusProfile {
     profile: ValidationProfile,
 }
 
-const CORPUS_PROFILES: [CorpusProfile; 6] = [
-    CorpusProfile {
-        directory: "PDF_A-1a",
-        profile: ValidationProfile::PdfA1a,
-    },
-    CorpusProfile {
-        directory: "PDF_A-1b",
-        profile: ValidationProfile::PdfA1b,
-    },
-    CorpusProfile {
-        directory: "PDF_A-2a",
-        profile: ValidationProfile::PdfA2a,
-    },
-    CorpusProfile {
-        directory: "PDF_A-2b",
-        profile: ValidationProfile::PdfA2b,
-    },
-    CorpusProfile {
-        directory: "PDF_A-2u",
-        profile: ValidationProfile::PdfA2u,
-    },
-    CorpusProfile {
-        directory: "PDF_A-3b",
-        profile: ValidationProfile::PdfA3b,
-    },
-];
+const CORPUS_PROFILE_SPEC: &str = include_str!("corpus_profiles.txt");
+
+fn corpus_profiles() -> Result<Vec<CorpusProfile>, String> {
+    CORPUS_PROFILE_SPEC
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            let mut fields = line.split_whitespace();
+            let directory = fields
+                .next()
+                .ok_or_else(|| "corpus profile entry has no directory".to_owned())?;
+            let profile = fields
+                .next()
+                .ok_or_else(|| format!("corpus profile entry '{directory}' has no profile"))?;
+            if fields.next().is_some() {
+                return Err(format!(
+                    "corpus profile entry '{directory}' has too many fields"
+                ));
+            }
+            let profile = match profile {
+                "a-1a" => ValidationProfile::PdfA1a,
+                "a-1b" => ValidationProfile::PdfA1b,
+                "a-2a" => ValidationProfile::PdfA2a,
+                "a-2b" => ValidationProfile::PdfA2b,
+                "a-2u" => ValidationProfile::PdfA2u,
+                "a-3b" => ValidationProfile::PdfA3b,
+                other => return Err(format!("unknown corpus profile {other}")),
+            };
+            Ok(CorpusProfile { directory, profile })
+        })
+        .collect()
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ExpectedResult {
@@ -225,7 +231,7 @@ fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {
     }
 
     let mut cases = Vec::new();
-    for corpus_profile in CORPUS_PROFILES {
+    for corpus_profile in corpus_profiles()? {
         let directory = root.join(corpus_profile.directory);
         if !directory.is_dir() {
             return Err(format!(

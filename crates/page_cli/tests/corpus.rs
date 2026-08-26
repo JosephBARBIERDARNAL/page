@@ -29,13 +29,15 @@ impl Drop for TempDirectory {
     }
 }
 
-const PROFILES: [&str; 6] = [
-    "PDF_A-1a", "PDF_A-1b", "PDF_A-2a", "PDF_A-2b", "PDF_A-2u", "PDF_A-3b",
-];
+fn profiles() -> impl Iterator<Item = &'static str> {
+    include_str!("../src/corpus_profiles.txt")
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+}
 
 fn corpus_with_parse_failures() -> TempDirectory {
     let temporary = TempDirectory::new();
-    for profile in PROFILES {
+    for profile in profiles() {
         let directory = temporary.join(profile);
         fs::create_dir(&directory).expect("create corpus profile directory");
         fs::write(

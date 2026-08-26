@@ -1,0 +1,6 @@
+PDF_A-1a a-1a
+PDF_A-1b a-1b
+PDF_A-2a a-2a
+PDF_A-2b a-2b
+PDF_A-2u a-2u
+PDF_A-3b a-3b

@@ -1,4 +1,4 @@
-# Export recipe parameters so the opt-in veraPDF test can receive its binary.
+# Export recipe parameters so veraPDF-backed tests can receive their binary.
 
 set export := true
 
@@ -7,7 +7,7 @@ set export := true
 verapdf_bin := env_var_or_default("VERAPDF_BIN", "verapdf")
 verapdf_corpus_repository := "https://github.com/veraPDF/veraPDF-corpus.git"
 verapdf_corpus_revision := "49de56cd987929932c9e4fbbbe67d052bf44ef83"
-verapdf_corpus_profiles := "PDF_A-1a PDF_A-1b PDF_A-2a PDF_A-2b PDF_A-2u PDF_A-3b"
+verapdf_corpus_profiles := `awk '{ printf "%s ", $1 }' crates/page_cli/src/corpus_profiles.txt`
 
 # Show the available project commands.
 default:
@@ -34,11 +34,13 @@ coverage:
 
 # Run every checked-in atomic and corpus case against pinned veraPDF.
 verapdf verapdf=verapdf_bin:
+    command -v "{{ verapdf }}" >/dev/null 2>&1 || { echo "veraPDF executable not found: {{ verapdf }}" >&2; exit 1; }
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test verapdf_diff -- --nocapture
 
-# Run the opt-in differential suites for every implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
+# Run every validation test with the pinned veraPDF reference enabled.
 verapdf-all verapdf=verapdf_bin:
-    VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --test canonical_compliance --test verapdf_diff --test pdfa_2_3_differential -- --nocapture
+    command -v "{{ verapdf }}" >/dev/null 2>&1 || { echo "veraPDF executable not found: {{ verapdf }}" >&2; exit 1; }
+    VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --tests --all-features --locked -- --nocapture
 
 # Run page's expected-result gate over the selected profiles in a veraPDF corpus checkout.
 verapdf-corpus corpus_dir=".cache/verapdf-corpus":

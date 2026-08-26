@@ -51,15 +51,16 @@ pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
 }
 
 /// Asserts that `report` has exactly one failure, that it is `rule_id`, and
-/// that the remaining 133 of the 134 implemented checks passed. Returns the
+/// that the remaining implemented checks passed. Returns the
 /// matching failure so callers can assert further on it (e.g. `object_id`).
 pub fn assert_single_failure<'a>(
     report: &'a ValidationReport,
     rule_id: &str,
 ) -> &'a ValidationFailure {
-    assert_eq!(report.checks.total, 134);
+    let total = ValidationProfile::PdfA1b.implemented_check_count();
+    assert_eq!(report.checks.total, total);
     assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, 133);
+    assert_eq!(report.checks.passed, total - 1);
     report
         .failures
         .iter()
