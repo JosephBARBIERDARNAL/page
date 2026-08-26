@@ -66,8 +66,8 @@ fn corpus_command_accepts_all_expected_failures_and_a_pass() {
     assert_eq!(output.status.code(), Some(0));
     let stderr = String::from_utf8(output.stderr).expect("UTF-8 corpus output");
     assert!(stderr.contains("Corpus validation"), "{stderr}");
-    assert!(stderr.contains("cases:       7"), "{stderr}");
-    assert!(stderr.contains("matched:     7"), "{stderr}");
+    assert!(stderr.contains("cases:       8"), "{stderr}");
+    assert!(stderr.contains("matched:     8"), "{stderr}");
 }
 
 #[test]

@@ -52,6 +52,7 @@ fn corpus_profiles() -> Result<Vec<CorpusProfile>, String> {
                 "a-2b" => ValidationProfile::PdfA2b,
                 "a-2u" => ValidationProfile::PdfA2u,
                 "a-3b" => ValidationProfile::PdfA3b,
+                "ua-1" => ValidationProfile::PdfUa1,
                 other => return Err(format!("unknown corpus profile {other}")),
             };
             Ok(CorpusProfile { directory, profile })

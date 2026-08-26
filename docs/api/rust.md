@@ -79,7 +79,10 @@ The explicit-profile function returns a `ValidationReport` directly. Unlike prof
 
 ```rust
 use page_validation::{
-    SafetyLimits, ValidationProfile, validate_bytes, validate_bytes_with_profile,
+    SafetyLimits,
+    ValidationProfile,
+    validate_bytes,
+    validate_bytes_with_profile,
 };
 
 let bytes = std::fs::read("document.pdf")?;
