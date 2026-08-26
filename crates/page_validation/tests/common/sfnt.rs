@@ -114,7 +114,9 @@ fn minimal_truetype_with_cmap_encodings(
     }
     put_u16(&mut cmap, cmap_header_length, 0);
     put_u16(&mut cmap, cmap_header_length + 2, 262);
-    cmap[cmap_header_length + 6 + usize::from(code)] = 1;
+    *cmap
+        .get_mut(cmap_header_length + 6 + usize::from(code))
+        .expect("cmap glyph slot") = 1;
 
     let family = utf16be("Page Test");
     let postscript = utf16be("PageTestFont");
@@ -132,8 +134,12 @@ fn minimal_truetype_with_cmap_encodings(
     put_u16(&mut name, 24, 6);
     put_u16(&mut name, 26, postscript.len() as u16);
     put_u16(&mut name, 28, family.len() as u16);
-    name[30..30 + family.len()].copy_from_slice(&family);
-    name[30 + family.len()..].copy_from_slice(&postscript);
+    name.get_mut(30..30 + family.len())
+        .expect("family name bytes")
+        .copy_from_slice(&family);
+    name.get_mut(30 + family.len()..)
+        .expect("PostScript name bytes")
+        .copy_from_slice(&postscript);
 
     let mut os2 = vec![0; 78];
     put_u16(&mut os2, 2, 500);
@@ -183,7 +189,9 @@ pub fn build_sfnt(tables: Vec<([u8; 4], Vec<u8>)>) -> Vec<u8> {
         }
         let offset = font.len();
         let directory = 12 + index * 16;
-        font[directory..directory + 4].copy_from_slice(tag);
+        font.get_mut(directory..directory + 4)
+            .expect("SFNT directory tag")
+            .copy_from_slice(tag);
         put_u32(&mut font, directory + 4, table_checksum(data));
         put_u32(&mut font, directory + 8, offset as u32);
         put_u32(&mut font, directory + 12, data.len() as u32);
@@ -205,7 +213,9 @@ pub fn table_checksum(bytes: &[u8]) -> u32 {
         .chunks(4)
         .map(|chunk| {
             let mut word = [0; 4];
-            word[..chunk.len()].copy_from_slice(chunk);
+            word.get_mut(..chunk.len())
+                .expect("four-byte checksum chunk")
+                .copy_from_slice(chunk);
             u32::from_be_bytes(word)
         })
         .fold(0u32, u32::wrapping_add)
@@ -216,13 +226,22 @@ pub fn utf16be(value: &str) -> Vec<u8> {
 }
 
 pub fn put_u16(bytes: &mut [u8], offset: usize, value: u16) {
-    bytes[offset..offset + 2].copy_from_slice(&value.to_be_bytes());
+    bytes
+        .get_mut(offset..offset + 2)
+        .expect("u16 fixture field")
+        .copy_from_slice(&value.to_be_bytes());
 }
 
 pub fn put_i16(bytes: &mut [u8], offset: usize, value: i16) {
-    bytes[offset..offset + 2].copy_from_slice(&value.to_be_bytes());
+    bytes
+        .get_mut(offset..offset + 2)
+        .expect("i16 fixture field")
+        .copy_from_slice(&value.to_be_bytes());
 }
 
 pub fn put_u32(bytes: &mut [u8], offset: usize, value: u32) {
-    bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+    bytes
+        .get_mut(offset..offset + 4)
+        .expect("u32 fixture field")
+        .copy_from_slice(&value.to_be_bytes());
 }

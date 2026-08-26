@@ -12,6 +12,18 @@ use crate::report::{
     FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
 };
 
+/// A PDF/A or PDF/UA conformance level this crate can validate a document against.
+///
+/// A profile is either declared by a document's own XMP identification schema (see `validate_bytes` and `validate_file`) or selected explicitly by a caller (see `validate_bytes_with_profile` and `validate_file_with_profile`). Not every profile in this enum is implemented yet; `Self::is_implemented` reports which ones a `ValidationReport`'s `checks_passed` can be trusted for, and `Self::implemented_check_count` reports how many rules currently back that result.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::ValidationProfile;
+///
+/// assert_eq!(ValidationProfile::PdfA1b.to_string(), "PDF/A-1b");
+/// assert!(ValidationProfile::PdfA1b.is_implemented());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum ValidationProfile {
     #[serde(rename = "a-1b")]
@@ -161,10 +173,38 @@ impl ValidationProfile {
 /// Returns the sole element of a slice known to hold at most one entry, or
 /// `None` for zero or multiple entries.
 fn only<T>(items: &[T]) -> Option<&T> {
-    (items.len() == 1).then(|| &items[0])
+    items.first().filter(|_| items.len() == 1)
 }
 
-/// Validates a file against the profile declared in its XMP metadata.
+/// Reads a file from disk and validates it against the profile declared in its own XMP metadata.
+///
+/// This is the file-based counterpart of `validate_bytes`: it enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to `validate_bytes`. The returned report has its `source` set to `path`.
+///
+/// ## Arguments
+///
+/// - `path` - The PDF file to read and validate.
+/// - `limits` - The resource bounds enforced while reading, parsing, and inspecting the document.
+///
+/// ## Returns
+///
+/// A `ValidationReport` describing which implemented checks for the declared profile passed or failed, with `source` set to `path`.
+///
+/// ## Errors
+///
+/// Returns `ValidationError::InputIo` if `path` cannot be read or its size cannot be determined, and every error `validate_bytes` can return once the file content is available, including an oversized file reported as `PdfError::InputTooLarge`.
+///
+/// ## Examples
+///
+/// ```rs
+/// use std::path::Path;
+///
+/// use page_validation::{SafetyLimits, validate_file};
+///
+/// let limits = SafetyLimits::default();
+/// let report = validate_file(Path::new("input.pdf"), &limits)?;
+/// println!("{report}");
+/// # Ok::<(), page_validation::ValidationError>(())
+/// ```
 pub fn validate_file(
     path: &Path,
     limits: &SafetyLimits,
@@ -182,7 +222,31 @@ pub fn validate_file(
     validate_bytes(&bytes, limits).map(|report| report.with_source(path))
 }
 
-/// Validates a file against an explicitly selected profile.
+/// Reads a file from disk and validates it against an explicitly selected profile, ignoring any profile the document declares in its own XMP metadata.
+///
+/// This is the file-based counterpart of `validate_bytes_with_profile`: it never fails outright. An unreadable file, an oversized file, or any error `validate_bytes_with_profile` can absorb becomes an operational or parser `ValidationFailure` inside the returned report instead of a thrown error. The returned report has its `source` set to `path`.
+///
+/// ## Arguments
+///
+/// - `path` - The PDF file to read and validate.
+/// - `profile` - The PDF/A or PDF/UA profile to validate against, regardless of what the document's own XMP declares.
+/// - `limits` - The resource bounds enforced while reading, parsing, and inspecting the document.
+///
+/// ## Returns
+///
+/// A `ValidationReport` whose `checks_passed` is `true` only when every implemented check for `profile` passed, with `source` set to `path` and `failures` explaining every recorded problem, including operational ones such as an unreadable file.
+///
+/// ## Examples
+///
+/// ```rs
+/// use std::path::Path;
+///
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_file_with_profile};
+///
+/// let limits = SafetyLimits::default();
+/// let report = validate_file_with_profile(Path::new("input.pdf"), ValidationProfile::PdfA1b, &limits);
+/// println!("{report}");
+/// ```
 pub fn validate_file_with_profile(
     path: &Path,
     profile: ValidationProfile,
@@ -226,7 +290,32 @@ pub fn validate_file_with_profile(
     report.with_source(path)
 }
 
-/// Validates PDF bytes against the profile declared in their XMP metadata.
+/// Validates PDF bytes already in memory against the profile declared in their own XMP metadata.
+///
+/// The document's XMP Identification schema is read to determine whether it targets PDF/A or PDF/UA and which part and conformance level apply, so the caller does not need to already know which profile to check against. Use `validate_bytes_with_profile` instead when the profile is already known or the document's own declaration should be ignored.
+///
+/// ## Arguments
+///
+/// - `bytes` - The complete PDF file content.
+/// - `limits` - The resource bounds enforced while parsing and inspecting the document.
+///
+/// ## Returns
+///
+/// A `ValidationReport` describing which implemented checks for the declared profile passed or failed.
+///
+/// ## Errors
+///
+/// Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails or a `SafetyLimits` bound is exceeded, `ValidationError::MissingProfileDeclaration` or `ValidationError::InvalidProfileDeclaration` if the XMP metadata does not unambiguously declare one supported profile, and `ValidationError::UnsupportedProfile` if it declares a profile this crate does not implement yet.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::{SafetyLimits, validate_bytes};
+///
+/// let limits = SafetyLimits::default();
+/// let error = validate_bytes(b"not a pdf", &limits).unwrap_err();
+/// println!("{error}");
+/// ```
 pub fn validate_bytes(
     bytes: &[u8],
     limits: &SafetyLimits,
@@ -239,7 +328,29 @@ pub fn validate_bytes(
     Ok(validate_document(document, inspections, profile))
 }
 
-/// Validates PDF bytes against an explicitly selected profile.
+/// Validates PDF bytes already in memory against an explicitly selected profile, ignoring any profile the document declares in its own XMP metadata.
+///
+/// Unlike `validate_bytes`, this never fails outright: unreadable, malformed, or resource-exceeding input becomes an operational or parser `ValidationFailure` inside the returned report instead of an `Err`. Use `validate_bytes` instead when the caller wants an error, not a failing report, whenever the document does not declare `profile` itself.
+///
+/// ## Arguments
+///
+/// - `bytes` - The complete PDF file content.
+/// - `profile` - The PDF/A or PDF/UA profile to validate against, regardless of what the document's own XMP declares.
+/// - `limits` - The resource bounds enforced while parsing and inspecting the document.
+///
+/// ## Returns
+///
+/// A `ValidationReport` whose `checks_passed` is `true` only when every implemented check for `profile` passed, and whose `failures` explains every recorded problem, including operational ones such as an unimplemented `profile` or an exceeded `SafetyLimits` bound.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+///
+/// let limits = SafetyLimits::default();
+/// let report = validate_bytes_with_profile(b"not a pdf", ValidationProfile::PdfA1b, &limits);
+/// assert_eq!(report.exit_code(), 2);
+/// ```
 pub fn validate_bytes_with_profile(
     bytes: &[u8],
     profile: ValidationProfile,
@@ -307,7 +418,7 @@ fn declared_pdfa_profile(
     let part = xmp_integer_value(part).ok_or_else(|| {
         ValidationError::InvalidProfileDeclaration(format!(
             "pdfaid:part value {:?} is not an integer",
-            xmp.pdfa_parts[0]
+            part
         ))
     })?;
     let conformance = match xmp.pdfa_conformances.as_slice() {
@@ -981,12 +1092,12 @@ fn validate_document(
                 None,
                 &mut failures,
             );
-            aggregate_failures(
-                &inspections.forms.dynamic_xfa_forms,
-                "PDFUA1-DYNAMIC-XFA-001",
-                &mut failures,
-            );
         }
+        aggregate_failures(
+            &inspections.forms.dynamic_xfa_forms,
+            "PDFUA1-DYNAMIC-XFA-001",
+            &mut failures,
+        );
         aggregate_failures_with_location(
             &inspections.annotations.annotations_not_nested_in_annot,
             "PDFUA1-ANNOTATION-ANNOT-TAG-001",
@@ -1418,7 +1529,9 @@ fn validate_document(
             ));
         }
         for test in &xmp.extension_schema_failed_tests {
-            let (rule_id, message) = extension_schema_rule(*test);
+            let Some((rule_id, message)) = extension_schema_rule(*test) else {
+                continue;
+            };
             failures.push(failure(
                 rule_id,
                 message,
@@ -1430,7 +1543,9 @@ fn validate_document(
             if *test == 7 && !profile.is_pdfa_2_or_3() {
                 continue;
             }
-            let (rule_id, property) = identification_prefix_rule(*test);
+            let Some((rule_id, property)) = identification_prefix_rule(*test) else {
+                continue;
+            };
             failures.push(failure(
                 rule_id,
                 format!(
@@ -1948,8 +2063,8 @@ fn validate_object_limits(
     }
 }
 
-fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
-    match test {
+fn extension_schema_rule(test: u8) -> Option<(&'static str, &'static str)> {
+    Some(match test {
         1 => (
             "PDFA1B-XMP-EXTENSION-FIELDS-001",
             "an XMP extension-schema object contains a field not defined by PDF/A-1",
@@ -2026,18 +2141,18 @@ fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
             "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
             "an extension-schema field has an invalid description",
         ),
-        _ => unreachable!("unsupported PDF/A-1 extension-schema test {test}"),
-    }
+        _ => return None,
+    })
 }
 
-fn identification_prefix_rule(test: u8) -> (&'static str, &'static str) {
-    match test {
+fn identification_prefix_rule(test: u8) -> Option<(&'static str, &'static str)> {
+    Some(match test {
         4 => ("PDFA1B-ID-PART-PREFIX-001", "part"),
         5 => ("PDFA1B-ID-CONFORMANCE-PREFIX-001", "conformance"),
         6 => ("PDFA1B-ID-AMD-PREFIX-001", "amd"),
         7 => ("PDFA1B-ID-CORR-PREFIX-001", "corr"),
-        _ => unreachable!("unsupported PDF/A-1 identification-prefix test {test}"),
-    }
+        _ => return None,
+    })
 }
 
 fn validate_actions(
@@ -2600,14 +2715,16 @@ fn validate_xobjects(
         for (index, failures_for_rule) in xobjects.jpeg2000_failures.iter().enumerate() {
             aggregate_failures(
                 failures_for_rule,
-                match index {
-                    0 => "PDFA1B-JPEG2000-CHANNELS-001",
-                    1 => "PDFA1B-JPEG2000-COLOR-SPECS-001",
-                    2 => "PDFA1B-JPEG2000-COLOR-METHOD-001",
-                    3 => "PDFA1B-JPEG2000-COLOR-SPACE-001",
-                    4 => "PDFA1B-JPEG2000-BIT-DEPTH-001",
-                    _ => unreachable!(),
-                },
+                [
+                    "PDFA1B-JPEG2000-CHANNELS-001",
+                    "PDFA1B-JPEG2000-COLOR-SPECS-001",
+                    "PDFA1B-JPEG2000-COLOR-METHOD-001",
+                    "PDFA1B-JPEG2000-COLOR-SPACE-001",
+                    "PDFA1B-JPEG2000-BIT-DEPTH-001",
+                ]
+                .get(index)
+                .copied()
+                .unwrap_or("PDFA1B-JPEG2000-BIT-DEPTH-001"),
                 failures,
             );
         }

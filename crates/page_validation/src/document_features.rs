@@ -871,7 +871,9 @@ fn is_mime_type(value: &[u8]) -> bool {
         return false;
     };
     let (type_, subtype) = value.split_at(separator);
-    let subtype = &subtype[1..];
+    let Some(subtype) = subtype.get(1..) else {
+        return false;
+    };
     !type_.is_empty()
         && !subtype.is_empty()
         && type_
@@ -902,11 +904,14 @@ fn page_boundary_size(
         .iter()
         .map(|value| value.as_float().ok())
         .collect::<Option<Vec<_>>>();
-    Ok(numbers.map(|values| {
-        (
-            f64::from((values[2] - values[0]).abs()),
-            f64::from((values[3] - values[1]).abs()),
-        )
+    Ok(numbers.and_then(|values| {
+        let [left, bottom, right, top] = values.as_slice() else {
+            return None;
+        };
+        Some((
+            f64::from((right - left).abs()),
+            f64::from((top - bottom).abs()),
+        ))
     }))
 }
 
@@ -1083,9 +1088,10 @@ fn inspect_structure_tree(
             &mut ancestors,
             &mut steps,
             0,
-            false,
             StructureTraversalContext {
                 parent_standard_type: None,
+                parent_has_lang: false,
+                parent_page_id: None,
                 role_map: &role_map.mappings,
             },
         )?;
@@ -1268,6 +1274,8 @@ fn is_standard_structure_type(value: &[u8]) -> bool {
 #[derive(Clone, Copy)]
 struct StructureTraversalContext<'parent, 'role_map> {
     parent_standard_type: Option<&'parent [u8]>,
+    parent_has_lang: bool,
+    parent_page_id: Option<ObjectId>,
     role_map: &'role_map BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -1279,7 +1287,6 @@ fn inspect_structure_kids(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
-    parent_has_lang: bool,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
@@ -1307,13 +1314,12 @@ fn inspect_structure_kids(
                     ancestors,
                     steps,
                     depth + 1,
-                    parent_has_lang,
                     context,
                 )?;
             }
         }
         Object::Dictionary(dictionary) => {
-            if parent_has_lang
+            if context.parent_has_lang
                 && dictionary
                     .get(b"Type")
                     .ok()
@@ -1323,6 +1329,7 @@ fn inspect_structure_kids(
                     .get(b"Pg")
                     .ok()
                     .and_then(|value| value.as_reference().ok())
+                    .or(context.parent_page_id)
                 && let Some(mcid) = dictionary
                     .get(b"MCID")
                     .ok()
@@ -1345,7 +1352,6 @@ fn inspect_structure_kids(
                 ancestors,
                 steps,
                 depth,
-                parent_has_lang,
                 context,
             );
             if let Some(structure_id) = structure_id {
@@ -1367,9 +1373,10 @@ fn inspect_structure_element(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
-    parent_has_lang: bool,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
+    let parent_has_lang = context.parent_has_lang;
+    let parent_page_id = context.parent_page_id;
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
         limits,
@@ -1974,11 +1981,13 @@ fn inspect_structure_element(
                 .to_owned(),
         });
     }
+    let page_id = dictionary
+        .get(b"Pg")
+        .ok()
+        .and_then(|value| value.as_reference().ok())
+        .or(parent_page_id);
     if (contains_lang || parent_has_lang)
-        && let Some(page_id) = dictionary
-            .get(b"Pg")
-            .ok()
-            .and_then(|value| value.as_reference().ok())
+        && let Some(page_id) = page_id
         && let Ok(kids) = dictionary.get(b"K")
         && let Some(kids) = resolve_optional(document, kids, limits.max_reference_depth)?
     {
@@ -2005,13 +2014,14 @@ fn inspect_structure_element(
             ancestors,
             steps,
             depth + 1,
-            parent_has_lang || contains_lang,
             StructureTraversalContext {
                 parent_standard_type: resolved_standard_type(
                     structure_type,
                     context.role_map,
                     limits.max_object_count,
                 ),
+                parent_has_lang: parent_has_lang || contains_lang,
+                parent_page_id: page_id,
                 role_map: context.role_map,
             },
         )?;
@@ -2472,7 +2482,9 @@ fn table_grid_spans(
                 if column_after_cell > column_ends.len() {
                     column_ends.resize(column_after_cell, 0);
                 }
-                if (column..column_after_cell).all(|index| column_ends[index] <= row_index) {
+                if (column..column_after_cell)
+                    .all(|index| column_ends.get(index).is_some_and(|end| *end <= row_index))
+                {
                     row_width = row_width.max(column_after_cell);
                     break;
                 }
@@ -2725,7 +2737,12 @@ fn table_cell_intersection_failures<'a>(
                 continue;
             }
             let (row_span, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
-            while column_number < number_of_columns && cells[row_number][column_number].is_some() {
+            while column_number < number_of_columns
+                && cells
+                    .get(row_number)
+                    .and_then(|row| row.get(column_number))
+                    .is_some_and(Option::is_some)
+            {
                 column_number += 1;
             }
             if column_number.saturating_add(column_span) > number_of_columns
@@ -2734,8 +2751,12 @@ fn table_cell_intersection_failures<'a>(
                 return Ok(Vec::new());
             }
             if let Some(existing) = (row_number..row_number + row_span).find_map(|row_index| {
-                (column_number..column_number + column_span)
-                    .find_map(|column_index| cells[row_index][column_index].as_ref())
+                (column_number..column_number + column_span).find_map(|column_index| {
+                    cells
+                        .get(row_index)
+                        .and_then(|row| row.get(column_index))
+                        .and_then(Option::as_ref)
+                })
             }) {
                 let mut object_ids = BTreeSet::new();
                 object_ids.insert(kid.object_id.map(Into::into));
@@ -2773,7 +2794,11 @@ fn table_grid(
 
     let first_row = table_structure_kids(
         document,
-        rows[0].dictionary,
+        rows.first()
+            .map(|row| row.dictionary)
+            .ok_or(PdfError::UnexpectedObject(
+                "table rows unexpectedly became empty",
+            ))?,
         role_map,
         limits.max_reference_depth,
         limits.max_object_count,
@@ -2803,7 +2828,12 @@ fn table_grid(
             }
             contains_cells = true;
             let (row_span, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
-            while column_number < number_of_columns && cells[row_number][column_number].is_some() {
+            while column_number < number_of_columns
+                && cells
+                    .get(row_number)
+                    .and_then(|row| row.get(column_number))
+                    .is_some_and(Option::is_some)
+            {
                 column_number += 1;
             }
             if column_number.saturating_add(column_span) > number_of_columns
@@ -2812,8 +2842,12 @@ fn table_grid(
                 return Ok(None);
             }
             if (row_number..row_number + row_span).any(|row_index| {
-                (column_number..column_number + column_span)
-                    .any(|column_index| cells[row_index][column_index].is_some())
+                (column_number..column_number + column_span).any(|column_index| {
+                    cells
+                        .get(row_index)
+                        .and_then(|row| row.get(column_index))
+                        .is_some_and(Option::is_some)
+                })
             }) {
                 return Ok(None);
             }
@@ -2854,16 +2888,25 @@ fn table_scope_matches(cell: &TableGridCell, expected: &[u8]) -> bool {
 
 fn table_has_connected_header(cells: &[Vec<Option<TableGridCell>>], cell: &TableGridCell) -> bool {
     if cell.row > 0 {
-        for (column_offset, _) in cells[0]
-            .iter()
+        for (column_offset, _) in cells
+            .first()
+            .map(|row| row.iter())
+            .into_iter()
+            .flatten()
             .skip(cell.column)
             .take(cell.column_span)
             .enumerate()
         {
             let column = cell.column + column_offset;
             let mut header_found = false;
-            for row in cells[..cell.row].iter().rev() {
-                let Some(header) = row[column].as_ref() else {
+            for row in cells
+                .get(..cell.row)
+                .map(|rows| rows.iter())
+                .into_iter()
+                .flatten()
+                .rev()
+            {
+                let Some(header) = row.get(column).and_then(Option::as_ref) else {
                     continue;
                 };
                 if header.standard_type == b"TH" && table_scope_matches(header, b"Column") {
@@ -2878,11 +2921,14 @@ fn table_has_connected_header(cells: &[Vec<Option<TableGridCell>>], cell: &Table
         }
     }
     if cell.column > 0 {
+        let Some(first_row) = cells.first() else {
+            return false;
+        };
         for row in cells.iter().skip(cell.row).take(cell.row_span) {
             let mut header_found = false;
-            for (column_offset, _) in cells[0].iter().take(cell.column).rev().enumerate() {
+            for (column_offset, _) in first_row.iter().take(cell.column).rev().enumerate() {
                 let column = cell.column - column_offset - 1;
-                let Some(header) = row[column].as_ref() else {
+                let Some(header) = row.get(column).and_then(Option::as_ref) else {
                     continue;
                 };
                 if header.standard_type == b"TH" && table_scope_matches(header, b"Row") {
@@ -3451,6 +3497,6 @@ mod tests {
             }),
         );
 
-        assert!(inspect(&document, &[], &SafetyLimits::default()).is_ok());
+        inspect(&document, &[], &SafetyLimits::default()).unwrap();
     }
 }

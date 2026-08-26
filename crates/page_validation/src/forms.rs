@@ -84,10 +84,22 @@ fn inspect_acro_form(
         acro_form,
         limits,
         |field, object_id, context, _depth| {
-            if has_non_null_entry(document, field, b"TU", limits)? && !catalog_contains_lang {
+            let associated_structure_contains_lang =
+                annotation_structure_element(document, field, limits)?
+                    .map(|structure_element| {
+                        has_non_null_entry(document, structure_element, b"Lang", limits)
+                    })
+                    .transpose()?
+                    .unwrap_or(false);
+            if has_non_null_entry(document, field, b"TU", limits)?
+                && !catalog_contains_lang
+                && !associated_structure_contains_lang
+            {
                 summary.tu_language_failures.push(RuleFailure {
                     object_id,
-                    description: format!("{context} has /TU without a catalog /Lang"),
+                    description: format!(
+                        "{context} has /TU without an associated structure or catalog /Lang"
+                    ),
                 });
             }
             Ok(())
@@ -347,7 +359,8 @@ fn inspect_page_widgets(
                             object_number(top),
                         ),
                         (Some(left), Some(bottom), Some(right), Some(top))
-                            if left == right && bottom == top
+                            if (left - right).abs() <= f64::EPSILON
+                                && (bottom - top).abs() <= f64::EPSILON
                     )
                 });
             let has_appearance = annotation
@@ -375,20 +388,25 @@ fn widget_has_non_empty_tu(
     widget: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    Ok(walk_inherited(
-        document,
-        widget,
-        limits,
-        b"TU",
-        |document, value, limits| {
+    let field = if let Ok(parent) = widget.get(b"Parent")
+        && let Some(parent) = resolve_optional(document, parent, limits.max_reference_depth)?
+            .and_then(dictionary_based)
+        && parent.get(b"FT").is_ok()
+    {
+        parent
+    } else {
+        widget
+    };
+    Ok(
+        walk_inherited(document, field, limits, b"TU", |document, value, limits| {
             Ok(Some(
                 resolve_optional(document, value, limits.max_reference_depth)?
                     .and_then(|value| value.as_str().ok())
                     .is_some_and(|value| !value.is_empty()),
             ))
-        },
-    )?
-    .unwrap_or(false))
+        })?
+        .unwrap_or(false),
+    )
 }
 
 fn object_number(value: &Object) -> Option<f64> {

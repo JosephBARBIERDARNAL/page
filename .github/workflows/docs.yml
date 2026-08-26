@@ -27,7 +27,7 @@ jobs:
         with:
           enable-cache: true
 
-      - run: just doc-build
+      - run: just doc-clean
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

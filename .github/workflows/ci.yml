@@ -43,9 +43,6 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features --locked
 
-      - name: Check PDF/A-1B coverage inventory
-        run: just coverage
-
   verapdf:
     name: veraPDF differential and corpus gate
     runs-on: ubuntu-latest
@@ -87,10 +84,10 @@ jobs:
             "$GITHUB_WORKSPACE/.github/verapdf-auto-install.xml"
           /tmp/verapdf/verapdf --version
 
-      - name: Enforce all implemented PDF/A profile coverage
+      - name: Enforce all implemented PDF/A and PDF/UA profile coverage
         env:
           VERAPDF_BIN: /tmp/verapdf/verapdf
         run: just pdfa-release-gate
 
-      - name: Run page against the selected veraPDF corpus
+      - name: Run page against the veraPDF corpus
         run: just verapdf-corpus

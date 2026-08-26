@@ -1,3 +1,8 @@
+#![expect(
+    clippy::panic,
+    reason = "differential fixture dispatch deliberately fails loudly for undeclared cases"
+)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;

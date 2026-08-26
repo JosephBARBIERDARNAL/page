@@ -34,14 +34,17 @@ impl Visited {
     fn insert(&mut self, id: ObjectId) -> bool {
         match self {
             Self::Inline { ids, len } => {
-                if ids[..*len].contains(&id) {
+                if ids.iter().take(*len).any(|candidate| candidate == &id) {
                     return false;
                 }
                 if *len < INLINE_VISITED_CAPACITY {
-                    ids[*len] = id;
+                    let Some(slot) = ids.get_mut(*len) else {
+                        return false;
+                    };
+                    *slot = id;
                     *len += 1;
                 } else {
-                    let mut spilled = ids[..*len].to_vec();
+                    let mut spilled = ids.iter().take(*len).copied().collect::<Vec<_>>();
                     spilled.push(id);
                     *self = Self::Spilled(spilled);
                 }

@@ -3,10 +3,7 @@
   "reference": {
     "product": "veraPDF",
     "version": "1.30.2",
-    "specifications": [
-      "ISO 19005-2:2011",
-      "ISO 19005-3:2012"
-    ],
+    "specifications": ["ISO 19005-2:2011", "ISO 19005-3:2012"],
     "profiles": {
       "2a": {
         "profile_file": "tests/fixtures/PDFA-2A-1.30.2.xml",
@@ -948,7 +945,7 @@
     "schema_version": 1,
     "document": {
       "title": "PDF/A-2 and PDF/A-3 pinned rule mapping",
-      "output_path": "docs/rules/pdfa-2-3-rule-mapping.md",
+      "output_path": "docs/rules/pdfa-2-3-rules.md",
       "local_only_description": "These checks support parsing, bounded inspection, or local model preconditions and do not map to a standalone veraPDF profile predicate."
     },
     "applicability_sections": [
@@ -956,54 +953,31 @@
         "key": "shared_pdfa_2_3",
         "heading": "Shared PDF/A-2 and PDF/A-3 mappings",
         "description": "These rules apply to both PDF/A-2 and PDF/A-3; shared validation code selects the part-specific limits and report namespace at runtime.",
-        "profiles": [
-          "2a",
-          "2b",
-          "2u",
-          "3a",
-          "3b",
-          "3u"
-        ]
+        "profiles": ["2a", "2b", "2u", "3a", "3b", "3u"]
       },
       {
         "key": "pdfa_2",
         "heading": "PDF/A-2 mappings",
         "description": "These mappings reference the PDF/A-2 veraPDF predicates.",
-        "profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ]
+        "profiles": ["2a", "2b", "2u"]
       },
       {
         "key": "pdfa_3",
         "heading": "PDF/A-3 mappings",
         "description": "These mappings reference the PDF/A-3 veraPDF predicates, including associated-file requirements.",
-        "profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ]
+        "profiles": ["3a", "3b", "3u"]
       },
       {
         "key": "a_or_u",
         "heading": "PDF/A-2 and PDF/A-3 A/U mappings",
         "description": "These Unicode-mapping requirements apply to A and U conformance levels.",
-        "profiles": [
-          "2a",
-          "2u",
-          "3a",
-          "3u"
-        ]
+        "profiles": ["2a", "2u", "3a", "3u"]
       },
       {
         "key": "a_only",
         "heading": "PDF/A-2 and PDF/A-3 A-only mappings",
         "description": "These tagged-structure requirements apply only to A conformance levels.",
-        "profiles": [
-          "2a",
-          "3a"
-        ]
+        "profiles": ["2a", "3a"]
       }
     ],
     "profiles": [
@@ -1986,11 +1960,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.12:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-PERMS-ENTRIES-001",
         "implementation_strength": "exact",
         "semantic_note": "The catalog permissions dictionary contains only UR3 and DocMDP keys, resolving the dictionary through indirection.",
@@ -2000,11 +1970,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.12:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-PERMS-ENTRIES-001",
         "implementation_strength": "exact",
         "semantic_note": "The catalog permissions dictionary contains only UR3 and DocMDP keys, resolving the dictionary through indirection.",
@@ -2034,9 +2000,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly A for the selected profile.",
@@ -2046,9 +2010,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.7.2.2:1",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires MarkInfo/Marked to be true.",
@@ -2058,9 +2020,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.7.3.3:1",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a logical structure hierarchy rooted at the catalog StructTreeRoot.",
@@ -2070,9 +2030,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.7.3.4:1",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every non-standard structure type to map to a standard type.",
@@ -2082,9 +2040,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.7.3.4:2",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects circular structure-type role mappings.",
@@ -2094,9 +2050,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-2:2011:6.7.4:1",
-        "applicable_profiles": [
-          "2a"
-        ],
+        "applicable_profiles": ["2a"],
         "canonical_local_rule_id": "PDFA1A-LANG-001",
         "implementation_strength": "exact",
         "semantic_note": "Validates present catalog, structure-element, and property-list language tags.",
@@ -2106,9 +2060,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:3",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly A for the selected profile.",
@@ -2118,9 +2070,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.7.2.2:1",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-TAGGED-DOCUMENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires MarkInfo/Marked to be true.",
@@ -2130,9 +2080,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.7.3.3:1",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROOT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a logical structure hierarchy rooted at the catalog StructTreeRoot.",
@@ -2142,9 +2090,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.7.3.4:1",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every non-standard structure type to map to a standard type.",
@@ -2154,9 +2100,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.7.3.4:2",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects circular structure-type role mappings.",
@@ -2166,9 +2110,7 @@
       {
         "section": "a_only",
         "verapdf_rule_id": "ISO 19005-3:2012:6.7.4:1",
-        "applicable_profiles": [
-          "3a"
-        ],
+        "applicable_profiles": ["3a"],
         "canonical_local_rule_id": "PDFA1A-LANG-001",
         "implementation_strength": "exact",
         "semantic_note": "Validates present catalog, structure-element, and property-list language tags.",
@@ -2178,10 +2120,7 @@
       {
         "section": "a_or_u",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.7.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2u"],
         "canonical_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
         "implementation_strength": "exact",
         "semantic_note": "For used visible text, applies the bounded ToUnicode CMap and PDF/A exception semantics: every rendered code must map to valid Unicode, with standard simple-font, Symbol, Identity, and Adobe CMap exceptions resolved through bounded indirection.",
@@ -2191,10 +2130,7 @@
       {
         "section": "a_or_u",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.7.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3u"],
         "canonical_local_rule_id": "PDFA1A-UNICODE-MAPPING-001",
         "implementation_strength": "exact",
         "semantic_note": "For used visible text, applies the bounded ToUnicode CMap and PDF/A exception semantics: every rendered code must map to valid Unicode, with standard simple-font, Symbol, Identity, and Adobe CMap exceptions resolved through bounded indirection.",
@@ -2404,9 +2340,7 @@
       {
         "section": "pdfa_2",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
-        "applicable_profiles": [
-          "2b"
-        ],
+        "applicable_profiles": ["2b"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly B for the selected profile.",
@@ -2416,9 +2350,7 @@
       {
         "section": "pdfa_2",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:3",
-        "applicable_profiles": [
-          "2u"
-        ],
+        "applicable_profiles": ["2u"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly U for the selected profile.",
@@ -2428,9 +2360,7 @@
       {
         "section": "pdfa_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:3",
-        "applicable_profiles": [
-          "3b"
-        ],
+        "applicable_profiles": ["3b"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly B for the selected profile.",
@@ -2440,9 +2370,7 @@
       {
         "section": "pdfa_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:3",
-        "applicable_profiles": [
-          "3u"
-        ],
+        "applicable_profiles": ["3u"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:conformance to contain exactly U for the selected profile.",
@@ -2452,11 +2380,7 @@
       {
         "section": "pdfa_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.8:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-EMBEDDED-FILE-MIME-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a syntactically valid MIME Subtype for every embedded file.",
@@ -2466,11 +2390,7 @@
       {
         "section": "pdfa_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.8:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FILE-SPEC-AF-RELATIONSHIP-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires AFRelationship on embedded-file specifications.",
@@ -2480,11 +2400,7 @@
       {
         "section": "pdfa_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.8:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FILE-SPEC-ASSOCIATION-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every embedded-file specification to be associated with the document or one of its parts.",
@@ -2494,11 +2410,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.10:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-INLINE-IMAGE-FILTER-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects LZW, Crypt, and unlisted inline-image filters across bounded executed content.",
@@ -2508,11 +2420,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-INTEGER-RANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every integer in the active revision's effective object graph is evaluated from its source token before `lopdf` narrowing; overwritten duplicate values and superseded revisions are inapplicable.",
@@ -2522,11 +2430,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:10",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-MAX-CID-001",
         "implementation_strength": "exact",
         "semantic_note": "Every embedded CMap's maximum CID is at most 65,535.",
@@ -2536,11 +2440,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:11",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-PAGE-BOUNDARY-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every page boundary dimension to be between 3 and 14,400 units.",
@@ -2550,11 +2450,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-REAL-RANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 real-number range of plus or minus 3.403 \u00d7 10^38.",
@@ -2564,11 +2460,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-STRING-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects strings longer than 32,767 bytes for PDF/A-2 and PDF/A-3.",
@@ -2578,11 +2470,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-NAME-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Every effective name value has at most 127 decoded bytes after `#xx` processing; dictionary keys are outside the pinned `CosName` model.",
@@ -2592,11 +2480,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-REAL-MINIMUM-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects nonzero real values closer to zero than 1.175 \u00d7 10^-38.",
@@ -2606,11 +2490,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:7",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
         "implementation_strength": "exact",
         "semantic_note": "Active non-free classic or compressed xref entries supply `nrIndirects <= 8388607`; configured input/object limits may fail operationally before a larger source is modeled.",
@@ -2620,11 +2500,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:8",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-GRAPHICS-STATE-NESTING-001",
         "implementation_strength": "exact",
         "semantic_note": "Bounded executed page, Form, annotation-appearance, selected tiling-Pattern, and rendered-Type3 content maintains at most 28 saved graphics states; each nested content container starts its own graphics-state stack.",
@@ -2634,11 +2510,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.13:9",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-DEVICEN-COMPONENTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 limit of 32 DeviceN colourants.",
@@ -2648,11 +2520,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HEADER-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires the byte-zero header line to be exactly `%PDF-1.n`, where `n` is a single digit from 0 through 7.",
@@ -2662,11 +2530,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HEADER-BINARY-COMMENT-001",
         "implementation_strength": "exact",
         "semantic_note": "The header line is immediately followed by a comment whose first four bytes each have a decimal value above 127.",
@@ -2676,11 +2540,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRAILER-ID-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a nonempty last trailer ID value; the PDF/A-1 linearized first-trailer rule is not applied to PDF/A-2 or PDF/A-3.",
@@ -2690,11 +2550,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ENCRYPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isEncrypted != true`",
@@ -2704,11 +2560,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-POST-EOF-DATA-001",
         "implementation_strength": "exact",
         "semantic_note": "No bytes follow the last `%%EOF` marker except a single optional end-of-line marker.",
@@ -2718,11 +2570,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.4:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XREF-EOL-001",
         "implementation_strength": "exact",
         "semantic_note": "The `xref` keyword and each subsection header in every selected revision are separated by a single end-of-line marker; recoverable extra markers remain modeled failures.",
@@ -2732,11 +2580,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.6:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HEX-STRING-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Every modeled hexadecimal string retains its original non-whitespace digit count, including veraPDF-recoverable malformed strings, and that count is even.",
@@ -2746,11 +2590,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.6:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HEX-STRING-CHARACTERS-001",
         "implementation_strength": "exact",
         "semantic_note": "Every modeled hexadecimal string retains whether all original non-whitespace characters were `0`-`9`, `A`-`F`, or `a`-`f`; a recoverable invalid character is a conformance failure rather than `PDF-PARSE-001`.",
@@ -2760,11 +2600,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.7.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "The effective direct or indirect `/Length`, after last-duplicate-key selection, matches the independent raw byte extent from the first data byte through the byte before the EOL preceding `endstream`.",
@@ -2774,11 +2610,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.7.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-EOL-001",
         "implementation_strength": "exact",
         "semantic_note": "The `stream` keyword is followed by CRLF or a single LF, and `endstream` is preceded by an end-of-line marker.",
@@ -2788,11 +2620,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.7.1:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-EXTERNAL-DATA-001",
         "implementation_strength": "exact",
         "semantic_note": "For every selected indirect stream dictionary: `F == null && FFilter == null && FDecodeParms == null`; direct null and last-duplicate-key selection follow the pinned COS model.",
@@ -2802,11 +2630,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.7.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-FILTER-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects every stream filter outside the PDF/A-2/3 allow-list, including LZWDecode and Crypt unless its resolved decode-parameters Name is Identity.",
@@ -2816,11 +2640,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.1.9:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-INDIRECT-OBJECT-SYNTAX-001",
         "implementation_strength": "exact",
         "semantic_note": "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by a single whitespace character, bounded by end-of-line markers.",
@@ -2830,11 +2650,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.10:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ALTERNATE-PRESENTATIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects AlternatePresentations in the document name dictionary.",
@@ -2844,11 +2660,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.10:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-PRES-STEPS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects PresSteps in page dictionaries.",
@@ -2858,11 +2670,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.11:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-REQUIREMENTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects Requirements in the document catalog.",
@@ -2872,11 +2680,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.10:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-BLEND-MODE-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts only blend modes defined by ISO 32000-1.",
@@ -2886,11 +2690,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.10:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRANSPARENCY-GROUP-CS-001",
         "implementation_strength": "exact",
         "semantic_note": "When no PDF/A output intent exists, rejects each used page containing transparency unless its transparency Group has a CS blending colour space; used ExtGState alpha/blend/soft-mask, image soft-mask, Form transparency groups, and explicit page groups are tracked through the shared executed-content traversal.",
@@ -2900,11 +2700,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object. `/Type` is resolved through indirection before this check.",
@@ -2914,11 +2710,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both). `/Subtype` itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. `/TrueType`, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped).",
@@ -2928,11 +2720,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-BASEFONT-001",
         "implementation_strength": "exact",
         "semantic_note": "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally. `/BaseFont` is resolved through indirection before this check and before every other `/BaseFont`-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for `TYPE1-SUBSET-CHARSET-001`/`CID-SUBSET-CIDSET-001`).",
@@ -2942,11 +2730,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-FIRSTCHAR-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || FirstChar != null`. `isStandard` (the standard-14-fonts exemption) is confirmed live to apply only to `Type1`/`MMType1`; a `TrueType` or `Type3` font whose `/BaseFont` matches a standard-14 name is not exempt.",
@@ -2956,11 +2740,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-LASTCHAR-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || LastChar != null`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`.",
@@ -2970,11 +2750,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:6",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-WIDTHS-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`. `/Widths` is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one).",
@@ -2984,11 +2760,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.2:7",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-FILE-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts Type1C, CIDFontType0C, and OpenType font-file subtypes.",
@@ -2998,11 +2770,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
         "implementation_strength": "exact",
         "semantic_note": "For non-Identity Type 0 CMaps reached by bounded text-show paths, requires matching Registry and Ordering values plus non-null supplements where the CIDFont supplement is no greater than the CMap supplement.",
@@ -3012,11 +2780,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CIDTOGIDMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For each embedded CIDFontType2 descendant reached through bounded text-show paths, requires a valid /CIDToGIDMap stream or the name /Identity; unembedded descendants are inapplicable.",
@@ -3026,11 +2790,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-EMBEDDING-001",
         "implementation_strength": "exact",
         "semantic_note": "For Type 0 CMaps reached by bounded text-show paths, accepts exactly the ISO 32000-1:2008 Table 118 names; every other named CMap must be embedded.",
@@ -3040,11 +2800,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.3.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-WMODE-001",
         "implementation_strength": "exact",
         "semantic_note": "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one).",
@@ -3064,11 +2820,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.4.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FONT-EMBEDDING-001",
         "implementation_strength": "exact",
         "semantic_note": "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page, Form, annotation appearance, selected Pattern, and rendered Type3 text-show paths, including used Type0 descendants and every button Widget appearance state rather than only the `/AS`-selected one. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced XObject's own `/Subtype` (`ContentExecutor::execute_xobject`'s `== \"Form\"` gate) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF).",
@@ -3078,11 +2830,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.4.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program.",
@@ -3092,11 +2840,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.4.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.30.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.30.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
@@ -3106,11 +2850,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.4.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TYPE1-SUBSET-CHARSET-001",
         "implementation_strength": "exact",
         "semantic_note": "For used subset Type1/MMType1/Type1C fonts, requires a descriptor /CharSet and checks every rendered embedded glyph selected by the bounded PDF encoding, matching veraPDF's GFGlyph.name behavior including indirect BaseFont, Differences, and program-subtype resolution.",
@@ -3120,11 +2860,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.4.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CID-SUBSET-CIDSET-001",
         "implementation_strength": "exact",
         "semantic_note": "For used subset CIDFontType0/CIDFontType2 descendants, requires a descriptor /CIDSet stream and checks every rendered non-zero CID bit through bounded Identity, embedded, inherited-usecmap, and predefined CMap decoding; missing CIDSet is inapplicable, matching veraPDF's conditional predicate.",
@@ -3134,11 +2870,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.5:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-GLYPH-WIDTH-001",
         "implementation_strength": "exact",
         "semantic_note": "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph a program width of zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` single entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate.",
@@ -3148,11 +2880,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.6:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For used non-symbolic TrueType fonts with a recognized embedded program, reads the bounded SFNT cmap table and requires at least one cmap when no Microsoft Symbol (platform 3, encoding 0) subtable is present, or more than one cmap when it is present; unembedded programs are inapplicable.",
@@ -3162,11 +2890,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.6:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires MacRomanEncoding or WinAnsiEncoding for used non-symbolic TrueType fonts and accepts a Differences array only when the bounded lopdf font-encoding parser recognizes every entry as an Adobe Glyph List name (direct null is absent).",
@@ -3176,11 +2900,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.6:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`; direct and indirect `Null` values are both resolved and compared as `null`.",
@@ -3190,11 +2910,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.11.6:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For used symbolic TrueType fonts, reads the embedded SFNT cmap table with bounded parsing and requires exactly one subtable or a Microsoft platform-3 encoding-0 Symbol cmap; malformed or unavailable embedded programs remain outside this predicate.",
@@ -3204,11 +2920,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CONTENT-OPERATOR-001",
         "implementation_strength": "exact",
         "semantic_note": "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.30.2 does not create content-operation model objects for it.",
@@ -3218,11 +2930,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts printer or monitor ICC output profiles with GRAY, RGB, or CMYK colour spaces and versions below 5.0.",
@@ -3232,11 +2940,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-IDENTITY-001",
         "implementation_strength": "exact",
         "semantic_note": "`sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity.",
@@ -3246,11 +2950,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects DestOutputProfileRef in PDF/X output intents.",
@@ -3260,11 +2960,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ICCBASED-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts the pinned device classes and colour spaces for ICC input profiles with versions below 5.0.",
@@ -3274,11 +2970,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-RGB-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.30.2.",
@@ -3288,11 +2980,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-CMYK-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceCMYK uses reached through the same bounded colour-source population and after DefaultCMYK substitution: `gOutputCS != null && gOutputCS == \"CMYK\"`.",
@@ -3302,11 +2990,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.3:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-GRAY-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceGray uses reached through the same bounded colour-source population and after DefaultGray substitution: `gOutputCS != null`.",
@@ -3316,11 +3000,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.4.4:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-DEVICEN-COLORANTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a Colorants entry for every spot colour used by DeviceN or NChannel.",
@@ -3330,11 +3010,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-TR-001",
         "implementation_strength": "exact",
         "semantic_note": "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR == false`.",
@@ -3344,11 +3020,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-TR2-001",
         "implementation_strength": "exact",
         "semantic_note": "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR2 == false || TR2NameValue == \"Default\"`.",
@@ -3358,11 +3030,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-HTP-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects the HTP key in extended graphics-state dictionaries.",
@@ -3372,11 +3040,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HALFTONE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires HalftoneType 1 or 5.",
@@ -3386,11 +3050,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.5:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-HALFTONE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects HalftoneName entries.",
@@ -3400,11 +3060,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.6:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-RENDERING-INTENT-001",
         "implementation_strength": "exact",
         "semantic_note": "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.30.2.",
@@ -3414,11 +3070,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.8:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-ALTERNATES-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects: `containsAlternates == false`.",
@@ -3428,11 +3080,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.8:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects, rejects a non-null OPI entry; Form XObjects are evaluated by their own predicate.",
@@ -3442,11 +3090,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.8:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-INTERPOLATE-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects: `Interpolate == false`.",
@@ -3456,11 +3100,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.8:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-BPC-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts image BitsPerComponent values 1, 2, 4, 8, or 16, with the pinned mask and missing-value applicability.",
@@ -3470,11 +3110,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.8:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-MASK-BPC-001",
         "implementation_strength": "exact",
         "semantic_note": "For images reached through another image's `/Mask` reference: `BitsPerComponent == null || BitsPerComponent == 1`.",
@@ -3484,11 +3120,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.9:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FORM-POSTSCRIPT-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Form XObjects, rejects OPI, a modeled PS stream, and Subtype2 equal to PS under one predicate.",
@@ -3498,11 +3130,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.9:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FORM-REFERENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Form XObjects: `containsRef == false`.",
@@ -3512,11 +3140,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.2.9:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-POSTSCRIPT-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked XObjects: `Subtype != \"PS\"`.",
@@ -3526,11 +3150,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 annotation subtype allow-list.",
@@ -3540,11 +3160,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires F on every non-Popup annotation.",
@@ -3554,11 +3170,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-FLAGS-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires Print and rejects Hidden, Invisible, ToggleNoView, and NoView flags when F is present.",
@@ -3568,11 +3180,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-AP-REQUIRED-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires an appearance dictionary except for zero-area, Popup, and Link annotations.",
@@ -3582,11 +3190,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-AP-ENTRIES-001",
         "implementation_strength": "exact",
         "semantic_note": "For page-annotation COS dictionaries, `AP` is exposed only when it resolves specifically to a COS dictionary; absent, scalar, and stream values are null, while a modeled appearance dictionary passes only when its joined key set is exactly `N`.",
@@ -3596,11 +3200,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-WIDGET-BUTTON-APPEARANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "When `AP == \"N\"`, resolved `Subtype == \"Widget\"`, and direct or inherited `FT == \"Btn\"` (walking dictionary- and stream-backed parents with bounded cycle detection), `N_type == \"Dict\"` and its state dictionary contains at least one resolved appearance stream; scalar-only or empty state dictionaries fail.",
@@ -3610,11 +3210,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.3.3:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "When `AP == \"N\"` and the annotation is not a resolved button Widget, the resolved `N` entry is dictionary-based and specifically stream-backed (`N_type == \"Stream\"`); missing, scalar, and state-dictionary values fail.",
@@ -3624,11 +3220,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-WIDGET-ACTION-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects Widget annotations containing either A or AA; both branches are aggregated under the one veraPDF predicate.",
@@ -3638,11 +3230,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "For dictionary- or stream-backed objects directly in a dictionary-based catalog AcroForm `/Fields`, plus dictionary-based `/Kids` descendants having a non-null `/T`: `containsAA == false`. Top-level objects remain fields without `/T`; unnamed child encounters do not suppress a later top-level occurrence; field, child, and action graphs are cycle- and depth-bounded.",
@@ -3652,11 +3240,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.1:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ACROFORM-NEED-APPEARANCES-001",
         "implementation_strength": "exact",
         "semantic_note": "For a modeled catalog AcroForm: `NeedAppearances == null || NeedAppearances == false`; a present non-boolean value follows veraPDF's conservative true fallback and fails.",
@@ -3666,11 +3250,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ACROFORM-XFA-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects XFA in the document AcroForm.",
@@ -3680,11 +3260,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-NEEDS-RENDERING-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects NeedsRendering in the document catalog.",
@@ -3694,11 +3270,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.4.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-SIGNATURE-BYTERANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires signature ByteRange coverage of the entire file except the signature contents.",
@@ -3708,11 +3280,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.5.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ACTION-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 action-type allow-list, including GoToE.",
@@ -3722,11 +3290,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.5.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-NAMED-ACTION-001",
         "implementation_strength": "exact",
         "semantic_note": "For every reached action whose resolved `S == \"Named\"`, direct or indirect `N` resolves to `NextPage`, `PrevPage`, `FirstPage`, or `LastPage`; missing, wrong-type, and other names fail.",
@@ -3736,11 +3300,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.5.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsAA == false` on the document catalog; key presence is tested regardless of value type.",
@@ -3750,11 +3310,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.5.2:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects additional-actions dictionaries on pages.",
@@ -3764,11 +3320,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-METADATA-STRUCTURE-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsMetadata == true`",
@@ -3778,11 +3330,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PACKET-BYTES-001",
         "implementation_strength": "exact",
         "semantic_note": "On the last `xpacket` processing instruction encountered before the main RDF node: `bytes == null`, using veraPDF's case-sensitive, unanchored quoted-assignment matcher.",
@@ -3792,11 +3340,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PACKET-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "On the same selected packet header: `encoding == null`, using the corresponding case-sensitive, unanchored quoted-assignment matcher.",
@@ -3806,11 +3350,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-001",
         "implementation_strength": "exact",
         "semantic_note": "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2.",
@@ -3820,11 +3360,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.1:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "Matches veraPDF's initial-byte `ByteBuffer.getEncoding()` classifier and requires its detected value to be exactly UTF-8, independently of XML-declaration text and parser recovery.",
@@ -3834,11 +3370,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every extension property is checked with the pinned declared simple, array, and structured field/value-type semantics.",
@@ -3848,11 +3380,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.1:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every predefined property is checked with the pinned simple, array, LangAlt, date, XPath, GPS, and structured-type validators.",
@@ -3862,11 +3390,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.2:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELDS-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsUndefinedFields == false`, using the complete pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields.",
@@ -3876,11 +3400,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-CONTAINER-001",
         "implementation_strength": "exact",
         "semantic_note": "For every selected `pdfaExtension:schemas`: `isValidBag == true && prefix == \"pdfaExtension\"`.",
@@ -3890,11 +3410,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:10",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaProperty\"`.",
@@ -3904,11 +3420,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:11",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isTypeValidText == true && typePrefix == \"pdfaType\"`.",
@@ -3918,11 +3430,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:12",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaType\"`.",
@@ -3932,11 +3440,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:13",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPrefixValidText == true && prefixPrefix == \"pdfaType\"`.",
@@ -3946,11 +3450,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:14",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaType\"`.",
@@ -3960,11 +3460,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:15",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001",
         "implementation_strength": "exact",
         "semantic_note": "`isFieldValidSeq == true && (fieldPrefix == null || fieldPrefix == \"pdfaType\")`; absence is allowed.",
@@ -3974,11 +3470,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:16",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNameValidText == true && namePrefix == \"pdfaField\"`.",
@@ -3988,11 +3480,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:17",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaField\"`.",
@@ -4002,11 +3490,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:18",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaField\"`.",
@@ -4016,11 +3500,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "For every schema definition: `isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"`.",
@@ -4030,11 +3510,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaSchema\"`; the pinned URI validator requires a simple XMP node.",
@@ -4044,11 +3520,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPrefixValidText == true && prefixPrefix == \"pdfaSchema\"`.",
@@ -4058,11 +3530,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPropertyValidSeq == true && (propertyPrefix == null || propertyPrefix == \"pdfaSchema\")`; absence is allowed.",
@@ -4072,11 +3540,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:6",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidSeq == true && (valueTypePrefix == null || valueTypePrefix == \"pdfaSchema\")`; absence is allowed.",
@@ -4086,11 +3550,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:7",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNameValidText == true && namePrefix == \"pdfaProperty\"`.",
@@ -4100,11 +3560,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:8",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaProperty\"`.",
@@ -4114,11 +3570,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.2.3.3:9",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001",
         "implementation_strength": "exact",
         "semantic_note": "`isCategoryValidText == true && (category == \"external\" || category == \"internal\") && categoryPrefix == \"pdfaProperty\"`.",
@@ -4128,11 +3580,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-SCHEMA-001",
         "implementation_strength": "exact",
         "semantic_note": "Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.30.2 differential suite.",
@@ -4142,11 +3590,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-PART-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:part to contain exactly the integer 2.",
@@ -4156,11 +3600,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-PART-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`partPrefix == null || partPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -4170,11 +3610,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:5",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`conformancePrefix == null || conformancePrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -4184,11 +3620,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:6",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-AMD-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`amdPrefix == null || amdPrefix == \"pdfaid\"`; lexical source-QName selection matches veraPDF, and a missing `amd` property is inapplicable.",
@@ -4198,11 +3630,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.6.4:7",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-ID-CORR-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`corrPrefix == null || corrPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -4212,11 +3640,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.8:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-FILE-SPEC-F-AND-UF-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires F and UF in file specifications that contain embedded files.",
@@ -4236,11 +3660,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.9:1",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every optional-content configuration to have a nonempty Name.",
@@ -4250,11 +3670,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.9:2",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires optional-content configuration names to be unique.",
@@ -4264,11 +3680,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.9:3",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires Order to contain every optional-content group.",
@@ -4278,11 +3690,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-2:2011:6.9:4",
-        "applicable_profiles": [
-          "2a",
-          "2b",
-          "2u"
-        ],
+        "applicable_profiles": ["2a", "2b", "2u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-AS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects AS in optional-content configuration dictionaries.",
@@ -4292,11 +3700,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.10:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-INLINE-IMAGE-FILTER-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects LZW, Crypt, and unlisted inline-image filters across bounded executed content.",
@@ -4306,11 +3710,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-INTEGER-RANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every integer in the active revision's effective object graph is evaluated from its source token before `lopdf` narrowing; overwritten duplicate values and superseded revisions are inapplicable.",
@@ -4320,11 +3720,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:10",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-MAX-CID-001",
         "implementation_strength": "exact",
         "semantic_note": "Every embedded CMap's maximum CID is at most 65,535.",
@@ -4334,11 +3730,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:11",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-PAGE-BOUNDARY-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every page boundary dimension to be between 3 and 14,400 units.",
@@ -4348,11 +3740,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-REAL-RANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 real-number range of plus or minus 3.403 \u00d7 10^38.",
@@ -4362,11 +3750,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-STRING-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects strings longer than 32,767 bytes for PDF/A-2 and PDF/A-3.",
@@ -4376,11 +3760,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-NAME-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Every effective name value has at most 127 decoded bytes after `#xx` processing; dictionary keys are outside the pinned `CosName` model.",
@@ -4390,11 +3770,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-REAL-MINIMUM-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects nonzero real values closer to zero than 1.175 \u00d7 10^-38.",
@@ -4404,11 +3780,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:7",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-INDIRECT-OBJECT-COUNT-001",
         "implementation_strength": "exact",
         "semantic_note": "Active non-free classic or compressed xref entries supply `nrIndirects <= 8388607`; configured input/object limits may fail operationally before a larger source is modeled.",
@@ -4418,11 +3790,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:8",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-GRAPHICS-STATE-NESTING-001",
         "implementation_strength": "exact",
         "semantic_note": "Bounded executed page, Form, annotation-appearance, selected tiling-Pattern, and rendered-Type3 content maintains at most 28 saved graphics states; each nested content container starts its own graphics-state stack.",
@@ -4432,11 +3800,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.13:9",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-DEVICEN-COMPONENTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 limit of 32 DeviceN colourants.",
@@ -4446,11 +3810,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HEADER-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires the byte-zero header line to be exactly `%PDF-1.n`, where `n` is a single digit from 0 through 7.",
@@ -4460,11 +3820,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HEADER-BINARY-COMMENT-001",
         "implementation_strength": "exact",
         "semantic_note": "The header line is immediately followed by a comment whose first four bytes each have a decimal value above 127.",
@@ -4474,11 +3830,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRAILER-ID-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a nonempty last trailer ID value; the PDF/A-1 linearized first-trailer rule is not applied to PDF/A-2 or PDF/A-3.",
@@ -4488,11 +3840,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ENCRYPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isEncrypted != true`",
@@ -4502,11 +3850,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-POST-EOF-DATA-001",
         "implementation_strength": "exact",
         "semantic_note": "No bytes follow the last `%%EOF` marker except a single optional end-of-line marker.",
@@ -4516,11 +3860,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.4:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XREF-EOL-001",
         "implementation_strength": "exact",
         "semantic_note": "The `xref` keyword and each subsection header in every selected revision are separated by a single end-of-line marker; recoverable extra markers remain modeled failures.",
@@ -4530,11 +3870,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.6:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HEX-STRING-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "Every modeled hexadecimal string retains its original non-whitespace digit count, including veraPDF-recoverable malformed strings, and that count is even.",
@@ -4544,11 +3880,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.6:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HEX-STRING-CHARACTERS-001",
         "implementation_strength": "exact",
         "semantic_note": "Every modeled hexadecimal string retains whether all original non-whitespace characters were `0`-`9`, `A`-`F`, or `a`-`f`; a recoverable invalid character is a conformance failure rather than `PDF-PARSE-001`.",
@@ -4558,11 +3890,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.7.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-LENGTH-001",
         "implementation_strength": "exact",
         "semantic_note": "The effective direct or indirect `/Length`, after last-duplicate-key selection, matches the independent raw byte extent from the first data byte through the byte before the EOL preceding `endstream`.",
@@ -4572,11 +3900,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.7.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-EOL-001",
         "implementation_strength": "exact",
         "semantic_note": "The `stream` keyword is followed by CRLF or a single LF, and `endstream` is preceded by an end-of-line marker.",
@@ -4586,11 +3910,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.7.1:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-EXTERNAL-DATA-001",
         "implementation_strength": "exact",
         "semantic_note": "For every selected indirect stream dictionary: `F == null && FFilter == null && FDecodeParms == null`; direct null and last-duplicate-key selection follow the pinned COS model.",
@@ -4600,11 +3920,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.7.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-STREAM-FILTER-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects every stream filter outside the PDF/A-2/3 allow-list, including LZWDecode and Crypt unless its resolved decode-parameters Name is Identity.",
@@ -4614,11 +3930,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.1.9:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-INDIRECT-OBJECT-SYNTAX-001",
         "implementation_strength": "exact",
         "semantic_note": "An indirect object's number and generation are separated from each other and from the `obj`/`endobj` keywords by a single whitespace character, bounded by end-of-line markers.",
@@ -4628,11 +3940,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.10:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ALTERNATE-PRESENTATIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects AlternatePresentations in the document name dictionary.",
@@ -4642,11 +3950,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.10:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-PRES-STEPS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects PresSteps in page dictionaries.",
@@ -4656,11 +3960,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.11:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-REQUIREMENTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects Requirements in the document catalog.",
@@ -4670,11 +3970,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.10:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-BLEND-MODE-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts only blend modes defined by ISO 32000-1.",
@@ -4684,11 +3980,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.10:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRANSPARENCY-GROUP-CS-001",
         "implementation_strength": "exact",
         "semantic_note": "When no PDF/A output intent exists, rejects each used page containing transparency unless its transparency Group has a CS blending colour space; used ExtGState alpha/blend/soft-mask, image soft-mask, Form transparency groups, and explicit page groups are tracked through the shared executed-content traversal.",
@@ -4698,11 +3990,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "For fonts reached by bounded text-show paths: `Type == \"Font\"`. Confirmed live: a font with a valid `/Subtype` but a missing `/Type` fails on both veraPDF and locally, with the failure attached to the same font object. `/Type` is resolved through indirection before this check.",
@@ -4712,11 +4000,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Modeled fonts have subtype `Type1`, `MMType1`, `TrueType`, `Type3`, `Type0`, `CIDFontType0`, or `CIDFontType2`; missing/unsupported subtypes create no veraPDF `PDFont` object and are inapplicable, so this predicate cannot fail on either side by construction (confirmed live: a font with an unsupported `/Subtype`, used normally, is fully compliant on both). `/Subtype` itself is resolved through indirection before this recognition check (confirmed live: an indirect reference to a supported name, e.g. `/TrueType`, is recognized exactly like a direct one, so the font is not wrongly treated as inapplicable and skipped).",
@@ -4726,11 +4010,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-BASEFONT-001",
         "implementation_strength": "exact",
         "semantic_note": "For fonts reached by bounded text-show paths: `Subtype == \"Type3\" || fontName != null`. Confirmed live: missing and wrong-type `/BaseFont` both fail on veraPDF and locally. `/BaseFont` is resolved through indirection before this check and before every other `/BaseFont`-driven decision in this file (the standard-14 exemption, and the Type1/CID subset-name gates for `TYPE1-SUBSET-CHARSET-001`/`CID-SUBSET-CIDSET-001`).",
@@ -4740,11 +4020,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-FIRSTCHAR-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || FirstChar != null`. `isStandard` (the standard-14-fonts exemption) is confirmed live to apply only to `Type1`/`MMType1`; a `TrueType` or `Type3` font whose `/BaseFont` matches a standard-14 name is not exempt.",
@@ -4754,11 +4030,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-LASTCHAR-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || LastChar != null`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`.",
@@ -4768,11 +4040,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:6",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-WIDTHS-001",
         "implementation_strength": "exact",
         "semantic_note": "For modeled simple fonts: `isStandard == true || (Widths_size != null && Widths_size == LastChar - FirstChar + 1)`. `isStandard` is confirmed live to apply only to `Type1`/`MMType1`, not `TrueType`/`Type3`. `/Widths` is resolved through indirection before its length is read (confirmed live: an indirect reference to a correctly sized array is accepted exactly like a direct one).",
@@ -4782,11 +4050,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.2:7",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-FILE-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts Type1C, CIDFontType0C, and OpenType font-file subtypes.",
@@ -4796,11 +4060,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
         "implementation_strength": "exact",
         "semantic_note": "For non-Identity Type 0 CMaps reached by bounded text-show paths, requires matching Registry and Ordering values plus non-null supplements where the CIDFont supplement is no greater than the CMap supplement.",
@@ -4810,11 +4070,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CIDTOGIDMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For each embedded CIDFontType2 descendant reached through bounded text-show paths, requires a valid /CIDToGIDMap stream or the name /Identity; unembedded descendants are inapplicable.",
@@ -4824,11 +4080,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-EMBEDDING-001",
         "implementation_strength": "exact",
         "semantic_note": "For Type 0 CMaps reached by bounded text-show paths, accepts exactly the ISO 32000-1:2008 Table 118 names; every other named CMap must be embedded.",
@@ -4838,11 +4090,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.3.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CMAP-WMODE-001",
         "implementation_strength": "exact",
         "semantic_note": "For bounded embedded CMaps: the parsed stream `WMode` equals the stream-dictionary `WMode`, defaulting each missing value to zero, resolved through indirection first (confirmed live: an *indirect* `/WMode` value is resolved and compared exactly like a direct one).",
@@ -4862,11 +4110,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FONT-EMBEDDING-001",
         "implementation_strength": "exact",
         "semantic_note": "Implements `Subtype == \"Type3\" || Subtype == \"Type0\" || renderingMode == 3 || containsFontFile == true` for bounded page, Form, annotation appearance, selected Pattern, and rendered Type3 text-show paths, including used Type0 descendants and every button Widget appearance state rather than only the `/AS`-selected one. `containsFontFile` for a `/FontFile2` stream is `valid_sfnt` via `ttf_parser::RawFace` (SFNT signature + table directory only), confirmed live: a font whose `maxp` table is malformed enough that a full `ttf_parser::Face::parse` fails still counts as embedded on veraPDF. For a `/FontFile3` stream, the stream's own `/Subtype` (`Type1C`/`CIDFontType0C`) is resolved through indirection before this check (confirmed live: an indirect reference to `/Type1C` is recognized exactly like a direct one, so a validly embedded program still counts as embedded rather than falling through to unembedded). A referenced XObject's own `/Subtype` (`ContentExecutor::execute_xobject`'s `== \"Form\"` gate) is likewise resolved through indirection first. `containsFontFile` for a `/FontFile` (Type1) stream requires both the magic header (`%!PS-AdobeFont` or the `0x80 0x01` PFB marker) and an `eexec`/`0x80 0x02` marker somewhere in the stream (confirmed live: a stream with the header but no encrypted section at all still fails on veraPDF -- the header alone is not sufficient). `containsFontFile` for a `/FontFile3` (Type1C/CIDFontType0C) stream requires the bytes to parse as a well-formed CFF table via `ttf_parser::cff::Table::parse`, not merely match the header-byte shape (confirmed live: a stream matching only `bytes[0] in {1,2}` and `bytes[2] <= len` but with no parseable CFF structure beyond the header still fails on veraPDF).",
@@ -4876,11 +4120,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For TrueType, `CIDFontType2`, and CID-keyed CFF (`CIDFontType0C`) fonts reached by bounded text-show paths: a bounded embedded program defines a glyph for every rendered byte or CID. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before the `/Identity` name check; an unresolvable map is treated as inapplicable because `PDFA1B-CIDTOGIDMAP-001` separately flags a missing/invalid map. TrueType lookup uses independently bounded SFNT `cmap` and `loca` reads rather than a whole-font parse, including Unicode, Windows Symbol (`0xF000 + byte` with direct-byte fallback), and other direct byte-oriented subtables. The malformed-`maxp` fixture confirms live that veraPDF still reports the missing glyph when `maxp` is unreadable but `cmap` and short `loca` prove the referenced GID is outside the program.",
@@ -4890,11 +4130,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For simple Type1, MMType1, Type1C, and Type3 fonts reached by bounded text-show paths: the selected PDF/program encoding resolves every rendered byte to a glyph present in the bounded embedded program or Type3 `/CharProcs`. PDF simple encodings use veraPDF 1.30.2's exact Standard, MacRoman, MacExpert, and WinAnsi byte-to-name tables plus `/Differences`; for Type1 and Type1C only, an unmapped PDF byte falls back to the embedded program encoding. The real StandardSymL fixture family pins program fallback, PDF `/Differences`, WinAnsi override to an absent glyph, and valid/missing outcomes live against veraPDF. Type3 MacRoman byte 202 and MacExpert byte 33 cases pin the predefined tables. The older deliberately incomplete hand-rolled Type1 byte programs remain local parser-hardening fixtures only because veraPDF 1.30.2 crashes while parsing them; this is a fixture-shape exception, not an unmodeled result for a program veraPDF can process.",
@@ -4904,11 +4140,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TYPE1-SUBSET-CHARSET-001",
         "implementation_strength": "exact",
         "semantic_note": "For used subset Type1/MMType1/Type1C fonts, requires a descriptor /CharSet and checks every rendered embedded glyph selected by the bounded PDF encoding, matching veraPDF's GFGlyph.name behavior including indirect BaseFont, Differences, and program-subtype resolution.",
@@ -4918,11 +4150,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.4.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CID-SUBSET-CIDSET-001",
         "implementation_strength": "exact",
         "semantic_note": "For used subset CIDFontType0/CIDFontType2 descendants, requires a descriptor /CIDSet stream and checks every rendered non-zero CID bit through bounded Identity, embedded, inherited-usecmap, and predefined CMap decoding; missing CIDSet is inapplicable, matching veraPDF's conditional predicate.",
@@ -4932,11 +4160,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.5:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-GLYPH-WIDTH-001",
         "implementation_strength": "exact",
         "semantic_note": "For TrueType, `CIDFontType2`, Type1, Type1C/`CIDFontType0C`, and Type3 fonts reached by bounded text-show paths: a rendered byte or CID's program width agrees with its dictionary-declared width within 1 unit, matching veraPDF's inclusive `abs(...) <= 1` tolerance. Type1 uses the same PDF-then-program encoding selection as glyph presence and gives an absent selected glyph a program width of zero; Type3 reads the leading `d0`/`d1` width and likewise uses zero when the CharProc/width is absent. Real Type1 present/missing/mismatch cases and Type3 `d0`, `d1`, zero-width missing-CharProc, and one-unit-boundary cases are pinned live. For `CIDFontType2`, `/CIDToGIDMap` is resolved through indirection before `/Identity`; for simple fonts, the `/Widths` array and entries are resolved; for CID fonts, `/DW` and `/W` single entries are resolved. TrueType advances and units-per-em are independently bounded reads from `hmtx`/`hhea`/`head`, so malformed unrelated tables do not introduce a whole-font parse gate.",
@@ -4946,11 +4170,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.6:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For used non-symbolic TrueType fonts with a recognized embedded program, reads the bounded SFNT cmap table and requires at least one cmap when no Microsoft Symbol (platform 3, encoding 0) subtable is present, or more than one cmap when it is present; unembedded programs are inapplicable.",
@@ -4960,11 +4180,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.6:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires MacRomanEncoding or WinAnsiEncoding for used non-symbolic TrueType fonts and accepts a Differences array only when the bounded lopdf font-encoding parser recognizes every entry as an Adobe Glyph List name (direct null is absent).",
@@ -4974,11 +4190,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.6:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "For used TrueType fonts whose descriptor Flags set Symbolic: `Encoding == null`; direct and indirect `Null` values are both resolved and compared as `null`.",
@@ -4988,11 +4200,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.11.6:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
         "implementation_strength": "exact",
         "semantic_note": "For used symbolic TrueType fonts, reads the embedded SFNT cmap table with bounded parsing and requires exactly one subtable or a Microsoft platform-3 encoding-0 Symbol cmap; malformed or unavailable embedded programs remain outside this predicate.",
@@ -5002,11 +4210,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CONTENT-OPERATOR-001",
         "implementation_strength": "exact",
         "semantic_note": "No undefined operator occurs in bounded executed page, Form, annotation-appearance, selected tiling-Pattern, or rendered-Type3 content, including compatibility sections delimited by `BX` and `EX`. Soft-mask `/G` content is excluded because veraPDF 1.30.2 does not create content-operation model objects for it.",
@@ -5016,11 +4220,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts printer or monitor ICC output profiles with GRAY, RGB, or CMYK colour spaces and versions below 5.0.",
@@ -5030,11 +4230,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-IDENTITY-001",
         "implementation_strength": "exact",
         "semantic_note": "`sameOutputProfileIndirect == true`; missing/direct values are ignored and indirect non-stream targets participate by identity.",
@@ -5044,11 +4240,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects DestOutputProfileRef in PDF/X output intents.",
@@ -5058,11 +4250,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ICCBASED-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts the pinned device classes and colour spaces for ICC input profiles with versions below 5.0.",
@@ -5072,11 +4260,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-RGB-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceRGB uses reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 content; images; inline images; shadings; transparency-group CS; Indexed bases; and Separation/DeviceN alternates after DefaultRGB substitution: `gOutputCS != null && gOutputCS == \"RGB \"`. The uncoloured Pattern underlying-space and soft-mask `/G` exclusions follow veraPDF 1.30.2.",
@@ -5086,11 +4270,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-CMYK-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceCMYK uses reached through the same bounded colour-source population and after DefaultCMYK substitution: `gOutputCS != null && gOutputCS == \"CMYK\"`.",
@@ -5100,11 +4280,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.3:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-DEVICE-GRAY-001",
         "implementation_strength": "exact",
         "semantic_note": "For DeviceGray uses reached through the same bounded colour-source population and after DefaultGray substitution: `gOutputCS != null`.",
@@ -5114,11 +4290,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.4.4:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-DEVICEN-COLORANTS-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires a Colorants entry for every spot colour used by DeviceN or NChannel.",
@@ -5128,11 +4300,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-TR-001",
         "implementation_strength": "exact",
         "semantic_note": "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR == false`.",
@@ -5142,11 +4310,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-TR2-001",
         "implementation_strength": "exact",
         "semantic_note": "For direct or indirect ExtGState dictionaries selected by `gs` in any executed content source: `containsTR2 == false || TR2NameValue == \"Default\"`.",
@@ -5156,11 +4320,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-EXTGSTATE-HTP-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects the HTP key in extended graphics-state dictionaries.",
@@ -5170,11 +4330,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HALFTONE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires HalftoneType 1 or 5.",
@@ -5184,11 +4340,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.5:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-HALFTONE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects HalftoneName entries.",
@@ -5198,11 +4350,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.6:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-RENDERING-INTENT-001",
         "implementation_strength": "exact",
         "semantic_note": "For rendering intents reached through executed page, Form, selected Pattern, annotation-appearance, or rendered-Type3 `ri`/`gs` operators; invoked primary, alternate, or soft-mask images; and inline-image Intent entries: the name is `RelativeColorimetric`, `AbsoluteColorimetric`, `Perceptual`, or `Saturation`. Non-name values, explicit-mask images, unexecuted resources, and soft-mask `/G` content remain inapplicable exactly as in veraPDF 1.30.2.",
@@ -5212,11 +4360,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.8:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-ALTERNATES-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects: `containsAlternates == false`.",
@@ -5226,11 +4370,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.8:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-OPI-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects, rejects a non-null OPI entry; Form XObjects are evaluated by their own predicate.",
@@ -5240,11 +4380,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.8:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-INTERPOLATE-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Image XObjects: `Interpolate == false`.",
@@ -5254,11 +4390,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.8:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-BPC-001",
         "implementation_strength": "exact",
         "semantic_note": "Accepts image BitsPerComponent values 1, 2, 4, 8, or 16, with the pinned mask and missing-value applicability.",
@@ -5268,11 +4400,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.8:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-IMAGE-MASK-BPC-001",
         "implementation_strength": "exact",
         "semantic_note": "For images reached through another image's `/Mask` reference: `BitsPerComponent == null || BitsPerComponent == 1`.",
@@ -5282,11 +4410,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.9:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FORM-POSTSCRIPT-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Form XObjects, rejects OPI, a modeled PS stream, and Subtype2 equal to PS under one predicate.",
@@ -5296,11 +4420,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.9:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FORM-REFERENCE-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked Form XObjects: `containsRef == false`.",
@@ -5310,11 +4430,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.2.9:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XOBJECT-POSTSCRIPT-001",
         "implementation_strength": "exact",
         "semantic_note": "For invoked XObjects: `Subtype != \"PS\"`.",
@@ -5324,11 +4440,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-SUBTYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 annotation subtype allow-list.",
@@ -5338,11 +4450,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires F on every non-Popup annotation.",
@@ -5352,11 +4460,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-FLAGS-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires Print and rejects Hidden, Invisible, ToggleNoView, and NoView flags when F is present.",
@@ -5366,11 +4470,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-AP-REQUIRED-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires an appearance dictionary except for zero-area, Popup, and Link annotations.",
@@ -5380,11 +4480,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-AP-ENTRIES-001",
         "implementation_strength": "exact",
         "semantic_note": "For page-annotation COS dictionaries, `AP` is exposed only when it resolves specifically to a COS dictionary; absent, scalar, and stream values are null, while a modeled appearance dictionary passes only when its joined key set is exactly `N`.",
@@ -5394,11 +4490,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-WIDGET-BUTTON-APPEARANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "When `AP == \"N\"`, resolved `Subtype == \"Widget\"`, and direct or inherited `FT == \"Btn\"` (walking dictionary- and stream-backed parents with bounded cycle detection), `N_type == \"Dict\"` and its state dictionary contains at least one resolved appearance stream; scalar-only or empty state dictionaries fail.",
@@ -5408,11 +4500,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.3.3:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001",
         "implementation_strength": "exact",
         "semantic_note": "When `AP == \"N\"` and the annotation is not a resolved button Widget, the resolved `N` entry is dictionary-based and specifically stream-backed (`N_type == \"Stream\"`); missing, scalar, and state-dictionary values fail.",
@@ -5422,11 +4510,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-WIDGET-ACTION-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects Widget annotations containing either A or AA; both branches are aggregated under the one veraPDF predicate.",
@@ -5436,11 +4520,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "For dictionary- or stream-backed objects directly in a dictionary-based catalog AcroForm `/Fields`, plus dictionary-based `/Kids` descendants having a non-null `/T`: `containsAA == false`. Top-level objects remain fields without `/T`; unnamed child encounters do not suppress a later top-level occurrence; field, child, and action graphs are cycle- and depth-bounded.",
@@ -5450,11 +4530,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.1:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ACROFORM-NEED-APPEARANCES-001",
         "implementation_strength": "exact",
         "semantic_note": "For a modeled catalog AcroForm: `NeedAppearances == null || NeedAppearances == false`; a present non-boolean value follows veraPDF's conservative true fallback and fails.",
@@ -5464,11 +4540,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ACROFORM-XFA-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects XFA in the document AcroForm.",
@@ -5478,11 +4550,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-NEEDS-RENDERING-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects NeedsRendering in the document catalog.",
@@ -5492,11 +4560,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.4.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-SIGNATURE-BYTERANGE-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires signature ByteRange coverage of the entire file except the signature contents.",
@@ -5506,11 +4570,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.5.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ACTION-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Uses the PDF/A-2/3 action-type allow-list, including GoToE.",
@@ -5520,11 +4580,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.5.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-NAMED-ACTION-001",
         "implementation_strength": "exact",
         "semantic_note": "For every reached action whose resolved `S == \"Named\"`, direct or indirect `N` resolves to `NextPage`, `PrevPage`, `FirstPage`, or `LastPage`; missing, wrong-type, and other names fail.",
@@ -5534,11 +4590,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.5.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsAA == false` on the document catalog; key presence is tested regardless of value type.",
@@ -5548,11 +4600,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.5.2:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects additional-actions dictionaries on pages.",
@@ -5562,11 +4610,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-METADATA-STRUCTURE-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsMetadata == true`",
@@ -5576,11 +4620,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PACKET-BYTES-001",
         "implementation_strength": "exact",
         "semantic_note": "On the last `xpacket` processing instruction encountered before the main RDF node: `bytes == null`, using veraPDF's case-sensitive, unanchored quoted-assignment matcher.",
@@ -5590,11 +4630,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PACKET-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "On the same selected packet header: `encoding == null`, using the corresponding case-sensitive, unanchored quoted-assignment matcher.",
@@ -5604,11 +4640,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-001",
         "implementation_strength": "exact",
         "semantic_note": "Complete bounded XMP 2004 RDF serialization, root selection, duplicate/conflict handling, qualified values, source-QName semantics, and extension-schema object creation match veraPDF 1.30.2.",
@@ -5618,11 +4650,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.1:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-ENCODING-001",
         "implementation_strength": "exact",
         "semantic_note": "Matches veraPDF's initial-byte `ByteBuffer.getEncoding()` classifier and requires its detected value to be exactly UTF-8, independently of XML-declaration text and parser recovery.",
@@ -5632,11 +4660,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every extension property is checked with the pinned declared simple, array, and structured field/value-type semantics.",
@@ -5646,11 +4670,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.1:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "Every predefined property is checked with the pinned simple, array, LangAlt, date, XPath, GPS, and structured-type validators.",
@@ -5660,11 +4680,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.2:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELDS-001",
         "implementation_strength": "exact",
         "semantic_note": "`containsUndefinedFields == false`, using the complete pinned namespace and allowed-child sets for schema definitions, properties, value types, and fields.",
@@ -5674,11 +4690,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-CONTAINER-001",
         "implementation_strength": "exact",
         "semantic_note": "For every selected `pdfaExtension:schemas`: `isValidBag == true && prefix == \"pdfaExtension\"`.",
@@ -5688,11 +4700,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:10",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaProperty\"`.",
@@ -5702,11 +4710,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:11",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isTypeValidText == true && typePrefix == \"pdfaType\"`.",
@@ -5716,11 +4720,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:12",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaType\"`.",
@@ -5730,11 +4730,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:13",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPrefixValidText == true && prefixPrefix == \"pdfaType\"`.",
@@ -5744,11 +4740,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:14",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaType\"`.",
@@ -5758,11 +4750,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:15",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001",
         "implementation_strength": "exact",
         "semantic_note": "`isFieldValidSeq == true && (fieldPrefix == null || fieldPrefix == \"pdfaType\")`; absence is allowed.",
@@ -5772,11 +4760,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:16",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNameValidText == true && namePrefix == \"pdfaField\"`.",
@@ -5786,11 +4770,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:17",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaField\"`.",
@@ -5800,11 +4780,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:18",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
         "implementation_strength": "exact",
         "semantic_note": "`isDescriptionValidText == true && descriptionPrefix == \"pdfaField\"`.",
@@ -5814,11 +4790,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "For every schema definition: `isSchemaValidText == true && schemaPrefix == \"pdfaSchema\"`.",
@@ -5828,11 +4800,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNamespaceURIValidURI == true && namespaceURIPrefix == \"pdfaSchema\"`; the pinned URI validator requires a simple XMP node.",
@@ -5842,11 +4810,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPrefixValidText == true && prefixPrefix == \"pdfaSchema\"`.",
@@ -5856,11 +4820,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001",
         "implementation_strength": "exact",
         "semantic_note": "`isPropertyValidSeq == true && (propertyPrefix == null || propertyPrefix == \"pdfaSchema\")`; absence is allowed.",
@@ -5870,11 +4830,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:6",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidSeq == true && (valueTypePrefix == null || valueTypePrefix == \"pdfaSchema\")`; absence is allowed.",
@@ -5884,11 +4840,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:7",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "`isNameValidText == true && namePrefix == \"pdfaProperty\"`.",
@@ -5898,11 +4850,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:8",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
         "implementation_strength": "exact",
         "semantic_note": "`isValueTypeValidText == true && isValueTypeDefined == true && valueTypePrefix == \"pdfaProperty\"`.",
@@ -5912,11 +4860,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.2.3.3:9",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001",
         "implementation_strength": "exact",
         "semantic_note": "`isCategoryValidText == true && (category == \"external\" || category == \"internal\") && categoryPrefix == \"pdfaProperty\"`.",
@@ -5926,11 +4870,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-SCHEMA-001",
         "implementation_strength": "exact",
         "semantic_note": "Exact main-package selection, malformed-package recovery, and namespace-presence semantics are pinned by the complete `metadata:*` veraPDF 1.30.2 differential suite.",
@@ -5940,11 +4880,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-PART-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires pdfaid:part to contain exactly the integer 3.",
@@ -5954,11 +4890,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-PART-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`partPrefix == null || partPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -5968,11 +4900,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:5",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-CONFORMANCE-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`conformancePrefix == null || conformancePrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -5982,11 +4910,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:6",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-AMD-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`amdPrefix == null || amdPrefix == \"pdfaid\"`; lexical source-QName selection matches veraPDF, and a missing `amd` property is inapplicable.",
@@ -5996,11 +4920,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.6.4:7",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-ID-CORR-PREFIX-001",
         "implementation_strength": "exact",
         "semantic_note": "`corrPrefix == null || corrPrefix == \"pdfaid\"`; lexical source-QName selection and applicability match veraPDF 1.30.2.",
@@ -6010,11 +4930,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.8:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-FILE-SPEC-F-AND-UF-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires F and UF in file specifications that contain embedded files.",
@@ -6024,11 +4940,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:1",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires every optional-content configuration to have a nonempty Name.",
@@ -6038,11 +4950,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:2",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires optional-content configuration names to be unique.",
@@ -6052,11 +4960,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:3",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
         "implementation_strength": "exact",
         "semantic_note": "Requires Order to contain every optional-content group.",
@@ -6066,11 +4970,7 @@
       {
         "section": "shared_pdfa_2_3",
         "verapdf_rule_id": "ISO 19005-3:2012:6.9:4",
-        "applicable_profiles": [
-          "3a",
-          "3b",
-          "3u"
-        ],
+        "applicable_profiles": ["3a", "3b", "3u"],
         "canonical_local_rule_id": "PDFA1B-OPTIONAL-CONTENT-AS-001",
         "implementation_strength": "exact",
         "semantic_note": "Rejects AS in optional-content configuration dictionaries.",
@@ -6224,7 +5124,11 @@
     "status": "complete",
     "coverage_gap_is_success": false,
     "profiles": ["2a", "2b", "2u", "3a", "3b", "3u"],
-    "required_evidence_states": ["applicable_pass", "applicable_fail", "inapplicable"],
+    "required_evidence_states": [
+      "applicable_pass",
+      "applicable_fail",
+      "inapplicable"
+    ],
     "blockers": []
   }
 }

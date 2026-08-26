@@ -37,7 +37,7 @@ struct Cli {
     verapdf: PathBuf,
 
     /// Number of measured invocations for each validator.
-    #[arg(long, default_value_t = 5)]
+    #[arg(long, default_value_t = 15)]
     runs: usize,
 
     /// Number of unmeasured invocations used to warm the filesystem cache.
@@ -187,7 +187,7 @@ fn run_page(executable: &Path, file: &Path) -> io::Result<RunSample> {
         .arg(file)
         .args([
             "--profile",
-            "a-1b",
+            "ua-1",
             "--format",
             "json",
             "--max-reference-depth",
@@ -209,7 +209,7 @@ fn run_verapdf(executable: &Path, file: &Path) -> io::Result<RunSample> {
             Path::new("--format"),
             Path::new("json"),
             Path::new("--flavour"),
-            Path::new("1b"),
+            Path::new("ua1"),
             file,
         ],
         &[0, 1],

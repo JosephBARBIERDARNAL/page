@@ -27,20 +27,29 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
         );
     }
 
-    for case in ["multiple_items", "missing_x_default"] {
-        let report = validate_bytes_with_profile(
-            &common::pdfua1_rule_7_2_33_fixture(case),
-            ValidationProfile::PdfUa1,
-            &SafetyLimits::default(),
-        );
-        assert!(!report.checks_passed, "{case}: {report}");
-        assert!(
-            report
-                .failures
-                .iter()
-                .any(|failure| failure.rule_id == RULE)
-        );
-    }
+    let multiple_items_report = validate_bytes_with_profile(
+        &common::pdfua1_rule_7_2_33_fixture("multiple_items"),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        !multiple_items_report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == RULE)
+    );
+
+    let missing_x_default_report = validate_bytes_with_profile(
+        &common::pdfua1_rule_7_2_33_fixture("missing_x_default"),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        !missing_x_default_report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == RULE)
+    );
 }
 
 #[test]

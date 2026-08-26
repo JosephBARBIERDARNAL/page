@@ -286,7 +286,7 @@ fn inspect_annotation(
         .transpose()?
         .flatten()
         .and_then(|value| value.as_float().ok())
-        .is_some_and(|value| value != 1.0)
+        .is_some_and(|value| (value - 1.0).abs() > f32::EPSILON)
     {
         summary.invalid_opacities.push(annotation_failure(
             object_id,
@@ -357,9 +357,9 @@ fn inspect_annotation(
         return Ok(());
     }
 
-    let normal = appearance
-        .get(b"N")
-        .expect("single normal appearance entry");
+    let Ok(normal) = appearance.get(b"N") else {
+        return Ok(());
+    };
     let normal = resolve_optional(document, normal, limits.max_reference_depth)?;
     let field_type = inherited_field_type(document, annotation, limits)?;
     if subtype == Some(b"Widget".as_slice()) && field_type == Some(b"Btn".as_slice()) {
@@ -621,7 +621,10 @@ fn zero_annotation_rect(
     else {
         return Ok(false);
     };
-    Ok(values[0] == values[2] && values[1] == values[3])
+    let [left, bottom, right, top] = values.as_slice() else {
+        return Ok(false);
+    };
+    Ok((left - right).abs() <= f32::EPSILON && (bottom - top).abs() <= f32::EPSILON)
 }
 
 fn inherited_field_type<'a>(
@@ -705,8 +708,11 @@ fn find_number_tree_entry<'a>(
             .and_then(|value| value.as_array().ok())
     {
         for pair in nums.chunks(2) {
-            if pair.len() == 2 && pair[0].as_i64().ok() == Some(key) {
-                return Ok(Some(&pair[1]));
+            let [key_object, value] = pair else {
+                continue;
+            };
+            if key_object.as_i64().ok() == Some(key) {
+                return Ok(Some(value));
             }
         }
     }

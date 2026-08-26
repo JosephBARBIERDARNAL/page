@@ -400,7 +400,7 @@ impl Scanner<'_> {
             self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
         } else if subtype.as_deref() == Some("TrueType") {
             self.inspect_truetype_font(font, object_id, &selected.description)?;
-        } else if subtype.as_deref() == Some("Type1") {
+        } else if matches!(subtype.as_deref(), Some("Type1" | "MMType1")) {
             self.inspect_type1_subset_font(font, object_id, &selected.description)?;
         }
         let embedded = if matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
@@ -1781,28 +1781,57 @@ impl Scanner<'_> {
             return Ok(());
         };
         // PDF/UA-1 7.21.4.2-1 compares /CharSet with every glyph in the
-        // embedded Type 1 /CharStrings dictionary, not only rendered glyphs.
-        // Its veraPDF predicate applies to /FontFile; Type1C /FontFile3 is
-        // covered by the existing rendered-glyph inspection instead.
-        let Some(font_file) = descriptor
+        // embedded Type 1 or Type 1C program, not only rendered glyphs.
+        let program_names = if let Some(font_file) = descriptor
             .get(b"FontFile")
             .ok()
             .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
             .transpose()?
             .flatten()
             .and_then(|value| value.as_stream().ok())
-        else {
+        {
+            if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
+                return Ok(());
+            }
+            type1_program_char_names(&decode_font_stream(font_file, self.limits)?)
+        } else if let Some(font_file) = descriptor
+            .get(b"FontFile3")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_stream().ok())
+        {
+            if resolved_name(self.document, &font_file.dict, b"Subtype", self.limits)?
+                != Some(b"Type1C".as_slice())
+                || !valid_font_program(self.document, b"FontFile3", font_file, self.limits)?
+            {
+                return Ok(());
+            }
+            let bytes = decode_font_stream(font_file, self.limits)?;
+            let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+                return Ok(());
+            };
+            type1c_program_char_names(&cff)
+        } else {
             return Ok(());
         };
-        if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
-            return Ok(());
-        }
-        let program_names = type1_program_char_names(&decode_font_stream(font_file, self.limits)?);
-        let char_set = type1_charset_names(&char_set_bytes);
+        let char_set = type1_charset_names(&char_set_bytes)
+            .into_iter()
+            .filter(|name| *name != ".notdef")
+            .map(ToOwned::to_owned)
+            .collect::<BTreeSet<_>>();
+        let program_names = program_names
+            .into_iter()
+            .filter(|name| name != ".notdef")
+            .collect::<BTreeSet<_>>();
         if !program_names.is_empty()
-            && program_names
+            && (program_names
                 .iter()
                 .any(|name| !char_set.contains(name.as_str()))
+                || char_set
+                    .iter()
+                    .any(|name| !program_names.contains(name.as_str())))
         {
             self.invalid_type1_charsets_pdfua1.push(font_failure(
                 object_id,
@@ -2201,9 +2230,8 @@ impl CidToGidMap {
             Self::Table(bytes) => {
                 let offset = usize::from(cid).checked_mul(2)?;
                 let entry = bytes.get(offset..offset.saturating_add(2))?;
-                Some(ttf_parser::GlyphId(u16::from_be_bytes([
-                    entry[0], entry[1],
-                ])))
+                let bytes = entry.try_into().ok()?;
+                Some(ttf_parser::GlyphId(u16::from_be_bytes(bytes)))
             }
             Self::Unavailable => None,
         }
@@ -2334,7 +2362,10 @@ fn parse_cid_widths(
             let usable_len = widths.len().min(usize::from(u16::MAX) + 1);
             let overflowed = widths.len() > usable_len;
             let mut resolved_widths = Vec::with_capacity(usable_len);
-            for width in &widths[..usable_len] {
+            let Some(widths) = widths.get(..usable_len) else {
+                break true;
+            };
+            for width in widths {
                 resolved_widths.push(resolved_float(document, limits, width)?.map(f64::from));
             }
             groups.push(WGroup::Singles {
@@ -2569,15 +2600,13 @@ fn cmap_maximal_cid(bytes: &[u8]) -> Option<u32> {
     let mut maximum = None;
     let mut cursor = 0usize;
     while cursor < tokens.len() {
-        let Some(count) = tokens[cursor]
+        let Some(token) = tokens.get(cursor) else {
+            break;
+        };
+        let Some(count) = token
             .iter()
             .all(u8::is_ascii_digit)
-            .then(|| {
-                std::str::from_utf8(tokens[cursor])
-                    .ok()?
-                    .parse::<usize>()
-                    .ok()
-            })
+            .then(|| std::str::from_utf8(token).ok()?.parse::<usize>().ok())
             .flatten()
         else {
             cursor += 1;
@@ -2765,8 +2794,8 @@ fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
     tokens
         .windows(2)
         .filter_map(|pair| {
-            (pair[1] == b"usecmap")
-                .then(|| pair[0].strip_prefix(b"/"))
+            (pair.get(1) == Some(&b"usecmap".as_slice()))
+                .then(|| pair.first().and_then(|token| token.strip_prefix(b"/")))
                 .flatten()
         })
         .any(|name| matches!(name, b"Identity-H" | b"Identity-V"))
@@ -2895,21 +2924,23 @@ fn parse_cmap(bytes: &[u8]) -> Option<ParsedCmap> {
     let mut notdef_chars = BTreeMap::new();
     let mut notdef_ranges = Vec::new();
     while cursor + 1 < tokens.len() {
-        let Some(count) = tokens[cursor]
+        let Some(token) = tokens.get(cursor) else {
+            cursor += 1;
+            continue;
+        };
+        let Some(count) = token
             .iter()
             .all(u8::is_ascii_digit)
-            .then(|| {
-                std::str::from_utf8(tokens[cursor])
-                    .ok()?
-                    .parse::<usize>()
-                    .ok()
-            })
+            .then(|| std::str::from_utf8(token).ok()?.parse::<usize>().ok())
             .flatten()
         else {
             cursor += 1;
             continue;
         };
-        match tokens[cursor + 1] {
+        let Some(keyword) = tokens.get(cursor + 1) else {
+            break;
+        };
+        match *keyword {
             b"begincodespacerange" => {
                 let count = bounded_cmap_entry_count(count, &tokens, cursor + 2, 2);
                 for entry in 0..count {
@@ -3109,8 +3140,8 @@ fn identity_parsed_cmap() -> ParsedCmap {
 
 fn cmap_usecmap_name(bytes: &[u8]) -> Option<&[u8]> {
     cmap_tokens(bytes).windows(2).find_map(|pair| {
-        (pair[1] == b"usecmap")
-            .then(|| pair[0].strip_prefix(b"/"))
+        (pair.get(1) == Some(&b"usecmap".as_slice()))
+            .then(|| pair.first().and_then(|token| token.strip_prefix(b"/")))
             .flatten()
     })
 }
@@ -3119,14 +3150,14 @@ fn cmap_bytes_system_info(bytes: &[u8]) -> Option<CidSystemInfo> {
     let tokens = cmap_tokens(bytes);
     let value = |key: &[u8]| {
         tokens.windows(2).find_map(|pair| {
-            (pair[0] == key)
-                .then(|| pair[1].strip_prefix(b"(")?.strip_suffix(b")"))
+            (pair.first() == Some(&key))
+                .then(|| pair.get(1)?.strip_prefix(b"(")?.strip_suffix(b")"))
                 .flatten()
         })
     };
     let supplement = tokens.windows(2).find_map(|pair| {
-        (pair[0] == b"/Supplement")
-            .then(|| parse_cmap_integer(pair[1]))
+        (pair.first() == Some(&b"/Supplement".as_slice()))
+            .then(|| pair.get(1).and_then(|token| parse_cmap_integer(token)))
             .flatten()
     })?;
     Some(CidSystemInfo {
@@ -3527,11 +3558,17 @@ impl UnicodeCmap {
         let mut mappings = BTreeMap::new();
         let mut cursor = 0;
         while cursor + 1 < tokens.len() {
-            let Some(count) = parse_cmap_integer(tokens[cursor]).map(|count| count as usize) else {
+            let Some(token) = tokens.get(cursor) else {
+                break;
+            };
+            let Some(count) = parse_cmap_integer(token).map(|count| count as usize) else {
                 cursor += 1;
                 continue;
             };
-            match tokens[cursor + 1] {
+            let Some(keyword) = tokens.get(cursor + 1) else {
+                break;
+            };
+            match *keyword {
                 b"beginbfchar" => {
                     for index in 0..count {
                         let source = parse_cmap_bytes(tokens.get(cursor + 2 + index * 2)?)?;
@@ -3613,7 +3650,7 @@ fn parse_cmap_bytes(token: &[u8]) -> Option<Vec<u8>> {
     (value.len() % 2 == 0 && !value.is_empty()).then(|| {
         (0..value.len())
             .step_by(2)
-            .map(|i| u8::from_str_radix(std::str::from_utf8(&value[i..i + 2]).ok()?, 16).ok())
+            .map(|i| u8::from_str_radix(std::str::from_utf8(value.get(i..i + 2)?).ok()?, 16).ok())
             .collect::<Option<Vec<_>>>()
     })?
 }
@@ -3680,7 +3717,9 @@ fn parse_cmap_hex(token: &[u8]) -> Option<u32> {
 }
 
 fn is_subset_font_name(name: &[u8]) -> bool {
-    name.len() >= 7 && name[..6].iter().all(u8::is_ascii_uppercase) && name[6] == b'+'
+    name.get(..6)
+        .is_some_and(|prefix| prefix.iter().all(u8::is_ascii_uppercase))
+        && name.get(6) == Some(&b'+')
 }
 
 fn cid_set_contains(bytes: &[u8], cid: u16) -> bool {
@@ -3733,7 +3772,10 @@ fn cid_font_program_cids(
             CidToGidMap::Identity => {
                 let glyph_count = face.glyph_count.unwrap_or(0).min(usize::from(u16::MAX) + 1);
                 for glyph in 1..glyph_count {
-                    cids.insert(u16::try_from(glyph).expect("glyph count is bounded to u16"));
+                    let Ok(glyph) = u16::try_from(glyph) else {
+                        return Ok(None);
+                    };
+                    cids.insert(glyph);
                 }
             }
             CidToGidMap::Table(bytes) => {
@@ -3798,7 +3840,10 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
     let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
         return BTreeSet::new();
     };
-    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
+    let Some(ciphertext) = bytes.get(eexec + 5..) else {
+        return BTreeSet::new();
+    };
+    let ciphertext = type1_eexec_ciphertext(ciphertext);
     let plaintext = type1_decrypt(&ciphertext, 55_665, 4);
     let Some(start) = plaintext
         .windows(b"/CharStrings".len())
@@ -3806,19 +3851,27 @@ fn type1_program_char_names(bytes: &[u8]) -> BTreeSet<String> {
     else {
         return BTreeSet::new();
     };
-    let region = &plaintext[start..];
+    let Some(region) = plaintext.get(start..) else {
+        return BTreeSet::new();
+    };
     let mut names = BTreeSet::new();
     let mut position = 0;
-    while let Some(relative) = region[position..].iter().position(|byte| *byte == b'/') {
+    while let Some(relative) = region
+        .get(position..)
+        .and_then(|tail| tail.iter().position(|byte| *byte == b'/'))
+    {
         let slash = position + relative;
         let name_start = slash + 1;
-        let name_end = region[name_start..]
+        let name_end = region
+            .get(name_start..)
+            .unwrap_or_default()
             .iter()
             .position(|byte| byte.is_ascii_whitespace() || b"()<>[]{}/%".contains(byte))
             .map_or(region.len(), |offset| name_start + offset);
         if name_end > name_start
-            && is_type1_charstring_definition(&region[name_end..])
-            && let Ok(name) = std::str::from_utf8(&region[name_start..name_end])
+            && is_type1_charstring_definition(region.get(name_end..).unwrap_or_default())
+            && let Ok(name) =
+                std::str::from_utf8(region.get(name_start..name_end).unwrap_or_default())
         {
             names.insert(name.to_owned());
         }
@@ -3917,25 +3970,31 @@ fn type1_program_encoding(bytes: &[u8]) -> Type1ProgramEncoding {
             standard_base: false,
         };
     };
-    let definition = &tokens[start + 1..];
+    let definition = tokens.get(start + 1..).unwrap_or_default();
     let end = definition
         .iter()
         .position(|token| *token == b"def")
         .unwrap_or(definition.len());
-    let definition = &definition[..end];
+    let definition = definition.get(..end).unwrap_or_default();
     let standard_base = definition.contains(&b"StandardEncoding".as_slice());
     let mut names = BTreeMap::new();
     for assignment in definition.windows(4) {
-        if assignment[0] != b"dup" || assignment[3] != b"put" {
+        let [first, _, _, last] = assignment else {
+            continue;
+        };
+        if *first != b"dup" || *last != b"put" {
             continue;
         }
-        let Some(code) = std::str::from_utf8(assignment[1])
+        let Some(code_token) = assignment.get(1) else {
+            continue;
+        };
+        let Some(code) = std::str::from_utf8(code_token)
             .ok()
             .and_then(|value| value.parse::<u8>().ok())
         else {
             continue;
         };
-        let Some(name) = assignment[2].strip_prefix(b"/") else {
+        let Some(name) = assignment.get(2).and_then(|value| value.strip_prefix(b"/")) else {
             continue;
         };
         if !name.is_empty() {
@@ -3953,12 +4012,15 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
     let Some(eexec) = bytes.windows(5).position(|window| window == b"eexec") else {
         return BTreeMap::new();
     };
-    let ciphertext = type1_eexec_ciphertext(&bytes[eexec + 5..]);
+    let Some(ciphertext) = bytes.get(eexec + 5..) else {
+        return BTreeMap::new();
+    };
+    let ciphertext = type1_eexec_ciphertext(ciphertext);
     let plaintext = type1_decrypt(&ciphertext, 55_665, 4);
     let len_iv = plaintext
         .windows(b"/lenIV".len())
         .position(|window| window == b"/lenIV")
-        .and_then(|position| parse_ascii_integer(&plaintext[position + 6..]))
+        .and_then(|position| parse_ascii_integer(plaintext.get(position + 6..)?))
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or(4);
     let Some(charstrings) = plaintext
@@ -3969,7 +4031,10 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
     };
     let mut result = BTreeMap::new();
     let mut position = charstrings + b"/CharStrings".len();
-    while let Some(relative) = plaintext[position..].iter().position(|byte| *byte == b'/') {
+    while let Some(relative) = plaintext
+        .get(position..)
+        .and_then(|tail| tail.iter().position(|byte| *byte == b'/'))
+    {
         position += relative + 1;
         let name_start = position;
         while plaintext
@@ -3981,14 +4046,15 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
         if position == name_start {
             continue;
         }
-        let name = String::from_utf8_lossy(&plaintext[name_start..position]).into_owned();
+        let name = String::from_utf8_lossy(plaintext.get(name_start..position).unwrap_or_default())
+            .into_owned();
         while plaintext
             .get(position)
             .is_some_and(|byte| byte.is_ascii_whitespace())
         {
             position += 1;
         }
-        let Some(length) = parse_ascii_integer(&plaintext[position..])
+        let Some(length) = parse_ascii_integer(plaintext.get(position..).unwrap_or_default())
             .and_then(|value| usize::try_from(value).ok())
         else {
             break;
@@ -4034,12 +4100,14 @@ fn type1_charstring_width(bytes: &[u8], len_iv: usize) -> Option<f64> {
     let mut operands = Vec::new();
     let mut position = 0;
     while position < decrypted.len() {
-        if let Some((value, consumed)) = cff_number(&decrypted[position..]) {
+        if let Some((value, consumed)) = cff_number(decrypted.get(position..).unwrap_or_default()) {
             operands.push(value);
             position += consumed;
             continue;
         }
-        let byte = decrypted[position];
+        let Some(byte) = decrypted.get(position).copied() else {
+            break;
+        };
         if byte == 13 && operands.len() >= 2 {
             return operands.get(1).copied();
         }
@@ -4059,7 +4127,11 @@ fn parse_ascii_integer(bytes: &[u8]) -> Option<i64> {
     {
         end += 1;
     }
-    std::str::from_utf8(&bytes[..end]).ok()?.trim().parse().ok()
+    std::str::from_utf8(bytes.get(..end)?)
+        .ok()?
+        .trim()
+        .parse()
+        .ok()
 }
 
 fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
@@ -4090,9 +4162,10 @@ fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
                     b'0'..=b'9' => byte - b'0',
                     b'a'..=b'f' => byte - b'a' + 10,
                     b'A'..=b'F' => byte - b'A' + 10,
-                    _ => unreachable!("checked ASCII hexadecimal byte"),
+                    _ => 0,
                 };
-                digit(pair[0]) << 4 | digit(pair[1])
+                let [first, second] = *pair;
+                digit(first) << 4 | digit(second)
             })
             .collect();
     }
@@ -4158,6 +4231,13 @@ fn cff_glyph_index_by_name(
     })
 }
 
+fn type1c_program_char_names(cff: &ttf_parser::cff::Table<'_>) -> BTreeSet<String> {
+    (0..cff.number_of_glyphs())
+        .filter_map(|index| cff.glyph_name(ttf_parser::GlyphId(index)))
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
 fn type3_charproc_width(stream: &Stream, limits: &SafetyLimits) -> Result<Option<f64>, PdfError> {
     let bytes = decode_font_stream(stream, limits)?;
     let tokens = bytes
@@ -4195,13 +4275,13 @@ fn cff_charstring_width(bytes: &[u8], nominal: f64, default: f64) -> Option<f64>
         };
         if operator == 14 {
             return Some(if operands.len() == 1 {
-                nominal + operands[0]
+                nominal + operands.first().copied().unwrap_or_default()
             } else {
                 default
             });
         }
         return Some(if operands.len() % 2 == 1 {
-            nominal + operands[0]
+            nominal + operands.first().copied().unwrap_or_default()
         } else {
             default
         });
@@ -4243,12 +4323,14 @@ fn cff_dict(bytes: &[u8]) -> BTreeMap<u16, Vec<f64>> {
     let mut operands = Vec::new();
     let mut position = 0usize;
     while position < bytes.len() {
-        if let Some((value, consumed)) = cff_number(&bytes[position..]) {
+        if let Some((value, consumed)) = cff_number(bytes.get(position..).unwrap_or_default()) {
             operands.push(value);
             position += consumed;
             continue;
         }
-        let byte = bytes[position];
+        let Some(byte) = bytes.get(position).copied() else {
+            break;
+        };
         position += 1;
         let operator = if byte == 12 {
             let Some(second) = bytes.get(position).copied() else {
@@ -4428,12 +4510,29 @@ fn differences_are_unicode_compliant(
     else {
         return Ok(true);
     };
-    let valid_difference_names = matches!(
-        font.get_font_encoding(document),
-        Ok(Encoding::Differences(_))
-    );
-    if value.is_null() || !valid_difference_names {
+    if value.is_null() {
         return Ok(value.is_null());
+    }
+    let Some(differences) = value.as_array().ok() else {
+        return Ok(false);
+    };
+    let mut contains_name = false;
+    for entry in differences {
+        if resolved_integer(document, limits, entry)?.is_some() {
+            continue;
+        }
+        let Some(name) = resolve_optional(document, entry, limits.max_reference_depth)?
+            .and_then(|entry| entry.as_name().ok())
+        else {
+            return Ok(false);
+        };
+        contains_name = true;
+        if !is_adobe_glyph_name(name) {
+            return Ok(false);
+        }
+    }
+    if !contains_name {
+        return Ok(false);
     }
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(true);
@@ -4455,6 +4554,22 @@ fn differences_are_unicode_compliant(
             subtable.platform_id == ttf_parser::PlatformId::Windows && subtable.encoding_id == 1
         })
     }))
+}
+
+fn is_adobe_glyph_name(name: &[u8]) -> bool {
+    [
+        PredefinedEncoding::Standard,
+        PredefinedEncoding::MacRoman,
+        PredefinedEncoding::MacExpert,
+        PredefinedEncoding::WinAnsi,
+    ]
+    .into_iter()
+    .flat_map(|encoding| {
+        (0..=u8::MAX).filter_map(move |byte| font_encodings::glyph_name(encoding, byte))
+    })
+    .any(|candidate| candidate.as_bytes() == name)
+        || is_symbol_glyph_name(std::str::from_utf8(name).unwrap_or_default())
+        || name == b".notdef"
 }
 
 /// The subset of an SFNT needed by veraPDF's glyph-presence and width model.

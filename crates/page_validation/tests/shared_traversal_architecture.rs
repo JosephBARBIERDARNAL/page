@@ -12,9 +12,7 @@ const SRC_DIR: &str = env!("CARGO_MANIFEST_DIR");
 fn src_files() -> Vec<(String, String)> {
     let dir = Path::new(SRC_DIR).join("src");
     let mut files = Vec::new();
-    for entry in fs::read_dir(&dir).unwrap_or_else(|error| {
-        panic!("read {}: {error}", dir.display());
-    }) {
+    for entry in fs::read_dir(&dir).expect("read source directory") {
         let entry = entry.expect("dir entry");
         let path = entry.path();
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
@@ -25,8 +23,7 @@ fn src_files() -> Vec<(String, String)> {
             .and_then(|name| name.to_str())
             .expect("file name")
             .to_owned();
-        let content = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+        let content = fs::read_to_string(&path).expect("read source file");
         files.push((file_name, content));
     }
     assert!(!files.is_empty(), "expected to find source files in src/");

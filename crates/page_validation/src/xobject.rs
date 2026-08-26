@@ -220,7 +220,7 @@ fn inspect_jpeg2000(
     }
     if !depths.is_empty()
         && (depths.iter().any(|depth| !(1..=38).contains(depth))
-            || depths.windows(2).any(|pair| pair[0] != pair[1]))
+            || depths.windows(2).any(|pair| pair.first() != pair.last()))
     {
         summary.jpeg2000_failures[4].push(jpx_failure(
             object_id,
@@ -294,28 +294,52 @@ fn parse_jp2_boxes(
     enum_cs: &mut Option<u32>,
 ) {
     let mut position = 0usize;
-    while position + 8 <= bytes.len() {
-        let length = u32::from_be_bytes(bytes[position..position + 4].try_into().unwrap()) as usize;
-        if length < 8 || position + length > bytes.len() {
+    while let Some(header) = bytes.get(position..position.saturating_add(8)) {
+        let Some(length_bytes) = header.get(..4).and_then(|value| value.try_into().ok()) else {
+            break;
+        };
+        let length = u32::from_be_bytes(length_bytes) as usize;
+        let Some(end) = position.checked_add(length) else {
+            break;
+        };
+        if length < 8 {
             break;
         }
-        let kind = &bytes[position + 4..position + 8];
-        let payload = &bytes[position + 8..position + length];
+        let Some(kind) = bytes.get(position + 4..position + 8) else {
+            break;
+        };
+        let Some(payload) = bytes.get(position + 8..end) else {
+            break;
+        };
         if kind == b"ihdr" && payload.len() >= 11 {
-            *channels = Some(usize::from(u16::from_be_bytes([payload[8], payload[9]])));
-            depths.push(usize::from((payload[10] & 0x7f) + 1));
+            let Some(channel_bytes) = payload.get(8..10).and_then(|value| value.try_into().ok())
+            else {
+                break;
+            };
+            let Some(depth) = payload.get(10).copied() else {
+                break;
+            };
+            *channels = Some(usize::from(u16::from_be_bytes(channel_bytes)));
+            depths.push(usize::from((depth & 0x7f) + 1));
         } else if kind == b"colr" && payload.len() >= 3 {
-            methods.push(payload[0]);
-            if payload[2] == 1 {
+            let Some(method) = payload.first().copied() else {
+                break;
+            };
+            methods.push(method);
+            if payload.get(2) == Some(&1) {
                 *approx_one += 1;
             }
-            if payload[0] == 1 && payload.len() >= 7 {
-                *enum_cs = Some(u32::from_be_bytes(payload[3..7].try_into().unwrap()));
+            if method == 1 && payload.len() >= 7 {
+                let Some(enum_bytes) = payload.get(3..7).and_then(|value| value.try_into().ok())
+                else {
+                    break;
+                };
+                *enum_cs = Some(u32::from_be_bytes(enum_bytes));
             }
         } else if kind == b"jp2h" || kind == b"jp2c" {
             parse_jp2_boxes(payload, channels, depths, methods, approx_one, enum_cs);
         }
-        position += length;
+        position = end;
     }
 }
 

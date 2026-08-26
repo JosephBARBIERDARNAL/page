@@ -65,20 +65,21 @@ fn a_single_transparency_failure_attaches_its_owner() {
 
 #[test]
 fn pdfa_2_requires_page_group_cs_for_used_transparency_without_output_intent() {
-    for profile in [
-        page_validation::ValidationProfile::PdfA2b,
-        page_validation::ValidationProfile::PdfA3b,
+    for (profile, rule_id) in [
+        (
+            page_validation::ValidationProfile::PdfA2b,
+            "PDFA2B-TRANSPARENCY-GROUP-CS-001",
+        ),
+        (
+            page_validation::ValidationProfile::PdfA3b,
+            "PDFA3B-TRANSPARENCY-GROUP-CS-001",
+        ),
     ] {
         let report = validate_bytes_with_profile(
             &common::graphics_fixture("extgstate_transparency_no_output_intent"),
             profile,
             &SafetyLimits::default(),
         );
-        let rule_id = match profile {
-            page_validation::ValidationProfile::PdfA2b => "PDFA2B-TRANSPARENCY-GROUP-CS-001",
-            page_validation::ValidationProfile::PdfA3b => "PDFA3B-TRANSPARENCY-GROUP-CS-001",
-            _ => unreachable!(),
-        };
         assert!(
             report
                 .failures

@@ -13,7 +13,7 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 - make sure, when possible, to reuse code from different profiles
 - ignore git changes that you didn't create, it's just someone else working on the project simultaneously.
 - always run format/lint (`just fmt && just lint`) before submitting your changes and make sure it's all green
-- don't add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant.
+- never add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant, but this behavior should be banned by default.
 - always check for ways to reuse code
 - minimize useless abstraction
 - never update documentation (readme + docs/\*.md files), unless explicitely asked to
@@ -88,8 +88,7 @@ Operational and parser failures are kept separate from metadata and conformance 
 
 Entire source code of the veraPDF-library lives in `veraPDF-library/`, and it's exactly the one for 1.30.x (all versions after 1.30 are OK). Do not install other veraPDF version, unless explicitely asked for it, use whatever 1.30.x version is available on PATH. It's excluded from git tracking.
 
-The `verapdf-diff` binary compares the local subset with an explicitly pinned
-veraPDF installation:
+The `verapdf-diff` binary compares the local subset with an explicitly pinned veraPDF installation:
 
 ```bash
 cargo run -p page_cli --bin verapdf-diff -- \
@@ -106,16 +105,11 @@ The classifications are:
 
 - `agreement`: veraPDF reports compliant and all local implemented checks pass.
 - `both_noncompliant`: both validators reject the input or report failures.
-- `coverage_gap`: the local subset passes while veraPDF reports failures from
-  rules not implemented locally. This is expected during development and must
-  never be read as a conformance result.
+- `coverage_gap`: the local subset passes while veraPDF reports failures from rules not implemented locally. This is expected during development and must never be read as a conformance result.
 - `local_false_negative`: veraPDF passes while a local implemented check fails.
-- `local_parser_discrepancy`: the local parser rejects a PDF that veraPDF can
-  process.
-- `reference_parser_discrepancy`: veraPDF cannot process a PDF that the local
-  parser can process.
-- `operational`: the executable is unavailable, its version is wrong, it times
-  out, its report is invalid, or local input/resource handling fails.
+- `local_parser_discrepancy`: the local parser rejects a PDF that veraPDF can process.
+- `reference_parser_discrepancy`: veraPDF cannot process a PDF that the local parser can process.
+- `operational`: the executable is unavailable, its version is wrong, it times out, its report is invalid, or local input/resource handling fails.
 
 `agreement`, `both_noncompliant`, and `coverage_gap` exit with status `0`. Semantic or parser discrepancies exit with status `2`; operational failures exit with status `1`. Across multiple files, operational status takes precedence over discrepancy status.
 
@@ -129,6 +123,10 @@ The gate requires a `pass` file to make `page` return exit code `0` and a `fail`
 
 Run the same gate locally with `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When another validation format is added, update the selected profile list in `crates/page_cli/src/corpus.rs`, the sparse-checkout lists in `justfile` and `.github/workflows/ci.yml`, and this section's documented revision and profile list.
 
-### Pinned rule mapping
+## Pinned rule mapping
 
-The machine-readable source of truth for the shared PDF/A-1 rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1-rule-mapping.md` for the generated human-readable mapping.
+The machine-readable source of truth for the shared PDF/A-1 rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1-rules.md` for the generated human-readable mapping.
+
+## Reference Rust documentation
+
+The reference rust documentation is generated via `just doc-reference`, which runs a Python script that uses Cargo doc to generate markdown files.

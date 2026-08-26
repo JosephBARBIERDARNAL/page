@@ -1,3 +1,5 @@
+#![cfg(feature = "internal")]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -58,16 +60,16 @@ fn corpus_command_accepts_all_expected_failures_and_a_pass() {
     )
     .expect("write corpus pass case");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_page"))
-        .args(["corpus", temporary.0.to_str().expect("UTF-8 corpus path")])
+    let output = Command::new(env!("CARGO_BIN_EXE_page-corpus"))
+        .arg(temporary.0.to_str().expect("UTF-8 corpus path"))
         .output()
         .expect("run corpus command");
 
     assert_eq!(output.status.code(), Some(0));
     let stderr = String::from_utf8(output.stderr).expect("UTF-8 corpus output");
     assert!(stderr.contains("Corpus validation"), "{stderr}");
-    assert!(stderr.contains("cases:       7"), "{stderr}");
-    assert!(stderr.contains("matched:     7"), "{stderr}");
+    assert!(stderr.contains("cases:       8"), "{stderr}");
+    assert!(stderr.contains("matched:     8"), "{stderr}");
 }
 
 #[test]
@@ -79,8 +81,8 @@ fn corpus_command_returns_two_for_an_expected_pass_failure() {
     )
     .expect("replace corpus failure case");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_page"))
-        .args(["corpus", temporary.0.to_str().expect("UTF-8 corpus path")])
+    let output = Command::new(env!("CARGO_BIN_EXE_page-corpus"))
+        .arg(temporary.0.to_str().expect("UTF-8 corpus path"))
         .output()
         .expect("run corpus command");
 

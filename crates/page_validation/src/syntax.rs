@@ -364,7 +364,7 @@ impl<'a> RawParser<'a> {
                 _ => break,
             }
         }
-        has_digit.then_some(&self.bytes[start..self.position])
+        has_digit.then_some(self.bytes.get(start..self.position)?)
     }
 
     fn take_unsigned_integer_token(&mut self) -> Option<&'a [u8]> {
@@ -372,7 +372,7 @@ impl<'a> RawParser<'a> {
         while matches!(self.peek(), Some(b'0'..=b'9')) {
             self.position += 1;
         }
-        (self.position > start).then_some(&self.bytes[start..self.position])
+        (self.position > start).then_some(self.bytes.get(start..self.position)?)
     }
 
     fn skip_space_and_comments(&mut self) {
@@ -942,21 +942,23 @@ fn parse_xref_stream_dictionary(
 
 fn parse_subsection_header(line: &[u8]) -> Option<(usize, bool)> {
     let first_end = line.iter().position(|byte| !byte.is_ascii_digit())?;
-    let second_start = line[first_end..]
+    let second_start = line
+        .get(first_end..)?
         .iter()
         .position(|byte| byte.is_ascii_digit())
         .map(|offset| first_end + offset)?;
     let second_end = second_start
-        + line[second_start..]
+        + line
+            .get(second_start..)?
             .iter()
             .take_while(|byte| byte.is_ascii_digit())
             .count();
     (first_end > 0 && second_end == line.len()).then_some(())?;
-    let count = std::str::from_utf8(&line[second_start..second_end])
+    let count = std::str::from_utf8(line.get(second_start..second_end)?)
         .ok()?
         .parse()
         .ok()?;
-    Some((count, &line[first_end..second_start] == b" "))
+    Some((count, line.get(first_end..second_start)? == b" "))
 }
 
 fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
@@ -964,7 +966,8 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
         .windows(b"%PDF-".len())
         .position(|window| window == b"%PDF-");
     let header_end = marker.and_then(|start| {
-        bytes[start..]
+        bytes
+            .get(start..)?
             .iter()
             .position(|byte| matches!(byte, b'\r' | b'\n'))
             .map(|length| start + length)
@@ -972,19 +975,23 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
     let has_valid_header = marker.zip(header_end).is_some_and(|(start, end)| {
         start == 0
             && end == b"%PDF-1.0".len()
-            && bytes[..end].starts_with(b"%PDF-")
-            && bytes[5].is_ascii_digit()
-            && bytes[6] == b'.'
-            && bytes[7].is_ascii_digit()
+            && bytes
+                .get(..end)
+                .is_some_and(|header| header.starts_with(b"%PDF-"))
+            && bytes.get(5).is_some_and(u8::is_ascii_digit)
+            && bytes.get(6) == Some(&b'.')
+            && bytes.get(7).is_some_and(u8::is_ascii_digit)
     });
     let has_valid_pdfa23_header = marker.zip(header_end).is_some_and(|(start, end)| {
         start == 0
             && end == b"%PDF-1.0".len()
-            && bytes[..end].starts_with(b"%PDF-")
-            && bytes[5] == b'1'
-            && bytes[6] == b'.'
-            && bytes[7].is_ascii_digit()
-            && bytes[7] <= b'7'
+            && bytes
+                .get(..end)
+                .is_some_and(|header| header.starts_with(b"%PDF-"))
+            && bytes.get(5) == Some(&b'1')
+            && bytes.get(6) == Some(&b'.')
+            && bytes.get(7).is_some_and(u8::is_ascii_digit)
+            && bytes.get(7).is_some_and(|byte| *byte <= b'7')
     });
     let comment_start = header_end.and_then(|end| single_eol_end(bytes, end));
     let has_binary_comment = comment_start.is_some_and(|start| {
@@ -998,7 +1005,7 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
         .rposition(|window| window == b"%%EOF")
         .is_none_or(|offset| {
             !matches!(
-                &bytes[offset + b"%%EOF".len()..],
+                bytes.get(offset + b"%%EOF".len()..).unwrap_or_default(),
                 b"" | b"\n" | b"\r" | b"\r\n"
             )
         });
@@ -1039,7 +1046,8 @@ fn inspect_header(bytes: &[u8], revisions: &[Revision]) -> HeaderSummary {
 
 fn first_indirect_dictionary(bytes: &[u8]) -> Option<(usize, RawValue)> {
     let marker = bytes.windows(5).position(|window| window == b"%PDF-")?;
-    let mut cursor = bytes[marker..]
+    let mut cursor = bytes
+        .get(marker..)?
         .iter()
         .position(|byte| matches!(byte, b'\r' | b'\n'))
         .map(|offset| marker + offset)?;
@@ -1106,7 +1114,11 @@ fn repair_startxref_whitespace(bytes: &mut [u8]) -> bool {
         return false;
     };
     let mut target = offset;
-    while target < bytes.len() && is_pdf_whitespace(bytes[target]) {
+    while target < bytes.len()
+        && bytes
+            .get(target)
+            .is_some_and(|byte| is_pdf_whitespace(*byte))
+    {
         target += 1;
     }
     if target == offset || bytes.get(target..target + b"xref".len()) != Some(b"xref") {
@@ -1116,7 +1128,10 @@ fn repair_startxref_whitespace(bytes: &mut [u8]) -> bool {
     if replacement.len() != number_end - number_start {
         return false;
     }
-    bytes[number_start..number_end].copy_from_slice(replacement.as_bytes());
+    let Some(target) = bytes.get_mut(number_start..number_end) else {
+        return false;
+    };
+    target.copy_from_slice(replacement.as_bytes());
     true
 }
 
@@ -1133,11 +1148,14 @@ fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
         let after_keyword = cursor + b"xref".len();
         if bytes.get(after_keyword) == Some(&b'\n') && bytes.get(after_keyword + 1) == Some(&b'\n')
         {
-            bytes[after_keyword] = b' ';
+            let Some(byte) = bytes.get_mut(after_keyword) else {
+                return changed;
+            };
+            *byte = b' ';
             changed = true;
         }
         let mut line_start = after_keyword;
-        while line_start < bytes.len() && bytes[line_start] != b'\n' {
+        while line_start < bytes.len() && bytes.get(line_start) != Some(&b'\n') {
             line_start += 1;
         }
         line_start += usize::from(line_start < bytes.len());
@@ -1170,7 +1188,10 @@ fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
             let Some(first_end) = line.iter().position(|byte| !byte.is_ascii_digit()) else {
                 return changed;
             };
-            let Some(second_start) = line[first_end..]
+            let Some(remainder) = line.get(first_end..) else {
+                return changed;
+            };
+            let Some(second_start) = remainder
                 .iter()
                 .position(|byte| byte.is_ascii_digit())
                 .map(|offset| first_end + offset)
@@ -1179,14 +1200,24 @@ fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
             };
             let absolute = line_start + first_end;
             let separator_length = second_start - first_end;
-            if separator_length > 0 && &line[first_end..second_start] != b" " {
-                for byte in &mut bytes[absolute..absolute + separator_length - 1] {
+            if separator_length > 0 && line.get(first_end..second_start) != Some(b" ") {
+                let Some(replacement) = bytes.get_mut(absolute..absolute + separator_length - 1)
+                else {
+                    return changed;
+                };
+                for byte in replacement {
                     *byte = b'0';
                 }
-                bytes[absolute + separator_length - 1] = b' ';
+                let Some(byte) = bytes.get_mut(absolute + separator_length - 1) else {
+                    return changed;
+                };
+                *byte = b' ';
                 changed = true;
             }
-            let Some((count, _)) = parse_subsection_header(&bytes[line_start..next - 1]) else {
+            let Some((count, _)) = bytes
+                .get(line_start..next.saturating_sub(1))
+                .and_then(parse_subsection_header)
+            else {
                 return changed;
             };
             line_start = next;
@@ -1206,9 +1237,14 @@ fn repair_hex_strings(bytes: &mut [u8]) -> bool {
     let mut cursor = 0;
     let mut literal_depth = 0usize;
     while cursor < bytes.len() {
-        match bytes[cursor] {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
             b'%' if literal_depth == 0 => {
-                while cursor < bytes.len() && !matches!(bytes[cursor], b'\r' | b'\n') {
+                while cursor < bytes.len()
+                    && !matches!(bytes.get(cursor).copied(), Some(b'\r' | b'\n'))
+                {
                     cursor += 1;
                 }
             }
@@ -1224,9 +1260,15 @@ fn repair_hex_strings(bytes: &mut [u8]) -> bool {
             b'<' if literal_depth == 0 && bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
             b'<' if literal_depth == 0 => {
                 cursor += 1;
-                while cursor < bytes.len() && bytes[cursor] != b'>' {
-                    if !is_pdf_whitespace(bytes[cursor]) && hex(bytes[cursor]).is_none() {
-                        bytes[cursor] = b'0';
+                while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
+                    let Some(byte) = bytes.get(cursor).copied() else {
+                        break;
+                    };
+                    if !is_pdf_whitespace(byte) && hex(byte).is_none() {
+                        let Some(replacement) = bytes.get_mut(cursor) else {
+                            return changed;
+                        };
+                        *replacement = b'0';
                         changed = true;
                     }
                     cursor += 1;
@@ -1253,7 +1295,11 @@ fn repair_hex_strings(bytes: &mut [u8]) -> bool {
 fn final_startxref(bytes: &[u8]) -> Option<usize> {
     let (_, _, offset) = final_startxref_parts(bytes)?;
     let mut target = offset;
-    while target < bytes.len() && is_pdf_whitespace(bytes[target]) {
+    while target < bytes.len()
+        && bytes
+            .get(target)
+            .is_some_and(|byte| is_pdf_whitespace(*byte))
+    {
         target += 1;
     }
     Some(target)
@@ -1263,7 +1309,8 @@ fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
     let eof = bytes
         .windows(b"%%EOF".len())
         .rposition(|window| window == b"%%EOF")?;
-    let start = bytes[..eof]
+    let start = bytes
+        .get(..eof)?
         .windows(b"startxref".len())
         .rposition(|window| window == b"startxref")?
         + b"startxref".len();
@@ -1271,7 +1318,8 @@ fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
     while bytes.get(cursor).copied().is_some_and(is_pdf_whitespace) {
         cursor += 1;
     }
-    let end = bytes[cursor..]
+    let end = bytes
+        .get(cursor..)?
         .iter()
         .position(|byte| !byte.is_ascii_digit())
         .map(|length| cursor + length)
@@ -1279,7 +1327,7 @@ fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
     Some((
         cursor,
         end,
-        std::str::from_utf8(&bytes[cursor..end])
+        std::str::from_utf8(bytes.get(cursor..end)?)
             .ok()?
             .parse()
             .ok()?,
@@ -1287,11 +1335,12 @@ fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
 }
 
 fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
-    let end = bytes[start..]
+    let end = bytes
+        .get(start..)?
         .iter()
         .position(|byte| matches!(byte, b'\r' | b'\n'))
         .map(|offset| start + offset)?;
-    Some((&bytes[start..end], single_eol_end(bytes, end)?))
+    Some((bytes.get(start..end)?, single_eol_end(bytes, end)?))
 }
 
 fn consume_eols(bytes: &[u8], cursor: &mut usize) -> usize {

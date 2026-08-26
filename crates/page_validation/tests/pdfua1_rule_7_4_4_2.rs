@@ -32,7 +32,7 @@ fn pdfua1_rule_7_4_4_2_rejects_documents_mixing_h_and_numbered_headings() {
             "pdfua1-rule-7-4-4-2-hn-then-h.pdf" => {
                 include_bytes!("fixtures/pdfua1-rule-7-4-4-2-hn-then-h.pdf").as_slice()
             }
-            _ => unreachable!(),
+            _ => panic!("unknown PDF/UA-1 rule 7.4.4.2 fixture {fixture}"),
         };
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());

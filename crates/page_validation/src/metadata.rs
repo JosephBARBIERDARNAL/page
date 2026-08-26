@@ -32,6 +32,18 @@ const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#"
 const MAX_XMP_XML_NODES: u32 = 100_000;
 const MAX_XMP_XML_DEPTH: usize = 128;
 
+/// The document information dictionary (PDF32000 §14.3.3), captured as a flat map from entry name to its decoded text value.
+///
+/// `values` holds whichever of `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`, `CreationDate`, `ModDate`, and `Trapped` are present in the trailer's `/Info` dictionary; an entry absent from the source document is simply absent from the map, and a document without an `/Info` dictionary produces an empty `Self::default`. This is the legacy sibling of the XMP-derived `XmpMetadata`, compared against it by the `PDFA1B-INFO-*` consistency rules.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::DocumentMetadata;
+///
+/// let info = DocumentMetadata::default();
+/// assert!(info.values.is_empty());
+/// ```
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DocumentMetadata {
     pub values: BTreeMap<String, String>,
@@ -194,9 +206,14 @@ fn preflight_xml_depth(xml: &str) -> Result<(), String> {
     let bytes = xml.as_bytes();
     let mut position = 0_usize;
     let mut depth = 0_usize;
-    while let Some(relative) = bytes[position..].iter().position(|byte| *byte == b'<') {
+    while let Some(relative) = bytes
+        .get(position..)
+        .and_then(|tail| tail.iter().position(|byte| *byte == b'<'))
+    {
         position += relative;
-        let tail = &bytes[position..];
+        let Some(tail) = bytes.get(position..) else {
+            break;
+        };
         if tail.starts_with(b"<!--") {
             position = find_xml_delimiter(bytes, position + 4, b"-->")?;
             continue;
@@ -229,7 +246,9 @@ fn preflight_xml_depth(xml: &str) -> Result<(), String> {
 }
 
 fn find_xml_delimiter(bytes: &[u8], start: usize, delimiter: &[u8]) -> Result<usize, String> {
-    bytes[start..]
+    bytes
+        .get(start..)
+        .unwrap_or_default()
         .windows(delimiter.len())
         .position(|window| window == delimiter)
         .map(|relative| start + relative + delimiter.len())
@@ -244,7 +263,9 @@ fn find_xml_tag_end(bytes: &[u8], start: usize) -> Result<(usize, bool), String>
             (Some(expected), actual) if expected == actual => quote = None,
             (None, b'\'' | b'"') => quote = Some(byte),
             (None, b'>') => {
-                let self_closing = bytes[start..position]
+                let self_closing = bytes
+                    .get(start..position)
+                    .unwrap_or_default()
                     .iter()
                     .rev()
                     .find(|byte| !byte.is_ascii_whitespace())
@@ -568,10 +589,12 @@ fn validate_resource_property(
                 || child.is_text() && child.text().is_none_or(java_text_is_whitespace))
         })
         .collect::<Vec<_>>();
-    if children.len() != 1 || !children[0].is_element() {
+    if children.len() != 1 || !children.first().is_some_and(|child| child.is_element()) {
         return Err("resource property must contain exactly one RDF node element".to_owned());
     }
-    let child = children[0];
+    let Some(child) = children.first() else {
+        return Err("resource property has no RDF node element".to_owned());
+    };
     let kind = if child.tag_name().namespace() == Some(RDF_NAMESPACE)
         && matches!(child.tag_name().name(), "Bag" | "Seq" | "Alt")
     {
@@ -589,7 +612,7 @@ fn validate_resource_property(
     {
         state.add_qualifier(RDF_NAMESPACE, "type")?;
     }
-    validate_node_element(child, false, &mut state, package_about, xml)?;
+    validate_node_element(*child, false, &mut state, package_about, xml)?;
     state.fixup_qualified_value()?;
     if is_value {
         parent.value_child = Some(Box::new(state));
@@ -888,23 +911,40 @@ fn xmp_type_key(value_type: &str) -> String {
         if choice < copied {
             continue;
         }
-        let start = if lower[..choice].ends_with("open ") {
+        let start = if lower
+            .get(..choice)
+            .is_some_and(|value| value.ends_with("open "))
+        {
             choice - "open ".len()
-        } else if lower[..choice].ends_with("closed ") {
+        } else if lower
+            .get(..choice)
+            .is_some_and(|value| value.ends_with("closed "))
+        {
             choice - "closed ".len()
         } else {
             choice
         };
-        value_type.push_str(&lower[copied..start]);
+        value_type.push_str(lower.get(copied..start).unwrap_or_default());
         let after_choice = choice + "choice ".len();
-        copied = after_choice + usize::from(lower[after_choice..].starts_with("of ")) * "of ".len();
+        copied = after_choice
+            + usize::from(
+                lower
+                    .get(after_choice..)
+                    .is_some_and(|value| value.starts_with("of ")),
+            ) * "of ".len();
     }
-    value_type.push_str(&lower[copied..]);
+    value_type.push_str(lower.get(copied..).unwrap_or_default());
     if value_type.ends_with("choice") {
         let choice = value_type.len() - "choice".len();
-        let start = if value_type[..choice].ends_with("open ") {
+        let start = if value_type
+            .get(..choice)
+            .is_some_and(|value| value.ends_with("open "))
+        {
             choice - "open ".len()
-        } else if value_type[..choice].ends_with("closed ") {
+        } else if value_type
+            .get(..choice)
+            .is_some_and(|value| value.ends_with("closed "))
+        {
             choice - "closed ".len()
         } else {
             choice
@@ -1191,12 +1231,18 @@ fn scalar_xmp_value_matches(value: &str, value_type: &str) -> bool {
 fn gps_coordinate(value: &str) -> bool {
     let bytes = value.as_bytes();
     bytes.len() == 9
-        && bytes[0..2].iter().all(u8::is_ascii_digit)
-        && bytes[2] == b','
-        && bytes[3..5].iter().all(u8::is_ascii_digit)
-        && matches!(bytes[5], b',' | b'.')
-        && bytes[6..8].iter().all(u8::is_ascii_digit)
-        && matches!(bytes[8], b'N' | b'S' | b'E' | b'W')
+        && bytes
+            .get(..2)
+            .is_some_and(|value| value.iter().all(u8::is_ascii_digit))
+        && bytes.get(2) == Some(&b',')
+        && bytes
+            .get(3..5)
+            .is_some_and(|value| value.iter().all(u8::is_ascii_digit))
+        && matches!(bytes.get(5), Some(b',' | b'.'))
+        && bytes
+            .get(6..8)
+            .is_some_and(|value| value.iter().all(u8::is_ascii_digit))
+        && matches!(bytes.get(8), Some(b'N' | b'S' | b'E' | b'W'))
 }
 
 fn xmp_iso8601_date(value: &str) -> bool {
@@ -1964,7 +2010,9 @@ fn has_quoted_assignment(header: &str, name: &[u8]) -> bool {
             if candidate != name {
                 return false;
             }
-            let mut remainder = &bytes[index + name.len()..];
+            let Some(mut remainder) = bytes.get(index + name.len()..) else {
+                return false;
+            };
             remainder = trim_ascii_regex_whitespace(remainder);
             let Some(after_equals) = remainder.strip_prefix(b"=") else {
                 return false;
@@ -1982,7 +2030,7 @@ fn trim_ascii_regex_whitespace(mut bytes: &[u8]) -> &[u8] {
         .first()
         .is_some_and(|byte| matches!(byte, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r'))
     {
-        bytes = &bytes[1..];
+        bytes = bytes.get(1..).unwrap_or_default();
     }
     bytes
 }
@@ -2034,16 +2082,20 @@ fn cdata_positions(xml: &str, range: std::ops::Range<usize>) -> Vec<usize> {
     let mut positions = Vec::new();
     let mut position = range.start;
     while position < range.end {
-        let Some(relative) = bytes[position..range.end]
-            .iter()
-            .position(|byte| *byte == b'<')
+        let Some(relative) = bytes
+            .get(position..range.end)
+            .and_then(|tail| tail.iter().position(|byte| *byte == b'<'))
         else {
             break;
         };
         position += relative;
-        let tail = &bytes[position..range.end];
+        let Some(tail) = bytes.get(position..range.end) else {
+            break;
+        };
         if tail.starts_with(b"<!--") {
-            match bytes[position + 4..range.end]
+            match bytes
+                .get(position + 4..range.end)
+                .unwrap_or_default()
                 .windows(3)
                 .position(|window| window == b"-->")
             {
@@ -2052,7 +2104,9 @@ fn cdata_positions(xml: &str, range: std::ops::Range<usize>) -> Vec<usize> {
             }
         } else if tail.starts_with(b"<![CDATA[") {
             positions.push(position);
-            match bytes[position + 9..range.end]
+            match bytes
+                .get(position + 9..range.end)
+                .unwrap_or_default()
                 .windows(3)
                 .position(|window| window == b"]]>")
             {
@@ -2218,10 +2272,11 @@ fn lang_alt_without_x_default(property: XmpProperty<'_>) -> bool {
     {
         return false;
     }
-    items.len() != 1
-        || items[0]
-            .attribute((XML_NAMESPACE, "lang"))
-            .is_none_or(|language| normalize_xmp_language(language) != "x-default")
+    items.len() > 1
+        && !items.iter().any(|item| {
+            item.attribute((XML_NAMESPACE, "lang"))
+                .is_some_and(|language| normalize_xmp_language(language) == "x-default")
+        })
 }
 
 fn normalize_xmp_language(value: &str) -> String {
@@ -2287,26 +2342,34 @@ fn verapdf_actual_encoding_is_utf8(bytes: &[u8]) -> bool {
 
 fn decode_xml(bytes: &[u8]) -> Result<String, String> {
     let xml = if bytes.starts_with(&[0, 0, 0xFE, 0xFF])
-        || bytes.len() >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0
+        || bytes.len() >= 4
+            && bytes.first() == Some(&0)
+            && bytes.get(1) == Some(&0)
+            && bytes.get(2) == Some(&0)
     {
         decode_utf32(
             bytes.strip_prefix(&[0, 0, 0xFE, 0xFF]).unwrap_or(bytes),
             true,
         )
     } else if bytes.starts_with(&[0xFF, 0xFE, 0, 0])
-        || bytes.len() >= 4 && bytes[0] != 0 && bytes[1] == 0 && bytes[2] == 0
+        || bytes.len() >= 4
+            && bytes.first() != Some(&0)
+            && bytes.get(1) == Some(&0)
+            && bytes.get(2) == Some(&0)
     {
         decode_utf32(
             bytes.strip_prefix(&[0xFF, 0xFE, 0, 0]).unwrap_or(bytes),
             false,
         )
-    } else if bytes.starts_with(&[0xFE, 0xFF]) || bytes.len() >= 2 && bytes[0] == 0 && bytes[1] != 0
+    } else if bytes.starts_with(&[0xFE, 0xFF])
+        || bytes.len() >= 2 && bytes.first() == Some(&0) && bytes.get(1) != Some(&0)
     {
         decode_utf16_lossy(
             bytes.strip_prefix(&[0xFE, 0xFF]).unwrap_or(bytes),
             u16::from_be_bytes,
         )
-    } else if bytes.starts_with(&[0xFF, 0xFE]) || bytes.len() >= 2 && bytes[0] != 0 && bytes[1] == 0
+    } else if bytes.starts_with(&[0xFF, 0xFE])
+        || bytes.len() >= 2 && bytes.first() != Some(&0) && bytes.get(1) == Some(&0)
     {
         decode_utf16_lossy(
             bytes.strip_prefix(&[0xFF, 0xFE]).unwrap_or(bytes),
@@ -2360,7 +2423,9 @@ fn repair_latin1_utf8(bytes: &[u8]) -> Vec<u8> {
     let mut result = Vec::with_capacity(bytes.len());
     let mut position = 0;
     while position < bytes.len() {
-        let byte = bytes[position];
+        let Some(byte) = bytes.get(position).copied() else {
+            break;
+        };
         if byte < 127 {
             result.push(byte);
             position += 1;
@@ -2371,11 +2436,13 @@ fn repair_latin1_utf8(bytes: &[u8]) -> Vec<u8> {
             let end = position.saturating_add(continuation_count + 1);
             if continuation_count > 0
                 && end <= bytes.len()
-                && bytes[position + 1..end]
+                && bytes
+                    .get(position + 1..end)
+                    .unwrap_or_default()
                     .iter()
                     .all(|byte| byte & 0xC0 == 0x80)
             {
-                result.extend_from_slice(&bytes[position..end]);
+                result.extend_from_slice(bytes.get(position..end).unwrap_or_default());
                 position = end;
                 continue;
             }
@@ -2427,7 +2494,10 @@ fn repair_xml_controls(xml: &mut String) {
     let mut repaired = String::with_capacity(xml.len());
     let mut position = 0;
     while position < characters.len() {
-        if characters[position] == '&'
+        let Some(&character) = characters.get(position) else {
+            break;
+        };
+        if character == '&'
             && characters.get(position + 1) == Some(&'#')
             && let Some((end, value)) = numeric_character_reference(&characters, position)
             && is_xmp_ascii_control(value)
@@ -2436,7 +2506,6 @@ fn repair_xml_controls(xml: &mut String) {
             position = end;
             continue;
         }
-        let character = characters[position];
         repaired.push(if is_xmp_ascii_control(character as u32) {
             ' '
         } else {
@@ -2459,7 +2528,10 @@ fn numeric_character_reference(characters: &[char], start: usize) -> Option<(usi
     let maximum_digits = if radix == 16 { 4 } else { 5 };
     let mut value = 0_u32;
     while position < characters.len() && position - digit_start < maximum_digits {
-        let Some(digit) = characters[position].to_digit(radix) else {
+        let Some(digit) = characters
+            .get(position)
+            .and_then(|character| character.to_digit(radix))
+        else {
             break;
         };
         value = value * radix + digit;
@@ -2488,8 +2560,8 @@ pub(crate) fn dates_equivalent(pdf: &str, xmp: &str) -> bool {
 pub(crate) fn xmp_integer_value(value: &str) -> Option<i32> {
     let units = value.encode_utf16().collect::<Vec<_>>();
     let (negative, digits) = match units.first().copied() {
-        Some(value) if value == u16::from(b'-') => (true, &units[1..]),
-        Some(value) if value == u16::from(b'+') => (false, &units[1..]),
+        Some(value) if value == u16::from(b'-') => (true, units.get(1..)?),
+        Some(value) if value == u16::from(b'+') => (false, units.get(1..)?),
         Some(_) => (false, units.as_slice()),
         None => return None,
     };
@@ -2608,16 +2680,16 @@ impl ParsedDate {
         if position == bytes.len() {
             return Some(result);
         }
-        if bytes[position] == b':' {
+        if bytes.get(position) == Some(&b':') {
             position += 1;
             result.minute = gather_xmp_integer(bytes, &mut position, 59)?.clamp(0, 59);
             if position == bytes.len() {
                 return Some(result);
             }
-            if bytes[position] == b':' {
+            if bytes.get(position) == Some(&b':') {
                 position += 1;
                 result.second = gather_xmp_integer(bytes, &mut position, 59)?.clamp(0, 59);
-                if position < bytes.len() && bytes[position] == b'.' {
+                if position < bytes.len() && bytes.get(position) == Some(&b'.') {
                     position += 1;
                     let fraction_start = position;
                     let mut nanoseconds = gather_xmp_integer(bytes, &mut position, 999_999_999)?;
@@ -2632,20 +2704,24 @@ impl ParsedDate {
                     }
                     result.millisecond = nanoseconds / 1_000_000;
                 }
-            } else if !matches!(bytes[position], b'Z' | b'+' | b'-') {
+            } else if !matches!(bytes.get(position), Some(b'Z' | b'+' | b'-')) {
                 return None;
             }
-        } else if !matches!(bytes[position], b'Z' | b'+' | b'-') {
+        } else if !matches!(bytes.get(position), Some(b'Z' | b'+' | b'-')) {
             return None;
         }
         if position == bytes.len() {
             return Some(result);
         }
-        if bytes[position] == b'Z' {
+        if bytes.get(position) == Some(&b'Z') {
             position += 1;
             result.zone = DateZone::Fixed(0);
         } else {
-            let sign = if bytes[position] == b'-' { -1 } else { 1 };
+            let sign = if bytes.get(position) == Some(&b'-') {
+                -1
+            } else {
+                1
+            };
             position += 1;
             let zone_hour = gather_xmp_integer(bytes, &mut position, 23)?.clamp(0, 23);
             let mut zone_minute = 0;
@@ -2748,7 +2824,7 @@ fn parse_pdf_offset(value: &[u16]) -> Option<i32> {
     if value.len() <= 16 {
         return Some(0);
     }
-    let sign = match value[16] {
+    let sign = match *value.get(16)? {
         value if value == u16::from(b'Z') => 0,
         value if value == u16::from(b'+') => 1,
         value if value == u16::from(b'-') => -1,
@@ -2759,7 +2835,7 @@ fn parse_pdf_offset(value: &[u16]) -> Option<i32> {
     } else {
         0
     };
-    if value.len() > 19 && value[19] != u16::from(b'\'') {
+    if value.len() > 19 && value.get(19) != Some(&u16::from(b'\'')) {
         return None;
     }
     let minutes = if value.len() > 20 {
@@ -2812,9 +2888,8 @@ fn gather_xmp_integer(bytes: &[u8], position: &mut usize, maximum: i32) -> Optio
     let start = *position;
     let mut value = 0_i32;
     while bytes.get(*position).is_some_and(u8::is_ascii_digit) {
-        value = value
-            .wrapping_mul(10)
-            .wrapping_add(i32::from(bytes[*position] - b'0'));
+        let byte = bytes.get(*position).copied()?;
+        value = value.wrapping_mul(10).wrapping_add(i32::from(byte - b'0'));
         *position += 1;
     }
     (*position > start).then_some(value.clamp(0, maximum))
@@ -3133,11 +3208,11 @@ mod tests {
         let cdata = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description>
           <pdf:Producer><![CDATA[value]]></pdf:Producer></rdf:Description></rdf:RDF>"#;
-        assert!(parse_xmp(cdata).is_err());
+        parse_xmp(cdata).unwrap_err();
 
         let nbsp = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
           <rdf:Description/>\u{a0}<rdf:Description/></rdf:RDF>";
-        assert!(parse_xmp(nbsp.as_bytes()).is_err());
+        parse_xmp(nbsp.as_bytes()).unwrap_err();
     }
 
     #[test]
@@ -3195,8 +3270,8 @@ mod tests {
 
     #[test]
     fn rejects_malformed_xmp_and_dtd() {
-        assert!(parse_xmp(b"<rdf:RDF>").is_err());
-        assert!(parse_xmp(b"<!DOCTYPE x><x/>").is_err());
+        parse_xmp(b"<rdf:RDF>").unwrap_err();
+        parse_xmp(b"<!DOCTYPE x><x/>").unwrap_err();
     }
 
     #[test]
@@ -3257,7 +3332,7 @@ mod tests {
         let mut xmp = String::from("<x>");
         xmp.push_str(&"<n/>".repeat(MAX_XMP_XML_NODES as usize));
         xmp.push_str("</x>");
-        assert!(parse_xmp(xmp.as_bytes()).is_err());
+        parse_xmp(xmp.as_bytes()).unwrap_err();
     }
 
     #[test]

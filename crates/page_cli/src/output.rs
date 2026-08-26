@@ -71,13 +71,13 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
             .and_then(|()| temporary.sync_all())
         {
             drop(temporary);
-            let _ = fs::remove_file(&temporary_path);
+            drop(fs::remove_file(&temporary_path));
             return Err(error);
         }
         drop(temporary);
 
         if let Err(error) = fs::rename(&temporary_path, path) {
-            let _ = fs::remove_file(&temporary_path);
+            drop(fs::remove_file(&temporary_path));
             return Err(error);
         }
         return Ok(());

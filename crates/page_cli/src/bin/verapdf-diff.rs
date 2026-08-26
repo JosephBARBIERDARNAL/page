@@ -1,8 +1,10 @@
+use std::io::IsTerminal;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
 use page_cli::output::{ReportFormat, emit_json};
+use page_cli::spinner::Spinner;
 use page_validation::SafetyLimits;
 use page_validation::differential::{
     CoverageGapPolicy, DEFAULT_BATCH_SIZE, DEFAULT_MAX_REPORT_BYTES, DEFAULT_TIMEOUT_MILLIS,
@@ -105,9 +107,14 @@ fn main() {
         config.coverage_gap_policy = CoverageGapPolicy::RejectForCompleteProfile;
     }
 
+    let spinner_enabled = matches!(cli.format, ReportFormat::Text)
+        && std::io::stdout().is_terminal()
+        && std::io::stderr().is_terminal();
+    let setup_spinner = Spinner::new(spinner_enabled, true, "Checking veraPDF");
     let runner = match DifferentialRunner::new(config) {
         Ok(runner) => runner,
         Err(failure) => {
+            setup_spinner.finish_and_clear();
             match cli.format {
                 ReportFormat::Text => {
                     eprintln!("{failure}");
@@ -120,9 +127,16 @@ fn main() {
             std::process::exit(1);
         }
     };
+    setup_spinner.finish_and_clear();
 
     let limits = SafetyLimits::default();
+    let compare_spinner = Spinner::new(
+        spinner_enabled,
+        true,
+        format!("Comparing {} PDF(s)", cli.files.len()),
+    );
     let reports = runner.compare_files(&cli.files, &limits);
+    compare_spinner.finish_and_clear();
     match cli.format {
         ReportFormat::Text => {
             for (index, report) in reports.iter().enumerate() {

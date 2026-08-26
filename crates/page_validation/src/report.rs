@@ -7,6 +7,17 @@ use serde::Serialize;
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
+/// The kind of problem a `ValidationFailure` represents, separating operational and parsing concerns from PDF/A or PDF/UA conformance itself.
+///
+/// `Operational` covers input that could not be read or exceeded a configured `SafetyLimits` bound; `Parser` covers input the strict PDF parser rejected outright; `Metadata` covers XMP or document-information problems; `Conformance` covers every other rule violation. `ValidationReport::has_operational_failure` and `ValidationReport::exit_code` both key off whether any recorded failure is `Operational`.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::FailureCategory;
+///
+/// assert!(FailureCategory::Operational < FailureCategory::Conformance);
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FailureCategory {
@@ -16,6 +27,23 @@ pub enum FailureCategory {
     Conformance,
 }
 
+/// One recorded conformance, metadata, parser, or operational problem in a `ValidationReport`.
+///
+/// `rule_id` identifies the specific check (for example `PDFA1B-CATALOG-001`), `message` is a human-readable description, `object_id` is the indirect object the failure is attributed to when one applies, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::{FailureCategory, ValidationFailure};
+///
+/// let failure = ValidationFailure {
+///     rule_id: "PDFA1B-CATALOG-001".to_owned(),
+///     message: "document trailer does not resolve to a Catalog dictionary".to_owned(),
+///     object_id: None,
+///     category: FailureCategory::Conformance,
+/// };
+/// assert_eq!(failure.category, FailureCategory::Conformance);
+/// ```
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ValidationFailure {
     pub rule_id: String,
@@ -32,6 +60,22 @@ pub(crate) struct RuleFailure {
     pub(crate) description: String,
 }
 
+/// A tally of how many implemented checks ran against a document and how many of those passed or failed.
+///
+/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `checks_passed` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::ValidationCounts;
+///
+/// let counts = ValidationCounts {
+///     total: 5,
+///     passed: 5,
+///     failed: 0,
+/// };
+/// assert_eq!(counts.total, counts.passed + counts.failed);
+/// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct ValidationCounts {
     pub total: usize,
@@ -39,6 +83,19 @@ pub struct ValidationCounts {
     pub failed: usize,
 }
 
+/// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many checks ran, and every recorded `ValidationFailure`.
+///
+/// `checks_passed` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
+///
+/// ## Examples
+///
+/// ```rs
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+///
+/// let limits = SafetyLimits::default();
+/// let report = validate_bytes_with_profile(b"not a pdf", ValidationProfile::PdfA1b, &limits);
+/// assert_eq!(report.exit_code(), 2);
+/// ```
 #[derive(Clone, Debug, Serialize)]
 pub struct ValidationReport {
     pub source: Option<PathBuf>,

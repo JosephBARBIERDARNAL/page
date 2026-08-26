@@ -28,10 +28,6 @@ test:
 # Run formatting and linting
 check: fmt lint
 
-# Validate the pinned 129-predicate inventory and print its completion blockers.
-coverage:
-    cargo test -p page_validation --test coverage_inventory -- --nocapture
-
 # Run every checked-in atomic and corpus case against pinned veraPDF.
 verapdf verapdf=verapdf_bin:
     command -v "{{ verapdf }}" >/dev/null 2>&1 || { echo "veraPDF executable not found: {{ verapdf }}" >&2; exit 1; }
@@ -52,11 +48,7 @@ verapdf-corpus corpus_dir=".cache/verapdf-corpus":
         git -C "{{ corpus_dir }}" sparse-checkout set --no-cone {{ verapdf_corpus_profiles }}; \
         git -C "{{ corpus_dir }}" checkout --detach --quiet FETCH_HEAD; \
     fi
-    cargo run --quiet --release -p page_cli --bin page -- corpus "{{ corpus_dir }}"
-
-# Regenerate checked-in rule-mapping documentation.
-rules-docs:
-    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
+    cargo run --release -p page_cli --features internal --bin page-corpus -- "{{ corpus_dir }}"
 
 # Release-only gate for every currently implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
 pdfa-release-gate verapdf=verapdf_bin:
@@ -100,13 +92,21 @@ benchmark:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/verapdf.rs
 
-# Build documentation after regenerating rule mappings.
-doc-build: rules-docs
+# Regenerate checked-in rule-mapping documentation.
+doc-rules:
+    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
+
+# Clean documentation cache
+doc-clean:
     uvx zensical build --clean
 
-# Serve documentation after regenerating rule mappings.
-doc: rules-docs
+# Serve documentation
+preview:
     uvx zensical serve
+
+# Build Rust reference documentation and put it in docs/api/rust/references/
+doc-reference:
+    uv run scripts/doc.py
 
 # Install locally
 install:

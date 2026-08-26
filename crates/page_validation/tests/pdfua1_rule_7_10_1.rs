@@ -32,7 +32,7 @@ fn pdfua1_rule_7_10_1_requires_names_for_default_and_named_configurations() {
             "pdfua1-rule-7-10-1-missing-config-name.pdf" => {
                 include_bytes!("fixtures/pdfua1-rule-7-10-1-missing-config-name.pdf").as_slice()
             }
-            _ => unreachable!(),
+            _ => panic!("unknown PDF/UA-1 rule 7.10.1 fixture {fixture}"),
         };
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
