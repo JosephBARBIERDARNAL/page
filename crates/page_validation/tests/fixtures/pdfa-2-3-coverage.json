@@ -945,7 +945,7 @@
     "schema_version": 1,
     "document": {
       "title": "PDF/A-2 and PDF/A-3 pinned rule mapping",
-      "output_path": "docs/rules/pdfa-2-3-rule-mapping.md",
+      "output_path": "docs/rules/pdfa-2-3-rules.md",
       "local_only_description": "These checks support parsing, bounded inspection, or local model preconditions and do not map to a standalone veraPDF profile predicate."
     },
     "applicability_sections": [

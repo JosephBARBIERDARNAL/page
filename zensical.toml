@@ -2,7 +2,7 @@
 site_name = "page"
 repo_url = "https://github.com/josephbarbierdarnal/page"
 site_url = "https://josephbarbierdarnal.github.io/page/"
-site_description = "PDF/A and PDF/UA validation engine, written in Rust"
+site_description = "PDF/A and PDF/UA validation engine"
 site_author = "Joseph Barbier"
 extra_css = ["stylesheets/style.css"]
 nav = [
@@ -17,9 +17,9 @@ nav = [
     ] },
   ] },
   { "Reference" = [
-    "rules/pdfa-1-rule-mapping.md",
-    "rules/pdfa-2-3-rule-mapping.md",
-    "rules/pdfua-1-rule-mapping.md",
+    "rules/pdfa-1-rules.md",
+    "rules/pdfa-2-3-rules.md",
+    "rules/pdfua-1-rules.md",
   ] },
   { "About" = ["about/faq.md", "about/pdf-format.md"] },
 ]

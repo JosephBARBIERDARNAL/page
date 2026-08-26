@@ -14,11 +14,11 @@ use crate::report::{
 
 /// A PDF/A or PDF/UA conformance level this crate can validate a document against.
 ///
-/// A profile is either declared by a document's own XMP identification schema (see [`validate_bytes`] and [`validate_file`]) or selected explicitly by a caller (see [`validate_bytes_with_profile`] and [`validate_file_with_profile`]). Not every profile in this enum is implemented yet; [`Self::is_implemented`] reports which ones a [`ValidationReport`](crate::ValidationReport)'s `checks_passed` can be trusted for, and [`Self::implemented_check_count`] reports how many rules currently back that result.
+/// A profile is either declared by a document's own XMP identification schema (see `validate_bytes` and `validate_file`) or selected explicitly by a caller (see `validate_bytes_with_profile` and `validate_file_with_profile`). Not every profile in this enum is implemented yet; `Self::is_implemented` reports which ones a `ValidationReport`'s `checks_passed` can be trusted for, and `Self::implemented_check_count` reports how many rules currently back that result.
 ///
 /// ## Examples
 ///
-/// ```
+/// ```rs
 /// use page_validation::ValidationProfile;
 ///
 /// assert_eq!(ValidationProfile::PdfA1b.to_string(), "PDF/A-1b");
@@ -178,7 +178,7 @@ fn only<T>(items: &[T]) -> Option<&T> {
 
 /// Reads a file from disk and validates it against the profile declared in its own XMP metadata.
 ///
-/// This is the file-based counterpart of [`validate_bytes`]: it enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to [`validate_bytes`]. The returned report has its `source` set to `path`.
+/// This is the file-based counterpart of `validate_bytes`: it enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to `validate_bytes`. The returned report has its `source` set to `path`.
 ///
 /// ## Arguments
 ///
@@ -187,15 +187,15 @@ fn only<T>(items: &[T]) -> Option<&T> {
 ///
 /// ## Returns
 ///
-/// A [`ValidationReport`] describing which implemented checks for the declared profile passed or failed, with `source` set to `path`.
+/// A `ValidationReport` describing which implemented checks for the declared profile passed or failed, with `source` set to `path`.
 ///
 /// ## Errors
 ///
-/// Returns [`ValidationError::InputIo`] if `path` cannot be read or its size cannot be determined, and every error [`validate_bytes`] can return once the file content is available, including an oversized file reported as [`PdfError::InputTooLarge`](crate::PdfError::InputTooLarge).
+/// Returns `ValidationError::InputIo` if `path` cannot be read or its size cannot be determined, and every error `validate_bytes` can return once the file content is available, including an oversized file reported as `PdfError::InputTooLarge`.
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```rs
 /// use std::path::Path;
 ///
 /// use page_validation::{SafetyLimits, validate_file};
@@ -224,7 +224,7 @@ pub fn validate_file(
 
 /// Reads a file from disk and validates it against an explicitly selected profile, ignoring any profile the document declares in its own XMP metadata.
 ///
-/// This is the file-based counterpart of [`validate_bytes_with_profile`]: it never fails outright. An unreadable file, an oversized file, or any error [`validate_bytes_with_profile`] can absorb becomes an operational or parser [`ValidationFailure`](crate::ValidationFailure) inside the returned report instead of a thrown error. The returned report has its `source` set to `path`.
+/// This is the file-based counterpart of `validate_bytes_with_profile`: it never fails outright. An unreadable file, an oversized file, or any error `validate_bytes_with_profile` can absorb becomes an operational or parser `ValidationFailure` inside the returned report instead of a thrown error. The returned report has its `source` set to `path`.
 ///
 /// ## Arguments
 ///
@@ -234,11 +234,11 @@ pub fn validate_file(
 ///
 /// ## Returns
 ///
-/// A [`ValidationReport`] whose `checks_passed` is `true` only when every implemented check for `profile` passed, with `source` set to `path` and `failures` explaining every recorded problem, including operational ones such as an unreadable file.
+/// A `ValidationReport` whose `checks_passed` is `true` only when every implemented check for `profile` passed, with `source` set to `path` and `failures` explaining every recorded problem, including operational ones such as an unreadable file.
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```rs
 /// use std::path::Path;
 ///
 /// use page_validation::{SafetyLimits, ValidationProfile, validate_file_with_profile};
@@ -292,7 +292,7 @@ pub fn validate_file_with_profile(
 
 /// Validates PDF bytes already in memory against the profile declared in their own XMP metadata.
 ///
-/// The document's XMP Identification schema is read to determine whether it targets PDF/A or PDF/UA and which part and conformance level apply, so the caller does not need to already know which profile to check against. Use [`validate_bytes_with_profile`] instead when the profile is already known or the document's own declaration should be ignored.
+/// The document's XMP Identification schema is read to determine whether it targets PDF/A or PDF/UA and which part and conformance level apply, so the caller does not need to already know which profile to check against. Use `validate_bytes_with_profile` instead when the profile is already known or the document's own declaration should be ignored.
 ///
 /// ## Arguments
 ///
@@ -301,15 +301,15 @@ pub fn validate_file_with_profile(
 ///
 /// ## Returns
 ///
-/// A [`ValidationReport`] describing which implemented checks for the declared profile passed or failed.
+/// A `ValidationReport` describing which implemented checks for the declared profile passed or failed.
 ///
 /// ## Errors
 ///
-/// Returns [`ValidationError::Pdf`] if parsing or inspecting the object graph fails or a [`SafetyLimits`] bound is exceeded, [`ValidationError::MissingProfileDeclaration`] or [`ValidationError::InvalidProfileDeclaration`] if the XMP metadata does not unambiguously declare one supported profile, and [`ValidationError::UnsupportedProfile`] if it declares a profile this crate does not implement yet.
+/// Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails or a `SafetyLimits` bound is exceeded, `ValidationError::MissingProfileDeclaration` or `ValidationError::InvalidProfileDeclaration` if the XMP metadata does not unambiguously declare one supported profile, and `ValidationError::UnsupportedProfile` if it declares a profile this crate does not implement yet.
 ///
 /// ## Examples
 ///
-/// ```
+/// ```rs
 /// use page_validation::{SafetyLimits, validate_bytes};
 ///
 /// let limits = SafetyLimits::default();
@@ -330,7 +330,7 @@ pub fn validate_bytes(
 
 /// Validates PDF bytes already in memory against an explicitly selected profile, ignoring any profile the document declares in its own XMP metadata.
 ///
-/// Unlike [`validate_bytes`], this never fails outright: unreadable, malformed, or resource-exceeding input becomes an operational or parser [`ValidationFailure`](crate::ValidationFailure) inside the returned report instead of an [`Err`]. Use [`validate_bytes`] instead when the caller wants an error, not a failing report, whenever the document does not declare `profile` itself.
+/// Unlike `validate_bytes`, this never fails outright: unreadable, malformed, or resource-exceeding input becomes an operational or parser `ValidationFailure` inside the returned report instead of an `Err`. Use `validate_bytes` instead when the caller wants an error, not a failing report, whenever the document does not declare `profile` itself.
 ///
 /// ## Arguments
 ///
@@ -340,11 +340,11 @@ pub fn validate_bytes(
 ///
 /// ## Returns
 ///
-/// A [`ValidationReport`] whose `checks_passed` is `true` only when every implemented check for `profile` passed, and whose `failures` explains every recorded problem, including operational ones such as an unimplemented `profile` or an exceeded [`SafetyLimits`] bound.
+/// A `ValidationReport` whose `checks_passed` is `true` only when every implemented check for `profile` passed, and whose `failures` explains every recorded problem, including operational ones such as an unimplemented `profile` or an exceeded `SafetyLimits` bound.
 ///
 /// ## Examples
 ///
-/// ```
+/// ```rs
 /// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
 ///
 /// let limits = SafetyLimits::default();

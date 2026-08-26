@@ -88,8 +88,7 @@ fn pdfa_2_3_applicability_is_profile_accurate() {
         .into_iter()
         .map(|(_, inventory)| inventory)
         .find(|inventory| {
-            inventory["rule_mapping"]["document"]["output_path"]
-                == "docs/rules/pdfa-2-3-rule-mapping.md"
+            inventory["rule_mapping"]["document"]["output_path"] == "docs/rules/pdfa-2-3-rules.md"
         })
         .expect("PDF/A-2/3 rule-mapping inventory");
     let mapping = object(&inventory["rule_mapping"], "rule_mapping");

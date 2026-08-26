@@ -1,4 +1,4 @@
 *.pdf binary
 crates/page_validation/tests/fixtures/fonts/*.pfa binary
-docs/rules/pdfa-1b-rule-mapping.md text eol=lf
+docs/rules/pdfa-1b-rules.md text eol=lf
 *.xml text eol=lf

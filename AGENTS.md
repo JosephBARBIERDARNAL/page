@@ -131,4 +131,4 @@ Run the same gate locally with `just verapdf-corpus`; it automatically creates a
 
 ### Pinned rule mapping
 
-The machine-readable source of truth for the shared PDF/A-1 rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1-rule-mapping.md` for the generated human-readable mapping.
+The machine-readable source of truth for the shared PDF/A-1 rule mapping and coverage evidence is `crates/page_validation/tests/fixtures/pdfa-1b-coverage.json`. The pinned veraPDF profile is `crates/page_validation/tests/fixtures/PDFA-1B-1.28.xml`. See `docs/rules/pdfa-1-rules.md` for the generated human-readable mapping.
