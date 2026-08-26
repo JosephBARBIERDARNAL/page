@@ -45,6 +45,18 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             .iter()
             .any(|failure| failure.rule_id == RULE)
     );
+
+    let tagged_widget = validate_bytes_with_profile(
+        &common::pdfua1_rule_7_18_1_3_fixture("tu"),
+        ValidationProfile::PdfUa1,
+        &SafetyLimits::default(),
+    );
+    assert!(
+        !tagged_widget
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == RULE)
+    );
 }
 
 #[test]

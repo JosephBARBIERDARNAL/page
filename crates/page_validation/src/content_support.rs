@@ -768,10 +768,19 @@ impl ContentExecutor<'_> {
                             .is_some_and(|value| matches!(value, Object::String(_, _)));
                         let lang_present =
                             properties.is_some_and(|dictionary| contains_key(dictionary, b"Lang"));
+                        let inherited_structure_language =
+                            self.current_page_object_id.is_some_and(|page_id| {
+                                marked_content.iter().any(|value| {
+                                    value.mcid.is_some_and(|mcid| {
+                                        self.tagged_text_language.contains(&(page_id, mcid))
+                                    })
+                                })
+                            });
                         if is_span
                             && actual_text_attribute_present
                             && !lang_present
                             && !marked_content.iter().any(|value| value.lang_present)
+                            && !inherited_structure_language
                         {
                             self.summary.span_actual_text_language_failures.push(
                                 RuleFailure {
@@ -786,6 +795,7 @@ impl ContentExecutor<'_> {
                             && alt_text_attribute_present
                             && !lang_present
                             && !marked_content.iter().any(|value| value.lang_present)
+                            && !inherited_structure_language
                         {
                             self.summary.span_alt_text_language_failures.push(
                                 RuleFailure {
@@ -800,6 +810,7 @@ impl ContentExecutor<'_> {
                             && expansion_text_attribute_present
                             && !lang_present
                             && !marked_content.iter().any(|value| value.lang_present)
+                            && !inherited_structure_language
                         {
                             self.summary.span_expansion_text_language_failures.push(
                                 RuleFailure {

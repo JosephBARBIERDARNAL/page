@@ -1088,9 +1088,10 @@ fn inspect_structure_tree(
             &mut ancestors,
             &mut steps,
             0,
-            false,
             StructureTraversalContext {
                 parent_standard_type: None,
+                parent_has_lang: false,
+                parent_page_id: None,
                 role_map: &role_map.mappings,
             },
         )?;
@@ -1273,6 +1274,8 @@ fn is_standard_structure_type(value: &[u8]) -> bool {
 #[derive(Clone, Copy)]
 struct StructureTraversalContext<'parent, 'role_map> {
     parent_standard_type: Option<&'parent [u8]>,
+    parent_has_lang: bool,
+    parent_page_id: Option<ObjectId>,
     role_map: &'role_map BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -1284,7 +1287,6 @@ fn inspect_structure_kids(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
-    parent_has_lang: bool,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
@@ -1312,13 +1314,12 @@ fn inspect_structure_kids(
                     ancestors,
                     steps,
                     depth + 1,
-                    parent_has_lang,
                     context,
                 )?;
             }
         }
         Object::Dictionary(dictionary) => {
-            if parent_has_lang
+            if context.parent_has_lang
                 && dictionary
                     .get(b"Type")
                     .ok()
@@ -1328,6 +1329,7 @@ fn inspect_structure_kids(
                     .get(b"Pg")
                     .ok()
                     .and_then(|value| value.as_reference().ok())
+                    .or(context.parent_page_id)
                 && let Some(mcid) = dictionary
                     .get(b"MCID")
                     .ok()
@@ -1350,7 +1352,6 @@ fn inspect_structure_kids(
                 ancestors,
                 steps,
                 depth,
-                parent_has_lang,
                 context,
             );
             if let Some(structure_id) = structure_id {
@@ -1372,9 +1373,10 @@ fn inspect_structure_element(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
-    parent_has_lang: bool,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
+    let parent_has_lang = context.parent_has_lang;
+    let parent_page_id = context.parent_page_id;
     if let Some(failure) = crate::language::inspect_dictionary(
         document,
         limits,
@@ -1979,11 +1981,13 @@ fn inspect_structure_element(
                 .to_owned(),
         });
     }
+    let page_id = dictionary
+        .get(b"Pg")
+        .ok()
+        .and_then(|value| value.as_reference().ok())
+        .or(parent_page_id);
     if (contains_lang || parent_has_lang)
-        && let Some(page_id) = dictionary
-            .get(b"Pg")
-            .ok()
-            .and_then(|value| value.as_reference().ok())
+        && let Some(page_id) = page_id
         && let Ok(kids) = dictionary.get(b"K")
         && let Some(kids) = resolve_optional(document, kids, limits.max_reference_depth)?
     {
@@ -2010,13 +2014,14 @@ fn inspect_structure_element(
             ancestors,
             steps,
             depth + 1,
-            parent_has_lang || contains_lang,
             StructureTraversalContext {
                 parent_standard_type: resolved_standard_type(
                     structure_type,
                     context.role_map,
                     limits.max_object_count,
                 ),
+                parent_has_lang: parent_has_lang || contains_lang,
+                parent_page_id: page_id,
                 role_map: context.role_map,
             },
         )?;

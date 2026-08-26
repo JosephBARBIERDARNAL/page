@@ -400,7 +400,7 @@ impl Scanner<'_> {
             self.inspect_composite_font(font, object_id, &selected.description, rendering_mode)?;
         } else if subtype.as_deref() == Some("TrueType") {
             self.inspect_truetype_font(font, object_id, &selected.description)?;
-        } else if subtype.as_deref() == Some("Type1") {
+        } else if matches!(subtype.as_deref(), Some("Type1" | "MMType1")) {
             self.inspect_type1_subset_font(font, object_id, &selected.description)?;
         }
         let embedded = if matches!(subtype.as_deref(), Some("Type3" | "Type0")) {
@@ -1781,28 +1781,57 @@ impl Scanner<'_> {
             return Ok(());
         };
         // PDF/UA-1 7.21.4.2-1 compares /CharSet with every glyph in the
-        // embedded Type 1 /CharStrings dictionary, not only rendered glyphs.
-        // Its veraPDF predicate applies to /FontFile; Type1C /FontFile3 is
-        // covered by the existing rendered-glyph inspection instead.
-        let Some(font_file) = descriptor
+        // embedded Type 1 or Type 1C program, not only rendered glyphs.
+        let program_names = if let Some(font_file) = descriptor
             .get(b"FontFile")
             .ok()
             .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
             .transpose()?
             .flatten()
             .and_then(|value| value.as_stream().ok())
-        else {
+        {
+            if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
+                return Ok(());
+            }
+            type1_program_char_names(&decode_font_stream(font_file, self.limits)?)
+        } else if let Some(font_file) = descriptor
+            .get(b"FontFile3")
+            .ok()
+            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|value| value.as_stream().ok())
+        {
+            if resolved_name(self.document, &font_file.dict, b"Subtype", self.limits)?
+                != Some(b"Type1C".as_slice())
+                || !valid_font_program(self.document, b"FontFile3", font_file, self.limits)?
+            {
+                return Ok(());
+            }
+            let bytes = decode_font_stream(font_file, self.limits)?;
+            let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+                return Ok(());
+            };
+            type1c_program_char_names(&cff)
+        } else {
             return Ok(());
         };
-        if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
-            return Ok(());
-        }
-        let program_names = type1_program_char_names(&decode_font_stream(font_file, self.limits)?);
-        let char_set = type1_charset_names(&char_set_bytes);
+        let char_set = type1_charset_names(&char_set_bytes)
+            .into_iter()
+            .filter(|name| *name != ".notdef")
+            .map(ToOwned::to_owned)
+            .collect::<BTreeSet<_>>();
+        let program_names = program_names
+            .into_iter()
+            .filter(|name| name != ".notdef")
+            .collect::<BTreeSet<_>>();
         if !program_names.is_empty()
-            && program_names
+            && (program_names
                 .iter()
                 .any(|name| !char_set.contains(name.as_str()))
+                || char_set
+                    .iter()
+                    .any(|name| !program_names.contains(name.as_str())))
         {
             self.invalid_type1_charsets_pdfua1.push(font_failure(
                 object_id,
@@ -4202,6 +4231,13 @@ fn cff_glyph_index_by_name(
     })
 }
 
+fn type1c_program_char_names(cff: &ttf_parser::cff::Table<'_>) -> BTreeSet<String> {
+    (0..cff.number_of_glyphs())
+        .filter_map(|index| cff.glyph_name(ttf_parser::GlyphId(index)))
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
 fn type3_charproc_width(stream: &Stream, limits: &SafetyLimits) -> Result<Option<f64>, PdfError> {
     let bytes = decode_font_stream(stream, limits)?;
     let tokens = bytes
@@ -4474,12 +4510,29 @@ fn differences_are_unicode_compliant(
     else {
         return Ok(true);
     };
-    let valid_difference_names = matches!(
-        font.get_font_encoding(document),
-        Ok(Encoding::Differences(_))
-    );
-    if value.is_null() || !valid_difference_names {
+    if value.is_null() {
         return Ok(value.is_null());
+    }
+    let Some(differences) = value.as_array().ok() else {
+        return Ok(false);
+    };
+    let mut contains_name = false;
+    for entry in differences {
+        if resolved_integer(document, limits, entry)?.is_some() {
+            continue;
+        }
+        let Some(name) = resolve_optional(document, entry, limits.max_reference_depth)?
+            .and_then(|entry| entry.as_name().ok())
+        else {
+            return Ok(false);
+        };
+        contains_name = true;
+        if !is_adobe_glyph_name(name) {
+            return Ok(false);
+        }
+    }
+    if !contains_name {
+        return Ok(false);
     }
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(true);
@@ -4501,6 +4554,22 @@ fn differences_are_unicode_compliant(
             subtable.platform_id == ttf_parser::PlatformId::Windows && subtable.encoding_id == 1
         })
     }))
+}
+
+fn is_adobe_glyph_name(name: &[u8]) -> bool {
+    [
+        PredefinedEncoding::Standard,
+        PredefinedEncoding::MacRoman,
+        PredefinedEncoding::MacExpert,
+        PredefinedEncoding::WinAnsi,
+    ]
+    .into_iter()
+    .flat_map(|encoding| {
+        (0..=u8::MAX).filter_map(move |byte| font_encodings::glyph_name(encoding, byte))
+    })
+    .any(|candidate| candidate.as_bytes() == name)
+        || is_symbol_glyph_name(std::str::from_utf8(name).unwrap_or_default())
+        || name == b".notdef"
 }
 
 /// The subset of an SFNT needed by veraPDF's glyph-presence and width model.

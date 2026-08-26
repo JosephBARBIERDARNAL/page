@@ -981,12 +981,12 @@ fn validate_document(
                 None,
                 &mut failures,
             );
-            aggregate_failures(
-                &inspections.forms.dynamic_xfa_forms,
-                "PDFUA1-DYNAMIC-XFA-001",
-                &mut failures,
-            );
         }
+        aggregate_failures(
+            &inspections.forms.dynamic_xfa_forms,
+            "PDFUA1-DYNAMIC-XFA-001",
+            &mut failures,
+        );
         aggregate_failures_with_location(
             &inspections.annotations.annotations_not_nested_in_annot,
             "PDFUA1-ANNOTATION-ANNOT-TAG-001",
