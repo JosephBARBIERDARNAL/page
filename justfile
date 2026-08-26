@@ -50,10 +50,6 @@ verapdf-corpus corpus_dir=".cache/verapdf-corpus":
     fi
     cargo run --release -p page_cli --features internal --bin page-corpus -- "{{ corpus_dir }}"
 
-# Regenerate checked-in rule-mapping documentation.
-rules-docs:
-    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
-
 # Release-only gate for every currently implemented PDF/A-1, PDF/A-2, and PDF/A-3 profile.
 pdfa-release-gate verapdf=verapdf_bin:
     PAGE_REQUIRE_PDFA1B_COMPLETE=1 cargo test -p page_validation --test coverage_inventory -- --nocapture
@@ -96,13 +92,17 @@ benchmark:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/verapdf.rs
 
-# Build documentation after regenerating rule mappings.
-doc-build: rules-docs
-    uvx zensical build --clean
+# Regenerate checked-in rule-mapping documentation.
+doc-rules:
+    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
 
-# Serve documentation after regenerating rule mappings.
-doc: rules-docs
+# Serve documentation
+preview:
     uvx zensical serve
+
+# Build Rust reference documentation and put it in docs/api/rust/references/
+doc-reference:
+    uv run scripts/doc.py
 
 # Install locally
 install:
@@ -114,6 +114,3 @@ logo:
     typst compile docs/images/logo.typ docs/images/logo-mark-on-light.svg --input surface=light --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-dark.svg --input label=false --input surface=dark --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-light.svg --input label=false --input surface=light --ppi 300
-
-build-doc:
-    uv run scripts/doc.py

@@ -10,7 +10,11 @@ nav = [
   { "Installation" = "installation.md" },
   { "Usage" = [
     { "CLI" = ["api/cli/quick-start.md"] },
-    { "Rust" = ["api/rust/quick-start.md", "api/rust/safety-limits.md", "api/rust/faillures.md"] },
+    { "Rust" = [
+      "api/rust/quick-start.md",
+      "api/rust/safety-limits.md",
+      "api/rust/faillures.md",
+    ] },
   ] },
   { "Reference" = [
     "rules/pdfa-1-rule-mapping.md",
