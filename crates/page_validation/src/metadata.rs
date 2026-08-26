@@ -3133,11 +3133,11 @@ mod tests {
         let cdata = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><rdf:Description>
           <pdf:Producer><![CDATA[value]]></pdf:Producer></rdf:Description></rdf:RDF>"#;
-        assert!(parse_xmp(cdata).is_err());
+        parse_xmp(cdata).unwrap_err();
 
         let nbsp = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
           <rdf:Description/>\u{a0}<rdf:Description/></rdf:RDF>";
-        assert!(parse_xmp(nbsp.as_bytes()).is_err());
+        parse_xmp(nbsp.as_bytes()).unwrap_err();
     }
 
     #[test]
@@ -3195,8 +3195,8 @@ mod tests {
 
     #[test]
     fn rejects_malformed_xmp_and_dtd() {
-        assert!(parse_xmp(b"<rdf:RDF>").is_err());
-        assert!(parse_xmp(b"<!DOCTYPE x><x/>").is_err());
+        parse_xmp(b"<rdf:RDF>").unwrap_err();
+        parse_xmp(b"<!DOCTYPE x><x/>").unwrap_err();
     }
 
     #[test]
@@ -3257,7 +3257,7 @@ mod tests {
         let mut xmp = String::from("<x>");
         xmp.push_str(&"<n/>".repeat(MAX_XMP_XML_NODES as usize));
         xmp.push_str("</x>");
-        assert!(parse_xmp(xmp.as_bytes()).is_err());
+        parse_xmp(xmp.as_bytes()).unwrap_err();
     }
 
     #[test]

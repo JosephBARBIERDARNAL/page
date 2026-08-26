@@ -67,11 +67,13 @@ impl IccHeader {
         if bytes.len() < Self::REQUIRED_LENGTH {
             return None;
         }
+        let device_class = bytes.get(12..16)?;
+        let color_space = bytes.get(16..20)?;
         Some(Self {
-            device_class: signature(&bytes[12..16]),
-            color_space: signature(&bytes[16..20]),
-            version_major: bytes[8],
-            version_minor: bytes[9] >> 4,
+            device_class: signature(device_class),
+            color_space: signature(color_space),
+            version_major: *bytes.get(8)?,
+            version_minor: *bytes.get(9)? >> 4,
         })
     }
 
@@ -378,7 +380,7 @@ fn encryption_permissions(document: &Document) -> (Option<u64>, Option<PdfObject
         .ok()
         .and_then(|dictionary| dictionary.get(b"P").ok())
         .and_then(|object| object.as_i64().ok())
-        .map(|value| value as u64)
+        .map(i64::cast_unsigned)
         .or_else(|| {
             document
                 .encryption_state
@@ -511,7 +513,10 @@ fn extract_info(
     let object_id = reference_id(info_entry);
     let info = resolve(document, info_entry, limits.max_reference_depth)?
         .as_dict()
-        .map_err(|_| PdfError::UnexpectedObject("Info is not a dictionary"))?;
+        .map_err(|error| {
+            let _ = error;
+            PdfError::UnexpectedObject("Info is not a dictionary")
+        })?;
 
     let mut values = BTreeMap::new();
     for key in [
@@ -681,7 +686,10 @@ fn extract_xmp(
     let stream = match resolved.and_then(|object| {
         object
             .as_stream()
-            .map_err(|_| PdfError::UnexpectedObject("Metadata is not a stream"))
+            .map_err(|error| {
+                let _ = error;
+                PdfError::UnexpectedObject("Metadata is not a stream")
+            })
     }) {
         Ok(stream) => stream,
         Err(error) => {

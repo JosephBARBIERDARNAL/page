@@ -347,7 +347,8 @@ fn inspect_page_widgets(
                             object_number(top),
                         ),
                         (Some(left), Some(bottom), Some(right), Some(top))
-                            if left == right && bottom == top
+                            if (left - right).abs() <= f64::EPSILON
+                                && (bottom - top).abs() <= f64::EPSILON
                     )
                 });
             let has_appearance = annotation

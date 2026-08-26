@@ -952,17 +952,17 @@ fn run_command_capped(
     let waited = match child.wait_timeout(timeout) {
         Ok(waited) => waited,
         Err(error) => {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = stdout_thread.join();
-            let _ = stderr_thread.join();
+            drop(child.kill());
+            drop(child.wait());
+            drop(stdout_thread.join());
+            drop(stderr_thread.join());
             return Err(ProcessFailure::Wait(error));
         }
     };
     let status = match waited {
         Some(status) => status,
         None => {
-            let _ = child.kill();
+            drop(child.kill());
             let status = child.wait().map_err(ProcessFailure::Wait)?;
             let (stdout, stderr) = join_reader_threads(stdout_thread, stderr_thread)?;
             return Err(ProcessFailure::Timeout(CapturedProcess {
@@ -986,11 +986,11 @@ fn join_reader_threads(
 ) -> Result<(CapturedStream, CapturedStream), ProcessFailure> {
     let stdout = stdout_thread
         .join()
-        .map_err(|_| ProcessFailure::Read("stdout", "reader thread panicked".to_owned()))?
+        .map_err(|error| ProcessFailure::Read("stdout", format!("reader thread panicked: {error:?}")))?
         .map_err(|error| ProcessFailure::Read("stdout", error.to_string()))?;
     let stderr = stderr_thread
         .join()
-        .map_err(|_| ProcessFailure::Read("stderr", "reader thread panicked".to_owned()))?
+        .map_err(|error| ProcessFailure::Read("stderr", format!("reader thread panicked: {error:?}")))?
         .map_err(|error| ProcessFailure::Read("stderr", error.to_string()))?;
     Ok((stdout, stderr))
 }

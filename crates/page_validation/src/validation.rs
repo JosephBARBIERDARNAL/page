@@ -161,7 +161,7 @@ impl ValidationProfile {
 /// Returns the sole element of a slice known to hold at most one entry, or
 /// `None` for zero or multiple entries.
 fn only<T>(items: &[T]) -> Option<&T> {
-    (items.len() == 1).then(|| &items[0])
+    items.first().filter(|_| items.len() == 1)
 }
 
 /// Validates a file against the profile declared in its XMP metadata.
@@ -307,7 +307,7 @@ fn declared_pdfa_profile(
     let part = xmp_integer_value(part).ok_or_else(|| {
         ValidationError::InvalidProfileDeclaration(format!(
             "pdfaid:part value {:?} is not an integer",
-            xmp.pdfa_parts[0]
+            part
         ))
     })?;
     let conformance = match xmp.pdfa_conformances.as_slice() {

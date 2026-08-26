@@ -295,7 +295,12 @@ fn parse_jp2_boxes(
 ) {
     let mut position = 0usize;
     while position + 8 <= bytes.len() {
-        let length = u32::from_be_bytes(bytes[position..position + 4].try_into().unwrap()) as usize;
+        let length = u32::from_be_bytes([
+            bytes[position],
+            bytes[position + 1],
+            bytes[position + 2],
+            bytes[position + 3],
+        ]) as usize;
         if length < 8 || position + length > bytes.len() {
             break;
         }
@@ -310,7 +315,12 @@ fn parse_jp2_boxes(
                 *approx_one += 1;
             }
             if payload[0] == 1 && payload.len() >= 7 {
-                *enum_cs = Some(u32::from_be_bytes(payload[3..7].try_into().unwrap()));
+                *enum_cs = Some(u32::from_be_bytes([
+                    payload[3],
+                    payload[4],
+                    payload[5],
+                    payload[6],
+                ]));
             }
         } else if kind == b"jp2h" || kind == b"jp2c" {
             parse_jp2_boxes(payload, channels, depths, methods, approx_one, enum_cs);

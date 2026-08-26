@@ -3451,6 +3451,6 @@ mod tests {
             }),
         );
 
-        assert!(inspect(&document, &[], &SafetyLimits::default()).is_ok());
+        inspect(&document, &[], &SafetyLimits::default()).unwrap();
     }
 }

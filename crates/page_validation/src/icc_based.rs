@@ -278,10 +278,16 @@ fn equivalent_pdf_objects(
             }
             let left_bytes = left
                 .decompressed_content_with_limit(limits.max_decoded_stream_size)
-                .map_err(|_| PdfError::UnexpectedObject("could not decode Separation stream"))?;
+                .map_err(|error| {
+                    let _ = error;
+                    PdfError::UnexpectedObject("could not decode Separation stream")
+                })?;
             let right_bytes = right
                 .decompressed_content_with_limit(limits.max_decoded_stream_size)
-                .map_err(|_| PdfError::UnexpectedObject("could not decode Separation stream"))?;
+                .map_err(|error| {
+                    let _ = error;
+                    PdfError::UnexpectedObject("could not decode Separation stream")
+                })?;
             Ok(left_bytes == right_bytes)
         }
         _ => Ok(left == right),
