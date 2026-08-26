@@ -131,7 +131,7 @@ fn unknown_usecmap_reference_is_rejected_in_pdfa2_and_pdfa3() {
         let expected = match profile {
             ValidationProfile::PdfA2b => "PDFA2B-CMAP-REFERENCE-001",
             ValidationProfile::PdfA3b => "PDFA3B-CMAP-REFERENCE-001",
-            _ => unreachable!(),
+            _ => panic!("unexpected PDF/A profile {profile:?}"),
         };
         assert!(
             report

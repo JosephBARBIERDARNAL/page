@@ -1418,7 +1418,9 @@ fn validate_document(
             ));
         }
         for test in &xmp.extension_schema_failed_tests {
-            let (rule_id, message) = extension_schema_rule(*test);
+            let Some((rule_id, message)) = extension_schema_rule(*test) else {
+                continue;
+            };
             failures.push(failure(
                 rule_id,
                 message,
@@ -1430,7 +1432,9 @@ fn validate_document(
             if *test == 7 && !profile.is_pdfa_2_or_3() {
                 continue;
             }
-            let (rule_id, property) = identification_prefix_rule(*test);
+            let Some((rule_id, property)) = identification_prefix_rule(*test) else {
+                continue;
+            };
             failures.push(failure(
                 rule_id,
                 format!(
@@ -1948,8 +1952,8 @@ fn validate_object_limits(
     }
 }
 
-fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
-    match test {
+fn extension_schema_rule(test: u8) -> Option<(&'static str, &'static str)> {
+    Some(match test {
         1 => (
             "PDFA1B-XMP-EXTENSION-FIELDS-001",
             "an XMP extension-schema object contains a field not defined by PDF/A-1",
@@ -2026,18 +2030,18 @@ fn extension_schema_rule(test: u8) -> (&'static str, &'static str) {
             "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
             "an extension-schema field has an invalid description",
         ),
-        _ => unreachable!("unsupported PDF/A-1 extension-schema test {test}"),
-    }
+        _ => return None,
+    })
 }
 
-fn identification_prefix_rule(test: u8) -> (&'static str, &'static str) {
-    match test {
+fn identification_prefix_rule(test: u8) -> Option<(&'static str, &'static str)> {
+    Some(match test {
         4 => ("PDFA1B-ID-PART-PREFIX-001", "part"),
         5 => ("PDFA1B-ID-CONFORMANCE-PREFIX-001", "conformance"),
         6 => ("PDFA1B-ID-AMD-PREFIX-001", "amd"),
         7 => ("PDFA1B-ID-CORR-PREFIX-001", "corr"),
-        _ => unreachable!("unsupported PDF/A-1 identification-prefix test {test}"),
-    }
+        _ => return None,
+    })
 }
 
 fn validate_actions(
@@ -2600,14 +2604,16 @@ fn validate_xobjects(
         for (index, failures_for_rule) in xobjects.jpeg2000_failures.iter().enumerate() {
             aggregate_failures(
                 failures_for_rule,
-                match index {
-                    0 => "PDFA1B-JPEG2000-CHANNELS-001",
-                    1 => "PDFA1B-JPEG2000-COLOR-SPECS-001",
-                    2 => "PDFA1B-JPEG2000-COLOR-METHOD-001",
-                    3 => "PDFA1B-JPEG2000-COLOR-SPACE-001",
-                    4 => "PDFA1B-JPEG2000-BIT-DEPTH-001",
-                    _ => unreachable!(),
-                },
+                [
+                    "PDFA1B-JPEG2000-CHANNELS-001",
+                    "PDFA1B-JPEG2000-COLOR-SPECS-001",
+                    "PDFA1B-JPEG2000-COLOR-METHOD-001",
+                    "PDFA1B-JPEG2000-COLOR-SPACE-001",
+                    "PDFA1B-JPEG2000-BIT-DEPTH-001",
+                ]
+                .get(index)
+                .copied()
+                .unwrap_or("PDFA1B-JPEG2000-BIT-DEPTH-001"),
                 failures,
             );
         }

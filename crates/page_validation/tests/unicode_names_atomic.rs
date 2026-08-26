@@ -43,7 +43,7 @@ fn utf8_name_population_matches_pinned_verapdf_when_opted_in() {
             "separation_unreferenced" => "separation_unreferenced_invalid_utf8",
             "devicen_unreferenced" => "devicen_unreferenced_invalid_utf8",
             "structure" => "unicode_name_structure_invalid",
-            _ => unreachable!("known Unicode-name fixture"),
+            _ => panic!("unknown Unicode-name fixture {case}"),
         };
         let path = directory.join(format!("{case}.pdf"));
         let bytes = fixture(fixture_case);

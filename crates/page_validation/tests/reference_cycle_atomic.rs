@@ -18,8 +18,9 @@ fn assert_resource_limit_failure(bytes: &[u8]) {
         "expected an operational RESOURCE-LIMIT-001 failure, got: {report:?}"
     );
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
-    assert_eq!(report.failures[0].category, FailureCategory::Operational);
+    let failure = report.failures.first().expect("resource-limit failure");
+    assert_eq!(failure.rule_id, "RESOURCE-LIMIT-001");
+    assert_eq!(failure.category, FailureCategory::Operational);
 }
 
 #[test]

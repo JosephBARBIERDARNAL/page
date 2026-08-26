@@ -1,3 +1,8 @@
+#![expect(
+    clippy::panic,
+    reason = "shared fixture dispatchers deliberately fail loudly for undeclared test cases"
+)]
+
 use std::collections::BTreeSet;
 use std::io::Write;
 
@@ -299,7 +304,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
                 "pdf:Producer=\"caf~\"",
             );
             let marker = xmp.iter().position(|byte| *byte == b'~').expect("marker");
-            xmp[marker] = 0xE9;
+            *xmp.get_mut(marker).expect("Latin-1 recovery marker") = 0xE9;
         }
         "xmp_ascii_control_reference_recovery" => {
             info.set("Producer", Object::string_literal("a b"));
@@ -8487,7 +8492,7 @@ pub fn icc_cmyk_overprint_fixture(case: &str) -> Vec<u8> {
         }
         "fill_opm_one" => b"/GS1 gs\n/CS1 cs\n0 0 0 0 sc\n0 0 m\n1 1 l\nf\n".to_vec(),
         "select_before_state" => b"/CS1 CS\n/GS1 gs\n0 0 0 0 SC\n0 0 m\n1 1 l\nS\n".to_vec(),
-        _ => unreachable!(),
+        _ => panic!("inconsistent ICCBased CMYK overprint fixture {case}"),
     };
     let contents = document.add_object(Stream::new(Dictionary::new(), contents));
     let page = document.add_object(dictionary! {
@@ -9286,7 +9291,7 @@ pub fn color_path_fixture(case: &str) -> Vec<u8> {
                         .set("CS1", devicen(Object::Name(b"DeviceRGB".to_vec())));
                     contents = b"/CS1 cs\n".to_vec();
                 }
-                _ => unreachable!(),
+                _ => panic!("inconsistent device-color fixture {case}"),
             }
         }
         "device_output_invalid_rgb" => {
@@ -9567,7 +9572,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                     "BitsPerComponent",
                     if case == "image_bpc_3" { 3 } else { 16 },
                 ),
-                _ => unreachable!(),
+                _ => panic!("inconsistent image fixture {case}"),
             }
             if case == "image_bpc_indirect_16" {
                 dictionary.set("BitsPerComponent", document.add_object(Object::Integer(16)));
@@ -9644,7 +9649,7 @@ pub fn xobject_fixture(case: &str) -> Vec<u8> {
                 ),
                 "form_ref" | "direct_form_ref" => dictionary.set("Ref", Dictionary::new()),
                 "form_ref_null" => dictionary.set("Ref", Object::Null),
-                _ => unreachable!(),
+                _ => panic!("inconsistent form XObject fixture {case}"),
             }
             Stream::new(dictionary, Vec::new())
         }
@@ -9858,7 +9863,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                     resources.set("Properties", dictionary! { "Pr1" => Dictionary::new() });
                     contents = b"/Tag /Pr1 BDC\nEMC\n".to_vec();
                 }
-                _ => unreachable!("known inherited resource fixture"),
+                _ => panic!("inconsistent inherited resource fixture {case}"),
             }
         }
         "extgstate_tr"
@@ -9922,7 +9927,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                 "extgstate_stroke_alpha_zero" => state.set("CA", 0),
                 "extgstate_fill_alpha_one" => state.set("ca", 1),
                 "extgstate_fill_alpha_zero" => state.set("ca", 0),
-                _ => unreachable!(),
+                _ => panic!("inconsistent graphics state fixture {case}"),
             }
             let state = if case == "direct_extgstate_tr" {
                 Object::Dictionary(state)
@@ -10342,7 +10347,7 @@ pub fn graphics_fixture(case: &str) -> Vec<u8> {
                     "HalftoneType" => 5,
                     "Spot" => child(Some(transfer)),
                 },
-                _ => unreachable!("known halftone transfer fixture"),
+                _ => panic!("inconsistent halftone transfer fixture {case}"),
             };
             let halftone = if case == "halftone_transfer_root_indirect_ht_invalid" {
                 Object::Reference(document.add_object(halftone))
@@ -10733,7 +10738,7 @@ pub fn graphics_content_path_fixture(case: &str) -> Vec<u8> {
             page_resources.set("ExtGState", dictionary! {"GS1" => state});
             page_contents = b"/GS1 gs\n".to_vec();
         }
-        _ => unreachable!(),
+        _ => panic!("inconsistent transparency fixture {case}"),
     }
 
     let contents_id = document.add_object(Stream::new(Dictionary::new(), page_contents));
@@ -12355,7 +12360,9 @@ pub fn tagged_document_fixture(case: &str) -> Vec<u8> {
         .windows(from.len())
         .position(|window| window == from)
         .expect("PDF/A-1b conformance declaration");
-    bytes[at + from.len() - 2] = b'A';
+    *bytes
+        .get_mut(at + from.len() - 2)
+        .expect("tagged PDF/A conformance marker") = b'A';
     bytes
 }
 
@@ -12376,51 +12383,71 @@ pub fn object_limit_fixture(case: &str) -> Vec<u8> {
         bytes.splice(start..start + source.len(), replacement.iter().copied());
         let delta = replacement.len() as isize - source.len() as isize;
         let new_xref = usize::try_from(old_xref as isize + delta).expect("shifted xref offset");
-        let xref_end = bytes[new_xref..]
+        let xref_end = bytes
+            .get(new_xref..)
+            .expect("xref range")
             .windows(b"trailer\n".len())
             .position(|window| window == b"trailer\n")
             .map(|offset| new_xref + offset)
             .expect("xref trailer");
         let mut line_start = new_xref + b"xref\n".len();
         while line_start < xref_end {
-            let line_end = bytes[line_start..xref_end]
+            let line_end = bytes
+                .get(line_start..xref_end)
+                .expect("xref line range")
                 .iter()
                 .position(|byte| *byte == b'\n')
                 .map(|offset| line_start + offset)
                 .expect("xref line ending");
             if line_end - line_start >= 18
-                && bytes[line_start..line_start + 10]
+                && bytes
+                    .get(line_start..line_start + 10)
+                    .expect("xref offset field")
                     .iter()
                     .all(u8::is_ascii_digit)
-                && bytes[line_start + 17] == b'n'
+                && *bytes.get(line_start + 17).expect("xref entry marker") == b'n'
             {
-                let old_offset = std::str::from_utf8(&bytes[line_start..line_start + 10])
-                    .expect("xref offset")
-                    .parse::<usize>()
-                    .expect("numeric xref offset");
+                let old_offset = std::str::from_utf8(
+                    bytes
+                        .get(line_start..line_start + 10)
+                        .expect("xref offset field"),
+                )
+                .expect("xref offset")
+                .parse::<usize>()
+                .expect("numeric xref offset");
                 let shifted = if old_offset > start {
                     usize::try_from(old_offset as isize + delta).expect("shifted object offset")
                 } else {
                     old_offset
                 };
                 let formatted = format!("{shifted:010}");
-                bytes[line_start..line_start + 10].copy_from_slice(formatted.as_bytes());
+                bytes
+                    .get_mut(line_start..line_start + 10)
+                    .expect("xref offset field")
+                    .copy_from_slice(formatted.as_bytes());
             }
             line_start = line_end + 1;
         }
-        let startxref = bytes[xref_end..]
+        let startxref = bytes
+            .get(xref_end..)
+            .expect("startxref range")
             .windows(b"startxref\n".len())
             .position(|window| window == b"startxref\n")
             .map(|offset| xref_end + offset + b"startxref\n".len())
             .expect("startxref value");
-        let startxref_end = bytes[startxref..]
+        let startxref_end = bytes
+            .get(startxref..)
+            .expect("startxref value range")
             .iter()
             .position(|byte| *byte == b'\n')
             .map(|offset| startxref + offset)
             .expect("startxref line ending");
         let formatted = new_xref.to_string();
         assert_eq!(formatted.len(), startxref_end - startxref);
-        bytes[startxref..startxref_end].copy_from_slice(formatted.as_bytes());
+        bytes
+            .get_mut(startxref..startxref_end)
+            .expect("startxref value field")
+            .copy_from_slice(formatted.as_bytes());
     }
     bytes
 }
@@ -12552,12 +12579,14 @@ pub fn find_last_startxref(bytes: &[u8]) -> usize {
         .rposition(|window| window == b"startxref\n")
         .expect("startxref")
         + b"startxref\n".len();
-    let end = bytes[marker..]
+    let end = bytes
+        .get(marker..)
+        .expect("startxref range")
         .iter()
         .position(|byte| !byte.is_ascii_digit())
         .map(|length| marker + length)
         .expect("startxref end");
-    std::str::from_utf8(&bytes[marker..end])
+    std::str::from_utf8(bytes.get(marker..end).expect("startxref field"))
         .expect("startxref UTF-8")
         .parse()
         .expect("startxref integer")
@@ -12979,10 +13008,20 @@ fn jpeg2000_bytes(case: &str) -> Vec<u8> {
         .expect("JPEG2000 colr box")
         + 4;
     match case {
-        "jpeg2000_bit_depth" => bytes[ihdr + 10] = 0x7f,
-        "jpeg2000_channels" => bytes[ihdr + 8..ihdr + 10].copy_from_slice(&2u16.to_be_bytes()),
-        "jpeg2000_color_method" => bytes[colr] = 4,
-        "jpeg2000_color_space" => bytes[colr + 3..colr + 7].copy_from_slice(&19u32.to_be_bytes()),
+        "jpeg2000_bit_depth" => {
+            *bytes.get_mut(ihdr + 10).expect("JPEG2000 bit-depth field") = 0x7f;
+        }
+        "jpeg2000_channels" => bytes
+            .get_mut(ihdr + 8..ihdr + 10)
+            .expect("JPEG2000 channel field")
+            .copy_from_slice(&2u16.to_be_bytes()),
+        "jpeg2000_color_method" => {
+            *bytes.get_mut(colr).expect("JPEG2000 color-method field") = 4;
+        }
+        "jpeg2000_color_space" => bytes
+            .get_mut(colr + 3..colr + 7)
+            .expect("JPEG2000 color-space field")
+            .copy_from_slice(&19u32.to_be_bytes()),
         "jpeg2000_color_specs" => {
             let jp2h = bytes
                 .windows(4)
@@ -12993,8 +13032,17 @@ fn jpeg2000_bytes(case: &str) -> Vec<u8> {
                 .position(|window| window == b"jp2c")
                 .expect("JPEG2000 jp2c box")
                 - 4;
-            let length = u32::from_be_bytes(bytes[jp2h - 4..jp2h].try_into().unwrap()) + 15;
-            bytes[jp2h - 4..jp2h].copy_from_slice(&length.to_be_bytes());
+            let length = u32::from_be_bytes(
+                bytes
+                    .get(jp2h - 4..jp2h)
+                    .expect("JPEG2000 box length")
+                    .try_into()
+                    .expect("four-byte JPEG2000 box length"),
+            ) + 15;
+            bytes
+                .get_mut(jp2h - 4..jp2h)
+                .expect("JPEG2000 box length")
+                .copy_from_slice(&length.to_be_bytes());
             bytes.splice(
                 jp2c..jp2c,
                 [0, 0, 0, 15, b'c', b'o', b'l', b'r', 1, 0, 0, 0, 0, 0, 0],
@@ -14060,7 +14108,7 @@ pub fn font_fixture_with_type1_program(
             }
             "composite_stream_cidmap_missing_glyph" => {
                 let mut map = vec![0; 66];
-                map[65] = 2;
+                *map.get_mut(65).expect("CIDToGIDMap missing-glyph slot") = 2;
                 let map = document.add_object(Stream::new(Dictionary::new(), map));
                 descendant_dictionary.set("CIDToGIDMap", map);
             }
@@ -15373,28 +15421,58 @@ pub fn symbolic_cmap_with_malformed_maxp_fixture() -> Vec<u8> {
     let pages_id = document.new_object_id();
 
     let mut head = vec![0; 54];
-    head[0..4].copy_from_slice(&0x0001_0000u32.to_be_bytes());
-    head[4..8].copy_from_slice(&0x0001_0000u32.to_be_bytes());
-    head[12..16].copy_from_slice(&0x5F0F_3CF5u32.to_be_bytes());
-    head[18..20].copy_from_slice(&1000u16.to_be_bytes());
-    head[46..48].copy_from_slice(&8u16.to_be_bytes());
+    head.get_mut(0..4)
+        .expect("TrueType head version")
+        .copy_from_slice(&0x0001_0000u32.to_be_bytes());
+    head.get_mut(4..8)
+        .expect("TrueType head revision")
+        .copy_from_slice(&0x0001_0000u32.to_be_bytes());
+    head.get_mut(12..16)
+        .expect("TrueType head checksum")
+        .copy_from_slice(&0x5F0F_3CF5u32.to_be_bytes());
+    head.get_mut(18..20)
+        .expect("TrueType head units-per-em")
+        .copy_from_slice(&1000u16.to_be_bytes());
+    head.get_mut(46..48)
+        .expect("TrueType head index-to-loc-format")
+        .copy_from_slice(&8u16.to_be_bytes());
 
     let malformed_maxp = vec![0u8; 2];
 
     let cmap_header_length = 4 + 2 * 8;
     let mut cmap = vec![0u8; cmap_header_length + 262];
-    cmap[2..4].copy_from_slice(&2u16.to_be_bytes());
+    cmap.get_mut(2..4)
+        .expect("cmap subtable count")
+        .copy_from_slice(&2u16.to_be_bytes());
     for index in 0..2usize {
         let record = 4 + index * 8;
-        cmap[record..record + 2].copy_from_slice(&3u16.to_be_bytes());
-        cmap[record + 2..record + 4]
-            .copy_from_slice(&u16::try_from(index + 1).unwrap().to_be_bytes());
-        cmap[record + 4..record + 8]
-            .copy_from_slice(&u32::try_from(cmap_header_length).unwrap().to_be_bytes());
+        cmap.get_mut(record..record + 2)
+            .expect("cmap platform identifier")
+            .copy_from_slice(&3u16.to_be_bytes());
+        cmap.get_mut(record + 2..record + 4)
+            .expect("cmap encoding identifier")
+            .copy_from_slice(
+                &u16::try_from(index + 1)
+                    .expect("small cmap encoding identifier")
+                    .to_be_bytes(),
+            );
+        cmap.get_mut(record + 4..record + 8)
+            .expect("cmap subtable offset")
+            .copy_from_slice(
+                &u32::try_from(cmap_header_length)
+                    .expect("small cmap header")
+                    .to_be_bytes(),
+            );
     }
-    cmap[cmap_header_length..cmap_header_length + 2].copy_from_slice(&0u16.to_be_bytes());
-    cmap[cmap_header_length + 2..cmap_header_length + 4].copy_from_slice(&262u16.to_be_bytes());
-    cmap[cmap_header_length + 6 + 65] = 1;
+    cmap.get_mut(cmap_header_length..cmap_header_length + 2)
+        .expect("cmap format")
+        .copy_from_slice(&0u16.to_be_bytes());
+    cmap.get_mut(cmap_header_length + 2..cmap_header_length + 4)
+        .expect("cmap subtable length")
+        .copy_from_slice(&262u16.to_be_bytes());
+    *cmap
+        .get_mut(cmap_header_length + 6 + 65)
+        .expect("cmap glyph slot") = 1;
 
     let tables = vec![
         (*b"OS/2", vec![0u8; 78]),
@@ -15535,13 +15613,17 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
         let mut encrypted_end = clear_to_mark;
         while encrypted_end > length1
             && matches!(
-                bytes[encrypted_end - 1],
+                *bytes
+                    .get(encrypted_end - 1)
+                    .expect("Type1 encrypted trailer byte"),
                 b'0' | b' ' | b'\t' | b'\r' | b'\n'
             )
         {
             encrypted_end -= 1;
         }
-        let hex = bytes[length1..encrypted_end]
+        let hex = bytes
+            .get(length1..encrypted_end)
+            .expect("Type1 encrypted range")
             .iter()
             .copied()
             .filter(|byte| !byte.is_ascii_whitespace())
@@ -15556,14 +15638,15 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
                         b'0'..=b'9' => byte - b'0',
                         b'a'..=b'f' => byte - b'a' + 10,
                         b'A'..=b'F' => byte - b'A' + 10,
-                        _ => unreachable!("checked Type1 hexadecimal byte"),
+                        _ => panic!("invalid Type1 hexadecimal byte"),
                     };
-                    digit(pair[0]) << 4 | digit(pair[1])
+                    let &[first, second] = pair;
+                    digit(first) << 4 | digit(second)
                 })
                 .collect::<Vec<_>>();
-            let trailer = &bytes[encrypted_end..];
+            let trailer = bytes.get(encrypted_end..).expect("Type1 trailer");
             let mut payload = Vec::with_capacity(length1 + encrypted.len() + trailer.len());
-            payload.extend_from_slice(&bytes[..length1]);
+            payload.extend_from_slice(bytes.get(..length1).expect("Type1 clear section"));
             payload.extend_from_slice(&encrypted);
             payload.extend_from_slice(trailer);
             let encrypted_length = encrypted.len();
@@ -15599,11 +15682,16 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
             break;
         };
         payload.extend_from_slice(data);
-        lengths[segment] = length;
+        *lengths.get_mut(segment).expect("Type1 segment slot") = length;
         position = end;
         segment += 1;
     }
-    (payload, lengths[0], lengths[1], lengths[2])
+    (
+        payload,
+        *lengths.first().expect("Type1 length 1"),
+        *lengths.get(1).expect("Type1 length 2"),
+        *lengths.get(2).expect("Type1 length 3"),
+    )
 }
 
 pub fn type1_program_with_width(width: u16) -> Vec<u8> {
@@ -15984,11 +16072,20 @@ pub fn icc_header(
     version_minor: u8,
 ) -> Vec<u8> {
     let mut bytes = vec![0; 20];
-    bytes[0..4].copy_from_slice(&20u32.to_be_bytes());
-    bytes[8] = version_major;
-    bytes[9] = version_minor << 4;
-    bytes[12..16].copy_from_slice(&device_class);
-    bytes[16..20].copy_from_slice(&color_space);
+    bytes
+        .get_mut(0..4)
+        .expect("ICC profile size")
+        .copy_from_slice(&20u32.to_be_bytes());
+    *bytes.get_mut(8).expect("ICC version major") = version_major;
+    *bytes.get_mut(9).expect("ICC version minor") = version_minor << 4;
+    bytes
+        .get_mut(12..16)
+        .expect("ICC device class")
+        .copy_from_slice(&device_class);
+    bytes
+        .get_mut(16..20)
+        .expect("ICC color space")
+        .copy_from_slice(&color_space);
     bytes
 }
 

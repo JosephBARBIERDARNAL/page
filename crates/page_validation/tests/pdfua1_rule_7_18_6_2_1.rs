@@ -1,3 +1,8 @@
+#![expect(
+    clippy::panic,
+    reason = "fixture dispatch deliberately fails loudly for an undeclared test case"
+)]
+
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;

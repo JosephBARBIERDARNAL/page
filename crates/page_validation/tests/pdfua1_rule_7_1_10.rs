@@ -33,7 +33,7 @@ fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
                 "pdfua1-rule-7-1-10-missing.pdf" => {
                     include_bytes!("fixtures/pdfua1-rule-7-1-10-missing.pdf")
                 }
-                _ => unreachable!(),
+                _ => panic!("unknown PDF/UA-1 rule 7.1.10 fixture {fixture}"),
             },
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),

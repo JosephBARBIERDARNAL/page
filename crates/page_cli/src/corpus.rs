@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn rejects_missing_or_ambiguous_expected_result() {
-        assert!(expected_result(Path::new("case.pdf")).is_err());
-        assert!(expected_result(Path::new("case-pass-fail.pdf")).is_err());
+        expected_result(Path::new("case.pdf")).unwrap_err();
+        expected_result(Path::new("case-pass-fail.pdf")).unwrap_err();
     }
 }

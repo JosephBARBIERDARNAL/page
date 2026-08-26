@@ -92,7 +92,10 @@ fn replace_once(bytes: &mut [u8], needle: &[u8], replacement: &[u8]) {
         .windows(needle.len())
         .position(|window| window == needle)
         .expect("canonical fixture marker");
-    bytes[start..start + needle.len()].copy_from_slice(replacement);
+    bytes
+        .get_mut(start..start + needle.len())
+        .expect("canonical replacement range")
+        .copy_from_slice(replacement);
 }
 
 #[test]

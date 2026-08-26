@@ -1322,7 +1322,9 @@ impl ContentExecutor<'_> {
                 index
             }
         };
-        let usage = &mut self.summary.fonts[index];
+        let Some(usage) = self.summary.fonts.get_mut(index) else {
+            return;
+        };
         if rendering_mode != 3 {
             usage.shown_bytes.extend_from_slice(shown_bytes);
         }
@@ -2093,8 +2095,9 @@ impl ContentExecutor<'_> {
         };
         if let Some(index) = nested_index
             && let Some(nested) = items.get(index).cloned()
+            && let Some(slot) = items.get_mut(index)
         {
-            items[index] = self.resolve_color_space(
+            *slot = self.resolve_color_space(
                 nested,
                 resources,
                 page_resources,
@@ -2199,7 +2202,9 @@ fn inspect_content_syntax_limits(
     let mut literal_depth = 0_usize;
     let mut literal_length = 0_usize;
     while cursor < bytes.len() {
-        let byte = bytes[cursor];
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
         if literal_depth > 0 {
             literal_length = literal_length.saturating_add(1);
             if byte == b'\\' {
@@ -2234,7 +2239,8 @@ fn inspect_content_syntax_limits(
             continue;
         }
         if byte == b'%' {
-            while cursor < bytes.len() && !matches!(bytes[cursor], b'\r' | b'\n') {
+            while cursor < bytes.len() && !matches!(bytes.get(cursor).copied(), Some(b'\r' | b'\n'))
+            {
                 cursor += 1;
             }
             continue;
@@ -2246,8 +2252,10 @@ fn inspect_content_syntax_limits(
         if byte == b'<' {
             cursor += 1;
             let mut digit_count = 0;
-            while cursor < bytes.len() && bytes[cursor] != b'>' {
-                let value = bytes[cursor];
+            while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
+                let Some(value) = bytes.get(cursor).copied() else {
+                    break;
+                };
                 if !value.is_ascii_whitespace() {
                     digit_count += 1;
                     if !value.is_ascii_hexdigit() {
@@ -2499,7 +2507,9 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                             cursor = find_inline_image_end(bytes, cursor).unwrap_or(bytes.len());
                             ordinary_content
                                 .get_or_insert_with(|| Vec::with_capacity(bytes.len()))
-                                .extend_from_slice(&bytes[retained..token_start]);
+                                .extend_from_slice(
+                                    bytes.get(retained..token_start).unwrap_or_default(),
+                                );
                             ordinary_content
                                 .as_mut()
                                 .expect("ordinary content initialized")
@@ -2560,7 +2570,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
     }
     let ordinary_content = match ordinary_content {
         Some(mut ordinary_content) => {
-            ordinary_content.extend_from_slice(&bytes[retained..]);
+            ordinary_content.extend_from_slice(bytes.get(retained..).unwrap_or_default());
             Cow::Owned(ordinary_content)
         }
         None => Cow::Borrowed(bytes),
@@ -2598,9 +2608,14 @@ fn content_syntax_is_balanced(bytes: &[u8]) -> bool {
     let mut arrays = 0usize;
     let mut dictionaries = 0usize;
     while cursor < bytes.len() {
-        match bytes[cursor] {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
             b'%' => {
-                while cursor < bytes.len() && !matches!(bytes[cursor], b'\n' | b'\r') {
+                while cursor < bytes.len()
+                    && !matches!(bytes.get(cursor).copied(), Some(b'\n' | b'\r'))
+                {
                     cursor += 1;
                 }
             }
@@ -2608,7 +2623,10 @@ fn content_syntax_is_balanced(bytes: &[u8]) -> bool {
                 cursor += 1;
                 let mut depth = 1usize;
                 while cursor < bytes.len() && depth > 0 {
-                    match bytes[cursor] {
+                    let Some(byte) = bytes.get(cursor).copied() else {
+                        break;
+                    };
+                    match byte {
                         b'\\' => cursor = cursor.saturating_add(2),
                         b'(' => {
                             depth += 1;
@@ -2638,7 +2656,7 @@ fn content_syntax_is_balanced(bytes: &[u8]) -> bool {
             }
             b'<' => {
                 cursor += 1;
-                while cursor < bytes.len() && bytes[cursor] != b'>' {
+                while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
                     cursor += 1;
                 }
                 if cursor == bytes.len() {
@@ -2665,11 +2683,16 @@ fn content_syntax_is_balanced(bytes: &[u8]) -> bool {
 
 fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, usize, usize)> {
     loop {
-        while cursor < bytes.len() && is_pdf_whitespace(bytes[cursor]) {
+        while cursor < bytes.len()
+            && bytes
+                .get(cursor)
+                .is_some_and(|byte| is_pdf_whitespace(*byte))
+        {
             cursor += 1;
         }
         if bytes.get(cursor) == Some(&b'%') {
-            while cursor < bytes.len() && !matches!(bytes[cursor], b'\n' | b'\r') {
+            while cursor < bytes.len() && !matches!(bytes.get(cursor).copied(), Some(b'\n' | b'\r'))
+            {
                 cursor += 1;
             }
             continue;
@@ -2682,11 +2705,15 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
         b'/' => {
             cursor += 1;
             let start = cursor;
-            while cursor < bytes.len() && !is_pdf_delimiter_or_whitespace(bytes[cursor]) {
+            while cursor < bytes.len()
+                && bytes
+                    .get(cursor)
+                    .is_some_and(|byte| !is_pdf_delimiter_or_whitespace(*byte))
+            {
                 cursor += 1;
             }
             Some((
-                ContentToken::Name(decode_pdf_name(&bytes[start..cursor])),
+                ContentToken::Name(decode_pdf_name(bytes.get(start..cursor)?)),
                 token_start,
                 cursor,
             ))
@@ -2697,7 +2724,10 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
             cursor += 1;
             let mut depth = 1usize;
             while cursor < bytes.len() && depth > 0 {
-                match bytes[cursor] {
+                let Some(byte) = bytes.get(cursor).copied() else {
+                    break;
+                };
+                match byte {
                     b'\\' => cursor = cursor.saturating_add(2),
                     b'(' => {
                         depth += 1;
@@ -2714,7 +2744,7 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
         }
         b'<' if bytes.get(cursor + 1) != Some(&b'<') => {
             cursor += 1;
-            while cursor < bytes.len() && bytes[cursor] != b'>' {
+            while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
                 cursor += 1;
             }
             Some((
@@ -2728,11 +2758,15 @@ fn next_content_token(bytes: &[u8], mut cursor: usize) -> Option<(ContentToken, 
         }
         _ => {
             let start = cursor;
-            while cursor < bytes.len() && !is_pdf_delimiter_or_whitespace(bytes[cursor]) {
+            while cursor < bytes.len()
+                && bytes
+                    .get(cursor)
+                    .is_some_and(|byte| !is_pdf_delimiter_or_whitespace(*byte))
+            {
                 cursor += 1;
             }
             Some((
-                ContentToken::Bare(bytes[start..cursor].to_vec()),
+                ContentToken::Bare(bytes.get(start..cursor)?.to_vec()),
                 token_start,
                 cursor,
             ))
@@ -2754,7 +2788,7 @@ fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Cow<'_, [u8]> {
         if matches!(token, ContentToken::Bare(ref value) if matches!(value.as_slice(), b"d0" | b"d1"))
         {
             let normalized = normalized.get_or_insert_with(|| Vec::with_capacity(bytes.len()));
-            normalized.extend_from_slice(&bytes[copied..start]);
+            normalized.extend_from_slice(bytes.get(copied..start).unwrap_or_default());
             normalized.push(b'n');
             copied = next;
         }
@@ -2762,7 +2796,7 @@ fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Cow<'_, [u8]> {
     }
     match normalized {
         Some(mut normalized) => {
-            normalized.extend_from_slice(&bytes[copied..]);
+            normalized.extend_from_slice(bytes.get(copied..).unwrap_or_default());
             Cow::Owned(normalized)
         }
         None => Cow::Borrowed(bytes),
@@ -2772,8 +2806,8 @@ fn normalize_digit_suffixed_operators(bytes: &[u8]) -> Cow<'_, [u8]> {
 fn find_inline_image_end(bytes: &[u8], cursor: usize) -> Option<usize> {
     let mut candidate = cursor;
     while candidate + 1 < bytes.len() {
-        if bytes[candidate] == b'E'
-            && bytes[candidate + 1] == b'I'
+        if bytes.get(candidate) == Some(&b'E')
+            && bytes.get(candidate + 1) == Some(&b'I')
             && is_pdf_boundary(candidate.checked_sub(1).and_then(|i| bytes.get(i).copied()))
             && is_pdf_boundary(bytes.get(candidate + 2).copied())
         {
@@ -2788,7 +2822,7 @@ fn decode_pdf_name(bytes: &[u8]) -> Vec<u8> {
     let mut decoded = Vec::with_capacity(bytes.len());
     let mut cursor = 0usize;
     while cursor < bytes.len() {
-        if bytes[cursor] == b'#'
+        if bytes.get(cursor) == Some(&b'#')
             && let Some(pair) = bytes.get(cursor + 1..cursor + 3)
             && let Ok(pair) = std::str::from_utf8(pair)
             && let Ok(byte) = u8::from_str_radix(pair, 16)
@@ -2796,7 +2830,10 @@ fn decode_pdf_name(bytes: &[u8]) -> Vec<u8> {
             decoded.push(byte);
             cursor += 3;
         } else {
-            decoded.push(bytes[cursor]);
+            let Some(byte) = bytes.get(cursor).copied() else {
+                break;
+            };
+            decoded.push(byte);
             cursor += 1;
         }
     }

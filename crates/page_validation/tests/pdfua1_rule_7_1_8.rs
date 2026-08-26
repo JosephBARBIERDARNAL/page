@@ -37,7 +37,7 @@ fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
                 "pdfua1-rule-7-1-8-wrong-subtype.pdf" => {
                     include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-subtype.pdf")
                 }
-                _ => unreachable!(),
+                _ => panic!("unknown PDF/UA-1 rule 7.1.8 fixture {fixture}"),
             },
             ValidationProfile::PdfUa1,
             &SafetyLimits::default(),

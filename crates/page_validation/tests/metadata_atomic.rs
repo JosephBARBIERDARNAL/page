@@ -686,7 +686,7 @@ fn pdfa_2_and_3_reject_non_utf8_xmp_packages() {
             ValidationProfile::PdfA3a => "PDFA3A-XMP-ENCODING-001",
             ValidationProfile::PdfA3b => "PDFA3B-XMP-ENCODING-001",
             ValidationProfile::PdfA3u => "PDFA3U-XMP-ENCODING-001",
-            _ => unreachable!("PDF/A-2/3 profile"),
+            _ => panic!("unexpected PDF/A profile {profile:?}"),
         };
         assert!(
             report

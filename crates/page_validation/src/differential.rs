@@ -445,18 +445,22 @@ impl DifferentialRunner {
         for indices in reference_indices.chunks(self.config.batch_size.max(1)) {
             let batch_paths = indices
                 .iter()
-                .map(|index| paths[*index].as_path())
+                .filter_map(|index| paths.get(*index).map(PathBuf::as_path))
                 .collect::<Vec<_>>();
             match self.run_reference_batch(&batch_paths) {
                 Ok(outcomes) => {
                     debug_assert_eq!(outcomes.len(), indices.len());
                     for (index, outcome) in indices.iter().zip(outcomes) {
-                        reference_outcomes[*index] = Some(outcome);
+                        if let Some(slot) = reference_outcomes.get_mut(*index) {
+                            *slot = Some(outcome);
+                        }
                     }
                 }
                 Err(failure) => {
                     for index in indices {
-                        reference_outcomes[*index] = Some(Err(failure.clone()));
+                        if let Some(slot) = reference_outcomes.get_mut(*index) {
+                            *slot = Some(Err(failure.clone()));
+                        }
                     }
                 }
             }
@@ -986,11 +990,15 @@ fn join_reader_threads(
 ) -> Result<(CapturedStream, CapturedStream), ProcessFailure> {
     let stdout = stdout_thread
         .join()
-        .map_err(|error| ProcessFailure::Read("stdout", format!("reader thread panicked: {error:?}")))?
+        .map_err(|error| {
+            ProcessFailure::Read("stdout", format!("reader thread panicked: {error:?}"))
+        })?
         .map_err(|error| ProcessFailure::Read("stdout", error.to_string()))?;
     let stderr = stderr_thread
         .join()
-        .map_err(|error| ProcessFailure::Read("stderr", format!("reader thread panicked: {error:?}")))?
+        .map_err(|error| {
+            ProcessFailure::Read("stderr", format!("reader thread panicked: {error:?}"))
+        })?
         .map_err(|error| ProcessFailure::Read("stderr", error.to_string()))?;
     Ok((stdout, stderr))
 }
@@ -1006,7 +1014,7 @@ fn read_capped(mut reader: impl Read, cap: usize) -> io::Result<CapturedStream> 
         }
         let remaining = cap.saturating_sub(bytes.len());
         let retained = count.min(remaining);
-        bytes.extend_from_slice(&buffer[..retained]);
+        bytes.extend_from_slice(buffer.get(..retained).unwrap_or_default());
         if retained < count {
             truncated = true;
         }
@@ -1025,7 +1033,7 @@ fn diagnostics(captured: &CapturedProcess, excerpt_limit: usize) -> ReferenceDia
 }
 
 fn excerpt(bytes: &[u8], limit: usize) -> String {
-    String::from_utf8_lossy(&bytes[..bytes.len().min(limit)]).into_owned()
+    String::from_utf8_lossy(bytes.get(..bytes.len().min(limit)).unwrap_or_default()).into_owned()
 }
 
 fn process_failure_to_operational(

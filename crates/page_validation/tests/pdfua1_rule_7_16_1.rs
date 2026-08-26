@@ -34,7 +34,7 @@ fn pdfua1_rule_7_16_1_requires_p_with_bit_10_set_for_encrypted_files() {
             "pdfua1-rule-7-16-1-missing-p.pdf" => {
                 include_bytes!("fixtures/pdfua1-rule-7-16-1-missing-p.pdf").as_slice()
             }
-            _ => unreachable!(),
+            _ => panic!("unknown PDF/UA-1 rule 7.16.1 fixture {fixture}"),
         };
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());

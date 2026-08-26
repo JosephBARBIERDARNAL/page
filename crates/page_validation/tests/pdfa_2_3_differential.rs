@@ -1,3 +1,8 @@
+#![expect(
+    clippy::panic,
+    reason = "differential fixture dispatch deliberately fails loudly for undeclared cases"
+)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
@@ -821,7 +826,7 @@ fn profile_local_rule_id(profile: ReferenceProfile, canonical: &str) -> String {
         ReferenceProfile::PdfA3b => "PDFA3B",
         ReferenceProfile::PdfA3u => "PDFA3U",
         ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
-            unreachable!()
+            panic!("unexpected PDF/A profile {profile:?}")
         }
     };
     canonical
@@ -839,7 +844,7 @@ fn reidentify_profile(bytes: &[u8], profile: ReferenceProfile) -> Vec<u8> {
         ReferenceProfile::PdfA2a | ReferenceProfile::PdfA2b | ReferenceProfile::PdfA2u => b'2',
         ReferenceProfile::PdfA3a | ReferenceProfile::PdfA3b | ReferenceProfile::PdfA3u => b'3',
         ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
-            unreachable!()
+            panic!("unexpected PDF/A profile {profile:?}")
         }
     };
     let conformance = match profile {
@@ -847,7 +852,7 @@ fn reidentify_profile(bytes: &[u8], profile: ReferenceProfile) -> Vec<u8> {
         ReferenceProfile::PdfA2b | ReferenceProfile::PdfA3b => b'B',
         ReferenceProfile::PdfA2u | ReferenceProfile::PdfA3u => b'U',
         ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
-            unreachable!()
+            panic!("unexpected PDF/A profile {profile:?}")
         }
     };
     replace_first(
@@ -893,5 +898,7 @@ fn replace_first(bytes: &mut [u8], old: &[u8], new: &[u8], value: u8) {
         .position(|byte| *byte == b'1' || *byte == b'A' || *byte == b'B')
         .expect("profile marker contains a replaceable value");
     assert_eq!(old.len(), new.len());
-    bytes[start + offset] = value;
+    *bytes
+        .get_mut(start + offset)
+        .expect("profile marker replacement") = value;
 }

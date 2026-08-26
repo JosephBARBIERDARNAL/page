@@ -684,12 +684,10 @@ fn extract_xmp(
         PdfError::UnexpectedObject("Metadata reference does not resolve to an object"),
     );
     let stream = match resolved.and_then(|object| {
-        object
-            .as_stream()
-            .map_err(|error| {
-                let _ = error;
-                PdfError::UnexpectedObject("Metadata is not a stream")
-            })
+        object.as_stream().map_err(|error| {
+            let _ = error;
+            PdfError::UnexpectedObject("Metadata is not a stream")
+        })
     }) {
         Ok(stream) => stream,
         Err(error) => {

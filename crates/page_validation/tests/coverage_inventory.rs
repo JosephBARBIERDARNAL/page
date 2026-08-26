@@ -607,7 +607,7 @@ fn assert_state(
 ) {
     let representable = state["representable"]
         .as_bool()
-        .unwrap_or_else(|| panic!("{rule_id} {state_name} has no representability flag"));
+        .expect("state has a representability flag");
     if !representable {
         assert!(
             state["reason"]
@@ -632,9 +632,7 @@ fn assert_state(
             continue;
         }
         let atomic = atomic.expect("inapplicable states cannot claim a rule delta");
-        let expected = atomic
-            .get(case)
-            .unwrap_or_else(|| panic!("{rule_id} references unknown atomic case {case}"));
+        let expected = atomic.get(case).expect("known atomic case");
         let ids = if state_name == "applicable_pass" {
             &expected.passed
         } else {
@@ -658,7 +656,10 @@ fn assert_variant_and_corpus_shape(inventory: &Value) {
     ] {
         assert!(
             !array(
-                &inventory["variant_matrix"][dimension],
+                inventory
+                    .get("variant_matrix")
+                    .and_then(|matrix| matrix.get(dimension))
+                    .expect("variant matrix dimension"),
                 &format!("variant {dimension}")
             )
             .is_empty(),
@@ -701,8 +702,7 @@ fn assert_variant_and_corpus_shape(inventory: &Value) {
     for entry in array(&inventory["corpus"], "corpus") {
         let fixture = string(&entry["fixture"], "corpus fixture");
         let path = Path::new("tests/fixtures").join(fixture);
-        let bytes =
-            fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+        let bytes = fs::read(&path).expect("read corpus fixture");
         assert_eq!(
             sha256(&bytes),
             string(&entry["sha256"], "corpus digest"),
@@ -735,7 +735,10 @@ fn assert_completion_policy(inventory: &Value, differential: &Value) {
                 (
                     string(&predicate["verapdf_rule_id"], "rule id"),
                     state,
-                    &predicate["coverage"][state],
+                    predicate
+                        .get("coverage")
+                        .and_then(|coverage| coverage.get(state))
+                        .expect("predicate coverage state"),
                 )
             })
         })
@@ -880,7 +883,10 @@ fn inventory_mappings(inventory: &Value) -> BTreeMap<String, Vec<LocalMapping>> 
             1,
             "{reference_rule} must currently have one shared implementation strength"
         );
-        let strength = string(&strengths[0], "implementation strength");
+        let strength = string(
+            strengths.first().expect("implementation strength"),
+            "implementation strength",
+        );
         for (local_check, note) in local_checks.iter().zip(notes) {
             mappings
                 .entry(reference_rule.to_owned())
@@ -930,7 +936,7 @@ fn generated_corpus(differential: &Value) -> Value {
             .into_iter()
             .map(|name| {
                 let bytes = fs::read(Path::new("tests/fixtures").join(&name))
-                    .unwrap_or_else(|error| panic!("read {name}: {error}"));
+                    .expect("read generated corpus fixture");
                 let recipe = if Path::new("tests/fixtures")
                     .join(&name)
                     .with_extension("typ")
@@ -1083,30 +1089,30 @@ fn document_structure_catalog_rooted_rule_ids() -> BTreeSet<&'static str> {
     ])
 }
 
-fn document_structure_traversal_origin(rule_id: &str) -> &'static str {
+fn document_structure_traversal_origin(rule_id: &str) -> Option<&'static str> {
     match rule_id {
-        "ISO 19005-1:2005:6.1.11:1" => {
-            "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.30.2 to instantiate the same CosFileSpecification object either way)"
-        }
-        "ISO 19005-1:2005:6.1.11:2" => {
-            "catalog::resolve_catalog -> Names -> EmbeddedFiles key presence (document_features::inspect)"
-        }
-        "ISO 19005-1:2005:6.1.13:1" => {
-            "catalog::resolve_catalog -> OCProperties key presence (document_features::inspect)"
-        }
-        "ISO 19005-1:2005:6.6.2:2" => {
-            "catalog::resolve_catalog -> AcroForm -> Fields tree, recursive Kids with a top-level-vs-child /T distinction matching veraPDF (actions::inspect_acro_form / inspect_field)"
-        }
+        "ISO 19005-1:2005:6.1.11:1" => Some(
+            "catalog::resolve_catalog -> Names -> EmbeddedFiles name tree (document_features::inspect_name_tree, generalized to track its own root reference for cycle detection), independently reachable a second way through a GoToR/SubmitForm action's /F entry (actions::inspect_action_value -> file_spec::inspect, confirmed against veraPDF 1.30.2 to instantiate the same CosFileSpecification object either way)",
+        ),
+        "ISO 19005-1:2005:6.1.11:2" => Some(
+            "catalog::resolve_catalog -> Names -> EmbeddedFiles key presence (document_features::inspect)",
+        ),
+        "ISO 19005-1:2005:6.1.13:1" => Some(
+            "catalog::resolve_catalog -> OCProperties key presence (document_features::inspect)",
+        ),
+        "ISO 19005-1:2005:6.6.2:2" => Some(
+            "catalog::resolve_catalog -> AcroForm -> Fields tree, recursive Kids with a top-level-vs-child /T distinction matching veraPDF (actions::inspect_acro_form / inspect_field)",
+        ),
         "ISO 19005-1:2005:6.6.2:3" => {
-            "catalog::resolve_catalog -> AA key presence (actions::inspect)"
+            Some("catalog::resolve_catalog -> AA key presence (actions::inspect)")
         }
-        "ISO 19005-1:2005:6.7.2:1" => {
-            "catalog::resolve_catalog -> Metadata stream (model::normalize -> inspect_catalog_metadata)"
-        }
-        "ISO 19005-1:2005:6.9:1" => {
-            "catalog::resolve_catalog -> AcroForm -> NeedAppearances (forms::inspect_acro_form)"
-        }
-        _ => unreachable!("rule id not in the catalog-rooted set"),
+        "ISO 19005-1:2005:6.7.2:1" => Some(
+            "catalog::resolve_catalog -> Metadata stream (model::normalize -> inspect_catalog_metadata)",
+        ),
+        "ISO 19005-1:2005:6.9:1" => Some(
+            "catalog::resolve_catalog -> AcroForm -> NeedAppearances (forms::inspect_acro_form)",
+        ),
+        _ => None,
     }
 }
 
@@ -1130,7 +1136,8 @@ fn generated_document_structure_matrix(inventory: &Value) -> Value {
         })
         .map(|predicate| {
             let rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id").to_owned();
-            let traversal_origin = document_structure_traversal_origin(&rule_id);
+            let traversal_origin = document_structure_traversal_origin(&rule_id)
+                .expect("catalog-rooted rule has traversal origin");
             json!({
                 "verapdf_rule_id": rule_id,
                 "object": predicate["object"],
@@ -1308,15 +1315,13 @@ fn generated_predicate_family_accounting(
         let verapdf_rule_id = string(&predicate["verapdf_rule_id"], "veraPDF rule id");
         let local_checks = array(&predicate["local_checks"], "local checks");
         let first_local_check = string(
-            local_checks.first().unwrap_or_else(|| {
-                panic!("{verapdf_rule_id} has no local check to classify by family")
-            }),
+            local_checks.first().expect("predicate has a local check"),
             "local check",
         );
         let family = if catalog_rooted.contains(verapdf_rule_id) {
             "document_structure"
         } else {
-            predicate_family(first_local_check)
+            predicate_family(first_local_check).expect("local rule has a predicate family")
         };
         *counts.entry(family).or_insert(0) += 1;
         members
@@ -1349,7 +1354,7 @@ fn generated_predicate_family_accounting(
 /// this crate defines must match one arm; an unmatched id is a bug in this
 /// classifier (a new rule was added without updating it), not a shrug —
 /// hence the panicking fallback instead of a silent default bucket.
-fn predicate_family(local_rule_id: &str) -> &'static str {
+fn predicate_family(local_rule_id: &str) -> Option<&'static str> {
     match local_rule_id {
         // document_structure-eligible ids are intercepted by the caller
         // before this function runs (via the catalog-rooted verapdf id
@@ -1358,7 +1363,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         // (which IS catalog-rooted), but is bucketed under metadata_and_xmp
         // here for simplicity since its own object (PDMetadata) is
         // otherwise metadata-only.
-        "PDFA1B-METADATA-FILTER-001" => "metadata_and_xmp",
+        "PDFA1B-METADATA-FILTER-001" => Some("metadata_and_xmp"),
 
         // annotation: every rule dispatched from validate_annotations.
         "PDFA1B-ANNOTATION-SUBTYPE-001"
@@ -1367,7 +1372,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-ANNOTATION-COLOR-001"
         | "PDFA1B-ANNOTATION-AP-ENTRIES-001"
         | "PDFA1B-WIDGET-BUTTON-APPEARANCE-001"
-        | "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001" => "annotation",
+        | "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001" => Some("annotation"),
 
         // action: every rule dispatched from validate_actions, minus the
         // two already claimed by document_structure (CATALOG-ADDITIONAL-
@@ -1375,11 +1380,11 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         "PDFA1B-ACTION-TYPE-001"
         | "PDFA1B-NAMED-ACTION-001"
         | "PDFA1B-WIDGET-ACTION-001"
-        | "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001" => "action",
+        | "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001" => Some("action"),
 
         // form: every rule dispatched from validate_forms, minus
         // ACROFORM-NEED-APPEARANCES-001 (already document_structure).
-        "PDFA1B-WIDGET-APPEARANCE-001" => "form",
+        "PDFA1B-WIDGET-APPEARANCE-001" => Some("form"),
 
         // colour: icc_based.rs + device-colour + output-intent checks.
         "PDFA1B-ICCBASED-001"
@@ -1389,7 +1394,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-DEVICE-CMYK-001"
         | "PDFA1B-DEVICE-GRAY-001"
         | "PDFA1B-OUTPUTINTENT-001"
-        | "PDFA1B-OUTPUTINTENT-IDENTITY-001" => "colour",
+        | "PDFA1B-OUTPUTINTENT-IDENTITY-001" => Some("colour"),
 
         // xobject: every rule dispatched from validate_xobjects.
         "PDFA1B-IMAGE-ALTERNATES-001"
@@ -1399,7 +1404,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-IMAGE-MASK-BPC-001"
         | "PDFA1B-FORM-POSTSCRIPT-001"
         | "PDFA1B-FORM-REFERENCE-001"
-        | "PDFA1B-XOBJECT-POSTSCRIPT-001" => "xobject",
+        | "PDFA1B-XOBJECT-POSTSCRIPT-001" => Some("xobject"),
 
         // graphics: ExtGState/transparency/rendering-intent rules
         // dispatched from validate_graphics (excluding the two below that
@@ -1413,13 +1418,13 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-TRANSPARENCY-GROUP-001"
         | "PDFA1B-EXTGSTATE-BLEND-MODE-001"
         | "PDFA1B-EXTGSTATE-STROKE-ALPHA-001"
-        | "PDFA1B-EXTGSTATE-FILL-ALPHA-001" => "graphics",
+        | "PDFA1B-EXTGSTATE-FILL-ALPHA-001" => Some("graphics"),
 
         // content: facts from the one bounded executor shared by page, Form,
         // annotation-appearance, selected Pattern, and rendered Type3 paths.
         "PDFA1B-CONTENT-OPERATOR-001"
         | "PDFA1B-INLINE-IMAGE-LZW-001"
-        | "PDFA1B-GRAPHICS-STATE-NESTING-001" => "content",
+        | "PDFA1B-GRAPHICS-STATE-NESTING-001" => Some("content"),
 
         // font: every rule dispatched from validate_font_dictionaries /
         // validate_font_embedding (font_embedding.rs).
@@ -1444,7 +1449,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"
         | "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"
         | "PDFA1B-TYPE1-GLYPH-PRESENCE-001"
-        | "PDFA1B-TRUETYPE-GLYPH-WIDTH-001" => "font",
+        | "PDFA1B-TRUETYPE-GLYPH-WIDTH-001" => Some("font"),
 
         // metadata_and_xmp: Info dictionary, XMP identification, and XMP
         // extension-schema rules (metadata.rs).
@@ -1487,7 +1492,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001"
         | "PDFA1B-XMP-EXTENSION-FIELD-NAME-001"
         | "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001"
-        | "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001" => "metadata_and_xmp",
+        | "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001" => Some("metadata_and_xmp"),
 
         // low_level_syntax: raw file bytes, trailer-direct, and xref/stream
         // structural rules (syntax.rs, stream_safety.rs), independent of
@@ -1507,7 +1512,7 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-STREAM-EOL-001"
         | "PDFA1B-STREAM-EXTERNAL-DATA-001"
         | "PDFA1B-INDIRECT-OBJECT-SYNTAX-001"
-        | "PDFA1B-STREAM-LZW-001" => "low_level_syntax",
+        | "PDFA1B-STREAM-LZW-001" => Some("low_level_syntax"),
 
         // object_limits: PDF/A-1 §6.1.12 value-range and collection-size
         // limits (object_limits.rs), independent of any /Root navigation.
@@ -1517,11 +1522,9 @@ fn predicate_family(local_rule_id: &str) -> &'static str {
         | "PDFA1B-NAME-LENGTH-001"
         | "PDFA1B-ARRAY-LENGTH-001"
         | "PDFA1B-DICTIONARY-LENGTH-001"
-        | "PDFA1B-INDIRECT-OBJECT-COUNT-001" => "object_limits",
+        | "PDFA1B-INDIRECT-OBJECT-COUNT-001" => Some("object_limits"),
 
-        _ => panic!(
-            "{local_rule_id} is not classified by predicate_family; add it to the matching family arm"
-        ),
+        _ => None,
     }
 }
 
@@ -1549,17 +1552,18 @@ fn low_level_provenance_class(rule_id: &str) -> &'static str {
 
 fn low_level_recovery_model(provenance_class: &str) -> &'static str {
     match provenance_class {
-        "raw_file" => {
-            "Evaluate original byte spans and revision-selected syntax; recover only oracle-pinned lexical or xref forms."
-        }
-        "selected_cos_object" => {
-            "Evaluate the active revision's modeled value using pinned duplicate-key, null, direct/indirect, and name-decoding semantics."
-        }
-        "content_or_embedded_program" => {
-            "Use the owning bounded content or embedded-program inspector; raw COS provenance is not the source of partial coverage."
-        }
-        _ => unreachable!("known provenance class"),
+        "raw_file" => Some(
+            "Evaluate original byte spans and revision-selected syntax; recover only oracle-pinned lexical or xref forms.",
+        ),
+        "selected_cos_object" => Some(
+            "Evaluate the active revision's modeled value using pinned duplicate-key, null, direct/indirect, and name-decoding semantics.",
+        ),
+        "content_or_embedded_program" => Some(
+            "Use the owning bounded content or embedded-program inspector; raw COS provenance is not the source of partial coverage.",
+        ),
+        _ => None,
     }
+    .expect("known provenance class")
 }
 
 fn replace_once(bytes: &mut [u8], from: &[u8], to: &[u8]) {
@@ -1567,25 +1571,27 @@ fn replace_once(bytes: &mut [u8], from: &[u8], to: &[u8]) {
     let offset = bytes
         .windows(from.len())
         .position(|window| window == from)
-        .unwrap_or_else(|| panic!("could not find {:?}", String::from_utf8_lossy(from)));
-    bytes[offset..offset + to.len()].copy_from_slice(to);
+        .expect("replacement marker");
+    bytes
+        .get_mut(offset..offset + to.len())
+        .expect("replacement range")
+        .copy_from_slice(to);
 }
 
 fn replace_once_growing(bytes: &mut Vec<u8>, from: &[u8], to: &[u8]) {
     let offset = bytes
         .windows(from.len())
         .position(|window| window == from)
-        .unwrap_or_else(|| panic!("could not find {:?}", String::from_utf8_lossy(from)));
+        .expect("growing replacement marker");
     bytes.splice(offset..offset + from.len(), to.iter().copied());
 }
 
 fn write_fixture(fixtures: &Path, name: &str, bytes: &[u8]) {
-    fs::write(fixtures.join(name), bytes).unwrap_or_else(|error| panic!("write {name}: {error}"));
+    fs::write(fixtures.join(name), bytes).expect("write fixture");
 }
 
 fn read_json(path: &str) -> Value {
-    serde_json::from_slice(&fs::read(path).unwrap_or_else(|error| panic!("read {path}: {error}")))
-        .unwrap_or_else(|error| panic!("parse {path}: {error}"))
+    serde_json::from_slice(&fs::read(path).expect("read JSON fixture")).expect("parse JSON fixture")
 }
 
 fn strings(value: &Value, label: &str) -> BTreeSet<String> {
@@ -1596,27 +1602,19 @@ fn strings(value: &Value, label: &str) -> BTreeSet<String> {
 }
 
 fn object<'a>(value: &'a Value, label: &str) -> &'a serde_json::Map<String, Value> {
-    value
-        .as_object()
-        .unwrap_or_else(|| panic!("{label} must be an object"))
+    value.as_object().expect(label)
 }
 
 fn array<'a>(value: &'a Value, label: &str) -> &'a Vec<Value> {
-    value
-        .as_array()
-        .unwrap_or_else(|| panic!("{label} must be an array"))
+    value.as_array().expect(label)
 }
 
 fn string<'a>(value: &'a Value, label: &str) -> &'a str {
-    value
-        .as_str()
-        .unwrap_or_else(|| panic!("{label} must be a string"))
+    value.as_str().expect(label)
 }
 
 fn number(value: &Value, label: &str) -> u64 {
-    value
-        .as_u64()
-        .unwrap_or_else(|| panic!("{label} must be an unsigned integer"))
+    value.as_u64().expect(label)
 }
 
 fn sha256(bytes: &[u8]) -> String {

@@ -19,27 +19,22 @@ page_validation = "0.4.0"
 
 ```rust
 use std::path::Path;
-
 use page_validation::{SafetyLimits, validate_file};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let report = validate_file(Path::new("document.pdf"), &SafetyLimits::default())?;
+let report = validate_file(Path::new("file.pdf"), &SafetyLimits::default())?;
 
-    println!("{report}");
+println!("{report}");
 
-    if report.checks_passed {
-        println!("The document passed all implemented checks.");
-    } else {
-        for failure in &report.failures {
-            eprintln!(
-                "[{}] {}",
-                failure.rule_id,
-                failure.message,
-            );
-        }
+if report.checks_passed {
+    println!("The document passed all implemented checks.");
+} else {
+    for failure in &report.failures {
+        eprintln!(
+            "[{}] {}",
+            failure.rule_id,
+            failure.message,
+        );
     }
-
-    Ok(())
 }
 ```
 
@@ -76,15 +71,11 @@ let report = validate_file_with_profile(
 );
 ```
 
-The explicit-profile function returns a `ValidationReport` directly. Unlike
-profile inference, it does not require the document to contain a usable profile
-declaration. The declaration can still fail the selected profile's metadata
-rules.
+The explicit-profile function returns a `ValidationReport` directly. Unlike profile inference, it does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Validate bytes
 
-`validate_bytes` and `validate_bytes_with_profile` provide the same inferred and
-explicit behaviors for an in-memory PDF:
+`validate_bytes` and `validate_bytes_with_profile` provide the same inferred and explicit behaviors for an in-memory PDF:
 
 ```rust
 use page_validation::{
@@ -98,28 +89,27 @@ let explicit_report = validate_bytes_with_profile(
     ValidationProfile::PdfA1b,
     &SafetyLimits::default(),
 );
-# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
 ## Configure safety limits
 
-Safety limits protect the validator from excessively large or complex inputs.
+The goal of the safety limits protect the validator from excessively large or complex inputs. Defaults are the following and should be sufficient for most cases:
 
 ```rust
 use page_validation::SafetyLimits;
 
 let limits = SafetyLimits {
-    max_input_size: 100 * 1024 * 1024,
-    max_decoded_stream_size: 32 * 1024 * 1024,
-    max_total_decoded_content_size: 100 * 1024 * 1024,
-    max_object_count: 500_000,
-    max_reference_depth: 256,
+    max_input_size: 100 * 1024 * 1024,                 // 100 MiB
+    max_decoded_stream_size: 32 * 1024 * 1024,         // 32 MiB
+    max_total_decoded_content_size: 100 * 1024 * 1024, // 100 MiB
+    max_object_count: 500_000,                         // 500,000 objects
+    max_reference_depth: 256,                          // 256 levels
 };
 ```
 
 Use `SafetyLimits::default()` when the built-in defaults are sufficient.
 
-`max_decoded_stream_size` bounds one decoded stream. `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document.
+`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document.
 
 ## Inspect failures
 

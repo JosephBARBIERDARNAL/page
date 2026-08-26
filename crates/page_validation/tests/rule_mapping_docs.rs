@@ -188,12 +188,12 @@ fn inventories() -> Vec<(PathBuf, Value)> {
     paths
         .into_iter()
         .filter_map(|path| {
-            let inventory: Value = serde_json::from_slice(
-                &fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display())),
-            )
-            .unwrap_or_else(|error| panic!("parse {}: {error}", path.display()));
-            inventory["rule_mapping"]
-                .is_object()
+            let inventory: Value =
+                serde_json::from_slice(&fs::read(&path).expect("read coverage inventory"))
+                    .expect("parse coverage inventory");
+            inventory
+                .get("rule_mapping")
+                .is_some_and(Value::is_object)
                 .then_some((path, inventory))
         })
         .collect()
@@ -253,7 +253,7 @@ fn validate_profiles<'a>(
     for (key, profile) in profiles {
         let profile_file = string(&profile["profile_file"], "profile file");
         let bytes = fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(profile_file))
-            .unwrap_or_else(|error| panic!("read pinned profile {profile_file}: {error}"));
+            .expect("read pinned profile");
         assert_eq!(
             sha256(&bytes),
             string(&profile["profile_sha256"], "profile digest"),
@@ -262,7 +262,7 @@ fn validate_profiles<'a>(
         let xml = roxmltree::Document::parse(
             std::str::from_utf8(&bytes).expect("pinned profile is UTF-8"),
         )
-        .unwrap_or_else(|error| panic!("parse pinned profile {profile_file}: {error}"));
+        .expect("parse pinned profile");
         let root = xml.root_element();
         assert_eq!(root.attribute("flavour"), profile["flavour"].as_str());
 
@@ -344,7 +344,7 @@ fn validate_mappings<'a>(
         let section = string(&item["section"], "mapping section");
         let section_profiles = sections
             .get(section)
-            .unwrap_or_else(|| panic!("mapping references unknown section {section}"));
+            .expect("mapping references known section");
         let reference_rule = string(&item["verapdf_rule_id"], "veraPDF rule ID");
         let canonical_rule = string(&item["canonical_local_rule_id"], "canonical local rule ID");
         let strength = string(&item["implementation_strength"], "mapping strength");
@@ -364,10 +364,10 @@ fn validate_mappings<'a>(
         for profile_key in applicable {
             let profile = profiles
                 .get(profile_key)
-                .unwrap_or_else(|| panic!("unknown applicable profile {profile_key}"));
+                .expect("mapping references known profile");
             let (object_type, predicate) = pinned_predicates
                 .get(&(profile_key.to_owned(), reference_rule.to_owned()))
-                .unwrap_or_else(|| panic!("{reference_rule} is absent from profile {profile_key}"));
+                .expect("mapping references a pinned predicate");
             assert_eq!(item["object"], object_type.as_str());
             assert_eq!(item["predicate"], predicate.as_str());
             let reported_rule = reported_local_rule(profile, canonical_rule);
@@ -484,7 +484,7 @@ fn render(mapping: &serde_json::Map<String, Value>) -> String {
                 let profile_key = string(profile_key, "applicable profile");
                 let profile = profiles
                     .get(profile_key)
-                    .unwrap_or_else(|| panic!("unknown applicable profile {profile_key}"));
+                    .expect("mapping references known profile");
                 let local_rule = reported_local_rule(profile, canonical_rule);
                 let row = format!(
                     "| `{local_rule}` | `{reference_rule}` | §{} | {} | {} |\n",
@@ -507,7 +507,7 @@ fn reported_local_rule(profile: &Value, canonical_rule: &str) -> String {
     }
     let (_, suffix) = canonical_rule
         .split_once('-')
-        .unwrap_or_else(|| panic!("canonical rule has no prefix: {canonical_rule}"));
+        .expect("canonical rule has a prefix");
     format!(
         "{}-{suffix}",
         string(&profile["local_rule_prefix"], "local rule prefix")
@@ -519,7 +519,7 @@ fn clause(rule_id: &str) -> &str {
         .rsplit_once(':')
         .and_then(|(without_test, _)| without_test.rsplit_once(':'))
         .map(|(_, clause)| clause)
-        .unwrap_or_else(|| panic!("invalid veraPDF rule ID {rule_id}"))
+        .expect("valid veraPDF rule ID")
 }
 
 fn validated_output_path(value: &Value) -> PathBuf {
@@ -555,22 +555,15 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 fn object<'a>(value: &'a Value, description: &str) -> &'a serde_json::Map<String, Value> {
-    value
-        .as_object()
-        .unwrap_or_else(|| panic!("{description} is not an object"))
+    value.as_object().expect(description)
 }
 
 fn array<'a>(value: &'a Value, description: &str) -> &'a [Value] {
-    value
-        .as_array()
-        .map(Vec::as_slice)
-        .unwrap_or_else(|| panic!("{description} is not an array"))
+    value.as_array().map(Vec::as_slice).expect(description)
 }
 
 fn string<'a>(value: &'a Value, description: &str) -> &'a str {
-    value
-        .as_str()
-        .unwrap_or_else(|| panic!("{description} is not a string"))
+    value.as_str().expect(description)
 }
 
 fn strings<'a>(value: &'a Value, description: &str) -> BTreeSet<&'a str> {
@@ -581,7 +574,5 @@ fn strings<'a>(value: &'a Value, description: &str) -> BTreeSet<&'a str> {
 }
 
 fn number(value: &Value, description: &str) -> u64 {
-    value
-        .as_u64()
-        .unwrap_or_else(|| panic!("{description} is not an unsigned integer"))
+    value.as_u64().expect(description)
 }

@@ -321,14 +321,17 @@ fn signature_byte_range_covers_document(
     if values.len() != 4 || values.iter().any(|value| *value < 0) {
         return Ok(false);
     }
+    let [start, length, end, stream_length] = values.as_slice() else {
+        return Ok(false);
+    };
     let document_length = i64::try_from(document_length).unwrap_or(i64::MAX);
-    Ok(values[0] == 0
-        && values[2] >= values[0].saturating_add(values[1])
+    Ok(*start == 0
+        && *end >= start.saturating_add(*length)
         // veraPDF 1.30.2 accepts the signed range when its declared end is
         // beyond the physical EOF of a malformed incremental/signature file.
         // Keep the structural checks while matching that observable model
         // behavior for the corpus.
-        && values[2].saturating_add(values[3]) >= document_length)
+        && end.saturating_add(*stream_length) >= document_length)
 }
 
 fn has_unaccounted_stream(
@@ -354,10 +357,15 @@ fn has_unaccounted_stream(
             cursor = range.end;
             continue;
         }
-        match bytes[cursor] {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
             b'%' => {
                 cursor += 1;
-                while cursor < bytes.len() && !matches!(bytes[cursor], b'\r' | b'\n') {
+                while cursor < bytes.len()
+                    && !matches!(bytes.get(cursor).copied(), Some(b'\r' | b'\n'))
+                {
                     cursor += 1;
                 }
             }
@@ -365,7 +373,7 @@ fn has_unaccounted_stream(
             b'<' if bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
             b'<' => {
                 cursor += 1;
-                while cursor < bytes.len() && bytes[cursor] != b'>' {
+                while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
                     cursor += 1;
                 }
                 cursor += usize::from(cursor < bytes.len());
@@ -728,10 +736,11 @@ fn inspect_hex_strings(
             b'<' => {
                 cursor += 1;
                 let mut count = 0;
-                while cursor < bytes.len() && bytes[cursor] != b'>' {
-                    if !bytes[cursor].is_ascii_whitespace() {
+                while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
+                    if !bytes.get(cursor).is_some_and(u8::is_ascii_whitespace) {
                         count += 1;
-                        summary.has_non_hex_character |= !bytes[cursor].is_ascii_hexdigit();
+                        summary.has_non_hex_character |=
+                            !bytes.get(cursor).is_some_and(u8::is_ascii_hexdigit);
                     }
                     cursor += 1;
                 }
@@ -746,7 +755,10 @@ fn inspect_hex_strings(
 fn skip_literal_string(bytes: &[u8], mut cursor: usize) -> usize {
     let mut nesting = 1;
     while cursor < bytes.len() && nesting > 0 {
-        match bytes[cursor] {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
             b'\\' => cursor = cursor.saturating_add(2),
             b'(' => {
                 nesting += 1;

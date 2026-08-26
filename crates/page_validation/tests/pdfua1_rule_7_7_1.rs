@@ -24,7 +24,7 @@ fn pdfua1_rule_7_7_1_requires_formula_alternative_text() {
             "pdfua1-rule-7-7-1-actual-text-present.pdf" => {
                 include_bytes!("fixtures/pdfua1-rule-7-7-1-actual-text-present.pdf").as_slice()
             }
-            _ => unreachable!(),
+            _ => panic!("unknown PDF/UA-1 rule 7.7.1 fixture {fixture}"),
         };
         let report =
             validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
