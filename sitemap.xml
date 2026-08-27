@@ -7,49 +7,10 @@
         <loc>https://josephbarbierdarnal.github.io/page/installation/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/cli/quick-start/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/cli/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/cli/colors/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/quick-start/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationReport/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/SafetyLimits/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_bytes_with_profile/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_bytes/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_file_with_profile/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/validate_file/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/FailureCategory/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationCounts/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationError/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationFailure/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/ValidationProfile/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/PdfError/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/rules/pdfa-1-rules/</loc>
