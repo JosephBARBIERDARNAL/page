@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Write as _;
 use std::fs;
@@ -302,25 +303,21 @@ fn render_summary(report: &ValidationReport, elapsed: Duration, colors: bool) ->
     output
 }
 
-fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
-    let mut output = render_summary(report, elapsed, colors);
-    output.push('\n');
-    writeln!(
-        output,
-        "Checks: {} passed, {} failed, {} total",
-        report.checks.passed, report.checks.failed, report.checks.total
-    )
-    .expect("writing to a String cannot fail");
-    if let Some(document) = &report.document {
-        writeln!(
-            output,
-            "Document: PDF {}, {} page(s), {} object(s)",
-            document.version, document.page_count, document.object_count
-        )
-        .expect("writing to a String cannot fail");
-    }
+fn render_details(report: &ValidationReport, _elapsed: Duration, colors: bool) -> String {
+    let mut output = String::new();
+    let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
+        if !seen.insert((
+            &failure.rule_id,
+            failure.category as u8,
+            &failure.message,
+            failure
+                .object_id
+                .map(|object_id| (object_id.object_number, object_id.generation)),
+        )) {
+            continue;
+        }
         write!(
             output,
             "{rule}[{}]{rule:#} {:?}: {}",

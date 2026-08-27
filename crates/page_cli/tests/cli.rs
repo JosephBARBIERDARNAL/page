@@ -281,12 +281,12 @@ fn details_format_prints_every_failed_rule() {
     assert_eq!(details.status.code(), Some(2));
     assert!(details.stderr.is_empty());
     let details = String::from_utf8(details.stdout).expect("UTF-8 details");
-    assert!(details.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\n\n"));
-    let time = details.find("Time    : ").expect("summary duration");
-    let checks = details.find("Checks: ").expect("detailed check counts");
-    let first_failure = details.find('[').expect("first detailed failure");
-    assert!(time < checks);
-    assert!(checks < first_failure);
+    assert!(details.starts_with('['));
+    assert!(!details.contains("Profile :"));
+    assert!(!details.contains("Result  :"));
+    assert!(!details.contains("Checks:"));
+    assert!(!details.contains("Document:"));
+    assert!(!details.contains("Time    :"));
     let detailed_failure_count = details.lines().filter(|line| line.starts_with('[')).count();
     let json: serde_json::Value = serde_json::from_slice(&json.stdout).expect("validation JSON");
     assert_eq!(

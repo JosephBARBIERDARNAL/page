@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::fs;
 use std::path::Path;
@@ -2524,16 +2525,24 @@ fn validate_stream_safety(
     }
 }
 
-/// Computes the single object id (when exactly one entry is present) and the
-/// `"; "`-joined description used by every same-rule failure aggregator.
+/// Computes the object id and first distinct description used by every
+/// same-rule failure aggregator.
 fn joined_failure(invalid: &[RuleFailure]) -> (Option<PdfObjectId>, String) {
-    let object_id = only(invalid).and_then(|entry| entry.object_id);
-    let description = invalid
+    let mut seen = HashSet::new();
+    let first = invalid
         .iter()
-        .map(|entry| entry.description.as_str())
-        .collect::<Vec<_>>()
-        .join("; ");
-    (object_id, description)
+        .find(|entry| seen.insert(entry.description.as_str()))
+        .expect("failure aggregation requires at least one entry");
+    let only_failure = invalid
+        .iter()
+        .all(|entry| entry.description == first.description);
+    let object_id = (invalid
+        .iter()
+        .all(|entry| entry.object_id == first.object_id)
+        && only_failure)
+        .then_some(first.object_id)
+        .flatten();
+    (object_id, first.description.clone())
 }
 
 /// Aggregates same-rule failures into one [`ValidationFailure`], attaching
@@ -2555,8 +2564,9 @@ fn aggregate_failures(
     ));
 }
 
-/// Like [`aggregate_failures`], but prefixes each entry with its indirect
-/// object identity when known, or with `no_id_label` (if given) otherwise.
+/// Like [`aggregate_failures`], but keeps the first distinct failure
+/// description and prefixes entries without an object id with `no_id_label`
+/// when given.
 fn aggregate_failures_with_location(
     invalid: &[RuleFailure],
     rule_id: &'static str,
@@ -2566,21 +2576,29 @@ fn aggregate_failures_with_location(
     if invalid.is_empty() {
         return;
     }
-    let object_id = only(invalid).and_then(|entry| entry.object_id);
-    let detail = invalid
+    let mut seen = HashSet::new();
+    let first = invalid
         .iter()
-        .map(|entry| match entry.object_id {
-            Some(object_id) => format!(
-                "{} {}: {}",
-                object_id.object_number, object_id.generation, entry.description
-            ),
-            None => match no_id_label {
-                Some(label) => format!("{label}: {}", entry.description),
-                None => entry.description.clone(),
-            },
+        .find(|entry| {
+            let no_id_label = entry.object_id.is_none().then_some(no_id_label).flatten();
+            seen.insert((no_id_label, entry.description.as_str()))
         })
-        .collect::<Vec<_>>()
-        .join("; ");
+        .expect("failure aggregation requires at least one entry");
+    let no_id_label = first.object_id.is_none().then_some(no_id_label).flatten();
+    let detail = match no_id_label {
+        Some(label) => format!("{label}: {}", first.description),
+        None => first.description.clone(),
+    };
+    let only_failure = invalid.iter().all(|entry| {
+        let entry_no_id_label = entry.object_id.is_none().then_some(no_id_label).flatten();
+        entry_no_id_label == no_id_label && entry.description == first.description
+    });
+    let object_id = (invalid
+        .iter()
+        .all(|entry| entry.object_id == first.object_id)
+        && only_failure)
+        .then_some(first.object_id)
+        .flatten();
     failures.push(failure(
         rule_id,
         detail,
@@ -4234,6 +4252,40 @@ mod tests {
             report.failures
         );
         assert!(!report.checks_passed, "fixture intentionally has no XMP");
+    }
+
+    #[test]
+    fn same_rule_aggregators_discard_duplicate_findings() {
+        let repeated = RuleFailure {
+            object_id: Some(PdfObjectId {
+                object_number: 10,
+                generation: 0,
+            }),
+            description: "the same problem".to_owned(),
+        };
+        let distinct = RuleFailure {
+            object_id: Some(PdfObjectId {
+                object_number: 11,
+                generation: 0,
+            }),
+            description: "the same problem".to_owned(),
+        };
+        let other = RuleFailure {
+            object_id: Some(PdfObjectId {
+                object_number: 12,
+                generation: 0,
+            }),
+            description: "another problem".to_owned(),
+        };
+        let invalid = vec![repeated.clone(), repeated, distinct, other];
+
+        let mut failures = Vec::new();
+        aggregate_failures_with_location(&invalid, "TEST-001", None, &mut failures);
+        assert_eq!(failures[0].message, "the same problem");
+
+        let mut failures = Vec::new();
+        aggregate_failures(&invalid, "TEST-001", &mut failures);
+        assert_eq!(failures[0].message, "the same problem");
     }
 
     fn assert_rule(report: &ValidationReport, rule: &str) {
