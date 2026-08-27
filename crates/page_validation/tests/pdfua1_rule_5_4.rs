@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:4";
 
 #[test]
 fn pdfua1_rule_5_4_fixtures_require_pdfuaid_amd_prefix() {
-    let canonical_prefix = validate_bytes(
+    let canonical_prefix = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-4-canonical-prefix.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(canonical_prefix.checks_passed, "{canonical_prefix}");
+    assert!(canonical_prefix.is_compliant, "{canonical_prefix}");
     assert!(canonical_prefix.failures.is_empty());
 
-    let wrong_prefix = validate_bytes(
+    let wrong_prefix = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-4-wrong-prefix.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!wrong_prefix.checks_passed, "{wrong_prefix}");
+    assert!(!wrong_prefix.is_compliant, "{wrong_prefix}");
     assert_eq!(wrong_prefix.checks.failed, 1);
     assert_eq!(wrong_prefix.failures.len(), 1);
     assert_eq!(wrong_prefix.failures[0].rule_id, RULE);

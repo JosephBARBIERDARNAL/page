@@ -13,7 +13,7 @@ use lopdf::{
     Stream, StringFormat, dictionary,
 };
 use page_validation::{
-    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_bytes,
+    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_pdf_bytes,
 };
 
 pub mod sfnt;
@@ -43,7 +43,7 @@ pub fn rule_delta<T: Ord + Clone>(
 }
 
 pub fn validate(bytes: &[u8]) -> ValidationReport {
-    validate_bytes(
+    validate_pdf_bytes(
         bytes,
         Some(ValidationProfile::PdfA1b),
         &SafetyLimits::default(),

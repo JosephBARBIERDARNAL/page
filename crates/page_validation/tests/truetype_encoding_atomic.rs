@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -63,7 +63,7 @@ fn symbolic_cmap_predicate_matches_pdfa_2_and_3_profiles() {
             "PDFA3B-TRUETYPE-SYMBOLIC-CMAP-001",
         ),
     ] {
-        let invalid = validate_bytes(
+        let invalid = validate_pdf_bytes(
             &common::font_fixture("tt_symbolic_two_cmaps"),
             Some(profile),
             &SafetyLimits::default(),
@@ -75,7 +75,7 @@ fn symbolic_cmap_predicate_matches_pdfa_2_and_3_profiles() {
                 .iter()
                 .any(|failure| failure.rule_id == rule)
         );
-        let valid = validate_bytes(
+        let valid = validate_pdf_bytes(
             &common::font_fixture("tt_symbolic_two_cmaps_with_cmap30"),
             Some(profile),
             &SafetyLimits::default(),

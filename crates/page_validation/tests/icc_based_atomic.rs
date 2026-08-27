@@ -1,4 +1,4 @@
-use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
+use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -111,7 +111,7 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
         max_decoded_stream_size: 2048,
         ..SafetyLimits::default()
     };
-    let error = validate_bytes(
+    let error = validate_pdf_bytes(
         &common::icc_based_fixture("large_compressed_profile"),
         Some(ValidationProfile::PdfA1b),
         &limits,
@@ -119,7 +119,7 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
     .expect_err("ICC profile must exceed the decoded-size limit");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::ContentDecodeLimit(2048))
+        ValidationError::Pdf(PdfError::IccDecodeLimit(_))
     ));
 }
 
@@ -130,7 +130,7 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         ..SafetyLimits::default()
     };
     for case in ["cyclic_indexed", "deep_indexed"] {
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             &common::icc_based_fixture(case),
             Some(ValidationProfile::PdfA1b),
             &limits,

@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,13 +13,13 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.4.2:1";
 
 #[test]
 fn pdfua1_rule_7_4_2_1_requires_numbered_headings_to_follow_the_previous_level() {
-    let valid = validate_bytes(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-4-2-1-valid.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid.checks_passed, "{valid}");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty());
 
     for (fixture, bytes) in [
@@ -32,13 +32,13 @@ fn pdfua1_rule_7_4_2_1_requires_numbered_headings_to_follow_the_previous_level()
             include_bytes!("fixtures/pdfua1-rule-7-4-2-1-skips-h2.pdf").as_slice(),
         ),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

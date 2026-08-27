@@ -6,7 +6,7 @@ use std::path::Path;
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -15,13 +15,13 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.16:1";
 
 #[test]
 fn pdfua1_rule_7_16_1_requires_p_with_bit_10_set_for_encrypted_files() {
-    let valid = validate_bytes(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-16-1-valid.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid.checks_passed, "{valid}");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
 
     for fixture in [
@@ -37,13 +37,13 @@ fn pdfua1_rule_7_16_1_requires_p_with_bit_10_set_for_encrypted_files() {
             }
             _ => panic!("unknown PDF/UA-1 rule 7.16.1 fixture {fixture}"),
         };
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert!(
             report
                 .failures

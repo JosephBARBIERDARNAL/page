@@ -8,27 +8,7 @@ extra_css = ["stylesheets/style.css"]
 nav = [
   { "Home" = "index.md" },
   { "Installation" = "installation.md" },
-  { "Usage" = [
-    { "CLI" = [
-      { "Quick start" = "api/cli/quick-start.md" },
-      { "Colors" = "api/cli/colors.md" },
-    ] },
-    { "Rust" = [
-      { "Quick start" = "api/rust/quick-start.md" },
-      { "ValidationReport" = "api/rust/ValidationReport.md" },
-      { "SafetyLimits" = "api/rust/SafetyLimits.md" },
-      { "validate_bytes_with_profile" = "api/rust/validate_bytes_with_profile.md" },
-      { "validate_bytes" = "api/rust/validate_bytes.md" },
-      { "validate_file_with_profile" = "api/rust/validate_file_with_profile.md" },
-      { "validate_file" = "api/rust/validate_file.md" },
-      { "FailureCategory" = "api/rust/FailureCategory.md" },
-      { "ValidationCounts" = "api/rust/ValidationCounts.md" },
-      { "ValidationError" = "api/rust/ValidationError.md" },
-      { "ValidationFailure" = "api/rust/ValidationFailure.md" },
-      { "ValidationProfile" = "api/rust/ValidationProfile.md" },
-      { "PdfError" = "api/rust/PdfError.md" },
-    ] },
-  ] },
+  { "Usage" = [{ "CLI" = "api/cli.md" }, { "Rust" = "api/rust.md" }] },
   { "Rules" = [
     { "PDF/A-1" = "rules/pdfa-1-rules.md" },
     { "PDF/A-2 and PDF/A-3" = "rules/pdfa-2-3-rules.md" },

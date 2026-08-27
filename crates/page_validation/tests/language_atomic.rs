@@ -2,7 +2,7 @@ pub mod common;
 
 use std::env;
 
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 const RULE: &str = "PDFA1A-LANG-001";
 
@@ -26,7 +26,7 @@ fn validates_catalog_structure_and_property_list_language_values() {
         ("lang_property_wrong_type", false),
         ("lang_property_null", false),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -88,7 +88,7 @@ fn language_fixtures_match_pinned_verapdf() {
             .failed_rule_ids
             .iter()
             .any(|rule| rule.to_string() == reference_rule);
-        let local = validate_bytes(
+        let local = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),

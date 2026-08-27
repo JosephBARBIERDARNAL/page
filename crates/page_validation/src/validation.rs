@@ -15,7 +15,7 @@ use crate::report::{
 
 /// A PDF/A or PDF/UA conformance level this crate can validate a document against.
 ///
-/// A profile is either declared by a document's own XMP identification schema or selected explicitly by a caller through the optional `profile` argument accepted by [`validate_bytes`], [`validate_file`], and [`is_pdf_compliant`]. Not every profile in this enum is implemented yet; `Self::is_implemented` reports which ones a `ValidationReport`'s `checks_passed` can be trusted for, and `Self::implemented_check_count` reports how many rules currently back that result.
+/// A profile is either declared by a document's own XMP identification schema or selected explicitly by a caller through the optional `profile` argument accepted by [`validate_pdf_bytes`], [`validate_pdf`], and [`is_pdf_compliant`]. Not every profile in this enum is implemented yet; `Self::is_implemented` reports which ones a `ValidationReport`'s `is_compliant` can be trusted for, and `Self::implemented_check_count` reports how many rules currently back that result.
 ///
 /// ## Examples
 ///
@@ -177,15 +177,6 @@ fn only<T>(items: &[T]) -> Option<&T> {
     items.first().filter(|_| items.len() == 1)
 }
 
-/// A PDF source accepted by [`is_pdf_compliant`].
-#[derive(Clone, Copy, Debug)]
-pub enum ValidationInput<'a> {
-    /// Complete PDF bytes already in memory.
-    Bytes(&'a [u8]),
-    /// A PDF file to read from disk.
-    File(&'a Path),
-}
-
 /// The selected profile and compliance outcome returned by [`is_pdf_compliant`].
 ///
 /// `profile` is either the explicitly requested profile or the one inferred
@@ -207,7 +198,7 @@ enum ValidationMode {
 
 /// Reads a file from disk and validates it against a selected profile.
 ///
-/// Pass `None` for `profile` to infer the profile from the document's XMP metadata, or `Some(profile)` to validate against that profile regardless of the declaration. This is the file-based counterpart of [`validate_bytes`]. It enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to `validate_bytes`. The returned report has its `source` set to `path`.
+/// Pass `None` for `profile` to infer the profile from the document's XMP metadata, or `Some(profile)` to validate against that profile regardless of the declaration. This is the file-based counterpart of [`validate_pdf_bytes`]. It enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to `validate_pdf_bytes`. The returned report has its `source` set to `path`.
 ///
 /// ## Arguments
 ///
@@ -221,29 +212,29 @@ enum ValidationMode {
 ///
 /// ## Errors
 ///
-/// Returns `ValidationError::InputIo` if `path` cannot be read or its size cannot be determined, every parser or safety-limit error `validate_bytes` can return once the file content is available, and a profile-declaration error when `profile` is `None` and XMP does not unambiguously declare an implemented profile.
+/// Returns `ValidationError::InputIo` if `path` cannot be read or its size cannot be determined, every parser or safety-limit error `validate_pdf_bytes` can return once the file content is available, and a profile-declaration error when `profile` is `None` and XMP does not unambiguously declare an implemented profile.
 ///
 /// ## Examples
 ///
 /// ```rs
 /// use std::path::Path;
 ///
-/// use page_validation::{SafetyLimits, validate_file};
+/// use page_validation::{SafetyLimits, validate_pdf};
 ///
 /// let limits = SafetyLimits::default();
-/// let report = validate_file(Path::new("input.pdf"), None, &limits)?;
+/// let report = validate_pdf(Path::new("input.pdf"), None, &limits)?;
 /// println!("{report}");
 /// # Ok::<(), page_validation::ValidationError>(())
 /// ```
-pub fn validate_file(
+pub fn validate_pdf(
     path: &Path,
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<ValidationReport, ValidationError> {
-    validate_file_with_mode(path, profile, limits, ValidationMode::Exhaustive)
+    validate_pdf_with_mode(path, profile, limits, ValidationMode::Exhaustive)
 }
 
-fn validate_file_with_mode(
+fn validate_pdf_with_mode(
     path: &Path,
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
@@ -287,13 +278,13 @@ fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationEr
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{SafetyLimits, validate_bytes};
+/// use page_validation::{SafetyLimits, validate_pdf_bytes};
 ///
 /// let limits = SafetyLimits::default();
-/// let error = validate_bytes(b"not a pdf", None, &limits).unwrap_err();
+/// let error = validate_pdf_bytes(b"not a pdf", None, &limits).unwrap_err();
 /// println!("{error}");
 /// ```
-pub fn validate_bytes(
+pub fn validate_pdf_bytes(
     bytes: &[u8],
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
@@ -325,24 +316,18 @@ fn reject_unimplemented_profile(profile: Option<ValidationProfile>) -> Result<()
 
 /// Performs the fast validation used by the command-line summary output.
 ///
-/// The source and profile-selection behavior matches [`validate_bytes`] and
-/// [`validate_file`], but this API returns only the compliance outcome.
+/// The source and profile-selection behavior matches [`validate_pdf_bytes`] and
+/// [`validate_pdf`], but this API returns only the compliance outcome.
 pub fn is_pdf_compliant(
-    input: ValidationInput<'_>,
+    path: &Path,
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<ComplianceResult, ValidationError> {
-    let bytes = match input {
-        ValidationInput::Bytes(bytes) => bytes,
-        ValidationInput::File(path) => {
-            reject_unimplemented_profile(profile)?;
-            return is_pdf_compliant_bytes(&read_file(path, limits)?, profile, limits);
-        }
-    };
-    is_pdf_compliant_bytes(bytes, profile, limits)
+    reject_unimplemented_profile(profile)?;
+    is_pdf_compliant_bytes(&read_file(path, limits)?, profile, limits)
 }
 
-fn is_pdf_compliant_bytes(
+pub fn is_pdf_compliant_bytes(
     bytes: &[u8],
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
@@ -364,7 +349,7 @@ fn is_pdf_compliant_bytes(
     let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
     Ok(ComplianceResult {
         profile,
-        is_compliant: report.checks_passed,
+        is_compliant: report.is_compliant,
     })
 }
 
@@ -1859,7 +1844,7 @@ fn validate_document(
             &mut failures,
         );
     }
-    validate_file_specifications(
+    validate_pdf_specifications(
         profile,
         &inspections.document_features,
         &inspections.actions,
@@ -2483,7 +2468,7 @@ fn validate_document_features(
 /// reachability path veraPDF's `CosFileSpecification` object covers: the
 /// catalog `Names/EmbeddedFiles` name tree, and `GoToR`/`SubmitForm` action
 /// `/F` entries.
-fn validate_file_specifications(
+fn validate_pdf_specifications(
     profile: ValidationProfile,
     document_features: &crate::document_features::DocumentFeatureSummary,
     actions: &crate::actions::ActionSummary,
@@ -3558,7 +3543,7 @@ fn finish_report(
     ValidationReport {
         source: None,
         profile,
-        checks_passed: failures.is_empty(),
+        is_compliant: failures.is_empty(),
         preliminary: false,
         checks: ValidationCounts {
             total: total_checks,
@@ -3657,13 +3642,13 @@ mod tests {
     #[test]
     fn accepts_all_implemented_checks() {
         let bytes = fixture(Some(VALID_XMP), true);
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(report.checks_passed, "{:#?}", report.failures);
+        assert!(report.is_compliant, "{:#?}", report.failures);
         assert_eq!(
             report.checks.passed,
             ValidationProfile::PdfA1b.implemented_check_count()
@@ -3673,23 +3658,19 @@ mod tests {
     #[test]
     fn infers_the_profile_declared_in_xmp() {
         let bytes = fixture(Some(VALID_XMP), true);
-        let report = validate_bytes(&bytes, None, &SafetyLimits::default())
+        let report = validate_pdf_bytes(&bytes, None, &SafetyLimits::default())
             .expect("PDF/A-1b profile declaration");
 
         assert_eq!(report.profile, ValidationProfile::PdfA1b);
-        assert!(report.checks_passed, "{:#?}", report.failures);
+        assert!(report.is_compliant, "{:#?}", report.failures);
     }
 
     #[test]
     fn fast_validation_infers_the_profile_and_returns_compliance() {
         let bytes = fixture(Some(VALID_XMP), true);
 
-        let result = is_pdf_compliant(
-            ValidationInput::Bytes(&bytes),
-            None,
-            &SafetyLimits::default(),
-        )
-        .expect("PDF/A-1b profile declaration");
+        let result = is_pdf_compliant_bytes(&bytes, None, &SafetyLimits::default())
+            .expect("PDF/A-1b profile declaration");
 
         assert_eq!(result.profile, ValidationProfile::PdfA1b);
         assert!(result.is_compliant);
@@ -3705,8 +3686,8 @@ mod tests {
             .save_to(&mut invalid)
             .expect("write invalid fixture");
 
-        let result = is_pdf_compliant(
-            ValidationInput::Bytes(&invalid),
+        let result = is_pdf_compliant_bytes(
+            &invalid,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
         )
@@ -3722,7 +3703,7 @@ mod tests {
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/trailer-id-missing.pdf");
 
         let result = is_pdf_compliant(
-            ValidationInput::File(&path),
+            &path,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
         )
@@ -3735,7 +3716,7 @@ mod tests {
     #[test]
     fn inferred_validation_requires_a_profile_declaration() {
         let bytes = fixture(None, true);
-        let error = validate_bytes(&bytes, None, &SafetyLimits::default())
+        let error = validate_pdf_bytes(&bytes, None, &SafetyLimits::default())
             .expect_err("missing profile declaration");
 
         assert!(matches!(error, ValidationError::MissingProfileDeclaration));
@@ -3747,10 +3728,10 @@ mod tests {
             .expect("fixture is UTF-8")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
         let bytes = fixture(Some(xmp.as_bytes()), true);
-        let report = validate_bytes(&bytes, None, &SafetyLimits::default())
+        let report = validate_pdf_bytes(&bytes, None, &SafetyLimits::default())
             .expect("PDF/A-1a profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
-        assert!(report.checks_passed, "{:#?}", report.failures);
+        assert!(report.is_compliant, "{:#?}", report.failures);
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfA1a.implemented_check_count()
@@ -3763,7 +3744,7 @@ mod tests {
             .expect("fixture is UTF-8")
             .replace(" pdfaid:conformance=\"B\"", "");
         let bytes = fixture(Some(xmp.as_bytes()), true);
-        let error = validate_bytes(&bytes, None, &SafetyLimits::default())
+        let error = validate_pdf_bytes(&bytes, None, &SafetyLimits::default())
             .expect_err("incomplete PDF/A-1 declaration");
 
         assert!(matches!(
@@ -3785,10 +3766,10 @@ mod tests {
           </x:xmpmeta>
           <?xpacket end="w"?>"#;
         let bytes = fixture(Some(xmp), true);
-        let report = validate_bytes(&bytes, None, &SafetyLimits::default())
+        let report = validate_pdf_bytes(&bytes, None, &SafetyLimits::default())
             .expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
-        assert!(report.checks_passed, "{report:#?}");
+        assert!(report.is_compliant, "{report:#?}");
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfUa1.implemented_check_count()
@@ -3805,7 +3786,7 @@ mod tests {
         ];
 
         for profile in profiles {
-            let error = validate_bytes(b"not a PDF", Some(profile), &SafetyLimits::default())
+            let error = validate_pdf_bytes(b"not a PDF", Some(profile), &SafetyLimits::default())
                 .expect_err("unimplemented profile");
             assert!(
                 matches!(error, ValidationError::UnsupportedProfile(actual) if actual == profile)
@@ -3827,7 +3808,7 @@ mod tests {
         };
         bytes[comment_start + 1..comment_start + 5].copy_from_slice(b"abcd");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3861,7 +3842,7 @@ mod tests {
         let mut bytes = fixture(Some(VALID_XMP), true);
         bytes.extend_from_slice(b"unexpected");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3880,7 +3861,7 @@ mod tests {
             .save_to(&mut bytes)
             .expect("save fixture with xref stream");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3899,7 +3880,7 @@ mod tests {
             .save_to(&mut bytes)
             .expect("save fixture without ID");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3947,7 +3928,7 @@ mod tests {
           </rdf:RDF></x:xmpmeta><?xpacket end="w"?>"#;
         let bytes = fixture(Some(xmp), true);
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA2b),
             &SafetyLimits::default(),
@@ -3955,7 +3936,7 @@ mod tests {
         .expect("explicit profile validation");
         assert_rule(&report, "PDFA2B-ID-CORR-PREFIX-001");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3970,7 +3951,7 @@ mod tests {
             .iter()
             .flat_map(|byte| [*byte, 0])
             .collect::<Vec<_>>();
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(&utf16_xmp), true),
             Some(ValidationProfile::PdfA2b),
             &SafetyLimits::default(),
@@ -3985,7 +3966,7 @@ mod tests {
         let bytes = include_bytes!(
             "../tests/fixtures/mutations/PDFA1B-STREAM-LZW-001/shared-document_feature-stream_lzwdecode.pdf"
         );
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfA2b),
             &SafetyLimits::default(),
@@ -4001,7 +3982,7 @@ mod tests {
         let bytes = include_bytes!(
             "../tests/fixtures/mutations/PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001/shared-action-widget_additional_actions.pdf"
         );
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfA2b),
             &SafetyLimits::default(),
@@ -4014,7 +3995,7 @@ mod tests {
 
     #[test]
     fn reports_missing_xmp() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(None, true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4026,7 +4007,7 @@ mod tests {
 
     #[test]
     fn reports_malformed_xmp() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(b"<rdf:RDF>"), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4063,7 +4044,7 @@ mod tests {
                 "PDFA1B-METADATA-FILTER-001",
             ),
         ] {
-            let report = validate_bytes(
+            let report = validate_pdf_bytes(
                 &fixture_with_metadata_dictionary(VALID_XMP, dictionary, None),
                 Some(ValidationProfile::PdfA1b),
                 &SafetyLimits::default(),
@@ -4078,7 +4059,7 @@ mod tests {
     /// convention as every other `containsX` predicate this crate checks.
     #[test]
     fn catalog_metadata_direct_null_filter_is_not_a_filter_violation() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture_with_metadata_dictionary(
                 VALID_XMP,
                 dictionary! {
@@ -4098,7 +4079,7 @@ mod tests {
     #[test]
     fn rejects_missing_and_duplicate_identification_declarations() {
         let missing = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>"#;
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(missing), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4112,7 +4093,7 @@ mod tests {
           <rdf:Description pdfaid:part="1" pdfaid:conformance="B"/>
           <rdf:Description pdfaid:part="2" pdfaid:conformance="A"/>
         </rdf:RDF>"#;
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(duplicate), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4124,7 +4105,7 @@ mod tests {
 
     #[test]
     fn accepts_info_values_with_correct_rdf_alt_and_seq_forms() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture_with_metadata_dictionary(
                 COMPLETE_XMP,
                 dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
@@ -4166,7 +4147,7 @@ mod tests {
                 key,
                 Object::String(b"different".to_vec(), StringFormat::Literal),
             );
-            let report = validate_bytes(
+            let report = validate_pdf_bytes(
                 &fixture_with_metadata_dictionary(
                     COMPLETE_XMP,
                     dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
@@ -4188,7 +4169,7 @@ mod tests {
                 "<rdf:li>Author</rdf:li>",
                 "<rdf:li>Author</rdf:li><rdf:li>Second</rdf:li>",
             );
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture_with_metadata_dictionary(
                 xmp.as_bytes(),
                 dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
@@ -4203,7 +4184,7 @@ mod tests {
 
     #[test]
     fn missing_output_intent_is_outside_the_pinned_output_intent_predicates() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), false),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4219,7 +4200,7 @@ mod tests {
             .expect("fixture is UTF-8")
             .replace("pdfaid:part=\"1\"", "pdfaid:part=\"2\"")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"U\"");
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(xmp.as_bytes()), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4234,7 +4215,7 @@ mod tests {
         let xmp = String::from_utf8(VALID_XMP.to_vec())
             .expect("fixture is UTF-8")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(xmp.as_bytes()), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4250,7 +4231,7 @@ mod tests {
 
     #[test]
     fn pdfa_1a_requires_conformance_a() {
-        let b = validate_bytes(
+        let b = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), true),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -4261,7 +4242,7 @@ mod tests {
         let a_xmp = String::from_utf8(VALID_XMP.to_vec())
             .expect("fixture is UTF-8")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
-        let a = validate_bytes(
+        let a = validate_pdf_bytes(
             &fixture(Some(a_xmp.as_bytes()), true),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -4279,7 +4260,7 @@ mod tests {
         let xmp = String::from_utf8(VALID_XMP.to_vec())
             .expect("fixture is UTF-8")
             .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"b\"");
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture(Some(xmp.as_bytes()), true),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4290,7 +4271,7 @@ mod tests {
 
     #[test]
     fn malformed_pdf_returns_a_parser_error() {
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/malformed.pdf"),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4301,7 +4282,7 @@ mod tests {
 
     #[test]
     fn reports_real_encrypted_input_as_conformance_failure() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/encrypted.pdf"),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4336,7 +4317,7 @@ mod tests {
             .save_to(&mut bytes)
             .expect("save encrypted fixture");
 
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &bytes,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4361,7 +4342,7 @@ mod tests {
             max_object_count: 0,
             ..SafetyLimits::default()
         };
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/encrypted.pdf"),
             Some(ValidationProfile::PdfA1b),
             &limits,
@@ -4378,7 +4359,7 @@ mod tests {
             max_object_count: 0,
             ..SafetyLimits::default()
         };
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/structural.pdf"),
             Some(ValidationProfile::PdfA1b),
             &limits,
@@ -4393,7 +4374,7 @@ mod tests {
     #[test]
     fn missing_input_returns_an_io_error() {
         let path = Path::new("tests/fixtures/definitely-not-present.pdf");
-        let error = validate_file(
+        let error = validate_pdf(
             path,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4408,7 +4389,7 @@ mod tests {
             max_input_size: 1,
             ..SafetyLimits::default()
         };
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/structural.pdf"),
             Some(ValidationProfile::PdfA1b),
             &limits,
@@ -4426,7 +4407,7 @@ mod tests {
             max_decoded_stream_size: 16,
             ..SafetyLimits::default()
         };
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), true),
             Some(ValidationProfile::PdfA1b),
             &limits,
@@ -4444,7 +4425,7 @@ mod tests {
             max_reference_depth: 0,
             ..SafetyLimits::default()
         };
-        let error = validate_bytes(
+        let error = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), true),
             Some(ValidationProfile::PdfA1b),
             &limits,
@@ -4458,7 +4439,7 @@ mod tests {
 
     #[test]
     fn direct_root_dictionary_fails_catalog_check() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &fixture_with_root(Some(VALID_XMP), true, false),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4469,7 +4450,7 @@ mod tests {
 
     #[test]
     fn static_structural_fixture_parses() {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/structural.pdf"),
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -4480,7 +4461,7 @@ mod tests {
             "fixture should parse: {:#?}",
             report.failures
         );
-        assert!(!report.checks_passed, "fixture intentionally has no XMP");
+        assert!(!report.is_compliant, "fixture intentionally has no XMP");
     }
 
     #[test]

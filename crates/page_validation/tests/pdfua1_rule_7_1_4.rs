@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:4";
 
 #[test]
 fn pdfua1_rule_7_1_4_fixtures_reject_suspects_true() {
-    let suspects_false = validate_bytes(
+    let suspects_false = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-4-false.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(suspects_false.checks_passed, "{suspects_false}");
+    assert!(suspects_false.is_compliant, "{suspects_false}");
     assert!(suspects_false.failures.is_empty());
 
-    let suspects_true = validate_bytes(
+    let suspects_true = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-4-true.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!suspects_true.checks_passed, "{suspects_true}");
+    assert!(!suspects_true.is_compliant, "{suspects_true}");
     assert_eq!(suspects_true.checks.failed, 1);
     assert_eq!(suspects_true.failures.len(), 1);
     assert_eq!(suspects_true.failures[0].rule_id, RULE);

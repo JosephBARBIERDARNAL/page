@@ -6,7 +6,7 @@ title: "Installation"
 
 !!! tip "Info"
 
-      Those are instructions for installing the **CLI**. If you want to integrate `page` in your Rust workflows, check out the [page crate](./api/rust/quick-start.md).
+      Those are instructions for installing the **CLI**. If you want to integrate `page` in your Rust workflows, check out the [page crate](./api/rust.md).
 
 ### macOS/Linux
 

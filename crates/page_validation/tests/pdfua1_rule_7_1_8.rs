@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,13 +13,13 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:8";
 
 #[test]
 fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
-    let valid = validate_bytes(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-8-valid.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid.checks_passed, "{valid}");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty());
 
     for (fixture, expected_failed) in [
@@ -27,7 +27,7 @@ fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
         ("pdfua1-rule-7-1-8-wrong-type.pdf", 1),
         ("pdfua1-rule-7-1-8-wrong-subtype.pdf", 1),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             match fixture {
                 "pdfua1-rule-7-1-8-missing.pdf" => {
                     include_bytes!("fixtures/pdfua1-rule-7-1-8-missing.pdf")
@@ -44,7 +44,7 @@ fn pdfua1_rule_7_1_8_fixtures_require_catalog_metadata_stream_structure() {
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, expected_failed);
         assert_eq!(report.failures.len(), expected_failed);
         assert!(

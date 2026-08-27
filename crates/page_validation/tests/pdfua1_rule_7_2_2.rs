@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,7 +13,7 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:2";
 
 #[test]
 fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
-    let language_present = validate_bytes(
+    let language_present = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-2-language-present.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
@@ -26,13 +26,13 @@ fn pdfua1_rule_7_2_2_fixtures_require_catalog_language_for_outline_entries() {
             .any(|failure| failure.rule_id == RULE)
     );
 
-    let language_missing = validate_bytes(
+    let language_missing = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-2-language-missing.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!language_missing.checks_passed, "{language_missing}");
+    assert!(!language_missing.is_compliant, "{language_missing}");
     assert!(
         language_missing
             .failures

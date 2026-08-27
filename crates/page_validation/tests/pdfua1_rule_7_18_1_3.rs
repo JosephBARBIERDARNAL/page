@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -22,13 +22,13 @@ fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
         "pdfua1-rule-7-18-1-3-tu.pdf",
         "pdfua1-rule-7-18-1-3-alt.pdf",
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(report.checks_passed, "{fixture}: {report}");
+        assert!(report.is_compliant, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
 
@@ -36,13 +36,13 @@ fn pdfua1_rule_7_18_1_3_requires_tu_or_widget_structure_alt() {
         "pdfua1-rule-7-18-1-3-missing.pdf",
         "pdfua1-rule-7-18-1-3-empty-tu.pdf",
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

@@ -556,8 +556,8 @@ pub(crate) fn inspect(
                         ]
                         .into_iter()
                         .any(|profile| {
-                            crate::validation::validate_bytes(&bytes, Some(profile), limits)
-                                .is_ok_and(|report| report.checks_passed)
+                            crate::validation::validate_pdf_bytes(&bytes, Some(profile), limits)
+                                .is_ok_and(|report| report.is_compliant)
                         })
                 });
             if !valid_pdfa {

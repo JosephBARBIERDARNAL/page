@@ -104,10 +104,6 @@ doc-clean:
 preview:
     uvx zensical serve
 
-# Build Rust reference documentation and put it in docs/api/rust/references/
-doc-reference:
-    uv run scripts/doc.py
-
 # Install locally
 install:
     cargo install --path crates/page_cli --force

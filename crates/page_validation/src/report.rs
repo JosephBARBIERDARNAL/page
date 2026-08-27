@@ -63,7 +63,7 @@ pub(crate) struct RuleFailure {
 
 /// A tally of how many implemented checks ran against a document and how many of those passed or failed.
 ///
-/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `checks_passed` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
 ///
 /// ## Examples
 ///
@@ -86,15 +86,15 @@ pub struct ValidationCounts {
 
 /// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many checks ran, and every recorded `ValidationFailure`.
 ///
-/// `checks_passed` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
+/// `is_compliant` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
 ///
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 ///
 /// let limits = SafetyLimits::default();
-/// let error = validate_bytes(b"not a pdf", Some(ValidationProfile::PdfA1b), &limits)
+/// let error = validate_pdf_bytes(b"not a pdf", Some(ValidationProfile::PdfA1b), &limits)
 ///     .expect_err("malformed input");
 /// assert!(matches!(error, page_validation::ValidationError::Pdf(_)));
 /// ```
@@ -102,7 +102,7 @@ pub struct ValidationCounts {
 pub struct ValidationReport {
     pub source: Option<PathBuf>,
     pub profile: ValidationProfile,
-    pub checks_passed: bool,
+    pub is_compliant: bool,
     pub preliminary: bool,
     pub checks: ValidationCounts,
     pub document: Option<PdfDocument>,
@@ -170,7 +170,7 @@ impl ValidationReport {
                     profile,
                     rule_id,
                     format!(
-                        "the document contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}"
+                        "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
                     ),
                 )
             }
@@ -194,7 +194,7 @@ impl ValidationReport {
         Self {
             source: None,
             profile,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: false,
             checks: ValidationCounts {
                 total: 1,
@@ -223,7 +223,7 @@ impl ValidationReport {
     pub fn exit_code(&self) -> i32 {
         if self.has_operational_failure() {
             1
-        } else if self.checks_passed {
+        } else if self.is_compliant {
             0
         } else {
             2
@@ -239,7 +239,7 @@ impl fmt::Display for ValidationReport {
         writeln!(
             output,
             "Result: {}",
-            if self.checks_passed {
+            if self.is_compliant {
                 "no failures in implemented checks"
             } else {
                 "failed"

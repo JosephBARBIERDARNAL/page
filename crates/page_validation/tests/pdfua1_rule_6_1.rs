@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:6.1:1";
 
 #[test]
 fn pdfua1_rule_6_1_fixtures_require_a_pdf_1_header_version_from_zero_to_seven() {
-    let valid_header = validate_bytes(
+    let valid_header = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-6-1-valid-header.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid_header.checks_passed, "{valid_header}");
+    assert!(valid_header.is_compliant, "{valid_header}");
     assert!(valid_header.failures.is_empty());
 
-    let invalid_header = validate_bytes(
+    let invalid_header = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-6-1-invalid-header.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!invalid_header.checks_passed, "{invalid_header}");
+    assert!(!invalid_header.is_compliant, "{invalid_header}");
     assert_eq!(invalid_header.checks.failed, 1);
     assert_eq!(invalid_header.failures.len(), 1);
     assert_eq!(invalid_header.failures[0].rule_id, RULE);

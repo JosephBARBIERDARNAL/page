@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:27";
 
 #[test]
 fn pdfua1_rule_7_2_27_restricts_toc_children() {
-    let allowed = validate_bytes(
+    let allowed = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-27-allowed.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(allowed.checks_passed, "{allowed}");
+    assert!(allowed.is_compliant, "{allowed}");
     assert!(allowed.failures.is_empty());
 
-    let invalid = validate_bytes(
+    let invalid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-27-invalid.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!invalid.checks_passed, "{invalid}");
+    assert!(!invalid.is_compliant, "{invalid}");
     assert_eq!(invalid.checks.failed, 1);
     assert_eq!(invalid.failures.len(), 1);
     assert_eq!(invalid.failures[0].rule_id, RULE);

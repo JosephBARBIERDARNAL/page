@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:6";
 
 #[test]
 fn pdfua1_rule_7_1_6_rejects_circular_role_map_mappings() {
-    let acyclic_mapping = validate_bytes(
+    let acyclic_mapping = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-6-acyclic-mapping.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(acyclic_mapping.checks_passed, "{acyclic_mapping}");
+    assert!(acyclic_mapping.is_compliant, "{acyclic_mapping}");
     assert!(acyclic_mapping.failures.is_empty());
 
-    let circular_mapping = validate_bytes(
+    let circular_mapping = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-6-circular-mapping.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!circular_mapping.checks_passed, "{circular_mapping}");
+    assert!(!circular_mapping.is_compliant, "{circular_mapping}");
     assert_eq!(circular_mapping.checks.failed, 1);
     assert_eq!(circular_mapping.failures.len(), 1);
     assert_eq!(circular_mapping.failures[0].rule_id, RULE);

@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:2";
 
 #[test]
 fn pdfua1_rule_5_2_fixtures_require_pdfua_part_one() {
-    let present = validate_bytes(
+    let present = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-2-present.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(present.checks_passed, "{present}");
+    assert!(present.is_compliant, "{present}");
     assert!(present.failures.is_empty());
 
-    let wrong_part = validate_bytes(
+    let wrong_part = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-2-wrong-part.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!wrong_part.checks_passed, "{wrong_part}");
+    assert!(!wrong_part.is_compliant, "{wrong_part}");
     assert_eq!(wrong_part.checks.failed, 1);
     assert_eq!(wrong_part.failures.len(), 1);
     assert_eq!(wrong_part.failures[0].rule_id, RULE);

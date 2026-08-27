@@ -5,7 +5,7 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
+use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes};
 
 const RULE: &str = "PDFA1A-STRUCT-TREE-ROOT-001";
 
@@ -22,7 +22,7 @@ fn structure_tree_root_cases_are_distinguished() {
         ("struct_tree_unsupported_shape", false),
         ("struct_tree_parent_child", false),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -53,7 +53,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
         ("struct_tree_role_map_long_cycle", true),
         ("struct_tree_role_map_acyclic_chain", false),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -85,7 +85,7 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
         ("struct_tree_role_map_wrong_type", true),
         ("struct_tree_role_map_invalid_target", true),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
@@ -110,7 +110,7 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
 
 #[test]
 fn pdfa2_rejects_standard_role_map_remaps() {
-    let report = validate_bytes(
+    let report = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_standard_remap"),
         Some(ValidationProfile::PdfA2a),
         &SafetyLimits::default(),
@@ -130,7 +130,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
         max_object_count: 1,
         ..SafetyLimits::default()
     };
-    let error = validate_bytes(
+    let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_self_cycle"),
         Some(ValidationProfile::PdfA1a),
         &limits,
@@ -144,7 +144,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
 
 #[test]
 fn cyclic_structure_tree_is_an_operational_failure() {
-    let error = validate_bytes(
+    let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_cyclic"),
         Some(ValidationProfile::PdfA1a),
         &SafetyLimits::default(),

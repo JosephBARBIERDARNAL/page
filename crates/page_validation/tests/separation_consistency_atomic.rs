@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -25,7 +25,7 @@ fn separation_consistency_matches_pinned_verapdf_when_opted_in() {
         fs::write(&path, &bytes).expect("write fixture");
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
             assert_eq!(
-                validate_bytes(&bytes, Some(profile), &SafetyLimits::default())
+                validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
                     .expect("explicit profile validation")
                     .failures
                     .iter()

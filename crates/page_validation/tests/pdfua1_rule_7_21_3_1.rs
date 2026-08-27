@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -22,13 +22,13 @@ fn pdfua1_rule_7_21_3_1_allows_identity_and_checks_nonidentity_system_info() {
         "pdfua1-rule-7-21-3-1-identity.pdf",
         "pdfua1-rule-7-21-3-1-matching.pdf",
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(report.checks_passed, "{fixture}: {report}");
+        assert!(report.is_compliant, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
 
@@ -36,13 +36,13 @@ fn pdfua1_rule_7_21_3_1_allows_identity_and_checks_nonidentity_system_info() {
         "pdfua1-rule-7-21-3-1-registry-mismatch.pdf",
         "pdfua1-rule-7-21-3-1-supplement-mismatch.pdf",
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

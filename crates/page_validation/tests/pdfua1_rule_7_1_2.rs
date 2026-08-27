@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,21 +13,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:2";
 
 #[test]
 fn pdfua1_rule_7_1_2_rejects_tagged_content_inside_artifacts() {
-    let outside = validate_bytes(
+    let outside = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-2-outside-artifact.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(outside.checks_passed, "{outside}");
+    assert!(outside.is_compliant, "{outside}");
 
-    let inside = validate_bytes(
+    let inside = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-2-inside-artifact.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!inside.checks_passed, "{inside}");
+    assert!(!inside.is_compliant, "{inside}");
     assert_eq!(inside.checks.failed, 1);
     assert_eq!(inside.failures.len(), 1);
     assert_eq!(inside.failures[0].rule_id, RULE);

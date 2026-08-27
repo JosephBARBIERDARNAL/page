@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:40";
 
 #[test]
 fn pdfua1_rule_7_2_40_allows_caption_only_as_first_list_kid() {
-    let caption_first = validate_bytes(
+    let caption_first = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-40-caption-first.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(caption_first.checks_passed, "{caption_first}");
+    assert!(caption_first.is_compliant, "{caption_first}");
     assert!(caption_first.failures.is_empty());
 
-    let caption_not_first = validate_bytes(
+    let caption_not_first = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-40-caption-not-first.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!caption_not_first.checks_passed, "{caption_not_first}");
+    assert!(!caption_not_first.is_compliant, "{caption_not_first}");
     assert_eq!(caption_not_first.checks.failed, 1);
     assert_eq!(caption_not_first.failures.len(), 1);
     assert_eq!(caption_not_first.failures[0].rule_id, RULE);

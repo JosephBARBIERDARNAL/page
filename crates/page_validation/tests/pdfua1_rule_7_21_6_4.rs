@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -23,7 +23,7 @@ fn pdfua1_rule_7_21_6_4_requires_a_single_or_symbol_cmap_for_symbolic_truetype()
         ("two_cmaps", Some(RULE)),
         ("two_cmaps_with_cmap30", None),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
@@ -37,7 +37,7 @@ fn pdfua1_rule_7_21_6_4_requires_a_single_or_symbol_cmap_for_symbolic_truetype()
                     .any(|failure| failure.rule_id == rule),
                 "{fixture}: {report}"
             ),
-            None => assert!(report.checks_passed, "{fixture}: {report}"),
+            None => assert!(report.is_compliant, "{fixture}: {report}"),
         }
     }
 }

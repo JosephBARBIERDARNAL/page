@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,22 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.8:1";
 
 #[test]
 fn pdfua1_rule_7_21_8_1_rejects_notdef_references_even_in_rendering_mode_3() {
-    let matching = validate_bytes(
+    let matching = validate_pdf_bytes(
         fixture_bytes("matching"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(matching.checks_passed, "{matching}");
+    assert!(matching.is_compliant, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let notdef = validate_bytes(
+    let notdef = validate_pdf_bytes(
         fixture_bytes("notdef"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!notdef.checks_passed, "{notdef}");
+    assert!(!notdef.is_compliant, "{notdef}");
     assert!(
         notdef
             .failures

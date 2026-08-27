@@ -11,8 +11,8 @@ use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_validation::{
-    JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError, ValidationInput,
-    ValidationProfile, ValidationReport, is_pdf_compliant, validate_file,
+    JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError,
+    ValidationProfile, ValidationReport, is_pdf_compliant, validate_pdf,
 };
 
 #[derive(Debug, Parser)]
@@ -166,7 +166,7 @@ fn render_summary(
 }
 
 fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
-    let mut output = render_summary(report.profile, report.checks_passed, elapsed, colors);
+    let mut output = render_summary(report.profile, report.is_compliant, elapsed, colors);
     output.push('\n');
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
@@ -337,23 +337,22 @@ fn run_validate(cli: Cli) {
     );
     let requested_profile = cli.profile.map(Into::into);
     if selected_format == SelectedFormat::Summary {
-        let outcome =
-            match is_pdf_compliant(ValidationInput::File(&cli.file), requested_profile, &limits) {
-                Ok(outcome) => outcome,
-                Err(ValidationError::InputIo(error)) => {
-                    spinner.finish_and_clear();
-                    print_error(
-                        format_args!("could not read '{}': {error}", cli.file.display()),
-                        stderr_colors,
-                    );
-                    std::process::exit(1);
-                }
-                Err(error) => {
-                    spinner.finish_and_clear();
-                    print_error(error, stderr_colors);
-                    std::process::exit(1);
-                }
-            };
+        let outcome = match is_pdf_compliant(&cli.file, requested_profile, &limits) {
+            Ok(outcome) => outcome,
+            Err(ValidationError::InputIo(error)) => {
+                spinner.finish_and_clear();
+                print_error(
+                    format_args!("could not read '{}': {error}", cli.file.display()),
+                    stderr_colors,
+                );
+                std::process::exit(1);
+            }
+            Err(error) => {
+                spinner.finish_and_clear();
+                print_error(error, stderr_colors);
+                std::process::exit(1);
+            }
+        };
         spinner.finish_and_clear();
         let elapsed = started_at.elapsed();
         let rendered = render_summary(outcome.profile, outcome.is_compliant, elapsed, false);
@@ -383,7 +382,7 @@ fn run_validate(cli: Cli) {
         };
         std::process::exit(status);
     }
-    let report = match validate_file(&cli.file, requested_profile, &limits) {
+    let report = match validate_pdf(&cli.file, requested_profile, &limits) {
         Ok(report) => report,
         Err(ValidationError::InputIo(error)) => {
             spinner.finish_and_clear();

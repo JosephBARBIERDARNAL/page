@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.4.4:1";
 
 #[test]
 fn pdfua1_rule_7_4_4_1_allows_at_most_one_h_child_per_node() {
-    let valid = validate_bytes(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-4-4-1-single-h.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid.checks_passed, "{valid}");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty());
 
-    let invalid = validate_bytes(
+    let invalid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-4-4-1-multiple-h.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!invalid.checks_passed, "{invalid}");
+    assert!(!invalid.is_compliant, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert_eq!(invalid.failures.len(), 1, "{invalid}");
     assert_eq!(invalid.failures[0].rule_id, RULE, "{invalid}");

@@ -1,10 +1,10 @@
 ---
-title: "Quick start"
+title: "CLI"
 ---
 
 !!! info
 
-     Check out [the dedicated page](../../installation.md) for install instructions.
+     Check out [the dedicated page](../installation.md) for install instructions.
 
 <br>
 
@@ -94,3 +94,15 @@ page document.pdf --format details --output report.txt
 ```
 
 Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
+
+## Colors
+
+By default, `page` uses color in the terminal output.
+
+![Example of terminal output, with colors on some key words.](../../images/terminal-colors.png)
+
+In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable or pass `--no-color` to disable them:
+
+```sh
+page document.pdf --no-color
+```

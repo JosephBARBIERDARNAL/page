@@ -71,7 +71,7 @@ impl ValidationReport {
                 .as_ref()
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
-            valid: self.checks_passed,
+            valid: self.is_compliant,
             failures,
             error,
         }
@@ -90,7 +90,7 @@ mod tests {
         let report = ValidationReport {
             source: Some("document.pdf".into()),
             profile: ValidationProfile::PdfA1b,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,
@@ -121,7 +121,7 @@ mod tests {
         let report = ValidationReport {
             source: None,
             profile: ValidationProfile::PdfA1b,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,
@@ -151,7 +151,7 @@ mod tests {
         let report = ValidationReport {
             source: None,
             profile: ValidationProfile::PdfA1b,
-            checks_passed: true,
+            is_compliant: true,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,

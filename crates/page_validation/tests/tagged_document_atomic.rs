@@ -5,7 +5,7 @@ use std::env;
 use std::fs;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 const RULE: &str = "PDFA1A-TAGGED-DOCUMENT-001";
 
@@ -25,7 +25,7 @@ const CASES: &[(&str, bool)] = &[
 #[test]
 fn tagged_document_cases_enforce_catalog_mark_info() {
     for (case, should_fail) in CASES {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
             Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),

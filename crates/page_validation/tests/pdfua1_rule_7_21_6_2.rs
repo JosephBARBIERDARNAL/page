@@ -11,7 +11,7 @@ use std::path::Path;
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -20,13 +20,13 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.6:2";
 
 #[test]
 fn pdfua1_rule_7_21_6_2_requires_valid_nonsymbolic_truetype_encoding() {
-    let matching = validate_bytes(
+    let matching = validate_pdf_bytes(
         fixture_bytes("matching"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(matching.checks_passed, "{matching}");
+    assert!(matching.is_compliant, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
     for fixture in [
@@ -34,13 +34,13 @@ fn pdfua1_rule_7_21_6_2_requires_valid_nonsymbolic_truetype_encoding() {
         "invalid_differences",
         "missing_unicode_cmap",
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

@@ -3,7 +3,7 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -89,7 +89,7 @@ fn pdfa_2_and_3_permissions_allow_only_ur3_and_docmdp() {
         (ValidationProfile::PdfA2b, "PDFA2B-PERMS-ENTRIES-001"),
         (ValidationProfile::PdfA3b, "PDFA3B-PERMS-ENTRIES-001"),
     ] {
-        let allowed = validate_bytes(
+        let allowed = validate_pdf_bytes(
             &common::document_feature_fixture("permissions_allowed"),
             Some(profile),
             &SafetyLimits::default(),
@@ -102,7 +102,7 @@ fn pdfa_2_and_3_permissions_allow_only_ur3_and_docmdp() {
                 .all(|failure| failure.rule_id != rule_id),
             "{profile}: {allowed}"
         );
-        let invalid = validate_bytes(
+        let invalid = validate_pdf_bytes(
             &common::document_feature_fixture("permissions_invalid"),
             Some(profile),
             &SafetyLimits::default(),
@@ -124,7 +124,7 @@ fn pdfa_2_and_3_reject_signature_reference_digest_keys_with_docmdp() {
         (ValidationProfile::PdfA2b, "PDFA2B-SIGNATURE-REFERENCE-001"),
         (ValidationProfile::PdfA3b, "PDFA3B-SIGNATURE-REFERENCE-001"),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::document_feature_fixture("signature_reference_digest"),
             Some(profile),
             &SafetyLimits::default(),
@@ -144,7 +144,7 @@ fn pdfa_2_and_3_reject_signature_reference_digest_keys_with_docmdp() {
 fn pdfa_2_rejects_non_pdfa_embedded_files() {
     let profile = ValidationProfile::PdfA2b;
     let rule_id = "PDFA2B-EMBEDDED-FILE-PDFA-001";
-    let report = validate_bytes(
+    let report = validate_pdf_bytes(
         &common::document_feature_fixture("embedded_file_invalid_pdfa"),
         Some(profile),
         &SafetyLimits::default(),

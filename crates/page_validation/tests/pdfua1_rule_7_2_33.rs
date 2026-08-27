@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -14,7 +14,7 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:33";
 #[test]
 fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_language() {
     for case in ["x_default", "catalog_language"] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             &common::pdfua1_rule_7_2_33_fixture(case),
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
@@ -28,7 +28,7 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
         );
     }
 
-    let multiple_items_report = validate_bytes(
+    let multiple_items_report = validate_pdf_bytes(
         &common::pdfua1_rule_7_2_33_fixture("multiple_items"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
@@ -41,7 +41,7 @@ fn pdfua1_rule_7_2_33_requires_an_x_default_language_alternative_or_catalog_lang
             .any(|failure| failure.rule_id == RULE)
     );
 
-    let missing_x_default_report = validate_bytes(
+    let missing_x_default_report = validate_pdf_bytes(
         &common::pdfua1_rule_7_2_33_fixture("missing_x_default"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),

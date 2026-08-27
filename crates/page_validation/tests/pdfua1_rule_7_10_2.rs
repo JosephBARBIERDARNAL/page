@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,22 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.10:2";
 
 #[test]
 fn pdfua1_rule_7_10_2_rejects_as_in_optional_content_configurations() {
-    let valid = validate_bytes(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-10-2-valid.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(valid.checks_passed, "{valid}");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
 
-    let as_present = validate_bytes(
+    let as_present = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-10-2-as-present.pdf"),
         Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
     )
     .expect("explicit profile validation");
-    assert!(!as_present.checks_passed, "{as_present}");
+    assert!(!as_present.is_compliant, "{as_present}");
     assert_eq!(as_present.checks.failed, 1, "{as_present}");
     assert_eq!(as_present.failures.len(), 1, "{as_present}");
     assert_eq!(as_present.failures[0].rule_id, RULE, "{as_present}");

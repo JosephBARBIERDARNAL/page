@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -26,13 +26,13 @@ fn pdfua1_rule_7_7_1_requires_formula_alternative_text() {
             }
             _ => panic!("unknown PDF/UA-1 rule 7.7.1 fixture {fixture}"),
         };
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(report.checks_passed, "{fixture}: {report}");
+        assert!(report.is_compliant, "{fixture}: {report}");
     }
     for (fixture, bytes) in [
         (
@@ -44,13 +44,13 @@ fn pdfua1_rule_7_7_1_requires_formula_alternative_text() {
             include_bytes!("fixtures/pdfua1-rule-7-7-1-missing.pdf").as_slice(),
         ),
     ] {
-        let report = validate_bytes(
+        let report = validate_pdf_bytes(
             bytes,
             Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
         )
         .expect("explicit profile validation");
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

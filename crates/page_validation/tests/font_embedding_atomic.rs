@@ -5,7 +5,7 @@ use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig,
 };
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
 };
 
 pub mod common;
@@ -70,7 +70,7 @@ fn font_embedding_cases_have_the_complete_expected_failure_delta() {
 
 #[test]
 fn pdfa2_rejects_rendered_notdef_glyphs() {
-    let report = validate_bytes(
+    let report = validate_pdf_bytes(
         &common::font_fixture("type3_notdef"),
         Some(ValidationProfile::PdfA2b),
         &SafetyLimits::default(),
@@ -87,7 +87,7 @@ fn pdfa2_rejects_rendered_notdef_glyphs() {
 #[test]
 fn pdfa_2_and_3_accept_opentype_subtypes_on_fontfile2() {
     let fixture = common::font_fixture("font_file_subtype_invalid");
-    let pdfa1 = validate_bytes(
+    let pdfa1 = validate_pdf_bytes(
         &fixture,
         Some(ValidationProfile::PdfA1b),
         &SafetyLimits::default(),
@@ -101,7 +101,7 @@ fn pdfa_2_and_3_accept_opentype_subtypes_on_fontfile2() {
     );
 
     for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
-        let report = validate_bytes(&fixture, Some(profile), &SafetyLimits::default())
+        let report = validate_pdf_bytes(&fixture, Some(profile), &SafetyLimits::default())
             .expect("explicit profile validation");
         assert!(
             report
@@ -549,7 +549,7 @@ fn decoded_content_limit_is_an_operational_failure() {
     let bytes = common::font_fixture("large_content");
     PdfDocument::from_bytes(&bytes, &limits)
         .expect("public normalization does not run private font content traversal");
-    let error = validate_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits)
+    let error = validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits)
         .expect_err("decoded content must exceed the configured limit");
     assert!(matches!(
         error,
@@ -563,7 +563,7 @@ fn graphics_state_stack_is_bounded() {
         max_reference_depth: 4,
         ..SafetyLimits::default()
     };
-    let error = validate_bytes(
+    let error = validate_pdf_bytes(
         &common::font_fixture("deep_graphics_state"),
         Some(ValidationProfile::PdfA1b),
         &limits,
