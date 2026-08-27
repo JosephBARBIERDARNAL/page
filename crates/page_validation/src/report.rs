@@ -135,10 +135,11 @@ impl ValidationReport {
         Self::single_failure(profile, rule_id, message, FailureCategory::Conformance)
     }
 
-    pub(crate) fn from_validation_error(
-        profile: ValidationProfile,
-        error: ValidationError,
-    ) -> Self {
+    /// Converts a terminal validation error into a one-failure report with the matching category.
+    ///
+    /// Parser rejections become parser failures, configured resource limits become operational failures, and the PDF/A-1 indirect-object limit becomes a conformance failure.
+    #[must_use]
+    pub fn from_validation_error(profile: ValidationProfile, error: ValidationError) -> Self {
         match error {
             ValidationError::UnsupportedProfile(profile) => Self::operational_failure(
                 profile,

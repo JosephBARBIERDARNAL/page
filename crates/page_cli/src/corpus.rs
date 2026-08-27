@@ -7,10 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
 use page_cli::spinner::Spinner;
-use page_validation::{
-    FailureCategory, SafetyLimits, ValidationCounts, ValidationFailure, ValidationProfile,
-    ValidationReport, validate_file,
-};
+use page_validation::{SafetyLimits, ValidationProfile, ValidationReport, validate_file};
 
 #[derive(Debug, Args)]
 pub(crate) struct CorpusArgs {
@@ -251,23 +248,10 @@ fn validate_case(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
-    validate_file(path, Some(profile), limits).unwrap_or_else(|error| ValidationReport {
-        source: Some(path.to_path_buf()),
-        profile,
-        checks_passed: false,
-        preliminary: false,
-        checks: ValidationCounts {
-            total: 1,
-            passed: 0,
-            failed: 1,
-        },
-        document: None,
-        failures: vec![ValidationFailure {
-            rule_id: "VALIDATION-ERROR-001".to_owned(),
-            message: error.to_string(),
-            object_id: None,
-            category: FailureCategory::Operational,
-        }],
+    validate_file(path, Some(profile), limits).unwrap_or_else(|error| {
+        let mut report = ValidationReport::from_validation_error(profile, error);
+        report.source = Some(path.to_path_buf());
+        report
     })
 }
 
