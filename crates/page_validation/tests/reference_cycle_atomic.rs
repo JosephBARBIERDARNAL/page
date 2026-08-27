@@ -6,7 +6,7 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, SafetyLimits, ValidationError, ValidationProfile, validate_bytes,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {
@@ -16,7 +16,15 @@ fn assert_resource_limit_failure(bytes: &[u8]) {
         &SafetyLimits::default(),
     )
     .expect_err("reference cycle must exceed the configured reference depth");
-    assert!(matches!(error, ValidationError::Pdf(_)), "{error:?}");
+    assert!(
+        matches!(
+            error,
+            ValidationError::Pdf(PdfError::ReferenceDepth(
+                SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
+            ))
+        ),
+        "{error:?}"
+    );
 }
 
 #[test]

@@ -250,14 +250,14 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
 
 fn emit_json_validation_error(
     path: &Path,
-    profile: ValidationProfile,
+    profile: Option<ValidationProfile>,
     error: ValidationError,
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
-    let (kind, exit_code) = match &error {
-        ValidationError::Pdf(_) => (JsonErrorKind::Parser, 2),
-        _ => (JsonErrorKind::Operational, 1),
+    let (kind, rule, exit_code) = match &error {
+        ValidationError::Pdf(_) => (JsonErrorKind::Parser, "PDF-PARSE-001", 2),
+        _ => (JsonErrorKind::Operational, "VALIDATION-PROFILE-001", 1),
     };
     let report = JsonValidationReport {
         file: Some(path.display().to_string()),
@@ -266,7 +266,7 @@ fn emit_json_validation_error(
         failures: Vec::new(),
         error: Some(JsonError {
             kind,
-            rule: "PDF-PARSE-001".to_owned(),
+            rule: rule.to_owned(),
             message: error.to_string(),
         }),
     };
@@ -395,12 +395,10 @@ fn run_validate(cli: Cli) {
         }
         Err(error) => {
             spinner.finish_and_clear();
-            if selected_format == SelectedFormat::Json
-                && let Some(profile) = requested_profile
-            {
+            if selected_format == SelectedFormat::Json {
                 emit_json_validation_error(
                     &cli.file,
-                    profile,
+                    requested_profile,
                     error,
                     cli.output.as_deref(),
                     stderr_colors,

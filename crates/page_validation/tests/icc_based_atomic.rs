@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
+use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -117,7 +117,10 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
         &limits,
     )
     .expect_err("ICC profile must exceed the decoded-size limit");
-    assert!(matches!(error, ValidationError::Pdf(_)));
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::ContentDecodeLimit(2048))
+    ));
 }
 
 #[test]
@@ -134,7 +137,7 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         )
         .expect_err("{case} must exceed the configured reference depth");
         assert!(
-            matches!(error, ValidationError::Pdf(_)),
+            matches!(error, ValidationError::Pdf(PdfError::ReferenceDepth(4))),
             "{case}: {error:?}"
         );
     }

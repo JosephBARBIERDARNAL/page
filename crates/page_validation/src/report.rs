@@ -150,9 +150,25 @@ impl ValidationReport {
                 Self::operational_failure(profile, "INPUT-IO-001", error.to_string())
             }
             ValidationError::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
+                let rule_id = match profile {
+                    ValidationProfile::PdfA1a | ValidationProfile::PdfA1b => {
+                        "PDFA1B-INDIRECT-OBJECT-COUNT-001"
+                    }
+                    ValidationProfile::PdfA2a => "PDFA2A-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA2b => "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA2u => "PDFA2U-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3a => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3b => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3u => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA4
+                    | ValidationProfile::PdfA4e
+                    | ValidationProfile::PdfA4f
+                    | ValidationProfile::PdfUa1
+                    | ValidationProfile::PdfUa2 => "PDF-INDIRECT-OBJECT-COUNT-001",
+                };
                 Self::conformance_failure(
                     profile,
-                    "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+                    rule_id,
                     format!(
                         "the document contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}"
                     ),
@@ -253,5 +269,41 @@ impl fmt::Display for ValidationReport {
             writeln!(output)?;
         }
         formatter.write_str(&output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ValidationReport;
+    use crate::{PdfError, ValidationError, ValidationProfile};
+
+    #[test]
+    fn indirect_object_count_errors_use_the_active_profile_rule() {
+        let cases = [
+            (
+                ValidationProfile::PdfA1b,
+                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA2b,
+                "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA3u,
+                "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (ValidationProfile::PdfUa1, "PDF-INDIRECT-OBJECT-COUNT-001"),
+        ];
+
+        for (profile, expected_rule_id) in cases {
+            let report = ValidationReport::from_validation_error(
+                profile,
+                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
+                    actual: 8_388_608,
+                    limit: 8_388_607,
+                }),
+            );
+            assert_eq!(report.failures[0].rule_id, expected_rule_id);
+        }
     }
 }

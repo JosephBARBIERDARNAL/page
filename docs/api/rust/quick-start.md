@@ -41,6 +41,7 @@ if report.checks_passed {
 `validate_file` takes:
 
 - The path to the PDF.
+- An `Optional` validation profile.
 - A reference to [`SafetyLimits`](#safety-limits).
 
 It reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<ValidationReport, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.

@@ -318,8 +318,29 @@ fn validation_json_reports_parser_errors_separately() {
     assert_eq!(parser.status.code(), Some(2));
     let parser: serde_json::Value = serde_json::from_slice(&parser.stdout).expect("parser JSON");
     assert_eq!(parser["valid"], false);
+    assert_eq!(parser["profile"], "1b");
     assert_eq!(parser["failures"], serde_json::json!([]));
     assert_eq!(parser["error"]["kind"], "parser");
+}
+
+#[test]
+fn validation_json_reports_inferred_profile_errors_without_a_profile() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(fixture)
+        .args(["--format", "json"])
+        .output()
+        .expect("run validation without an inferred profile");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("validation JSON report");
+    assert!(report["profile"].is_null());
+    assert_eq!(report["valid"], false);
+    assert_eq!(report["failures"], serde_json::json!([]));
+    assert_eq!(report["error"]["kind"], "operational");
 }
 
 #[test]

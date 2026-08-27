@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
+use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -92,5 +92,8 @@ fn oversized_decoded_icc_profile_is_an_operational_failure() {
         &limits,
     )
     .expect_err("ICC profile must exceed the decoded-size limit");
-    assert!(matches!(error, ValidationError::Pdf(_)));
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::ContentDecodeLimit(2048))
+    ));
 }

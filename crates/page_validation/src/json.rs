@@ -7,7 +7,7 @@ use crate::{FailureCategory, ValidationProfile, ValidationReport};
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
-    pub profile: ValidationProfile,
+    pub profile: Option<ValidationProfile>,
     pub valid: bool,
     pub failures: Vec<JsonFailure>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,7 +70,7 @@ impl ValidationReport {
                 .source
                 .as_ref()
                 .map(|source| source.display().to_string()),
-            profile: self.profile,
+            profile: Some(self.profile),
             valid: self.checks_passed,
             failures,
             error,
