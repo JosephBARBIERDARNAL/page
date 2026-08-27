@@ -71,7 +71,7 @@ if report.is_compliant {
 
 ## Select a profile explicitly
 
-Pass a profile to `validate_pdf` when the caller, rather than the document, selects it:
+Pass a profile to `validate_pdf()` when the caller, rather than the document, selects it:
 
 ```rust
 use std::path::Path;

@@ -14,7 +14,7 @@ Validate one PDF (by default against the profile declared in its XMP metadata):
 page document.pdf
 ```
 
-```bash
+```
 Profile : PDF/A-1b
 Result  : Conformant
 Time    : 0.005s
@@ -23,11 +23,11 @@ Time    : 0.005s
 If the document does not declare a profile, `page` exits with an explicit error. Use `--profile` to select a profile instead:
 
 ```sh
-page document.pdf --profile 1b
+page document.pdf --profile ua1
 ```
 
-```bash
-Profile : PDF/A-1b
+```
+Profile : PDF/UA-1
 Result  : Non-conformant
 Time    : 0.005s
 ```
@@ -40,10 +40,10 @@ Add `--format details` to emit details about the failure:
 page document.pdf --format details
 ```
 
-```sh
+```
 Profile : PDF/A-1b
 Result  : Non-conformant
-Time    : 0.001s
+Time    : 0.007s
 
 [PDFA1B-HEADER-BINARY-COMMENT-001] Conformance: [.........]
 [PDFA1B-HEX-STRING-CHARACTERS-001] Conformance: [.........]
@@ -79,6 +79,10 @@ page document.pdf --format json
     {
       "rule": "PDFA1B-TRAILER-ID-001",
       "message": "the applicable document trailer does not contain an ID entry"
+    },
+    {
+      "rule": "PDFA1B-STREAM-LZW-001",
+      "message": "a parsed stream declares the forbidden LZWDecode filter"
     }
   ]
 }
@@ -101,8 +105,4 @@ By default, `page` uses color in the terminal output.
 
 ![Example of terminal output, with colors on some key words.](../../images/terminal-colors.png)
 
-In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable or pass `--no-color` to disable them:
-
-```sh
-page document.pdf --no-color
-```
+In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable or pass `--no-color` to disable them.

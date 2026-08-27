@@ -157,9 +157,9 @@ fn render_summary(
     };
     let result = selected_style(colors, result_style);
 
-    writeln!(output, "Profile : {profile}").expect("writing to a String cannot fail");
     writeln!(output, "Result  : {result}{result_text}{result:#}")
         .expect("writing to a String cannot fail");
+    writeln!(output, "Profile : {profile}").expect("writing to a String cannot fail");
     writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
         .expect("writing to a String cannot fail");
     output

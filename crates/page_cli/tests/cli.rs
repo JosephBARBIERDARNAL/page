@@ -84,7 +84,7 @@ fn txt_extension_writes_plain_summary_and_replaces_existing_output() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
     let contents = fs::read_to_string(report_path).expect("read text report");
-    assert!(contents.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\n"));
+    assert!(contents.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\n"));
     assert!(contents.contains("Time    : "));
     assert!(!contents.contains("✓ PDF syntax\n"));
     assert!(!contents.contains('\u{1b}'));
@@ -184,7 +184,7 @@ fn default_validation_output_is_a_compact_summary() {
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stderr.is_empty());
     let summary = String::from_utf8(output.stdout).expect("UTF-8 summary");
-    assert!(summary.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\nTime    : "));
+    assert!(summary.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\nTime    : "));
     assert!(summary.ends_with("s\n"));
     assert!(!summary.contains('['));
 }
@@ -239,7 +239,7 @@ fn details_format_prints_every_failed_rule() {
     assert_eq!(details.status.code(), Some(2));
     assert!(details.stderr.is_empty());
     let details = String::from_utf8(details.stdout).expect("UTF-8 details");
-    assert!(details.starts_with("Profile : PDF/A-1b\nResult  : Non-conformant\nTime    : "));
+    assert!(details.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\nTime    : "));
     assert!(details.contains("\n\n["));
     assert!(!details.contains("Checks:"));
     assert!(!details.contains("Document:"));
