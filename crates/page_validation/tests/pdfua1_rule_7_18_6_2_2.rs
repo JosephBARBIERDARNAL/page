@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.6.2:2";
 
 #[test]
 fn pdfua1_rule_7_18_6_2_2_requires_media_clip_alt() {
-    let allowed = validate_bytes_with_profile(
+    let allowed = validate_bytes(
         fixture_bytes("allowed"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(allowed.checks_passed, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
 
     for case in ["missing_alt", "invalid_alt"] {
-        let invalid = validate_bytes_with_profile(
+        let invalid = validate_bytes(
             fixture_bytes(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(!invalid.checks_passed, "{case}: {invalid}");
         assert_eq!(invalid.checks.failed, 1, "{case}: {invalid}");
         assert_eq!(invalid.failures.len(), 1, "{case}: {invalid}");

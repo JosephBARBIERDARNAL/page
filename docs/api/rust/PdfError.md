@@ -15,6 +15,6 @@ let limits = SafetyLimits {
     max_input_size: 4,
     ..SafetyLimits::default()
 };
-let error = validate_bytes(b"%PDF-1.4", &limits).unwrap_err();
+let error = validate_bytes(b"%PDF-1.4", None, &limits).unwrap_err();
 assert!(matches!(error, ValidationError::Pdf(_)));
 ```

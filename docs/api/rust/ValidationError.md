@@ -12,6 +12,6 @@ This is distinct from a `ValidationReport` recording failures: a report means th
 use page_validation::{SafetyLimits, ValidationError, validate_bytes};
 
 let limits = SafetyLimits::default();
-let error = validate_bytes(b"not a pdf", &limits).unwrap_err();
+let error = validate_bytes(b"not a pdf", None, &limits).unwrap_err();
 assert!(matches!(error, ValidationError::Pdf(_)));
 ```

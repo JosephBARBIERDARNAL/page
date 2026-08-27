@@ -23,7 +23,7 @@ page_validation = "0.4.0"
 use std::path::Path;
 use page_validation::{SafetyLimits, validate_file};
 
-let report = validate_file(Path::new("file.pdf"), &SafetyLimits::default())?;
+let report = validate_file(Path::new("file.pdf"), None, &SafetyLimits::default())?;
 
 if report.checks_passed {
     println!("The document passed all implemented checks.");
@@ -45,6 +45,23 @@ if report.checks_passed {
 
 It reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<ValidationReport, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
 
+## Check compliance without collecting details
+
+`is_pdf_compliant` uses the same validation logic as the CLI summary. It stops once it finds a failing rule and returns both the selected profile and the boolean result:
+
+```rust
+use std::path::Path;
+
+use page_validation::{SafetyLimits, ValidationInput, is_pdf_compliant};
+
+let result = is_pdf_compliant(
+    ValidationInput::File(Path::new("file.pdf")),
+    None,
+    &SafetyLimits::default(),
+)?;
+println!("{}: {}", result.profile, result.is_compliant);
+```
+
 ## Safety limits
 
 The goal of the safety limits protect the validator from excessively large or complex inputs. Defaults are the following and should be sufficient for most cases:
@@ -65,41 +82,40 @@ let limits = SafetyLimits {
 
 ## Select a profile explicitly
 
-Use `validate_file_with_profile` when the caller, rather than the document, selects the validation profile:
+Pass a profile to `validate_file` when the caller, rather than the document, selects it:
 
 ```rust
 use std::path::Path;
 
 use page_validation::{
-    SafetyLimits, ValidationProfile, validate_file_with_profile,
+    SafetyLimits, ValidationProfile, validate_file,
 };
 
-let report = validate_file_with_profile(
+let report = validate_file(
     Path::new("document.pdf"),
-    ValidationProfile::PdfA1b,
+    Some(ValidationProfile::PdfA1b),
     &SafetyLimits::default(),
 );
 ```
 
-The explicit-profile function returns a `ValidationReport` directly. Unlike profile inference, it does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
+The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Validate bytes
 
-`validate_bytes` and `validate_bytes_with_profile` provide the same inferred and explicit behaviors for an in-memory PDF:
+`validate_bytes` provides the same inferred and explicit behaviors for an in-memory PDF:
 
 ```rust
 use page_validation::{
     SafetyLimits,
     ValidationProfile,
     validate_bytes,
-    validate_bytes_with_profile,
 };
 
 let bytes = std::fs::read("document.pdf")?;
-let inferred_report = validate_bytes(&bytes, &SafetyLimits::default())?;
-let explicit_report = validate_bytes_with_profile(
+let inferred_report = validate_bytes(&bytes, None, &SafetyLimits::default())?;
+let explicit_report = validate_bytes(
     &bytes,
-    ValidationProfile::PdfA1b,
+    Some(ValidationProfile::PdfA1b),
     &SafetyLimits::default(),
 );
 ```
@@ -112,7 +128,7 @@ Each report contains a list of failures:
 use std::path::Path;
 use page_validation::{SafetyLimits, validate_file};
 
-let report = validate_file(Path::new("file.pdf"), &SafetyLimits::default())?;
+let report = validate_file(Path::new("file.pdf"), None, &SafetyLimits::default())?;
 
 for failure in &report.failures {
     println!("Rule: {}", failure.rule_id);

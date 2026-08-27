@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::error::{PdfError, ValidationError};
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
@@ -90,11 +91,12 @@ pub struct ValidationCounts {
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 ///
 /// let limits = SafetyLimits::default();
-/// let report = validate_bytes_with_profile(b"not a pdf", ValidationProfile::PdfA1b, &limits);
-/// assert_eq!(report.exit_code(), 2);
+/// let error = validate_bytes(b"not a pdf", Some(ValidationProfile::PdfA1b), &limits)
+///     .expect_err("malformed input");
+/// assert!(matches!(error, page_validation::ValidationError::Pdf(_)));
 /// ```
 #[derive(Clone, Debug, Serialize)]
 pub struct ValidationReport {
@@ -131,6 +133,39 @@ impl ValidationReport {
         message: impl Into<String>,
     ) -> Self {
         Self::single_failure(profile, rule_id, message, FailureCategory::Conformance)
+    }
+
+    pub(crate) fn from_validation_error(
+        profile: ValidationProfile,
+        error: ValidationError,
+    ) -> Self {
+        match error {
+            ValidationError::UnsupportedProfile(profile) => Self::operational_failure(
+                profile,
+                "PROFILE-001",
+                format!("validation profile {profile} is not implemented yet"),
+            ),
+            ValidationError::InputIo(error) => {
+                Self::operational_failure(profile, "INPUT-IO-001", error.to_string())
+            }
+            ValidationError::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
+                Self::conformance_failure(
+                    profile,
+                    "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+                    format!(
+                        "the document contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}"
+                    ),
+                )
+            }
+            ValidationError::Pdf(error) if error.is_safety_limit() => {
+                Self::operational_failure(profile, "RESOURCE-LIMIT-001", error.to_string())
+            }
+            ValidationError::Pdf(error) => Self::parse_failure(profile, error.to_string()),
+            error @ (ValidationError::MissingProfileDeclaration
+            | ValidationError::InvalidProfileDeclaration(_)) => {
+                Self::operational_failure(profile, "PROFILE-001", error.to_string())
+            }
+        }
     }
 
     fn single_failure(

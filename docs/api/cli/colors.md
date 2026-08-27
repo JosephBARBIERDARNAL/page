@@ -5,5 +5,5 @@ By default, `page` uses color in the terminal output.
 In order to follow the [NO_COLOR standard](https://no-color.org/). You can either set the `NO_COLOR` environment variable or pass `--no-color` to disable them:
 
 ```sh
-page validate document.pdf --no-color
+page document.pdf --no-color
 ```

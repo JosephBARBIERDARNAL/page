@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,11 +13,12 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:10";
 
 #[test]
 fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
-    let present = validate_bytes_with_profile(
+    let present = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-10-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(present.checks_passed, "{present}");
     assert!(present.failures.is_empty());
 
@@ -25,7 +26,7 @@ fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
         "pdfua1-rule-7-1-10-false.pdf",
         "pdfua1-rule-7-1-10-missing.pdf",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             match fixture {
                 "pdfua1-rule-7-1-10-false.pdf" => {
                     include_bytes!("fixtures/pdfua1-rule-7-1-10-false.pdf")
@@ -35,9 +36,10 @@ fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
                 }
                 _ => panic!("unknown PDF/UA-1 rule 7.1.10 fixture {fixture}"),
             },
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(!report.checks_passed, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1);
         assert_eq!(report.failures.len(), 1);

@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -19,11 +19,12 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.4.1:2";
 #[test]
 fn pdfua1_rule_7_21_4_1_2_requires_rendered_glyphs_to_be_present() {
     for fixture in ["present", "invisible"] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(
             !report
                 .failures
@@ -33,11 +34,12 @@ fn pdfua1_rule_7_21_4_1_2_requires_rendered_glyphs_to_be_present() {
         );
     }
 
-    let report = validate_bytes_with_profile(
+    let report = validate_bytes(
         fixture_bytes("missing"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         report
             .failures

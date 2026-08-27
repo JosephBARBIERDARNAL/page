@@ -7,12 +7,12 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anstyle::{AnsiColor, Style};
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_validation::{
-    FailureCategory, SafetyLimits, ValidationError, ValidationProfile, ValidationReport,
-    validate_file, validate_file_with_profile,
+    JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError, ValidationInput,
+    ValidationProfile, ValidationReport, is_pdf_compliant, validate_file,
 };
 
 #[derive(Debug, Parser)]
@@ -23,18 +23,6 @@ use page_validation::{
     about = "PDF/A and PDF/UA validaton engine"
 )]
 struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Debug, Subcommand)]
-enum Command {
-    /// Validate a PDF document.
-    Validate(ValidateArgs),
-}
-
-#[derive(Debug, Args)]
-struct ValidateArgs {
     /// PDF file to validate.
     file: PathBuf,
 
@@ -90,31 +78,31 @@ enum SelectedFormat {
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum ProfileArg {
-    #[value(name = "a-1b")]
+    #[value(name = "1b")]
     PdfA1b,
-    #[value(name = "a-1a")]
+    #[value(name = "1a")]
     PdfA1a,
-    #[value(name = "a-2b")]
+    #[value(name = "2b")]
     PdfA2b,
-    #[value(name = "a-2a")]
+    #[value(name = "2a")]
     PdfA2a,
-    #[value(name = "a-2u")]
+    #[value(name = "2u")]
     PdfA2u,
-    #[value(name = "a-3b")]
+    #[value(name = "3b")]
     PdfA3b,
-    #[value(name = "a-3a")]
+    #[value(name = "3a")]
     PdfA3a,
-    #[value(name = "a-3u")]
+    #[value(name = "3u")]
     PdfA3u,
-    #[value(name = "a-4")]
+    #[value(name = "4")]
     PdfA4,
-    #[value(name = "a-4e")]
+    #[value(name = "4e")]
     PdfA4e,
-    #[value(name = "a-4f")]
+    #[value(name = "4f")]
     PdfA4f,
-    #[value(name = "ua-1")]
+    #[value(name = "ua1")]
     PdfUa1,
-    #[value(name = "ua-2")]
+    #[value(name = "ua2")]
     PdfUa2,
 }
 
@@ -139,7 +127,6 @@ impl From<ProfileArg> for ValidationProfile {
 }
 
 const FAILURE: Style = AnsiColor::Red.on_default().bold();
-const WARNING: Style = AnsiColor::Yellow.on_default().bold();
 const SUMMARY_SUCCESS: Style = AnsiColor::BrightGreen.on_default().bold();
 const SUMMARY_FAILURE: Style = AnsiColor::BrightRed.on_default().bold();
 
@@ -156,155 +143,31 @@ fn print_error(message: impl fmt::Display, colors: bool) {
     eprintln!("{error}error:{error:#} {message}");
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SummaryCategory {
-    PdfSyntax,
-    Profile,
-    Metadata,
-    Color,
-    Fonts,
-    Images,
-    Graphics,
-    InteractiveContent,
-    Structure,
-}
-
-const SUMMARY_CATEGORIES: [SummaryCategory; 9] = [
-    SummaryCategory::PdfSyntax,
-    SummaryCategory::Profile,
-    SummaryCategory::Metadata,
-    SummaryCategory::Color,
-    SummaryCategory::Fonts,
-    SummaryCategory::Images,
-    SummaryCategory::Graphics,
-    SummaryCategory::InteractiveContent,
-    SummaryCategory::Structure,
-];
-
-fn summary_category(failure: &page_validation::ValidationFailure) -> SummaryCategory {
-    let rule = &failure.rule_id;
-
-    if failure.category == FailureCategory::Parser
-        || failure.category == FailureCategory::Operational
-        || rule.starts_with("PDFA1B-HEADER-")
-        || rule.starts_with("PDFA1B-POST-EOF-")
-        || rule.starts_with("PDFA1B-XREF-")
-        || rule.starts_with("PDFA1B-INDIRECT-OBJECT-SYNTAX-")
-        || rule.starts_with("PDFA1B-HEX-STRING-")
-        || rule.starts_with("PDFA1B-STREAM-EOL-")
-        || rule.starts_with("PDFA1B-STREAM-LENGTH-")
-    {
-        SummaryCategory::PdfSyntax
-    } else if failure.category == FailureCategory::Metadata || rule.starts_with("PDFA1B-INFO-") {
-        SummaryCategory::Metadata
-    } else if rule.contains("-OUTPUTINTENT-")
-        || rule.contains("-ICCBASED-")
-        || rule.contains("-DEVICE-")
-        || rule.contains("-DEVICEN-")
-    {
-        SummaryCategory::Color
-    } else if rule.contains("-FONT-")
-        || rule.contains("-TRUETYPE-")
-        || rule.contains("-TYPE0-")
-        || rule.contains("-TYPE1-")
-        || rule.contains("-CID-")
-        || rule.contains("-CIDTOGIDMAP-")
-        || rule.contains("-CMAP-")
-    {
-        SummaryCategory::Fonts
-    } else if rule.contains("-IMAGE-") {
-        SummaryCategory::Images
-    } else if rule.contains("-CONTENT-OPERATOR-")
-        || rule.contains("-EXTGSTATE-")
-        || rule.contains("-GRAPHICS-")
-        || rule.contains("-RENDERING-INTENT-")
-        || rule.contains("-TRANSPARENCY-")
-        || rule.contains("-XOBJECT-")
-    {
-        SummaryCategory::Graphics
-    } else if rule.contains("-ANNOTATION-")
-        || rule.contains("-ACTION-")
-        || rule.contains("-ACROFORM-")
-        || rule.contains("-FIELD-")
-        || rule.contains("-FORM-")
-        || rule.contains("-WIDGET-")
-    {
-        SummaryCategory::InteractiveContent
-    } else if rule.contains("-CATALOG-")
-        || rule.contains("-FILE-SPEC-")
-        || rule.contains("-NAMES-EMBEDDED-FILES-")
-        || rule.contains("-OPTIONAL-CONTENT-")
-        || rule.contains("-TRAILER-ID-")
-        || rule.contains("-STREAM-EXTERNAL-DATA-")
-        || rule.contains("-STREAM-LZW-")
-    {
-        SummaryCategory::Structure
-    } else {
-        SummaryCategory::Profile
-    }
-}
-
-fn category_label(category: SummaryCategory, report: &ValidationReport) -> String {
-    match category {
-        SummaryCategory::PdfSyntax => "PDF syntax".to_owned(),
-        SummaryCategory::Profile => report.profile.to_string(),
-        SummaryCategory::Metadata => "Metadata".to_owned(),
-        SummaryCategory::Color => "Color".to_owned(),
-        SummaryCategory::Fonts => "Fonts".to_owned(),
-        SummaryCategory::Images => "Images".to_owned(),
-        SummaryCategory::Graphics => "Graphics".to_owned(),
-        SummaryCategory::InteractiveContent => "Interactive content".to_owned(),
-        SummaryCategory::Structure => "Structure".to_owned(),
-    }
-}
-
-fn render_summary(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
+fn render_summary(
+    profile: ValidationProfile,
+    is_compliant: bool,
+    elapsed: Duration,
+    colors: bool,
+) -> String {
     let mut output = String::new();
-    let (result_text, result_style) = if report.has_operational_failure() {
-        ("Incomplete", WARNING)
-    } else if report
-        .failures
-        .iter()
-        .any(|failure| failure.category == FailureCategory::Parser)
-    {
-        ("Invalid PDF", SUMMARY_FAILURE)
-    } else if report.checks_passed {
+    let (result_text, result_style) = if is_compliant {
         ("Conformant", SUMMARY_SUCCESS)
     } else {
         ("Non-conformant", SUMMARY_FAILURE)
     };
     let result = selected_style(colors, result_style);
 
-    writeln!(output, "Profile : {}", report.profile).expect("writing to a String cannot fail");
+    writeln!(output, "Profile : {profile}").expect("writing to a String cannot fail");
     writeln!(output, "Result  : {result}{result_text}{result:#}")
         .expect("writing to a String cannot fail");
-    output.push('\n');
-
-    for category in SUMMARY_CATEGORIES {
-        let failed = report
-            .failures
-            .iter()
-            .any(|failure| summary_category(failure) == category);
-        let (symbol, style) = if failed {
-            ('✗', selected_style(colors, SUMMARY_FAILURE))
-        } else {
-            ('✓', selected_style(colors, SUMMARY_SUCCESS))
-        };
-        writeln!(
-            output,
-            "{style}{symbol}{style:#} {}",
-            category_label(category, report)
-        )
-        .expect("writing to a String cannot fail");
-    }
-
-    writeln!(output, "\nTime    : {:.3}s", elapsed.as_secs_f64())
+    writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
         .expect("writing to a String cannot fail");
     output
 }
 
-fn render_details(report: &ValidationReport, _elapsed: Duration, colors: bool) -> String {
-    let mut output = String::new();
+fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
+    let mut output = render_summary(report.profile, report.checks_passed, elapsed, colors);
+    output.push('\n');
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
@@ -385,13 +248,57 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
     false
 }
 
-fn main() {
-    match Cli::parse().command {
-        Command::Validate(cli) => run_validate(cli),
+fn emit_json_validation_error(
+    path: &Path,
+    profile: ValidationProfile,
+    error: ValidationError,
+    output: Option<&Path>,
+    colors: bool,
+) -> ! {
+    let (kind, exit_code) = match &error {
+        ValidationError::Pdf(_) => (JsonErrorKind::Parser, 2),
+        _ => (JsonErrorKind::Operational, 1),
+    };
+    let report = JsonValidationReport {
+        file: Some(path.display().to_string()),
+        profile,
+        valid: false,
+        failures: Vec::new(),
+        error: Some(JsonError {
+            kind,
+            rule: "PDF-PARSE-001".to_owned(),
+            message: error.to_string(),
+        }),
+    };
+    if let Some(output) = output {
+        let contents = serialize_json(&report).unwrap_or_else(|serialization_error| {
+            print_error(
+                format_args!("could not serialize validation report: {serialization_error}"),
+                colors,
+            );
+            std::process::exit(1);
+        });
+        if let Err(write_error) = write_atomic(output, contents.as_bytes()) {
+            print_error(
+                format_args!("could not write '{}': {write_error}", output.display()),
+                colors,
+            );
+            std::process::exit(1);
+        }
+        std::process::exit(exit_code);
     }
+    std::process::exit(if emit_json(&report, "validation report") == 0 {
+        exit_code
+    } else {
+        1
+    });
 }
 
-fn run_validate(cli: ValidateArgs) {
+fn main() {
+    run_validate(Cli::parse());
+}
+
+fn run_validate(cli: Cli) {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
     let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
     let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
@@ -428,98 +335,123 @@ fn run_validate(cli: ValidateArgs) {
         stderr_colors,
         format!("Validating {}", cli.file.display()),
     );
-    let report = match cli.profile {
-        Some(profile) => {
-            let validation_profile: ValidationProfile = profile.into();
-            if !validation_profile.is_implemented() {
-                spinner.finish_and_clear();
+    let requested_profile = cli.profile.map(Into::into);
+    if selected_format == SelectedFormat::Summary {
+        let outcome =
+            match is_pdf_compliant(ValidationInput::File(&cli.file), requested_profile, &limits) {
+                Ok(outcome) => outcome,
+                Err(ValidationError::InputIo(error)) => {
+                    spinner.finish_and_clear();
+                    print_error(
+                        format_args!("could not read '{}': {error}", cli.file.display()),
+                        stderr_colors,
+                    );
+                    std::process::exit(1);
+                }
+                Err(error) => {
+                    spinner.finish_and_clear();
+                    print_error(error, stderr_colors);
+                    std::process::exit(1);
+                }
+            };
+        spinner.finish_and_clear();
+        let elapsed = started_at.elapsed();
+        let rendered = render_summary(outcome.profile, outcome.is_compliant, elapsed, false);
+        let status = if let Some(output) = cli.output.as_deref() {
+            if let Err(error) = write_atomic(output, rendered.as_bytes()) {
                 print_error(
-                    format_args!("validation profile {validation_profile} is not implemented yet"),
+                    format_args!("could not write '{}': {error}", output.display()),
                     stderr_colors,
                 );
-                std::process::exit(1);
+                1
+            } else if outcome.is_compliant {
+                0
+            } else {
+                2
             }
-            validate_file_with_profile(&cli.file, validation_profile, &limits)
+        } else {
+            print!(
+                "{}",
+                render_summary(
+                    outcome.profile,
+                    outcome.is_compliant,
+                    elapsed,
+                    stdout_colors
+                )
+            );
+            if outcome.is_compliant { 0 } else { 2 }
+        };
+        std::process::exit(status);
+    }
+    let report = match validate_file(&cli.file, requested_profile, &limits) {
+        Ok(report) => report,
+        Err(ValidationError::InputIo(error)) => {
+            spinner.finish_and_clear();
+            print_error(
+                format_args!("could not read '{}': {error}", cli.file.display()),
+                stderr_colors,
+            );
+            std::process::exit(1);
         }
-        None => match validate_file(&cli.file, &limits) {
-            Ok(report) => report,
-            Err(ValidationError::InputIo(error)) => {
-                spinner.finish_and_clear();
-                print_error(
-                    format_args!("could not read '{}': {error}", cli.file.display()),
+        Err(error) => {
+            spinner.finish_and_clear();
+            if selected_format == SelectedFormat::Json
+                && let Some(profile) = requested_profile
+            {
+                emit_json_validation_error(
+                    &cli.file,
+                    profile,
+                    error,
+                    cli.output.as_deref(),
                     stderr_colors,
                 );
-                std::process::exit(1);
             }
-            Err(error) => {
-                spinner.finish_and_clear();
-                print_error(error, stderr_colors);
-                std::process::exit(1);
-            }
-        },
+            print_error(error, stderr_colors);
+            std::process::exit(1);
+        }
     };
     spinner.finish_and_clear();
     let elapsed = started_at.elapsed();
-    let status = if let Some(failure) = report
-        .failures
-        .iter()
-        .find(|failure| failure.rule_id == "INPUT-IO-001")
-    {
-        print_error(
-            format_args!(
-                "could not read '{}': {}",
-                cli.file.display(),
-                failure.message
-            ),
-            stderr_colors,
-        );
-        report.exit_code()
-    } else {
-        match (cli.output.as_deref(), selected_format) {
-            (Some(output), format) => {
-                let rendered = match format {
-                    SelectedFormat::Summary => Ok(render_summary(&report, elapsed, false)),
-                    SelectedFormat::Details => Ok(render_details(&report, elapsed, false)),
-                    SelectedFormat::Json => {
-                        let json = report.json_report();
-                        serialize_json(&json).map_err(|error| {
-                            format!("could not serialize validation report: {error}")
-                        })
-                    }
-                };
-                let rendered = match rendered {
-                    Ok(rendered) => rendered,
-                    Err(error) => {
-                        print_error(error, stderr_colors);
-                        std::process::exit(1);
-                    }
-                };
-                if let Err(error) = write_atomic(output, rendered.as_bytes()) {
-                    print_error(
-                        format_args!("could not write '{}': {error}", output.display()),
-                        stderr_colors,
-                    );
-                    1
-                } else {
-                    report.exit_code()
+    let status = match (cli.output.as_deref(), selected_format) {
+        (Some(output), format) => {
+            let rendered = match format {
+                SelectedFormat::Summary => Ok(String::new()),
+                SelectedFormat::Details => Ok(render_details(&report, elapsed, false)),
+                SelectedFormat::Json => {
+                    let json = report.json_report();
+                    serialize_json(&json)
+                        .map_err(|error| format!("could not serialize validation report: {error}"))
                 }
-            }
-            (None, SelectedFormat::Json) => {
-                let json = report.json_report();
-                match emit_json(&json, "validation report") {
-                    0 => report.exit_code(),
-                    status => status,
+            };
+            let rendered = match rendered {
+                Ok(rendered) => rendered,
+                Err(error) => {
+                    print_error(error, stderr_colors);
+                    std::process::exit(1);
                 }
-            }
-            (None, SelectedFormat::Details) => {
-                print!("{}", render_details(&report, elapsed, stdout_colors));
-                report.exit_code()
-            }
-            (None, SelectedFormat::Summary) => {
-                print!("{}", render_summary(&report, elapsed, stdout_colors));
+            };
+            if let Err(error) = write_atomic(output, rendered.as_bytes()) {
+                print_error(
+                    format_args!("could not write '{}': {error}", output.display()),
+                    stderr_colors,
+                );
+                1
+            } else {
                 report.exit_code()
             }
         }
+        (None, SelectedFormat::Json) => {
+            let json = report.json_report();
+            match emit_json(&json, "validation report") {
+                0 => report.exit_code(),
+                status => status,
+            }
+        }
+        (None, SelectedFormat::Details) => {
+            print!("{}", render_details(&report, elapsed, stdout_colors));
+            report.exit_code()
+        }
+        (None, SelectedFormat::Summary) => report.exit_code(),
     };
 
     std::process::exit(status);
@@ -529,7 +461,7 @@ fn run_validate(cli: ValidateArgs) {
 mod tests {
     use std::time::Duration;
 
-    use page_validation::{ValidationCounts, ValidationProfile, ValidationReport};
+    use page_validation::ValidationProfile;
 
     use super::{colors_enabled, render_summary};
 
@@ -543,21 +475,7 @@ mod tests {
 
     #[test]
     fn conformant_summary_uses_bright_green() {
-        let report = ValidationReport {
-            source: None,
-            profile: ValidationProfile::PdfA1b,
-            checks_passed: true,
-            preliminary: true,
-            checks: ValidationCounts {
-                total: 1,
-                passed: 1,
-                failed: 0,
-            },
-            document: None,
-            failures: Vec::new(),
-        };
-
-        let summary = render_summary(&report, Duration::ZERO, true);
+        let summary = render_summary(ValidationProfile::PdfA1b, true, Duration::ZERO, true);
 
         assert!(summary.contains("92mConformant"));
     }

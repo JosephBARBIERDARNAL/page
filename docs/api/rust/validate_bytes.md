@@ -2,22 +2,23 @@
 
 **Function**
 
-Validates PDF bytes already in memory against the profile declared in their own XMP metadata.
+Validates PDF bytes already in memory against a selected profile.
 
-The document's XMP Identification schema is read to determine whether it targets PDF/A or PDF/UA and which part and conformance level apply, so the caller does not need to already know which profile to check against. Use `validate_bytes_with_profile` instead when the profile is already known or the document's own declaration should be ignored.
+Pass `None` for `profile` to infer the profile from the document's XMP Identification schema, or `Some(profile)` to validate against that profile regardless of the declaration.
 
 ## Arguments
 
 - `bytes` - The complete PDF file content.
+- `profile` - An explicit validation profile, or `None` to infer it from XMP metadata.
 - `limits` - The resource bounds enforced while parsing and inspecting the document.
 
 ## Returns
 
-A `ValidationReport` describing which implemented checks for the declared profile passed or failed.
+A `ValidationReport` describing which implemented checks for the selected profile passed or failed.
 
 ## Errors
 
-Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails or a `SafetyLimits` bound is exceeded, `ValidationError::MissingProfileDeclaration` or `ValidationError::InvalidProfileDeclaration` if the XMP metadata does not unambiguously declare one supported profile, and `ValidationError::UnsupportedProfile` if it declares a profile this crate does not implement yet.
+Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails or a `SafetyLimits` bound is exceeded, `ValidationError::MissingProfileDeclaration` or `ValidationError::InvalidProfileDeclaration` if `profile` is `None` and XMP does not unambiguously declare a profile, and `ValidationError::UnsupportedProfile` if the selected profile is not implemented yet.
 
 ## Examples
 
@@ -25,6 +26,6 @@ Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails o
 use page_validation::{SafetyLimits, validate_bytes};
 
 let limits = SafetyLimits::default();
-let error = validate_bytes(b"not a pdf", &limits).unwrap_err();
+let error = validate_bytes(b"not a pdf", None, &limits).unwrap_err();
 println!("{error}");
 ```

@@ -19,10 +19,11 @@ API_ITEMS = (
     "ValidationFailure",
     "ValidationReport",
     "ValidationProfile",
+    "ValidationInput",
+    "ComplianceResult",
+    "is_pdf_compliant",
     "validate_bytes",
-    "validate_bytes_with_profile",
     "validate_file",
-    "validate_file_with_profile",
 )
 
 KIND_LABELS = {

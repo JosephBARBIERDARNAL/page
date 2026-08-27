@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,19 +13,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.1:1";
 
 #[test]
 fn pdfua1_rule_7_18_1_1_requires_non_exempt_annotations_inside_annot_tags() {
-    let valid = validate_bytes_with_profile(
+    let valid = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-18-1-1-valid.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(valid.checks_passed, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
 
-    let invalid = validate_bytes_with_profile(
+    let invalid = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-18-1-1-invalid.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!invalid.checks_passed, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert!(

@@ -55,7 +55,7 @@ Both functions return a validation report:
 
 ```json
 {
-  profile: "a-1b",
+  profile: "1b",
   valid: false,
   failures: [
     {

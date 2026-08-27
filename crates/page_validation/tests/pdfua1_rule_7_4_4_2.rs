@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -34,8 +34,12 @@ fn pdfua1_rule_7_4_4_2_rejects_documents_mixing_h_and_numbered_headings() {
             }
             _ => panic!("unknown PDF/UA-1 rule 7.4.4.2 fixture {fixture}"),
         };
-        let report =
-            validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
+        let report = validate_bytes(
+            bytes,
+            Some(ValidationProfile::PdfUa1),
+            &SafetyLimits::default(),
+        )
+        .expect("explicit profile validation");
         assert_eq!(report.checks_passed, !should_fail, "{fixture}: {report}");
         assert_eq!(
             report.failures.len(),

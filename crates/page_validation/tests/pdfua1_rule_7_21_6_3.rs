@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -18,19 +18,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.6:3";
 
 #[test]
 fn pdfua1_rule_7_21_6_3_rejects_symbolic_truetype_encoding_entries() {
-    let matching = validate_bytes_with_profile(
+    let matching = validate_bytes(
         fixture_bytes("matching"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let encoding = validate_bytes_with_profile(
+    let encoding = validate_bytes(
         fixture_bytes("encoding"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!encoding.checks_passed, "{encoding}");
     assert_eq!(encoding.checks.failed, 1, "{encoding}");
     assert_eq!(encoding.failures.len(), 1, "{encoding}");

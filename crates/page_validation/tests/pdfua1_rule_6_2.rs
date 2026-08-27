@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,19 +13,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:6.2:1";
 
 #[test]
 fn pdfua1_rule_6_2_fixtures_require_mark_info_marked_true() {
-    let marked = validate_bytes_with_profile(
+    let marked = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-6-2-marked.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(marked.checks_passed, "{marked}");
     assert!(marked.failures.is_empty());
 
-    let unmarked = validate_bytes_with_profile(
+    let unmarked = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-6-2-unmarked.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!unmarked.checks_passed, "{unmarked}");
     assert_eq!(unmarked.checks.failed, 1);
     assert_eq!(unmarked.failures.len(), 1);

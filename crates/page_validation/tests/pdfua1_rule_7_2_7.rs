@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,19 +13,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:7";
 
 #[test]
 fn pdfua1_rule_7_2_7_requires_tfoot_to_be_contained_in_table() {
-    let contained = validate_bytes_with_profile(
+    let contained = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-7-contained.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(contained.checks_passed, "{contained}");
     assert!(contained.failures.is_empty());
 
-    let not_contained = validate_bytes_with_profile(
+    let not_contained = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-7-not-contained.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!not_contained.checks_passed, "{not_contained}");
     assert_eq!(not_contained.checks.failed, 1);
     assert_eq!(not_contained.failures.len(), 1);

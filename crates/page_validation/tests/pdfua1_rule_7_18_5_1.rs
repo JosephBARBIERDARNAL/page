@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -24,20 +24,22 @@ fn pdfua1_rule_7_18_5_1_requires_links_inside_link_tags() {
         "pdfua1-rule-7-18-5-1-hidden.pdf",
         "pdfua1-rule-7-18-5-1-outside-crop-box.pdf",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
 
-    let invalid = validate_bytes_with_profile(
+    let invalid = validate_bytes(
         fixture_bytes("pdfua1-rule-7-18-5-1-not-nested.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!invalid.checks_passed, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert_eq!(invalid.failures.len(), 1, "{invalid}");

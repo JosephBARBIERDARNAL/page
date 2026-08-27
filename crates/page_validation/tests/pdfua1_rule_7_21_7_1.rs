@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -18,19 +18,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.7:1";
 
 #[test]
 fn pdfua1_rule_7_21_7_1_requires_unicode_mapping_for_used_glyphs() {
-    let matching = validate_bytes_with_profile(
+    let matching = validate_bytes(
         fixture_bytes("matching"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(matching.checks_passed, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let missing = validate_bytes_with_profile(
+    let missing = validate_bytes(
         fixture_bytes("missing"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!missing.checks_passed, "{missing}");
     assert_eq!(missing.checks.failed, 1, "{missing}");
     assert_eq!(missing.failures.len(), 1, "{missing}");

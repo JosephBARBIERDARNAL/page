@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,19 +13,21 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:9";
 
 #[test]
 fn pdfua1_rule_7_1_9_fixtures_require_a_dc_title_entry() {
-    let present = validate_bytes_with_profile(
+    let present = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-9-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(present.checks_passed, "{present}");
     assert!(present.failures.is_empty());
 
-    let missing = validate_bytes_with_profile(
+    let missing = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-9-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!missing.checks_passed, "{missing}");
     assert_eq!(missing.checks.failed, 1);
     assert_eq!(missing.failures.len(), 1);

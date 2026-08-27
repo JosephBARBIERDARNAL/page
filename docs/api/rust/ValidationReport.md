@@ -9,9 +9,10 @@ The outcome of validating one document against one `ValidationProfile`: whether 
 ## Examples
 
 ```rs
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 let limits = SafetyLimits::default();
-let report = validate_bytes_with_profile(b"not a pdf", ValidationProfile::PdfA1b, &limits);
-assert_eq!(report.exit_code(), 2);
+let error = validate_bytes(b"not a pdf", Some(ValidationProfile::PdfA1b), &limits)
+    .expect_err("malformed input");
+assert!(matches!(error, page_validation::ValidationError::Pdf(_)));
 ```

@@ -3,7 +3,7 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -123,11 +123,12 @@ fn composite_font_cases_have_the_complete_expected_failure_delta() {
 #[test]
 fn unknown_usecmap_reference_is_rejected_in_pdfa2_and_pdfa3() {
     for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             &common::font_fixture("composite_cmap_unknown_usecmap"),
-            profile,
+            Some(profile),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         let expected = match profile {
             ValidationProfile::PdfA2b => "PDFA2B-CMAP-REFERENCE-001",
             ValidationProfile::PdfA3b => "PDFA3B-CMAP-REFERENCE-001",
@@ -155,7 +156,8 @@ fn unembedded_cidfonttype2_does_not_require_cid_to_gid_map_in_pdfa2_or_pdfa3() {
         (ValidationProfile::PdfA2b, "PDFA2B-CIDTOGIDMAP-001"),
         (ValidationProfile::PdfA3b, "PDFA3B-CIDTOGIDMAP-001"),
     ] {
-        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        let report = validate_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            .expect("explicit profile validation");
         assert!(
             report
                 .failures
@@ -206,7 +208,8 @@ fn pdfa_2_and_3_allow_the_complete_table_118_cmap_set() {
         (ValidationProfile::PdfA2b, "PDFA2B-CMAP-EMBEDDING-001"),
         (ValidationProfile::PdfA3b, "PDFA3B-CMAP-EMBEDDING-001"),
     ] {
-        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        let report = validate_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            .expect("explicit profile validation");
         assert!(
             report
                 .failures
@@ -220,8 +223,12 @@ fn pdfa_2_and_3_allow_the_complete_table_118_cmap_set() {
 #[test]
 fn pdfa_2_and_3_require_a_cmap_supplement_not_lower_than_the_cidfont() {
     let bytes = common::font_fixture("composite_cmap_supplement_mismatch");
-    let a1 =
-        validate_bytes_with_profile(&bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
+    let a1 = validate_bytes(
+        &bytes,
+        Some(ValidationProfile::PdfA1b),
+        &SafetyLimits::default(),
+    )
+    .expect("explicit profile validation");
     assert!(
         a1.failures
             .iter()
@@ -238,7 +245,8 @@ fn pdfa_2_and_3_require_a_cmap_supplement_not_lower_than_the_cidfont() {
             "PDFA3B-TYPE0-CID-SYSTEM-INFO-001",
         ),
     ] {
-        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        let report = validate_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            .expect("explicit profile validation");
         assert!(
             report
                 .failures

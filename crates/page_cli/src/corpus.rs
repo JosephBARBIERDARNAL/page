@@ -8,7 +8,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use clap::Args;
 use page_cli::spinner::Spinner;
 use page_validation::{
-    SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
+    FailureCategory, SafetyLimits, ValidationCounts, ValidationFailure, ValidationProfile,
+    ValidationReport, validate_file,
 };
 
 #[derive(Debug, Args)]
@@ -194,7 +195,7 @@ fn validate_cases(
         return cases
             .iter()
             .map(|case| {
-                let report = validate_file_with_profile(&case.path, case.profile, limits);
+                let report = validate_case(&case.path, case.profile, limits);
                 let actual = report.exit_code();
                 let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                 spinner.set_message(format!(
@@ -219,7 +220,7 @@ fn validate_cases(
                         let Some(case) = cases.get(index) else {
                             break;
                         };
-                        let report = validate_file_with_profile(&case.path, case.profile, limits);
+                        let report = validate_case(&case.path, case.profile, limits);
                         let actual = report.exit_code();
                         let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                         spinner.set_message(format!(
@@ -243,6 +244,31 @@ fn validate_cases(
         .into_iter()
         .map(|(_, actual, report)| (actual, report))
         .collect()
+}
+
+fn validate_case(
+    path: &Path,
+    profile: ValidationProfile,
+    limits: &SafetyLimits,
+) -> ValidationReport {
+    validate_file(path, Some(profile), limits).unwrap_or_else(|error| ValidationReport {
+        source: Some(path.to_path_buf()),
+        profile,
+        checks_passed: false,
+        preliminary: false,
+        checks: ValidationCounts {
+            total: 1,
+            passed: 0,
+            failed: 1,
+        },
+        document: None,
+        failures: vec![ValidationFailure {
+            rule_id: "VALIDATION-ERROR-001".to_owned(),
+            message: error.to_string(),
+            object_id: None,
+            category: FailureCategory::Operational,
+        }],
+    })
 }
 
 fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {

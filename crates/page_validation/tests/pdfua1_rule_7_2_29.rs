@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -14,21 +14,23 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:29";
 #[test]
 fn pdfua1_rule_7_2_29_requires_language_tags_at_all_allowed_locations() {
     for case in ["catalog_valid", "structure_valid", "property_valid"] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             &common::pdfua1_rule_7_2_29_fixture(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(report.checks_passed, "{case}: {report}");
         assert!(report.failures.is_empty());
     }
 
     for case in ["catalog_invalid", "structure_invalid", "property_invalid"] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             &common::pdfua1_rule_7_2_29_fixture(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(!report.checks_passed, "{case}: {report}");
         assert_eq!(report.checks.failed, 1);
         assert_eq!(report.failures.len(), 1);

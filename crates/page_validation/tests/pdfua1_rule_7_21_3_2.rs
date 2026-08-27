@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -22,11 +22,12 @@ fn pdfua1_rule_7_21_3_2_requires_embedded_type2_cidfonts_to_define_cid_to_gid_ma
         "pdfua1-rule-7-21-3-2-identity.pdf",
         "pdfua1-rule-7-21-3-2-stream.pdf",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(report.checks_passed, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
@@ -35,11 +36,12 @@ fn pdfua1_rule_7_21_3_2_requires_embedded_type2_cidfonts_to_define_cid_to_gid_ma
         "pdfua1-rule-7-21-3-2-missing.pdf",
         "pdfua1-rule-7-21-3-2-invalid.pdf",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(!report.checks_passed, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");

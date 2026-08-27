@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -13,11 +13,12 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:23";
 
 #[test]
 fn pdfua1_rule_7_2_23_requires_language_for_structure_e_text() {
-    let language_present = validate_bytes_with_profile(
+    let language_present = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-23-language-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         !language_present
             .failures
@@ -25,11 +26,12 @@ fn pdfua1_rule_7_2_23_requires_language_for_structure_e_text() {
             .any(|failure| failure.rule_id == RULE)
     );
 
-    let language_missing = validate_bytes_with_profile(
+    let language_missing = validate_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-23-language-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!language_missing.checks_passed, "{language_missing}");
     assert!(
         language_missing

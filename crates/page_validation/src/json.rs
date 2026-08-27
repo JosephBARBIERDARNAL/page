@@ -110,7 +110,7 @@ mod tests {
         let value = serde_json::to_value(json).expect("serialize JSON report");
 
         assert_eq!(value["file"], "document.pdf");
-        assert_eq!(value["profile"], "a-1b");
+        assert_eq!(value["profile"], "1b");
         assert_eq!(value["valid"], false);
         assert_eq!(value["failures"][0]["rule"], "RULE-001");
         assert!(value.get("error").is_none());

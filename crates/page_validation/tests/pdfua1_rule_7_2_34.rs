@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ fn pdfua1_rule_7_2_34_requires_language_for_page_text() {
         "inherited_language_present",
         "catalog_language_present",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             &common::pdfua1_rule_7_2_34_fixture(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(report.checks_passed, "{case}: {report}");
         assert!(report.failures.is_empty());
     }
 
-    let report = validate_bytes_with_profile(
+    let report = validate_bytes(
         &common::pdfua1_rule_7_2_34_fixture("language_missing"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!report.checks_passed, "{report}");
     assert_eq!(report.checks.failed, 1);
     assert_eq!(report.failures.len(), 1);

@@ -14,9 +14,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use wait_timeout::ChildExt;
 
-use crate::{
-    FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
-};
+use crate::{FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file};
 
 pub const PINNED_VERAPDF_VERSION: &str = "1.30.2";
 pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfA1b;
@@ -392,7 +390,11 @@ impl DifferentialRunner {
     }
 
     pub fn compare_file(&self, path: &Path, limits: &SafetyLimits) -> DifferentialReport {
-        let local_report = validate_file_with_profile(path, self.config.profile.into(), limits);
+        let local_profile = self.config.profile.into();
+        let local_report =
+            validate_file(path, Some(local_profile), limits).unwrap_or_else(|error| {
+                ValidationReport::from_validation_error(local_profile, error).with_source(path)
+            });
         if local_report.has_operational_failure() {
             return self.operational_report(
                 path,
@@ -433,7 +435,12 @@ impl DifferentialRunner {
     ) -> Vec<DifferentialReport> {
         let local_reports = paths
             .iter()
-            .map(|path| validate_file_with_profile(path, self.config.profile.into(), limits))
+            .map(|path| {
+                let local_profile = self.config.profile.into();
+                validate_file(path, Some(local_profile), limits).unwrap_or_else(|error| {
+                    ValidationReport::from_validation_error(local_profile, error).with_source(path)
+                })
+            })
             .collect::<Vec<_>>();
         let reference_indices = local_reports
             .iter()

@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -46,11 +46,12 @@ fn inherited_resource_names_match_pinned_verapdf_when_opted_in() {
         let path = directory.join(format!("{case}.pdf"));
         fs::write(&path, common::graphics_fixture(case)).expect("write fixture");
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
-            let report = validate_bytes_with_profile(
+            let report = validate_bytes(
                 &common::graphics_fixture(case),
-                profile,
+                Some(profile),
                 &SafetyLimits::default(),
-            );
+            )
+            .expect("explicit profile validation");
             assert_eq!(
                 report
                     .failures

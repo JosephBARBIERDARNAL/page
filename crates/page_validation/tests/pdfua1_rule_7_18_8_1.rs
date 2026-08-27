@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_bytes};
 
 pub mod common;
 
@@ -19,20 +19,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.18.8:1";
 #[test]
 fn pdfua1_rule_7_18_8_1_requires_printer_marks_to_be_artifacts() {
     for case in ["allowed", "hidden", "outside_crop_box"] {
-        let report = validate_bytes_with_profile(
+        let report = validate_bytes(
             fixture_bytes(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(report.checks_passed, "{case}: {report}");
         assert!(report.failures.is_empty(), "{case}: {report}");
     }
 
-    let included = validate_bytes_with_profile(
+    let included = validate_bytes(
         fixture_bytes("included"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(!included.checks_passed, "{included}");
     assert_eq!(included.checks.failed, 1, "{included}");
     assert_eq!(included.failures.len(), 1, "{included}");
