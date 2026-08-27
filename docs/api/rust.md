@@ -16,7 +16,7 @@ Or add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-page_validation = "0.4.0"
+page_validation = "0.5.0"
 ```
 
 ## Check compliance of a PDF
