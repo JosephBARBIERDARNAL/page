@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,12 +13,13 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.10:1";
 
 #[test]
 fn pdfua1_rule_7_10_1_requires_names_for_default_and_named_configurations() {
-    let valid = validate_bytes_with_profile(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-10-1-valid.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(valid.checks_passed, "{valid}");
+    )
+    .expect("explicit profile validation");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty());
 
     for fixture in [
@@ -34,9 +35,13 @@ fn pdfua1_rule_7_10_1_requires_names_for_default_and_named_configurations() {
             }
             _ => panic!("unknown PDF/UA-1 rule 7.10.1 fixture {fixture}"),
         };
-        let report =
-            validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        let report = validate_pdf_bytes(
+            bytes,
+            Some(ValidationProfile::PdfUa1),
+            &SafetyLimits::default(),
+        )
+        .expect("explicit profile validation");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

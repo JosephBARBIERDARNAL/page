@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -23,20 +23,22 @@ fn pdfua1_rule_7_1_3_requires_artifact_or_tagged_painted_content() {
             "tagged",
         ),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             fixture,
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
-        assert!(report.checks_passed, "{description}: {report}");
+        )
+        .expect("explicit profile validation");
+        assert!(report.is_compliant, "{description}: {report}");
     }
 
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-3-untagged.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!report.checks_passed, "{report}");
+    )
+    .expect("explicit profile validation");
+    assert!(!report.is_compliant, "{report}");
     assert_eq!(report.checks.failed, 1);
     assert_eq!(report.failures.len(), 1);
     assert_eq!(report.failures[0].rule_id, RULE);

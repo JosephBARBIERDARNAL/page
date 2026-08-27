@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.9:1";
 
 #[test]
 fn pdfua1_rule_7_9_1_requires_note_id() {
-    let present = validate_bytes_with_profile(
+    let present = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-9-1-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(present.checks_passed, "{present}");
+    )
+    .expect("explicit profile validation");
+    assert!(present.is_compliant, "{present}");
     assert!(present.failures.is_empty());
 
-    let missing = validate_bytes_with_profile(
+    let missing = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-9-1-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!missing.checks_passed, "{missing}");
+    )
+    .expect("explicit profile validation");
+    assert!(!missing.is_compliant, "{missing}");
     assert_eq!(missing.checks.failed, 1, "{missing}");
     assert_eq!(missing.failures.len(), 1, "{missing}");
     assert_eq!(missing.failures[0].rule_id, RULE, "{missing}");

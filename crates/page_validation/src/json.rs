@@ -7,7 +7,7 @@ use crate::{FailureCategory, ValidationProfile, ValidationReport};
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
-    pub profile: ValidationProfile,
+    pub profile: Option<ValidationProfile>,
     pub valid: bool,
     pub failures: Vec<JsonFailure>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,8 +70,8 @@ impl ValidationReport {
                 .source
                 .as_ref()
                 .map(|source| source.display().to_string()),
-            profile: self.profile,
-            valid: self.checks_passed,
+            profile: Some(self.profile),
+            valid: self.is_compliant,
             failures,
             error,
         }
@@ -90,7 +90,7 @@ mod tests {
         let report = ValidationReport {
             source: Some("document.pdf".into()),
             profile: ValidationProfile::PdfA1b,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,
@@ -110,7 +110,7 @@ mod tests {
         let value = serde_json::to_value(json).expect("serialize JSON report");
 
         assert_eq!(value["file"], "document.pdf");
-        assert_eq!(value["profile"], "a-1b");
+        assert_eq!(value["profile"], "1b");
         assert_eq!(value["valid"], false);
         assert_eq!(value["failures"][0]["rule"], "RULE-001");
         assert!(value.get("error").is_none());
@@ -121,7 +121,7 @@ mod tests {
         let report = ValidationReport {
             source: None,
             profile: ValidationProfile::PdfA1b,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,
@@ -151,7 +151,7 @@ mod tests {
         let report = ValidationReport {
             source: None,
             profile: ValidationProfile::PdfA1b,
-            checks_passed: true,
+            is_compliant: true,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,

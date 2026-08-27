@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -20,22 +20,24 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.3.3:1";
 fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
     let fixture = "pdfua1-rule-7-21-3-3-1-embedded.pdf";
     {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
-        assert!(report.checks_passed, "{fixture}: {report}");
+        )
+        .expect("explicit profile validation");
+        assert!(report.is_compliant, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
 
     let fixture = "pdfua1-rule-7-21-3-3-1-predefined.pdf";
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         fixture_bytes(fixture),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!report.checks_passed, "{fixture}: {report}");
+    )
+    .expect("explicit profile validation");
+    assert!(!report.is_compliant, "{fixture}: {report}");
     assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
     assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
     assert_eq!(
@@ -44,12 +46,13 @@ fn pdfua1_rule_7_21_3_3_1_requires_nonstandard_cmaps_to_be_embedded() {
     );
 
     let fixture = "pdfua1-rule-7-21-3-3-1-unembedded.pdf";
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         fixture_bytes(fixture),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!report.checks_passed, "{fixture}: {report}");
+    )
+    .expect("explicit profile validation");
+    assert!(!report.is_compliant, "{fixture}: {report}");
     assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
     assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
     assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

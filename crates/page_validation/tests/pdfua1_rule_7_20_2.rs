@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.20:2";
 
 #[test]
 fn pdfua1_rule_7_20_2_requires_unique_semantic_parent_for_reused_tagged_forms() {
-    let allowed = validate_bytes_with_profile(
+    let allowed = validate_pdf_bytes(
         fixture_bytes("allowed"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(allowed.checks_passed, "{allowed}");
+    )
+    .expect("explicit profile validation");
+    assert!(allowed.is_compliant, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
 
-    let invalid = validate_bytes_with_profile(
+    let invalid = validate_pdf_bytes(
         fixture_bytes("invalid"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!invalid.checks_passed, "{invalid}");
+    )
+    .expect("explicit profile validation");
+    assert!(!invalid.is_compliant, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert_eq!(invalid.failures.len(), 1, "{invalid}");
     assert_eq!(invalid.failures[0].rule_id, RULE, "{invalid}");

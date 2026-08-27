@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 use std::{env, path::Path};
 
@@ -8,25 +8,27 @@ use page_validation::differential::{
 
 #[test]
 fn canonical_pdfa_1a_is_locally_compliant() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
-        ValidationProfile::PdfA1a,
+        Some(ValidationProfile::PdfA1a),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
 
-    assert!(report.checks_passed, "{report}");
+    assert!(report.is_compliant, "{report}");
     assert!(report.failures.is_empty(), "{report}");
 }
 
 #[test]
 fn canonical_pdfa_1b_is_locally_compliant() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         include_bytes!("fixtures/canonical-pdfa-1b.pdf"),
-        ValidationProfile::PdfA1b,
+        Some(ValidationProfile::PdfA1b),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
 
-    assert!(report.checks_passed, "{report}");
+    assert!(report.is_compliant, "{report}");
     assert!(report.failures.is_empty(), "{report}");
 }
 
@@ -127,8 +129,9 @@ fn canonical_pdfa_2_and_3_profiles_are_locally_compliant() {
         ),
     ];
     for (profile, bytes) in cases {
-        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
-        assert!(report.checks_passed, "{profile}: {report}");
+        let report = validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            .expect("explicit profile validation");
+        assert!(report.is_compliant, "{profile}: {report}");
         assert!(report.failures.is_empty(), "{profile}: {report}");
         assert_eq!(
             report.checks.total,
@@ -223,12 +226,13 @@ fn pdfa_2_accepts_pdfa_1_xref_relaxations() {
             _ => include_bytes!("fixtures/xref-stream.pdf").as_slice(),
         };
         let bytes = reidentify(source, 2, b'B');
-        let local = validate_bytes_with_profile(
+        let local = validate_pdf_bytes(
             &bytes,
-            ValidationProfile::PdfA2b,
+            Some(ValidationProfile::PdfA2b),
             &SafetyLimits::default(),
-        );
-        assert!(local.checks_passed, "{name}: {local}");
+        )
+        .expect("explicit profile validation");
+        assert!(local.is_compliant, "{name}: {local}");
         let path = env::temp_dir().join(format!("page-pdfa2-{name}-{}.pdf", std::process::id()));
         std::fs::write(&path, bytes).expect("write temporary PDF/A-2 fixture");
         let mut config = ReferenceConfig::pinned(executable.clone());

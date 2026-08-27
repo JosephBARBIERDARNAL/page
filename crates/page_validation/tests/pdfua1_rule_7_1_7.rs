@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:7";
 
 #[test]
 fn pdfua1_rule_7_1_7_rejects_remapped_standard_types() {
-    let standard_unmapped = validate_bytes_with_profile(
+    let standard_unmapped = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-7-standard-unmapped.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(standard_unmapped.checks_passed, "{standard_unmapped}");
+    )
+    .expect("explicit profile validation");
+    assert!(standard_unmapped.is_compliant, "{standard_unmapped}");
     assert!(standard_unmapped.failures.is_empty());
 
-    let standard_remapped = validate_bytes_with_profile(
+    let standard_remapped = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-7-standard-remapped.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!standard_remapped.checks_passed, "{standard_remapped}");
+    )
+    .expect("explicit profile validation");
+    assert!(!standard_remapped.is_compliant, "{standard_remapped}");
     assert_eq!(standard_remapped.checks.failed, 1);
     assert_eq!(standard_remapped.failures.len(), 1);
     assert_eq!(standard_remapped.failures[0].rule_id, RULE);

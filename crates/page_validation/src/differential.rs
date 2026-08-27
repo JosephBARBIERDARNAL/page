@@ -14,9 +14,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use wait_timeout::ChildExt;
 
-use crate::{
-    FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
-};
+use crate::{FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_pdf};
 
 pub const PINNED_VERAPDF_VERSION: &str = "1.30.2";
 pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfA1b;
@@ -324,7 +322,7 @@ impl fmt::Display for DifferentialReport {
         writeln!(
             formatter,
             "Local implemented checks passed: {}",
-            self.local_report.checks_passed
+            self.local_report.is_compliant
         )?;
         if self.classification == ComparisonClassification::CoverageGap {
             writeln!(
@@ -392,7 +390,11 @@ impl DifferentialRunner {
     }
 
     pub fn compare_file(&self, path: &Path, limits: &SafetyLimits) -> DifferentialReport {
-        let local_report = validate_file_with_profile(path, self.config.profile.into(), limits);
+        let local_profile = self.config.profile.into();
+        let local_report =
+            validate_pdf(path, Some(local_profile), limits).unwrap_or_else(|error| {
+                ValidationReport::from_validation_error(local_profile, error).with_source(path)
+            });
         if local_report.has_operational_failure() {
             return self.operational_report(
                 path,
@@ -433,7 +435,12 @@ impl DifferentialRunner {
     ) -> Vec<DifferentialReport> {
         let local_reports = paths
             .iter()
-            .map(|path| validate_file_with_profile(path, self.config.profile.into(), limits))
+            .map(|path| {
+                let local_profile = self.config.profile.into();
+                validate_pdf(path, Some(local_profile), limits).unwrap_or_else(|error| {
+                    ValidationReport::from_validation_error(local_profile, error).with_source(path)
+                })
+            })
             .collect::<Vec<_>>();
         let reference_indices = local_reports
             .iter()
@@ -624,7 +631,7 @@ pub fn classify(local: &ValidationReport, reference: &ReferenceResult) -> Compar
             if local_parser_rejected {
                 ComparisonClassification::LocalParserDiscrepancy
             } else {
-                match (reference.compliant, local.checks_passed) {
+                match (reference.compliant, local.is_compliant) {
                     (Some(true), true) => ComparisonClassification::Agreement,
                     (Some(true), false) => ComparisonClassification::LocalFalseNegative,
                     (Some(false), true) => ComparisonClassification::CoverageGap,
@@ -1099,7 +1106,7 @@ mod tests {
         ValidationReport {
             source: None,
             profile: ValidationProfile::PdfA1b,
-            checks_passed: passed,
+            is_compliant: passed,
             preliminary: true,
             checks: ValidationCounts {
                 total: 1,

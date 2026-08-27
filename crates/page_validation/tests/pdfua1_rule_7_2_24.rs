@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -24,8 +24,12 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
             include_bytes!("fixtures/pdfua1-rule-7-2-24-catalog-language-present.pdf") as &[u8],
         ),
     ] {
-        let report =
-            validate_bytes_with_profile(bytes, ValidationProfile::PdfUa1, &SafetyLimits::default());
+        let report = validate_pdf_bytes(
+            bytes,
+            Some(ValidationProfile::PdfUa1),
+            &SafetyLimits::default(),
+        )
+        .expect("explicit profile validation");
         assert!(
             !report
                 .failures
@@ -34,12 +38,13 @@ fn pdfua1_rule_7_2_24_requires_language_for_annotation_contents() {
         );
     }
 
-    let language_missing = validate_bytes_with_profile(
+    let language_missing = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-24-language-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!language_missing.checks_passed, "{language_missing}");
+    )
+    .expect("explicit profile validation");
+    assert!(!language_missing.is_compliant, "{language_missing}");
     assert!(
         language_missing
             .failures

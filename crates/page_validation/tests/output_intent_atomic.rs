@@ -1,4 +1,6 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+};
 
 pub mod common;
 
@@ -86,12 +88,14 @@ fn oversized_decoded_icc_profile_is_an_operational_failure() {
         max_decoded_stream_size: 2048,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes_with_profile(
+    let error = validate_pdf_bytes(
         &common::output_intent_fixture("large_compressed_profile"),
-        ValidationProfile::PdfA1b,
+        Some(ValidationProfile::PdfA1b),
         &limits,
-    );
-    assert_eq!(report.exit_code(), 1);
-    assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
+    )
+    .expect_err("ICC profile must exceed the decoded-size limit");
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::IccDecodeLimit(_))
+    ));
 }

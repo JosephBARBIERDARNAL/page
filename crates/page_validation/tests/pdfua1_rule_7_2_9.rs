@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:9";
 
 #[test]
 fn pdfua1_rule_7_2_9_requires_td_to_be_contained_in_tr() {
-    let contained = validate_bytes_with_profile(
+    let contained = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-9-contained.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(contained.checks_passed, "{contained}");
+    )
+    .expect("explicit profile validation");
+    assert!(contained.is_compliant, "{contained}");
     assert!(contained.failures.is_empty());
 
-    let not_contained = validate_bytes_with_profile(
+    let not_contained = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-2-9-not-contained.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!not_contained.checks_passed, "{not_contained}");
+    )
+    .expect("explicit profile validation");
+    assert!(!not_contained.is_compliant, "{not_contained}");
     assert_eq!(not_contained.checks.failed, 1);
     assert_eq!(not_contained.failures.len(), 1);
     assert_eq!(not_contained.failures[0].rule_id, RULE);

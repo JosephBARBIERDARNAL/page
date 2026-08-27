@@ -7,9 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
 use page_cli::spinner::Spinner;
-use page_validation::{
-    SafetyLimits, ValidationProfile, ValidationReport, validate_file_with_profile,
-};
+use page_validation::{SafetyLimits, ValidationProfile, ValidationReport, validate_pdf};
 
 #[derive(Debug, Args)]
 pub(crate) struct CorpusArgs {
@@ -194,7 +192,7 @@ fn validate_cases(
         return cases
             .iter()
             .map(|case| {
-                let report = validate_file_with_profile(&case.path, case.profile, limits);
+                let report = validate_case(&case.path, case.profile, limits);
                 let actual = report.exit_code();
                 let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                 spinner.set_message(format!(
@@ -219,7 +217,7 @@ fn validate_cases(
                         let Some(case) = cases.get(index) else {
                             break;
                         };
-                        let report = validate_file_with_profile(&case.path, case.profile, limits);
+                        let report = validate_case(&case.path, case.profile, limits);
                         let actual = report.exit_code();
                         let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                         spinner.set_message(format!(
@@ -243,6 +241,18 @@ fn validate_cases(
         .into_iter()
         .map(|(_, actual, report)| (actual, report))
         .collect()
+}
+
+fn validate_case(
+    path: &Path,
+    profile: ValidationProfile,
+    limits: &SafetyLimits,
+) -> ValidationReport {
+    validate_pdf(path, Some(profile), limits).unwrap_or_else(|error| {
+        let mut report = ValidationReport::from_validation_error(profile, error);
+        report.source = Some(path.to_path_buf());
+        report
+    })
 }
 
 fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {

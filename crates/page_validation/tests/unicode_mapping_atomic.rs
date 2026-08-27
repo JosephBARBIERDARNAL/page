@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::{env, fs};
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -31,11 +31,12 @@ const EXCEPTION_CASES: &[&str] = &[
 ];
 
 fn a1_failures(case: &str) -> BTreeSet<String> {
-    validate_bytes_with_profile(
+    validate_pdf_bytes(
         &common::font_fixture(case),
-        ValidationProfile::PdfA1a,
+        Some(ValidationProfile::PdfA1a),
         &SafetyLimits::default(),
     )
+    .expect("explicit profile validation")
     .failures
     .into_iter()
     .map(|failure| failure.rule_id.to_owned())
@@ -66,11 +67,12 @@ fn unicode_mapping_rule_is_profile_specific() {
 
 #[test]
 fn pdfa2_rejects_reserved_tounicode_values() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         &common::font_fixture("unicode_reserved"),
-        ValidationProfile::PdfA2a,
+        Some(ValidationProfile::PdfA2a),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         report
             .failures
@@ -91,11 +93,12 @@ fn pdfa2_and_pdfa3_a_require_actual_text_for_unicode_pua_glyphs() {
         (ValidationProfile::PdfA2a, PDF2_PUA_RULE),
         (ValidationProfile::PdfA3a, PDF3_PUA_RULE),
     ] {
-        let missing = validate_bytes_with_profile(
+        let missing = validate_pdf_bytes(
             &common::font_fixture("unicode_pua_missing_actual_text"),
-            profile,
+            Some(profile),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(
             missing
                 .failures
@@ -104,11 +107,12 @@ fn pdfa2_and_pdfa3_a_require_actual_text_for_unicode_pua_glyphs() {
             "{profile}: PUA glyph without ActualText was accepted: {:?}",
             missing.failures
         );
-        let present = validate_bytes_with_profile(
+        let present = validate_pdf_bytes(
             &common::font_fixture("unicode_pua_with_actual_text"),
-            profile,
+            Some(profile),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(
             !present
                 .failures
@@ -188,11 +192,12 @@ fn unicode_pua_actual_text_value_shapes_match_pinned_verapdf() {
             .failed_rule_ids
             .iter()
             .any(|id| id.to_string() == "ISO 19005-2:2011:6.2.11.7.3:1");
-        let local_failed = validate_bytes_with_profile(
+        let local_failed = validate_pdf_bytes(
             &bytes,
-            ValidationProfile::PdfA2a,
+            Some(ValidationProfile::PdfA2a),
             &SafetyLimits::default(),
         )
+        .expect("explicit profile validation")
         .failures
         .iter()
         .any(|failure| failure.rule_id == PDF2_PUA_RULE);

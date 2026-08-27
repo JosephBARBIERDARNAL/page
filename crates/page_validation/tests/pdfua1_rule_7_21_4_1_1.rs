@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.4.1:1";
 
 #[test]
 fn pdfua1_rule_7_21_4_1_1_requires_rendered_font_programs_to_be_embedded() {
-    let embedded = validate_bytes_with_profile(
+    let embedded = validate_pdf_bytes(
         fixture_bytes("embedded"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(embedded.checks_passed, "{embedded}");
+    )
+    .expect("explicit profile validation");
+    assert!(embedded.is_compliant, "{embedded}");
     assert!(embedded.failures.is_empty(), "{embedded}");
 
-    let unembedded = validate_bytes_with_profile(
+    let unembedded = validate_pdf_bytes(
         fixture_bytes("unembedded"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!unembedded.checks_passed, "{unembedded}");
+    )
+    .expect("explicit profile validation");
+    assert!(!unembedded.is_compliant, "{unembedded}");
     assert_eq!(unembedded.checks.failed, 1, "{unembedded}");
     assert_eq!(unembedded.failures.len(), 1, "{unembedded}");
     assert_eq!(unembedded.failures[0].rule_id, RULE, "{unembedded}");

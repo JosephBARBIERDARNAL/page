@@ -6,7 +6,7 @@ use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
 use page_validation::{
-    FailureCategory, SafetyLimits, ValidationProfile, validate_bytes_with_profile,
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
 };
 
 const RULE: &str = "PDFA1A-STRUCT-TREE-ROOT-001";
@@ -24,11 +24,12 @@ fn structure_tree_root_cases_are_distinguished() {
         ("struct_tree_unsupported_shape", false),
         ("struct_tree_parent_child", false),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            ValidationProfile::PdfA1a,
+            Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfA1a.implemented_check_count(),
@@ -54,11 +55,12 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
         ("struct_tree_role_map_long_cycle", true),
         ("struct_tree_role_map_acyclic_chain", false),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            ValidationProfile::PdfA1a,
+            Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfA1a.implemented_check_count(),
@@ -85,11 +87,12 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
         ("struct_tree_role_map_wrong_type", true),
         ("struct_tree_role_map_invalid_target", true),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            ValidationProfile::PdfA1a,
+            Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfA1a.implemented_check_count(),
@@ -109,11 +112,12 @@ fn non_standard_structure_types_must_resolve_to_standard_types() {
 
 #[test]
 fn pdfa2_rejects_standard_role_map_remaps() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_standard_remap"),
-        ValidationProfile::PdfA2a,
+        Some(ValidationProfile::PdfA2a),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         report
             .failures
@@ -128,30 +132,27 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
         max_object_count: 1,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes_with_profile(
+    let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_self_cycle"),
-        ValidationProfile::PdfA1a,
+        Some(ValidationProfile::PdfA1a),
         &limits,
-    );
-    assert!(!report.failures.iter().any(|failure| {
-        matches!(
-            failure.rule_id.as_str(),
-            "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001" | "PDFA1A-STRUCT-TREE-ROLE-MAP-001"
-        )
-    }));
+    )
+    .expect_err("the object limit must stop the traversal");
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::TooManyObjects { limit: 1, .. })
+    ));
 }
 
 #[test]
 fn cyclic_structure_tree_is_an_operational_failure() {
-    let report = validate_bytes_with_profile(
+    let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_cyclic"),
-        ValidationProfile::PdfA1a,
+        Some(ValidationProfile::PdfA1a),
         &SafetyLimits::default(),
-    );
-    assert_eq!(report.exit_code(), 1);
-    assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
-    assert_eq!(report.failures[0].category, FailureCategory::Operational);
+    )
+    .expect_err("cyclic structure tree must exceed the reference-depth limit");
+    assert!(matches!(error, ValidationError::Pdf(_)));
 }
 
 #[test]

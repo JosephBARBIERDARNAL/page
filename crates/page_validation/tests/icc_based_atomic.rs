@@ -1,4 +1,6 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+};
 
 pub mod common;
 
@@ -102,7 +104,7 @@ fn multiple_invalid_profiles_are_aggregated_without_an_object_id() {
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].object_id.is_none());
-    assert!(failures[0].message.contains("; "));
+    assert!(failures[0].message.contains("ICCBased profile"));
 }
 
 #[test]
@@ -111,14 +113,16 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
         max_decoded_stream_size: 2048,
         ..SafetyLimits::default()
     };
-    let report = validate_bytes_with_profile(
+    let error = validate_pdf_bytes(
         &common::icc_based_fixture("large_compressed_profile"),
-        ValidationProfile::PdfA1b,
+        Some(ValidationProfile::PdfA1b),
         &limits,
-    );
-    assert_eq!(report.exit_code(), 1);
-    assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001");
+    )
+    .expect_err("ICC profile must exceed the decoded-size limit");
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::IccDecodeLimit(_))
+    ));
 }
 
 #[test]
@@ -128,13 +132,15 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         ..SafetyLimits::default()
     };
     for case in ["cyclic_indexed", "deep_indexed"] {
-        let report = validate_bytes_with_profile(
+        let error = validate_pdf_bytes(
             &common::icc_based_fixture(case),
-            ValidationProfile::PdfA1b,
+            Some(ValidationProfile::PdfA1b),
             &limits,
+        )
+        .expect_err("{case} must exceed the configured reference depth");
+        assert!(
+            matches!(error, ValidationError::Pdf(PdfError::ReferenceDepth(4))),
+            "{case}: {error:?}"
         );
-        assert_eq!(report.exit_code(), 1, "{case}: {report:#?}");
-        assert_eq!(report.failures.len(), 1, "{case}: {report:#?}");
-        assert_eq!(report.failures[0].rule_id, "RESOURCE-LIMIT-001", "{case}");
     }
 }

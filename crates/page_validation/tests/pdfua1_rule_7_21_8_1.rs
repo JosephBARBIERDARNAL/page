@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.8:1";
 
 #[test]
 fn pdfua1_rule_7_21_8_1_rejects_notdef_references_even_in_rendering_mode_3() {
-    let matching = validate_bytes_with_profile(
+    let matching = validate_pdf_bytes(
         fixture_bytes("matching"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(matching.checks_passed, "{matching}");
+    )
+    .expect("explicit profile validation");
+    assert!(matching.is_compliant, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let notdef = validate_bytes_with_profile(
+    let notdef = validate_pdf_bytes(
         fixture_bytes("notdef"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!notdef.checks_passed, "{notdef}");
+    )
+    .expect("explicit profile validation");
+    assert!(!notdef.is_compliant, "{notdef}");
     assert!(
         notdef
             .failures

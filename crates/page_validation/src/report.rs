@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::error::{PdfError, ValidationError};
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
@@ -62,7 +63,7 @@ pub(crate) struct RuleFailure {
 
 /// A tally of how many implemented checks ran against a document and how many of those passed or failed.
 ///
-/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `checks_passed` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
 ///
 /// ## Examples
 ///
@@ -85,22 +86,23 @@ pub struct ValidationCounts {
 
 /// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many checks ran, and every recorded `ValidationFailure`.
 ///
-/// `checks_passed` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
+/// `is_compliant` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
 ///
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+/// use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 ///
 /// let limits = SafetyLimits::default();
-/// let report = validate_bytes_with_profile(b"not a pdf", ValidationProfile::PdfA1b, &limits);
-/// assert_eq!(report.exit_code(), 2);
+/// let error = validate_pdf_bytes(b"not a pdf", Some(ValidationProfile::PdfA1b), &limits)
+///     .expect_err("malformed input");
+/// assert!(matches!(error, page_validation::ValidationError::Pdf(_)));
 /// ```
 #[derive(Clone, Debug, Serialize)]
 pub struct ValidationReport {
     pub source: Option<PathBuf>,
     pub profile: ValidationProfile,
-    pub checks_passed: bool,
+    pub is_compliant: bool,
     pub preliminary: bool,
     pub checks: ValidationCounts,
     pub document: Option<PdfDocument>,
@@ -133,6 +135,56 @@ impl ValidationReport {
         Self::single_failure(profile, rule_id, message, FailureCategory::Conformance)
     }
 
+    /// Converts a terminal validation error into a one-failure report with the matching category.
+    ///
+    /// Parser rejections become parser failures, configured resource limits become operational failures, and the PDF/A-1 indirect-object limit becomes a conformance failure.
+    #[must_use]
+    pub fn from_validation_error(profile: ValidationProfile, error: ValidationError) -> Self {
+        match error {
+            ValidationError::UnsupportedProfile(profile) => Self::operational_failure(
+                profile,
+                "PROFILE-001",
+                format!("validation profile {profile} is not implemented yet"),
+            ),
+            ValidationError::InputIo(error) => {
+                Self::operational_failure(profile, "INPUT-IO-001", error.to_string())
+            }
+            ValidationError::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
+                let rule_id = match profile {
+                    ValidationProfile::PdfA1a | ValidationProfile::PdfA1b => {
+                        "PDFA1B-INDIRECT-OBJECT-COUNT-001"
+                    }
+                    ValidationProfile::PdfA2a => "PDFA2A-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA2b => "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA2u => "PDFA2U-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3a => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3b => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA3u => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+                    ValidationProfile::PdfA4
+                    | ValidationProfile::PdfA4e
+                    | ValidationProfile::PdfA4f
+                    | ValidationProfile::PdfUa1
+                    | ValidationProfile::PdfUa2 => "PDF-INDIRECT-OBJECT-COUNT-001",
+                };
+                Self::conformance_failure(
+                    profile,
+                    rule_id,
+                    format!(
+                        "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
+                    ),
+                )
+            }
+            ValidationError::Pdf(error) if error.is_safety_limit() => {
+                Self::operational_failure(profile, "RESOURCE-LIMIT-001", error.to_string())
+            }
+            ValidationError::Pdf(error) => Self::parse_failure(profile, error.to_string()),
+            error @ (ValidationError::MissingProfileDeclaration
+            | ValidationError::InvalidProfileDeclaration(_)) => {
+                Self::operational_failure(profile, "PROFILE-001", error.to_string())
+            }
+        }
+    }
+
     fn single_failure(
         profile: ValidationProfile,
         rule_id: &'static str,
@@ -142,7 +194,7 @@ impl ValidationReport {
         Self {
             source: None,
             profile,
-            checks_passed: false,
+            is_compliant: false,
             preliminary: false,
             checks: ValidationCounts {
                 total: 1,
@@ -171,7 +223,7 @@ impl ValidationReport {
     pub fn exit_code(&self) -> i32 {
         if self.has_operational_failure() {
             1
-        } else if self.checks_passed {
+        } else if self.is_compliant {
             0
         } else {
             2
@@ -187,7 +239,7 @@ impl fmt::Display for ValidationReport {
         writeln!(
             output,
             "Result: {}",
-            if self.checks_passed {
+            if self.is_compliant {
                 "no failures in implemented checks"
             } else {
                 "failed"
@@ -217,5 +269,41 @@ impl fmt::Display for ValidationReport {
             writeln!(output)?;
         }
         formatter.write_str(&output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ValidationReport;
+    use crate::{PdfError, ValidationError, ValidationProfile};
+
+    #[test]
+    fn indirect_object_count_errors_use_the_active_profile_rule() {
+        let cases = [
+            (
+                ValidationProfile::PdfA1b,
+                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA2b,
+                "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA3u,
+                "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (ValidationProfile::PdfUa1, "PDF-INDIRECT-OBJECT-COUNT-001"),
+        ];
+
+        for (profile, expected_rule_id) in cases {
+            let report = ValidationReport::from_validation_error(
+                profile,
+                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
+                    actual: 8_388_608,
+                    limit: 8_388_607,
+                }),
+            );
+            assert_eq!(report.failures[0].rule_id, expected_rule_id);
+        }
     }
 }

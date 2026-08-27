@@ -4,7 +4,7 @@ use page_validation::SafetyLimits;
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{ValidationProfile, validate_bytes_with_profile};
+use page_validation::{ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -414,11 +414,12 @@ const CASES: &[(&str, &[&str])] = &[
 
 #[test]
 fn pdfa2_rejects_undefined_xmp_properties_with_the_profile_rule() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         &common::metadata_fixture("predefined_unknown_property"),
-        ValidationProfile::PdfA2b,
+        Some(ValidationProfile::PdfA2b),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         report
             .failures
@@ -459,11 +460,12 @@ fn pdfa_1a_identification_cases_match_local_predicate() {
         ("missing_conformance", Some("PDFA1A-ID-CONFORMANCE-001")),
         ("lowercase_conformance", Some("PDFA1A-ID-CONFORMANCE-001")),
     ] {
-        let report = page_validation::validate_bytes_with_profile(
+        let report = page_validation::validate_pdf_bytes(
             &common::metadata_fixture(case),
-            page_validation::ValidationProfile::PdfA1a,
+            Some(page_validation::ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         match expected {
             Some(rule) => assert!(
                 report
@@ -491,11 +493,12 @@ fn pdfa_1a_identification_cases_match_local_predicate() {
         .position(|window| window == from)
         .expect("aliased conformance");
     aliased_a[at + from.len() - 2] = b'A';
-    let aliased_a = page_validation::validate_bytes_with_profile(
+    let aliased_a = page_validation::validate_pdf_bytes(
         &aliased_a,
-        page_validation::ValidationProfile::PdfA1a,
+        Some(page_validation::ValidationProfile::PdfA1a),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         aliased_a
             .failures
@@ -509,11 +512,12 @@ fn pdfa_1a_identification_cases_match_local_predicate() {
             .any(|failure| failure.rule_id == "PDFA1B-ID-CONFORMANCE-PREFIX-001")
     );
 
-    let duplicate = page_validation::validate_bytes_with_profile(
+    let duplicate = page_validation::validate_pdf_bytes(
         &common::metadata_fixture("duplicate_identification"),
-        page_validation::ValidationProfile::PdfA1a,
+        Some(page_validation::ValidationProfile::PdfA1a),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         duplicate
             .failures
@@ -678,7 +682,8 @@ fn pdfa_2_and_3_reject_non_utf8_xmp_packages() {
         ValidationProfile::PdfA3b,
         ValidationProfile::PdfA3u,
     ] {
-        let report = validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default());
+        let report = validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            .expect("explicit profile validation");
         let expected = match profile {
             ValidationProfile::PdfA2a => "PDFA2A-XMP-ENCODING-001",
             ValidationProfile::PdfA2b => "PDFA2B-XMP-ENCODING-001",

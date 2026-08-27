@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.6:1";
 
 #[test]
 fn pdfua1_rule_7_21_6_1_requires_non_symbolic_truetype_cmaps() {
-    let matching = validate_bytes_with_profile(
+    let matching = validate_pdf_bytes(
         fixture_bytes("matching"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(matching.checks_passed, "{matching}");
+    )
+    .expect("explicit profile validation");
+    assert!(matching.is_compliant, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let missing = validate_bytes_with_profile(
+    let missing = validate_pdf_bytes(
         fixture_bytes("missing"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!missing.checks_passed, "{missing}");
+    )
+    .expect("explicit profile validation");
+    assert!(!missing.is_compliant, "{missing}");
     assert_eq!(missing.checks.failed, 2, "{missing}");
     assert_eq!(missing.failures.len(), 2, "{missing}");
     assert!(

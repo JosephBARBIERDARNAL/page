@@ -2,7 +2,7 @@ pub mod common;
 
 use std::env;
 
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 const RULE: &str = "PDFA1A-LANG-001";
 
@@ -26,11 +26,12 @@ fn validates_catalog_structure_and_property_list_language_values() {
         ("lang_property_wrong_type", false),
         ("lang_property_null", false),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            ValidationProfile::PdfA1a,
+            Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert_eq!(
             report.checks.total,
             ValidationProfile::PdfA1a.implemented_check_count(),
@@ -87,11 +88,12 @@ fn language_fixtures_match_pinned_verapdf() {
             .failed_rule_ids
             .iter()
             .any(|rule| rule.to_string() == reference_rule);
-        let local = validate_bytes_with_profile(
+        let local = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            ValidationProfile::PdfA1a,
+            Some(ValidationProfile::PdfA1a),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert_eq!(
             failed,
             local.failures.iter().any(|failure| failure.rule_id == RULE),

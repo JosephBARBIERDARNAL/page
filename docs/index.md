@@ -2,7 +2,7 @@
 
 `page` is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust.
 
-You can currently use it as a [CLI](api/cli/quick-start.md) or via [Rust](api/rust/quick-start.md)
+You can currently use it as a [CLI](api/cli.md) or via [Rust](api/rust.md)
 
 ## Features
 

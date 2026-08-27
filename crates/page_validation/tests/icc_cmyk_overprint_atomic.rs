@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -26,7 +26,8 @@ fn icc_cmyk_overprint_matches_pinned_verapdf_when_opted_in() {
         fs::write(&path, &bytes).expect("write fixture");
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
             assert_eq!(
-                validate_bytes_with_profile(&bytes, profile, &SafetyLimits::default())
+                validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+                    .expect("explicit profile validation")
                     .failures
                     .iter()
                     .any(|failure| failure.rule_id.ends_with("ICCBased-CMYK-OVERPRINT-001")),

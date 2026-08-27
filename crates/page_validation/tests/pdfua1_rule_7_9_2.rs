@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.9:2";
 
 #[test]
 fn pdfua1_rule_7_9_2_requires_unique_note_ids() {
-    let unique = validate_bytes_with_profile(
+    let unique = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-9-2-unique.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(unique.checks_passed, "{unique}");
+    )
+    .expect("explicit profile validation");
+    assert!(unique.is_compliant, "{unique}");
     assert!(unique.failures.is_empty());
 
-    let duplicate = validate_bytes_with_profile(
+    let duplicate = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-9-2-duplicate.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!duplicate.checks_passed, "{duplicate}");
+    )
+    .expect("explicit profile validation");
+    assert!(!duplicate.is_compliant, "{duplicate}");
     assert_eq!(duplicate.checks.failed, 1, "{duplicate}");
     assert_eq!(duplicate.failures.len(), 1, "{duplicate}");
     assert_eq!(duplicate.failures[0].rule_id, RULE, "{duplicate}");

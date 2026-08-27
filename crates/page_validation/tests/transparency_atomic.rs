@@ -5,7 +5,7 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{SafetyLimits, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, validate_pdf_bytes};
 
 const EXTGSTATE_SMASK: &str = "PDFA1B-EXTGSTATE-SMASK-001";
 const XOBJECT_SMASK: &str = "PDFA1B-XOBJECT-SMASK-001";
@@ -75,11 +75,12 @@ fn pdfa_2_requires_page_group_cs_for_used_transparency_without_output_intent() {
             "PDFA3B-TRANSPARENCY-GROUP-CS-001",
         ),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::graphics_fixture("extgstate_transparency_no_output_intent"),
-            profile,
+            Some(profile),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(
             report
                 .failures

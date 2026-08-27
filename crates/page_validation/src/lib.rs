@@ -43,6 +43,6 @@ pub use model::{
 };
 pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
 pub use validation::{
-    ValidationProfile, validate_bytes, validate_bytes_with_profile, validate_file,
-    validate_file_with_profile,
+    ComplianceResult, ValidationProfile, is_pdf_compliant, is_pdf_compliant_bytes, validate_pdf,
+    validate_pdf_bytes,
 };

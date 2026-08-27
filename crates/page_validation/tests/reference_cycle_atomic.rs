@@ -6,21 +6,25 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    FailureCategory, PdfDocument, SafetyLimits, ValidationProfile, validate_bytes_with_profile,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {
-    let report =
-        validate_bytes_with_profile(bytes, ValidationProfile::PdfA1b, &SafetyLimits::default());
-    assert_eq!(
-        report.exit_code(),
-        1,
-        "expected an operational RESOURCE-LIMIT-001 failure, got: {report:?}"
+    let error = validate_pdf_bytes(
+        bytes,
+        Some(ValidationProfile::PdfA1b),
+        &SafetyLimits::default(),
+    )
+    .expect_err("reference cycle must exceed the configured reference depth");
+    assert!(
+        matches!(
+            error,
+            ValidationError::Pdf(PdfError::ReferenceDepth(
+                SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
+            ))
+        ),
+        "{error:?}"
     );
-    assert_eq!(report.failures.len(), 1);
-    let failure = report.failures.first().expect("resource-limit failure");
-    assert_eq!(failure.rule_id, "RESOURCE-LIMIT-001");
-    assert_eq!(failure.category, FailureCategory::Operational);
 }
 
 #[test]

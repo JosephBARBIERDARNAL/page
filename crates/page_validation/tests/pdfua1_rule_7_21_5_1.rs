@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,20 +18,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.5:1";
 
 #[test]
 fn pdfua1_rule_7_21_5_1_requires_consistent_embedded_font_widths() {
-    let matching = validate_bytes_with_profile(
+    let matching = validate_pdf_bytes(
         fixture_bytes("matching"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(matching.checks_passed, "{matching}");
+    )
+    .expect("explicit profile validation");
+    assert!(matching.is_compliant, "{matching}");
     assert!(matching.failures.is_empty(), "{matching}");
 
-    let mismatched = validate_bytes_with_profile(
+    let mismatched = validate_pdf_bytes(
         fixture_bytes("mismatched"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!mismatched.checks_passed, "{mismatched}");
+    )
+    .expect("explicit profile validation");
+    assert!(!mismatched.is_compliant, "{mismatched}");
     assert_eq!(mismatched.checks.failed, 1, "{mismatched}");
     assert_eq!(mismatched.failures.len(), 1, "{mismatched}");
     assert_eq!(mismatched.failures[0].rule_id, RULE, "{mismatched}");

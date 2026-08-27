@@ -1,14 +1,15 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 #[test]
 fn typst_pdfa_1b_fixture_passes_all_implemented_checks() {
-    let report = validate_bytes_with_profile(
+    let report = validate_pdf_bytes(
         include_bytes!("fixtures/typst-pdfa-1b.pdf"),
-        ValidationProfile::PdfA1b,
+        Some(ValidationProfile::PdfA1b),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
 
-    assert!(report.checks_passed, "{report}");
+    assert!(report.is_compliant, "{report}");
     assert!(report.failures.is_empty(), "{report}");
     let total = ValidationProfile::PdfA1b.implemented_check_count();
     assert_eq!(report.checks.total, total);

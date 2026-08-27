@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.5:1";
 
 #[test]
 fn pdfua1_rule_7_5_1_requires_scope_when_td_headers_are_not_determinable() {
-    let valid = validate_bytes_with_profile(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-5-1-scope-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(valid.checks_passed, "{valid}");
+    )
+    .expect("explicit profile validation");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty());
 
-    let invalid = validate_bytes_with_profile(
+    let invalid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-5-1-scope-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!invalid.checks_passed, "{invalid}");
+    )
+    .expect("explicit profile validation");
+    assert!(!invalid.is_compliant, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert_eq!(invalid.failures.len(), 1, "{invalid}");
     assert_eq!(invalid.failures[0].rule_id, RULE, "{invalid}");

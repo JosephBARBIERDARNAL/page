@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:5:1";
 
 #[test]
 fn pdfua1_rule_5_1_fixtures_enforce_identification_schema_presence() {
-    let present = validate_bytes_with_profile(
+    let present = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-1-present.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(present.checks_passed, "{present}");
+    )
+    .expect("explicit profile validation");
+    assert!(present.is_compliant, "{present}");
     assert!(present.failures.is_empty());
 
-    let missing = validate_bytes_with_profile(
+    let missing = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-5-1-missing.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!missing.checks_passed, "{missing}");
+    )
+    .expect("explicit profile validation");
+    assert!(!missing.is_compliant, "{missing}");
     assert_eq!(missing.checks.failed, 2);
     assert_eq!(missing.failures.len(), 2);
     assert!(

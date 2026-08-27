@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.11:1";
 
 #[test]
 fn pdfua1_rule_7_11_1_requires_non_empty_f_and_uf_keys() {
-    let valid = validate_bytes_with_profile(
+    let valid = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-11-1-valid.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(valid.checks_passed, "{valid}");
+    )
+    .expect("explicit profile validation");
+    assert!(valid.is_compliant, "{valid}");
     assert!(valid.failures.is_empty(), "{valid}");
 
-    let empty_uf = validate_bytes_with_profile(
+    let empty_uf = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-11-1-empty-uf.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!empty_uf.checks_passed, "{empty_uf}");
+    )
+    .expect("explicit profile validation");
+    assert!(!empty_uf.is_compliant, "{empty_uf}");
     assert_eq!(empty_uf.checks.failed, 1, "{empty_uf}");
     assert_eq!(empty_uf.failures.len(), 1, "{empty_uf}");
     assert_eq!(empty_uf.failures[0].rule_id, RULE, "{empty_uf}");

@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -20,11 +20,12 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
             "tu_present_catalog_language",
         ),
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             &common::pdfua1_rule_7_2_25_fixture(case),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
+        )
+        .expect("explicit profile validation");
         assert!(
             !report
                 .failures
@@ -33,12 +34,13 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
         );
     }
 
-    let language_missing = validate_bytes_with_profile(
+    let language_missing = validate_pdf_bytes(
         &common::pdfua1_rule_7_2_25_fixture("tu_present_language_missing"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!language_missing.checks_passed, "{language_missing}");
+    )
+    .expect("explicit profile validation");
+    assert!(!language_missing.is_compliant, "{language_missing}");
     assert!(
         language_missing
             .failures
@@ -47,11 +49,12 @@ fn pdfua1_rule_7_2_25_requires_language_for_form_field_tu() {
     );
 
     let tagged_widget_bytes = common::pdfua1_rule_7_18_1_3_fixture("tu");
-    let tagged_widget = validate_bytes_with_profile(
+    let tagged_widget = validate_pdf_bytes(
         &tagged_widget_bytes,
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
+    )
+    .expect("explicit profile validation");
     assert!(
         !tagged_widget
             .failures

@@ -171,20 +171,21 @@ pub(crate) struct InspectionSummary {
     pub(crate) unicode_names: crate::unicode_names::UnicodeNameSummary,
 }
 
+pub(crate) struct ValidationPreparation {
+    document: Document,
+    pages: Option<Vec<page_tree::PageEntry>>,
+    normalized: PdfDocument,
+}
+
 impl PdfDocument {
     pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
-        let document = load_document(bytes, limits)?;
-        let (_, encrypted_content_unavailable) = encryption_status(&document);
-        if !encrypted_content_unavailable {
-            enforce_object_limit(&document, limits)?;
-        }
-        Self::normalize(&document, limits, None)
+        Ok(Self::prepare_for_validation(bytes, limits)?.normalized)
     }
 
-    pub(crate) fn from_bytes_with_inspections(
+    pub(crate) fn prepare_for_validation(
         bytes: &[u8],
         limits: &SafetyLimits,
-    ) -> Result<(Self, InspectionSummary), PdfError> {
+    ) -> Result<ValidationPreparation, PdfError> {
         let document = load_document(bytes, limits)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
         if !encrypted_content_unavailable {
@@ -199,78 +200,18 @@ impl PdfDocument {
             })
         };
         let normalized = Self::normalize(&document, limits, pages.as_ref().map(Vec::len))?;
-        let syntax = crate::syntax::inspect(bytes, &document, limits)?;
-        let header = syntax.header.clone();
-        let inspections = if normalized.encrypted_content_unavailable {
-            InspectionSummary {
-                header,
-                content: crate::content_support::ContentExecutionSummary::default(),
-                font_embedding: FontEmbeddingSummary::default(),
-                icc_based: crate::icc_based::IccBasedSummary::default(),
-                xobjects: crate::xobject::XObjectSummary::default(),
-                graphics: crate::graphics::GraphicsSummary::default(),
-                annotations: crate::annotations::AnnotationSummary::default(),
-                actions: crate::actions::ActionSummary::default(),
-                forms: crate::forms::FormSummary::default(),
-                document_features: crate::document_features::DocumentFeatureSummary::default(),
-                object_limits: crate::object_limits::ObjectLimitsSummary::default(),
-                stream_safety: crate::stream_safety::StreamSafetySummary::default(),
-                unicode_names: crate::unicode_names::UnicodeNameSummary::default(),
-            }
-        } else {
-            // Computed once and shared: every inspector below that walks the
-            // page tree (icc_based, graphics, annotations, actions, forms,
-            // font_embedding) previously called `document.get_pages()`
-            // independently, repeating the same page-tree traversal up to
-            // six times per document. `page_tree::collect_pages` also
-            // replaces `lopdf`'s own bound (a hardcoded depth and object-count
-            // iteration budget) with this crate's `SafetyLimits`, and
-            // surfaces a cyclic or overlong page tree as `PdfError`
-            // instead of silently truncating the page list.
-            let pages = pages.unwrap_or_default();
-            // One shared execution establishes the exact resource population
-            // used by colour, XObject, graphics, and font rule predicates.
-            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
-            let mut content_cache = crate::content_support::ContentCache::new();
-            let content = crate::content_support::execute_content(
-                &document,
-                &pages,
-                &mut content_cache,
-                &document_features.tagged_text_language,
-                limits,
-            )?;
-            let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &content, limits)?;
-            let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
-            let actions = crate::actions::inspect(&document, &pages, limits)?;
-            let forms = crate::forms::inspect(&document, &pages, limits)?;
-            let annotations = crate::annotations::inspect(
-                &document,
-                &pages,
-                document_features.catalog_contains_lang,
-                limits,
-            )?;
-            let object_limits = syntax.object_limits.clone();
-            let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
-            let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
-            let font_embedding = font_embedding::inspect(&document, &content, limits)?;
-            InspectionSummary {
-                header,
-                content,
-                font_embedding,
-                icc_based,
-                xobjects,
-                graphics,
-                annotations,
-                actions,
-                forms,
-                document_features,
-                object_limits,
-                stream_safety,
-                unicode_names,
-            }
-        };
-        Ok((normalized, inspections))
+        Ok(ValidationPreparation {
+            document,
+            pages,
+            normalized,
+        })
+    }
+
+    pub(crate) fn from_bytes_with_inspections(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<(Self, InspectionSummary), PdfError> {
+        Self::prepare_for_validation(bytes, limits)?.into_inspections(bytes, limits)
     }
 
     fn normalize(
@@ -355,6 +296,114 @@ impl PdfDocument {
             fonts: summarize_fonts(document, limits)?,
             object_count: document.objects.len(),
         })
+    }
+}
+
+impl ValidationPreparation {
+    pub(crate) fn document(&self) -> &PdfDocument {
+        &self.normalized
+    }
+
+    pub(crate) fn with_syntax(
+        self,
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<(Self, crate::syntax::SyntaxSummary), PdfError> {
+        let syntax = crate::syntax::inspect(bytes, &self.document, limits)?;
+        Ok((self, syntax))
+    }
+
+    pub(crate) fn into_inspections(
+        self,
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
+        let (preparation, syntax) = self.with_syntax(bytes, limits)?;
+        preparation.into_inspections_with_syntax(bytes, limits, syntax)
+    }
+
+    pub(crate) fn into_inspections_with_syntax(
+        self,
+        bytes: &[u8],
+        limits: &SafetyLimits,
+        syntax: crate::syntax::SyntaxSummary,
+    ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
+        let Self {
+            document,
+            pages,
+            normalized,
+        } = self;
+        let header = syntax.header.clone();
+        let inspections = if normalized.encrypted_content_unavailable {
+            InspectionSummary {
+                header,
+                content: crate::content_support::ContentExecutionSummary::default(),
+                font_embedding: FontEmbeddingSummary::default(),
+                icc_based: crate::icc_based::IccBasedSummary::default(),
+                xobjects: crate::xobject::XObjectSummary::default(),
+                graphics: crate::graphics::GraphicsSummary::default(),
+                annotations: crate::annotations::AnnotationSummary::default(),
+                actions: crate::actions::ActionSummary::default(),
+                forms: crate::forms::FormSummary::default(),
+                document_features: crate::document_features::DocumentFeatureSummary::default(),
+                object_limits: crate::object_limits::ObjectLimitsSummary::default(),
+                stream_safety: crate::stream_safety::StreamSafetySummary::default(),
+                unicode_names: crate::unicode_names::UnicodeNameSummary::default(),
+            }
+        } else {
+            // Computed once and shared: every inspector below that walks the
+            // page tree (icc_based, graphics, annotations, actions, forms,
+            // font_embedding) previously called `document.get_pages()`
+            // independently, repeating the same page-tree traversal up to
+            // six times per document. `page_tree::collect_pages` also
+            // replaces `lopdf`'s own bound (a hardcoded depth and object-count
+            // iteration budget) with this crate's `SafetyLimits`, and
+            // surfaces a cyclic or overlong page tree as `PdfError`
+            // instead of silently truncating the page list.
+            let pages = pages.unwrap_or_default();
+            // One shared execution establishes the exact resource population
+            // used by colour, XObject, graphics, and font rule predicates.
+            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
+            let mut content_cache = crate::content_support::ContentCache::new();
+            let content = crate::content_support::execute_content(
+                &document,
+                &pages,
+                &mut content_cache,
+                &document_features.tagged_text_language,
+                limits,
+            )?;
+            let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
+            let xobjects = crate::xobject::inspect(&document, &content, limits)?;
+            let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
+            let actions = crate::actions::inspect(&document, &pages, limits)?;
+            let forms = crate::forms::inspect(&document, &pages, limits)?;
+            let annotations = crate::annotations::inspect(
+                &document,
+                &pages,
+                document_features.catalog_contains_lang,
+                limits,
+            )?;
+            let object_limits = syntax.object_limits.clone();
+            let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+            let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
+            let font_embedding = font_embedding::inspect(&document, &content, limits)?;
+            InspectionSummary {
+                header,
+                content,
+                font_embedding,
+                icc_based,
+                xobjects,
+                graphics,
+                annotations,
+                actions,
+                forms,
+                document_features,
+                object_limits,
+                stream_safety,
+                unicode_names,
+            }
+        };
+        Ok((normalized, inspections))
     }
 }
 

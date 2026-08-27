@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -13,20 +13,22 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:5";
 
 #[test]
 fn pdfua1_rule_7_1_5_requires_non_standard_types_to_resolve_to_standard_types() {
-    let indirect_mapping = validate_bytes_with_profile(
+    let indirect_mapping = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-5-indirect-mapping.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(indirect_mapping.checks_passed, "{indirect_mapping}");
+    )
+    .expect("explicit profile validation");
+    assert!(indirect_mapping.is_compliant, "{indirect_mapping}");
     assert!(indirect_mapping.failures.is_empty());
 
-    let unmapped = validate_bytes_with_profile(
+    let unmapped = validate_pdf_bytes(
         include_bytes!("fixtures/pdfua1-rule-7-1-5-unmapped.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!unmapped.checks_passed, "{unmapped}");
+    )
+    .expect("explicit profile validation");
+    assert!(!unmapped.is_compliant, "{unmapped}");
     assert_eq!(unmapped.checks.failed, 1);
     assert_eq!(unmapped.failures.len(), 1);
     assert_eq!(unmapped.failures[0].rule_id, RULE);

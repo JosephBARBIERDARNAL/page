@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -18,21 +18,23 @@ const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.3.3:3";
 
 #[test]
 fn pdfua1_rule_7_21_3_3_3_allows_table_118_cmaps_and_rejects_other_references() {
-    let allowed = validate_bytes_with_profile(
+    let allowed = validate_pdf_bytes(
         fixture_bytes("allowed"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(allowed.checks_passed, "{allowed}");
+    )
+    .expect("explicit profile validation");
+    assert!(allowed.is_compliant, "{allowed}");
     assert!(allowed.failures.is_empty(), "{allowed}");
 
     for fixture in ["embedded_unknown", "dictionary_unknown"] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
-        assert!(!report.checks_passed, "{fixture}: {report}");
+        )
+        .expect("explicit profile validation");
+        assert!(!report.is_compliant, "{fixture}: {report}");
         assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
         assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
         assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");

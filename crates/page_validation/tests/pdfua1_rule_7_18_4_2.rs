@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_bytes_with_profile};
+use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -22,21 +22,23 @@ fn pdfua1_rule_7_18_4_2_requires_roleless_forms_to_have_one_widget_object_refere
         "pdfua1-rule-7-18-4-2-allowed.pdf",
         "pdfua1-rule-7-18-4-2-role-attribute.pdf",
     ] {
-        let report = validate_bytes_with_profile(
+        let report = validate_pdf_bytes(
             fixture_bytes(fixture),
-            ValidationProfile::PdfUa1,
+            Some(ValidationProfile::PdfUa1),
             &SafetyLimits::default(),
-        );
-        assert!(report.checks_passed, "{fixture}: {report}");
+        )
+        .expect("explicit profile validation");
+        assert!(report.is_compliant, "{fixture}: {report}");
         assert!(report.failures.is_empty(), "{fixture}: {report}");
     }
 
-    let invalid = validate_bytes_with_profile(
+    let invalid = validate_pdf_bytes(
         fixture_bytes("pdfua1-rule-7-18-4-2-invalid.pdf"),
-        ValidationProfile::PdfUa1,
+        Some(ValidationProfile::PdfUa1),
         &SafetyLimits::default(),
-    );
-    assert!(!invalid.checks_passed, "{invalid}");
+    )
+    .expect("explicit profile validation");
+    assert!(!invalid.is_compliant, "{invalid}");
     assert_eq!(invalid.checks.failed, 1, "{invalid}");
     assert_eq!(invalid.failures.len(), 1, "{invalid}");
     assert_eq!(invalid.failures[0].rule_id, RULE, "{invalid}");
