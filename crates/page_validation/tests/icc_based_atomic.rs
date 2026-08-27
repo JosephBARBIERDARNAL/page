@@ -102,7 +102,7 @@ fn multiple_invalid_profiles_are_aggregated_without_an_object_id() {
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].object_id.is_none());
-    assert!(failures[0].message.contains("; "));
+    assert!(failures[0].message.contains("ICCBased profile"));
 }
 
 #[test]

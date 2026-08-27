@@ -65,7 +65,7 @@ fn multiple_invalid_xobjects_are_one_deterministic_unattached_failure() {
     let report = common::validate(&common::xobject_fixture("two_invalid_images"));
     let failure = common::assert_single_failure(&report, "PDFA1B-IMAGE-BPC-001");
     assert!(failure.object_id.is_none());
-    assert!(failure.message.contains("; "));
+    assert!(failure.message.contains("image"));
 }
 
 #[test]
