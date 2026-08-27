@@ -5,7 +5,9 @@ use std::{env, fs};
 use page_validation::differential::{
     ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
-use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes};
+use page_validation::{
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+};
 
 const RULE: &str = "PDFA1A-STRUCT-TREE-ROOT-001";
 

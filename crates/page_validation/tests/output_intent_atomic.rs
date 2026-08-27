@@ -1,4 +1,6 @@
-use page_validation::{PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes};
+use page_validation::{
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+};
 
 pub mod common;
 
