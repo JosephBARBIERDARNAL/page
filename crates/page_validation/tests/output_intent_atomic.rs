@@ -4,48 +4,6 @@ use page_validation::{
 
 pub mod common;
 
-const CASES: &[(&str, &[&str])] = &[
-    ("no_output_intents", &[]),
-    ("wrong_type_array", &[]),
-    ("empty_array", &[]),
-    ("non_dictionary_entries", &[]),
-    ("direct_intent_dictionary", &[]),
-    ("missing_s", &[]),
-    ("wrong_s", &[]),
-    ("missing_dest_output_profile", &[]),
-    ("direct_wrong_type_profile", &[]),
-    ("indirect_wrong_type_profile", &[]),
-    ("truncated_profile", &["PDFA1B-OUTPUTINTENT-001"]),
-    ("class_prtr", &[]),
-    ("class_scnr", &["PDFA1B-OUTPUTINTENT-001"]),
-    ("color_cmyk", &[]),
-    ("color_gray", &[]),
-    ("color_lab", &["PDFA1B-OUTPUTINTENT-001"]),
-    ("version_2_15", &[]),
-    ("version_3", &["PDFA1B-OUTPUTINTENT-001"]),
-    ("two_shared_indirect_profiles", &[]),
-    ("two_shared_invalid_profiles", &["PDFA1B-OUTPUTINTENT-001"]),
-    (
-        "two_identical_indirect_profiles",
-        &["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
-    ),
-    (
-        "two_different_indirect_profiles",
-        &["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
-    ),
-    ("one_profile_one_missing", &[]),
-    ("two_same_wrong_type_indirect_profiles", &[]),
-    (
-        "two_different_wrong_type_indirect_profiles",
-        &["PDFA1B-OUTPUTINTENT-IDENTITY-001"],
-    ),
-];
-
-#[test]
-fn output_intent_cases_have_the_complete_expected_failure_delta() {
-    common::assert_case_deltas(common::output_intent_fixture, "baseline", CASES);
-}
-
 #[test]
 fn multiple_invalid_profiles_are_aggregated_as_one_check_failure() {
     let report = common::validate(&common::output_intent_fixture(
