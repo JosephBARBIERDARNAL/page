@@ -1623,3 +1623,113 @@ fn sha256(bytes: &[u8]) -> String {
         .map(|byte| format!("{byte:02x}"))
         .collect()
 }
+
+#[test]
+fn pdfa_rule_files_cover_every_official_mapping() {
+    let inventories = [
+        ("pdfa1", 1, "tests/fixtures/pdfa-1b-coverage.json"),
+        ("pdfa2", 2, "tests/fixtures/pdfa-2-3-coverage.json"),
+        ("pdfa3", 3, "tests/fixtures/pdfa-2-3-coverage.json"),
+    ];
+    let mut expected_paths = BTreeSet::new();
+    for (prefix, part, inventory_path) in inventories {
+        let inventory = read_json(inventory_path);
+        let mappings = array(&inventory["rule_mapping"]["mappings"], "rule mappings");
+        let mut by_reference = BTreeMap::<String, Vec<&Value>>::new();
+        for mapping in mappings {
+            let reference = string(&mapping["verapdf_rule_id"], "reference rule id");
+            let mapping_part = reference
+                .strip_prefix("ISO 19005-")
+                .and_then(|value| value.chars().next())
+                .and_then(|value| value.to_digit(10))
+                .expect("PDF/A reference part");
+            if mapping_part == part {
+                by_reference
+                    .entry(reference.to_owned())
+                    .or_default()
+                    .push(mapping);
+            }
+        }
+        for (reference, mappings) in by_reference {
+            let suffix = reference
+                .split_once("2005:")
+                .or_else(|| reference.split_once("2011:"))
+                .or_else(|| reference.split_once("2012:"))
+                .map(|(_, suffix)| suffix.replace(['.', ':'], "_"))
+                .expect("reference clause");
+            let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests")
+                .join(format!("{prefix}_rule_{suffix}.rs"));
+            assert!(
+                expected_paths.insert(path.clone()),
+                "duplicate rule file claim: {path:?}"
+            );
+            let source =
+                fs::read_to_string(&path).unwrap_or_else(|error| panic!("{path:?}: {error}"));
+            assert!(
+                source.contains("pub mod common;"),
+                "{path:?} does not use common helpers"
+            );
+            assert!(
+                source.contains("const REFERENCE_RULE"),
+                "{path:?} has no reference rule constant"
+            );
+            assert!(
+                source.contains(&format!("const REFERENCE_RULE: &str = \"{reference}\"")),
+                "{path:?} claims the wrong reference rule"
+            );
+            assert!(source.contains("const CASES"), "{path:?} has no case table");
+            assert!(
+                source.contains("canonical_pdfa_fixture"),
+                "{path:?} has no valid fixture evidence"
+            );
+            assert!(
+                source.contains("fixture_generation"),
+                "{path:?} has no ignored fixture-generation test"
+            );
+            assert!(
+                source.contains("verapdf_differential"),
+                "{path:?} has no differential test"
+            );
+            let expected_profiles = mappings
+                .iter()
+                .flat_map(|mapping| array(&mapping["applicable_profiles"], "applicable profiles"))
+                .map(|profile| string(profile, "profile"))
+                .collect::<BTreeSet<_>>();
+            for profile in expected_profiles {
+                let profile_suffix = profile.chars().skip(1).collect::<String>();
+                assert!(
+                    source.contains(&format!("ReferenceProfile::PdfA{part}{profile_suffix}")),
+                    "{path:?} omits applicable profile {profile}"
+                );
+            }
+            for mapping in mappings {
+                let local_rule = string(&mapping["canonical_local_rule_id"], "local rule id");
+                assert!(
+                    source.contains(local_rule),
+                    "{path:?} does not assert {local_rule}"
+                );
+            }
+        }
+    }
+
+    let actual_paths = fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests"))
+        .expect("read integration test directory")
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            (name.starts_with("pdfa1_rule_")
+                || name.starts_with("pdfa2_rule_")
+                || name.starts_with("pdfa3_rule_"))
+            .then_some(
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests")
+                    .join(name),
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        actual_paths, expected_paths,
+        "stale or missing PDF/A rule files"
+    );
+}
