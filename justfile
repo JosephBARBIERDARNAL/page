@@ -87,10 +87,13 @@ typst:
 diff file format="text" verapdf=verapdf_bin:
     cargo run --quiet -p page_cli --bin verapdf-diff -- --verapdf "{{ verapdf }}" --format {{ format }} "{{ file }}"
 
-# Build the release validator and compare it with veraPDF on the checked-in long PDF.
-benchmark:
+# Build the release validator and regenerate the benchmark.md.
+bench:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/benchmark.rs
+
+# Backward-compatible name for the benchmark command.
+benchmark: bench
 
 # Regenerate checked-in rule-mapping documentation.
 doc-rules:

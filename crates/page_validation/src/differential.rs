@@ -17,7 +17,7 @@ use wait_timeout::ChildExt;
 use crate::{FailureCategory, SafetyLimits, ValidationProfile, ValidationReport, validate_pdf};
 
 pub const PINNED_VERAPDF_VERSION: &str = "1.30.2";
-pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfA1b;
+pub const PINNED_VERAPDF_PROFILE: ReferenceProfile = ReferenceProfile::PdfUa1;
 pub const DEFAULT_TIMEOUT_MILLIS: u64 = 30_000;
 pub const DEFAULT_MAX_REPORT_BYTES: usize = 8 * 1024 * 1024;
 pub const DEFAULT_MAX_DIAGNOSTIC_BYTES: usize = 16 * 1024;

@@ -18,10 +18,8 @@ nav = [
     { "PDF/A-2 and PDF/A-3" = "rules/pdfa-2-3-rules.md" },
     { "PDF/UA-1" = "rules/pdfua-1-rules.md" },
   ] },
-  { "About" = [
-    { "FAQ" = "about/faq.md" },
-    { "PDF Format" = "about/pdf-format.md" },
-  ] },
+  { "Benchmark" = "benchmark.md" },
+  { "About" = "about.md" },
 ]
 
 [project.theme]
