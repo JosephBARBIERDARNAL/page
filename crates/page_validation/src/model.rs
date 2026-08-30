@@ -187,18 +187,53 @@ impl InspectionNeed {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct InspectionPlan {
     pub(crate) font_details: InspectionNeed,
+    pub(crate) xobjects: InspectionNeed,
+    pub(crate) annotations: InspectionNeed,
+    pub(crate) forms: InspectionNeed,
+    pub(crate) actions: InspectionNeed,
 }
 
 impl InspectionPlan {
     pub(crate) const fn all() -> Self {
         Self {
             font_details: InspectionNeed::Unknown,
+            xobjects: InspectionNeed::Unknown,
+            annotations: InspectionNeed::Unknown,
+            forms: InspectionNeed::Unknown,
+            actions: InspectionNeed::Unknown,
         }
     }
 
-    pub(crate) fn after_content_discovery(self, font_usage_present: bool) -> Self {
+    pub(crate) fn after_content_discovery(
+        self,
+        font_usage_present: bool,
+        xobject_usage_present: bool,
+        annotation_present: bool,
+        form_candidate_present: bool,
+        action_candidate_present: bool,
+    ) -> Self {
         Self {
             font_details: match (self.font_details, font_usage_present) {
+                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
+                (_, true) => InspectionNeed::Required,
+                (_, false) => InspectionNeed::NotApplicable,
+            },
+            xobjects: match (self.xobjects, xobject_usage_present) {
+                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
+                (_, true) => InspectionNeed::Required,
+                (_, false) => InspectionNeed::NotApplicable,
+            },
+            annotations: match (self.annotations, annotation_present) {
+                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
+                (_, true) => InspectionNeed::Required,
+                (_, false) => InspectionNeed::NotApplicable,
+            },
+            forms: match (self.forms, form_candidate_present) {
+                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
+                (_, true) => InspectionNeed::Required,
+                (_, false) => InspectionNeed::NotApplicable,
+            },
+            actions: match (self.actions, action_candidate_present) {
                 (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
                 (_, true) => InspectionNeed::Required,
                 (_, false) => InspectionNeed::NotApplicable,
@@ -409,17 +444,25 @@ impl ValidationPreparation {
                 &document_features.tagged_text_language,
                 limits,
             )?;
-            let plan = plan.after_content_discovery(!content.fonts.is_empty());
+            let plan = plan.after_content_discovery(
+                !content.fonts.is_empty(),
+                !content.xobjects.is_empty(),
+                content.has_annotations,
+                document_features.catalog_has_acro_form || content.has_widget_annotations,
+                document_features.catalog_has_action_candidates
+                    || content.has_page_or_annotation_actions,
+            );
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &content, limits)?;
+            let xobjects = crate::xobject::inspect(&document, &content, limits, plan.xobjects)?;
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
-            let actions = crate::actions::inspect(&document, &pages, limits)?;
-            let forms = crate::forms::inspect(&document, &pages, limits)?;
+            let actions = crate::actions::inspect(&document, &pages, limits, plan.actions)?;
+            let forms = crate::forms::inspect(&document, &pages, limits, plan.forms)?;
             let annotations = crate::annotations::inspect(
                 &document,
                 &pages,
                 document_features.catalog_contains_lang,
                 limits,
+                plan.annotations,
             )?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
@@ -1122,13 +1165,28 @@ mod tests {
         let plan = InspectionPlan::all();
         assert_eq!(plan.font_details, InspectionNeed::Unknown);
         assert_eq!(
-            plan.after_content_discovery(false).font_details,
+            plan.after_content_discovery(false, false, false, false, false)
+                .font_details,
             InspectionNeed::NotApplicable
         );
         assert_eq!(
-            plan.after_content_discovery(true).font_details,
+            plan.after_content_discovery(true, false, false, false, false)
+                .font_details,
             InspectionNeed::Required
         );
+        assert_eq!(
+            plan.after_content_discovery(false, true, false, false, false)
+                .xobjects,
+            InspectionNeed::Required
+        );
+        let absent = plan.after_content_discovery(false, false, false, false, false);
+        assert_eq!(absent.annotations, InspectionNeed::NotApplicable);
+        assert_eq!(absent.forms, InspectionNeed::NotApplicable);
+        assert_eq!(absent.actions, InspectionNeed::NotApplicable);
+        let present = plan.after_content_discovery(false, false, true, true, true);
+        assert_eq!(present.annotations, InspectionNeed::Required);
+        assert_eq!(present.forms, InspectionNeed::Required);
+        assert_eq!(present.actions, InspectionNeed::Required);
     }
 
     #[test]

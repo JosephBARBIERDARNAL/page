@@ -6,7 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
     dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
     resolved_name, walk_inherited,
@@ -42,7 +42,11 @@ pub(crate) fn inspect(
     pages: &[PageEntry],
     catalog_contains_lang: bool,
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<AnnotationSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(AnnotationSummary::default());
+    }
     let mut summary = AnnotationSummary::default();
     for (index, page_entry) in pages.iter().enumerate() {
         let Some(page) = page_entry.resolve(document) else {

@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use crate::content_support::ContentExecutionSummary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
     contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
     resolved_name,
@@ -32,7 +32,11 @@ pub(crate) fn inspect(
     document: &Document,
     execution: &ContentExecutionSummary,
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<XObjectSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(XObjectSummary::default());
+    }
     let mut summary = XObjectSummary::default();
     for use_ in execution.xobjects.values() {
         let Some(dictionary) = dictionary_based(&use_.object) else {
@@ -384,11 +388,35 @@ fn inspect_form(
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Stream, dictionary};
+    use lopdf::{Document, Stream, dictionary};
 
-    use super::{jpx_stream_bytes, parse_j2k_siz};
+    use super::{inspect, jpx_stream_bytes, parse_j2k_siz};
     use crate::error::PdfError;
     use crate::limits::SafetyLimits;
+    use crate::model::InspectionNeed;
+
+    #[test]
+    fn no_reached_xobjects_skip_unused_object_work() {
+        let mut document = Document::with_version("1.4");
+        document.add_object(Stream::new(
+            dictionary! { "Subtype" => "Image", "Filter" => "JPXDecode" },
+            vec![0xff, 0x4f, 0xff, 0x51],
+        ));
+
+        let summary = inspect(
+            &document,
+            &super::ContentExecutionSummary::default(),
+            &SafetyLimits {
+                max_decoded_stream_size: 1,
+                ..SafetyLimits::default()
+            },
+            InspectionNeed::NotApplicable,
+        )
+        .expect("unused XObjects are outside the reachability-bound inspector");
+
+        assert_eq!(summary.image_bits_per_component.len(), 0);
+        assert!(summary.jpeg2000_failures.iter().all(Vec::is_empty));
+    }
 
     #[test]
     fn parses_jpeg2000_siz_channels_and_depths() {

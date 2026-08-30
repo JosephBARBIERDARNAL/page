@@ -11,7 +11,7 @@ use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
     contains_key, dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
     resolved_name, walk_inherited,
@@ -33,7 +33,11 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<FormSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(FormSummary::default());
+    }
     let mut summary = FormSummary::default();
     inspect_acro_form(document, limits, &mut summary)?;
     inspect_page_widgets(document, pages, limits, &mut summary)?;

@@ -18,6 +18,8 @@ use crate::report::RuleFailure;
 pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_id: Option<PdfObjectId>,
     pub(crate) catalog_contains_lang: bool,
+    pub(crate) catalog_has_acro_form: bool,
+    pub(crate) catalog_has_action_candidates: bool,
     pub(crate) mark_info_object_id: Option<PdfObjectId>,
     pub(crate) mark_info_is_dictionary: bool,
     pub(crate) marked: Option<bool>,
@@ -166,6 +168,15 @@ pub(crate) fn inspect(
 
     let structure_tree = inspect_structure_tree(document, catalog, limits)?;
     let catalog_contains_lang = contains_key(catalog, b"Lang");
+    let catalog_has_acro_form = contains_key(catalog, b"AcroForm");
+    let catalog_has_action_candidates = [
+        b"AA".as_slice(),
+        b"OpenAction".as_slice(),
+        b"Outlines".as_slice(),
+        b"AcroForm".as_slice(),
+    ]
+    .into_iter()
+    .any(|key| contains_key(catalog, key));
     let mut language_failures = Vec::new();
     let mut language_failures_pdfa23 = Vec::new();
     let mut language_failures_pdfua1 = Vec::new();
@@ -575,6 +586,8 @@ pub(crate) fn inspect(
     Ok(DocumentFeatureSummary {
         catalog_id,
         catalog_contains_lang,
+        catalog_has_acro_form,
+        catalog_has_action_candidates,
         mark_info_object_id,
         mark_info_is_dictionary,
         marked,

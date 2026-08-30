@@ -6,6 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
+use crate::model::InspectionNeed;
 use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -39,7 +40,11 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<ActionSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(ActionSummary::default());
+    }
     let Some(catalog) = resolve_catalog(document, limits)? else {
         return Ok(ActionSummary::default());
     };
