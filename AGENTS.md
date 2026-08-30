@@ -6,7 +6,6 @@ page provides an alternative to veraPDF written in Rust. veraPDF is the source o
 
 ## Miscellanous rules
 
-- there is NO backward compatibility policy, breaking changes are allowed.
 - when you found a very unexpected result in veraPDF, figure out whether it's a real upstream bug or not. In order to prove that it is one, you need to create a reprex (as minimalist as possible).
 - always write markdown paragraph / bullet point on a single line. Only use linebreaks for new paragraph, an heading, new bullet point, etc.
 - every time you implement a new rule or a new feature, think of the impact it will have on performance and look for low hanging fruit that would improve performance.
