@@ -1,15 +1,14 @@
 # page
 
-`page` is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust.
-
-You can currently use it as a [CLI](api/cli.md) or via [Rust](api/rust.md)
+A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a [CLI](api/cli.md), a [Rust crate](api/rust.md) and a [Python package](api/python.md).
 
 ## Features
 
-- **Compliant**: validate all PDF/A-1, PDF/A-2, PDF/A-3 and PDF/UA-1 formats
+- **Accessibility**: check PDFs against PDF/UA-1 accessibility requirements
+- **PDF/A compliance**: validate PDF/A-1, PDF/A-2, and PDF/A-3 documents
 - **Tested**: uses the same test corpus as _veraPDF_ :material-information-outline:{ title="veraPDF is the gold standard of PDF/A validation, which is why it's used as a reference." }
-- **Fast**: preliminary tests suggest that `page` is between 3x to 15x faster than veraPDF
-- **Lightweight**: binary size is ~9MB and peak RSS is between 3x to 8x lower than veraPDF
+- **Fast**: preliminary tests suggest that `page` is 3x to 15x faster than veraPDF
+- **Lightweight**: ~9 MB binary, with peak RSS 3x to 8x lower than veraPDF
 
 ## Roadmap
 

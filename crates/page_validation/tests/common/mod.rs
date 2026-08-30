@@ -4,13 +4,19 @@
 )]
 
 use std::collections::BTreeSet;
+use std::env;
+use std::fs;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use lopdf::content::{Content, Operation};
 use lopdf::xref::XrefType;
 use lopdf::{
     Dictionary, Document, EncryptionState, EncryptionVersion, Object, ObjectId, Permissions,
     Stream, StringFormat, dictionary,
+};
+use page_validation::differential::{
+    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
 };
 use page_validation::{
     SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_pdf_bytes,
@@ -99,6 +105,581 @@ pub fn assert_case_deltas(
             "{case}: removed baseline failures {removed:?}"
         );
     }
+}
+
+/// Returns the canonical compliant fixture appropriate for a PDF/A profile.
+pub fn canonical_pdfa_fixture(profile: ReferenceProfile) -> &'static [u8] {
+    match profile {
+        ReferenceProfile::PdfA1a
+        | ReferenceProfile::PdfA2a
+        | ReferenceProfile::PdfA2u
+        | ReferenceProfile::PdfA3a
+        | ReferenceProfile::PdfA3u => include_bytes!("../fixtures/canonical-pdfa-1a.pdf"),
+        ReferenceProfile::PdfA1b | ReferenceProfile::PdfA2b | ReferenceProfile::PdfA3b => {
+            include_bytes!("../fixtures/canonical-pdfa-1b.pdf")
+        }
+        ReferenceProfile::PdfUa1 => panic!("PDF/UA is not a PDF/A rule profile"),
+    }
+}
+
+/// Re-identifies a PDF/A-1 fixture for a PDF/A-2 or PDF/A-3 profile.
+pub fn pdfa_profile_fixture(profile: ReferenceProfile, source: &[u8]) -> Vec<u8> {
+    if matches!(profile, ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b) {
+        return source.to_vec();
+    }
+    let (part, conformance) = match profile {
+        ReferenceProfile::PdfA2a => (b'2', b'A'),
+        ReferenceProfile::PdfA2b => (b'2', b'B'),
+        ReferenceProfile::PdfA2u => (b'2', b'U'),
+        ReferenceProfile::PdfA3a => (b'3', b'A'),
+        ReferenceProfile::PdfA3b => (b'3', b'B'),
+        ReferenceProfile::PdfA3u => (b'3', b'U'),
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
+            panic!("PDF/UA is not a PDF/A-2 or PDF/A-3 profile")
+        }
+    };
+    let mut bytes = source.to_vec();
+    replace_pdfa_value(&mut bytes, b"<pdfaid:part>", b"pdfaid:part=\"", part);
+    replace_pdfa_value(
+        &mut bytes,
+        b"<pdfaid:conformance>",
+        b"pdfaid:conformance=\"",
+        conformance,
+    );
+    bytes
+}
+
+fn replace_pdfa_value(
+    bytes: &mut [u8],
+    tag_marker: &[u8],
+    attribute_marker: &[u8],
+    replacement: u8,
+) {
+    let marker = if bytes
+        .windows(tag_marker.len())
+        .any(|window| window == tag_marker)
+    {
+        tag_marker
+    } else {
+        attribute_marker
+    };
+    let start = bytes
+        .windows(marker.len())
+        .position(|window| window == marker)
+        .unwrap_or_else(|| {
+            panic!(
+                "PDF/A marker {:?} not found",
+                String::from_utf8_lossy(marker)
+            )
+        });
+    *bytes
+        .get_mut(start + marker.len())
+        .expect("PDF/A marker value") = replacement;
+}
+
+/// Finds the checked-in mutation fixture for a local PDF/A rule, if one exists.
+pub fn mutation_fixture(local_rule_id: &str) -> Option<Vec<u8>> {
+    let manifest = env::var_os("CARGO_MANIFEST_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("tests/fixtures/verapdf-diff-cases.json");
+    let source = fs::read(manifest).expect("read checked-in PDF/A mutation manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&source).expect("parse mutation manifest");
+    manifest
+        .get("checked_in_mutations")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|mutations| {
+            mutations.iter().find(|mutation| {
+                mutation
+                    .get("local_rule_id")
+                    .and_then(serde_json::Value::as_str)
+                    == Some(local_rule_id)
+            })
+        })
+        .map(|mutation| {
+            let relative = mutation
+                .get("path")
+                .and_then(serde_json::Value::as_str)
+                .expect("mutation path");
+            fs::read(
+                env::var_os("CARGO_MANIFEST_DIR")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join(relative),
+            )
+            .expect("read checked-in PDF/A mutation fixture")
+        })
+}
+
+/// Selects the profile whose conformance level matches a checked-in mutation.
+pub fn preferred_pdfa_mutation_profile(
+    local_rule_ids: &[&str],
+    profiles: &[ReferenceProfile],
+) -> ReferenceProfile {
+    let conformance = if local_rule_ids
+        .iter()
+        .any(|rule_id| rule_id.contains("PDFA1A-"))
+    {
+        b'A'
+    } else {
+        b'B'
+    };
+    profiles
+        .iter()
+        .copied()
+        .find(|profile| {
+            matches!(
+                (conformance, profile),
+                (
+                    b'A',
+                    ReferenceProfile::PdfA1a | ReferenceProfile::PdfA2a | ReferenceProfile::PdfA3a
+                ) | (
+                    b'B',
+                    ReferenceProfile::PdfA1b | ReferenceProfile::PdfA2b | ReferenceProfile::PdfA3b
+                )
+            )
+        })
+        .or_else(|| profiles.first().copied())
+        .expect("PDF/A rule has an applicable profile")
+}
+
+/// Checks the selected local rule(s) for a valid or invalid fixture without
+/// requiring unrelated checks to produce an identical total failure count.
+pub fn assert_pdfa_rule_behavior(
+    profile: ReferenceProfile,
+    local_rule_ids: &[&str],
+    bytes: &[u8],
+    should_fail: bool,
+) {
+    let report = validate_pdf_bytes(bytes, Some(profile.into()), &SafetyLimits::default())
+        .expect("explicit PDF/A profile validation");
+    let failures = report
+        .failures
+        .iter()
+        .map(|failure| failure.rule_id.clone())
+        .collect::<BTreeSet<_>>();
+    let target_failed = local_rule_ids
+        .iter()
+        .map(|rule_id| pdfa_profile_local_rule_id(profile, rule_id))
+        .any(|rule_id| failures.contains(&rule_id));
+    assert_eq!(target_failed, should_fail, "{profile}: {report}");
+}
+
+/// Maps a canonical PDF/A-1 local rule ID to the profile-specific PDF/A-2/3 ID.
+pub fn pdfa_profile_local_rule_id(profile: ReferenceProfile, rule_id: &str) -> String {
+    let (prefix, suffix) = match profile {
+        ReferenceProfile::PdfA2a => (
+            "PDFA2A",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA2b => (
+            "PDFA2B",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA2u => (
+            "PDFA2U",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA3a => (
+            "PDFA3A",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA3b => (
+            "PDFA3B",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA3u => (
+            "PDFA3U",
+            rule_id
+                .strip_prefix("PDFA1A-")
+                .or_else(|| rule_id.strip_prefix("PDFA1B-")),
+        ),
+        ReferenceProfile::PdfA1a | ReferenceProfile::PdfA1b | ReferenceProfile::PdfUa1 => {
+            return rule_id.to_owned();
+        }
+    };
+    suffix.map_or_else(|| rule_id.to_owned(), |suffix| format!("{prefix}-{suffix}"))
+}
+
+/// Writes a generated rule fixture under the ignored-test output directory.
+pub fn write_generated_fixture(name: &str, bytes: &[u8]) -> PathBuf {
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/generated");
+    fs::create_dir_all(&directory).expect("create generated PDF/A fixture directory");
+    let path = directory.join(name);
+    fs::write(&path, bytes).expect("write generated PDF/A fixture");
+    path
+}
+
+/// Writes a checked-in fixture from an ignored maintenance test.
+pub fn write_checked_in_fixture(name: &str, bytes: &[u8]) -> PathBuf {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name);
+    fs::write(&path, bytes).expect("write checked-in rule fixture");
+    path
+}
+
+/// Asserts the complete local failure set for a PDF/UA-1 fixture.
+pub fn assert_pdfua1_rule_behavior(rule: &str, bytes: &[u8], expected_failure_ids: &[&str]) {
+    let report = validate_pdf_bytes(
+        bytes,
+        Some(ValidationProfile::PdfUa1),
+        &SafetyLimits::default(),
+    )
+    .expect("explicit PDF/UA-1 profile validation");
+    let actual = report
+        .failures
+        .iter()
+        .map(|failure| failure.rule_id.clone())
+        .collect::<BTreeSet<_>>();
+    let expected = expected_failure_ids
+        .iter()
+        .map(|rule_id| (*rule_id).to_owned())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual, expected, "{rule}: {report}");
+}
+
+#[derive(Clone, Copy)]
+pub struct PdfUa1RuleDifferentialCase {
+    pub fixture_name: &'static str,
+    pub bytes: fn() -> Vec<u8>,
+    pub should_fail: bool,
+    pub allow_reference_parser_discrepancy: bool,
+    pub forbidden_reference_rules: &'static [&'static str],
+}
+
+/// Runs the opt-in pinned veraPDF check for a PDF/UA-1 case matrix.
+pub fn run_pdfua1_rule_differential(
+    reference_rule: &str,
+    local_rule: &str,
+    cases: &[PdfUa1RuleDifferentialCase],
+) {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping per-rule PDF/UA-1 differential test");
+        return;
+    };
+    let temporary = env::temp_dir().join(format!(
+        "page-pdfua1-rule-{}-{}",
+        std::process::id(),
+        reference_rule.replace([':', '.'], "-")
+    ));
+    fs::create_dir_all(&temporary).expect("create per-rule differential directory");
+    for case in cases {
+        let path = temporary.join(case.fixture_name);
+        fs::write(&path, (case.bytes)()).expect("write PDF/UA-1 differential fixture");
+        compare_pdfua1_rule_case(&executable, reference_rule, local_rule, case, &path);
+    }
+    fs::remove_dir_all(temporary).expect("remove per-rule differential directory");
+}
+
+fn compare_pdfua1_rule_case(
+    executable: &std::ffi::OsStr,
+    reference_rule: &str,
+    local_rule: &str,
+    case: &PdfUa1RuleDifferentialCase,
+    path: &Path,
+) {
+    let mut config = ReferenceConfig::pinned(executable.to_owned());
+    config.profile = ReferenceProfile::PdfUa1;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
+    let report = runner.compare_file(path, &SafetyLimits::default());
+    if case.allow_reference_parser_discrepancy {
+        assert_eq!(
+            report.classification,
+            ComparisonClassification::ReferenceParserDiscrepancy,
+            "{}: {report}",
+            case.fixture_name
+        );
+        return;
+    }
+    assert!(
+        !matches!(
+            report.classification,
+            ComparisonClassification::LocalFalseNegative
+                | ComparisonClassification::LocalParserDiscrepancy
+                | ComparisonClassification::ReferenceParserDiscrepancy
+                | ComparisonClassification::Operational
+        ),
+        "{}: {report}",
+        case.fixture_name
+    );
+    let reference = report.reference_result.as_ref().expect("veraPDF result");
+    let reference_failed = reference
+        .failed_rule_ids
+        .iter()
+        .any(|rule| rule.to_string() == reference_rule);
+    let local_failed = report
+        .local_report
+        .failures
+        .iter()
+        .any(|failure| failure.rule_id == local_rule);
+    assert_eq!(reference_failed, case.should_fail, "{path:?}: {report}");
+    assert_eq!(local_failed, case.should_fail, "{path:?}: {report}");
+    for forbidden_rule in case.forbidden_reference_rules {
+        assert!(
+            !reference
+                .failed_rule_ids
+                .iter()
+                .any(|rule| rule.to_string() == *forbidden_rule),
+            "{}: unexpected veraPDF failure {forbidden_rule}: {report}",
+            case.fixture_name
+        );
+    }
+}
+
+#[macro_export]
+macro_rules! pdfa_rule_tests {
+    (
+        rule: $rule:expr,
+        additional_rules: $additional_rules:expr,
+        reference_rule: $reference_rule:expr,
+        profiles: $profiles:expr,
+        fixture_stem: $fixture_stem:expr,
+        label: $label:expr,
+        include_invalid: $include_invalid:expr $(,)?
+    ) => {
+        #[test]
+        fn local_validation() {
+            let mut local_rules = vec![$rule];
+            local_rules.extend_from_slice($additional_rules);
+            for profile in $profiles {
+                let bytes = $crate::common::pdfa_profile_fixture(
+                    *profile,
+                    $crate::common::canonical_pdfa_fixture(*profile),
+                );
+                $crate::common::assert_pdfa_rule_behavior(*profile, &local_rules, &bytes, false);
+            }
+            if $include_invalid {
+                for local_rule in &local_rules {
+                    if let Some(source) = $crate::common::mutation_fixture(local_rule) {
+                        let profile = $crate::common::preferred_pdfa_mutation_profile(
+                            &[*local_rule],
+                            $profiles,
+                        );
+                        let bytes = $crate::common::pdfa_profile_fixture(profile, &source);
+                        $crate::common::assert_pdfa_rule_behavior(
+                            profile,
+                            &local_rules,
+                            &bytes,
+                            true,
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
+        #[test]
+        #[ignore = $label]
+        fn fixture_generation() {
+            let profile = $profiles[0];
+            let bytes = $crate::common::pdfa_profile_fixture(
+                profile,
+                $crate::common::canonical_pdfa_fixture(profile),
+            );
+            $crate::common::write_generated_fixture(concat!($fixture_stem, "-valid.pdf"), &bytes);
+            if $include_invalid {
+                let mut local_rules = vec![$rule];
+                local_rules.extend_from_slice($additional_rules);
+                for local_rule in &local_rules {
+                    if let Some(source) = $crate::common::mutation_fixture(local_rule) {
+                        $crate::common::write_generated_fixture(
+                            concat!($fixture_stem, "-invalid.pdf"),
+                            &source,
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn verapdf_differential_when_opted_in() {
+            let mut local_rules = vec![$rule];
+            local_rules.extend_from_slice($additional_rules);
+            $crate::common::run_pdfa_rule_differential($reference_rule, &local_rules, $profiles);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pdfua1_rule_tests {
+    (
+        rule: $rule:expr,
+        reference_rule: $reference_rule:expr,
+        cases: [
+            $(
+                (
+                    $fixture_name:expr,
+                    $fixture:expr,
+                    $generated:expr,
+                    $expected_failure_ids:expr,
+                    $should_fail:expr,
+                    $allow_reference_parser_discrepancy:expr,
+                    $forbidden_reference_rules:expr $(,)?
+                )
+            ),+ $(,)?
+        ] $(,)?
+    ) => {
+        #[test]
+        fn local_validation() {
+            let cases: &[(&str, fn() -> Vec<u8>, &[&str])] = &[
+                $(
+                    (
+                        $fixture_name,
+                        ($fixture) as fn() -> Vec<u8>,
+                        $expected_failure_ids,
+                    )
+                ),+
+            ];
+            for (fixture_name, fixture, expected_failure_ids) in cases {
+                $crate::common::assert_pdfua1_rule_behavior(
+                    $rule,
+                    &fixture(),
+                    expected_failure_ids,
+                );
+                let _ = fixture_name;
+            }
+        }
+
+        #[test]
+        #[ignore = "maintenance generator for PDF/UA-1 rule fixtures"]
+        fn fixture_generation() {
+            let cases: &[(&str, fn() -> Vec<u8>)] = &[
+                $(
+                    (
+                        $fixture_name,
+                        ($generated) as fn() -> Vec<u8>,
+                    )
+                ),+
+            ];
+            for (fixture_name, generated) in cases {
+                $crate::common::write_checked_in_fixture(fixture_name, &generated());
+            }
+        }
+
+        #[test]
+        fn verapdf_differential_when_opted_in() {
+            let cases: &[$crate::common::PdfUa1RuleDifferentialCase] = &[
+                $(
+                    $crate::common::PdfUa1RuleDifferentialCase {
+                        fixture_name: $fixture_name,
+                        bytes: ($fixture) as fn() -> Vec<u8>,
+                        should_fail: $should_fail,
+                        allow_reference_parser_discrepancy:
+                            $allow_reference_parser_discrepancy,
+                        forbidden_reference_rules: $forbidden_reference_rules,
+                    }
+                ),+
+            ];
+            $crate::common::run_pdfua1_rule_differential($reference_rule, $rule, cases);
+        }
+    };
+}
+
+/// Runs the opt-in pinned veraPDF check for a per-rule profile matrix.
+pub fn run_pdfa_rule_differential(
+    reference_rule: &str,
+    local_rule_ids: &[&str],
+    profiles: &[ReferenceProfile],
+) {
+    let Some(executable) = env::var_os("VERAPDF_BIN") else {
+        eprintln!("VERAPDF_BIN is unset; skipping per-rule PDF/A differential test");
+        return;
+    };
+    let temporary = env::temp_dir().join(format!(
+        "page-pdfa-rule-{}-{}",
+        std::process::id(),
+        reference_rule.replace([':', '.'], "-")
+    ));
+    fs::create_dir_all(&temporary).expect("create per-rule differential directory");
+    for profile in profiles {
+        let valid = pdfa_profile_fixture(*profile, canonical_pdfa_fixture(*profile));
+        let valid_path = temporary.join(format!("{profile}-valid.pdf"));
+        fs::write(&valid_path, valid).expect("write valid per-rule fixture");
+        compare_pdfa_rule_case(
+            &executable,
+            *profile,
+            reference_rule,
+            local_rule_ids,
+            &valid_path,
+            false,
+        );
+
+        if matches!(profile, ReferenceProfile::PdfA1b) {
+            for local_rule_id in local_rule_ids {
+                let Some(source) = mutation_fixture(local_rule_id) else {
+                    continue;
+                };
+                let invalid = pdfa_profile_fixture(*profile, &source);
+                let invalid_path = temporary.join(format!("{profile}-{local_rule_id}.pdf"));
+                fs::write(&invalid_path, invalid).expect("write invalid per-rule fixture");
+                compare_pdfa_rule_case(
+                    &executable,
+                    *profile,
+                    reference_rule,
+                    local_rule_ids,
+                    &invalid_path,
+                    true,
+                );
+                break;
+            }
+        }
+    }
+    fs::remove_dir_all(temporary).expect("remove per-rule differential directory");
+}
+
+fn compare_pdfa_rule_case(
+    executable: &std::ffi::OsStr,
+    profile: ReferenceProfile,
+    reference_rule: &str,
+    local_rule_ids: &[&str],
+    path: &Path,
+    should_fail: bool,
+) {
+    let mut config = ReferenceConfig::pinned(executable.to_owned());
+    config.profile = profile;
+    config.coverage_gap_policy =
+        page_validation::differential::CoverageGapPolicy::RejectForCompleteProfile;
+    let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
+    let report = runner.compare_file(path, &SafetyLimits::default());
+    assert!(
+        !matches!(
+            report.classification,
+            ComparisonClassification::CoverageGap
+                | ComparisonClassification::LocalFalseNegative
+                | ComparisonClassification::LocalParserDiscrepancy
+                | ComparisonClassification::ReferenceParserDiscrepancy
+                | ComparisonClassification::Operational
+        ),
+        "{report}"
+    );
+    let reference_failed = report
+        .reference_result
+        .as_ref()
+        .expect("veraPDF result")
+        .failed_rule_ids
+        .iter()
+        .any(|rule| rule.to_string() == reference_rule);
+    let local_failed = report.local_report.failures.iter().any(|failure| {
+        local_rule_ids
+            .iter()
+            .map(|rule_id| pdfa_profile_local_rule_id(profile, rule_id))
+            .any(|rule_id| rule_id == failure.rule_id)
+    });
+    assert_eq!(reference_failed, should_fail, "{path:?}: {report}");
+    assert_eq!(local_failed, should_fail, "{path:?}: {report}");
 }
 
 pub fn metadata_fixture(case: &str) -> Vec<u8> {

@@ -1,114 +1,14 @@
-#![expect(
-    clippy::panic,
-    reason = "fixture dispatch deliberately fails loudly for an undeclared test case"
-)]
-
-use std::collections::BTreeSet;
-use std::env;
-use std::fs;
-use std::path::Path;
-
-use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
-
 pub mod common;
 
 const RULE: &str = "PDFUA1-CMAP-REFERENCE-001";
 const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.21.3.3:3";
 
-#[test]
-fn pdfua1_rule_7_21_3_3_3_allows_table_118_cmaps_and_rejects_other_references() {
-    let allowed = validate_pdf_bytes(
-        fixture_bytes("allowed"),
-        Some(ValidationProfile::PdfUa1),
-        &SafetyLimits::default(),
-    )
-    .expect("explicit profile validation");
-    assert!(allowed.is_compliant, "{allowed}");
-    assert!(allowed.failures.is_empty(), "{allowed}");
-
-    for fixture in ["embedded_unknown", "dictionary_unknown"] {
-        let report = validate_pdf_bytes(
-            fixture_bytes(fixture),
-            Some(ValidationProfile::PdfUa1),
-            &SafetyLimits::default(),
-        )
-        .expect("explicit profile validation");
-        assert!(!report.is_compliant, "{fixture}: {report}");
-        assert_eq!(report.checks.failed, 1, "{fixture}: {report}");
-        assert_eq!(report.failures.len(), 1, "{fixture}: {report}");
-        assert_eq!(report.failures[0].rule_id, RULE, "{fixture}: {report}");
-    }
-}
-
-#[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.21.3.3-3 fixtures"]
-fn regenerate_pdfua1_rule_7_21_3_3_3_fixtures() {
-    for (fixture, case) in [
-        ("pdfua1-rule-7-21-3-3-3-allowed.pdf", "allowed"),
-        (
-            "pdfua1-rule-7-21-3-3-3-embedded-unknown.pdf",
-            "embedded_unknown",
-        ),
-        (
-            "pdfua1-rule-7-21-3-3-3-dictionary-unknown.pdf",
-            "dictionary_unknown",
-        ),
-    ] {
-        fs::write(
-            Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_21_3_3_3_fixture(case),
-        )
-        .expect("write PDF/UA-1 rule 7.21.3.3-3 fixture");
-    }
-}
-
-#[test]
-fn pdfua1_rule_7_21_3_3_3_fixtures_match_verapdf_1302_when_opted_in() {
-    let Some(executable) = env::var_os("VERAPDF_BIN") else {
-        return;
-    };
-    let mut config = ReferenceConfig::pinned(executable);
-    config.profile = ReferenceProfile::PdfUa1;
-    let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
-    // veraPDF 1.30.2 catches the dictionary /UseCMap form, but does not
-    // expose the stream-level usecmap operator in this rule. The local check
-    // follows the published requirement and intentionally covers both forms.
-    for (fixture, reference_should_fail) in [
-        ("pdfua1-rule-7-21-3-3-3-allowed.pdf", false),
-        ("pdfua1-rule-7-21-3-3-3-embedded-unknown.pdf", false),
-        ("pdfua1-rule-7-21-3-3-3-dictionary-unknown.pdf", true),
-    ] {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures")
-            .join(fixture);
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-        let Some(reference_result) = report.reference_result.as_ref() else {
-            panic!("{fixture}: {report}");
-        };
-        let failed = reference_result
-            .failed_rule_ids
-            .iter()
-            .map(ToString::to_string)
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            failed.contains(REFERENCE_RULE),
-            reference_should_fail,
-            "{fixture}: {report}"
-        );
-        assert!(report.operational_failure.is_none(), "{fixture}: {report}");
-    }
-}
-
-fn fixture_bytes(fixture: &str) -> &'static [u8] {
-    match fixture {
-        "allowed" => include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-allowed.pdf"),
-        "embedded_unknown" => {
-            include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-embedded-unknown.pdf")
-        }
-        "dictionary_unknown" => {
-            include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-dictionary-unknown.pdf")
-        }
-        _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-3 fixture case {fixture}"),
-    }
+crate::pdfua1_rule_tests! {
+    rule: RULE,
+    reference_rule: REFERENCE_RULE,
+    cases: [
+        ("pdfua1-rule-7-21-3-3-3-allowed.pdf", || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-allowed.pdf").to_vec(), || common::pdfua1_rule_7_21_3_3_3_fixture("allowed"), &[], false, false, &[]),
+        ("pdfua1-rule-7-21-3-3-3-dictionary-unknown.pdf", || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-dictionary-unknown.pdf").to_vec(), || common::pdfua1_rule_7_21_3_3_3_fixture("dictionary_unknown"), &["PDFUA1-CMAP-REFERENCE-001"], true, false, &[]),
+        ("pdfua1-rule-7-21-3-3-3-embedded-unknown.pdf", || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-3-embedded-unknown.pdf").to_vec(), || common::pdfua1_rule_7_21_3_3_3_fixture("embedded_unknown"), &["PDFUA1-CMAP-REFERENCE-001"], true, false, &[]),
+    ],
 }

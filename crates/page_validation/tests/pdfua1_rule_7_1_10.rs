@@ -1,95 +1,14 @@
-use std::collections::BTreeSet;
-use std::env;
-use std::fs;
-use std::path::Path;
-
-use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
-
 pub mod common;
 
 const RULE: &str = "PDFUA1-VIEWER-PREFERENCES-001";
 const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.1:10";
 
-#[test]
-fn pdfua1_rule_7_1_10_fixtures_require_display_doc_title_true() {
-    let present = validate_pdf_bytes(
-        include_bytes!("fixtures/pdfua1-rule-7-1-10-present.pdf"),
-        Some(ValidationProfile::PdfUa1),
-        &SafetyLimits::default(),
-    )
-    .expect("explicit profile validation");
-    assert!(present.is_compliant, "{present}");
-    assert!(present.failures.is_empty());
-
-    for fixture in [
-        "pdfua1-rule-7-1-10-false.pdf",
-        "pdfua1-rule-7-1-10-missing.pdf",
-    ] {
-        let report = validate_pdf_bytes(
-            match fixture {
-                "pdfua1-rule-7-1-10-false.pdf" => {
-                    include_bytes!("fixtures/pdfua1-rule-7-1-10-false.pdf")
-                }
-                "pdfua1-rule-7-1-10-missing.pdf" => {
-                    include_bytes!("fixtures/pdfua1-rule-7-1-10-missing.pdf")
-                }
-                _ => panic!("unknown PDF/UA-1 rule 7.1.10 fixture {fixture}"),
-            },
-            Some(ValidationProfile::PdfUa1),
-            &SafetyLimits::default(),
-        )
-        .expect("explicit profile validation");
-        assert!(!report.is_compliant, "{fixture}: {report}");
-        assert_eq!(report.checks.failed, 1);
-        assert_eq!(report.failures.len(), 1);
-        assert_eq!(report.failures[0].rule_id, RULE);
-    }
-}
-
-#[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.1-10 fixtures"]
-fn regenerate_pdfua1_rule_7_1_10_fixtures() {
-    for (fixture, case) in [
-        ("pdfua1-rule-7-1-10-present.pdf", "present"),
-        ("pdfua1-rule-7-1-10-false.pdf", "false"),
-        ("pdfua1-rule-7-1-10-missing.pdf", "missing"),
-    ] {
-        fs::write(
-            Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_1_10_fixture(case),
-        )
-        .expect("write PDF/UA-1 rule 7.1-10 fixture");
-    }
-}
-
-#[test]
-fn pdfua1_rule_7_1_10_fixtures_match_verapdf_when_opted_in() {
-    let Some(executable) = env::var_os("VERAPDF_BIN") else {
-        return;
-    };
-    let mut config = ReferenceConfig::pinned(executable);
-    config.profile = ReferenceProfile::PdfUa1;
-    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
-    for (fixture, should_fail) in [
-        ("pdfua1-rule-7-1-10-present.pdf", false),
-        ("pdfua1-rule-7-1-10-false.pdf", true),
-        ("pdfua1-rule-7-1-10-missing.pdf", true),
-    ] {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures")
-            .join(fixture);
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-        let reference = report.reference_result.as_ref().expect("veraPDF result");
-        let failed = reference
-            .failed_rule_ids
-            .iter()
-            .map(ToString::to_string)
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            failed.contains(REFERENCE_RULE),
-            should_fail,
-            "{fixture}: {report}"
-        );
-    }
+crate::pdfua1_rule_tests! {
+    rule: RULE,
+    reference_rule: REFERENCE_RULE,
+    cases: [
+        ("pdfua1-rule-7-1-10-false.pdf", || include_bytes!("fixtures/pdfua1-rule-7-1-10-false.pdf").to_vec(), || common::pdfua1_rule_7_1_10_fixture("false"), &["PDFUA1-VIEWER-PREFERENCES-001"], true, false, &[]),
+        ("pdfua1-rule-7-1-10-missing.pdf", || include_bytes!("fixtures/pdfua1-rule-7-1-10-missing.pdf").to_vec(), || common::pdfua1_rule_7_1_10_fixture("missing"), &["PDFUA1-VIEWER-PREFERENCES-001"], true, false, &[]),
+        ("pdfua1-rule-7-1-10-present.pdf", || include_bytes!("fixtures/pdfua1-rule-7-1-10-present.pdf").to_vec(), || common::pdfua1_rule_7_1_10_fixture("present"), &[], false, false, &[]),
+    ],
 }
