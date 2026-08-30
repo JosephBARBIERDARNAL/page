@@ -45,6 +45,22 @@ fn serialized_font_summary_shape_is_unchanged() {
 }
 
 #[test]
+fn no_shown_text_skips_font_details_but_keeps_the_informational_summary() {
+    let report = common::validate(&common::font_fixture("unused_resource"));
+
+    assert!(font_failures(&report).is_empty());
+    assert_eq!(
+        report
+            .document
+            .as_ref()
+            .expect("normalized document")
+            .fonts
+            .total,
+        1
+    );
+}
+
+#[test]
 fn decoded_content_limit_is_an_operational_failure() {
     let limits = SafetyLimits {
         max_decoded_stream_size: 2048,

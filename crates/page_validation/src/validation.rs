@@ -344,8 +344,12 @@ pub fn is_pdf_compliant_bytes(
         });
     }
 
-    let (document, inspections) =
-        preparation.into_inspections_with_syntax(bytes, limits, syntax)?;
+    let (document, inspections) = preparation.into_inspections_with_syntax(
+        bytes,
+        limits,
+        syntax,
+        crate::model::InspectionPlan::all(),
+    )?;
     let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
     Ok(ComplianceResult {
         profile,

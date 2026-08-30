@@ -120,7 +120,7 @@ The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-
 
 The gate requires a `pass` file to make `page` return exit code `0` and a `fail` file to make it return exit code `2`. Exit code `1`, an invalid corpus filename, a missing selected profile directory, or any other operational problem fails the gate with exit code `1`; mismatched validation results fail it with exit code `2`.
 
-Run the same gate locally with `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When another validation format is added, update the selected profile list in `crates/page_cli/src/corpus.rs`, the sparse-checkout lists in `justfile` and `.github/workflows/ci.yml`, and this section's documented revision and profile list.
+In order to ensure no breaking changes when making changes, run the same gate locally with `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When another validation format is added, update the selected profile list in `crates/page_cli/src/corpus.rs`, the sparse-checkout lists in `justfile` and `.github/workflows/ci.yml`, and this section's documented revision and profile list.
 
 ## Pinned rule mapping
 

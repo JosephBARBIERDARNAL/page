@@ -171,6 +171,42 @@ pub(crate) struct InspectionSummary {
     pub(crate) unicode_names: crate::unicode_names::UnicodeNameSummary,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum InspectionNeed {
+    Required,
+    NotApplicable,
+    Unknown,
+}
+
+impl InspectionNeed {
+    pub(crate) const fn should_run(self) -> bool {
+        !matches!(self, Self::NotApplicable)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct InspectionPlan {
+    pub(crate) font_details: InspectionNeed,
+}
+
+impl InspectionPlan {
+    pub(crate) const fn all() -> Self {
+        Self {
+            font_details: InspectionNeed::Unknown,
+        }
+    }
+
+    pub(crate) fn after_content_discovery(self, font_usage_present: bool) -> Self {
+        Self {
+            font_details: match (self.font_details, font_usage_present) {
+                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
+                (_, true) => InspectionNeed::Required,
+                (_, false) => InspectionNeed::NotApplicable,
+            },
+        }
+    }
+}
+
 pub(crate) struct ValidationPreparation {
     document: Document,
     pages: Option<Vec<page_tree::PageEntry>>,
@@ -319,7 +355,7 @@ impl ValidationPreparation {
         limits: &SafetyLimits,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let (preparation, syntax) = self.with_syntax(bytes, limits)?;
-        preparation.into_inspections_with_syntax(bytes, limits, syntax)
+        preparation.into_inspections_with_syntax(bytes, limits, syntax, InspectionPlan::all())
     }
 
     pub(crate) fn into_inspections_with_syntax(
@@ -327,6 +363,7 @@ impl ValidationPreparation {
         bytes: &[u8],
         limits: &SafetyLimits,
         syntax: crate::syntax::SyntaxSummary,
+        plan: InspectionPlan,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let Self {
             document,
@@ -372,6 +409,7 @@ impl ValidationPreparation {
                 &document_features.tagged_text_language,
                 limits,
             )?;
+            let plan = plan.after_content_discovery(!content.fonts.is_empty());
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
             let xobjects = crate::xobject::inspect(&document, &content, limits)?;
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
@@ -386,7 +424,8 @@ impl ValidationPreparation {
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
             let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
-            let font_embedding = font_embedding::inspect(&document, &content, limits)?;
+            let font_embedding =
+                font_embedding::inspect(&document, &content, limits, plan.font_details)?;
             InspectionSummary {
                 header,
                 content,
@@ -1076,5 +1115,26 @@ mod tests {
             extract_trailer_id(&document),
             Some(vec![b"one".to_vec(), b"two".to_vec()])
         );
+    }
+
+    #[test]
+    fn inspection_plan_requires_complete_content_discovery() {
+        let plan = InspectionPlan::all();
+        assert_eq!(plan.font_details, InspectionNeed::Unknown);
+        assert_eq!(
+            plan.after_content_discovery(false).font_details,
+            InspectionNeed::NotApplicable
+        );
+        assert_eq!(
+            plan.after_content_discovery(true).font_details,
+            InspectionNeed::Required
+        );
+    }
+
+    #[test]
+    fn unknown_inspection_needs_run_conservatively() {
+        assert!(InspectionNeed::Unknown.should_run());
+        assert!(InspectionNeed::Required.should_run());
+        assert!(!InspectionNeed::NotApplicable.should_run());
     }
 }
