@@ -90,7 +90,7 @@ diff file format="text" verapdf=verapdf_bin:
 # Build the release validator and compare it with veraPDF on the checked-in long PDF.
 benchmark:
     cargo build --quiet --release -p page_cli --bin page
-    rust-script bench/verapdf.rs
+    rust-script bench/benchmark.rs
 
 # Regenerate checked-in rule-mapping documentation.
 doc-rules:
