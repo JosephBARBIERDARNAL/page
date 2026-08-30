@@ -263,6 +263,8 @@
       
         
       
+        
+      
     
     
     
@@ -511,6 +513,8 @@
   
     
     
+      
+        
       
         
       
@@ -768,14 +772,14 @@
 
 
 <h1 id="page">page<a class="headerlink" href="#page" title="Permanent link">&para;</a></h1>
-<p><code>page</code> is an <span class="pretty-highlight">experimental</span> PDF/A and PDF/UA validation engine written in Rust.</p>
-<p>You can currently use it as a <a href="api/cli/">CLI</a> or via <a href="api/rust/">Rust</a></p>
+<p>A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a <a href="api/cli/">CLI</a>, a <a href="api/rust/">Rust crate</a> and a <a href="api/python/">Python package</a>.</p>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Compliant</strong>: validate all PDF/A-1, PDF/A-2, PDF/A-3 and PDF/UA-1 formats</li>
+<li><strong>Accessibility</strong>: check PDFs against PDF/UA-1 accessibility requirements</li>
+<li><strong>PDF/A compliance</strong>: validate PDF/A-1, PDF/A-2, and PDF/A-3 documents</li>
 <li><strong>Tested</strong>: uses the same test corpus as <em>veraPDF</em> <span class="twemoji" title="veraPDF is the gold standard of PDF/A validation, which is why it's used as a reference."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z"/></svg></span></li>
-<li><strong>Fast</strong>: preliminary tests suggest that <code>page</code> is between 3x to 15x faster than veraPDF</li>
-<li><strong>Lightweight</strong>: binary size is ~9MB and peak RSS is between 3x to 8x lower than veraPDF</li>
+<li><strong>Fast</strong>: preliminary tests suggest that <code>page</code> is 3x to 15x faster than veraPDF</li>
+<li><strong>Lightweight</strong>: ~9 MB binary, with peak RSS 3x to 8x lower than veraPDF</li>
 </ul>
 <h2 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h2>
 <p>So far, all PDF/A and PDF/UA-1 formats have been implemented. The current focus is on consolidating those, making sure they are heavily tested against a large corpus of documents. The goal is to have those foundations completed by <strong>the end of 2026</strong>.</p>
