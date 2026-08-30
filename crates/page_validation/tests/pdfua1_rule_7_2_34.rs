@@ -1,92 +1,15 @@
-use std::collections::BTreeSet;
-use std::env;
-use std::fs;
-use std::path::Path;
-
-use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
-
 pub mod common;
 
 const RULE: &str = "PDFUA1-TEXT-LANGUAGE-001";
 const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.2:34";
 
-#[test]
-fn pdfua1_rule_7_2_34_requires_language_for_page_text() {
-    for case in [
-        "property_language_present",
-        "inherited_language_present",
-        "catalog_language_present",
-    ] {
-        let report = validate_pdf_bytes(
-            &common::pdfua1_rule_7_2_34_fixture(case),
-            Some(ValidationProfile::PdfUa1),
-            &SafetyLimits::default(),
-        )
-        .expect("explicit profile validation");
-        assert!(report.is_compliant, "{case}: {report}");
-        assert!(report.failures.is_empty());
-    }
-
-    let report = validate_pdf_bytes(
-        &common::pdfua1_rule_7_2_34_fixture("language_missing"),
-        Some(ValidationProfile::PdfUa1),
-        &SafetyLimits::default(),
-    )
-    .expect("explicit profile validation");
-    assert!(!report.is_compliant, "{report}");
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].rule_id, RULE);
-}
-
-#[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.2-34 fixtures"]
-fn regenerate_pdfua1_rule_7_2_34_fixtures() {
-    for case in [
-        "property_language_present",
-        "inherited_language_present",
-        "catalog_language_present",
-        "language_missing",
-    ] {
-        fs::write(
-            Path::new("tests/fixtures").join(format!("pdfua1-rule-7-2-34-{case}.pdf")),
-            common::pdfua1_rule_7_2_34_fixture(case),
-        )
-        .expect("write PDF/UA-1 rule 7.2-34 fixture");
-    }
-}
-
-#[test]
-fn pdfua1_rule_7_2_34_fixtures_match_verapdf_when_opted_in() {
-    let Some(executable) = env::var_os("VERAPDF_BIN") else {
-        return;
-    };
-    let mut config = ReferenceConfig::pinned(executable);
-    config.profile = ReferenceProfile::PdfUa1;
-    let runner = DifferentialRunner::new(config).expect("pinned veraPDF");
-    for (case, should_fail) in [
-        ("property_language_present", false),
-        ("inherited_language_present", false),
-        ("catalog_language_present", false),
-        ("language_missing", true),
-    ] {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures")
-            .join(format!("pdfua1-rule-7-2-34-{case}.pdf"));
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-        let failed = report
-            .reference_result
-            .as_ref()
-            .expect("veraPDF result")
-            .failed_rule_ids
-            .iter()
-            .map(ToString::to_string)
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            failed.contains(REFERENCE_RULE),
-            should_fail,
-            "{case}: {report}"
-        );
-    }
+crate::pdfua1_rule_tests! {
+    rule: RULE,
+    reference_rule: REFERENCE_RULE,
+    cases: [
+        ("pdfua1-rule-7-2-34-catalog_language_present.pdf", || include_bytes!("fixtures/pdfua1-rule-7-2-34-catalog_language_present.pdf").to_vec(), || common::pdfua1_rule_7_2_34_fixture("catalog_language_present"), &[], false, false, &[]),
+        ("pdfua1-rule-7-2-34-inherited_language_present.pdf", || include_bytes!("fixtures/pdfua1-rule-7-2-34-inherited_language_present.pdf").to_vec(), || common::pdfua1_rule_7_2_34_fixture("inherited_language_present"), &[], false, false, &[]),
+        ("pdfua1-rule-7-2-34-language_missing.pdf", || include_bytes!("fixtures/pdfua1-rule-7-2-34-language_missing.pdf").to_vec(), || common::pdfua1_rule_7_2_34_fixture("language_missing"), &["PDFUA1-TEXT-LANGUAGE-001"], true, false, &[]),
+        ("pdfua1-rule-7-2-34-property_language_present.pdf", || include_bytes!("fixtures/pdfua1-rule-7-2-34-property_language_present.pdf").to_vec(), || common::pdfua1_rule_7_2_34_fixture("property_language_present"), &[], false, false, &[]),
+    ],
 }

@@ -1678,17 +1678,21 @@ fn pdfa_rule_files_cover_every_official_mapping() {
                 source.contains(&format!("const REFERENCE_RULE: &str = \"{reference}\"")),
                 "{path:?} claims the wrong reference rule"
             );
-            assert!(source.contains("const CASES"), "{path:?} has no case table");
+            let uses_shared_macro = source.contains("crate::pdfa_rule_tests!");
             assert!(
-                source.contains("canonical_pdfa_fixture"),
+                source.contains("const CASES") || uses_shared_macro,
+                "{path:?} has no case table"
+            );
+            assert!(
+                source.contains("canonical_pdfa_fixture") || uses_shared_macro,
                 "{path:?} has no valid fixture evidence"
             );
             assert!(
-                source.contains("fixture_generation"),
+                source.contains("fixture_generation") || uses_shared_macro,
                 "{path:?} has no ignored fixture-generation test"
             );
             assert!(
-                source.contains("verapdf_differential"),
+                source.contains("verapdf_differential") || uses_shared_macro,
                 "{path:?} has no differential test"
             );
             let expected_profiles = mappings

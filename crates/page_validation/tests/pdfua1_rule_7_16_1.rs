@@ -1,112 +1,14 @@
-use std::collections::BTreeSet;
-use std::env;
-use std::fs;
-use std::path::Path;
-
-use page_validation::differential::{
-    ComparisonClassification, DifferentialRunner, ReferenceConfig, ReferenceProfile,
-};
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
-
 pub mod common;
 
 const RULE: &str = "PDFUA1-ENCRYPTION-P-001";
 const REFERENCE_RULE: &str = "ISO 14289-1:2014:7.16:1";
 
-#[test]
-fn pdfua1_rule_7_16_1_requires_p_with_bit_10_set_for_encrypted_files() {
-    let valid = validate_pdf_bytes(
-        include_bytes!("fixtures/pdfua1-rule-7-16-1-valid.pdf"),
-        Some(ValidationProfile::PdfUa1),
-        &SafetyLimits::default(),
-    )
-    .expect("explicit profile validation");
-    assert!(valid.is_compliant, "{valid}");
-    assert!(valid.failures.is_empty(), "{valid}");
-
-    for fixture in [
-        "pdfua1-rule-7-16-1-bit-10-false.pdf",
-        "pdfua1-rule-7-16-1-missing-p.pdf",
-    ] {
-        let bytes = match fixture {
-            "pdfua1-rule-7-16-1-bit-10-false.pdf" => {
-                include_bytes!("fixtures/pdfua1-rule-7-16-1-bit-10-false.pdf").as_slice()
-            }
-            "pdfua1-rule-7-16-1-missing-p.pdf" => {
-                include_bytes!("fixtures/pdfua1-rule-7-16-1-missing-p.pdf").as_slice()
-            }
-            _ => panic!("unknown PDF/UA-1 rule 7.16.1 fixture {fixture}"),
-        };
-        let report = validate_pdf_bytes(
-            bytes,
-            Some(ValidationProfile::PdfUa1),
-            &SafetyLimits::default(),
-        )
-        .expect("explicit profile validation");
-        assert!(!report.is_compliant, "{fixture}: {report}");
-        assert!(
-            report
-                .failures
-                .iter()
-                .any(|failure| failure.rule_id == RULE),
-            "{fixture}: {report}"
-        );
-    }
-}
-
-#[test]
-#[ignore = "maintenance generator for PDF/UA-1 rule 7.16-1 fixtures"]
-fn regenerate_pdfua1_rule_7_16_1_fixtures() {
-    for (fixture, case) in [
-        ("pdfua1-rule-7-16-1-valid.pdf", "valid"),
-        ("pdfua1-rule-7-16-1-bit-10-false.pdf", "bit_10_false"),
-        ("pdfua1-rule-7-16-1-missing-p.pdf", "missing_p"),
-    ] {
-        fs::write(
-            Path::new("tests/fixtures").join(fixture),
-            common::pdfua1_rule_7_16_1_fixture(case),
-        )
-        .expect("write PDF/UA-1 rule 7.16-1 fixture");
-    }
-}
-
-#[test]
-fn pdfua1_rule_7_16_1_fixtures_match_verapdf_1302_when_opted_in() {
-    let Some(executable) = env::var_os("VERAPDF_BIN") else {
-        return;
-    };
-    let mut config = ReferenceConfig::pinned(executable);
-    config.profile = ReferenceProfile::PdfUa1;
-    let runner = DifferentialRunner::new(config).expect("pinned veraPDF 1.30.2");
-    for (fixture, should_fail, reference_parser_discrepancy) in [
-        ("pdfua1-rule-7-16-1-valid.pdf", false, false),
-        ("pdfua1-rule-7-16-1-bit-10-false.pdf", true, false),
-        ("pdfua1-rule-7-16-1-missing-p.pdf", true, true),
-    ] {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures")
-            .join(fixture);
-        let report = runner.compare_file(&path, &SafetyLimits::default());
-        if reference_parser_discrepancy {
-            assert_eq!(
-                report.classification,
-                ComparisonClassification::ReferenceParserDiscrepancy,
-                "{fixture}: {report}"
-            );
-        } else {
-            let failed = report
-                .reference_result
-                .as_ref()
-                .expect("veraPDF result")
-                .failed_rule_ids
-                .iter()
-                .map(ToString::to_string)
-                .collect::<BTreeSet<_>>();
-            assert_eq!(
-                failed.contains(REFERENCE_RULE),
-                should_fail,
-                "{fixture}: {report}"
-            );
-        }
-    }
+crate::pdfua1_rule_tests! {
+    rule: RULE,
+    reference_rule: REFERENCE_RULE,
+    cases: [
+        ("pdfua1-rule-7-16-1-bit-10-false.pdf", || include_bytes!("fixtures/pdfua1-rule-7-16-1-bit-10-false.pdf").to_vec(), || common::pdfua1_rule_7_16_1_fixture("bit_10_false"), &["PDFUA1-ENCRYPTION-P-001"], true, false, &[]),
+        ("pdfua1-rule-7-16-1-missing-p.pdf", || include_bytes!("fixtures/pdfua1-rule-7-16-1-missing-p.pdf").to_vec(), || common::pdfua1_rule_7_16_1_fixture("missing_p"), &["PDFUA1-ENCRYPTION-P-001", "PDFUA1-ID-PART-001", "PDFUA1-ID-SCHEMA-001", "PDFUA1-METADATA-STRUCTURE-001", "PDFUA1-METADATA-TITLE-001", "PDFUA1-STRUCT-TREE-ROOT-001", "PDFUA1-TAGGED-DOCUMENT-001", "PDFUA1-VIEWER-PREFERENCES-001"], true, true, &[]),
+        ("pdfua1-rule-7-16-1-valid.pdf", || include_bytes!("fixtures/pdfua1-rule-7-16-1-valid.pdf").to_vec(), || common::pdfua1_rule_7_16_1_fixture("valid"), &[], false, false, &[]),
+    ],
 }

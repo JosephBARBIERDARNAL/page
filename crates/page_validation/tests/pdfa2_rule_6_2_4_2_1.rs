@@ -10,63 +10,13 @@ const PROFILES: &[ReferenceProfile] = &[
     ReferenceProfile::PdfA2b,
     ReferenceProfile::PdfA2u,
 ];
-const CASES: &[(&str, bool)] = &[("valid", false)];
 
-#[test]
-fn pdfa2_rule_6_2_4_2_1_local_validation() {
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    for (case, should_fail) in CASES {
-        match *case {
-            "valid" => {
-                for profile in PROFILES {
-                    let bytes = common::pdfa_profile_fixture(
-                        *profile,
-                        common::canonical_pdfa_fixture(*profile),
-                    );
-                    common::assert_pdfa_rule_behavior(*profile, &local_rules, &bytes, *should_fail);
-                }
-            }
-            "invalid" => {
-                for local_rule in &local_rules {
-                    if let Some(source) = common::mutation_fixture(local_rule) {
-                        let profile =
-                            common::preferred_pdfa_mutation_profile(&[*local_rule], PROFILES);
-                        let bytes = common::pdfa_profile_fixture(profile, &source);
-                        common::assert_pdfa_rule_behavior(
-                            profile,
-                            &local_rules,
-                            &bytes,
-                            *should_fail,
-                        );
-                        break;
-                    }
-                }
-            }
-            _ => panic!("unknown PDF/A rule case: {case}"),
-        }
-    }
-}
-
-#[test]
-#[ignore = "maintenance generator for PDFA2 rule 6.2.4.2-1 fixtures"]
-fn pdfa2_rule_6_2_4_2_1_fixture_generation() {
-    let profile = PROFILES[0];
-    let bytes = common::pdfa_profile_fixture(profile, common::canonical_pdfa_fixture(profile));
-    common::write_generated_fixture("pdfa2-rule-6-2-4-2-1-valid.pdf", &bytes);
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    for local_rule in &local_rules {
-        if let Some(source) = common::mutation_fixture(local_rule) {
-            common::write_generated_fixture("pdfa2-rule-6-2-4-2-1-invalid.pdf", &source);
-            break;
-        }
-    }
-}
-
-#[test]
-fn pdfa2_rule_6_2_4_2_1_verapdf_differential_when_opted_in() {
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    common::run_pdfa_rule_differential(REFERENCE_RULE, &local_rules, PROFILES);
+crate::pdfa_rule_tests! {
+    rule: RULE,
+    additional_rules: ADDITIONAL_RULES,
+    reference_rule: REFERENCE_RULE,
+    profiles: PROFILES,
+    fixture_stem: "pdfa2-rule-6-2-4-2-1",
+    label: "maintenance generator for PDFA2 rule 6.2.4.2-1 fixtures",
+    include_invalid: false,
 }

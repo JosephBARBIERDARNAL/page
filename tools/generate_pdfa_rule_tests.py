@@ -1,20 +1,18 @@
-#!/usr/bin/env python3
 """Generate one integration test per mapped PDF/A rule."""
 
-from collections import defaultdict
-from pathlib import Path
 import json
 import re
-
+from collections import defaultdict
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / "crates/page_validation/tests"
 FIXTURES = TESTS / "fixtures"
 MUTATION_LOCAL_RULES = {
     mutation["local_rule_id"]
-    for mutation in json.loads(
-        (FIXTURES / "verapdf-diff-cases.json").read_text()
-    )["checked_in_mutations"]
+    for mutation in json.loads((FIXTURES / "verapdf-diff-cases.json").read_text())[
+        "checked_in_mutations"
+    ]
 }
 
 
@@ -45,9 +43,7 @@ def render(prefix: str, reference: str, mappings: list[dict]) -> str:
     has_mutation = prefix == "pdfa1" and any(
         rule in MUTATION_LOCAL_RULES for rule in local_rules
     )
-    stem = f"{prefix}_rule_{clause.replace('.', '_')}_{test_number}"
     fixture_stem = f"pdfa{part}-rule-{clause.replace('.', '-')}-{test_number}"
-    cases = '[ ("valid", false), ("invalid", true) ]' if has_mutation else '[ ("valid", false) ]'
     return f'''use page_validation::differential::ReferenceProfile;
 
 pub mod common;
@@ -56,70 +52,47 @@ const RULE: &str = "{primary}";
 const ADDITIONAL_RULES: &[&str] = &[{additional_rust}];
 const REFERENCE_RULE: &str = "{reference}";
 const PROFILES: &[ReferenceProfile] = &[{profiles_rust}];
-const CASES: &[(&str, bool)] = &{cases};
 
-#[test]
-fn {stem}_local_validation() {{
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    for (case, should_fail) in CASES {{
-        match *case {{
-            "valid" => for profile in PROFILES {{
-                let bytes = common::pdfa_profile_fixture(
-                    *profile,
-                    common::canonical_pdfa_fixture(*profile),
-                );
-                common::assert_pdfa_rule_behavior(*profile, &local_rules, &bytes, *should_fail);
-            }},
-            "invalid" => for local_rule in &local_rules {{
-                if let Some(source) = common::mutation_fixture(local_rule) {{
-                    let profile = common::preferred_pdfa_mutation_profile(&[*local_rule], PROFILES);
-                    let bytes = common::pdfa_profile_fixture(profile, &source);
-                    common::assert_pdfa_rule_behavior(profile, &local_rules, &bytes, *should_fail);
-                    break;
-                }}
-            }},
-            _ => panic!("unknown PDF/A rule case: {{case}}"),
-        }}
-    }}
-}}
-
-#[test]
-#[ignore = "maintenance generator for {prefix.upper()} rule {clause}-{test_number} fixtures"]
-fn {stem}_fixture_generation() {{
-    let profile = PROFILES[0];
-    let bytes = common::pdfa_profile_fixture(profile, common::canonical_pdfa_fixture(profile));
-    common::write_generated_fixture("{fixture_stem}-valid.pdf", &bytes);
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    for local_rule in &local_rules {{
-        if let Some(source) = common::mutation_fixture(local_rule) {{
-            common::write_generated_fixture("{fixture_stem}-invalid.pdf", &source);
-            break;
-        }}
-    }}
-}}
-
-#[test]
-fn {stem}_verapdf_differential_when_opted_in() {{
-    let mut local_rules = vec![RULE];
-    local_rules.extend_from_slice(ADDITIONAL_RULES);
-    common::run_pdfa_rule_differential(REFERENCE_RULE, &local_rules, PROFILES);
+crate::pdfa_rule_tests! {{
+    rule: RULE,
+    additional_rules: ADDITIONAL_RULES,
+    reference_rule: REFERENCE_RULE,
+    profiles: PROFILES,
+    fixture_stem: "{fixture_stem}",
+    label: "maintenance generator for {prefix.upper()} rule {clause}-{test_number} fixtures",
+    include_invalid: {str(has_mutation).lower()},
 }}
 '''
 
 
 def main():
     inventories = [
-        ("pdfa1", json.loads((FIXTURES / "pdfa-1b-coverage.json").read_text())["rule_mapping"]["mappings"]),
-        ("pdfa2", json.loads((FIXTURES / "pdfa-2-3-coverage.json").read_text())["rule_mapping"]["mappings"]),
-        ("pdfa3", json.loads((FIXTURES / "pdfa-2-3-coverage.json").read_text())["rule_mapping"]["mappings"]),
+        (
+            "pdfa1",
+            json.loads((FIXTURES / "pdfa-1b-coverage.json").read_text())[
+                "rule_mapping"
+            ]["mappings"],
+        ),
+        (
+            "pdfa2",
+            json.loads((FIXTURES / "pdfa-2-3-coverage.json").read_text())[
+                "rule_mapping"
+            ]["mappings"],
+        ),
+        (
+            "pdfa3",
+            json.loads((FIXTURES / "pdfa-2-3-coverage.json").read_text())[
+                "rule_mapping"
+            ]["mappings"],
+        ),
     ]
     grouped = defaultdict(list)
     for prefix, mappings in inventories:
         for mapping in mappings:
             part, _, _ = reference_parts(mapping["verapdf_rule_id"])
-            if (prefix == "pdfa1" and part == 1) or (prefix == f"pdfa{part}" and part in (2, 3)):
+            if (prefix == "pdfa1" and part == 1) or (
+                prefix == f"pdfa{part}" and part in (2, 3)
+            ):
                 grouped[(prefix, mapping["verapdf_rule_id"])].append(mapping)
 
     expected = set()
