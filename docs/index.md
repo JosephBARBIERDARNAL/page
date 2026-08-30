@@ -1,6 +1,6 @@
 # page
 
-A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a [CLI](api/cli.md) or via [Rust](api/rust.md).
+A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a [CLI](api/cli.md), a [Rust crate](api/rust.md) and a [Python package](api/python.md).
 
 ## Features
 
