@@ -1103,10 +1103,154 @@ fn trailer_id(trailer: &RawValue) -> Option<Vec<u8>> {
 
 pub(crate) fn repair_for_lopdf(bytes: &[u8]) -> Option<Vec<u8>> {
     let mut repaired = bytes.to_vec();
-    let mut changed = repair_startxref_whitespace(&mut repaired);
+    let header_offset = bytes
+        .windows(b"%PDF-".len())
+        .position(|window| window == b"%PDF-")
+        .filter(|offset| *offset > 0);
+    let mut changed = repair_header_syntax(&mut repaired);
+    if let Some(header_offset) = header_offset {
+        changed |= repair_offsets_for_header(&mut repaired, header_offset);
+    }
+    changed |= repair_startxref_whitespace(&mut repaired);
     changed |= repair_xref_syntax(&mut repaired);
     changed |= repair_hex_strings(&mut repaired);
     changed.then_some(repaired)
+}
+
+fn repair_offsets_for_header(bytes: &mut Vec<u8>, header_offset: usize) -> bool {
+    let mut changed = false;
+    let mut in_xref = false;
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let line_end = bytes
+            .get(cursor..)
+            .unwrap_or_default()
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .map_or(bytes.len(), |offset| cursor + offset);
+        let Some(line) = bytes.get_mut(cursor..line_end) else {
+            break;
+        };
+        if line == b"xref" {
+            in_xref = true;
+        } else if line == b"trailer" {
+            in_xref = false;
+        } else {
+            let xref_offset = if in_xref
+                && line.len() >= 18
+                && line.get(10) == Some(&b' ')
+                && line.get(16) == Some(&b' ')
+                && line.get(17).is_some_and(|byte| matches!(byte, b'n' | b'f'))
+                && line
+                    .get(..10)
+                    .is_some_and(|prefix| prefix.iter().all(u8::is_ascii_digit))
+            {
+                line.get(..10)
+                    .and_then(|offset| std::str::from_utf8(offset).ok())
+                    .and_then(|offset| offset.parse::<usize>().ok())
+                    .and_then(|offset| offset.checked_sub(header_offset))
+            } else {
+                None
+            };
+            if let Some(offset) = xref_offset {
+                let replacement = format!("{offset:010}");
+                if let Some(prefix) = line.get_mut(..10) {
+                    prefix.copy_from_slice(replacement.as_bytes());
+                    changed = true;
+                }
+            }
+        }
+        cursor = line_end.saturating_add(1);
+    }
+
+    let Some(startxref) = bytes
+        .windows(b"startxref".len())
+        .rposition(|window| window == b"startxref")
+    else {
+        return changed;
+    };
+    let Some(value_start) = bytes
+        .get(startxref + b"startxref".len()..)
+        .and_then(|suffix| suffix.iter().position(|byte| byte.is_ascii_digit()))
+        .map(|offset| startxref + b"startxref".len() + offset)
+    else {
+        return changed;
+    };
+    let value_end = value_start
+        + bytes
+            .get(value_start..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(|byte| byte.is_ascii_digit())
+            .count();
+    let Ok(value) = std::str::from_utf8(bytes.get(value_start..value_end).unwrap_or_default())
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .ok_or(())
+    else {
+        return changed;
+    };
+    let Some(value) = value.checked_sub(header_offset) else {
+        return changed;
+    };
+    let replacement = value.to_string();
+    bytes.splice(value_start..value_end, replacement.bytes());
+    changed = true;
+    changed
+}
+
+pub(crate) fn header_is_offset(bytes: &[u8]) -> bool {
+    bytes
+        .windows(b"%PDF-".len())
+        .position(|window| window == b"%PDF-")
+        .is_some_and(|offset| offset > 0)
+}
+
+/// Keeps the original bytes available to the syntax inspector while making
+/// recoverable header defects acceptable to lopdf's strict loader. veraPDF
+/// validates these defects as conformance findings and continues inspecting
+/// the rest of the document, so rejecting the document before validation
+/// would hide the more useful rule failure.
+fn repair_header_syntax(bytes: &mut Vec<u8>) -> bool {
+    let Some(marker) = bytes
+        .windows(b"%PDF-".len())
+        .position(|window| window == b"%PDF-")
+    else {
+        return false;
+    };
+    if marker > 0 {
+        bytes.drain(..marker);
+    }
+
+    let Some(line_end) = bytes
+        .get(b"%PDF-".len()..)
+        .and_then(|bytes| bytes.iter().position(|byte| matches!(byte, b'\r' | b'\n')))
+        .map(|offset| offset + b"%PDF-".len())
+    else {
+        return marker > 0;
+    };
+
+    let mut changed = marker > 0;
+    if bytes.get(6) == Some(&b'.')
+        && bytes.get(7).is_some_and(u8::is_ascii_digit)
+        && bytes.get(5).is_some_and(|byte| !byte.is_ascii_digit())
+        && let Some(byte) = bytes.get_mut(5)
+    {
+        *byte = b'1';
+        changed = true;
+    }
+    if line_end > 8
+        && bytes.get(8..line_end).is_some_and(|suffix| {
+            suffix
+                .iter()
+                .all(|byte| matches!(byte, b' ' | b'\t' | b'\r'))
+        })
+        && let Some(byte) = bytes.get_mut(8)
+    {
+        *byte = b'\n';
+        changed = true;
+    }
+    changed
 }
 
 fn repair_startxref_whitespace(bytes: &mut [u8]) -> bool {
@@ -1488,6 +1632,21 @@ mod tests {
         for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n"] {
             assert!(inspect_header(header, &revisions).has_valid_header);
         }
+    }
+
+    #[test]
+    fn repairs_cross_reference_offsets_after_a_leading_header_offset() {
+        let input =
+            b" %PDF-1.4\nxref\n0 1\n0000000001 00000 f\ntrailer\n<<>>\nstartxref\n10\n%%EOF";
+        let repaired = repair_for_lopdf(input).expect("header offset is repairable");
+
+        assert!(repaired.starts_with(b"%PDF-1.4\n"));
+        assert!(
+            repaired
+                .windows(18)
+                .any(|line| line == b"0000000000 00000 f")
+        );
+        assert!(repaired.ends_with(b"startxref\n9\n%%EOF"));
     }
 
     #[test]

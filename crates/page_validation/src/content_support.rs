@@ -100,6 +100,9 @@ pub(crate) struct FontTextRun {
 pub(crate) struct ContentExecutionSummary {
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
     pub(crate) xobjects: BTreeMap<ResourceKey, XObjectUse>,
+    pub(crate) has_annotations: bool,
+    pub(crate) has_widget_annotations: bool,
+    pub(crate) has_page_or_annotation_actions: bool,
     // Keyed by indirect object identity so aliases in different resource
     // dictionaries still share the PDF/UA-1 7.20-2 reference count.
     pub(crate) form_xobjects: BTreeMap<ObjectId, FormXObjectUse>,
@@ -405,6 +408,7 @@ impl ContentExecutor<'_> {
         self.current_page_object_id = page_object_id;
         let resources = inherited_page_resources(self.document, page, self.limits)?.cloned();
         let resources_are_inherited = page.get(b"Resources").is_err();
+        self.summary.has_page_or_annotation_actions |= contains_key(page, b"AA");
         let mut active_forms = BTreeSet::new();
         let mut graphics_state = GraphicsState::default();
         let mut graphics_stack = Vec::new();
@@ -460,6 +464,7 @@ impl ContentExecutor<'_> {
         else {
             return Ok(());
         };
+        self.summary.has_annotations |= !annotations.is_empty();
         for (annotation_index, annotation) in annotations.iter().enumerate() {
             let Some(annotation) =
                 resolve_optional(self.document, annotation, self.limits.max_reference_depth)?
@@ -467,6 +472,14 @@ impl ContentExecutor<'_> {
             else {
                 continue;
             };
+            self.summary.has_widget_annotations |= resolved_name(
+                self.document,
+                annotation,
+                b"Subtype",
+                self.limits.max_reference_depth,
+            )? == Some(b"Widget".as_slice());
+            self.summary.has_page_or_annotation_actions |=
+                contains_key(annotation, b"A") || contains_key(annotation, b"AA");
             let Ok(appearances) = annotation.get(b"AP") else {
                 continue;
             };

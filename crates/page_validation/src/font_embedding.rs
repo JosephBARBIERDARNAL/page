@@ -7,7 +7,7 @@ use crate::content_support::{ContentExecutionSummary, FontTextRun};
 use crate::error::PdfError;
 use crate::font_encodings::{self, PredefinedEncoding};
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{ResourceKey, resolve_optional};
 use crate::predefined_cmaps;
 use crate::report::RuleFailure;
@@ -155,7 +155,19 @@ pub(crate) fn inspect(
     document: &Document,
     execution: &ContentExecutionSummary,
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<FontEmbeddingSummary, PdfError> {
+    if !need.should_run() {
+        // The embedded-CMap CID bound has whole-document semantics and can
+        // still fail for an unused CMap. Keep that scan on the mandatory
+        // path; every other font predicate is populated from `execution`'s
+        // complete content-reached font population.
+        return Ok(FontEmbeddingSummary {
+            excessive_graphics_state_nesting: execution.excessive_graphics_state_nesting.clone(),
+            oversized_cmap_cids: inspect_all_embedded_cmap_cids(document, limits)?,
+            ..FontEmbeddingSummary::default()
+        });
+    }
     let mut scanner = Scanner {
         document,
         limits,
@@ -876,7 +888,7 @@ impl Scanner<'_> {
                         .and_then(|encoding| single_encoded_character(encoding, byte))
                         .and_then(|character| face.glyph_index(character))
                 };
-                if glyph.is_some_and(|glyph| glyph.0 == 0) {
+                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.0 == 0) {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1104,6 +1116,13 @@ impl Scanner<'_> {
                 let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
                     continue;
                 };
+                if glyph.0 == 0 {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered CID",
+                    ));
+                }
                 if !face.glyph_is_present(glyph) {
                     self.missing_truetype_glyphs.push(font_failure(
                         usage.object_id,
@@ -4959,11 +4978,11 @@ mod tests {
 
     use super::{
         CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
-        cmap_maximal_cid, cmap_uses_identity_base, inspect_all_embedded_cmap_cids, parse_cmap,
-        parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
+        cmap_maximal_cid, cmap_uses_identity_base, inspect, inspect_all_embedded_cmap_cids,
+        parse_cmap, parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
         type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
     };
-    use crate::{SafetyLimits, predefined_cmaps};
+    use crate::{SafetyLimits, model::InspectionNeed, predefined_cmaps};
 
     /// A malicious CMap can declare an astronomical entry count while
     /// supplying almost no real tokens (`99999999999999 begincidrange <00>
@@ -5197,6 +5216,28 @@ mod tests {
         let failures = inspect_all_embedded_cmap_cids(&document, &SafetyLimits::default())
             .expect("inspect CMaps");
         assert_eq!(failures.len(), 1);
+    }
+
+    #[test]
+    fn skipping_usage_bound_details_retains_global_cmap_checks() {
+        let mut document = Document::with_version("1.4");
+        let mut dictionary = Dictionary::new();
+        dictionary.set("CMapName", "Unused-CMap");
+        document.add_object(Stream::new(
+            dictionary,
+            b"1 begincidchar <00> 65536 endcidchar".to_vec(),
+        ));
+
+        let summary = inspect(
+            &document,
+            &super::ContentExecutionSummary::default(),
+            &SafetyLimits::default(),
+            InspectionNeed::NotApplicable,
+        )
+        .expect("inspect unused font populations");
+
+        assert!(summary.failures.is_empty());
+        assert_eq!(summary.oversized_cmap_cids.len(), 1);
     }
 
     /// Every hand-rolled font byte-parser in this file must not panic on

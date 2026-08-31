@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   verapdf:
-    name: veraPDF differential and corpus gate
+    name: veraPDF corpus gate
     runs-on: ubuntu-latest
 
     steps:
@@ -32,29 +32,6 @@ jobs:
 
       - name: Generate PDF fixtures
         run: just typst
-
-      - name: Install Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Download pinned veraPDF
-        run: |
-          curl --fail --silent --show-error --location \
-            --output /tmp/verapdf-installer.zip \
-            https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip
-          echo "6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838  /tmp/verapdf-installer.zip" \
-            | sha256sum --check
-          unzip -q /tmp/verapdf-installer.zip -d /tmp/verapdf-installer
-          /tmp/verapdf-installer/verapdf-greenfield-1.30.2/verapdf-install \
-            "$GITHUB_WORKSPACE/.github/verapdf-auto-install.xml"
-          /tmp/verapdf/verapdf --version
-
-      - name: Enforce all implemented PDF/A and PDF/UA profile coverage
-        env:
-          VERAPDF_BIN: /tmp/verapdf/verapdf
-        run: just pdfa-release-gate
 
       - name: Run page against the veraPDF corpus
         run: just verapdf-corpus

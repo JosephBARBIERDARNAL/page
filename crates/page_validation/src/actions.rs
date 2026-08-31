@@ -6,6 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::error::PdfError;
 use crate::file_spec;
 use crate::limits::SafetyLimits;
+use crate::model::InspectionNeed;
 use crate::object_resolution::{contains_key, dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -39,7 +40,11 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<ActionSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(ActionSummary::default());
+    }
     let Some(catalog) = resolve_catalog(document, limits)? else {
         return Ok(ActionSummary::default());
     };
@@ -564,5 +569,29 @@ impl Inspector<'_> {
         } else {
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lopdf::Document;
+
+    use super::inspect;
+    use crate::limits::SafetyLimits;
+    use crate::model::InspectionNeed;
+
+    #[test]
+    fn not_applicable_actions_do_not_resolve_the_catalog() {
+        let document = Document::with_version("1.4");
+        let summary = inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            InspectionNeed::NotApplicable,
+        )
+        .expect("a skipped action inspection has no catalog work");
+
+        assert!(summary.invalid_action_types.is_empty());
+        assert!(summary.catalog_with_additional_actions.is_empty());
     }
 }

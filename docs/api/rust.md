@@ -21,25 +21,27 @@ page_validation = "0.5.0"
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance against a profile. It stops once it finds a failing rule and returns both the selected profile and the boolean result:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It stops once it finds a failing rule and returns the boolean directly:
 
 ```rust
 use std::path::Path;
 use page_validation::{SafetyLimits, is_pdf_compliant};
 
-let result = is_pdf_compliant(
+let is_compliant = is_pdf_compliant(
     Path::new("file.pdf"),    // path to a PDF
     None,                     // an optional profile
     &SafetyLimits::default(), // see below
 )?;
-println!("{}: {}", result.profile, result.is_compliant);
+println!("{is_compliant}");
 ```
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<ComplianceResult, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
+If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
 
 !!! info
 
-    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same API but expects a `&[u8]` instead of a `&Path`.
+    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same `Result<bool, ValidationError>` API but expects a `&[u8]` instead of a `&Path`.
+
+If you also need the selected profile, use `is_pdf_compliant_with_profile()` or `is_pdf_compliant_bytes_with_profile()`, which return `Result<ComplianceResult, ValidationError>`.
 
 ## Validate a PDF with details
 

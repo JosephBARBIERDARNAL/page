@@ -171,6 +171,86 @@ pub(crate) struct InspectionSummary {
     pub(crate) unicode_names: crate::unicode_names::UnicodeNameSummary,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum InspectionNeed {
+    Required,
+    NotApplicable,
+    Unknown,
+}
+
+impl InspectionNeed {
+    pub(crate) const fn should_run(self) -> bool {
+        !matches!(self, Self::NotApplicable)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct InspectionPlan {
+    pub(crate) font_details: InspectionNeed,
+    pub(crate) xobjects: InspectionNeed,
+    pub(crate) annotations: InspectionNeed,
+    pub(crate) forms: InspectionNeed,
+    pub(crate) actions: InspectionNeed,
+    pub(crate) unicode_names: InspectionNeed,
+}
+
+impl InspectionPlan {
+    pub(crate) const fn all() -> Self {
+        Self {
+            font_details: InspectionNeed::Unknown,
+            xobjects: InspectionNeed::Unknown,
+            annotations: InspectionNeed::Unknown,
+            forms: InspectionNeed::Unknown,
+            actions: InspectionNeed::Unknown,
+            unicode_names: InspectionNeed::Unknown,
+        }
+    }
+
+    pub(crate) const fn for_profile(profile: crate::validation::ValidationProfile) -> Self {
+        let unicode_names = match profile.pdfa_part() {
+            Some(2 | 3) => InspectionNeed::Required,
+            // This inspector can surface reference-depth errors while walking
+            // page resources. Keep it conservative until its operational walk
+            // is separated from its profile-specific findings.
+            _ => InspectionNeed::Unknown,
+        };
+        Self {
+            unicode_names,
+            ..Self::all()
+        }
+    }
+
+    pub(crate) fn after_content_discovery(
+        self,
+        font_usage_present: Option<bool>,
+        xobject_usage_present: Option<bool>,
+        annotation_present: Option<bool>,
+        form_candidate_present: Option<bool>,
+        action_candidate_present: Option<bool>,
+    ) -> Self {
+        Self {
+            font_details: Self::after_fact(self.font_details, font_usage_present),
+            xobjects: Self::after_fact(self.xobjects, xobject_usage_present),
+            annotations: Self::after_fact(self.annotations, annotation_present),
+            forms: Self::after_fact(self.forms, form_candidate_present),
+            actions: Self::after_fact(self.actions, action_candidate_present),
+            unicode_names: self.unicode_names,
+        }
+    }
+
+    fn after_fact(need: InspectionNeed, present: Option<bool>) -> InspectionNeed {
+        match need {
+            InspectionNeed::NotApplicable => InspectionNeed::NotApplicable,
+            InspectionNeed::Required => InspectionNeed::Required,
+            InspectionNeed::Unknown => match present {
+                Some(true) => InspectionNeed::Required,
+                Some(false) => InspectionNeed::NotApplicable,
+                None => InspectionNeed::Unknown,
+            },
+        }
+    }
+}
+
 pub(crate) struct ValidationPreparation {
     document: Document,
     pages: Option<Vec<page_tree::PageEntry>>,
@@ -319,7 +399,7 @@ impl ValidationPreparation {
         limits: &SafetyLimits,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let (preparation, syntax) = self.with_syntax(bytes, limits)?;
-        preparation.into_inspections_with_syntax(bytes, limits, syntax)
+        preparation.into_inspections_with_syntax(bytes, limits, syntax, InspectionPlan::all())
     }
 
     pub(crate) fn into_inspections_with_syntax(
@@ -327,6 +407,7 @@ impl ValidationPreparation {
         bytes: &[u8],
         limits: &SafetyLimits,
         syntax: crate::syntax::SyntaxSummary,
+        plan: InspectionPlan,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let Self {
             document,
@@ -372,21 +453,34 @@ impl ValidationPreparation {
                 &document_features.tagged_text_language,
                 limits,
             )?;
+            let plan = plan.after_content_discovery(
+                Some(!content.fonts.is_empty()),
+                Some(!content.xobjects.is_empty()),
+                Some(content.has_annotations),
+                Some(document_features.catalog_has_acro_form || content.has_widget_annotations),
+                Some(
+                    document_features.catalog_has_action_candidates
+                        || content.has_page_or_annotation_actions,
+                ),
+            );
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &content, limits)?;
+            let xobjects = crate::xobject::inspect(&document, &content, limits, plan.xobjects)?;
             let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
-            let actions = crate::actions::inspect(&document, &pages, limits)?;
-            let forms = crate::forms::inspect(&document, &pages, limits)?;
+            let actions = crate::actions::inspect(&document, &pages, limits, plan.actions)?;
+            let forms = crate::forms::inspect(&document, &pages, limits, plan.forms)?;
             let annotations = crate::annotations::inspect(
                 &document,
                 &pages,
                 document_features.catalog_contains_lang,
                 limits,
+                plan.annotations,
             )?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
-            let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
-            let font_embedding = font_embedding::inspect(&document, &content, limits)?;
+            let unicode_names =
+                crate::unicode_names::inspect(&document, &pages, limits, plan.unicode_names)?;
+            let font_embedding =
+                font_embedding::inspect(&document, &content, limits, plan.font_details)?;
             InspectionSummary {
                 header,
                 content,
@@ -479,8 +573,17 @@ fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfErr
         ..LoadOptions::default()
     };
     let document = if let Some(repaired) = crate::syntax::repair_for_lopdf(bytes) {
-        Document::load_mem_with_options(&repaired, options.clone())
-            .or_else(|_| Document::load_mem_with_options(bytes, options))?
+        match Document::load_mem_with_options(&repaired, options.clone()) {
+            Ok(document) => document,
+            Err(_) if crate::syntax::header_is_offset(bytes) => {
+                let mut lenient_options = options.clone();
+                lenient_options.strict = false;
+                Document::load_mem_with_options(bytes, lenient_options)
+                    .or_else(|_| Document::load_mem_with_options(&repaired, options.clone()))
+                    .or_else(|_| Document::load_mem_with_options(bytes, options))?
+            }
+            Err(_) => Document::load_mem_with_options(bytes, options)?,
+        }
     } else {
         Document::load_mem_with_options(bytes, options)?
     };
@@ -560,12 +663,11 @@ fn extract_info(
         return Ok((DocumentMetadata::default(), None));
     };
     let object_id = reference_id(info_entry);
-    let info = resolve(document, info_entry, limits.max_reference_depth)?
-        .as_dict()
-        .map_err(|error| {
-            let _ = error;
-            PdfError::UnexpectedObject("Info is not a dictionary")
-        })?;
+    let Some(info) = resolve_optional(document, info_entry, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok((DocumentMetadata::default(), object_id));
+    };
 
     let mut values = BTreeMap::new();
     for key in [
@@ -1017,6 +1119,17 @@ mod tests {
     }
 
     #[test]
+    fn treats_a_missing_info_target_as_absent_metadata() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Info", Object::Reference((21, 0)));
+
+        let (metadata, id) = extract_info(&document, &SafetyLimits::default()).expect("metadata");
+
+        assert!(metadata.values.is_empty());
+        assert_eq!(id, Some((21, 0).into()));
+    }
+
+    #[test]
     fn decodes_info_strings_using_pdfdoc_encoding() {
         let mut document = Document::with_version("1.4");
         let info_id = document.add_object(dictionary! {
@@ -1076,5 +1189,139 @@ mod tests {
             extract_trailer_id(&document),
             Some(vec![b"one".to_vec(), b"two".to_vec()])
         );
+    }
+
+    #[test]
+    fn inspection_plan_requires_complete_content_discovery() {
+        let plan = InspectionPlan::all();
+        assert_eq!(plan.font_details, InspectionNeed::Unknown);
+        assert_eq!(
+            plan.after_content_discovery(
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .font_details,
+            InspectionNeed::NotApplicable
+        );
+        assert_eq!(
+            plan.after_content_discovery(
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .font_details,
+            InspectionNeed::Required
+        );
+        assert_eq!(
+            plan.after_content_discovery(
+                Some(false),
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .xobjects,
+            InspectionNeed::Required
+        );
+        let absent = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
+        assert_eq!(absent.annotations, InspectionNeed::NotApplicable);
+        assert_eq!(absent.forms, InspectionNeed::NotApplicable);
+        assert_eq!(absent.actions, InspectionNeed::NotApplicable);
+        let present = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(true),
+            Some(true),
+            Some(true),
+        );
+        assert_eq!(present.annotations, InspectionNeed::Required);
+        assert_eq!(present.forms, InspectionNeed::Required);
+        assert_eq!(present.actions, InspectionNeed::Required);
+    }
+
+    #[test]
+    fn unknown_inspection_needs_run_conservatively() {
+        assert!(InspectionNeed::Unknown.should_run());
+        assert!(InspectionNeed::Required.should_run());
+        assert!(!InspectionNeed::NotApplicable.should_run());
+    }
+
+    #[test]
+    fn required_inspection_needs_are_not_overridden_by_absence() {
+        let plan = InspectionPlan {
+            font_details: InspectionNeed::Required,
+            xobjects: InspectionNeed::Required,
+            annotations: InspectionNeed::Required,
+            forms: InspectionNeed::Required,
+            actions: InspectionNeed::Required,
+            unicode_names: InspectionNeed::Required,
+        };
+        let plan = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
+        assert_eq!(plan.font_details, InspectionNeed::Required);
+        assert_eq!(plan.xobjects, InspectionNeed::Required);
+        assert_eq!(plan.annotations, InspectionNeed::Required);
+        assert_eq!(plan.forms, InspectionNeed::Required);
+        assert_eq!(plan.actions, InspectionNeed::Required);
+        assert_eq!(plan.unicode_names, InspectionNeed::Required);
+    }
+
+    #[test]
+    fn incomplete_discovery_keeps_unknown_inspections_running() {
+        let plan = InspectionPlan::all().after_content_discovery(None, None, None, None, None);
+
+        assert_eq!(plan.font_details, InspectionNeed::Unknown);
+        assert_eq!(plan.xobjects, InspectionNeed::Unknown);
+        assert_eq!(plan.annotations, InspectionNeed::Unknown);
+        assert_eq!(plan.forms, InspectionNeed::Unknown);
+        assert_eq!(plan.actions, InspectionNeed::Unknown);
+        assert_eq!(plan.unicode_names, InspectionNeed::Unknown);
+    }
+
+    #[test]
+    fn profile_needs_are_conservative_for_every_implemented_profile() {
+        let profiles = [
+            crate::validation::ValidationProfile::PdfA1a,
+            crate::validation::ValidationProfile::PdfA1b,
+            crate::validation::ValidationProfile::PdfA2a,
+            crate::validation::ValidationProfile::PdfA2b,
+            crate::validation::ValidationProfile::PdfA2u,
+            crate::validation::ValidationProfile::PdfA3a,
+            crate::validation::ValidationProfile::PdfA3b,
+            crate::validation::ValidationProfile::PdfA3u,
+            crate::validation::ValidationProfile::PdfUa1,
+        ];
+        for profile in profiles {
+            let plan = InspectionPlan::for_profile(profile);
+            assert_eq!(plan.font_details, InspectionNeed::Unknown);
+            assert_eq!(plan.xobjects, InspectionNeed::Unknown);
+            assert_eq!(plan.annotations, InspectionNeed::Unknown);
+            assert_eq!(plan.forms, InspectionNeed::Unknown);
+            assert_eq!(plan.actions, InspectionNeed::Unknown);
+            assert_eq!(
+                plan.unicode_names,
+                if matches!(profile.pdfa_part(), Some(2 | 3)) {
+                    InspectionNeed::Required
+                } else {
+                    InspectionNeed::Unknown
+                }
+            );
+        }
     }
 }

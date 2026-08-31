@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::IsTerminal;
@@ -18,6 +19,10 @@ pub(crate) struct CorpusArgs {
     /// Maximum number of PDFs to validate concurrently; defaults to at most four workers.
     #[arg(long, value_name = "JOBS")]
     pub(crate) jobs: Option<NonZeroUsize>,
+
+    /// Optional rule expectation manifest; defaults to the pinned veraPDF manifest bundled with page.
+    #[arg(long, value_name = "FILE")]
+    pub(crate) rule_manifest: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy)]
@@ -27,6 +32,7 @@ struct CorpusProfile {
 }
 
 const CORPUS_PROFILE_SPEC: &str = include_str!("corpus_profiles.txt");
+const CORPUS_RULE_EXPECTATIONS_SPEC: &str = include_str!("corpus_rule_expectations.tsv");
 
 fn corpus_profiles() -> Result<Vec<CorpusProfile>, String> {
     CORPUS_PROFILE_SPEC
@@ -86,13 +92,27 @@ struct CorpusCase {
     path: PathBuf,
     profile: ValidationProfile,
     expected: ExpectedResult,
+    expected_reference_rule: Option<String>,
+    expected_rules: Vec<String>,
+}
+
+struct CorpusRuleExpectation {
+    reference_rule: String,
+    local_rules: Vec<String>,
 }
 
 const MAX_MISMATCH_DETAILS: usize = 50;
 const DEFAULT_MAX_WORKERS: usize = 4;
 
 pub(crate) fn run(args: &CorpusArgs) -> i32 {
-    let cases = match discover_cases(&args.directory) {
+    let rule_expectations = match load_rule_expectations(args.rule_manifest.as_deref()) {
+        Ok(expectations) => expectations,
+        Err(error) => {
+            eprintln!("corpus error: {error}");
+            return 1;
+        }
+    };
+    let cases = match discover_cases(&args.directory, &rule_expectations) {
         Ok(cases) if cases.is_empty() => {
             eprintln!(
                 "corpus error: no PDF files found in '{}'",
@@ -123,7 +143,9 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
 
     for (case, (actual, report)) in cases.iter().zip(&reports) {
         let actual = *actual;
-        if actual == case.expected.exit_code() {
+        if actual == case.expected.exit_code()
+            && expected_rules_are_reported(&case.expected_rules, report)
+        {
             continue;
         }
 
@@ -255,7 +277,10 @@ fn validate_case(
     })
 }
 
-fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {
+fn discover_cases(
+    root: &Path,
+    rule_expectations: &HashMap<String, CorpusRuleExpectation>,
+) -> Result<Vec<CorpusCase>, String> {
     if !root.is_dir() {
         return Err(format!(
             "corpus directory '{}' does not exist or is not a directory",
@@ -284,15 +309,116 @@ fn discover_cases(root: &Path) -> Result<Vec<CorpusCase>, String> {
         }
         for path in files {
             let expected = expected_result(&path)?;
+            let relative_path = path
+                .strip_prefix(&directory)
+                .map_err(|error| {
+                    format!(
+                        "could not make '{}' relative to '{}': {error}",
+                        path.display(),
+                        directory.display()
+                    )
+                })?
+                .to_str()
+                .ok_or_else(|| format!("corpus file has a non-UTF-8 path: '{}'", path.display()))?
+                .replace(std::path::MAIN_SEPARATOR, "/");
+            let expectation_key = format!("{}\t{}", corpus_profile.directory, relative_path);
+            let (expected_reference_rule, expected_rules) = match expected {
+                ExpectedResult::Pass => {
+                    if rule_expectations.contains_key(&expectation_key) {
+                        return Err(format!(
+                            "rule expectation manifest contains a pass file '{}', which must not have an expected failed rule",
+                            path.display()
+                        ));
+                    }
+                    (None, Vec::new())
+                }
+                ExpectedResult::Fail => {
+                    let expectation = rule_expectations.get(&expectation_key).ok_or_else(|| {
+                        format!(
+                            "rule expectation manifest has no entry for failed corpus file '{}'; regenerate it for the pinned corpus revision",
+                            path.display()
+                        )
+                    })?;
+                    (
+                        Some(expectation.reference_rule.clone()),
+                        expectation.local_rules.clone(),
+                    )
+                }
+            };
             cases.push(CorpusCase {
                 path,
                 profile: corpus_profile.profile,
                 expected,
+                expected_reference_rule,
+                expected_rules,
             });
         }
     }
     cases.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(cases)
+}
+
+fn load_rule_expectations(
+    path: Option<&Path>,
+) -> Result<HashMap<String, CorpusRuleExpectation>, String> {
+    let contents = match path {
+        Some(path) => fs::read_to_string(path).map_err(|error| {
+            format!(
+                "could not read rule expectation manifest '{}': {error}",
+                path.display()
+            )
+        })?,
+        None => CORPUS_RULE_EXPECTATIONS_SPEC.to_owned(),
+    };
+    let mut expectations = HashMap::new();
+    for (line_number, line) in contents.lines().enumerate() {
+        let line = line.trim_end();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields = line.split('\t').collect::<Vec<_>>();
+        if fields.len() != 4 || fields.iter().any(|field| field.is_empty()) {
+            return Err(format!(
+                "invalid rule expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        }
+        let (Some(profile), Some(relative_path), Some(reference_rule), Some(local_rules)) =
+            (fields.first(), fields.get(1), fields.get(2), fields.get(3))
+        else {
+            return Err(format!(
+                "invalid rule expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        };
+        let key = format!("{profile}\t{relative_path}");
+        if expectations
+            .insert(
+                key,
+                CorpusRuleExpectation {
+                    reference_rule: (*reference_rule).to_owned(),
+                    local_rules: local_rules.split(',').map(str::to_owned).collect(),
+                },
+            )
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate rule expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        }
+    }
+    Ok(expectations)
+}
+
+fn expected_rules_are_reported(expected_rules: &[String], report: &ValidationReport) -> bool {
+    expected_rules.is_empty()
+        || expected_rules.iter().any(|expected_rule| {
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == *expected_rule)
+        })
 }
 
 fn collect_pdf_files(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {
@@ -354,6 +480,12 @@ fn print_mismatch(case: &CorpusCase, actual: i32, report: &ValidationReport) {
         case.expected.as_str(),
         case.expected.exit_code()
     );
+    if !case.expected_rules.is_empty() {
+        eprintln!("  expected rules: {}", case.expected_rules.join(", "));
+    }
+    if let Some(reference_rule) = &case.expected_reference_rule {
+        eprintln!("  veraPDF rule:  {reference_rule}");
+    }
     eprintln!("  actual:   {} (exit {actual})", exit_label(actual));
     if report.failures.is_empty() {
         eprintln!("  failures: none reported");
@@ -387,7 +519,8 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{ExpectedResult, expected_result};
+    use super::{ExpectedResult, expected_result, expected_rules_are_reported};
+    use page_validation::{SafetyLimits, ValidationProfile, ValidationReport, validate_pdf_bytes};
     use std::path::Path;
 
     #[test]
@@ -406,5 +539,26 @@ mod tests {
     fn rejects_missing_or_ambiguous_expected_result() {
         expected_result(Path::new("case.pdf")).unwrap_err();
         expected_result(Path::new("case-pass-fail.pdf")).unwrap_err();
+    }
+
+    #[test]
+    fn requires_the_expected_rule_in_the_report() {
+        let error = validate_pdf_bytes(
+            b"not a PDF",
+            Some(ValidationProfile::PdfA1b),
+            &SafetyLimits::default(),
+        )
+        .expect_err("invalid PDF should be rejected");
+        let report = ValidationReport::from_validation_error(ValidationProfile::PdfA1b, error);
+
+        assert!(expected_rules_are_reported(
+            &["PDF-PARSE-001".to_owned()],
+            &report
+        ));
+        assert!(!expected_rules_are_reported(
+            &["PDFA1B-HEADER-001".to_owned()],
+            &report
+        ));
+        assert!(expected_rules_are_reported(&[], &report));
     }
 }

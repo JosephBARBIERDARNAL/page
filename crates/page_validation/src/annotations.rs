@@ -6,7 +6,7 @@ use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
     dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
     resolved_name, walk_inherited,
@@ -42,7 +42,11 @@ pub(crate) fn inspect(
     pages: &[PageEntry],
     catalog_contains_lang: bool,
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<AnnotationSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(AnnotationSummary::default());
+    }
     let mut summary = AnnotationSummary::default();
     for (index, page_entry) in pages.iter().enumerate() {
         let Some(page) = page_entry.resolve(document) else {
@@ -775,5 +779,30 @@ fn annotation_failure(object_id: Option<PdfObjectId>, context: &str, detail: &st
     RuleFailure {
         object_id,
         description: format!("{context} {detail}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lopdf::Document;
+
+    use super::inspect;
+    use crate::limits::SafetyLimits;
+    use crate::model::InspectionNeed;
+
+    #[test]
+    fn not_applicable_annotations_do_not_resolve_pages() {
+        let document = Document::with_version("1.4");
+        let summary = inspect(
+            &document,
+            &[],
+            false,
+            &SafetyLimits::default(),
+            InspectionNeed::NotApplicable,
+        )
+        .expect("a skipped annotation inspection has no page work");
+
+        assert!(summary.pages_missing_tabs.is_empty());
+        assert!(summary.missing_appearances_pdfa2.is_empty());
     }
 }

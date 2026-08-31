@@ -11,7 +11,7 @@ use crate::catalog::resolve_catalog;
 use crate::content_support::for_each_page_annotation;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
     contains_key, dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
     resolved_name, walk_inherited,
@@ -33,7 +33,11 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<FormSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(FormSummary::default());
+    }
     let mut summary = FormSummary::default();
     inspect_acro_form(document, limits, &mut summary)?;
     inspect_page_widgets(document, pages, limits, &mut summary)?;
@@ -415,4 +419,28 @@ fn object_number(value: &Object) -> Option<f64> {
         .map(|value| value as f64)
         .or_else(|_| value.as_float().map(f64::from))
         .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use lopdf::Document;
+
+    use super::inspect;
+    use crate::limits::SafetyLimits;
+    use crate::model::InspectionNeed;
+
+    #[test]
+    fn not_applicable_forms_do_not_resolve_the_catalog() {
+        let document = Document::with_version("1.4");
+        let summary = inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            InspectionNeed::NotApplicable,
+        )
+        .expect("a skipped form inspection has no catalog work");
+
+        assert!(summary.invalid_need_appearances.is_empty());
+        assert!(summary.dynamic_xfa_forms.is_empty());
+    }
 }
