@@ -5,7 +5,7 @@ use lopdf::{Document, Object, ObjectId};
 use crate::content_support::inherited_page_resources;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
-use crate::model::PdfObjectId;
+use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{dictionary_based, resolve_optional, resolved_name};
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -23,7 +23,11 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    need: InspectionNeed,
 ) -> Result<UnicodeNameSummary, PdfError> {
+    if !need.should_run() {
+        return Ok(UnicodeNameSummary::default());
+    }
     let mut failures = Vec::new();
     let mut visited = BTreeSet::new();
     for page in pages {

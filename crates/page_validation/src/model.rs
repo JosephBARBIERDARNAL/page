@@ -191,6 +191,7 @@ pub(crate) struct InspectionPlan {
     pub(crate) annotations: InspectionNeed,
     pub(crate) forms: InspectionNeed,
     pub(crate) actions: InspectionNeed,
+    pub(crate) unicode_names: InspectionNeed,
 }
 
 impl InspectionPlan {
@@ -201,42 +202,50 @@ impl InspectionPlan {
             annotations: InspectionNeed::Unknown,
             forms: InspectionNeed::Unknown,
             actions: InspectionNeed::Unknown,
+            unicode_names: InspectionNeed::Unknown,
+        }
+    }
+
+    pub(crate) const fn for_profile(profile: crate::validation::ValidationProfile) -> Self {
+        let unicode_names = match profile.pdfa_part() {
+            Some(2 | 3) => InspectionNeed::Required,
+            // This inspector can surface reference-depth errors while walking
+            // page resources. Keep it conservative until its operational walk
+            // is separated from its profile-specific findings.
+            _ => InspectionNeed::Unknown,
+        };
+        Self {
+            unicode_names,
+            ..Self::all()
         }
     }
 
     pub(crate) fn after_content_discovery(
         self,
-        font_usage_present: bool,
-        xobject_usage_present: bool,
-        annotation_present: bool,
-        form_candidate_present: bool,
-        action_candidate_present: bool,
+        font_usage_present: Option<bool>,
+        xobject_usage_present: Option<bool>,
+        annotation_present: Option<bool>,
+        form_candidate_present: Option<bool>,
+        action_candidate_present: Option<bool>,
     ) -> Self {
         Self {
-            font_details: match (self.font_details, font_usage_present) {
-                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
-                (_, true) => InspectionNeed::Required,
-                (_, false) => InspectionNeed::NotApplicable,
-            },
-            xobjects: match (self.xobjects, xobject_usage_present) {
-                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
-                (_, true) => InspectionNeed::Required,
-                (_, false) => InspectionNeed::NotApplicable,
-            },
-            annotations: match (self.annotations, annotation_present) {
-                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
-                (_, true) => InspectionNeed::Required,
-                (_, false) => InspectionNeed::NotApplicable,
-            },
-            forms: match (self.forms, form_candidate_present) {
-                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
-                (_, true) => InspectionNeed::Required,
-                (_, false) => InspectionNeed::NotApplicable,
-            },
-            actions: match (self.actions, action_candidate_present) {
-                (InspectionNeed::NotApplicable, _) => InspectionNeed::NotApplicable,
-                (_, true) => InspectionNeed::Required,
-                (_, false) => InspectionNeed::NotApplicable,
+            font_details: Self::after_fact(self.font_details, font_usage_present),
+            xobjects: Self::after_fact(self.xobjects, xobject_usage_present),
+            annotations: Self::after_fact(self.annotations, annotation_present),
+            forms: Self::after_fact(self.forms, form_candidate_present),
+            actions: Self::after_fact(self.actions, action_candidate_present),
+            unicode_names: self.unicode_names,
+        }
+    }
+
+    fn after_fact(need: InspectionNeed, present: Option<bool>) -> InspectionNeed {
+        match need {
+            InspectionNeed::NotApplicable => InspectionNeed::NotApplicable,
+            InspectionNeed::Required => InspectionNeed::Required,
+            InspectionNeed::Unknown => match present {
+                Some(true) => InspectionNeed::Required,
+                Some(false) => InspectionNeed::NotApplicable,
+                None => InspectionNeed::Unknown,
             },
         }
     }
@@ -445,12 +454,14 @@ impl ValidationPreparation {
                 limits,
             )?;
             let plan = plan.after_content_discovery(
-                !content.fonts.is_empty(),
-                !content.xobjects.is_empty(),
-                content.has_annotations,
-                document_features.catalog_has_acro_form || content.has_widget_annotations,
-                document_features.catalog_has_action_candidates
-                    || content.has_page_or_annotation_actions,
+                Some(!content.fonts.is_empty()),
+                Some(!content.xobjects.is_empty()),
+                Some(content.has_annotations),
+                Some(document_features.catalog_has_acro_form || content.has_widget_annotations),
+                Some(
+                    document_features.catalog_has_action_candidates
+                        || content.has_page_or_annotation_actions,
+                ),
             );
             let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
             let xobjects = crate::xobject::inspect(&document, &content, limits, plan.xobjects)?;
@@ -466,7 +477,8 @@ impl ValidationPreparation {
             )?;
             let object_limits = syntax.object_limits.clone();
             let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
-            let unicode_names = crate::unicode_names::inspect(&document, &pages, limits)?;
+            let unicode_names =
+                crate::unicode_names::inspect(&document, &pages, limits, plan.unicode_names)?;
             let font_embedding =
                 font_embedding::inspect(&document, &content, limits, plan.font_details)?;
             InspectionSummary {
@@ -1165,25 +1177,55 @@ mod tests {
         let plan = InspectionPlan::all();
         assert_eq!(plan.font_details, InspectionNeed::Unknown);
         assert_eq!(
-            plan.after_content_discovery(false, false, false, false, false)
-                .font_details,
+            plan.after_content_discovery(
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .font_details,
             InspectionNeed::NotApplicable
         );
         assert_eq!(
-            plan.after_content_discovery(true, false, false, false, false)
-                .font_details,
+            plan.after_content_discovery(
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .font_details,
             InspectionNeed::Required
         );
         assert_eq!(
-            plan.after_content_discovery(false, true, false, false, false)
-                .xobjects,
+            plan.after_content_discovery(
+                Some(false),
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(false)
+            )
+            .xobjects,
             InspectionNeed::Required
         );
-        let absent = plan.after_content_discovery(false, false, false, false, false);
+        let absent = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
         assert_eq!(absent.annotations, InspectionNeed::NotApplicable);
         assert_eq!(absent.forms, InspectionNeed::NotApplicable);
         assert_eq!(absent.actions, InspectionNeed::NotApplicable);
-        let present = plan.after_content_discovery(false, false, true, true, true);
+        let present = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(true),
+            Some(true),
+            Some(true),
+        );
         assert_eq!(present.annotations, InspectionNeed::Required);
         assert_eq!(present.forms, InspectionNeed::Required);
         assert_eq!(present.actions, InspectionNeed::Required);
@@ -1194,5 +1236,73 @@ mod tests {
         assert!(InspectionNeed::Unknown.should_run());
         assert!(InspectionNeed::Required.should_run());
         assert!(!InspectionNeed::NotApplicable.should_run());
+    }
+
+    #[test]
+    fn required_inspection_needs_are_not_overridden_by_absence() {
+        let plan = InspectionPlan {
+            font_details: InspectionNeed::Required,
+            xobjects: InspectionNeed::Required,
+            annotations: InspectionNeed::Required,
+            forms: InspectionNeed::Required,
+            actions: InspectionNeed::Required,
+            unicode_names: InspectionNeed::Required,
+        };
+        let plan = plan.after_content_discovery(
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
+        assert_eq!(plan.font_details, InspectionNeed::Required);
+        assert_eq!(plan.xobjects, InspectionNeed::Required);
+        assert_eq!(plan.annotations, InspectionNeed::Required);
+        assert_eq!(plan.forms, InspectionNeed::Required);
+        assert_eq!(plan.actions, InspectionNeed::Required);
+        assert_eq!(plan.unicode_names, InspectionNeed::Required);
+    }
+
+    #[test]
+    fn incomplete_discovery_keeps_unknown_inspections_running() {
+        let plan = InspectionPlan::all().after_content_discovery(None, None, None, None, None);
+
+        assert_eq!(plan.font_details, InspectionNeed::Unknown);
+        assert_eq!(plan.xobjects, InspectionNeed::Unknown);
+        assert_eq!(plan.annotations, InspectionNeed::Unknown);
+        assert_eq!(plan.forms, InspectionNeed::Unknown);
+        assert_eq!(plan.actions, InspectionNeed::Unknown);
+        assert_eq!(plan.unicode_names, InspectionNeed::Unknown);
+    }
+
+    #[test]
+    fn profile_needs_are_conservative_for_every_implemented_profile() {
+        let profiles = [
+            crate::validation::ValidationProfile::PdfA1a,
+            crate::validation::ValidationProfile::PdfA1b,
+            crate::validation::ValidationProfile::PdfA2a,
+            crate::validation::ValidationProfile::PdfA2b,
+            crate::validation::ValidationProfile::PdfA2u,
+            crate::validation::ValidationProfile::PdfA3a,
+            crate::validation::ValidationProfile::PdfA3b,
+            crate::validation::ValidationProfile::PdfA3u,
+            crate::validation::ValidationProfile::PdfUa1,
+        ];
+        for profile in profiles {
+            let plan = InspectionPlan::for_profile(profile);
+            assert_eq!(plan.font_details, InspectionNeed::Unknown);
+            assert_eq!(plan.xobjects, InspectionNeed::Unknown);
+            assert_eq!(plan.annotations, InspectionNeed::Unknown);
+            assert_eq!(plan.forms, InspectionNeed::Unknown);
+            assert_eq!(plan.actions, InspectionNeed::Unknown);
+            assert_eq!(
+                plan.unicode_names,
+                if matches!(profile.pdfa_part(), Some(2 | 3)) {
+                    InspectionNeed::Required
+                } else {
+                    InspectionNeed::Unknown
+                }
+            );
+        }
     }
 }

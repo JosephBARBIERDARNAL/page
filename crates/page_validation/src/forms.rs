@@ -420,3 +420,27 @@ fn object_number(value: &Object) -> Option<f64> {
         .or_else(|_| value.as_float().map(f64::from))
         .ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use lopdf::Document;
+
+    use super::inspect;
+    use crate::limits::SafetyLimits;
+    use crate::model::InspectionNeed;
+
+    #[test]
+    fn not_applicable_forms_do_not_resolve_the_catalog() {
+        let document = Document::with_version("1.4");
+        let summary = inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            InspectionNeed::NotApplicable,
+        )
+        .expect("a skipped form inspection has no catalog work");
+
+        assert!(summary.invalid_need_appearances.is_empty());
+        assert!(summary.dynamic_xfa_forms.is_empty());
+    }
+}

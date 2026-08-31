@@ -348,7 +348,7 @@ pub fn is_pdf_compliant_bytes(
         bytes,
         limits,
         syntax,
-        crate::model::InspectionPlan::all(),
+        crate::model::InspectionPlan::for_profile(profile),
     )?;
     let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
     Ok(ComplianceResult {
