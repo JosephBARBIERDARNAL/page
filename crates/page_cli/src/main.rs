@@ -12,7 +12,7 @@ use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_validation::{
     JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError,
-    ValidationProfile, ValidationReport, is_pdf_compliant, validate_pdf,
+    ValidationProfile, ValidationReport, is_pdf_compliant_with_profile, validate_pdf,
 };
 
 #[derive(Debug, Parser)]
@@ -337,7 +337,7 @@ fn run_validate(cli: Cli) {
     );
     let requested_profile = cli.profile.map(Into::into);
     if selected_format == SelectedFormat::Summary {
-        let outcome = match is_pdf_compliant(&cli.file, requested_profile, &limits) {
+        let outcome = match is_pdf_compliant_with_profile(&cli.file, requested_profile, &limits) {
             Ok(outcome) => outcome,
             Err(ValidationError::InputIo(error)) => {
                 spinner.finish_and_clear();

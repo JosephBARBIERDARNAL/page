@@ -177,7 +177,7 @@ fn only<T>(items: &[T]) -> Option<&T> {
     items.first().filter(|_| items.len() == 1)
 }
 
-/// The selected profile and compliance outcome returned by [`is_pdf_compliant`].
+/// The selected profile and compliance outcome returned by [`is_pdf_compliant_with_profile`].
 ///
 /// `profile` is either the explicitly requested profile or the one inferred
 /// from the document's XMP metadata. `is_compliant` is `false` as soon as the
@@ -314,20 +314,40 @@ fn reject_unimplemented_profile(profile: Option<ValidationProfile>) -> Result<()
     Ok(())
 }
 
-/// Performs the fast validation used by the command-line summary output.
+/// Performs fast validation and returns only the compliance outcome.
 ///
-/// The source and profile-selection behavior matches [`validate_pdf_bytes`] and
-/// [`validate_pdf`], but this API returns only the compliance outcome.
+/// The source and profile-selection behavior matches [`validate_pdf`] but stops after the first failing rule.
 pub fn is_pdf_compliant(
+    path: &Path,
+    profile: Option<ValidationProfile>,
+    limits: &SafetyLimits,
+) -> Result<bool, ValidationError> {
+    is_pdf_compliant_with_profile(path, profile, limits).map(|result| result.is_compliant)
+}
+
+/// Performs fast validation of bytes and returns only the compliance outcome.
+pub fn is_pdf_compliant_bytes(
+    bytes: &[u8],
+    profile: Option<ValidationProfile>,
+    limits: &SafetyLimits,
+) -> Result<bool, ValidationError> {
+    is_pdf_compliant_bytes_with_profile(bytes, profile, limits).map(|result| result.is_compliant)
+}
+
+/// Performs fast validation and returns the selected profile with the compliance outcome.
+///
+/// This is useful when callers need both the boolean result and the profile inferred from the document.
+pub fn is_pdf_compliant_with_profile(
     path: &Path,
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<ComplianceResult, ValidationError> {
     reject_unimplemented_profile(profile)?;
-    is_pdf_compliant_bytes(&read_file(path, limits)?, profile, limits)
+    is_pdf_compliant_bytes_with_profile(&read_file(path, limits)?, profile, limits)
 }
 
-pub fn is_pdf_compliant_bytes(
+/// Performs fast validation of bytes and returns the selected profile with the compliance outcome.
+pub fn is_pdf_compliant_bytes_with_profile(
     bytes: &[u8],
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
@@ -3676,8 +3696,7 @@ mod tests {
         let result = is_pdf_compliant_bytes(&bytes, None, &SafetyLimits::default())
             .expect("PDF/A-1b profile declaration");
 
-        assert_eq!(result.profile, ValidationProfile::PdfA1b);
-        assert!(result.is_compliant);
+        assert!(result);
     }
 
     #[test]
@@ -3690,7 +3709,7 @@ mod tests {
             .save_to(&mut invalid)
             .expect("write invalid fixture");
 
-        let result = is_pdf_compliant_bytes(
+        let result = is_pdf_compliant_bytes_with_profile(
             &invalid,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
@@ -3713,8 +3732,7 @@ mod tests {
         )
         .expect("validate fixture");
 
-        assert_eq!(result.profile, ValidationProfile::PdfA1b);
-        assert!(!result.is_compliant);
+        assert!(!result);
     }
 
     #[test]
