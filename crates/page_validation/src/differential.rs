@@ -1,8 +1,7 @@
 //! Differential validation against the pinned veraPDF reference.
 //!
 //! This module compares the crate's deliberately incomplete PDF/A-1, PDF/A-2, and PDF/A-3 checks
-//! with veraPDF. It does not turn the local validator into a complete
-//! conformance checker.
+//! with veraPDF.
 
 use std::fmt;
 use std::io::{self, Read};

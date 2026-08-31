@@ -1,0 +1,1119 @@
+# veraPDF 1.30.2; corpus revision 49de56cd987929932c9e4fbbbe67d052bf44ef83
+# profile directory<TAB>relative PDF path<TAB>first veraPDF failed rule<TAB>expected local rule
+PDF_A-1a	6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-fail-a.pdf	ISO 19005-1:2005:6.3.8:1	PDFA1A-UNICODE-MAPPING-001
+PDF_A-1a	6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-fail-b.pdf	ISO 19005-1:2005:6.3.8:1	PDFA1A-UNICODE-MAPPING-001
+PDF_A-1a	6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-fail-c.pdf	ISO 19005-1:2005:6.3.8:1	PDFA1A-UNICODE-MAPPING-001
+PDF_A-1a	6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-fail-d.pdf	ISO 19005-1:2005:6.3.8:1	PDFA1A-UNICODE-MAPPING-001
+PDF_A-1a	6.7 Metadata/6.7.11 Version and conformance level identification/veraPDF test suite 6-7-11-t01-fail-a.pdf	ISO 19005-1:2005:6.7.11:3	PDFA1A-ID-CONFORMANCE-001
+PDF_A-1a	6.8 Logical structure/6.8.2 Tagged PDF/6.8.2.2 Mark information dictionary/veraPDF test suite 6-8-2-2-t01-fail-a.pdf	ISO 19005-1:2005:6.8.2.2:1	PDFA1A-TAGGED-DOCUMENT-001
+PDF_A-1a	6.8 Logical structure/6.8.2 Tagged PDF/6.8.2.2 Mark information dictionary/veraPDF test suite 6-8-2-2-t01-fail-b.pdf	ISO 19005-1:2005:6.8.2.2:1	PDFA1A-TAGGED-DOCUMENT-001
+PDF_A-1a	6.8 Logical structure/6.8.2 Tagged PDF/6.8.2.2 Mark information dictionary/veraPDF test suite 6-8-2-2-t01-fail-c.pdf	ISO 19005-1:2005:6.8.2.2:1	PDFA1A-TAGGED-DOCUMENT-001
+PDF_A-1a	6.8 Logical structure/6.8.3 Artifacts/6.8.3.3 Structure hierarchy/veraPDF test suite 6-8-3-3-t01-fail-a.pdf	ISO 19005-1:2005:6.8.3.3:1	PDFA1A-STRUCT-TREE-ROOT-001
+PDF_A-1a	6.8 Logical structure/6.8.3 Artifacts/6.8.3.4 Structure types/veraPDF test suite 6-8-3-4-t01-fail-a.pdf	ISO 19005-1:2005:6.8.3.4:1	PDFA1A-STRUCT-TREE-ROLE-MAP-001
+PDF_A-1a	6.8 Logical structure/6.8.3 Artifacts/6.8.3.4 Structure types/veraPDF test suite 6-8-3-4-t02-fail-a.pdf	ISO 19005-1:2005:6.8.3.4:2	PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001
+PDF_A-1a	6.8 Logical structure/6.8.4 Natural language specification/veraPDF test suite 6-8-4-t01-fail-a.pdf	ISO 19005-1:2005:6.8.4:1	PDFA1A-LANG-001
+PDF_A-1a	6.8 Logical structure/6.8.4 Natural language specification/veraPDF test suite 6-8-4-t01-fail-b.pdf	ISO 19005-1:2005:6.8.4:1	PDFA1A-LANG-001
+PDF_A-1a	6.8 Logical structure/6.8.4 Natural language specification/veraPDF test suite 6-8-4-t01-fail-c.pdf	ISO 19005-1:2005:6.8.4:1	PDFA1A-LANG-001
+PDF_A-1a	6.8 Logical structure/6.8.4 Natural language specification/veraPDF test suite 6-8-4-t01-fail-d.pdf	ISO 19005-1:2005:6.8.4:1	PDFA1A-LANG-001
+PDF_A-1a	6.8 Logical structure/6.8.4 Natural language specification/veraPDF test suite 6-8-4-t01-fail-e.pdf	ISO 19005-1:2005:6.8.4:1	PDFA1A-LANG-001
+PDF_A-1b	6.1 File structure/6.1.10 Filters/veraPDF test suite 6-1-10-t01-fail-a.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+PDF_A-1b	6.1 File structure/6.1.10 Filters/veraPDF test suite 6-1-10-t01-fail-b.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+PDF_A-1b	6.1 File structure/6.1.10 Filters/veraPDF test suite 6-1-10-t01-fail-c.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+PDF_A-1b	6.1 File structure/6.1.10 Filters/veraPDF test suite 6-1-10-t01-fail-d.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t01-fail-a.pdf	ISO 19005-1:2005:6.1.12:1	PDFA1B-INTEGER-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t02-fail-c.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t02-fail-d.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t02-fail-e.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t02-fail-f.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t02-fail-l.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t03-fail-a.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t03-fail-b.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t03-fail-c.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t03-fail-d.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t04-fail-a.pdf	ISO 19005-1:2005:6.1.12:4	PDFA1B-NAME-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t06-fail-a.pdf	ISO 19005-1:2005:6.1.12:6	PDFA1B-DICTIONARY-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t08-fail-a.pdf	ISO 19005-1:2005:6.1.12:8	PDFA1B-GRAPHICS-STATE-NESTING-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t09-fail-a.pdf	ISO 19005-1:2005:6.1.12:9	PDFA1B-DEVICEN-COMPONENTS-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t10-fail-a.pdf	ISO 19005-1:2005:6.1.12:10	PDFA1B-CMAP-MAX-CID-001
+PDF_A-1b	6.1 File structure/6.1.12 Implementation limits/veraPDF test suite 6-1-12-t10-fail-b.pdf	ISO 19005-1:2005:6.1.12:10	PDFA1B-CMAP-MAX-CID-001
+PDF_A-1b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-a.pdf	ISO 19005-1:2005:6.1.2:1	PDFA1B-HEADER-001
+PDF_A-1b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-b.pdf	ISO 19005-1:2005:6.1.2:1	PDFA1B-HEADER-001
+PDF_A-1b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-a.pdf	ISO 19005-1:2005:6.1.2:2	PDFA1B-HEADER-BINARY-COMMENT-001
+PDF_A-1b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-b.pdf	ISO 19005-1:2005:6.1.2:2	PDFA1B-HEADER-BINARY-COMMENT-001
+PDF_A-1b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-c.pdf	ISO 19005-1:2005:6.1.2:2	PDFA1B-HEADER-BINARY-COMMENT-001
+PDF_A-1b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t01-fail-a.pdf	ISO 19005-1:2005:6.1.3:1	PDFA1B-TRAILER-ID-001
+PDF_A-1b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t02-fail-a.pdf	ISO 19005-1:2005:6.1.3:4	PDFA1B-LINEARIZED-TRAILER-ID-001
+PDF_A-1b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t01-fail-a.pdf	ISO 19005-1:2005:6.1.4:1	PDFA1B-XREF-SUBSECTION-SPACING-001
+PDF_A-1b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t01-fail-b.pdf	ISO 19005-1:2005:6.1.4:1	PDFA1B-XREF-SUBSECTION-SPACING-001
+PDF_A-1b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t02-fail-a.pdf	ISO 19005-1:2005:6.1.4:2	PDFA1B-XREF-EOL-001
+PDF_A-1b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t02-fail-b.pdf	ISO 19005-1:2005:6.1.4:2	PDFA1B-XREF-EOL-001
+PDF_A-1b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t03-fail-a.pdf	ISO 19005-1:2005:6.1.4:3	PDFA1B-XREF-STREAM-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-a.pdf	ISO 19005-1:2005:6.7.3:2	PDFA1B-INFO-TITLE-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-b.pdf	ISO 19005-1:2005:6.7.3:3	PDFA1B-INFO-AUTHOR-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-c.pdf	ISO 19005-1:2005:6.7.3:4	PDFA1B-INFO-SUBJECT-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-d.pdf	ISO 19005-1:2005:6.7.3:5	PDFA1B-INFO-KEYWORDS-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-e.pdf	ISO 19005-1:2005:6.7.3:6	PDFA1B-INFO-CREATOR-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-f.pdf	ISO 19005-1:2005:6.7.3:7	PDFA1B-INFO-PRODUCER-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-g.pdf	ISO 19005-1:2005:6.7.3:1	PDFA1B-INFO-CREATIONDATE-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-h.pdf	ISO 19005-1:2005:6.7.3:8	PDFA1B-INFO-MODDATE-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-i.pdf	ISO 19005-1:2005:6.7.3:2	PDFA1B-INFO-TITLE-001
+PDF_A-1b	6.1 File structure/6.1.5 Document information dictionary/veraPDF test suite 6-1-5-t01-fail-j.pdf	ISO 19005-1:2005:6.7.3:2	PDFA1B-INFO-TITLE-001
+PDF_A-1b	6.1 File structure/6.1.6 String objects/veraPDF test suite 6-1-6-t01-fail-a.pdf	ISO 19005-1:2005:6.1.6:1	PDFA1B-HEX-STRING-LENGTH-001
+PDF_A-1b	6.1 File structure/6.1.6 String objects/veraPDF test suite 6-1-6-t01-fail-b.pdf	ISO 19005-1:2005:6.1.6:2	PDFA1B-HEX-STRING-CHARACTERS-001
+PDF_A-1b	6.1 File structure/6.1.8 Indirect objects/veraPDF test suite 6-1-8-t01-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-1b	6.2 Graphics/6.2.2 Output intent/veraPDF test suite 6-2-2-t02-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001
+PDF_A-1b	6.2 Graphics/6.2.2 Output intent/veraPDF test suite 6-2-2-t03-fail-a.pdf	ISO 19005-1:2005:6.2.2:1	PDFA1B-OUTPUTINTENT-001
+PDF_A-1b	6.2 Graphics/6.2.2 Output intent/veraPDF test suite 6-2-2-t03-fail-b.pdf	ISO 19005-1:2005:6.2.3.2:2	PDFA1B-ICCBASED-COMPONENTS-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-d.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-e.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-f.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-h.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-i.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-j.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-k.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-l.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-m.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-n.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-o.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-p.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-t.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-u.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t01-fail-v.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t02-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t02-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t02-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t03-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+PDF_A-1b	6.2 Graphics/6.2.3.3 Uncalibrated color space/veraPDF test suite 6-2-3-3-t03-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+PDF_A-1b	6.2 Graphics/6.2.4 Images/veraPDF test suite 6-2-4-t03-fail-a.pdf	ISO 19005-1:2005:6.2.4:3	PDFA1B-IMAGE-INTERPOLATE-001
+PDF_A-1b	6.2 Graphics/6.2.5 Form XObjects/veraPDF test suite 6-2-5-t02-fail-a.pdf	ISO 19005-1:2005:6.2.5:1	PDFA1B-FORM-POSTSCRIPT-001
+PDF_A-1b	6.2 Graphics/6.2.5 Form XObjects/veraPDF test suite 6-2-5-t03-fail-a.pdf	ISO 19005-1:2005:6.2.5:1	PDFA1B-FORM-POSTSCRIPT-001
+PDF_A-1b	6.2 Graphics/6.2.8 Extended graphics state/veraPDF test suite 6-2-8-t03-fail-a.pdf	ISO 19005-1:2005:6.2.9:1	PDFA1B-RENDERING-INTENT-001
+PDF_A-1b	6.2 Graphics/6.2.9 Rendering intents/veraPDF test suite 6-2-9-t01-fail-a.pdf	ISO 19005-1:2005:6.2.9:1	PDFA1B-RENDERING-INTENT-001
+PDF_A-1b	6.3 Fonts/6.3.3.1 General/veraPDF test suite 6-3-3-1-t01-fail-a.pdf	ISO 19005-1:2005:6.3.3.1:1	PDFA1B-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-1b	6.3 Fonts/6.3.3.1 General/veraPDF test suite 6-3-3-1-t01-fail-b.pdf	ISO 19005-1:2005:6.3.3.1:1	PDFA1B-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t02-fail-a.pdf	ISO 19005-1:2005:6.3.5:2	PDFA1B-TYPE1-SUBSET-CHARSET-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t02-fail-b.pdf	ISO 19005-1:2005:6.3.5:2	PDFA1B-TYPE1-SUBSET-CHARSET-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t02-fail-c.pdf	ISO 19005-1:2005:6.3.5:2	PDFA1B-TYPE1-SUBSET-CHARSET-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t03-fail-a.pdf	ISO 19005-1:2005:6.3.5:3	PDFA1B-CID-SUBSET-CIDSET-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t03-fail-b.pdf	ISO 19005-1:2005:6.3.5:3	PDFA1B-CID-SUBSET-CIDSET-001
+PDF_A-1b	6.3 Fonts/6.3.5 Font subsets/6-3-5-t03-fail-c.pdf	ISO 19005-1:2005:6.3.5:3	PDFA1B-CID-SUBSET-CIDSET-001
+PDF_A-1b	6.3 Fonts/6.3.6 Font metrics/veraPDF test suite 6-3-6-t01-fail-a.pdf	ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-1b	6.4 Transparency/veraPDF test suite 6-4-t02-fail-b.pdf	ISO 19005-1:2005:6.4:3	PDFA1B-TRANSPARENCY-GROUP-001
+PDF_A-1b	6.4 Transparency/veraPDF test suite 6-4-t04-fail-a.pdf	ISO 19005-1:2005:6.4:4	PDFA1B-EXTGSTATE-BLEND-MODE-001
+PDF_A-1b	6.5 Annotations/6.5.3 Annotation dictionaries/veraPDF test suite 6-5-3-t01-fail-a.pdf	ISO 19005-1:2005:6.5.3:5	PDFA1B-WIDGET-BUTTON-APPEARANCE-001
+PDF_A-1b	6.6 Actions/6.6.1 General/veraPDF test suite 6-6-1-t01-fail-a.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+PDF_A-1b	6.6 Actions/6.6.2 Trigger events/veraPDF test suite 6-6-2-t01-fail-a.pdf	ISO 19005-1:2005:6.6.2:2	PDFA1B-FIELD-ADDITIONAL-ACTIONS-001
+PDF_A-1b	6.7 Metadata/6.7.11 Version and conformance level identification/veraPDF test suite 6-7-11-t02-fail-a.pdf	ISO 19005-1:2005:6.7.11:2	PDFA1B-ID-PART-001
+PDF_A-1b	6.7 Metadata/6.7.11 Version and conformance level identification/veraPDF test suite 6-7-11-t03-fail-a.pdf	ISO 19005-1:2005:6.7.11:3	PDFA1B-ID-CONFORMANCE-001
+PDF_A-1b	6.7 Metadata/6.7.11 Version and conformance level identification/veraPDF test suite 6-7-11-t04-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.11 Version and conformance level identification/veraPDF test suite 6-7-11-t05-fail-a.pdf	ISO 19005-1:2005:6.7.11:5	PDFA1B-ID-CONFORMANCE-PREFIX-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-b.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-c.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-d.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-e.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-f.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-g.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-h.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-j.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-k.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-p.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-q.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-r.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-s.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-t.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-u.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t03-fail-v.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t04-fail-a.pdf	ISO 19005-1:2005:6.7.9:2	PDFA1B-XMP-PREDEFINED-PROPERTY-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t04-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t04-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t06-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t07-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t08-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t08-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t08-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t08-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t08-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t09-fail-q.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t10-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t11-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t11-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t12-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t12-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t12-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t13-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-q.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-r.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-s.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-t.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-u.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-v.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-w.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-x.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-fail-y.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-q.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-r.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-s.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-t.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-u.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-v.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-w.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-x.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t15-fail-y.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-q.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-r.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-s.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-t.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-u.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-v.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-w.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-x.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t16-fail-y.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-d.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-e.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-f.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-g.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-h.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-i.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-j.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-l.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-m.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-n.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-o.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-p.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-q.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-r.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-s.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-t.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-u.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-v.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-w.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-x.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-y.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t17-fail-z.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t18-fail-a.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t18-fail-b.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t18-fail-c.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t01-fail-a.pdf	ISO 19005-1:2005:6.7.3:1	PDFA1B-INFO-CREATIONDATE-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t02-fail-a.pdf	ISO 19005-1:2005:6.7.3:2	PDFA1B-INFO-TITLE-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t03-fail-a.pdf	ISO 19005-1:2005:6.7.3:3	PDFA1B-INFO-AUTHOR-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t03-fail-b.pdf	ISO 19005-1:2005:6.7.3:3	PDFA1B-INFO-AUTHOR-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t04-fail-a.pdf	ISO 19005-1:2005:6.7.3:4	PDFA1B-INFO-SUBJECT-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t05-fail-a.pdf	ISO 19005-1:2005:6.7.3:5	PDFA1B-INFO-KEYWORDS-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t06-fail-a.pdf	ISO 19005-1:2005:6.7.3:6	PDFA1B-INFO-CREATOR-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t07-fail-a.pdf	ISO 19005-1:2005:6.7.3:7	PDFA1B-INFO-PRODUCER-001
+PDF_A-1b	6.7 Metadata/6.7.3 Document information dictionary/veraPDF test suite 6-7-3-t08-fail-a.pdf	ISO 19005-1:2005:6.7.3:8	PDFA1B-INFO-MODDATE-001
+PDF_A-1b	6.7 Metadata/6.7.8 Extension schemas/veraPDF test suite 6-7-8-t04-fail-a.pdf	ISO 19005-1:2005:6.7.8:17	PDFA1B-XMP-EXTENSION-FIELD-NAME-001
+PDF_A-1b	6.7 Metadata/6.7.8 Extension schemas/veraPDF test suite 6-7-8-t05-fail-a.pdf	ISO 19005-1:2005:6.7.8:10	PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001
+PDF_A-1b	6.7 Metadata/6.7.8 Extension schemas/veraPDF test suite 6-7-8-t06-fail-a.pdf	ISO 19005-1:2005:6.7.8:4	PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001
+PDF_A-1b	6.7 Metadata/6.7.8 Extension schemas/veraPDF test suite 6-7-8-t07-fail-a.pdf	ISO 19005-1:2005:6.7.8:15	PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001
+PDF_A-1b	6.9 Interactive Forms/veraPDF test suite 6-9-t01-fail-a.pdf	ISO 19005-1:2005:6.9:2	PDFA1B-WIDGET-APPEARANCE-001
+PDF_A-1b	6.9 Interactive Forms/veraPDF test suite 6-9-t01-fail-b.pdf	ISO 19005-1:2005:6.9:2	PDFA1B-WIDGET-APPEARANCE-001
+PDF_A-1b	6.9 Interactive Forms/veraPDF test suite 6-9-t01-fail-c.pdf	ISO 19005-1:2005:6.9:2	PDFA1B-WIDGET-APPEARANCE-001
+PDF_A-1b	6.9 Interactive Forms/veraPDF test suite 6-9-t01-fail-d.pdf	ISO 19005-1:2005:6.9:2	PDFA1B-WIDGET-APPEARANCE-001
+PDF_A-2a	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.3 Level A conformance/veraPDF test suite 6-2-11-7-3-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.7.3:1	PDFA2A-UNICODE-PUA-ACTUALTEXT-001
+PDF_A-2a	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.3 Level A conformance/veraPDF test suite 6-2-11-7-3-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.7.3:1	PDFA2A-UNICODE-PUA-ACTUALTEXT-001
+PDF_A-2a	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.3 Level A conformance/veraPDF test suite 6-2-11-7-3-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.7.3:1	PDFA2A-UNICODE-PUA-ACTUALTEXT-001
+PDF_A-2a	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.3 Level A conformance/veraPDF test suite 6-2-11-7-3-t01-fail-d.pdf	ISO 19005-2:2011:6.2.11.7.3:1	PDFA2A-UNICODE-PUA-ACTUALTEXT-001
+PDF_A-2a	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.3 Level A conformance/veraPDF test suite 6-2-11-7-3-t01-fail-e.pdf	ISO 19005-2:2011:6.2.11.7.3:1	PDFA2A-UNICODE-PUA-ACTUALTEXT-001
+PDF_A-2a	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-a.pdf	ISO 19005-2:2011:6.6.4:3	PDFA2A-ID-CONFORMANCE-001
+PDF_A-2a	6.7 Logical structure/6.7.2 Tagged PDF/6.7.2.2 Mark information dictionary/veraPDF test suite 6-7-2-2-t01-fail-a.pdf	ISO 19005-2:2011:6.7.2.2:1	PDFA2A-TAGGED-DOCUMENT-001
+PDF_A-2a	6.7 Logical structure/6.7.2 Tagged PDF/6.7.2.2 Mark information dictionary/veraPDF test suite 6-7-2-2-t01-fail-b.pdf	ISO 19005-2:2011:6.7.2.2:1	PDFA2A-TAGGED-DOCUMENT-001
+PDF_A-2a	6.7 Logical structure/6.7.2 Tagged PDF/6.7.2.2 Mark information dictionary/veraPDF test suite 6-7-2-2-t01-fail-c.pdf	ISO 19005-2:2011:6.7.2.2:1	PDFA2A-TAGGED-DOCUMENT-001
+PDF_A-2a	6.7 Logical structure/6.7.3 Artefacts/6.7.3.3 Structure hierarchy/veraPDF test suite 6-7-3-3-t01-fail-a.pdf	ISO 19005-2:2011:6.7.3.3:1	PDFA2A-STRUCT-TREE-ROOT-001
+PDF_A-2a	6.7 Logical structure/6.7.3 Artefacts/6.7.3.4 Structure types/veraPDF test suite 6-7-3-4-t01-fail-a.pdf	ISO 19005-2:2011:6.7.3.4:1	PDFA2A-STRUCT-TREE-ROLE-MAP-001
+PDF_A-2a	6.7 Logical structure/6.7.3 Artefacts/6.7.3.4 Structure types/veraPDF test suite 6-7-3-4-t02-fail-a.pdf	ISO 19005-2:2011:6.7.3.4:2	PDFA2A-STRUCT-TREE-ROLE-MAP-CYCLE-001
+PDF_A-2a	6.7 Logical structure/6.7.4 Natural language specification/veraPDF test suite 6-7-4-t01-fail-a.pdf	ISO 19005-2:2011:6.7.4:1	PDFA2A-LANG-001
+PDF_A-2a	6.7 Logical structure/6.7.4 Natural language specification/veraPDF test suite 6-7-4-t01-fail-b.pdf	ISO 19005-2:2011:6.7.4:1	PDFA2A-LANG-001
+PDF_A-2a	6.7 Logical structure/6.7.4 Natural language specification/veraPDF test suite 6-7-4-t01-fail-c.pdf	ISO 19005-2:2011:6.7.4:1	PDFA2A-LANG-001
+PDF_A-2a	6.7 Logical structure/6.7.4 Natural language specification/veraPDF test suite 6-7-4-t01-fail-d.pdf	ISO 19005-2:2011:6.7.4:1	PDFA2A-LANG-001
+PDF_A-2b	6.1 File structure/6.1.10 Inline image dictionaries/veraPDF test suite 6-1-10-t01-fail-a.pdf	ISO 19005-2:2011:6.1.10:1	PDFA2B-INLINE-IMAGE-FILTER-001
+PDF_A-2b	6.1 File structure/6.1.10 Inline image dictionaries/veraPDF test suite 6-1-10-t01-fail-b.pdf	ISO 19005-2:2011:6.1.10:1	PDFA2B-INLINE-IMAGE-FILTER-001
+PDF_A-2b	6.1 File structure/6.1.12 Permissions/veraPDF test suite 6-1-12-t01-fail-a.pdf	ISO 19005-2:2011:6.1.12:1	PDFA2B-PERMS-ENTRIES-001
+PDF_A-2b	6.1 File structure/6.1.12 Permissions/veraPDF test suite 6-1-12-t02-fail-a.pdf	ISO 19005-2:2011:6.1.12:2	PDFA2B-SIGNATURE-REFERENCE-001
+PDF_A-2b	6.1 File structure/6.1.12 Permissions/veraPDF test suite 6-1-12-t02-fail-b.pdf	ISO 19005-2:2011:6.1.12:2	PDFA2B-SIGNATURE-REFERENCE-001
+PDF_A-2b	6.1 File structure/6.1.12 Permissions/veraPDF test suite 6-1-12-t02-fail-c.pdf	ISO 19005-2:2011:6.1.12:2	PDFA2B-SIGNATURE-REFERENCE-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t01-fail-a.pdf	ISO 19005-2:2011:6.1.13:1	PDFA2B-INTEGER-RANGE-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t01-fail-b.pdf	ISO 19005-2:2011:6.1.13:1	PDFA2B-INTEGER-RANGE-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t01-fail-c.pdf	ISO 19005-2:2011:6.1.13:1	PDFA2B-INTEGER-RANGE-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t03-fail-a.pdf	ISO 19005-2:2011:6.1.13:3	PDFA2B-STRING-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t03-fail-d.pdf	ISO 19005-2:2011:6.1.13:3	PDFA2B-STRING-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t04-fail-a.pdf	ISO 19005-2:2011:6.1.13:4	PDFA2B-NAME-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t04-fail-b.pdf	ISO 19005-2:2011:6.1.13:4	PDFA2B-NAME-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t08-fail-b.pdf	ISO 19005-2:2011:6.1.13:10	PDFA2B-CMAP-MAX-CID-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-a.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-b.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-c.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-d.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-e.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t09-fail-f.pdf	ISO 19005-2:2011:6.1.13:11	PDFA2B-PAGE-BOUNDARY-001
+PDF_A-2b	6.1 File structure/6.1.13 Implementation limits/veraPDF test suite 6-1-13-t10-fail-a.pdf	ISO 19005-2:2011:6.1.13:10	PDFA2B-CMAP-MAX-CID-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-a.pdf	ISO 19005-2:2011:6.1.2:1	PDFA2B-HEADER-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-b.pdf	ISO 19005-2:2011:6.1.2:1	PDFA2B-HEADER-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-c.pdf	ISO 19005-2:2011:6.1.2:1	PDFA2B-HEADER-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-d.pdf	ISO 19005-2:2011:6.1.2:1	PDFA2B-HEADER-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t01-fail-e.pdf	ISO 19005-2:2011:6.1.2:1	PDFA2B-HEADER-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-a.pdf	ISO 19005-2:2011:6.1.2:2	PDFA2B-HEADER-BINARY-COMMENT-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-b.pdf	ISO 19005-2:2011:6.1.2:2	PDFA2B-HEADER-BINARY-COMMENT-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-c.pdf	ISO 19005-2:2011:6.1.2:2	PDFA2B-HEADER-BINARY-COMMENT-001
+PDF_A-2b	6.1 File structure/6.1.2 File header/veraPDF test suite 6-1-2-t02-fail-d.pdf	ISO 19005-2:2011:6.1.2:2	PDFA2B-HEADER-BINARY-COMMENT-001
+PDF_A-2b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t01-fail-a.pdf	ISO 19005-2:2011:6.1.3:1	PDFA2B-TRAILER-ID-001
+PDF_A-2b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t01-fail-b.pdf	ISO 19005-2:2011:6.1.3:1	PDFA2B-TRAILER-ID-001
+PDF_A-2b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t01-fail-c.pdf	ISO 19005-2:2011:6.1.3:1	PDFA2B-TRAILER-ID-001
+PDF_A-2b	6.1 File structure/6.1.3 File trailer/veraPDF test suite 6-1-3-t02-fail-a.pdf	ISO 19005-2:2011:6.1.3:2	PDFA2B-ENCRYPTION-001
+PDF_A-2b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t01-fail-a.pdf	ISO 19005-2:2011:6.1.4:2	PDFA2B-XREF-EOL-001
+PDF_A-2b	6.1 File structure/6.1.4 Cross reference table/veraPDF test suite 6-1-4-t01-fail-b.pdf	ISO 19005-2:2011:6.1.4:2	PDFA2B-XREF-EOL-001
+PDF_A-2b	6.1 File structure/6.1.6 String objects/veraPDF test suite 6-1-6-t01-fail-a.pdf	ISO 19005-2:2011:6.1.6:1	PDFA2B-HEX-STRING-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.6 String objects/veraPDF test suite 6-1-6-t02-fail-a.pdf	ISO 19005-2:2011:6.1.6:2	PDFA2B-HEX-STRING-CHARACTERS-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t01-fail-a.pdf	ISO 19005-2:2011:6.1.7.1:2	PDFA2B-STREAM-EOL-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t01-fail-b.pdf	ISO 19005-2:2011:6.1.7.1:1	PDFA2B-STREAM-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t02-fail-a.pdf	ISO 19005-2:2011:6.1.7.1:2	PDFA2B-STREAM-EOL-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t03-fail-a.pdf	ISO 19005-2:2011:6.1.7.1:1	PDFA2B-STREAM-LENGTH-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t04-fail-a.pdf	ISO 19005-2:2011:6.1.7.1:3	PDFA2B-STREAM-EXTERNAL-DATA-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t04-fail-b.pdf	ISO 19005-2:2011:6.1.7.1:3	PDFA2B-STREAM-EXTERNAL-DATA-001
+PDF_A-2b	6.1 File structure/6.1.7.1 General/veraPDF test suite 6-1-7-1-t04-fail-c.pdf	ISO 19005-2:2011:6.1.7.1:3	PDFA2B-STREAM-EXTERNAL-DATA-001
+PDF_A-2b	6.1 File structure/6.1.8 Name objects/veraPDF test suite 6-1-8-t01-fail-a.pdf	ISO 19005-2:2011:6.1.8:1	PDFA2B-UNICODE-NAME-001
+PDF_A-2b	6.1 File structure/6.1.8 Name objects/veraPDF test suite 6-1-8-t01-fail-b.pdf	ISO 19005-2:2011:6.1.8:1	PDFA2B-UNICODE-NAME-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t01-fail-a.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t02-fail-a.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t03-fail-a.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t03-fail-b.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t03-fail-c.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t04-fail-a.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.1 File structure/6.1.9 Indirect objects/veraPDF test suite 6-1-9-t04-fail-b.pdf	ISO 19005-2:2011:6.1.9:1	PDFA2B-INDIRECT-OBJECT-SYNTAX-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-a.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t01-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t02-fail-a.pdf	ISO 19005-2:2011:6.2.10:1	PDFA2B-EXTGSTATE-BLEND-MODE-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-d.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-f.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t03-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-d.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-e.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t04-fail-i.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-a.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-d.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-i.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-b.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-e.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t06-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-a.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-b.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-c.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-d.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-e.pdf	ISO 19005-2:2011:6.2.10:2	PDFA2B-TRANSPARENCY-GROUP-CS-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t07-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.1 General/veraPDF test suite 6-2-11-3-1-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.1:1	PDFA2B-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.1 General/veraPDF test suite 6-2-11-3-1-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.3.1:1	PDFA2B-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.1 General/veraPDF test suite 6-2-11-3-1-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.3.1:1	PDFA2B-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.2 CIDFonts/veraPDF test suite 6-2-11-3-2-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.2:1	PDFA2B-CIDTOGIDMAP-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.2 CIDFonts/veraPDF test suite 6-2-11-3-2-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.3.2:1	PDFA2B-CIDTOGIDMAP-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.2 CIDFonts/veraPDF test suite 6-2-11-3-2-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.3.2:1	PDFA2B-CIDTOGIDMAP-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.3 CMaps/veraPDF test suite 6-2-11-3-3-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.3:1	PDFA2B-CMAP-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.3 CMaps/veraPDF test suite 6-2-11-3-3-t02-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.3:2	PDFA2B-CMAP-WMODE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.3 CMaps/veraPDF test suite 6-2-11-3-3-t02-fail-b.pdf	ISO 19005-2:2011:6.2.11.3.3:2	PDFA2B-CMAP-WMODE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.3 CMaps/veraPDF test suite 6-2-11-3-3-t03-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.3:3	PDFA2B-CMAP-REFERENCE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.3 Composite fonts/6.2.11.3.3 CMaps/veraPDF test suite 6-2-11-3-3-t03-fail-b.pdf	ISO 19005-2:2011:6.2.11.3.3:3	PDFA2B-CMAP-REFERENCE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.4.1:1	PDFA2B-FONT-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.4.1:1	PDFA2B-FONT-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.4.1:1	PDFA2B-FONT-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t01-fail-d.pdf	ISO 19005-2:2011:6.2.11.4.1:1	PDFA2B-FONT-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t01-fail-e.pdf	ISO 19005-2:2011:6.2.11.4.1:1	PDFA2B-FONT-EMBEDDING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t02-fail-a.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t02-fail-b.pdf	ISO 19005-2:2011:6.2.11.4.1:2	PDFA2B-TYPE1-GLYPH-PRESENCE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t02-fail-c.pdf	ISO 19005-2:2011:6.2.11.8:1	PDFA2B-NOTDEF-GLYPH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t02-fail-d.pdf	ISO 19005-2:2011:6.2.11.8:1	PDFA2B-NOTDEF-GLYPH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.1 General/veraPDF test suite 6-2-11-4-1-t02-fail-e.pdf	ISO 19005-2:2011:6.2.11.4.1:2	PDFA2B-TYPE1-GLYPH-PRESENCE-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.2 Subset embedding/veraPDF test suite 6-2-11-4-2-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.4.2:1	PDFA2B-TYPE1-SUBSET-CHARSET-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.4 Embedding/6.2.11.4.2 Subset embedding/veraPDF test suite 6-2-11-4-2-t02-fail-a.pdf	ISO 19005-2:2011:6.2.11.4.2:2	PDFA2B-CID-SUBSET-CIDSET-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-d.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-e.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.5 Font metrics/veraPDF test suite 6-2-11-5-t01-fail-f.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t02-fail-a.pdf	ISO 19005-2:2011:6.2.11.6:2	PDFA2B-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t02-fail-b.pdf	ISO 19005-2:2011:6.2.11.6:2	PDFA2B-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t02-fail-c.pdf	ISO 19005-2:2011:6.2.11.6:2	PDFA2B-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t02-fail-d.pdf	ISO 19005-2:2011:6.2.11.6:2	PDFA2B-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t03-fail-a.pdf	ISO 19005-2:2011:6.2.11.6:3	PDFA2B-TRUETYPE-SYMBOLIC-ENCODING-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.8 Use of .notdef glyph/veraPDF test suite 6-2-11-8-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.5:1	PDFA2B-TRUETYPE-GLYPH-WIDTH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.8 Use of .notdef glyph/veraPDF test suite 6-2-11-8-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.8:1	PDFA2B-NOTDEF-GLYPH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.8 Use of .notdef glyph/veraPDF test suite 6-2-11-8-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.8:1	PDFA2B-NOTDEF-GLYPH-001
+PDF_A-2b	6.2 Graphics/6.2.11 Fonts/6.2.11.8 Use of .notdef glyph/veraPDF test suite 6-2-11-8-t01-fail-d.pdf	ISO 19005-2:2011:6.2.11.8:1	PDFA2B-NOTDEF-GLYPH-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t01-fail-a.pdf	ISO 19005-2:2011:6.2.2:1	PDFA2B-CONTENT-OPERATOR-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t01-fail-b.pdf	ISO 19005-2:2011:6.2.2:1	PDFA2B-CONTENT-OPERATOR-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t01-fail-c.pdf	ISO 19005-2:2011:6.2.2:1	PDFA2B-CONTENT-OPERATOR-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t02-fail-a.pdf	ISO 19005-2:2011:6.2.6:1	PDFA2B-RENDERING-INTENT-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t04-fail-d.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t04-fail-e.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+PDF_A-2b	6.2 Graphics/6.2.2 Content streams/veraPDF test suite 6-2-2-t04-fail-f.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t01-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t01-fail-b.pdf	ISO 19005-2:2011:6.2.3:1	PDFA2B-OUTPUTINTENT-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t01-fail-c.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t01-fail-d.pdf	ISO 19005-2:2011:6.2.3:1	PDFA2B-OUTPUTINTENT-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t02-fail-a.pdf	ISO 19005-2:2011:6.2.3:2	PDFA2B-OUTPUTINTENT-IDENTITY-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t03-fail-a.pdf	ISO 19005-2:2011:6.2.3:1	PDFA2B-OUTPUTINTENT-001
+PDF_A-2b	6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t03-fail-b.pdf	ISO 19005-2:2011:6.2.3:1	PDFA2B-OUTPUTINTENT-001
+PDF_A-2b	6.2 Graphics/6.2.4.2 ICCBased colour spaces/veraPDF test suite 6-2-4-2-t02-fail-a.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+PDF_A-2b	6.2 Graphics/6.2.4.2 ICCBased colour spaces/veraPDF test suite 6-2-4-2-t02-fail-b.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+PDF_A-2b	6.2 Graphics/6.2.4.2 ICCBased colour spaces/veraPDF test suite 6-2-4-2-t02-fail-c.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-c.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-i.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-j.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-k.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-l.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-m.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-n.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-o.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-p.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-q.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-r.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-s.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-fail-t.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-c.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t02-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t03-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t03-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t03-fail-c.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t03-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-c.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-d.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-e.pdf	ISO 19005-2:2011:6.2.4.3:4	PDFA2B-DEVICE-GRAY-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-f.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-g.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-fail-h.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t02-fail-a.pdf	ISO 19005-2:2011:6.2.4.4:1	PDFA2B-DEVICEN-COLORANTS-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t02-fail-b.pdf	ISO 19005-2:2011:6.2.4.4:1	PDFA2B-DEVICEN-COLORANTS-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t02-fail-c.pdf	ISO 19005-2:2011:6.2.4.4:1	PDFA2B-DEVICEN-COLORANTS-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t03-fail-a.pdf	ISO 19005-2:2011:6.2.4.4:2	PDFA2B-SEPARATION-CONSISTENCY-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t03-fail-b.pdf	ISO 19005-2:2011:6.2.4.4:2	PDFA2B-SEPARATION-CONSISTENCY-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t03-fail-c.pdf	ISO 19005-2:2011:6.2.4.4:2	PDFA2B-SEPARATION-CONSISTENCY-001
+PDF_A-2b	6.2 Graphics/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t03-fail-d.pdf	ISO 19005-2:2011:6.2.4.4:2	PDFA2B-SEPARATION-CONSISTENCY-001
+PDF_A-2b	6.2 Graphics/6.2.4.5 Indexed and Pattern colour spaces/veraPDF test suite 6-2-4-5-t01-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.4.5 Indexed and Pattern colour spaces/veraPDF test suite 6-2-4-5-t01-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t01-fail-a.pdf	ISO 19005-2:2011:6.2.5:1	PDFA2B-EXTGSTATE-TR-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t01-fail-b.pdf	ISO 19005-2:2011:6.2.5:3	PDFA2B-EXTGSTATE-HTP-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t02-fail-a.pdf	ISO 19005-2:2011:6.2.5:2	PDFA2B-EXTGSTATE-TR2-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t03-fail-a.pdf	ISO 19005-2:2011:6.2.5:4	PDFA2B-HALFTONE-TYPE-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t03-fail-b.pdf	ISO 19005-2:2011:6.2.5:6	PDFA2B-HALFTONE-TRANSFER-FUNCTION-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t04-fail-a.pdf	ISO 19005-2:2011:6.2.5:5	PDFA2B-HALFTONE-NAME-001
+PDF_A-2b	6.2 Graphics/6.2.5 Extended graphics state/veraPDF test suite 6-2-5-t05-fail-a.pdf	ISO 19005-2:2011:6.2.6:1	PDFA2B-RENDERING-INTENT-001
+PDF_A-2b	6.2 Graphics/6.2.6 Rendering intents/veraPDF test suite 6-2-6-t01-fail-a.pdf	ISO 19005-2:2011:6.2.6:1	PDFA2B-RENDERING-INTENT-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.1 General/veraPDF test suite 6-2-8-1-t01-fail-a.pdf	ISO 19005-2:2011:6.2.8:1	PDFA2B-IMAGE-ALTERNATES-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.1 General/veraPDF test suite 6-2-8-1-t01-fail-b.pdf	ISO 19005-2:2011:6.2.8:2	PDFA2B-XOBJECT-OPI-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.1 General/veraPDF test suite 6-2-8-1-t02-fail-a.pdf	ISO 19005-2:2011:6.2.8:3	PDFA2B-IMAGE-INTERPOLATE-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.1 General/veraPDF test suite 6-2-8-1-t02-fail-b.pdf	ISO 19005-2:2011:6.2.8:3	PDFA2B-IMAGE-INTERPOLATE-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.1 General/veraPDF test suite 6-2-8-1-t03-fail-a.pdf	ISO 19005-2:2011:6.2.6:1	PDFA2B-RENDERING-INTENT-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t01-fail-b.pdf	ISO 19005-2:2011:6.2.8.3:1	PDFA2B-JPEG2000-CHANNELS-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t02-fail-a.pdf	ISO 19005-2:2011:6.2.8.3:3	PDFA2B-JPEG2000-COLOR-METHOD-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t03-fail-a.pdf	ISO 19005-2:2011:6.2.8.3:3	PDFA2B-JPEG2000-COLOR-METHOD-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t04-fail-a.pdf	ISO 19005-2:2011:6.2.8.3:4	PDFA2B-JPEG2000-COLOR-SPACE-001
+PDF_A-2b	6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t05-fail-a.pdf	ISO 19005-2:2011:6.2.8.3:5	PDFA2B-JPEG2000-BIT-DEPTH-001
+PDF_A-2b	6.2 Graphics/6.2.9 XObjects/6.2.9.1 Form XObjects/veraPDF test suite 6-2-9-1-t01-fail-a.pdf	ISO 19005-2:2011:6.2.9:1	PDFA2B-FORM-POSTSCRIPT-001
+PDF_A-2b	6.2 Graphics/6.2.9 XObjects/6.2.9.1 Form XObjects/veraPDF test suite 6-2-9-1-t01-fail-b.pdf	ISO 19005-2:2011:6.2.9:1	PDFA2B-FORM-POSTSCRIPT-001
+PDF_A-2b	6.2 Graphics/6.2.9 XObjects/6.2.9.1 Form XObjects/veraPDF test suite 6-2-9-1-t01-fail-c.pdf	ISO 19005-2:2011:6.2.9:1	PDFA2B-FORM-POSTSCRIPT-001
+PDF_A-2b	6.2 Graphics/6.2.9 XObjects/6.2.9.2 Reference XObjects/veraPDF test suite 6-2-9-2-t01-fail-a.pdf	ISO 19005-2:2011:6.2.9:2	PDFA2B-FORM-REFERENCE-001
+PDF_A-2b	6.2 Graphics/6.2.9 XObjects/6.2.9.3 PostScript XObjects/veraPDF test suite 6-2-9-3-t01-fail-a.pdf	ISO 19005-2:2011:6.2.9:3	PDFA2B-XOBJECT-POSTSCRIPT-001
+PDF_A-2b	6.3 Annotations/6.3.1 Annotation types/veraPDF test suite 6-3-1-t01-fail-a.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.1 Annotation types/veraPDF test suite 6-3-1-t01-fail-b.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.1 Annotation types/veraPDF test suite 6-3-1-t01-fail-c.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.1 Annotation types/veraPDF test suite 6-3-1-t01-fail-d.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.1 Annotation types/veraPDF test suite 6-3-1-t01-fail-e.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-a.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-b.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-c.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-d.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-e.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-f.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-g.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-h.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-i.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-j.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-k.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-l.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-m.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-n.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-o.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-p.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-q.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-r.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-s.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-t.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-u.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-v.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-w.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-x.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-y.pdf	ISO 19005-2:2011:6.3.2:1	PDFA2B-ANNOTATION-FLAGS-PRESENT-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-a.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-b.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-c.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-d.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-e.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-f.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-g.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-h.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-i.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-j.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-k.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-l.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-m.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-n.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-o.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-p.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-q.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-r.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-s.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-t.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-u.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-v.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-w.pdf	ISO 19005-2:2011:6.3.3:1	PDFA2B-ANNOTATION-AP-REQUIRED-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-fail-x.pdf	ISO 19005-2:2011:6.3.1:1	PDFA2B-ANNOTATION-SUBTYPE-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t02-fail-a.pdf	ISO 19005-2:2011:6.3.3:2	PDFA2B-ANNOTATION-AP-ENTRIES-001
+PDF_A-2b	6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t02-fail-b.pdf	ISO 19005-2:2011:6.3.3:3	PDFA2B-WIDGET-BUTTON-APPEARANCE-001
+PDF_A-2b	6.4 Interactive forms/6.4.1 General/veraPDF test suite 6-4-1-t01-fail-a.pdf	ISO 19005-2:2011:6.4.1:1	PDFA2B-WIDGET-ACTION-001
+PDF_A-2b	6.4 Interactive forms/6.4.1 General/veraPDF test suite 6-4-1-t01-fail-b.pdf	ISO 19005-2:2011:6.4.1:1	PDFA2B-WIDGET-ACTION-001
+PDF_A-2b	6.4 Interactive forms/6.4.1 General/veraPDF test suite 6-4-1-t02-fail-a.pdf	ISO 19005-2:2011:6.4.1:3	PDFA2B-ACROFORM-NEED-APPEARANCES-001
+PDF_A-2b	6.4 Interactive forms/6.4.2 XFA forms/veraPDF test suite 6-4-2-t01-fail-a.pdf	ISO 19005-2:2011:6.4.2:1	PDFA2B-ACROFORM-XFA-001
+PDF_A-2b	6.4 Interactive forms/6.4.2 XFA forms/veraPDF test suite 6-4-2-t01-fail-b.pdf	ISO 19005-2:2011:6.4.2:2	PDFA2B-CATALOG-NEEDS-RENDERING-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-a.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-b.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-c.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-d.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-e.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-f.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-g.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-h.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-i.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-j.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-k.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-l.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-m.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.1 General/veraPDF test suite 6-5-1-t01-fail-n.pdf	ISO 19005-2:2011:6.5.1:2	PDFA2B-NAMED-ACTION-001
+PDF_A-2b	6.5 Action/6.5.2 Trigger events/veraPDF test suite 6-5-2-t01-fail-a.pdf	ISO 19005-2:2011:6.4.1:1	PDFA2B-WIDGET-ACTION-001
+PDF_A-2b	6.5 Action/6.5.2 Trigger events/veraPDF test suite 6-5-2-t01-fail-b.pdf	ISO 19005-2:2011:6.5.1:1	PDFA2B-ACTION-TYPE-001
+PDF_A-2b	6.5 Action/6.5.2 Trigger events/veraPDF test suite 6-5-2-t01-fail-c.pdf	ISO 19005-2:2011:6.5.2:2	PDFA2B-PAGE-ADDITIONAL-ACTIONS-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.1 General/veraPDF test suite 6-6-2-1-t01-fail-a.pdf	ISO 19005-2:2011:6.6.2.1:1	PDFA2B-METADATA-STRUCTURE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.1 General/veraPDF test suite 6-6-2-1-t01-fail-b.pdf	ISO 19005-2:2011:6.6.2.1:2	PDFA2B-XMP-PACKET-BYTES-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.1 General/veraPDF test suite 6-6-2-1-t01-fail-c.pdf	ISO 19005-2:2011:6.6.2.1:3	PDFA2B-XMP-PACKET-ENCODING-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-fail-z.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t02-fail-z.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t03-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t03-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t03-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t03-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t03-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t04-fail-z.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t05-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t06-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t07-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t08-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t08-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t08-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t08-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t08-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t09-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t10-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t11-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t11-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t11-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t11-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t11-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t12-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t12-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t12-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t13-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t14-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t15-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t16-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-h.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-i.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-j.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-k.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-l.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-m.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-n.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-o.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-p.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-q.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-r.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-s.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-t.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-u.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-v.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-w.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-x.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-y.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t17-fail-z.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t18-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t18-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t18-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t19-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t19-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.2 Extension schemas/veraPDF test suite 6-6-2-3-2-t01-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.1:1	PDFA2B-XMP-PROPERTY-DEFINITION-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t01-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.3:8	PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t01-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.3:4	PDFA2B-XMP-EXTENSION-SCHEMA-PREFIX-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t01-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.3:2	PDFA2B-XMP-EXTENSION-SCHEMA-NAME-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t01-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.3:6	PDFA2B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t02-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.3:9	PDFA2B-XMP-EXTENSION-PROPERTY-CATEGORY-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t02-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.3:10	PDFA2B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t02-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t02-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.3:8	PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t02-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.3:8	PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.3:14	PDFA2B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.3:12	PDFA2B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-e.pdf	ISO 19005-2:2011:6.6.2.3.3:8	PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-f.pdf	ISO 19005-2:2011:6.6.2.3.3:13	PDFA2B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t03-fail-g.pdf	ISO 19005-2:2011:6.6.2.3.3:13	PDFA2B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t04-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.3:18	PDFA2B-XMP-EXTENSION-FIELD-DESCRIPTION-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t04-fail-b.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t04-fail-c.pdf	ISO 19005-2:2011:6.6.2.3.1:2	PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.3 Extension schema container schemas/veraPDF test suite 6-6-2-3-3-t04-fail-d.pdf	ISO 19005-2:2011:6.6.2.3.3:17	PDFA2B-XMP-EXTENSION-FIELD-VALUE-TYPE-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-a.pdf	ISO 19005-2:2011:6.6.4:1	PDFA2B-ID-SCHEMA-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-b.pdf	ISO 19005-2:2011:6.6.4:4	PDFA2B-ID-PART-PREFIX-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-c.pdf	ISO 19005-2:2011:6.6.4:2	PDFA2B-ID-PART-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-d.pdf	ISO 19005-2:2011:6.6.4:3	PDFA2B-ID-CONFORMANCE-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-e.pdf	ISO 19005-2:2011:6.6.4:2	PDFA2B-ID-PART-001
+PDF_A-2b	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-f.pdf	ISO 19005-2:2011:6.6.4:3	PDFA2B-ID-CONFORMANCE-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-a.pdf	ISO 19005-2:2011:6.2.11.7.2:1	PDFA2U-UNICODE-MAPPING-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-b.pdf	ISO 19005-2:2011:6.2.11.7.2:1	PDFA2U-UNICODE-MAPPING-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-c.pdf	ISO 19005-2:2011:6.2.11.7.2:1	PDFA2U-UNICODE-MAPPING-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-d.pdf	ISO 19005-2:2011:6.2.11.7.2:1	PDFA2U-UNICODE-MAPPING-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-e.pdf	ISO 19005-2:2011:6.2.11.7.2:1	PDFA2U-UNICODE-MAPPING-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t01-fail-f.pdf	ISO 19005-2:2011:6.2.11.3.1:1	PDFA2U-TYPE0-CID-SYSTEM-INFO-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t02-fail-a.pdf	ISO 19005-2:2011:6.2.11.7.2:2	PDFA2U-UNICODE-VALUE-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t02-fail-b.pdf	ISO 19005-2:2011:6.2.11.7.2:2	PDFA2U-UNICODE-VALUE-001
+PDF_A-2u	6.2 Graphics/6.2.11 Fonts/6.2.11.7 Unicode character maps/6.2.11.7.2 Level A and Level U conformance/veraPDF test suite 6-2-11-7-2-t02-fail-c.pdf	ISO 19005-2:2011:6.2.11.7.2:2	PDFA2U-UNICODE-VALUE-001
+PDF_A-2u	6.6 Metadata/6.6.4 Version and conformance level identification/veraPDF test suite 6-6-4-t01-fail-a.pdf	ISO 19005-2:2011:6.6.4:3	PDFA2U-ID-CONFORMANCE-001
+PDF_A-3b	6.8 Embedded files/veraPDF test suite 6-8-t01-fail-a.pdf	ISO 19005-3:2012:6.8:3	PDFA3B-FILE-SPEC-AF-RELATIONSHIP-001
+PDF_A-3b	6.8 Embedded files/veraPDF test suite 6-8-t02-fail-a.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+PDF_A-3b	6.8 Embedded files/veraPDF test suite 6-8-t02-fail-b.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+PDF_A-3b	6.8 Embedded files/veraPDF test suite 6-8-t02-fail-c.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+PDF_A-3b	6.8 Embedded files/veraPDF test suite 6-8-t02-fail-d.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+PDF_UA-1	5 Version identification/5-t01-fail-a.pdf	ISO 14289-1:2014:5:1	PDFUA1-ID-SCHEMA-001
+PDF_UA-1	5 Version identification/5-t02-fail-a.pdf	ISO 14289-1:2014:5:2	PDFUA1-ID-PART-001
+PDF_UA-1	5 Version identification/5-t03-fail-a.pdf	ISO 14289-1:2014:5:3	PDFUA1-ID-PART-PREFIX-001
+PDF_UA-1	5 Version identification/5-t04-fail-a.pdf	ISO 14289-1:2014:5:4	PDFUA1-ID-AMD-PREFIX-001
+PDF_UA-1	5 Version identification/5-t05-fail-a.pdf	ISO 14289-1:2014:5:5	PDFUA1-ID-CORR-PREFIX-001
+PDF_UA-1	7.1 General/7.1-t01-fail-a.pdf	ISO 14289-1:2014:7.1:1	PDFUA1-ARTIFACT-NESTED-001
+PDF_UA-1	7.1 General/7.1-t02-fail-a.pdf	ISO 14289-1:2014:7.1:2	PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001
+PDF_UA-1	7.1 General/7.1-t03-fail-a.pdf	ISO 14289-1:2014:7.1:3	PDFUA1-CONTENT-TAGGING-001
+PDF_UA-1	7.1 General/7.1-t03-fail-b.pdf	ISO 14289-1:2014:7.1:3	PDFUA1-CONTENT-TAGGING-001
+PDF_UA-1	7.1 General/7.1-t04-fail-a.pdf	ISO 14289-1:2014:7.1:4	PDFUA1-SUSPECTS-001
+PDF_UA-1	7.1 General/7.1-t05-fail-a.pdf	ISO 14289-1:2014:7.1:5	PDFUA1-STRUCT-TREE-ROLE-MAP-001
+PDF_UA-1	7.1 General/7.1-t05-fail-b.pdf	ISO 14289-1:2014:7.1:5	PDFUA1-STRUCT-TREE-ROLE-MAP-001
+PDF_UA-1	7.1 General/7.1-t05-fail-c.pdf	ISO 14289-1:2014:7.1:5	PDFUA1-STRUCT-TREE-ROLE-MAP-001
+PDF_UA-1	7.1 General/7.1-t05-fail-d.pdf	ISO 14289-1:2014:7.1:6	PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001
+PDF_UA-1	7.1 General/7.1-t06-fail-a.pdf	ISO 14289-1:2014:7.1:6	PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001
+PDF_UA-1	7.1 General/7.1-t07-fail-a.pdf	ISO 14289-1:2014:7.1:7	PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001
+PDF_UA-1	7.1 General/7.1-t08-fail-a.pdf	ISO 14289-1:2014:7.1:8	PDFUA1-METADATA-STRUCTURE-001
+PDF_UA-1	7.1 General/7.1-t09-fail-a.pdf	ISO 14289-1:2014:7.1:9	PDFUA1-METADATA-TITLE-001
+PDF_UA-1	7.1 General/7.1-t10-fail-a.pdf	ISO 14289-1:2014:7.1:10	PDFUA1-VIEWER-PREFERENCES-001
+PDF_UA-1	7.1 General/7.1-t10-fail-b.pdf	ISO 14289-1:2014:7.1:10	PDFUA1-VIEWER-PREFERENCES-001
+PDF_UA-1	7.1 General/7.1-t11-fail-a.pdf	ISO 14289-1:2014:7.1:11	PDFUA1-STRUCT-TREE-ROOT-001
+PDF_UA-1	7.10 Optional content/7.10-t01-fail-a.pdf	ISO 14289-1:2014:7.10:1	PDFUA1-OPTIONAL-CONTENT-NAME-001
+PDF_UA-1	7.10 Optional content/7.10-t01-fail-b.pdf	ISO 14289-1:2014:7.10:1	PDFUA1-OPTIONAL-CONTENT-NAME-001
+PDF_UA-1	7.10 Optional content/7.10-t02-fail-a.pdf	ISO 14289-1:2014:7.10:2	PDFUA1-OPTIONAL-CONTENT-AS-001
+PDF_UA-1	7.11 Embedded files/7.11-t01-fail-a.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.11 Embedded files/7.11-t01-fail-b.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.15 XFA/7.15-t01-fail-a.pdf	ISO 14289-1:2014:7.15:1	PDFUA1-DYNAMIC-XFA-001
+PDF_UA-1	7.16 Security/7.16-t01-fail-a.pdf	ISO 14289-1:2014:7.16:1	PDFUA1-ENCRYPTION-P-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t01-fail-a.pdf	ISO 14289-1:2014:7.18.1:1	PDFUA1-ANNOTATION-ANNOT-TAG-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t02-fail-a.pdf	ISO 14289-1:2014:7.18.1:2	PDFUA1-ANNOTATION-CONTENTS-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t02-fail-b.pdf	ISO 14289-1:2014:7.18.1:2	PDFUA1-ANNOTATION-CONTENTS-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t02-fail-c.pdf	ISO 14289-1:2014:7.18.1:2	PDFUA1-ANNOTATION-CONTENTS-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t03-fail-a.pdf	ISO 14289-1:2014:7.18.1:3	PDFUA1-FORM-FIELD-TU-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t03-fail-b.pdf	ISO 14289-1:2014:7.18.1:3	PDFUA1-FORM-FIELD-TU-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t03-fail-c.pdf	ISO 14289-1:2014:7.18.1:3	PDFUA1-FORM-FIELD-TU-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.1 General/7.18.1-t03-fail-d.pdf	ISO 14289-1:2014:7.18.1:3	PDFUA1-FORM-FIELD-TU-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.2 Annotation types/7.18.2-t01-fail-a.pdf	ISO 14289-1:2014:7.18.2:1	PDFUA1-TRAPNET-ANNOTATION-001
+PDF_UA-1	7.18 Annotations/7.18.3 Tab order/7.18.3-t01-fail-a.pdf	ISO 14289-1:2014:7.18.3:1	PDFUA1-PAGE-TABS-001
+PDF_UA-1	7.18 Annotations/7.18.3 Tab order/7.18.3-t01-fail-b.pdf	ISO 14289-1:2014:7.18.3:1	PDFUA1-PAGE-TABS-001
+PDF_UA-1	7.18 Annotations/7.18.4 Forms/7.18.4-t01-fail-a.pdf	ISO 14289-1:2014:7.18.4:1	PDFUA1-WIDGET-FORM-TAG-001
+PDF_UA-1	7.18 Annotations/7.18.5 Links/7.18.5-t01-fail-a.pdf	ISO 14289-1:2014:7.18.5:1	PDFUA1-LINK-LINK-TAG-001
+PDF_UA-1	7.18 Annotations/7.18.5 Links/7.18.5-t02-fail-a.pdf	ISO 14289-1:2014:7.18.1:2	PDFUA1-ANNOTATION-CONTENTS-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.5 Links/7.18.5-t02-fail-b.pdf	ISO 14289-1:2014:7.18.5:2	PDFUA1-LINK-CONTENTS-001
+PDF_UA-1	7.18 Annotations/7.18.6 Media/7.18.6.2 Media clip data/7.18.6.2-t01-fail-a.pdf	ISO 14289-1:2014:7.18.6.2:1	PDFUA1-MEDIA-CLIP-CT-001
+PDF_UA-1	7.18 Annotations/7.18.6 Media/7.18.6.2 Media clip data/7.18.6.2-t02-fail-a.pdf	ISO 14289-1:2014:7.18.6.2:2	PDFUA1-MEDIA-CLIP-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.6 Media/7.18.6.2 Media clip data/7.18.6.2-t02-fail-b.pdf	ISO 14289-1:2014:7.18.6.2:2	PDFUA1-MEDIA-CLIP-ALT-001
+PDF_UA-1	7.18 Annotations/7.18.7 File Attachments/7.18.7-t01-fail-a.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.18 Annotations/7.18.7 File Attachments/7.18.7-t01-fail-b.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.18 Annotations/7.18.7 File Attachments/7.18.7-t01-fail-c.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.18 Annotations/7.18.7 File Attachments/7.18.7-t01-fail-d.pdf	ISO 14289-1:2014:7.11:1	PDFUA1-FILE-SPEC-F-AND-UF-001
+PDF_UA-1	7.18 Annotations/7.18.8 PrinterMark/7.18.8-t01-fail-a.pdf	ISO 14289-1:2014:7.18.8:1	PDFUA1-PRINTER-MARK-ARTIFACT-001
+PDF_UA-1	7.2 Text/7.2-t02-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t03-fail-a.pdf	ISO 14289-1:2014:7.2:3	PDFUA1-TABLE-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t03-fail-b.pdf	ISO 14289-1:2014:7.2:39	PDFUA1-TABLE-CAPTION-COUNT-001
+PDF_UA-1	7.2 Text/7.2-t03-fail-c.pdf	ISO 14289-1:2014:7.2:16	PDFUA1-TABLE-CAPTION-POSITION-001
+PDF_UA-1	7.2 Text/7.2-t04-fail-a.pdf	ISO 14289-1:2014:7.2:4	PDFUA1-TR-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t05-fail-a.pdf	ISO 14289-1:2014:7.2:5	PDFUA1-THEAD-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t06-fail-a.pdf	ISO 14289-1:2014:7.2:6	PDFUA1-TBODY-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t07-fail-a.pdf	ISO 14289-1:2014:7.2:7	PDFUA1-TFOOT-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t08-fail-a.pdf	ISO 14289-1:2014:7.2:8	PDFUA1-TH-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t09-fail-a.pdf	ISO 14289-1:2014:7.2:37	PDFUA1-TBODY-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t10-fail-a.pdf	ISO 14289-1:2014:7.2:10	PDFUA1-TR-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t11-fail-a.pdf	ISO 14289-1:2014:7.2:11	PDFUA1-TABLE-THEAD-COUNT-001
+PDF_UA-1	7.2 Text/7.2-t12-fail-a.pdf	ISO 14289-1:2014:7.2:12	PDFUA1-TABLE-TFOOT-COUNT-001
+PDF_UA-1	7.2 Text/7.2-t13-fail-a.pdf	ISO 14289-1:2014:7.2:13	PDFUA1-TABLE-TFOOT-TBODY-001
+PDF_UA-1	7.2 Text/7.2-t14-fail-a.pdf	ISO 14289-1:2014:7.2:14	PDFUA1-TABLE-THEAD-TBODY-001
+PDF_UA-1	7.2 Text/7.2-t17-fail-a.pdf	ISO 14289-1:2014:7.2:17	PDFUA1-LI-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t18-fail-a.pdf	ISO 14289-1:2014:7.2:18	PDFUA1-LBODY-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t19-fail-a.pdf	ISO 14289-1:2014:7.2:40	PDFUA1-L-CAPTION-001
+PDF_UA-1	7.2 Text/7.2-t19-fail-b.pdf	ISO 14289-1:2014:7.2:19	PDFUA1-L-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t19-fail-c.pdf	ISO 14289-1:2014:7.2:40	PDFUA1-L-CAPTION-001
+PDF_UA-1	7.2 Text/7.2-t20-fail-a.pdf	ISO 14289-1:2014:7.2:20	PDFUA1-LI-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t20-fail-b.pdf	ISO 14289-1:2014:7.2:20	PDFUA1-LI-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t21-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t22-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t23-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t24-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t25-fail-a.pdf	ISO 14289-1:2014:7.2:25	PDFUA1-FORM-FIELD-TU-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t26-fail-a.pdf	ISO 14289-1:2014:7.2:26	PDFUA1-TOCI-PARENT-001
+PDF_UA-1	7.2 Text/7.2-t27-fail-a.pdf	ISO 14289-1:2014:7.2:28	PDFUA1-TOC-CAPTION-001
+PDF_UA-1	7.2 Text/7.2-t27-fail-b.pdf	ISO 14289-1:2014:7.2:28	PDFUA1-TOC-CAPTION-001
+PDF_UA-1	7.2 Text/7.2-t27-fail-c.pdf	ISO 14289-1:2014:7.2:27	PDFUA1-TOC-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-a.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-b.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-c.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-d.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-e.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-f.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-g.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-h.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-i.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-j.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-k.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-l.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-m.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-n.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-o.pdf	ISO 14289-1:2014:7.2:29	PDFUA1-LANGUAGE-TAG-001
+PDF_UA-1	7.2 Text/7.2-t29-fail-p.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t30-fail-a.pdf	ISO 14289-1:2014:7.2:34	PDFUA1-TEXT-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t31-fail-a.pdf	ISO 14289-1:2014:7.2:31	PDFUA1-SPAN-ALT-TEXT-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t32-fail-a.pdf	ISO 14289-1:2014:7.2:2	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t33-fail-a.pdf	ISO 14289-1:2014:7.2:33	PDFUA1-METADATA-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t34-fail-a.pdf	ISO 14289-1:2014:7.2:34	PDFUA1-TEXT-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t36-fail-a.pdf	ISO 14289-1:2014:7.2:36	PDFUA1-THEAD-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t37-fail-a.pdf	ISO 14289-1:2014:7.2:37	PDFUA1-TBODY-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t38-fail-a.pdf	ISO 14289-1:2014:7.2:38	PDFUA1-TFOOT-KIDS-001
+PDF_UA-1	7.2 Text/7.2-t41-fail-a.pdf	ISO 14289-1:2014:7.2:42	PDFUA1-TABLE-ROW-COLUMNSPAN-001
+PDF_UA-1	7.2 Text/7.2-t42-fail-a.pdf	ISO 14289-1:2014:7.2:42	PDFUA1-TABLE-ROW-COLUMNSPAN-001
+PDF_UA-1	7.2 Text/7.2-t43-fail-a.pdf	ISO 14289-1:2014:7.2:43	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t43-fail-b.pdf	ISO 14289-1:2014:7.2:43	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.2 Text/7.2-t43-fail-c.pdf	ISO 14289-1:2014:7.2:43	PDFUA1-OUTLINE-LANGUAGE-001
+PDF_UA-1	7.20 XObjects/7.20-t01-fail-a.pdf	ISO 14289-1:2014:7.20:1	PDFUA1-FORM-REFERENCE-001
+PDF_UA-1	7.20 XObjects/7.20-t02-fail-a.pdf	ISO 14289-1:2014:7.20:2	PDFUA1-FORM-STRUCTURE-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.1 General/7.21.3.1-t01-fail-a.pdf	ISO 14289-1:2014:7.21.3.1:1	PDFUA1-TYPE0-CID-SYSTEM-INFO-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.1 General/7.21.3.1-t01-fail-b.pdf	ISO 14289-1:2014:7.21.3.1:1	PDFUA1-TYPE0-CID-SYSTEM-INFO-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.1 General/7.21.3.1-t01-fail-c.pdf	ISO 14289-1:2014:7.21.3.1:1	PDFUA1-TYPE0-CID-SYSTEM-INFO-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.2 CIDFonts/7.21.3.2-t01-fail-a.pdf	ISO 14289-1:2014:7.21.3.2:1	PDFUA1-CIDTOGIDMAP-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.2 CIDFonts/7.21.3.2-t01-fail-b.pdf	ISO 14289-1:2014:7.21.3.2:1	PDFUA1-CIDTOGIDMAP-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.2 CIDFonts/7.21.3.2-t01-fail-c.pdf	ISO 14289-1:2014:7.21.3.2:1	PDFUA1-CIDTOGIDMAP-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.3 CMaps/7.21.3.3-t01-fail-a.pdf	ISO 14289-1:2014:7.21.3.3:1	PDFUA1-CMAP-EMBEDDING-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.3 CMaps/7.21.3.3-t02-fail-a.pdf	ISO 14289-1:2014:7.21.3.3:2	PDFUA1-CMAP-WMODE-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.3 CMaps/7.21.3.3-t02-fail-b.pdf	ISO 14289-1:2014:7.21.3.3:2	PDFUA1-CMAP-WMODE-001
+PDF_UA-1	7.21 Fonts/7.21.3 Composite fonts/7.21.3.3 CMaps/7.21.3.3-t03-fail-a.pdf	ISO 14289-1:2014:7.21.3.3:1	PDFUA1-CMAP-EMBEDDING-001
+PDF_UA-1	7.21 Fonts/7.21.4 Embedding/7.21.4.1 General/7.21.4.1-t01-fail-a.pdf	ISO 14289-1:2014:7.21.4.1:1	PDFUA1-FONT-EMBEDDING-001
+PDF_UA-1	7.21 Fonts/7.21.4 Embedding/7.21.4.2 Subset embedding/7.21.4.2-t01-fail-a.pdf	ISO 14289-1:2014:7.21.4.2:1	PDFUA1-FONT-TYPE1-CHARSET-001
+PDF_UA-1	7.21 Fonts/7.21.4 Embedding/7.21.4.2 Subset embedding/7.21.4.2-t01-fail-b.pdf	ISO 14289-1:2014:7.21.4.2:1	PDFUA1-FONT-TYPE1-CHARSET-001
+PDF_UA-1	7.21 Fonts/7.21.4 Embedding/7.21.4.2 Subset embedding/7.21.4.2-t02-fail-a.pdf	ISO 14289-1:2014:7.21.4.2:2	PDFUA1-CID-SUBSET-CIDSET-001
+PDF_UA-1	7.21 Fonts/7.21.5 Font metrics/7.21.5-t01-fail-a.pdf	ISO 14289-1:2014:7.21.5:1	PDFUA1-FONT-GLYPH-WIDTH-001
+PDF_UA-1	7.21 Fonts/7.21.6 Character encodings/7.21.6-t02-fail-a.pdf	ISO 14289-1:2014:7.21.6:2	PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_UA-1	7.21 Fonts/7.21.6 Character encodings/7.21.6-t02-fail-b.pdf	ISO 14289-1:2014:7.21.6:2	PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_UA-1	7.21 Fonts/7.21.6 Character encodings/7.21.6-t02-fail-c.pdf	ISO 14289-1:2014:7.21.6:2	PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_UA-1	7.21 Fonts/7.21.6 Character encodings/7.21.6-t02-fail-d.pdf	ISO 14289-1:2014:7.21.6:2	PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001
+PDF_UA-1	7.21 Fonts/7.21.6 Character encodings/7.21.6-t03-fail-a.pdf	ISO 14289-1:2014:7.21.6:3	PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001
+PDF_UA-1	7.21 Fonts/7.21.7 Unicode character maps/7.21.7-t01-fail-a.pdf	ISO 14289-1:2014:7.21.7:1	PDFUA1-FONT-UNICODE-MAPPING-001
+PDF_UA-1	7.21 Fonts/7.21.7 Unicode character maps/7.21.7-t02-fail-a.pdf	ISO 14289-1:2014:7.21.7:2	PDFUA1-FONT-UNICODE-VALUE-001
+PDF_UA-1	7.21 Fonts/7.21.7 Unicode character maps/7.21.7-t02-fail-b.pdf	ISO 14289-1:2014:7.21.7:2	PDFUA1-FONT-UNICODE-VALUE-001
+PDF_UA-1	7.21 Fonts/7.21.7 Unicode character maps/7.21.7-t02-fail-c.pdf	ISO 14289-1:2014:7.21.7:2	PDFUA1-FONT-UNICODE-VALUE-001
+PDF_UA-1	7.21 Fonts/7.21.8 Use of .notdef glyph/7.21.8-t01-fail-a.pdf	ISO 14289-1:2014:7.21.8:1	PDFUA1-NOTDEF-GLYPH-001
+PDF_UA-1	7.3 Graphics/7.3-t01-fail-a.pdf	ISO 14289-1:2014:7.3:1	PDFUA1-FIGURE-ALTERNATIVE-TEXT-001
+PDF_UA-1	7.3 Graphics/7.3-t01-fail-b.pdf	ISO 14289-1:2014:7.3:1	PDFUA1-FIGURE-ALTERNATIVE-TEXT-001
+PDF_UA-1	7.4 Headings/7.4.2 Numbered headings/7.4.2-t01-fail-a.pdf	ISO 14289-1:2014:7.4.2:1	PDFUA1-HEADING-NESTING-001
+PDF_UA-1	7.4 Headings/7.4.2 Numbered headings/7.4.2-t01-fail-b.pdf	ISO 14289-1:2014:7.4.2:1	PDFUA1-HEADING-NESTING-001
+PDF_UA-1	7.4 Headings/7.4.4 Unnumbered headings/7.4.4-t01-fail-a.pdf	ISO 14289-1:2014:7.4.4:1	PDFUA1-HEADING-CHILD-COUNT-001
+PDF_UA-1	7.4 Headings/7.4.4 Unnumbered headings/7.4.4-t02-fail-a.pdf	ISO 14289-1:2014:7.4.4:3	PDFUA1-HEADING-STRUCTURE-001
+PDF_UA-1	7.4 Headings/7.4.4 Unnumbered headings/7.4.4-t02-fail-b.pdf	ISO 14289-1:2014:7.4.4:3	PDFUA1-HEADING-STRUCTURE-001
+PDF_UA-1	7.4 Headings/7.4.4 Unnumbered headings/7.4.4-t03-fail-a.pdf	ISO 14289-1:2014:7.4.4:3	PDFUA1-HEADING-STRUCTURE-001
+PDF_UA-1	7.4 Headings/7.4.4 Unnumbered headings/7.4.4-t03-fail-b.pdf	ISO 14289-1:2014:7.4.4:2	PDFUA1-HEADING-STRUCTURE-001
+PDF_UA-1	7.5 Tables/7.5-t01-fail-a.pdf	ISO 14289-1:2014:7.5:1	PDFUA1-TABLE-HEADERS-SCOPE-001
+PDF_UA-1	7.5 Tables/7.5-t01-fail-b.pdf	ISO 14289-1:2014:7.5:1	PDFUA1-TABLE-HEADERS-SCOPE-001
+PDF_UA-1	7.5 Tables/7.5-t02-fail-a.pdf	ISO 14289-1:2014:7.5:2	PDFUA1-TABLE-HEADERS-UNDEFINED-001
+PDF_UA-1	7.7 Mathematical expressions/7.7-t01-fail-a.pdf	ISO 14289-1:2014:7.7:1	PDFUA1-FORMULA-ALTERNATIVE-TEXT-001
+PDF_UA-1	7.7 Mathematical expressions/7.7-t01-fail-b.pdf	ISO 14289-1:2014:7.7:1	PDFUA1-FORMULA-ALTERNATIVE-TEXT-001
+PDF_UA-1	7.9 Notes and references/7.9-t01-fail-a.pdf	ISO 14289-1:2014:7.9:1	PDFUA1-NOTE-ID-001
+PDF_UA-1	7.9 Notes and references/7.9-t01-fail-b.pdf	ISO 14289-1:2014:7.9:1	PDFUA1-NOTE-ID-001
+PDF_UA-1	7.9 Notes and references/7.9-t02-fail-a.pdf	ISO 14289-1:2014:7.9:2	PDFUA1-NOTE-ID-UNIQUE-001

@@ -39,6 +39,9 @@ fn profiles() -> impl Iterator<Item = &'static str> {
 
 fn corpus_with_parse_failures() -> TempDirectory {
     let temporary = TempDirectory::new();
+    let mut rule_manifest = String::from(
+        "# test rule expectations\n# profile directory<TAB>relative PDF path<TAB>reference rule<TAB>local rule\n",
+    );
     for profile in profiles() {
         let directory = temporary.join(profile);
         fs::create_dir(&directory).expect("create corpus profile directory");
@@ -47,7 +50,12 @@ fn corpus_with_parse_failures() -> TempDirectory {
             b"not a PDF",
         )
         .expect("write corpus failure case");
+        rule_manifest.push_str(&format!(
+            "{profile}\tveraPDF test suite 6-1-t01-fail-a.pdf\tPDF-PARSE-001\tPDF-PARSE-001\n"
+        ));
     }
+    fs::write(temporary.join("rule-expectations.tsv"), rule_manifest)
+        .expect("write test rule expectation manifest");
     temporary
 }
 
@@ -61,6 +69,8 @@ fn corpus_command_accepts_all_expected_failures_and_a_pass() {
     .expect("write corpus pass case");
 
     let output = Command::new(env!("CARGO_BIN_EXE_page-corpus"))
+        .arg("--rule-manifest")
+        .arg(temporary.join("rule-expectations.tsv"))
         .arg(temporary.0.to_str().expect("UTF-8 corpus path"))
         .output()
         .expect("run corpus command");
@@ -82,6 +92,8 @@ fn corpus_command_returns_two_for_an_expected_pass_failure() {
     .expect("replace corpus failure case");
 
     let output = Command::new(env!("CARGO_BIN_EXE_page-corpus"))
+        .arg("--rule-manifest")
+        .arg(temporary.join("rule-expectations.tsv"))
         .arg(temporary.0.to_str().expect("UTF-8 corpus path"))
         .output()
         .expect("run corpus command");
