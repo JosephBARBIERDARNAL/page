@@ -573,8 +573,17 @@ fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfErr
         ..LoadOptions::default()
     };
     let document = if let Some(repaired) = crate::syntax::repair_for_lopdf(bytes) {
-        Document::load_mem_with_options(&repaired, options.clone())
-            .or_else(|_| Document::load_mem_with_options(bytes, options))?
+        match Document::load_mem_with_options(&repaired, options.clone()) {
+            Ok(document) => document,
+            Err(_) if crate::syntax::header_is_offset(bytes) => {
+                let mut lenient_options = options.clone();
+                lenient_options.strict = false;
+                Document::load_mem_with_options(bytes, lenient_options)
+                    .or_else(|_| Document::load_mem_with_options(&repaired, options.clone()))
+                    .or_else(|_| Document::load_mem_with_options(bytes, options))?
+            }
+            Err(_) => Document::load_mem_with_options(bytes, options)?,
+        }
     } else {
         Document::load_mem_with_options(bytes, options)?
     };
@@ -654,12 +663,11 @@ fn extract_info(
         return Ok((DocumentMetadata::default(), None));
     };
     let object_id = reference_id(info_entry);
-    let info = resolve(document, info_entry, limits.max_reference_depth)?
-        .as_dict()
-        .map_err(|error| {
-            let _ = error;
-            PdfError::UnexpectedObject("Info is not a dictionary")
-        })?;
+    let Some(info) = resolve_optional(document, info_entry, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok((DocumentMetadata::default(), object_id));
+    };
 
     let mut values = BTreeMap::new();
     for key in [
@@ -1108,6 +1116,17 @@ mod tests {
         assert_eq!(id, Some(info_id.into()));
         assert_eq!(metadata.values["Title"], "Example");
         assert_eq!(metadata.values["Author"], "Ferris");
+    }
+
+    #[test]
+    fn treats_a_missing_info_target_as_absent_metadata() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Info", Object::Reference((21, 0)));
+
+        let (metadata, id) = extract_info(&document, &SafetyLimits::default()).expect("metadata");
+
+        assert!(metadata.values.is_empty());
+        assert_eq!(id, Some((21, 0).into()));
     }
 
     #[test]

@@ -888,7 +888,7 @@ impl Scanner<'_> {
                         .and_then(|encoding| single_encoded_character(encoding, byte))
                         .and_then(|character| face.glyph_index(character))
                 };
-                if glyph.is_some_and(|glyph| glyph.0 == 0) {
+                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.0 == 0) {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1116,6 +1116,13 @@ impl Scanner<'_> {
                 let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
                     continue;
                 };
+                if glyph.0 == 0 {
+                    self.notdef_glyphs.push(font_failure(
+                        usage.object_id,
+                        &usage.description,
+                        "references the .notdef glyph for a rendered CID",
+                    ));
+                }
                 if !face.glyph_is_present(glyph) {
                     self.missing_truetype_glyphs.push(font_failure(
                         usage.object_id,
