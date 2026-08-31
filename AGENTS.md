@@ -92,7 +92,7 @@ The `verapdf-diff` binary compares the local subset with an explicitly pinned ve
 ```bash
 cargo run -p page_cli --bin verapdf-diff -- \
   --verapdf /path/to/verapdf \
-  --expected-version 1.30.0 \
+  --expected-version 1.30.2 \
   --profile 1b \
   --format text \
   file.pdf another.pdf
@@ -112,11 +112,17 @@ The classifications are:
 
 `agreement`, `both_noncompliant`, and `coverage_gap` exit with status `0`. Semantic or parser discrepancies exit with status `2`; operational failures exit with status `1`. Across multiple files, operational status takes precedence over discrepancy status.
 
+Use `just diff path/to/file.pdf` for an ad-hoc comparison of one PDF, `just verapdf` to run the checked-in differential fixture suite, and `just verapdf-all` to run every validation test with the pinned veraPDF executable. `just pdfa-release-gate` additionally requires the implemented-rule coverage and mapping gates before running the full differential suite. These commands use `VERAPDF_BIN` when it is set, otherwise they expect the pinned-compatible `verapdf` executable on `PATH`.
+
+Run a focused differential comparison when changing a rule or investigating a discrepancy. Run `just verapdf` after changes affecting checked-in differential fixtures, and run `just verapdf-all` or `just pdfa-release-gate` before a release or after broad parser, model, or validation changes. Always confirm unexpected veraPDF behavior with a minimal reproduction before changing a rule expectation.
+
+The full veraPDF differential suite is intentionally not a required pull-request check. It is slow and can fail because veraPDF's exact rule attribution for a fixture changes even when both validators agree that the PDF is noncompliant. Pull-request CI uses the corpus gate below as its required conformance signal; that gate validates against a checked-in manifest generated from pinned veraPDF output, including expected rule failures without assigning meaning to diagnostic order, but it does not invoke the Java veraPDF executable. Keep the differential runner, focused tests, and `just verapdf-all`/`just pdfa-release-gate` recipes for manual, nightly, or release validation.
+
 ## veraPDF corpus conformance gate
 
-The CI veraPDF job also runs `page corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.
+The required pull-request CI check runs `page corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). It intentionally does not install or invoke the Java veraPDF executable: the checked-in rule expectation manifest was generated from pinned veraPDF output, and the gate validates both the expected exit status and a matching expected rule without assigning meaning to diagnostic order. The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.
 
-The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-2u, and PDF/A-3b. A corpus filename must contain exactly one `-pass-` or `-fail-` marker; its profile is taken from the top-level `PDF_A-*` directory, and all nested rule-section directories are included.
+The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-2u, PDF/A-3b, and PDF/UA-1. A corpus filename must contain exactly one `-pass-` or `-fail-` marker; its profile is taken from the top-level `PDF_A-*` or `PDF_UA-*` directory, and all nested rule-section directories are included.
 
 The gate requires a `pass` file to make `page` return exit code `0` and a `fail` file to make it return exit code `2`. Exit code `1`, an invalid corpus filename, a missing selected profile directory, or any other operational problem fails the gate with exit code `1`; mismatched validation results fail it with exit code `2`.
 
