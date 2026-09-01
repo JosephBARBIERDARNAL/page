@@ -167,7 +167,9 @@ fn render_summary(
 
 fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
     let mut output = render_summary(report.profile, report.is_compliant, elapsed, colors);
-    output.push('\n');
+    if !report.failures.is_empty() {
+        output.push('\n');
+    }
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
