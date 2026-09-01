@@ -8,8 +8,9 @@ documentation = "https://josephbarbierdarnal.github.io/page/"
 readme = "../../README.md"
 homepage = "https://josephbarbierdarnal.github.io/page/"
 repository = "https://github.com/josephbarbierdarnal/page"
-license = "MIT AND BSD-3-Clause"
+license = "MIT AND BSD-3-Clause AND Apache-2.0"
 keywords = ["PDF", "profile", "validation", "verapdf"]
+exclude = ["/tests/"]
 
 [dependencies]
 chrono = "0.4"

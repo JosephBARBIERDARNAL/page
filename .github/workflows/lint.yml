@@ -39,3 +39,9 @@ jobs:
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Check dependency licenses
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          command-arguments: licenses
