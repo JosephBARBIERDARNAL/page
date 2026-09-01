@@ -1,5 +1,7 @@
 # Third-party notices
 
+Except for the third-party and reference materials expressly identified below, all project-authored material in this repository is licensed under the MIT License. The complete MIT text is provided in the repository's `LICENSE` and package-specific `LICENSE-MIT` files.
+
 ## Adobe CMap Resources
 
 `page_validation` includes 118 Adobe CMap resources under
@@ -65,7 +67,7 @@ These files are excluded from the published `page_validation` crate.
 
 The tables represent Adobe XMP schema definitions and PDF/A predefined-property requirements; see https://developer.adobe.com/xmp/docs/xmp-namespaces/ and https://pdfa.org/resource/technical-note-tn0008-predefined-xmp-properties-in-pdfa-1/.
 
-The surrounding Rust lookup and validation code is original to this project. No veraPDF Java source is bundled; the pinned veraPDF implementation is used only as an external reference checkout.
+The table contents, selection, and representation are original to this project and are licensed under the MIT License. The referenced Adobe XMP and PDF/A materials are upstream references only; this notice does not claim ownership of their names or standards.
 
 ## Fonts embedded in repository-only PDF fixtures
 
@@ -82,3 +84,7 @@ NewCM10-Regular is distributed under GPL-3.0-or-later with the Font Exception an
 `tests/fixtures/fonts/usyr.pfa` and its accompanying `LICENSE.usyr` are repository-only test fixtures. The font is Copyright URW Software, 1997, and is distributed under GPL-2.0 with the embedded document-inclusion exception described in `LICENSE.usyr`.
 
 These files are excluded from the published `page_validation` crate.
+
+## Trademarks and standards
+
+Adobe, Mozilla, PDF.js, veraPDF, and ISO are names or marks of their respective owners; PDF/A and PDF/UA are standards designations. They are used only to identify upstream material, standards, compatibility targets, and reference implementations. `page` is not affiliated with, sponsored by, or endorsed by Adobe, Mozilla, the PDF.js project, the veraPDF Consortium, or ISO. No trademark or other branding rights are granted by this repository.
