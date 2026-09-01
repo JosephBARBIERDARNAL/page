@@ -357,13 +357,7 @@ pub fn is_pdf_compliant_bytes_with_profile(
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
     reject_unimplemented_profile(Some(profile))?;
     let (preparation, syntax) = preparation.with_syntax(bytes, limits)?;
-    if has_preflight_failure(preparation.document(), &syntax.header, profile) {
-        return Ok(ComplianceResult {
-            profile,
-            is_compliant: false,
-        });
-    }
-
+    let preflight_failed = has_preflight_failure(preparation.document(), &syntax.header, profile);
     let (document, inspections) = preparation.into_inspections_with_syntax(
         bytes,
         limits,
@@ -373,7 +367,7 @@ pub fn is_pdf_compliant_bytes_with_profile(
     let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
     Ok(ComplianceResult {
         profile,
-        is_compliant: report.is_compliant,
+        is_compliant: !preflight_failed && report.is_compliant,
     })
 }
 
