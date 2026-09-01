@@ -10,6 +10,4 @@ A fast and lightweight PDF accessibility and compliance checker.
 
 ## License
 
-The original `page` source code is licensed under [MIT](LICENSE).
-
-The `page_validation` crate bundles Adobe CMap Resources under the BSD 3-Clause license; see the [third-party notices](crates/page_validation/THIRD_PARTY_NOTICES.md). Binary distributions must include both license documents.
+`page`'s original source code and all other project-authored material are licensed under the MIT License. Everything not expressly identified as third-party or reference material in the accompanying [THIRD_PARTY_NOTICES.md](./crates/page_validation/THIRD_PARTY_NOTICES.md) is MIT. The `page_validation` crate additionally includes Adobe CMap Resources under BSD-3-Clause and adapted Mozilla PDF.js encoding tables under Apache-2.0. See the notice and license files for details.
