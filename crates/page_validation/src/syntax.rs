@@ -1169,32 +1169,14 @@ fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
     let mut object_offsets = std::collections::HashMap::new();
     let mut cursor = 0;
     while cursor < bytes.len() {
-        let line_end = bytes
-            .get(cursor..)
-            .unwrap_or_default()
-            .iter()
-            .position(|byte| matches!(byte, b'\r' | b'\n'))
-            .map_or(bytes.len(), |offset| cursor + offset);
-        let line = bytes.get(cursor..line_end).unwrap_or_default();
-        let fields = line
-            .split(|byte| byte.is_ascii_whitespace())
-            .filter(|field| !field.is_empty())
-            .collect::<Vec<_>>();
-        if fields.len() == 3
-            && fields.get(2).is_some_and(|field| *field == b"obj")
-            && let (Some(object_field), Some(generation_field)) = (fields.first(), fields.get(1))
-            && let (Ok(object), Ok(generation)) = (
-                std::str::from_utf8(object_field)
-                    .unwrap_or_default()
-                    .parse::<u32>(),
-                std::str::from_utf8(generation_field)
-                    .unwrap_or_default()
-                    .parse::<u16>(),
-            )
+        let Some((object, generation, next)) = indirect_object_header(bytes, cursor) else {
+            cursor = read_line(bytes, cursor).map_or(bytes.len(), |(_, next)| next);
+            continue;
+        };
         {
             object_offsets.insert((object, generation), cursor);
         }
-        cursor = line_end.saturating_add(1);
+        cursor = stream_end_after_object(bytes, next).unwrap_or(next);
     }
 
     let mut changed = false;
@@ -1262,6 +1244,62 @@ fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
         cursor = line_end.saturating_add(1);
     }
     changed
+}
+
+fn indirect_object_header(bytes: &[u8], cursor: usize) -> Option<(u32, u16, usize)> {
+    let (line, next) = read_line(bytes, cursor)?;
+    let mut parser = RawParser {
+        bytes: line,
+        position: 0,
+        maximum_depth: 0,
+        maximum_nodes: 0,
+        nodes: 0,
+    };
+    let object = std::str::from_utf8(parser.take_unsigned_integer_token()?)
+        .ok()?
+        .parse()
+        .ok()?;
+    let after_object = parser.position;
+    parser.skip_space_and_comments();
+    (parser.position > after_object).then_some(())?;
+    let generation = std::str::from_utf8(parser.take_unsigned_integer_token()?)
+        .ok()?
+        .parse()
+        .ok()?;
+    let after_generation = parser.position;
+    parser.skip_space_and_comments();
+    (parser.position > after_generation).then_some(())?;
+    parser.consume_keyword(b"obj").then_some(())?;
+    parser.skip_space_and_comments();
+    (parser.position == line.len()).then_some((object, generation, next))
+}
+
+fn stream_end_after_object(bytes: &[u8], after_header: usize) -> Option<usize> {
+    let mut parser = RawParser {
+        bytes,
+        position: after_header,
+        maximum_depth: 128,
+        maximum_nodes: 32_768,
+        nodes: 0,
+    };
+    let value = parser.parse_value(0)?;
+    let RawValue::Dictionary(dictionary) = value else {
+        return None;
+    };
+    parser.skip_space_and_comments();
+    parser.consume_keyword(b"stream").then_some(())?;
+    let data_start = stream_data_start_after_keyword(bytes, parser.position)?;
+    let declared_length = dictionary
+        .iter()
+        .rev()
+        .find_map(|(key, value)| (key == b"Length").then_some(value))
+        .and_then(RawValue::integer)
+        .and_then(|length| usize::try_from(length).ok());
+    let endstream = declared_length
+        .and_then(|length| data_start.checked_add(length))
+        .and_then(|data_end| find_bounded_keyword(bytes, b"endstream", data_end))
+        .or_else(|| find_bounded_keyword(bytes, b"endstream", data_start));
+    Some(endstream.map_or(bytes.len(), |offset| offset + b"endstream".len()))
 }
 
 fn repair_offsets_for_header(bytes: &mut Vec<u8>, header_offset: usize) -> bool {
@@ -1813,6 +1851,41 @@ mod tests {
                 .any(|line| line == b"0000000000 00000 f")
         );
         assert!(repaired.ends_with(b"startxref\n9\n%%EOF"));
+    }
+
+    #[test]
+    fn ignores_indirect_object_headers_inside_stream_data_when_repairing_offsets() {
+        let mut bytes = b"%PDF-1.4\n".to_vec();
+        let first_object_offset = bytes.len();
+        bytes.extend_from_slice(b"1 0 obj\n<< /Length 8 >>\nstream\n2 0 obj\nendstream\nendobj\n");
+        let second_object_offset = bytes.len();
+        bytes.extend_from_slice(b"2 0 obj\n<<>>\nendobj\nxref\n1 0\n");
+        bytes.extend_from_slice(b"0000000000 00000 n \n2 0\n0000000000 00000 n \n");
+        bytes.extend_from_slice(b"trailer\n<<>>\n");
+
+        assert_eq!(
+            indirect_object_header(&bytes, first_object_offset)
+                .map(|(object, generation, _)| (object, generation)),
+            Some((1, 0))
+        );
+        let (_, _, after_header) = indirect_object_header(&bytes, first_object_offset).unwrap();
+        assert_eq!(
+            stream_end_after_object(&bytes, after_header),
+            Some(
+                first_object_offset + b"1 0 obj\n<< /Length 8 >>\nstream\n2 0 obj\nendstream".len()
+            )
+        );
+        assert!(repair_xref_offsets(&mut bytes));
+        assert!(
+            bytes
+                .windows(19)
+                .any(|line| { line == format!("{first_object_offset:010} 00000 n ").as_bytes() })
+        );
+        assert!(
+            bytes
+                .windows(19)
+                .any(|line| { line == format!("{second_object_offset:010} 00000 n ").as_bytes() })
+        );
     }
 
     #[test]
