@@ -38,14 +38,14 @@ verapdf-all verapdf=verapdf_bin:
     command -v "{{ verapdf }}" >/dev/null 2>&1 || { echo "veraPDF executable not found: {{ verapdf }}" >&2; exit 1; }
     VERAPDF_BIN="{{ verapdf }}" cargo test -p page_validation --tests --all-features --locked -- --nocapture
 
-# Run page's expected-result gate over the selected profiles in a veraPDF corpus checkout.
+# Run page's expected-result gate over the selected sources in a veraPDF corpus checkout.
 verapdf-corpus corpus_dir=".cache/verapdf-corpus":
     if ! test -d "{{ corpus_dir }}"; then \
         mkdir -p "{{ corpus_dir }}"; \
         git -C "{{ corpus_dir }}" init --quiet; \
         git -C "{{ corpus_dir }}" remote add origin "{{ verapdf_corpus_repository }}"; \
         git -C "{{ corpus_dir }}" fetch --quiet --filter=blob:none --depth=1 origin "{{ verapdf_corpus_revision }}"; \
-        git -C "{{ corpus_dir }}" sparse-checkout set --no-cone {{ verapdf_corpus_profiles }}; \
+        git -C "{{ corpus_dir }}" sparse-checkout set --no-cone {{ verapdf_corpus_profiles }} "ISO 32000-1" "Isartor test files" "TWG test files" Undefined; \
         git -C "{{ corpus_dir }}" checkout --detach --quiet FETCH_HEAD; \
     fi
     cargo run --release -p page_cli --features internal --bin page-corpus -- "{{ corpus_dir }}"

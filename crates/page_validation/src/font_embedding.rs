@@ -525,16 +525,15 @@ impl Scanner<'_> {
                     "is symbolic but specifies an /Encoding",
                 ));
             }
-            if let Some((cmap_count, cmap30_present, _)) =
+            if let Some((cmap_count, _, _)) =
                 truetype_cmap_summary(self.document, descriptor, self.limits)?
                 && cmap_count != 1
-                && !cmap30_present
             {
                 self.invalid_symbolic_truetype_cmaps.push(font_failure(
                     object_id,
                     description,
                     &format!(
-                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables and no Microsoft Symbol cmap"
+                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables"
                     ),
                 ));
             }

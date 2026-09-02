@@ -879,7 +879,9 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
     let mut spacing_compliant = true;
     let eol_count = consume_eols(bytes, &mut cursor);
     eol_compliant &= eol_count == 1;
+    let before_horizontal_space = cursor;
     skip_horizontal_space(bytes, &mut cursor);
+    eol_compliant &= cursor == before_horizontal_space;
 
     loop {
         if bytes.get(cursor..cursor + b"trailer".len()) == Some(b"trailer") {
@@ -1112,9 +1114,144 @@ pub(crate) fn repair_for_lopdf(bytes: &[u8]) -> Option<Vec<u8>> {
         changed |= repair_offsets_for_header(&mut repaired, header_offset);
     }
     changed |= repair_startxref_whitespace(&mut repaired);
+    changed |= repair_xref_entry_eols(&mut repaired);
     changed |= repair_xref_syntax(&mut repaired);
+    changed |= repair_xref_offsets(&mut repaired);
     changed |= repair_hex_strings(&mut repaired);
     changed.then_some(repaired)
+}
+
+fn repair_xref_entry_eols(bytes: &mut Vec<u8>) -> bool {
+    let Some(xref_start) = final_startxref(bytes) else {
+        return false;
+    };
+    if bytes.get(xref_start..xref_start + b"xref".len()) != Some(b"xref") {
+        return false;
+    }
+    let mut cursor = xref_start + b"xref".len();
+    let mut changed = false;
+    while let Some((line, next)) = read_line(bytes, cursor) {
+        if line == b"trailer" {
+            break;
+        }
+        let fields = line
+            .split(|byte| byte.is_ascii_whitespace())
+            .filter(|field| !field.is_empty())
+            .collect::<Vec<_>>();
+        let is_crlf = bytes.get(next.saturating_sub(2)..next) == Some(b"\r\n");
+        if fields.len() >= 3
+            && matches!(fields[2], b"n" | b"f")
+            && !line.ends_with(b" ")
+            && !is_crlf
+        {
+            let eol_start = next.saturating_sub(1);
+            bytes.insert(eol_start, b' ');
+            changed = true;
+            cursor = next + 1;
+        } else {
+            cursor = next;
+        }
+    }
+    if !changed {
+        return false;
+    }
+    let Some((number_start, number_end, _)) = final_startxref_parts(bytes) else {
+        return true;
+    };
+    let replacement = xref_start.to_string();
+    bytes.splice(number_start..number_end, replacement.bytes());
+    true
+}
+
+fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
+    let mut object_offsets = std::collections::HashMap::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let line_end = bytes
+            .get(cursor..)
+            .unwrap_or_default()
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .map_or(bytes.len(), |offset| cursor + offset);
+        let line = bytes.get(cursor..line_end).unwrap_or_default();
+        let fields = line
+            .split(|byte| byte.is_ascii_whitespace())
+            .filter(|field| !field.is_empty())
+            .collect::<Vec<_>>();
+        if fields.len() == 3
+            && fields[2] == b"obj"
+            && let (Ok(object), Ok(generation)) = (
+                std::str::from_utf8(fields[0])
+                    .unwrap_or_default()
+                    .parse::<u32>(),
+                std::str::from_utf8(fields[1])
+                    .unwrap_or_default()
+                    .parse::<u16>(),
+            )
+        {
+            object_offsets.insert((object, generation), cursor);
+        }
+        cursor = line_end.saturating_add(1);
+    }
+
+    let mut changed = false;
+    let mut in_xref = false;
+    let mut next_object: Option<u32> = None;
+    let mut next_generation = 0;
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let line_end = bytes
+            .get(cursor..)
+            .unwrap_or_default()
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .map_or(bytes.len(), |offset| cursor + offset);
+        let line = bytes.get_mut(cursor..line_end).unwrap_or_default();
+        let fields = line
+            .split(|byte| byte.is_ascii_whitespace())
+            .filter(|field| !field.is_empty())
+            .collect::<Vec<_>>();
+        if line == b"xref" {
+            in_xref = true;
+            next_object = None;
+        } else if line == b"trailer" {
+            in_xref = false;
+            next_object = None;
+        } else if in_xref {
+            if fields.len() == 2
+                && fields.iter().all(|field| {
+                    std::str::from_utf8(field)
+                        .ok()
+                        .is_some_and(|field| field.parse::<u32>().is_ok())
+                })
+            {
+                next_object = std::str::from_utf8(fields[0])
+                    .ok()
+                    .and_then(|field| field.parse::<u32>().ok());
+                next_generation = std::str::from_utf8(fields[1])
+                    .ok()
+                    .and_then(|field| field.parse::<u16>().ok())
+                    .unwrap_or_default();
+            } else if fields.len() >= 3
+                && matches!(fields[2], b"n" | b"f")
+                && let Some(object) = next_object
+            {
+                if fields[2] == b"n"
+                    && line.len() >= 10
+                    && let Some(offset) = object_offsets.get(&(object, next_generation))
+                {
+                    let replacement = format!("{offset:010}");
+                    if line.get(..10) != Some(replacement.as_bytes()) {
+                        line[..10].copy_from_slice(replacement.as_bytes());
+                        changed = true;
+                    }
+                }
+                next_object = object.checked_add(1);
+            }
+        }
+        cursor = line_end.saturating_add(1);
+    }
+    changed
 }
 
 fn repair_offsets_for_header(bytes: &mut Vec<u8>, header_offset: usize) -> bool {
@@ -1304,6 +1441,25 @@ fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
         }
         line_start += usize::from(line_start < bytes.len());
         loop {
+            let leading = bytes
+                .get(line_start..)
+                .unwrap_or_default()
+                .iter()
+                .take_while(|byte| byte.is_ascii_whitespace())
+                .count();
+            if leading > 0
+                && bytes
+                    .get(line_start + leading)
+                    .is_some_and(u8::is_ascii_digit)
+            {
+                for byte in bytes
+                    .get_mut(line_start..line_start + leading)
+                    .unwrap_or_default()
+                {
+                    *byte = b'0';
+                }
+                changed = true;
+            }
             let Some((line, next)) = read_line(bytes, line_start) else {
                 return changed;
             };

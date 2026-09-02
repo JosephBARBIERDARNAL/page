@@ -118,6 +118,8 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) has_non_hex_character: bool,
     pub(crate) out_of_range_integers: Vec<RuleFailure>,
     pub(crate) out_of_range_reals: Vec<RuleFailure>,
+    pub(crate) underflow_reals_pdfa_2: Vec<RuleFailure>,
+    pub(crate) overlong_names: Vec<RuleFailure>,
     pub(crate) overlong_strings: Vec<RuleFailure>,
     pub(crate) overlong_strings_pdfa_2: Vec<RuleFailure>,
     pub(crate) language_failures: Vec<RuleFailure>,
@@ -357,6 +359,7 @@ struct ResourceContext<'a> {
     page_resources: Option<&'a Dictionary>,
     resources_are_inherited: bool,
     inspect_pdfua_content: bool,
+    uncolored_type3_glyph: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -427,6 +430,7 @@ impl ContentExecutor<'_> {
                     page_resources: resources.as_ref(),
                     resources_are_inherited,
                     inspect_pdfua_content: true,
+                    uncolored_type3_glyph: false,
                 },
                 &mut graphics_state,
                 &mut graphics_stack,
@@ -536,6 +540,7 @@ impl ContentExecutor<'_> {
                     page_resources,
                     resources_are_inherited: false,
                     inspect_pdfua_content: false,
+                    uncolored_type3_glyph: false,
                 },
                 &graphics_state,
                 &mut Vec::new(),
@@ -581,6 +586,7 @@ impl ContentExecutor<'_> {
             page_resources,
             resources_are_inherited,
             inspect_pdfua_content,
+            uncolored_type3_glyph,
         } = resource_context;
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
@@ -621,7 +627,7 @@ impl ContentExecutor<'_> {
         let inline_images = tokenize_inline_images(&bytes);
         let ordinary_content = inline_images.ordinary_content.as_ref();
         for inline in &inline_images.images {
-            if let Some(name) = &inline.color_space {
+            if !uncolored_type3_glyph && let Some(name) = &inline.color_space {
                 let _ = self.record_color_space(
                     Object::Name(name.clone()),
                     resources,
@@ -918,6 +924,9 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "CS" | "cs" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     let [value] = operation.operands.as_slice() else {
                         continue;
                     };
@@ -943,6 +952,9 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "g" | "G" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     self.record_default_color_space(
                         b"DefaultGray",
                         b"DeviceGray",
@@ -959,6 +971,9 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "rg" | "RG" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     self.record_default_color_space(
                         b"DefaultRGB",
                         b"DeviceRGB",
@@ -975,6 +990,9 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "k" | "K" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     self.record_default_color_space(
                         b"DefaultCMYK",
                         b"DeviceCMYK",
@@ -1173,6 +1191,9 @@ impl ContentExecutor<'_> {
                     )?;
                 }
                 "sh" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     let [operand] = operation.operands.as_slice() else {
                         continue;
                     };
@@ -1218,6 +1239,9 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "scn" | "SCN" => {
+                    if uncolored_type3_glyph {
+                        continue;
+                    }
                     let pattern_selected = if operation.operator == "SCN" {
                         graphics_state.stroking_pattern
                     } else {
@@ -1447,6 +1471,7 @@ impl ContentExecutor<'_> {
             resources,
             page_resources,
             resources_are_inherited,
+            uncolored_type3_glyph,
             ..
         } = resource_context;
         if depth > self.limits.max_reference_depth {
@@ -1629,6 +1654,7 @@ impl ContentExecutor<'_> {
                             page_resources,
                             resources_are_inherited: false,
                             inspect_pdfua_content,
+                            uncolored_type3_glyph,
                         },
                         &mut form_graphics_state,
                         &mut form_graphics_stack,
@@ -1669,6 +1695,7 @@ impl ContentExecutor<'_> {
             resources,
             page_resources,
             resources_are_inherited,
+            uncolored_type3_glyph,
             ..
         } = resource_context;
         if depth > self.limits.max_reference_depth {
@@ -1745,6 +1772,7 @@ impl ContentExecutor<'_> {
                 page_resources: pattern_page_resources.as_ref(),
                 resources_are_inherited: false,
                 inspect_pdfua_content: false,
+                uncolored_type3_glyph,
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
@@ -1885,6 +1913,13 @@ impl ContentExecutor<'_> {
                 .cloned(),
             Err(_) => fallback_resources.cloned(),
         };
+        let bytes = decode_content_stream_cached(
+            stream,
+            object.as_reference().ok(),
+            self.cache,
+            self.limits,
+            decoded_bytes,
+        )?;
         self.execute_contents(
             object,
             ResourceContext {
@@ -1892,6 +1927,7 @@ impl ContentExecutor<'_> {
                 page_resources,
                 resources_are_inherited: false,
                 inspect_pdfua_content: false,
+                uncolored_type3_glyph: is_uncolored_type3_glyph(&bytes),
             },
             &mut graphics_state.clone(),
             &mut Vec::new(),
@@ -2298,6 +2334,61 @@ fn inspect_content_syntax_limits(
         }
         cursor += 1;
     }
+    let mut cursor = 0;
+    while let Some((token, _, next)) = next_content_token(bytes, cursor) {
+        match token {
+            ContentToken::Name(name) if name.len() > 127 => {
+                summary.overlong_names.push(RuleFailure {
+                    object_id,
+                    description: format!(
+                        "{context} contains a name of {} bytes, exceeding the 127-byte limit",
+                        name.len()
+                    ),
+                });
+            }
+            ContentToken::Bare(value) => {
+                let Ok(value) = std::str::from_utf8(&value) else {
+                    cursor = next;
+                    continue;
+                };
+                let Ok(value) = value.parse::<f64>() else {
+                    cursor = next;
+                    continue;
+                };
+                if value != 0.0 && value.is_finite() && value.abs() < 1.175e-38 {
+                    summary.underflow_reals_pdfa_2.push(RuleFailure {
+                        object_id,
+                        description: format!(
+                            "{context} contains nonzero real value {value} below the PDF/A-2/3 minimum"
+                        ),
+                    });
+                }
+            }
+            _ => {}
+        }
+        cursor = next;
+    }
+}
+
+fn is_uncolored_type3_glyph(bytes: &[u8]) -> bool {
+    let mut cursor = 0;
+    let mut numeric_operands = 0;
+    while let Some((token, _, next)) = next_content_token(bytes, cursor) {
+        match token {
+            ContentToken::Bare(value) if value == b"d1" => return numeric_operands == 6,
+            ContentToken::Bare(value)
+                if std::str::from_utf8(&value)
+                    .ok()
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .is_some() =>
+            {
+                numeric_operands += 1;
+            }
+            _ => return false,
+        }
+        cursor = next;
+    }
+    false
 }
 
 fn resolved_bool(
