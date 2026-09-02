@@ -4419,6 +4419,24 @@ mod tests {
 
     #[test]
     fn decoded_stream_size_limit_returns_an_error() {
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 16,
+            ..SafetyLimits::default()
+        };
+        let error = validate_pdf_bytes(
+            &fixture(Some(VALID_XMP), true),
+            Some(ValidationProfile::PdfA1b),
+            &limits,
+        )
+        .expect_err("decoded stream limit");
+        assert!(matches!(
+            error,
+            ValidationError::Pdf(PdfError::XmpDecodeLimit(_))
+        ));
+    }
+
+    #[test]
+    fn fast_validation_checks_content_stream_limit_after_preflight_failure() {
         let mut document = Document::load_mem(&fixture_with_page_content(None, true, &[b'q'; 32]))
             .expect("load validation fixture");
         document.trailer.remove(b"ID");
@@ -4430,7 +4448,7 @@ mod tests {
         };
         let error =
             is_pdf_compliant_bytes_with_profile(&bytes, Some(ValidationProfile::PdfA1b), &limits)
-                .expect_err("decoded stream limit");
+                .expect_err("content stream limit after preflight failure");
         assert!(matches!(
             error,
             ValidationError::Pdf(PdfError::ContentDecodeLimit(16))
