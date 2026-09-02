@@ -15,8 +15,8 @@ page document.pdf
 ```
 
 ```
-Profile : PDF/A-1b
 Result  : Conformant
+Profile : PDF/A-1b
 Time    : 0.005s
 ```
 
@@ -27,8 +27,8 @@ page document.pdf --profile ua1
 ```
 
 ```
-Profile : PDF/UA-1
 Result  : Non-conformant
+Profile : PDF/UA-1
 Time    : 0.005s
 ```
 
@@ -41,8 +41,8 @@ page document.pdf --format details
 ```
 
 ```
-Profile : PDF/A-1b
 Result  : Non-conformant
+Profile : PDF/A-1b
 Time    : 0.007s
 
 [PDFA1B-HEADER-BINARY-COMMENT-001] Conformance: [.........]
@@ -105,4 +105,4 @@ By default, `page` uses color in the terminal output.
 
 ![Example of terminal output, with colors on some key words.](../../images/terminal-colors.png)
 
-In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable or pass `--no-color` to disable them.
+In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable to 1 or pass `--no-color` to disable them.
