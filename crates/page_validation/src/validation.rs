@@ -4419,19 +4419,21 @@ mod tests {
 
     #[test]
     fn decoded_stream_size_limit_returns_an_error() {
+        let mut document = Document::load_mem(&fixture_with_page_content(None, true, &[b'q'; 32]))
+            .expect("load validation fixture");
+        document.trailer.remove(b"ID");
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("write invalid fixture");
         let limits = SafetyLimits {
             max_decoded_stream_size: 16,
             ..SafetyLimits::default()
         };
-        let error = validate_pdf_bytes(
-            &fixture(Some(VALID_XMP), true),
-            Some(ValidationProfile::PdfA1b),
-            &limits,
-        )
-        .expect_err("decoded stream limit");
+        let error =
+            is_pdf_compliant_bytes_with_profile(&bytes, Some(ValidationProfile::PdfA1b), &limits)
+                .expect_err("decoded stream limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::XmpDecodeLimit(_))
+            ValidationError::Pdf(PdfError::ContentDecodeLimit(16))
         ));
     }
 
@@ -4541,12 +4543,45 @@ mod tests {
     }
 
     fn fixture_with_root(xmp: Option<&[u8]>, output_intent: bool, indirect_root: bool) -> Vec<u8> {
+        fixture_with_page_content_and_root(xmp, output_intent, indirect_root, None)
+    }
+
+    fn fixture_with_page_content(
+        xmp: Option<&[u8]>,
+        output_intent: bool,
+        content: &[u8],
+    ) -> Vec<u8> {
+        fixture_with_page_content_and_root(xmp, output_intent, true, Some(content))
+    }
+
+    fn fixture_with_page_content_and_root(
+        xmp: Option<&[u8]>,
+        output_intent: bool,
+        indirect_root: bool,
+        page_content: Option<&[u8]>,
+    ) -> Vec<u8> {
         let mut document = pdf_document();
         let pages_id = document.add_object(dictionary! {
             "Type" => "Pages",
             "Kids" => Vec::<Object>::new(),
             "Count" => 0,
         });
+        if let Some(content) = page_content {
+            let content_id = document.add_object(Stream::new(Dictionary::new(), content.to_vec()));
+            let page_id = document.add_object(dictionary! {
+                "Type" => "Page",
+                "Parent" => pages_id,
+                "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "Contents" => content_id,
+            });
+            let pages = document
+                .objects
+                .get_mut(&pages_id)
+                .and_then(|object| object.as_dict_mut().ok())
+                .expect("pages");
+            pages.set("Kids", vec![Object::Reference(page_id)]);
+            pages.set("Count", 1);
+        }
         let mut catalog = dictionary! {
             "Type" => "Catalog",
             "Pages" => pages_id,
