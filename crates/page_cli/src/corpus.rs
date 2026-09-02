@@ -531,7 +531,13 @@ fn load_result_expectations() -> Result<HashMap<String, ExpectedResult>, String>
                 line_number + 1
             ));
         }
-        let expected = match fields[2] {
+        let [source, relative_path, expected_field] = fields.as_slice() else {
+            return Err(format!(
+                "invalid result expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        };
+        let expected = match *expected_field {
             "pass" => ExpectedResult::Pass,
             "fail" => ExpectedResult::Fail,
             other => {
@@ -541,7 +547,7 @@ fn load_result_expectations() -> Result<HashMap<String, ExpectedResult>, String>
                 ));
             }
         };
-        let key = format!("{}\t{}", fields[0], fields[1]);
+        let key = format!("{source}\t{relative_path}");
         if expectations.insert(key, expected).is_some() {
             return Err(format!(
                 "duplicate result expectation manifest entry on line {}",

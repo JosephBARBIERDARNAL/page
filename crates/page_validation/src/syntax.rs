@@ -1140,7 +1140,9 @@ fn repair_xref_entry_eols(bytes: &mut Vec<u8>) -> bool {
             .collect::<Vec<_>>();
         let is_crlf = bytes.get(next.saturating_sub(2)..next) == Some(b"\r\n");
         if fields.len() >= 3
-            && matches!(fields[2], b"n" | b"f")
+            && fields
+                .get(2)
+                .is_some_and(|field| matches!(*field, b"n" | b"f"))
             && !line.ends_with(b" ")
             && !is_crlf
         {
@@ -1179,12 +1181,13 @@ fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
             .filter(|field| !field.is_empty())
             .collect::<Vec<_>>();
         if fields.len() == 3
-            && fields[2] == b"obj"
+            && fields.get(2).is_some_and(|field| *field == b"obj")
+            && let (Some(object_field), Some(generation_field)) = (fields.first(), fields.get(1))
             && let (Ok(object), Ok(generation)) = (
-                std::str::from_utf8(fields[0])
+                std::str::from_utf8(object_field)
                     .unwrap_or_default()
                     .parse::<u32>(),
-                std::str::from_utf8(fields[1])
+                std::str::from_utf8(generation_field)
                     .unwrap_or_default()
                     .parse::<u16>(),
             )
@@ -1225,28 +1228,35 @@ fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
                         .is_some_and(|field| field.parse::<u32>().is_ok())
                 })
             {
-                next_object = std::str::from_utf8(fields[0])
+                next_object = std::str::from_utf8(fields.first().copied().unwrap_or_default())
                     .ok()
                     .and_then(|field| field.parse::<u32>().ok());
-                next_generation = std::str::from_utf8(fields[1])
+                next_generation = std::str::from_utf8(fields.get(1).copied().unwrap_or_default())
                     .ok()
                     .and_then(|field| field.parse::<u16>().ok())
                     .unwrap_or_default();
-            } else if fields.len() >= 3
-                && matches!(fields[2], b"n" | b"f")
-                && let Some(object) = next_object
-            {
-                if fields[2] == b"n"
-                    && line.len() >= 10
-                    && let Some(offset) = object_offsets.get(&(object, next_generation))
+            } else if fields.len() >= 3 {
+                let Some(entry_type) = fields.get(2) else {
+                    cursor = line_end.saturating_add(1);
+                    continue;
+                };
+                if matches!(*entry_type, b"n" | b"f")
+                    && let Some(object) = next_object
                 {
-                    let replacement = format!("{offset:010}");
-                    if line.get(..10) != Some(replacement.as_bytes()) {
-                        line[..10].copy_from_slice(replacement.as_bytes());
-                        changed = true;
+                    if *entry_type == b"n"
+                        && line.len() >= 10
+                        && let Some(offset) = object_offsets.get(&(object, next_generation))
+                    {
+                        let replacement = format!("{offset:010}");
+                        if line.get(..10) != Some(replacement.as_bytes())
+                            && let Some(prefix) = line.get_mut(..10)
+                        {
+                            prefix.copy_from_slice(replacement.as_bytes());
+                            changed = true;
+                        }
                     }
+                    next_object = object.checked_add(1);
                 }
-                next_object = object.checked_add(1);
             }
         }
         cursor = line_end.saturating_add(1);

@@ -582,20 +582,10 @@ fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfErr
                     .or_else(|_| Document::load_mem_with_options(&repaired, options.clone()))
                     .or_else(|_| Document::load_mem_with_options(bytes, options))?
             }
-            Err(_) => {
-                let mut lenient_options = options.clone();
-                lenient_options.strict = false;
-                Document::load_mem_with_options(bytes, lenient_options.clone())
-                    .or_else(|_| Document::load_mem_with_options(&repaired, lenient_options))
-                    .or_else(|_| Document::load_mem_with_options(bytes, options))?
-            }
+            Err(_) => Document::load_mem_with_options(bytes, options)?,
         }
     } else {
-        Document::load_mem_with_options(bytes, options.clone()).or_else(|_| {
-            let mut lenient_options = options;
-            lenient_options.strict = false;
-            Document::load_mem_with_options(bytes, lenient_options)
-        })?
+        Document::load_mem_with_options(bytes, options)?
     };
     Ok(document)
 }
