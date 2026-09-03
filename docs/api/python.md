@@ -25,8 +25,7 @@ The `page-validation` package provides Python bindings for PDF/A and PDF/UA vali
 ```python
 import page
 
-result = page.is_pdf_compliant("file.pdf")
-print(result.profile, result.is_compliant)
+is_compliant: bool = page.is_pdf_compliant("file.pdf")
 ```
 
 If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises `page.ValidationError`.
