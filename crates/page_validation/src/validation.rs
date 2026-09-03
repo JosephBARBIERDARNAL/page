@@ -1381,10 +1381,12 @@ fn validate_document(
             &mut failures,
         );
         // PDF/UA-1 7.21.6-4 reuses the bounded embedded TrueType cmap
-        // summary. The scanner applies the rule only to recognized embedded
-        // programs, matching veraPDF's applicability for TrueTypeFontProgram.
+        // summary. Multiple subtables are permitted when a Microsoft Symbol
+        // cmap is present, matching veraPDF's predicate.
         aggregate_failures_with_location(
-            &inspections.font_embedding.invalid_symbolic_truetype_cmaps,
+            &inspections
+                .font_embedding
+                .invalid_symbolic_truetype_cmaps_pdfa2,
             "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
             None,
             &mut failures,
@@ -3230,7 +3232,11 @@ fn validate_font_dictionaries(
             "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001",
         ),
         (
-            fonts.invalid_symbolic_truetype_cmaps.as_slice(),
+            if _profile.is_pdfa_2_or_3() {
+                fonts.invalid_symbolic_truetype_cmaps_pdfa2.as_slice()
+            } else {
+                fonts.invalid_symbolic_truetype_cmaps.as_slice()
+            },
             "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
         ),
         (
