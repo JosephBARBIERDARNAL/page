@@ -1069,8 +1069,7 @@
 <p><code>is_pdf_compliant()</code> is the fastest way to get a simple true/false compliance result for a profile. It returns both the selected profile and the boolean result:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">is_pdf_compliant</span><span class="p">(</span><span class="s2">"file.pdf"</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">is_compliant</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">is_compliant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">is_pdf_compliant</span><span class="p">(</span><span class="s2">"file.pdf"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises <code>page.ValidationError</code>.</p>
 <div class="admonition info">
