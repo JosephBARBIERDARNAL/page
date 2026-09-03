@@ -1919,6 +1919,7 @@ fn base_xmp_types() -> impl Iterator<Item = String> {
         "any",
         "boolean",
         "cfapattern",
+        "colorant",
         "date",
         "devicesettings",
         "dimensions",

@@ -31,8 +31,23 @@ struct CorpusProfile {
     profile: ValidationProfile,
 }
 
+#[derive(Clone, Copy)]
+enum CorpusSourceProfile {
+    Fixed(ValidationProfile),
+    Iso32000,
+    Twg,
+}
+
+#[derive(Clone, Copy)]
+struct CorpusSource {
+    directory: &'static str,
+    manifest_directory: &'static str,
+    profile: CorpusSourceProfile,
+}
+
 const CORPUS_PROFILE_SPEC: &str = include_str!("corpus_profiles.txt");
 const CORPUS_RULE_EXPECTATIONS_SPEC: &str = include_str!("corpus_rule_expectations.tsv");
+const CORPUS_RESULT_EXPECTATIONS_SPEC: &str = include_str!("corpus_result_expectations.tsv");
 
 fn corpus_profiles() -> Result<Vec<CorpusProfile>, String> {
     CORPUS_PROFILE_SPEC
@@ -64,6 +79,40 @@ fn corpus_profiles() -> Result<Vec<CorpusProfile>, String> {
             Ok(CorpusProfile { directory, profile })
         })
         .collect()
+}
+
+fn corpus_sources() -> Result<Vec<CorpusSource>, String> {
+    let mut sources = corpus_profiles()?
+        .into_iter()
+        .map(|profile| CorpusSource {
+            directory: profile.directory,
+            manifest_directory: profile.directory,
+            profile: CorpusSourceProfile::Fixed(profile.profile),
+        })
+        .collect::<Vec<_>>();
+    sources.extend([
+        CorpusSource {
+            directory: "ISO 32000-1",
+            manifest_directory: "ISO 32000-1",
+            profile: CorpusSourceProfile::Iso32000,
+        },
+        CorpusSource {
+            directory: "Isartor test files/PDFA-1b",
+            manifest_directory: "Isartor test files",
+            profile: CorpusSourceProfile::Fixed(ValidationProfile::PdfA1b),
+        },
+        CorpusSource {
+            directory: "TWG test files",
+            manifest_directory: "TWG test files",
+            profile: CorpusSourceProfile::Twg,
+        },
+        CorpusSource {
+            directory: "Undefined",
+            manifest_directory: "Undefined",
+            profile: CorpusSourceProfile::Fixed(ValidationProfile::PdfA1b),
+        },
+    ]);
+    Ok(sources)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,7 +161,14 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
             return 1;
         }
     };
-    let cases = match discover_cases(&args.directory, &rule_expectations) {
+    let result_expectations = match load_result_expectations() {
+        Ok(expectations) => expectations,
+        Err(error) => {
+            eprintln!("corpus error: {error}");
+            return 1;
+        }
+    };
+    let cases = match discover_cases(&args.directory, &rule_expectations, &result_expectations) {
         Ok(cases) if cases.is_empty() => {
             eprintln!(
                 "corpus error: no PDF files found in '{}'",
@@ -280,6 +336,7 @@ fn validate_case(
 fn discover_cases(
     root: &Path,
     rule_expectations: &HashMap<String, CorpusRuleExpectation>,
+    result_expectations: &HashMap<String, ExpectedResult>,
 ) -> Result<Vec<CorpusCase>, String> {
     if !root.is_dir() {
         return Err(format!(
@@ -289,8 +346,8 @@ fn discover_cases(
     }
 
     let mut cases = Vec::new();
-    for corpus_profile in corpus_profiles()? {
-        let directory = root.join(corpus_profile.directory);
+    for source in corpus_sources()? {
+        let directory = root.join(source.directory);
         if !directory.is_dir() {
             return Err(format!(
                 "missing selected profile directory '{}'",
@@ -308,7 +365,6 @@ fn discover_cases(
             ));
         }
         for path in files {
-            let expected = expected_result(&path)?;
             let relative_path = path
                 .strip_prefix(&directory)
                 .map_err(|error| {
@@ -321,7 +377,20 @@ fn discover_cases(
                 .to_str()
                 .ok_or_else(|| format!("corpus file has a non-UTF-8 path: '{}'", path.display()))?
                 .replace(std::path::MAIN_SEPARATOR, "/");
-            let expectation_key = format!("{}\t{}", corpus_profile.directory, relative_path);
+            let expectation_key = format!("{}\t{}", source.manifest_directory, relative_path);
+            let expected_from_name = expected_result(&path);
+            let expected = result_expectations
+                .get(&expectation_key)
+                .copied()
+                .or_else(|| expected_from_name.as_ref().ok().copied())
+                .ok_or_else(|| {
+                    expected_from_name.expect_err("missing corpus result expectation")
+                })?;
+            let profile = match source.profile {
+                CorpusSourceProfile::Fixed(profile) => profile,
+                CorpusSourceProfile::Iso32000 => iso_profile(&path)?,
+                CorpusSourceProfile::Twg => twg_profile(&path)?,
+            };
             let (expected_reference_rule, expected_rules) = match expected {
                 ExpectedResult::Pass => {
                     if rule_expectations.contains_key(&expectation_key) {
@@ -347,7 +416,7 @@ fn discover_cases(
             };
             cases.push(CorpusCase {
                 path,
-                profile: corpus_profile.profile,
+                profile,
                 expected,
                 expected_reference_rule,
                 expected_rules,
@@ -356,6 +425,43 @@ fn discover_cases(
     }
     cases.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(cases)
+}
+
+fn iso_profile(path: &Path) -> Result<ValidationProfile, String> {
+    let file_name = path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| format!("corpus file has a non-UTF-8 name: '{}'", path.display()))?;
+    if file_name.contains("6-8-") {
+        Ok(ValidationProfile::PdfA1a)
+    } else {
+        Ok(ValidationProfile::PdfA1b)
+    }
+}
+
+fn twg_profile(path: &Path) -> Result<ValidationProfile, String> {
+    let file_name = path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| format!("corpus file has a non-UTF-8 name: '{}'", path.display()))?;
+    let profiles = [
+        ("-pdfa1-", ValidationProfile::PdfA1b),
+        ("-pdfa2-", ValidationProfile::PdfA2b),
+        ("-pdfa3-", ValidationProfile::PdfA3b),
+    ];
+    let matches = profiles
+        .iter()
+        .filter(|(marker, _)| file_name.contains(marker))
+        .map(|(_, profile)| *profile)
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [profile] => Ok(*profile),
+        [] => Err(format!(
+            "could not infer TWG profile from '{}'; expected '-pdfa1-', '-pdfa2-', or '-pdfa3-'",
+            file_name
+        )),
+        _ => Err(format!("ambiguous TWG profile in '{}'", file_name)),
+    }
 }
 
 fn load_rule_expectations(
@@ -404,6 +510,47 @@ fn load_rule_expectations(
         {
             return Err(format!(
                 "duplicate rule expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        }
+    }
+    Ok(expectations)
+}
+
+fn load_result_expectations() -> Result<HashMap<String, ExpectedResult>, String> {
+    let mut expectations = HashMap::new();
+    for (line_number, line) in CORPUS_RESULT_EXPECTATIONS_SPEC.lines().enumerate() {
+        let line = line.trim_end();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields = line.split('\t').collect::<Vec<_>>();
+        if fields.len() != 3 || fields.iter().any(|field| field.is_empty()) {
+            return Err(format!(
+                "invalid result expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        }
+        let [source, relative_path, expected_field] = fields.as_slice() else {
+            return Err(format!(
+                "invalid result expectation manifest entry on line {}",
+                line_number + 1
+            ));
+        };
+        let expected = match *expected_field {
+            "pass" => ExpectedResult::Pass,
+            "fail" => ExpectedResult::Fail,
+            other => {
+                return Err(format!(
+                    "unknown result expectation '{other}' on line {}",
+                    line_number + 1
+                ));
+            }
+        };
+        let key = format!("{source}\t{relative_path}");
+        if expectations.insert(key, expected).is_some() {
+            return Err(format!(
+                "duplicate result expectation manifest entry on line {}",
                 line_number + 1
             ));
         }
@@ -539,6 +686,22 @@ mod tests {
     fn rejects_missing_or_ambiguous_expected_result() {
         expected_result(Path::new("case.pdf")).unwrap_err();
         expected_result(Path::new("case-pass-fail.pdf")).unwrap_err();
+    }
+
+    #[test]
+    fn infers_profiles_from_twg_file_names() {
+        assert_eq!(
+            super::twg_profile(Path::new("TWG test suite A001-pdfa1-fail-a.pdf")),
+            Ok(ValidationProfile::PdfA1b)
+        );
+        assert_eq!(
+            super::twg_profile(Path::new("TWG test suite A002-pdfa2-pass-a.pdf")),
+            Ok(ValidationProfile::PdfA2b)
+        );
+        assert_eq!(
+            super::twg_profile(Path::new("TWG test suite A027-pdfa3-fail-a.pdf")),
+            Ok(ValidationProfile::PdfA3b)
+        );
     }
 
     #[test]

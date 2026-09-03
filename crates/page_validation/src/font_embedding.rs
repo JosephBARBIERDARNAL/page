@@ -45,6 +45,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     pub(crate) invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    pub(crate) invalid_symbolic_truetype_cmaps_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_unicode_mappings: Vec<RuleFailure>,
     pub(crate) unicode_mapping_type3_exemptions: Vec<RuleFailure>,
     pub(crate) invalid_unicode_values: Vec<RuleFailure>,
@@ -138,6 +139,7 @@ struct Scanner<'a> {
     invalid_nonsymbolic_truetype_cmaps: Vec<RuleFailure>,
     invalid_symbolic_truetype_encodings: Vec<RuleFailure>,
     invalid_symbolic_truetype_cmaps: Vec<RuleFailure>,
+    invalid_symbolic_truetype_cmaps_pdfa2: Vec<RuleFailure>,
     invalid_unicode_mappings: Vec<RuleFailure>,
     unicode_mapping_type3_exemptions: Vec<RuleFailure>,
     invalid_unicode_values: Vec<RuleFailure>,
@@ -204,6 +206,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_cmaps: Vec::new(),
         invalid_symbolic_truetype_encodings: Vec::new(),
         invalid_symbolic_truetype_cmaps: Vec::new(),
+        invalid_symbolic_truetype_cmaps_pdfa2: Vec::new(),
         invalid_unicode_mappings: Vec::new(),
         unicode_mapping_type3_exemptions: Vec::new(),
         invalid_unicode_values: Vec::new(),
@@ -314,6 +317,7 @@ pub(crate) fn inspect(
         invalid_nonsymbolic_truetype_cmaps: scanner.invalid_nonsymbolic_truetype_cmaps,
         invalid_symbolic_truetype_encodings: scanner.invalid_symbolic_truetype_encodings,
         invalid_symbolic_truetype_cmaps: scanner.invalid_symbolic_truetype_cmaps,
+        invalid_symbolic_truetype_cmaps_pdfa2: scanner.invalid_symbolic_truetype_cmaps_pdfa2,
         invalid_unicode_mappings: scanner.invalid_unicode_mappings,
         unicode_mapping_type3_exemptions: scanner.unicode_mapping_type3_exemptions,
         invalid_unicode_values: scanner.invalid_unicode_values,
@@ -528,15 +532,18 @@ impl Scanner<'_> {
             if let Some((cmap_count, cmap30_present, _)) =
                 truetype_cmap_summary(self.document, descriptor, self.limits)?
                 && cmap_count != 1
-                && !cmap30_present
             {
-                self.invalid_symbolic_truetype_cmaps.push(font_failure(
+                let failure = font_failure(
                     object_id,
                     description,
                     &format!(
-                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables and no Microsoft Symbol cmap"
+                        "is symbolic but its embedded TrueType program contains {cmap_count} cmap subtables"
                     ),
-                ));
+                );
+                self.invalid_symbolic_truetype_cmaps.push(failure.clone());
+                if !cmap30_present {
+                    self.invalid_symbolic_truetype_cmaps_pdfa2.push(failure);
+                }
             }
         } else {
             let embedded = font_is_embedded(self.document, font, self.limits)?;

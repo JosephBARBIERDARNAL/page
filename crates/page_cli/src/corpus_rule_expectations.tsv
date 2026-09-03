@@ -1117,3 +1117,254 @@ PDF_UA-1	7.7 Mathematical expressions/7.7-t01-fail-b.pdf	ISO 14289-1:2014:7.7:1	
 PDF_UA-1	7.9 Notes and references/7.9-t01-fail-a.pdf	ISO 14289-1:2014:7.9:1	PDFUA1-NOTE-ID-001
 PDF_UA-1	7.9 Notes and references/7.9-t01-fail-b.pdf	ISO 14289-1:2014:7.9:1	PDFUA1-NOTE-ID-001
 PDF_UA-1	7.9 Notes and references/7.9-t02-fail-a.pdf	ISO 14289-1:2014:7.9:2	PDFUA1-NOTE-ID-UNIQUE-001
+ISO 32000-1	veraPDF test suite 6-2-2-t01-fail-a.pdf	ISO 19005-1:2005:6.2.3.2:2,ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+ISO 32000-1	veraPDF test suite 6-8-3-3-t01-fail-a.pdf	ISO 19005-1:2005:6.7.11:2	PDFA1B-ID-PART-001
+ISO 32000-1	veraPDF test suite 6-2-3-2-t01-fail-b.pdf	ISO 19005-1:2005:6.2.3.2:2	PDFA1B-ICCBASED-COMPONENTS-001
+Isartor test files	6.4 Transparency/isartor-6-4-t05-fail-a.pdf	ISO 19005-1:2005:6.4:6	PDFA1B-EXTGSTATE-FILL-ALPHA-001
+Isartor test files	6.4 Transparency/isartor-6-4-t02-fail-a.pdf	ISO 19005-1:2005:6.4:3	PDFA1B-TRANSPARENCY-GROUP-001
+Isartor test files	6.4 Transparency/isartor-6-4-t04-fail-a.pdf	ISO 19005-1:2005:6.4:5	PDFA1B-EXTGSTATE-STROKE-ALPHA-001
+Isartor test files	6.4 Transparency/isartor-6-4-t01-fail-a.pdf	ISO 19005-1:2005:6.4:1	PDFA1B-EXTGSTATE-SMASK-001
+Isartor test files	6.4 Transparency/isartor-6-4-t01-fail-b.pdf	ISO 19005-1:2005:6.4:2	PDFA1B-XOBJECT-SMASK-001
+Isartor test files	6.4 Transparency/isartor-6-4-t03-fail-a.pdf	ISO 19005-1:2005:6.4:4	PDFA1B-EXTGSTATE-BLEND-MODE-001
+Isartor test files	6.2 Graphics/6.2.10 Content Streams/isartor-6-2-10-t01-fail-a.pdf	ISO 19005-1:2005:6.2.10:1	PDFA1B-CONTENT-OPERATOR-001
+Isartor test files	6.2 Graphics/6.2.10 Content Streams/isartor-6-2-10-t01-fail-b.pdf	ISO 19005-1:2005:6.2.10:1	PDFA1B-CONTENT-OPERATOR-001
+Isartor test files	6.2 Graphics/6.2.10 Content Streams/isartor-6-2-10-t01-fail-c.pdf	ISO 19005-1:2005:6.2.10:1	PDFA1B-CONTENT-OPERATOR-001
+Isartor test files	6.2 Graphics/6.2.6 Reference XObjects/isartor-6-2-6-t01-fail-a.pdf	ISO 19005-1:2005:6.1.11:1,ISO 19005-1:2005:6.2.6:1	PDFA1B-FORM-REFERENCE-001
+Isartor test files	6.2 Graphics/6.2.2 Output intent/isartor-6-2-2-t02-fail-a.pdf	ISO 19005-1:2005:6.2.2:1,ISO 19005-1:2005:6.2.3.2:2,ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001,PDFA1B-OUTPUTINTENT-001
+Isartor test files	6.2 Graphics/6.2.2 Output intent/isartor-6-2-2-t02-fail-b.pdf	ISO 19005-1:2005:6.2.2:1	PDFA1B-OUTPUTINTENT-001
+Isartor test files	6.2 Graphics/6.2.2 Output intent/isartor-6-2-2-t03-fail-a.pdf	ISO 19005-1:2005:6.2.2:2	PDFA1B-OUTPUTINTENT-IDENTITY-001
+Isartor test files	6.2 Graphics/6.2.2 Output intent/isartor-6-2-2-t01-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.9 Rendering intents/isartor-6-2-9-t01-fail-a.pdf	ISO 19005-1:2005:6.2.9:1	PDFA1B-RENDERING-INTENT-001
+Isartor test files	6.2 Graphics/6.2.5 Form Xobjects/isartor-6-2-5-t01-fail-a.pdf	ISO 19005-1:2005:6.2.4:2	PDFA1B-XOBJECT-OPI-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-d.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-e.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-g.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-f.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t05-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t05-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t03-fail-d.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t03-fail-e.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t03-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t03-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t03-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-j.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t04-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t04-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-h.pdf	ISO 19005-1:2005:6.2.3.3:1,ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001,PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t02-fail-i.pdf	ISO 19005-1:2005:6.2.3.3:1	PDFA1B-DEVICE-RGB-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t04-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t01-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.3 Uncalibrated colour spaces/isartor-6-2-3-3-t04-fail-d.pdf	ISO 19005-1:2005:6.2.3.3:3	PDFA1B-DEVICE-GRAY-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.4 Separation and DeviceN colour spaces/isartor-6-2-3-4-t01-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.3 Colour spaces/6.2.3.4 Separation and DeviceN colour spaces/isartor-6-2-3-4-t01-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t02-fail-c.pdf	ISO 19005-1:2005:6.2.8:2	PDFA1B-EXTGSTATE-TR2-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t02-fail-b.pdf	ISO 19005-1:2005:6.2.8:2	PDFA1B-EXTGSTATE-TR2-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t02-fail-a.pdf	ISO 19005-1:2005:6.2.8:2	PDFA1B-EXTGSTATE-TR2-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t01-fail-d.pdf	ISO 19005-1:2005:6.2.8:1	PDFA1B-EXTGSTATE-TR-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t01-fail-b.pdf	ISO 19005-1:2005:6.2.8:1	PDFA1B-EXTGSTATE-TR-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t01-fail-c.pdf	ISO 19005-1:2005:6.2.8:1	PDFA1B-EXTGSTATE-TR-001
+Isartor test files	6.2 Graphics/6.2.8 Extended graphics state/isartor-6-2-8-t01-fail-a.pdf	ISO 19005-1:2005:6.2.8:1	PDFA1B-EXTGSTATE-TR-001
+Isartor test files	6.2 Graphics/6.2.7 PostScript XObjects/isartor-6-2-7-t02-fail-a.pdf	ISO 19005-1:2005:6.2.5:1	PDFA1B-FORM-POSTSCRIPT-001
+Isartor test files	6.2 Graphics/6.2.7 PostScript XObjects/isartor-6-2-7-t01-fail-a.pdf	ISO 19005-1:2005:6.2.7:1	PDFA1B-XOBJECT-POSTSCRIPT-001
+Isartor test files	6.2 Graphics/6.2.4 Images/isartor-6-2-4-t02-fail-a.pdf	ISO 19005-1:2005:6.2.4:2	PDFA1B-XOBJECT-OPI-001
+Isartor test files	6.2 Graphics/6.2.4 Images/isartor-6-2-4-t03-fail-a.pdf	ISO 19005-1:2005:6.2.4:3	PDFA1B-IMAGE-INTERPOLATE-001
+Isartor test files	6.2 Graphics/6.2.4 Images/isartor-6-2-4-t04-fail-a.pdf	ISO 19005-1:2005:6.2.9:1	PDFA1B-RENDERING-INTENT-001
+Isartor test files	6.2 Graphics/6.2.4 Images/isartor-6-2-4-t01-fail-a.pdf	ISO 19005-1:2005:6.2.4:1	PDFA1B-IMAGE-ALTERNATES-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t01-fail-a.pdf	ISO 19005-1:2005:6.5.3:1	PDFA1B-ANNOTATION-OPACITY-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t04-fail-d.pdf	ISO 19005-1:2005:6.5.3:6	PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t04-fail-a.pdf	ISO 19005-1:2005:6.5.3:4	PDFA1B-ANNOTATION-AP-ENTRIES-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t04-fail-c.pdf	ISO 19005-1:2005:6.5.3:4	PDFA1B-ANNOTATION-AP-ENTRIES-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t04-fail-b.pdf	ISO 19005-1:2005:6.5.3:4	PDFA1B-ANNOTATION-AP-ENTRIES-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t03-fail-b.pdf	ISO 19005-1:2005:6.5.3:3	PDFA1B-ANNOTATION-COLOR-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t03-fail-c.pdf	ISO 19005-1:2005:6.5.3:3	PDFA1B-ANNOTATION-COLOR-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t03-fail-a.pdf	ISO 19005-1:2005:6.5.3:3	PDFA1B-ANNOTATION-COLOR-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t03-fail-d.pdf	ISO 19005-1:2005:6.5.3:3	PDFA1B-ANNOTATION-COLOR-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t02-fail-d.pdf	ISO 19005-1:2005:6.5.3:2	PDFA1B-ANNOTATION-FLAGS-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t02-fail-e.pdf	ISO 19005-1:2005:6.5.3:2	PDFA1B-ANNOTATION-FLAGS-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t02-fail-b.pdf	ISO 19005-1:2005:6.5.3:2	PDFA1B-ANNOTATION-FLAGS-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t02-fail-c.pdf	ISO 19005-1:2005:6.5.3:2	PDFA1B-ANNOTATION-FLAGS-001
+Isartor test files	6.5 Annotations/6.5.3 Annotation dictionaries/isartor-6-5-3-t02-fail-a.pdf	ISO 19005-1:2005:6.5.3:2	PDFA1B-ANNOTATION-FLAGS-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-g.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-f.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-d.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-e.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-a.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-b.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-c.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t02-fail-a.pdf	ISO 19005-1:2005:6.1.11:1,ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t02-fail-c.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t02-fail-b.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.5 Annotations/6.5.2 Annotation types/isartor-6-5-2-t01-fail-h.pdf	ISO 19005-1:2005:6.5.2:1	PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-h.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-i.pdf	ISO 19005-1:2005:6.6.1:2	PDFA1B-NAMED-ACTION-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-b.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-i.pdf	ISO 19005-1:2005:6.6.1:2	PDFA1B-NAMED-ACTION-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-h.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-c.pdf	ISO 19005-1:2005:6.5.2:1,ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001,PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-a.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-d.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-e.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-i.pdf	ISO 19005-1:2005:6.6.1:2	PDFA1B-NAMED-ACTION-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-g.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-f.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-h.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-e.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-a.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-d.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-f.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-h.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-c.pdf	ISO 19005-1:2005:6.5.2:1,ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001,PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-b.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t02-fail-i.pdf	ISO 19005-1:2005:6.6.1:2	PDFA1B-NAMED-ACTION-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-g.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-c.pdf	ISO 19005-1:2005:6.5.2:1,ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001,PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-f.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-g.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-b.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-e.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t04-fail-d.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t01-fail-a.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-d.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-e.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-g.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-f.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-b.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-c.pdf	ISO 19005-1:2005:6.5.2:1,ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001,PDFA1B-ANNOTATION-SUBTYPE-001
+Isartor test files	6.6 Actions/6.6.1 General/isartor-6-6-1-t03-fail-a.pdf	ISO 19005-1:2005:6.6.1:1	PDFA1B-ACTION-TYPE-001
+Isartor test files	6.6 Actions/6.6.2 Trigger events/isartor-6-6-2-t01-fail-a.pdf	ISO 19005-1:2005:6.6.1:1,ISO 19005-1:2005:6.6.2:3	PDFA1B-ACTION-TYPE-001,PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001
+Isartor test files	6.3 Fonts/6.3.3 Composite fonts/6.3.3.2 CIDFonts/isartor-6-3-3-2-t01-fail-a.pdf	ISO 19005-1:2005:6.3.3.2:1	PDFA1B-CIDTOGIDMAP-001
+Isartor test files	6.3 Fonts/6.3.3 Composite fonts/6.3.3.3 CMaps/isartor-6-3-3-3-t01-fail-a.pdf	ISO 19005-1:2005:6.3.3.3:1	PDFA1B-CMAP-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.3 Composite fonts/6.3.3.3 CMaps/isartor-6-3-3-3-t02-fail-a.pdf	ISO 19005-1:2005:6.3.3.3:2	PDFA1B-CMAP-WMODE-001
+Isartor test files	6.3 Fonts/6.3.3 Composite fonts/6.3.3.1 General/isartor-6-3-3-1-t01-fail-a.pdf	ISO 19005-1:2005:6.3.3.1:1	PDFA1B-TYPE0-CID-SYSTEM-INFO-001
+Isartor test files	6.3 Fonts/6.3.3 Composite fonts/6.3.3.1 General/isartor-6-3-3-1-t01-fail-b.pdf	ISO 19005-1:2005:6.3.3.1:1	PDFA1B-TYPE0-CID-SYSTEM-INFO-001
+Isartor test files	6.3 Fonts/6.3.2 Font types/isartor-6-3-2-t01-fail-a.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.2 Font types/isartor-6-3-2-t01-fail-b.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.2 Font types/isartor-6-3-2-t01-fail-c.pdf	ISO 19005-1:2005:6.3.4:1,ISO 19005-1:2005:6.3.5:3	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.7 Character encodings/isartor-6-3-7-t02-fail-a.pdf	ISO 19005-1:2005:6.3.7:2	PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001
+Isartor test files	6.3 Fonts/6.3.7 Character encodings/isartor-6-3-7-t03-fail-a.pdf	ISO 19005-1:2005:6.3.7:3	PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001
+Isartor test files	6.3 Fonts/6.3.7 Character encodings/isartor-6-3-7-t01-fail-a.pdf	ISO 19005-1:2005:6.3.7:1	PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001
+Isartor test files	6.3 Fonts/6.3.6 Font metrics/isartor-6-3-6-t01-fail-c.pdf	ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-WIDTH-001
+Isartor test files	6.3 Fonts/6.3.6 Font metrics/isartor-6-3-6-t01-fail-b.pdf	ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-WIDTH-001
+Isartor test files	6.3 Fonts/6.3.6 Font metrics/isartor-6-3-6-t01-fail-a.pdf	ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-WIDTH-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t02-fail-a.pdf	ISO 19005-1:2005:6.3.5:2	PDFA1B-FONT-EMBEDDING-001,PDFA1B-TYPE1-SUBSET-CHARSET-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t01-fail-b.pdf	ISO 19005-1:2005:6.3.5:1,ISO 19005-1:2005:6.3.6:1	PDFA1B-CID-SUBSET-CIDSET-001,PDFA1B-TRUETYPE-GLYPH-PRESENCE-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t01-fail-c.pdf	ISO 19005-1:2005:6.3.5:1,ISO 19005-1:2005:6.3.6:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t01-fail-a.pdf	ISO 19005-1:2005:6.3.5:1	PDFA1B-CID-SUBSET-CIDSET-001,PDFA1B-TRUETYPE-GLYPH-PRESENCE-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t01-fail-d.pdf	ISO 19005-1:2005:6.3.5:1,ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-PRESENCE-001
+Isartor test files	6.3 Fonts/6.3.5 Font subsets/isartor-6-3-5-t03-fail-a.pdf	ISO 19005-1:2005:6.3.5:3	PDFA1B-CID-SUBSET-CIDSET-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-h.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001,PDFA1B-STREAM-LENGTH-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-f.pdf	ISO 19005-1:2005:6.3.4:1,ISO 19005-1:2005:6.5.3:5	PDFA1B-FONT-EMBEDDING-001,PDFA1B-WIDGET-BUTTON-APPEARANCE-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-g.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-e.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-d.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-a.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-c.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.3 Fonts/6.3.4 Embedded font programs/isartor-6-3-4-t01-fail-b.pdf	ISO 19005-1:2005:6.3.4:1	PDFA1B-FONT-EMBEDDING-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t03-fail-a.pdf	ISO 19005-1:2005:6.1.7:1	PDFA1B-STREAM-LENGTH-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t04-fail-a.pdf	ISO 19005-1:2005:6.1.7:3	PDFA1B-STREAM-EXTERNAL-DATA-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t04-fail-c.pdf	ISO 19005-1:2005:6.1.7:3	PDFA1B-STREAM-EXTERNAL-DATA-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t04-fail-b.pdf	ISO 19005-1:2005:6.1.7:3	PDFA1B-STREAM-EXTERNAL-DATA-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t01-fail-a.pdf	ISO 19005-1:2005:6.1.7:1,ISO 19005-1:2005:6.1.7:2	PDFA1B-STREAM-EOL-001
+Isartor test files	6.1 File structure/6.1.7 Stream objects/isartor-6-1-7-t02-fail-a.pdf	ISO 19005-1:2005:6.1.7:1,ISO 19005-1:2005:6.1.7:2	PDFA1B-ID-SCHEMA-001,PDFA1B-METADATA-STRUCTURE-001,PDFA1B-STREAM-EOL-001,PDFA1B-STREAM-LENGTH-001,PDFA1B-XMP-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t06-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t03-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t04-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t01-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t02-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.8 Indirect objects/isartor-6-1-8-t05-fail-a.pdf	ISO 19005-1:2005:6.1.8:1	PDFA1B-INDIRECT-OBJECT-SYNTAX-001
+Isartor test files	6.1 File structure/6.1.11 Embedded Files/isartor-6-1-11-t01-fail-a.pdf	ISO 19005-1:2005:6.1.11:2	PDFA1B-NAMES-EMBEDDED-FILES-001
+Isartor test files	6.1 File structure/6.1.11 Embedded Files/isartor-6-1-11-t02-fail-a.pdf	ISO 19005-1:2005:6.1.11:1,ISO 19005-1:2005:6.1.11:2	PDFA1B-FILE-SPEC-EMBEDDED-FILE-001,PDFA1B-NAMES-EMBEDDED-FILES-001
+Isartor test files	6.1 File structure/6.1.4 Cross reference trailer/isartor-6-1-4-t01-fail-a.pdf	ISO 19005-1:2005:6.1.4:1	PDFA1B-XREF-SUBSECTION-SPACING-001
+Isartor test files	6.1 File structure/6.1.4 Cross reference trailer/isartor-6-1-4-t02-fail-a.pdf	ISO 19005-1:2005:6.1.4:2	PDFA1B-XREF-EOL-001
+Isartor test files	6.1 File structure/6.1.3 File trailer/isartor-6-1-3-t04-fail-a.pdf	ISO 19005-1:2005:6.1.3:4	PDFA1B-LINEARIZED-TRAILER-ID-001
+Isartor test files	6.1 File structure/6.1.3 File trailer/isartor-6-1-3-t01-fail-a.pdf	ISO 19005-1:2005:6.1.3:1	PDFA1B-TRAILER-ID-001
+Isartor test files	6.1 File structure/6.1.3 File trailer/isartor-6-1-3-t03-fail-a.pdf	ISO 19005-1:2005:6.1.3:3	PDFA1B-POST-EOF-DATA-001
+Isartor test files	6.1 File structure/6.1.3 File trailer/isartor-6-1-3-t02-fail-a.pdf	ISO 19005-1:2005:6.1.3:2	PDFA1B-ENCRYPTION-001
+Isartor test files	6.1 File structure/6.1.2 File header/isartor-6-1-2-t01-fail-a.pdf	ISO 19005-1:2005:6.1.2:1	PDFA1B-HEADER-001
+Isartor test files	6.1 File structure/6.1.2 File header/isartor-6-1-2-t02-fail-a.pdf	ISO 19005-1:2005:6.1.2:2	PDFA1B-HEADER-BINARY-COMMENT-001
+Isartor test files	6.1 File structure/6.1.12 Implementation Limits/isartor-6-1-12-t01-fail-b.pdf	ISO 19005-1:2005:6.1.12:4	PDFA1B-NAME-LENGTH-001
+Isartor test files	6.1 File structure/6.1.12 Implementation Limits/isartor-6-1-12-t01-fail-c.pdf	ISO 19005-1:2005:6.1.12:1	PDFA1B-INTEGER-RANGE-001
+Isartor test files	6.1 File structure/6.1.12 Implementation Limits/isartor-6-1-12-t01-fail-a.pdf	ISO 19005-1:2005:6.1.12:5	PDFA1B-ARRAY-LENGTH-001
+Isartor test files	6.1 File structure/6.1.12 Implementation Limits/isartor-6-1-12-t01-fail-d.pdf	ISO 19005-1:2005:6.1.12:1	PDFA1B-INTEGER-RANGE-001
+Isartor test files	6.1 File structure/6.1.13 Optional content/isartor-6-1-13-t01-fail-a.pdf	ISO 19005-1:2005:6.1.13:1	PDFA1B-OPTIONAL-CONTENT-001
+Isartor test files	6.1 File structure/6.1.10 Filters/isartor-6-1-10-t01-fail-a.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+Isartor test files	6.1 File structure/6.1.10 Filters/isartor-6-1-10-t01-fail-b.pdf	ISO 19005-1:2005:6.1.10:2	PDFA1B-INLINE-IMAGE-LZW-001
+Isartor test files	6.1 File structure/6.1.10 Filters/isartor-6-1-10-t01-fail-c.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+Isartor test files	6.1 File structure/6.1.6 String objects/isartor-6-1-6-t01-fail-a.pdf	ISO 19005-1:2005:6.1.6:1	PDFA1B-HEX-STRING-LENGTH-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-f.pdf	ISO 19005-1:2005:6.7.8:15	PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001,PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-g.pdf	ISO 19005-1:2005:6.7.8:9,ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-e.pdf	ISO 19005-1:2005:6.7.8:9,ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001,PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-d.pdf	ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-a.pdf	ISO 19005-1:2005:6.7.8:2	PDFA1B-XMP-EXTENSION-CONTAINER-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-c.pdf	ISO 19005-1:2005:6.7.8:2	PDFA1B-XMP-EXTENSION-CONTAINER-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-b.pdf	ISO 19005-1:2005:6.7.8:1,ISO 19005-1:2005:6.7.8:3,ISO 19005-1:2005:6.7.8:4,ISO 19005-1:2005:6.7.8:5,ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-FIELDS-001,PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001,PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001,PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001,PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t01-fail-a.pdf	ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-i.pdf	ISO 19005-1:2005:6.7.8:18,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001,PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-h.pdf	ISO 19005-1:2005:6.7.8:9,ISO 19005-1:2005:6.7.8:13,ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001,PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001,PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-j.pdf	ISO 19005-1:2005:6.7.8:18,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001
+Isartor test files	6.7 Metadata/6.7.8 Extension schemas/isartor-6-7-8-t02-fail-k.pdf	ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001
+Isartor test files	6.7 Metadata/6.7.11 Version and conformance level identification/isartor-6-7-11-t01-fail-d.pdf	ISO 19005-1:2005:6.7.11:2	PDFA1B-ID-PART-001
+Isartor test files	6.7 Metadata/6.7.11 Version and conformance level identification/isartor-6-7-11-t01-fail-a.pdf	ISO 19005-1:2005:6.7.11:1	PDFA1B-ID-SCHEMA-001
+Isartor test files	6.7 Metadata/6.7.11 Version and conformance level identification/isartor-6-7-11-t01-fail-c.pdf	ISO 19005-1:2005:6.7.11:3	PDFA1B-ID-CONFORMANCE-001
+Isartor test files	6.7 Metadata/6.7.11 Version and conformance level identification/isartor-6-7-11-t01-fail-b.pdf	ISO 19005-1:2005:6.7.11:1,ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-ID-SCHEMA-001,PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001,PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001
+Isartor test files	6.7 Metadata/6.7.9 Validation/isartor-6-7-9-t01-fail-a.pdf	ISO 19005-1:2005:6.7.11:1,ISO 19005-1:2005:6.7.3:1,ISO 19005-1:2005:6.7.3:7,ISO 19005-1:2005:6.7.3:8,ISO 19005-1:2005:6.7.9:1	PDFA1B-ID-SCHEMA-001,PDFA1B-INFO-PRODUCER-001,PDFA1B-XMP-001
+Isartor test files	6.7 Metadata/6.7.2 Properties/isartor-6-7-2-t02-fail-b.pdf	ISO 19005-1:2005:6.7.9:2,ISO 19005-1:2005:6.7.9:3	PDFA1B-XMP-PREDEFINED-PROPERTY-001,PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+Isartor test files	6.7 Metadata/6.7.2 Properties/isartor-6-7-2-t02-fail-c.pdf	ISO 19005-1:2005:6.7.3:4,ISO 19005-1:2005:6.7.9:3	PDFA1B-INFO-SUBJECT-001,PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001
+Isartor test files	6.7 Metadata/6.7.2 Properties/isartor-6-7-2-t02-fail-a.pdf	ISO 19005-1:2005:6.7.11:1,ISO 19005-1:2005:6.7.3:1,ISO 19005-1:2005:6.7.3:7,ISO 19005-1:2005:6.7.3:8,ISO 19005-1:2005:6.7.9:1	PDFA1B-ID-SCHEMA-001,PDFA1B-INFO-PRODUCER-001,PDFA1B-XMP-001
+Isartor test files	6.7 Metadata/6.7.2 Properties/isartor-6-7-2-t01-fail-a.pdf	ISO 19005-1:2005:6.7.2:1,ISO 19005-1:2005:6.7.3:1,ISO 19005-1:2005:6.7.3:7	PDFA1B-ID-SCHEMA-001,PDFA1B-INFO-PRODUCER-001,PDFA1B-METADATA-STRUCTURE-001
+Isartor test files	6.7 Metadata/6.7.2 Properties/isartor-6-7-2-t03-fail-a.pdf	ISO 19005-1:2005:6.7.2:2	PDFA1B-METADATA-FILTER-001
+Isartor test files	6.7 Metadata/6.7.3 Document information dictionary/isartor-6-7-3-t01-fail-a.pdf	ISO 19005-1:2005:6.7.3:2	PDFA1B-INFO-TITLE-001
+Isartor test files	6.7 Metadata/6.7.3 Document information dictionary/isartor-6-7-3-t01-fail-b.pdf	ISO 19005-1:2005:6.7.3:4	PDFA1B-INFO-SUBJECT-001
+Isartor test files	6.7 Metadata/6.7.3 Document information dictionary/isartor-6-7-3-t01-fail-c.pdf	ISO 19005-1:2005:6.7.3:1	PDFA1B-INFO-CREATIONDATE-001
+Isartor test files	6.7 Metadata/6.7.5 XMP header/isartor-6-7-5-t02-fail-a.pdf	ISO 19005-1:2005:6.7.5:2	PDFA1B-XMP-PACKET-ENCODING-001
+Isartor test files	6.7 Metadata/6.7.5 XMP header/isartor-6-7-5-t01-fail-a.pdf	ISO 19005-1:2005:6.7.5:1	PDFA1B-XMP-PACKET-BYTES-001
+Isartor test files	6.9 Interactive Forms/isartor-6-9-t02-fail-a.pdf	ISO 19005-1:2005:6.5.3:5,ISO 19005-1:2005:6.6.1:3	PDFA1B-WIDGET-ACTION-001,PDFA1B-WIDGET-BUTTON-APPEARANCE-001
+Isartor test files	6.9 Interactive Forms/isartor-6-9-t02-fail-b.pdf	ISO 19005-1:2005:6.5.3:5,ISO 19005-1:2005:6.6.2:1,ISO 19005-1:2005:6.6.2:2	PDFA1B-FIELD-ADDITIONAL-ACTIONS-001,PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001,PDFA1B-WIDGET-BUTTON-APPEARANCE-001
+Isartor test files	6.9 Interactive Forms/isartor-6-9-t01-fail-a.pdf	ISO 19005-1:2005:6.9:1,ISO 19005-1:2005:6.9:2	PDFA1B-ACROFORM-NEED-APPEARANCES-001,PDFA1B-WIDGET-APPEARANCE-001
+Undefined	veraPDF test suite 6-2-4-3-t02-undefined-h.pdf	ISO 19005-1:2005:6.2.3.3:2,ISO 19005-1:2005:6.7.11:2	PDFA1B-DEVICE-CMYK-001,PDFA1B-ID-PART-001
+Undefined	veraPDF test suite 6-2-3-3-t03-undefined-c.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+Undefined	veraPDF test suite 6-2-3-2-t01-undefined-a.pdf	ISO 19005-1:2005:6.2.3.2:2	PDFA1B-ICCBASED-COMPONENTS-001
+TWG test files	TWG test suite A011-A015-pdfa1-fail-d.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+TWG test files	TWG test suite A014-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.3.2:7	PDFA1B-FONT-FILE-SUBTYPE-001
+TWG test files	TWG test suite A011-A015-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+TWG test files	TWG test suite A010-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.1.12:4	PDFA1B-NAME-LENGTH-001
+TWG test files	TWG test suite A011-A015-pdfa1-fail-b.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+TWG test files	TWG test suite A011-A015-pdfa1-fail-c.pdf	ISO 19005-1:2005:6.2.3.3:2	PDFA1B-DEVICE-CMYK-001
+TWG test files	TWG test suite A001-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+TWG test files	TWG test suite A001-pdfa1-fail-c.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+TWG test files	TWG test suite A001-pdfa1-fail-b.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+TWG test files	TWG test suite A005-pdfa1-fail-b.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+TWG test files	TWG test suite A005-pdfa1-fail-c.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+TWG test files	TWG test suite A005-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+TWG test files	TWG test suite A001-pdfa1-fail-e.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+TWG test files	TWG test suite A001-pdfa1-fail-d.pdf	ISO 19005-1:2005:6.1.12:2	PDFA1B-REAL-RANGE-001
+TWG test files	TWG test suite A009-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.1.10:1	PDFA1B-STREAM-LZW-001
+TWG test files	TWG test suite A009-pdfa1-fail-b.pdf	ISO 19005-1:2005:6.1.12:3	PDFA1B-STRING-LENGTH-001
+TWG test files	TWG test suite A006-pdfa1-fail-a.pdf	ISO 19005-1:2005:6.3.6:1	PDFA1B-TRUETYPE-GLYPH-WIDTH-001
+TWG test files	TWG test suite A007-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.1.13:10,ISO 19005-2:2011:6.2.11.4.1:2,ISO 19005-2:2011:6.2.11.8:1	PDFA2B-CMAP-CID-RANGE-001,PDFA2B-CMAP-MAX-CID-001
+TWG test files	TWG test suite A018-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.1.13:5	PDFA2B-REAL-MINIMUM-001
+TWG test files	TWG test suite A007-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.1.13:10	PDFA2B-CMAP-CID-RANGE-001,PDFA2B-CMAP-MAX-CID-001
+TWG test files	TWG test suite A018-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.1.13:5	PDFA2B-REAL-MINIMUM-001
+TWG test files	TWG test suite A029-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.6.2.3.3:14	PDFA2B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001,PDFA2B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001
+TWG test files	TWG test suite A003-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+TWG test files	TWG test suite A012-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.3.3:3	PDFA2B-WIDGET-BUTTON-APPEARANCE-001
+TWG test files	TWG test suite A002-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+TWG test files	TWG test suite A002-pdfa2-fail-c.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+TWG test files	TWG test suite A016-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.11.4.2:1	PDFA2B-TYPE1-SUBSET-CHARSET-001
+TWG test files	TWG test suite A028-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.4.3:3	PDFA2B-DEVICE-CMYK-001
+TWG test files	TWG test suite A002-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.2:2	PDFA2B-CONTENT-RESOURCES-001
+TWG test files	TWG test suite A028-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.2.4.3:2	PDFA2B-DEVICE-RGB-001
+TWG test files	TWG test suite A016-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.2.11.4.2:2	PDFA2B-CID-SUBSET-CIDSET-001
+TWG test files	TWG test suite A024-pdfa2-fail-b.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+TWG test files	TWG test suite A024-pdfa2-fail-c.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+TWG test files	TWG test suite A024-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.4.2:2	PDFA2B-ICCBased-CMYK-OVERPRINT-001
+TWG test files	TWG test suite A025-pdfa2-fail-a.pdf	ISO 19005-2:2011:6.2.11.3.3:3	PDFA2B-CMAP-REFERENCE-001
+TWG test files	TWG test suite A027-pdfa3-fail-d.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+TWG test files	TWG test suite A027-pdfa3-fail-e.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+TWG test files	TWG test suite A027-pdfa3-fail-a.pdf	ISO 19005-3:2012:6.8:3	PDFA3B-FILE-SPEC-AF-RELATIONSHIP-001
+TWG test files	TWG test suite A027-pdfa3-fail-b.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+TWG test files	TWG test suite A027-pdfa3-fail-c.pdf	ISO 19005-3:2012:6.8:4	PDFA3B-FILE-SPEC-ASSOCIATION-001
+ISO 32000-1	veraPDF test suite 6-8-2-2-t01-fail-d.pdf	ISO 19005-1:2005:6.8.2.2:1	PDFA1A-TAGGED-DOCUMENT-001

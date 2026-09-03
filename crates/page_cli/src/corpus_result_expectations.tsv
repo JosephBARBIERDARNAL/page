@@ -1,0 +1,13 @@
+# Pinned veraPDF overall results for corpus files without a pass/fail filename marker or with a stale marker.
+# corpus directory<TAB>relative PDF path<TAB>expected result
+ISO 32000-1	veraPDF test suite 6-8-3-3-t01-fail-b.pdf	pass
+Undefined	veraPDF test suite 6-2-3-2-t01-undefined-a.pdf	fail
+Undefined	veraPDF test suite 6-2-3-3-t03-undefined-c.pdf	fail
+Undefined	veraPDF test suite 6-2-3-3-t04-undefined-c.pdf	pass
+Undefined	veraPDF test suite 6-2-4-3-t02-undefined-h.pdf	fail
+Undefined	veraPDF test suite 6-7-9-t01-undefined-a.pdf	pass
+Undefined	veraPDF test suite 6-7-9-t01-undefined-b.pdf	pass
+Undefined	veraPDF test suite 6-7-9-t01-undefined-c.pdf	pass
+Undefined	veraPDF test suite 6-7-9-t01-undefined-d.pdf	pass
+Undefined	veraPDF test suite 6-7-9-t01-undefined-e.pdf	pass
+Undefined	veraPDF test suite 6-7-9-t01-undefined-f.pdf	pass

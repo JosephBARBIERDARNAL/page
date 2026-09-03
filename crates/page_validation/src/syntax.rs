@@ -879,7 +879,9 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
     let mut spacing_compliant = true;
     let eol_count = consume_eols(bytes, &mut cursor);
     eol_compliant &= eol_count == 1;
+    let before_horizontal_space = cursor;
     skip_horizontal_space(bytes, &mut cursor);
+    eol_compliant &= cursor == before_horizontal_space;
 
     loop {
         if bytes.get(cursor..cursor + b"trailer".len()) == Some(b"trailer") {
@@ -1112,9 +1114,192 @@ pub(crate) fn repair_for_lopdf(bytes: &[u8]) -> Option<Vec<u8>> {
         changed |= repair_offsets_for_header(&mut repaired, header_offset);
     }
     changed |= repair_startxref_whitespace(&mut repaired);
+    changed |= repair_xref_entry_eols(&mut repaired);
     changed |= repair_xref_syntax(&mut repaired);
+    changed |= repair_xref_offsets(&mut repaired);
     changed |= repair_hex_strings(&mut repaired);
     changed.then_some(repaired)
+}
+
+fn repair_xref_entry_eols(bytes: &mut Vec<u8>) -> bool {
+    let Some(xref_start) = final_startxref(bytes) else {
+        return false;
+    };
+    if bytes.get(xref_start..xref_start + b"xref".len()) != Some(b"xref") {
+        return false;
+    }
+    let mut cursor = xref_start + b"xref".len();
+    let mut changed = false;
+    while let Some((line, next)) = read_line(bytes, cursor) {
+        if line == b"trailer" {
+            break;
+        }
+        let fields = line
+            .split(|byte| byte.is_ascii_whitespace())
+            .filter(|field| !field.is_empty())
+            .collect::<Vec<_>>();
+        let is_crlf = bytes.get(next.saturating_sub(2)..next) == Some(b"\r\n");
+        if fields.len() >= 3
+            && fields
+                .get(2)
+                .is_some_and(|field| matches!(*field, b"n" | b"f"))
+            && !line.ends_with(b" ")
+            && !is_crlf
+        {
+            let eol_start = next.saturating_sub(1);
+            bytes.insert(eol_start, b' ');
+            changed = true;
+            cursor = next + 1;
+        } else {
+            cursor = next;
+        }
+    }
+    if !changed {
+        return false;
+    }
+    let Some((number_start, number_end, _)) = final_startxref_parts(bytes) else {
+        return true;
+    };
+    let replacement = xref_start.to_string();
+    bytes.splice(number_start..number_end, replacement.bytes());
+    true
+}
+
+fn repair_xref_offsets(bytes: &mut [u8]) -> bool {
+    let mut object_offsets = std::collections::HashMap::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let Some((object, generation, next)) = indirect_object_header(bytes, cursor) else {
+            cursor = read_line(bytes, cursor).map_or(bytes.len(), |(_, next)| next);
+            continue;
+        };
+        {
+            object_offsets.insert((object, generation), cursor);
+        }
+        cursor = stream_end_after_object(bytes, next).unwrap_or(next);
+    }
+
+    let mut changed = false;
+    let mut in_xref = false;
+    let mut next_object: Option<u32> = None;
+    let mut next_generation = 0;
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let line_end = bytes
+            .get(cursor..)
+            .unwrap_or_default()
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .map_or(bytes.len(), |offset| cursor + offset);
+        let line = bytes.get_mut(cursor..line_end).unwrap_or_default();
+        let fields = line
+            .split(|byte| byte.is_ascii_whitespace())
+            .filter(|field| !field.is_empty())
+            .collect::<Vec<_>>();
+        if line == b"xref" {
+            in_xref = true;
+            next_object = None;
+        } else if line == b"trailer" {
+            in_xref = false;
+            next_object = None;
+        } else if in_xref {
+            if fields.len() == 2
+                && fields.iter().all(|field| {
+                    std::str::from_utf8(field)
+                        .ok()
+                        .is_some_and(|field| field.parse::<u32>().is_ok())
+                })
+            {
+                next_object = std::str::from_utf8(fields.first().copied().unwrap_or_default())
+                    .ok()
+                    .and_then(|field| field.parse::<u32>().ok());
+                next_generation = std::str::from_utf8(fields.get(1).copied().unwrap_or_default())
+                    .ok()
+                    .and_then(|field| field.parse::<u16>().ok())
+                    .unwrap_or_default();
+            } else if fields.len() >= 3 {
+                let Some(entry_type) = fields.get(2) else {
+                    cursor = line_end.saturating_add(1);
+                    continue;
+                };
+                if matches!(*entry_type, b"n" | b"f")
+                    && let Some(object) = next_object
+                {
+                    if *entry_type == b"n"
+                        && line.len() >= 10
+                        && let Some(offset) = object_offsets.get(&(object, next_generation))
+                    {
+                        let replacement = format!("{offset:010}");
+                        if line.get(..10) != Some(replacement.as_bytes())
+                            && let Some(prefix) = line.get_mut(..10)
+                        {
+                            prefix.copy_from_slice(replacement.as_bytes());
+                            changed = true;
+                        }
+                    }
+                    next_object = object.checked_add(1);
+                }
+            }
+        }
+        cursor = line_end.saturating_add(1);
+    }
+    changed
+}
+
+fn indirect_object_header(bytes: &[u8], cursor: usize) -> Option<(u32, u16, usize)> {
+    let (line, next) = read_line(bytes, cursor)?;
+    let mut parser = RawParser {
+        bytes: line,
+        position: 0,
+        maximum_depth: 0,
+        maximum_nodes: 0,
+        nodes: 0,
+    };
+    let object = std::str::from_utf8(parser.take_unsigned_integer_token()?)
+        .ok()?
+        .parse()
+        .ok()?;
+    let after_object = parser.position;
+    parser.skip_space_and_comments();
+    (parser.position > after_object).then_some(())?;
+    let generation = std::str::from_utf8(parser.take_unsigned_integer_token()?)
+        .ok()?
+        .parse()
+        .ok()?;
+    let after_generation = parser.position;
+    parser.skip_space_and_comments();
+    (parser.position > after_generation).then_some(())?;
+    parser.consume_keyword(b"obj").then_some(())?;
+    parser.skip_space_and_comments();
+    (parser.position == line.len()).then_some((object, generation, next))
+}
+
+fn stream_end_after_object(bytes: &[u8], after_header: usize) -> Option<usize> {
+    let mut parser = RawParser {
+        bytes,
+        position: after_header,
+        maximum_depth: 128,
+        maximum_nodes: 32_768,
+        nodes: 0,
+    };
+    let value = parser.parse_value(0)?;
+    let RawValue::Dictionary(dictionary) = value else {
+        return None;
+    };
+    parser.skip_space_and_comments();
+    parser.consume_keyword(b"stream").then_some(())?;
+    let data_start = stream_data_start_after_keyword(bytes, parser.position)?;
+    let declared_length = dictionary
+        .iter()
+        .rev()
+        .find_map(|(key, value)| (key == b"Length").then_some(value))
+        .and_then(RawValue::integer)
+        .and_then(|length| usize::try_from(length).ok());
+    let endstream = declared_length
+        .and_then(|length| data_start.checked_add(length))
+        .and_then(|data_end| find_bounded_keyword(bytes, b"endstream", data_end))
+        .or_else(|| find_bounded_keyword(bytes, b"endstream", data_start));
+    Some(endstream.map_or(bytes.len(), |offset| offset + b"endstream".len()))
 }
 
 fn repair_offsets_for_header(bytes: &mut Vec<u8>, header_offset: usize) -> bool {
@@ -1304,6 +1489,25 @@ fn repair_xref_syntax(bytes: &mut [u8]) -> bool {
         }
         line_start += usize::from(line_start < bytes.len());
         loop {
+            let leading = bytes
+                .get(line_start..)
+                .unwrap_or_default()
+                .iter()
+                .take_while(|byte| byte.is_ascii_whitespace())
+                .count();
+            if leading > 0
+                && bytes
+                    .get(line_start + leading)
+                    .is_some_and(u8::is_ascii_digit)
+            {
+                for byte in bytes
+                    .get_mut(line_start..line_start + leading)
+                    .unwrap_or_default()
+                {
+                    *byte = b'0';
+                }
+                changed = true;
+            }
             let Some((line, next)) = read_line(bytes, line_start) else {
                 return changed;
             };
@@ -1647,6 +1851,41 @@ mod tests {
                 .any(|line| line == b"0000000000 00000 f")
         );
         assert!(repaired.ends_with(b"startxref\n9\n%%EOF"));
+    }
+
+    #[test]
+    fn ignores_indirect_object_headers_inside_stream_data_when_repairing_offsets() {
+        let mut bytes = b"%PDF-1.4\n".to_vec();
+        let first_object_offset = bytes.len();
+        bytes.extend_from_slice(b"1 0 obj\n<< /Length 8 >>\nstream\n2 0 obj\nendstream\nendobj\n");
+        let second_object_offset = bytes.len();
+        bytes.extend_from_slice(b"2 0 obj\n<<>>\nendobj\nxref\n1 0\n");
+        bytes.extend_from_slice(b"0000000000 00000 n \n2 0\n0000000000 00000 n \n");
+        bytes.extend_from_slice(b"trailer\n<<>>\n");
+
+        assert_eq!(
+            indirect_object_header(&bytes, first_object_offset)
+                .map(|(object, generation, _)| (object, generation)),
+            Some((1, 0))
+        );
+        let (_, _, after_header) = indirect_object_header(&bytes, first_object_offset).unwrap();
+        assert_eq!(
+            stream_end_after_object(&bytes, after_header),
+            Some(
+                first_object_offset + b"1 0 obj\n<< /Length 8 >>\nstream\n2 0 obj\nendstream".len()
+            )
+        );
+        assert!(repair_xref_offsets(&mut bytes));
+        assert!(
+            bytes
+                .windows(19)
+                .any(|line| { line == format!("{first_object_offset:010} 00000 n ").as_bytes() })
+        );
+        assert!(
+            bytes
+                .windows(19)
+                .any(|line| { line == format!("{second_object_offset:010} 00000 n ").as_bytes() })
+        );
     }
 
     #[test]
