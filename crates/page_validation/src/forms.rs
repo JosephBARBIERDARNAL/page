@@ -18,6 +18,10 @@ use crate::object_resolution::{
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
+use crate::xml_safety::{
+    MAX_BOUNDED_XML_DEPTH, MAX_BOUNDED_XML_NODES, bounded_parsing_options, preflight_xml_depth,
+    validate_xml_depth,
+};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FormSummary {
@@ -172,9 +176,17 @@ fn xfa_stream_is_dynamic(stream: &lopdf::Stream, limits: &SafetyLimits) -> Resul
     let Ok(xml) = std::str::from_utf8(&bytes) else {
         return Ok(false);
     };
-    let Ok(document) = XmlDocument::parse(xml) else {
+    if preflight_xml_depth(xml, MAX_BOUNDED_XML_DEPTH).is_err() {
+        return Ok(false);
+    }
+    let Ok(document) =
+        XmlDocument::parse_with_options(xml, bounded_parsing_options(MAX_BOUNDED_XML_NODES))
+    else {
         return Ok(false);
     };
+    if validate_xml_depth(&document, MAX_BOUNDED_XML_DEPTH).is_err() {
+        return Ok(false);
+    }
     Ok(document.descendants().any(|node| {
         node.tag_name().name() == "dynamicRender"
             && node.text().is_some_and(|value| value == "required")
@@ -423,11 +435,44 @@ fn object_number(value: &Object) -> Option<f64> {
 
 #[cfg(test)]
 mod tests {
-    use lopdf::Document;
+    use lopdf::{Dictionary, Document, Stream};
 
-    use super::inspect;
+    use super::{MAX_BOUNDED_XML_DEPTH, MAX_BOUNDED_XML_NODES, inspect, xfa_stream_is_dynamic};
     use crate::limits::SafetyLimits;
     use crate::model::InspectionNeed;
+
+    #[test]
+    fn xfa_stream_is_dynamic_bounds_xml_depth() {
+        let mut xml = "<x>".repeat(MAX_BOUNDED_XML_DEPTH + 1);
+        xml.push_str("<dynamicRender>required</dynamicRender>");
+        xml.push_str(&"</x>".repeat(MAX_BOUNDED_XML_DEPTH + 1));
+        let stream = Stream::new(Dictionary::new(), xml.into_bytes());
+
+        let dynamic = xfa_stream_is_dynamic(&stream, &SafetyLimits::default())
+            .expect("an over-deep XFA stream is bounded, not treated as a resource-limit error");
+
+        assert!(
+            !dynamic,
+            "a dynamicRender node past the depth bound must not be reachable"
+        );
+    }
+
+    #[test]
+    fn xfa_stream_is_dynamic_bounds_xml_node_allocations() {
+        let mut xml = String::from("<x>");
+        xml.push_str(&"<n/>".repeat(MAX_BOUNDED_XML_NODES as usize));
+        xml.push_str("<dynamicRender>required</dynamicRender>");
+        xml.push_str("</x>");
+        let stream = Stream::new(Dictionary::new(), xml.into_bytes());
+
+        let dynamic = xfa_stream_is_dynamic(&stream, &SafetyLimits::default())
+            .expect("an over-wide XFA stream is bounded, not treated as a resource-limit error");
+
+        assert!(
+            !dynamic,
+            "a dynamicRender node past the node-count bound must not be reachable"
+        );
+    }
 
     #[test]
     fn not_applicable_forms_do_not_resolve_the_catalog() {

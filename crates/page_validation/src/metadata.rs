@@ -1,10 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{Duration, Local, LocalResult, NaiveDate, TimeZone};
-use roxmltree::{Attribute, Document, Node, ParsingOptions};
+use roxmltree::{Attribute, Document, Node};
 use serde::Serialize;
 use sxd_xpath::Factory as XPathFactory;
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
+
+use crate::xml_safety::{
+    MAX_BOUNDED_XML_DEPTH, MAX_BOUNDED_XML_NODES, bounded_parsing_options, find_xml_tag_end,
+    preflight_xml_depth, validate_xml_depth,
+};
 
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -29,8 +34,6 @@ const XMP_RESOURCE_EVENT_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Re
 const XMP_RESOURCE_REF_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
 const XMP_THUMBNAIL_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/g/img/";
 const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#";
-const MAX_XMP_XML_NODES: u32 = 100_000;
-const MAX_XMP_XML_DEPTH: usize = 128;
 
 /// The document information dictionary (PDF32000 §14.3.3), captured as a flat map from entry name to its decoded text value.
 ///
@@ -96,21 +99,14 @@ pub struct XmpMetadata {
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     let mut xml = decode_xml(bytes)?;
-    preflight_xml_depth(&xml)?;
+    preflight_xml_depth(&xml, MAX_BOUNDED_XML_DEPTH)?;
     if !xmp_xml_parses(&xml) {
         repair_xml_controls(&mut xml);
-        preflight_xml_depth(&xml)?;
+        preflight_xml_depth(&xml, MAX_BOUNDED_XML_DEPTH)?;
     }
-    let document = Document::parse_with_options(
-        &xml,
-        ParsingOptions {
-            allow_dtd: false,
-            nodes_limit: MAX_XMP_XML_NODES,
-            ..ParsingOptions::default()
-        },
-    )
-    .map_err(|error| error.to_string())?;
-    validate_xml_depth(&document)?;
+    let document = Document::parse_with_options(&xml, bounded_parsing_options(MAX_BOUNDED_XML_NODES))
+        .map_err(|error| error.to_string())?;
+    validate_xml_depth(&document, MAX_BOUNDED_XML_DEPTH)?;
     let Some((rdf, packet_header)) = select_xmp_root(&document) else {
         return Ok(XmpMetadata::default());
     };
@@ -191,106 +187,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
 }
 
 fn xmp_xml_parses(xml: &str) -> bool {
-    Document::parse_with_options(
-        xml,
-        ParsingOptions {
-            allow_dtd: false,
-            nodes_limit: MAX_XMP_XML_NODES,
-            ..ParsingOptions::default()
-        },
-    )
-    .is_ok()
-}
-
-fn preflight_xml_depth(xml: &str) -> Result<(), String> {
-    let bytes = xml.as_bytes();
-    let mut position = 0_usize;
-    let mut depth = 0_usize;
-    while let Some(relative) = bytes
-        .get(position..)
-        .and_then(|tail| tail.iter().position(|byte| *byte == b'<'))
-    {
-        position += relative;
-        let Some(tail) = bytes.get(position..) else {
-            break;
-        };
-        if tail.starts_with(b"<!--") {
-            position = find_xml_delimiter(bytes, position + 4, b"-->")?;
-            continue;
-        }
-        if tail.starts_with(b"<![CDATA[") {
-            position = find_xml_delimiter(bytes, position + 9, b"]]>")?;
-            continue;
-        }
-        if tail.starts_with(b"<?") {
-            position = find_xml_delimiter(bytes, position + 2, b"?>")?;
-            continue;
-        }
-        if tail.starts_with(b"<!") {
-            return Err(
-                "DTD and XML declarations other than comments or CDATA are disabled".to_owned(),
-            );
-        }
-        let (end, self_closing) = find_xml_tag_end(bytes, position + 1)?;
-        if tail.starts_with(b"</") {
-            depth = depth.saturating_sub(1);
-        } else if !self_closing {
-            depth += 1;
-            if depth > MAX_XMP_XML_DEPTH {
-                return Err(format!("XMP XML nesting depth exceeds {MAX_XMP_XML_DEPTH}"));
-            }
-        }
-        position = end;
-    }
-    Ok(())
-}
-
-fn find_xml_delimiter(bytes: &[u8], start: usize, delimiter: &[u8]) -> Result<usize, String> {
-    bytes
-        .get(start..)
-        .unwrap_or_default()
-        .windows(delimiter.len())
-        .position(|window| window == delimiter)
-        .map(|relative| start + relative + delimiter.len())
-        .ok_or_else(|| "unterminated XML construct".to_owned())
-}
-
-fn find_xml_tag_end(bytes: &[u8], start: usize) -> Result<(usize, bool), String> {
-    let mut quote = None;
-    let mut position = start;
-    while let Some(byte) = bytes.get(position).copied() {
-        match (quote, byte) {
-            (Some(expected), actual) if expected == actual => quote = None,
-            (None, b'\'' | b'"') => quote = Some(byte),
-            (None, b'>') => {
-                let self_closing = bytes
-                    .get(start..position)
-                    .unwrap_or_default()
-                    .iter()
-                    .rev()
-                    .find(|byte| !byte.is_ascii_whitespace())
-                    == Some(&b'/');
-                return Ok((position + 1, self_closing));
-            }
-            _ => {}
-        }
-        position += 1;
-    }
-    Err("unterminated XML tag".to_owned())
-}
-
-fn validate_xml_depth(document: &Document<'_>) -> Result<(), String> {
-    let mut stack = vec![(document.root(), 0_usize)];
-    while let Some((node, depth)) = stack.pop() {
-        if depth > MAX_XMP_XML_DEPTH {
-            return Err(format!("XMP XML nesting depth exceeds {MAX_XMP_XML_DEPTH}"));
-        }
-        stack.extend(
-            node.children()
-                .map(|child| (child, depth + usize::from(child.is_element()))),
-        );
-    }
-    Ok(())
+    Document::parse_with_options(xml, bounded_parsing_options(MAX_BOUNDED_XML_NODES)).is_ok()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -3321,9 +3218,9 @@ mod tests {
 
     #[test]
     fn bounds_xml_depth_before_recursive_xmp_selection() {
-        let mut xmp = "<x>".repeat(MAX_XMP_XML_DEPTH + 1);
+        let mut xmp = "<x>".repeat(MAX_BOUNDED_XML_DEPTH + 1);
         xmp.push_str("<leaf/>");
-        xmp.push_str(&"</x>".repeat(MAX_XMP_XML_DEPTH + 1));
+        xmp.push_str(&"</x>".repeat(MAX_BOUNDED_XML_DEPTH + 1));
         let error = parse_xmp(xmp.as_bytes()).expect_err("deep XML must be bounded");
         assert!(error.contains("nesting depth"), "{error}");
     }
@@ -3331,7 +3228,7 @@ mod tests {
     #[test]
     fn bounds_xml_node_allocations() {
         let mut xmp = String::from("<x>");
-        xmp.push_str(&"<n/>".repeat(MAX_XMP_XML_NODES as usize));
+        xmp.push_str(&"<n/>".repeat(MAX_BOUNDED_XML_NODES as usize));
         xmp.push_str("</x>");
         parse_xmp(xmp.as_bytes()).unwrap_err();
     }

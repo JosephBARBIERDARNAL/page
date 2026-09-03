@@ -32,6 +32,7 @@ mod stream_safety;
 mod syntax;
 mod unicode_names;
 mod validation;
+mod xml_safety;
 mod xobject;
 
 pub use error::{PdfError, ValidationError};
