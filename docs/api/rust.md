@@ -25,17 +25,17 @@ page_validation = "0.5.0"
 
 ```rust
 use std::path::Path;
-use page_validation::{SafetyLimits, is_pdf_compliant};
+use page_validation::{ValidationProfile, SafetyLimits, is_pdf_compliant};
 
 let is_compliant = is_pdf_compliant(
-    Path::new("file.pdf"),    // path to a PDF
-    None,                     // an optional profile
-    &SafetyLimits::default(), // see below
+    Path::new("file.pdf"),            // path to a PDF
+    Some(ValidationProfile::PdfUA1),  // an optional profile
+    &SafetyLimits::default(),         // see below
 )?;
 println!("{is_compliant}");
 ```
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
+If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`. Also see, [safety limits](#safety-limits).
 
 !!! info
 
