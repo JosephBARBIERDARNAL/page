@@ -566,6 +566,7 @@ fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfErr
             limit: limits.max_input_size,
         });
     }
+    crate::syntax::preflight_object_limit(bytes, limits)?;
 
     let options = LoadOptions {
         strict: true,

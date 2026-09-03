@@ -57,6 +57,78 @@ pub(crate) struct HeaderSummary {
     pub(crate) last_trailer_id: Option<Vec<u8>>,
 }
 
+/// Bounds the number of objects that the full `lopdf` load may materialize.
+///
+/// `lopdf` applies its xref table and object parsing before this crate can
+/// inspect `Document::objects`, so the configured object limit cannot be the
+/// first line of defense on its own. This preflight only keeps the bounded raw
+/// syntax state needed to count xref entries and object headers; it does not
+/// construct PDF objects.
+pub(crate) fn preflight_object_limit(bytes: &[u8], limits: &SafetyLimits) -> Result<(), PdfError> {
+    let mut preflight_limits = limits.clone();
+    preflight_limits.max_object_count = preflight_limits.max_object_count.max(1_024);
+    let revisions = inspect_revisions(bytes, &preflight_limits)?;
+    if revisions.iter().any(|revision| {
+        revision
+            .trailer
+            .as_ref()
+            .and_then(|trailer| trailer.dictionary_value(b"Encrypt"))
+            .is_some()
+    }) || trailer_declares_encryption(bytes, &preflight_limits)
+    {
+        return Ok(());
+    }
+
+    let xref_count = revisions.iter().fold(0usize, |count, revision| {
+        count.saturating_add(revision.object_count)
+    });
+    let object_header_count = count_indirect_object_headers(bytes, limits.max_object_count);
+    let actual = xref_count.max(object_header_count);
+    if actual > limits.max_object_count {
+        return Err(PdfError::TooManyObjects {
+            actual,
+            limit: limits.max_object_count,
+        });
+    }
+    Ok(())
+}
+
+fn trailer_declares_encryption(bytes: &[u8], limits: &SafetyLimits) -> bool {
+    let Some(start) = final_startxref(bytes) else {
+        return false;
+    };
+    let Some(relative_trailer) = bytes.get(start..).and_then(|tail| {
+        tail.windows(b"trailer".len())
+            .rposition(|window| window == b"trailer")
+    }) else {
+        return false;
+    };
+    let mut parser = RawParser::at(bytes, start + relative_trailer + b"trailer".len(), limits).ok();
+    parser.as_mut().is_some_and(|parser| {
+        parser.skip_space_and_comments();
+        parser
+            .parse_value(0)
+            .is_some_and(|trailer| trailer.dictionary_value(b"Encrypt").is_some())
+    })
+}
+
+fn count_indirect_object_headers(bytes: &[u8], limit: usize) -> usize {
+    let mut count = 0usize;
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if let Some((_, _, next)) = indirect_object_header(bytes, cursor) {
+            count = count.saturating_add(1);
+            if count > limit {
+                return count;
+            }
+            cursor = stream_end_after_object(bytes, next).unwrap_or(next);
+        } else {
+            cursor = read_line(bytes, cursor).map_or(bytes.len(), |(_, next)| next);
+        }
+    }
+    count
+}
+
 #[derive(Clone, Debug)]
 enum RawValue {
     Null,
@@ -827,6 +899,7 @@ struct Revision {
     trailer: Option<RawValue>,
     previous: Option<usize>,
     xref_stream: Option<usize>,
+    object_count: usize,
 }
 
 fn inspect_revisions(bytes: &[u8], limits: &SafetyLimits) -> Result<Vec<Revision>, PdfError> {
@@ -865,6 +938,7 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
             .and_then(|value| value.dictionary_value(b"Prev"))
             .and_then(RawValue::integer)
             .and_then(|value| usize::try_from(value).ok());
+        let object_count = trailer.as_ref().map_or(0, xref_stream_object_count);
         return Some(Revision {
             offset,
             spacing_compliant: true,
@@ -872,11 +946,13 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
             trailer,
             previous,
             xref_stream: None,
+            object_count,
         });
     }
     let mut cursor = offset + b"xref".len();
     let mut eol_compliant = true;
     let mut spacing_compliant = true;
+    let mut object_count = 0usize;
     let eol_count = consume_eols(bytes, &mut cursor);
     eol_compliant &= eol_count == 1;
     let before_horizontal_space = cursor;
@@ -906,6 +982,7 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
                 trailer,
                 previous,
                 xref_stream,
+                object_count,
             });
         }
         let (line, next) = read_line(bytes, cursor)?;
@@ -917,10 +994,46 @@ fn parse_revision(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> Option<
         spacing_compliant &= spacing;
         cursor = next;
         for _ in 0..count {
-            let (_, next) = read_line(bytes, cursor)?;
+            let (entry, next) = read_line(bytes, cursor)?;
+            if xref_entry_is_normal(entry) {
+                object_count = object_count.saturating_add(1);
+            }
             cursor = next;
         }
     }
+}
+
+fn xref_entry_is_normal(line: &[u8]) -> bool {
+    line.split(|byte| byte.is_ascii_whitespace())
+        .filter(|field| !field.is_empty())
+        .nth(2)
+        == Some(b"n")
+}
+
+fn xref_stream_object_count(value: &RawValue) -> usize {
+    let Some(index) = value.dictionary_value(b"Index") else {
+        return value
+            .dictionary_value(b"Size")
+            .and_then(RawValue::integer)
+            .and_then(|size| usize::try_from(size).ok())
+            .unwrap_or_default()
+            .saturating_sub(1);
+    };
+    let RawValue::Array(values) = index else {
+        return 0;
+    };
+    let (ranges, _) = values.as_chunks::<2>();
+    let includes_object_zero = ranges.iter().any(|range| range[0].integer() == Some(0));
+    ranges
+        .iter()
+        .filter_map(|range| {
+            let start = range[0].integer()?;
+            let count = range[1].integer()?;
+            let _ = usize::try_from(start).ok()?;
+            usize::try_from(count).ok()
+        })
+        .fold(0usize, usize::saturating_add)
+        .saturating_sub(usize::from(includes_object_zero))
 }
 
 fn parse_xref_stream_dictionary(
@@ -1922,6 +2035,39 @@ mod tests {
         assert!(matches!(
             inspect_revisions(&bytes, &limits),
             Err(PdfError::ReferenceDepth(1))
+        ));
+    }
+
+    #[test]
+    fn preflight_rejects_many_indirect_objects_before_loading_them() {
+        use std::io::Write as _;
+
+        let object_count = 32;
+        let mut bytes = b"%PDF-1.4\n".to_vec();
+        let mut offsets = Vec::with_capacity(object_count);
+        for object_number in 1..=object_count {
+            offsets.push(bytes.len());
+            writeln!(bytes, "{object_number} 0 obj\nnull\nendobj").expect("write object");
+        }
+        let xref_offset = bytes.len();
+        writeln!(bytes, "xref\n0 {}", object_count + 1).expect("write xref header");
+        bytes.extend_from_slice(b"0000000000 65535 f \n");
+        for offset in offsets {
+            writeln!(bytes, "{offset:010} 00000 n ").expect("write xref entry");
+        }
+        writeln!(bytes, "trailer\n<< /Size {} >>", object_count + 1).expect("write trailer");
+        writeln!(bytes, "startxref\n{xref_offset}\n%%EOF").expect("write footer");
+
+        let limits = SafetyLimits {
+            max_object_count: 8,
+            ..SafetyLimits::default()
+        };
+        assert!(matches!(
+            preflight_object_limit(&bytes, &limits),
+            Err(PdfError::TooManyObjects {
+                actual: 32,
+                limit: 8
+            })
         ));
     }
 

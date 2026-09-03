@@ -104,8 +104,9 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         repair_xml_controls(&mut xml);
         preflight_xml_depth(&xml, MAX_BOUNDED_XML_DEPTH)?;
     }
-    let document = Document::parse_with_options(&xml, bounded_parsing_options(MAX_BOUNDED_XML_NODES))
-        .map_err(|error| error.to_string())?;
+    let document =
+        Document::parse_with_options(&xml, bounded_parsing_options(MAX_BOUNDED_XML_NODES))
+            .map_err(|error| error.to_string())?;
     validate_xml_depth(&document, MAX_BOUNDED_XML_DEPTH)?;
     let Some((rdf, packet_header)) = select_xmp_root(&document) else {
         return Ok(XmpMetadata::default());

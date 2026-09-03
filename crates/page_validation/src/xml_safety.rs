@@ -131,12 +131,12 @@ mod tests {
             xml.push_str("</a>");
         }
         assert!(preflight_xml_depth(&xml, 3).is_err());
-        assert!(preflight_xml_depth(&xml, 10).is_ok());
+        preflight_xml_depth(&xml, 10).unwrap();
     }
 
     #[test]
     fn bounded_parsing_options_rejects_dtd() {
         let options = bounded_parsing_options(10);
-        assert!(Document::parse_with_options("<!DOCTYPE x><x/>", options).is_err());
+        Document::parse_with_options("<!DOCTYPE x><x/>", options).unwrap_err();
     }
 }
