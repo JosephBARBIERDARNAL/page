@@ -95,10 +95,6 @@ bench:
 # Backward-compatible name for the benchmark command.
 benchmark: bench
 
-# Regenerate checked-in rule-mapping documentation.
-doc-rules:
-    cargo test -p page_validation --test rule_mapping_docs regenerate_rule_mapping_documentation -- --ignored --exact
-
 # Clean documentation cache
 doc-clean:
     uvx zensical build --clean

@@ -13,11 +13,6 @@ nav = [
     { "Rust" = "api/rust.md" },
     { "Python" = "api/python.md" },
   ] },
-  { "Rules" = [
-    { "PDF/A-1" = "rules/pdfa-1-rules.md" },
-    { "PDF/A-2 and PDF/A-3" = "rules/pdfa-2-3-rules.md" },
-    { "PDF/UA-1" = "rules/pdfua-1-rules.md" },
-  ] },
   { "Benchmark" = "benchmark.md" },
   { "About" = "about.md" },
 ]

@@ -125,7 +125,6 @@
     "schema_version": 1,
     "document": {
       "title": "PDF/UA-1 pinned rule mapping",
-      "output_path": "docs/rules/pdfua-1-rules.md",
       "local_only_description": "These checks support parsing, bounded inspection, or local model preconditions and do not map to a standalone veraPDF profile predicate."
     },
     "applicability_sections": [
