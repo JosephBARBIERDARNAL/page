@@ -87,7 +87,7 @@ impl ValidationProfile {
             Self::PdfA3b => 146,
             Self::PdfA3a => 156,
             Self::PdfA3u => 148,
-            Self::PdfUa1 => 91,
+            Self::PdfUa1 => 104,
             _ => 0,
         }
     }
@@ -175,19 +175,6 @@ impl ValidationProfile {
 /// `None` for zero or multiple entries.
 fn only<T>(items: &[T]) -> Option<&T> {
     items.first().filter(|_| items.len() == 1)
-}
-
-/// The selected profile and compliance outcome returned by [`is_pdf_compliant_with_profile`].
-///
-/// `profile` is either the explicitly requested profile or the one inferred
-/// from the document's XMP metadata. `is_compliant` is `false` as soon as the
-/// validator finds the first failing rule.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ComplianceResult {
-    /// The profile used for validation.
-    pub profile: ValidationProfile,
-    /// Whether every rule checked before completion passed.
-    pub is_compliant: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
