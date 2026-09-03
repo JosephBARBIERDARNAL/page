@@ -322,7 +322,8 @@ pub fn is_pdf_compliant(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<bool, ValidationError> {
-    is_pdf_compliant_with_profile(path, profile, limits).map(|result| result.is_compliant)
+    reject_unimplemented_profile(profile)?;
+    is_pdf_compliant_bytes(&read_file(path, limits)?, profile, limits)
 }
 
 /// Performs fast validation of bytes and returns only the compliance outcome.
@@ -331,27 +332,6 @@ pub fn is_pdf_compliant_bytes(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<bool, ValidationError> {
-    is_pdf_compliant_bytes_with_profile(bytes, profile, limits).map(|result| result.is_compliant)
-}
-
-/// Performs fast validation and returns the selected profile with the compliance outcome.
-///
-/// This is useful when callers need both the boolean result and the profile inferred from the document.
-pub fn is_pdf_compliant_with_profile(
-    path: &Path,
-    profile: Option<ValidationProfile>,
-    limits: &SafetyLimits,
-) -> Result<ComplianceResult, ValidationError> {
-    reject_unimplemented_profile(profile)?;
-    is_pdf_compliant_bytes_with_profile(&read_file(path, limits)?, profile, limits)
-}
-
-/// Performs fast validation of bytes and returns the selected profile with the compliance outcome.
-pub fn is_pdf_compliant_bytes_with_profile(
-    bytes: &[u8],
-    profile: Option<ValidationProfile>,
-    limits: &SafetyLimits,
-) -> Result<ComplianceResult, ValidationError> {
     reject_unimplemented_profile(profile)?;
     let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
@@ -365,10 +345,7 @@ pub fn is_pdf_compliant_bytes_with_profile(
         crate::model::InspectionPlan::for_profile(profile),
     )?;
     let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
-    Ok(ComplianceResult {
-        profile,
-        is_compliant: !preflight_failed && report.is_compliant,
-    })
+    Ok(!preflight_failed && report.is_compliant)
 }
 
 fn has_preflight_failure(
@@ -3722,15 +3699,14 @@ mod tests {
             .save_to(&mut invalid)
             .expect("write invalid fixture");
 
-        let result = is_pdf_compliant_bytes_with_profile(
+        let result = is_pdf_compliant_bytes(
             &invalid,
             Some(ValidationProfile::PdfA1b),
             &SafetyLimits::default(),
         )
         .expect("validate fixture");
 
-        assert_eq!(result.profile, ValidationProfile::PdfA1b);
-        assert!(!result.is_compliant);
+        assert!(!result);
     }
 
     #[test]
@@ -4465,9 +4441,8 @@ mod tests {
             max_decoded_stream_size: 16,
             ..SafetyLimits::default()
         };
-        let error =
-            is_pdf_compliant_bytes_with_profile(&bytes, Some(ValidationProfile::PdfA1b), &limits)
-                .expect_err("content stream limit after preflight failure");
+        let error = is_pdf_compliant_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits)
+            .expect_err("content stream limit after preflight failure");
         assert!(matches!(
             error,
             ValidationError::Pdf(PdfError::ContentDecodeLimit(16))

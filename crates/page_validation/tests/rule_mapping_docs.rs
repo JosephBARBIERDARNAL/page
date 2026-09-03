@@ -81,7 +81,6 @@ fn pdfa_2_3_applicability_is_profile_accurate() {
         &["2a", "3a"],
         "a_only",
     );
-
 }
 
 fn assert_mapping_profiles(
