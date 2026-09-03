@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 
 use serde::Serialize;
@@ -185,7 +186,7 @@ enum ValidationMode {
 
 /// Reads a file from disk and validates it against a selected profile.
 ///
-/// Pass `None` for `profile` to infer the profile from the document's XMP metadata, or `Some(profile)` to validate against that profile regardless of the declaration. This is the file-based counterpart of [`validate_pdf_bytes`]. It enforces `limits.max_input_size` against the file's size before reading it into memory, then delegates to `validate_pdf_bytes`. The returned report has its `source` set to `path`.
+/// Pass `None` for `profile` to infer the profile from the document's XMP metadata, or `Some(profile)` to validate against that profile regardless of the declaration. This is the file-based counterpart of [`validate_pdf_bytes`]. It enforces `limits.max_input_size` against the file's size before reading it into memory and bounds the read if the file grows, then delegates to `validate_pdf_bytes`. The returned report has its `source` set to `path`.
 ///
 /// ## Arguments
 ///
@@ -233,7 +234,8 @@ fn validate_pdf_with_mode(
 }
 
 fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationError> {
-    let metadata = fs::metadata(path)?;
+    let file = fs::File::open(path)?;
+    let metadata = file.metadata()?;
     if metadata.len() > limits.max_input_size {
         return Err(PdfError::InputTooLarge {
             actual: metadata.len(),
@@ -241,7 +243,18 @@ fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationEr
         }
         .into());
     }
-    Ok(fs::read(path)?)
+
+    let read_limit = limits.max_input_size.saturating_add(1);
+    let mut bytes = Vec::new();
+    file.take(read_limit).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > limits.max_input_size {
+        return Err(PdfError::InputTooLarge {
+            actual: bytes.len() as u64,
+            limit: limits.max_input_size,
+        }
+        .into());
+    }
+    Ok(bytes)
 }
 
 /// Validates PDF bytes already in memory against a selected profile.
@@ -4396,6 +4409,23 @@ mod tests {
         assert!(matches!(
             error,
             ValidationError::Pdf(PdfError::InputTooLarge { .. })
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn bounded_file_read_rejects_an_unbounded_input() {
+        let limits = SafetyLimits {
+            max_input_size: 4,
+            ..SafetyLimits::default()
+        };
+        let error = read_file(Path::new("/dev/zero"), &limits).expect_err("input size limit");
+        assert!(matches!(
+            error,
+            ValidationError::Pdf(PdfError::InputTooLarge {
+                actual: 5,
+                limit: 4
+            })
         ));
     }
 
