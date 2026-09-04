@@ -8,7 +8,12 @@ type DemoRoot = HTMLElement & {
 
 type ValidationReport = {
   isCompliant: boolean;
-  failures?: Array<{ ruleId?: string; clause?: string; message?: string }>;
+  failures?: Array<{
+    ruleId?: string;
+    message?: string;
+    category?: string;
+    objectId?: { objectNumber?: number; generation?: number } | null;
+  }>;
 };
 
 function formatBytes(bytes: number): string {
@@ -50,14 +55,45 @@ function renderReport(output: HTMLElement, report: ValidationReport): void {
     summary.textContent = `${failures.length} validation failure${failures.length === 1 ? "" : "s"}.`;
     output.append(summary);
 
-    const list = createElement("ul");
-    for (const failure of failures) {
-      const item = createElement("li");
-      const identifier = failure.ruleId ?? failure.clause ?? "Validation rule";
-      item.textContent = `${identifier}: ${failure.message ?? "The document violates this rule."}`;
-      list.append(item);
+    const tableWrapper = createElement("div", "validator-failures-wrapper");
+    const table = createElement("table", "validator-failures");
+    const header = createElement("thead");
+    const headerRow = createElement("tr");
+    for (const label of ["Rule", "Category", "Message", "Object"]) {
+      const cell = createElement("th");
+      cell.scope = "col";
+      cell.textContent = label;
+      headerRow.append(cell);
     }
-    output.append(list);
+    header.append(headerRow);
+    table.append(header);
+
+    const body = createElement("tbody");
+    for (const failure of failures) {
+      const row = createElement("tr");
+      const rule = createElement("th");
+      rule.scope = "row";
+      rule.textContent = failure.ruleId ?? "—";
+      row.append(rule);
+
+      const category = createElement("td");
+      category.textContent = failure.category ?? "—";
+      row.append(category);
+
+      const message = createElement("td");
+      message.textContent = failure.message ?? "—";
+      row.append(message);
+
+      const object = createElement("td");
+      object.textContent = failure.objectId
+        ? `${failure.objectId.objectNumber ?? "—"} ${failure.objectId.generation ?? "—"}`
+        : "—";
+      row.append(object);
+      body.append(row);
+    }
+    table.append(body);
+    tableWrapper.append(table);
+    output.append(tableWrapper);
   }
 }
 
@@ -119,12 +155,10 @@ function initializeDemo(root: DemoRoot): void {
     }
 
     validateButton.disabled = true;
-    validateButton.textContent = "Validating…";
+    validateButton.classList.add("validator-button--loading");
+    validateButton.setAttribute("aria-busy", "true");
     output.replaceChildren();
     output.className = "validator-result validator-result--pending";
-    const pending = createElement("p");
-    pending.textContent = "The PDF is being checked locally in your browser…";
-    output.append(pending);
 
     try {
       const bytes = new Uint8Array(await selectedFile.arrayBuffer());
@@ -138,13 +172,14 @@ function initializeDemo(root: DemoRoot): void {
       renderError(output, error);
     } finally {
       validateButton.disabled = false;
-      validateButton.textContent = "Validate PDF";
+      validateButton.classList.remove("validator-button--loading");
+      validateButton.removeAttribute("aria-busy");
     }
   });
 }
 
 function initializeCurrentPage(): void {
-  const root = document.querySelector<DemoRoot>("[data-page-validator-demo]");
+  const root = document.querySelector<DemoRoot>("[data-page-demo]");
   if (root) {
     initializeDemo(root);
   }

@@ -9,9 +9,9 @@ export default defineConfig({
     lib: {
       entry: "src/main.ts",
       formats: ["es"],
-      fileName: "validator-demo",
+      fileName: "demo",
     },
-    outDir: "../../docs/javascripts/validator-demo",
+    outDir: "../../docs/javascripts/demo",
     rollupOptions: {
       output: {
         assetFileNames: "[name][extname]",

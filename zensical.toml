@@ -4,9 +4,9 @@ repo_url = "https://github.com/josephbarbierdarnal/page"
 site_url = "https://josephbarbierdarnal.github.io/page/"
 site_description = "PDF/A and PDF/UA validation engine"
 site_author = "Joseph Barbier"
-extra_css = ["stylesheets/style.css", "javascripts/validator-demo/validator-demo.css"]
+extra_css = ["stylesheets/style.css", "javascripts/demo/demo.css"]
 extra_javascript = [
-  { path = "javascripts/validator-demo/validator-demo.js", type = "module" },
+  { path = "javascripts/demo/demo.js", type = "module" },
 ]
 nav = [
   { "Home" = "index.md" },

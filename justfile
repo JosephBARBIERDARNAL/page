@@ -101,6 +101,7 @@ doc-clean:
 
 # Serve documentation
 preview:
+    cd demo && npm run build
     uvx zensical serve
 
 # Install locally
@@ -113,3 +114,7 @@ logo:
     typst compile docs/images/logo.typ docs/images/logo-mark-on-light.svg --input surface=light --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-dark.svg --input label=false --input surface=dark --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-light.svg --input label=false --input surface=light --ppi 300
+
+# Build demo Wasm page
+demo:
+    cd demo && npm run build

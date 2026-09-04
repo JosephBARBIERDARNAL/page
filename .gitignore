@@ -6,7 +6,7 @@ site/
 sandbox
 .cache
 .claude
-docs/javascripts/validator-demo/
+docs/javascripts/demo/
 
 veraPDF-library
 page-brand-guideline.typ
