@@ -11,7 +11,7 @@ export default defineConfig({
       formats: ["es"],
       fileName: "demo",
     },
-    outDir: "../../docs/javascripts/demo",
+    outDir: "../docs/javascripts/demo",
     rollupOptions: {
       output: {
         assetFileNames: "[name][extname]",

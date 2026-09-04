@@ -20,15 +20,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/demo/package-lock.json
+          cache-dependency-path: demo/package-lock.json
 
       - name: Install demo dependencies
         run: npm ci
-        working-directory: web/demo
+        working-directory: demo
 
       - name: Build validation demo
         run: npm run build
-        working-directory: web/demo
+        working-directory: demo
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
