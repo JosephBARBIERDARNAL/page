@@ -4,7 +4,7 @@ A fast and lightweight PDF accessibility and compliance checker.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
-- Usage: [CLI](https://josephbarbierdarnal.github.io/page/docs/api/cli), [Rust](https://josephbarbierdarnal.github.io/page/docs/api/rust) or [Python](https://josephbarbierdarnal.github.io/page/docs/api/python)
+- Usage: [CLI](https://josephbarbierdarnal.github.io/page/docs/api/cli), [Rust](https://josephbarbierdarnal.github.io/page/docs/api/rust), [Python](https://josephbarbierdarnal.github.io/page/docs/api/python) or [WebAssembly](https://josephbarbierdarnal.github.io/page/api/wasm/)
 - [License](#license)
 
 <br>
@@ -122,6 +122,27 @@ else:
 ```
 
 [Learn more about how to use the Python package.](https://josephbarbierdarnal.github.io/page/api/python/)
+
+### WebAssembly
+
+Read a PDF as a `Uint8Array` and validate it in the browser:
+
+```ts
+import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
+
+const bytes = new Uint8Array(await pdfFile.arrayBuffer());
+const report = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B);
+
+if (report.isCompliant) {
+  console.log("The document passed all implemented checks.");
+} else {
+  for (const failure of report.failures) {
+    console.log(`[${failure.ruleId}] ${failure.message}`);
+  }
+}
+```
+
+[Learn more about how to use the WebAssembly package.](https://josephbarbierdarnal.github.io/page/api/wasm/)
 
 <br>
 

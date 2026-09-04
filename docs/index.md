@@ -1,6 +1,6 @@
 # page
 
-A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a [CLI](api/cli.md), a [Rust crate](api/rust.md) and a [Python package](api/python.md).
+A fast and lightweight PDF accessibility and compliance checker. You can currently use it as a [CLI](api/cli.md), a [Rust crate](api/rust.md), [Python package](api/python.md) and [WebAssembly](api/wasm.md).
 
 ## Features
 
@@ -9,7 +9,7 @@ A fast and lightweight PDF accessibility and compliance checker. You can current
 - **Tested**: uses the same test corpus as _veraPDF_ :material-information-outline:{ title="veraPDF is the gold standard of PDF/A validation, which is why it's used as a reference." }
 - **Fast**: preliminary tests suggest that `page` is [3x to 15x faster than veraPDF](benchmark.md)
 - **Lightweight**: ~9 MB binary, with peak RSS 3x to 8x lower than veraPDF
-- **Easy to use**: ships as a single binary with zero runtime requirements, and can be used from the command line, Rust or Python
+- **Easy to use**: ships as a single binary with zero runtime requirements, and can be used from the command line, Rust, Python or in the browser via WebAssembly
 
 Ready to get started? Check out [installation instructions](installation.md).
 
