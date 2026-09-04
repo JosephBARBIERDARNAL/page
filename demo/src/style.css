@@ -65,8 +65,8 @@
 
 .validator-result {
   margin-top: 0.25rem;
-  padding: 1rem;
-  border-radius: 0.35rem;
+  padding: 0.25rem 0 0.25rem 0.9rem;
+  border-left: 3px solid transparent;
 }
 
 .validator-result:empty {
@@ -75,68 +75,74 @@
 
 .validator-result h3,
 .validator-result p {
-  margin-top: 0;
+  margin: 0 !important;
 }
 
 .validator-result--pass {
-  background: color-mix(
-    in srgb,
-    var(--color-success) 14%,
-    var(--content-bg-light)
-  );
-  border: 1px solid var(--color-success);
+  border-left-color: color-mix(in srgb, var(--color-success) 65%, var(--color-border));
+}
+
+[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--pass h3,
+[data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--pass h3 {
+  color: var(--color-success);
 }
 
 .validator-result--fail,
 .validator-result--error {
-  background: color-mix(
-    in srgb,
-    var(--color-error) 12%,
-    var(--content-bg-light)
-  );
-  border: 1px solid var(--color-error);
+  border-left-color: color-mix(in srgb, var(--color-error) 65%, var(--color-border));
+}
+
+[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--fail h3,
+[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--error h3,
+[data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--fail h3,
+[data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--error h3 {
+  color: var(--color-error);
 }
 
 .validator-result--pending {
-  border-color: var(--color-teal);
-}
-
-.validator-failures-wrapper {
-  overflow-x: auto;
+  border-left-color: var(--color-teal);
 }
 
 .validator-failures {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
 }
 
-.validator-failures th,
-.validator-failures td {
-  padding: 0.7rem 0.8rem;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  vertical-align: top;
+.validator-failures li {
+  margin: 0.65rem 0;
+  padding-left: 0.25rem;
 }
 
-.validator-failures thead th {
-  color: var(--color-slate);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+.validator-failure-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
-.validator-failures tbody th {
+.validator-failure-rule {
   color: var(--color-navy);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-.validator-failures tbody tr:last-child th,
-.validator-failures tbody tr:last-child td {
-  border-bottom: 0;
+.validator-failure-category {
+  padding: 0.15rem 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--color-slate) 35%, transparent);
+  border-radius: 999px;
+  color: var(--color-slate);
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.validator-failure-message {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-slate);
+  line-height: 1.45;
 }
 
 .validator-spinner {
@@ -164,24 +170,7 @@
   color: var(--text-dark);
 }
 
-[data-md-color-scheme="slate"] .validator-result--pass {
-  background: color-mix(
-    in srgb,
-    var(--color-success) 14%,
-    var(--content-bg-dark)
-  );
-}
-
-[data-md-color-scheme="slate"] .validator-result--fail,
-[data-md-color-scheme="slate"] .validator-result--error {
-  background: color-mix(
-    in srgb,
-    var(--color-error) 12%,
-    var(--content-bg-dark)
-  );
-}
-
-[data-md-color-scheme="slate"] .validator-failures tbody th {
+[data-md-color-scheme="slate"] .validator-failure-rule {
   color: var(--text-dark);
 }
 

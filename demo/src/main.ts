@@ -12,7 +12,6 @@ type ValidationReport = {
     ruleId?: string;
     message?: string;
     category?: string;
-    objectId?: { objectNumber?: number; generation?: number } | null;
   }>;
 };
 
@@ -55,45 +54,26 @@ function renderReport(output: HTMLElement, report: ValidationReport): void {
     summary.textContent = `${failures.length} validation failure${failures.length === 1 ? "" : "s"}.`;
     output.append(summary);
 
-    const tableWrapper = createElement("div", "validator-failures-wrapper");
-    const table = createElement("table", "validator-failures");
-    const header = createElement("thead");
-    const headerRow = createElement("tr");
-    for (const label of ["Rule", "Category", "Message", "Object"]) {
-      const cell = createElement("th");
-      cell.scope = "col";
-      cell.textContent = label;
-      headerRow.append(cell);
-    }
-    header.append(headerRow);
-    table.append(header);
-
-    const body = createElement("tbody");
+    const list = createElement("ul", "validator-failures");
     for (const failure of failures) {
-      const row = createElement("tr");
-      const rule = createElement("th");
-      rule.scope = "row";
+      const item = createElement("li");
+      const header = createElement("div", "validator-failure-header");
+      const rule = createElement("code", "validator-failure-rule");
       rule.textContent = failure.ruleId ?? "—";
-      row.append(rule);
+      header.append(rule);
 
-      const category = createElement("td");
-      category.textContent = failure.category ?? "—";
-      row.append(category);
+      if (failure.category) {
+        const category = createElement("span", "validator-failure-category");
+        category.textContent = failure.category;
+        header.append(category);
+      }
 
-      const message = createElement("td");
+      const message = createElement("span", "validator-failure-message");
       message.textContent = failure.message ?? "—";
-      row.append(message);
-
-      const object = createElement("td");
-      object.textContent = failure.objectId
-        ? `${failure.objectId.objectNumber ?? "—"} ${failure.objectId.generation ?? "—"}`
-        : "—";
-      row.append(object);
-      body.append(row);
+      item.append(header, message);
+      list.append(item);
     }
-    table.append(body);
-    tableWrapper.append(table);
-    output.append(tableWrapper);
+    output.append(list);
   }
 }
 
