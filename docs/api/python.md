@@ -2,9 +2,9 @@
 title: "Python"
 ---
 
-The `page-validation` package provides Python bindings for PDF/A and PDF/UA validation. This page contains the most common usages; see the [Python bindings repository](https://github.com/josephbarbierdarnal/page-validation) for reference documentation.
+The [`page-validation`](https://pypi.org/project/page-validation/) package provides Python bindings for page.
 
-## Add the dependency
+## Installation
 
 === "uv"
 

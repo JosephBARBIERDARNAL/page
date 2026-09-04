@@ -6,6 +6,7 @@ site/
 sandbox
 .cache
 .claude
+docs/javascripts/validator-demo/
 
 veraPDF-library
 page-brand-guideline.typ
@@ -16,3 +17,4 @@ PDF-ISO
 
 bench/*.pdf
 release.sh
+node_modules

@@ -11,6 +11,20 @@ jobs:
         with:
           python-version: 3.x
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/validator-demo/package-lock.json
+
+      - name: Install demo dependencies
+        run: npm ci
+        working-directory: web/validator-demo
+
+      - name: Build validation demo
+        run: npm run build
+        working-directory: web/validator-demo
+
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
 
