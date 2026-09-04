@@ -9,7 +9,7 @@ use serde::Serialize;
 use crate::error::{PdfError, ValidationError};
 use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
-use crate::model::{PdfDocument, PdfObjectId};
+use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
 use crate::report::{
     FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
 };
@@ -338,14 +338,58 @@ pub fn is_pdf_compliant_bytes(
     reject_unimplemented_profile(Some(profile))?;
     let (preparation, syntax) = preparation.with_syntax(bytes, limits)?;
     let preflight_failed = has_preflight_failure(preparation.document(), &syntax.header, profile);
-    let (document, inspections) = preparation.into_inspections_with_syntax(
+    if preflight_failed {
+        preparation.check_content_limits(limits)?;
+        return Ok(false);
+    }
+
+    let mut stopped = false;
+    let _ = preparation.into_inspections_with_syntax_staged(
         bytes,
         limits,
         syntax,
         crate::model::InspectionPlan::for_profile(profile),
+        |stage, document, inspections| {
+            let should_validate = if profile == ValidationProfile::PdfUa1 {
+                matches!(
+                    stage,
+                    InspectionStage::DocumentFeatures
+                        | InspectionStage::Content
+                        | InspectionStage::Actions
+                        | InspectionStage::Forms
+                        | InspectionStage::Annotations
+                        | InspectionStage::Complete
+                )
+            } else {
+                matches!(
+                    stage,
+                    InspectionStage::Content
+                        | InspectionStage::IccBased
+                        | InspectionStage::XObjects
+                        | InspectionStage::Graphics
+                        | InspectionStage::Annotations
+                        | InspectionStage::Actions
+                        | InspectionStage::Forms
+                        | InspectionStage::DocumentFeaturesComplete
+                        | InspectionStage::StreamSafety
+                        | InspectionStage::UnicodeNames
+                        | InspectionStage::Complete
+                )
+            };
+            if should_validate {
+                let failures = collect_validation_failures(
+                    document,
+                    inspections,
+                    profile,
+                    ValidationMode::FirstFailure,
+                    Some(stage),
+                );
+                stopped = !failures.is_empty();
+            }
+            Ok(stopped)
+        },
     )?;
-    let report = validate_document(document, inspections, profile, ValidationMode::FirstFailure);
-    Ok(!preflight_failed && report.is_compliant)
+    Ok(!stopped)
 }
 
 fn has_preflight_failure(
@@ -548,21 +592,40 @@ fn declared_pdfua_profile(
 
 fn validate_document(
     document: PdfDocument,
-    inspections: crate::model::InspectionSummary,
+    inspections: InspectionSummary,
     profile: ValidationProfile,
     mode: ValidationMode,
 ) -> ValidationReport {
+    let failures = collect_validation_failures(&document, &inspections, profile, mode, None);
+    finish_report(
+        document,
+        profile,
+        failures,
+        profile.implemented_check_count(),
+    )
+}
+
+fn collect_validation_failures(
+    document: &PdfDocument,
+    inspections: &InspectionSummary,
+    profile: ValidationProfile,
+    mode: ValidationMode,
+    stage: Option<InspectionStage>,
+) -> Vec<ValidationFailure> {
     let mut failures = Vec::new();
 
     macro_rules! finish_on_first_failure {
         () => {
             if mode == ValidationMode::FirstFailure && !failures.is_empty() {
-                return finish_report(
-                    document,
-                    profile,
-                    failures,
-                    profile.implemented_check_count(),
-                );
+                return failures;
+            }
+        };
+    }
+
+    macro_rules! stop_at_stage {
+        ($expected:expr) => {
+            if mode == ValidationMode::FirstFailure && stage == Some($expected) {
+                return failures;
             }
         };
     }
@@ -1078,6 +1141,7 @@ fn validate_document(
             None,
             &mut failures,
         );
+        stop_at_stage!(InspectionStage::DocumentFeatures);
         aggregate_failures_with_location(
             &inspections.content.artifacts_inside_tagged_content,
             "PDFUA1-ARTIFACT-NESTED-001",
@@ -1109,6 +1173,7 @@ fn validate_document(
                 ));
             }
         }
+        stop_at_stage!(InspectionStage::Content);
         let mut pdfua_language_failures = inspections
             .document_features
             .language_failures_pdfua1
@@ -1262,6 +1327,9 @@ fn validate_document(
             None,
             &mut failures,
         );
+        stop_at_stage!(InspectionStage::Actions);
+        stop_at_stage!(InspectionStage::Forms);
+        stop_at_stage!(InspectionStage::Annotations);
         aggregate_failures_with_location(
             &inspections
                 .font_embedding
@@ -1430,12 +1498,7 @@ fn validate_document(
             None,
             &mut failures,
         );
-        return finish_report(
-            document,
-            profile,
-            failures,
-            profile.implemented_check_count(),
-        );
+        return failures;
     }
 
     if document.encrypted {
@@ -1446,7 +1509,7 @@ fn validate_document(
             FailureCategory::Conformance,
         ));
         if document.encrypted_content_unavailable {
-            return finish_report(document, profile, failures, 2);
+            return failures;
         }
     }
     finish_on_first_failure!();
@@ -1719,7 +1782,7 @@ fn validate_document(
     finish_on_first_failure!();
 
     if !profile.is_pdfa_2_or_3() {
-        validate_info_consistency(&document, &mut failures);
+        validate_info_consistency(document, &mut failures);
     }
     finish_on_first_failure!();
 
@@ -1751,8 +1814,9 @@ fn validate_document(
     }
     finish_on_first_failure!();
 
-    validate_output_intents(profile, &document, &mut failures);
+    validate_output_intents(profile, document, &mut failures);
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::Content);
 
     aggregate_failures_with_location(
         if profile.is_pdfa_2_or_3() {
@@ -1795,11 +1859,13 @@ fn validate_document(
         );
     }
     finish_on_first_failure!();
-    let output_color_space = pdfa_output_color_space(&document);
+    let output_color_space = pdfa_output_color_space(document);
     validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::IccBased);
     validate_xobjects(profile, &inspections.xobjects, &mut failures);
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::XObjects);
     validate_graphics(
         profile,
         &inspections.graphics,
@@ -1808,6 +1874,7 @@ fn validate_document(
         &mut failures,
     );
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::Graphics);
     validate_annotations(
         output_color_space,
         profile,
@@ -1815,10 +1882,13 @@ fn validate_document(
         &mut failures,
     );
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::Annotations);
     validate_actions(profile, &inspections.actions, &mut failures);
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::Actions);
     validate_forms(&inspections.forms, &mut failures);
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::Forms);
     validate_document_features(
         profile,
         &inspections.document_features,
@@ -1826,6 +1896,7 @@ fn validate_document(
         &mut failures,
     );
     finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::DocumentFeaturesComplete);
     if profile.is_pdfa_2_or_3() {
         let mut invalid_unicode_names = inspections.unicode_names.failures.clone();
         invalid_unicode_names.extend(
@@ -1859,7 +1930,10 @@ fn validate_document(
         &inspections.content,
         &mut failures,
     );
+    finish_on_first_failure!();
+    stop_at_stage!(InspectionStage::StreamSafety);
 
+    stop_at_stage!(InspectionStage::UnicodeNames);
     validate_font_dictionaries(profile, &inspections.font_embedding, &mut failures);
     if profile.requires_unicode_mapping() {
         let invalid_unicode_mappings = if profile.is_pdfa_2_or_3() {
@@ -1895,6 +1969,7 @@ fn validate_document(
             &mut failures,
         );
     }
+    finish_on_first_failure!();
     if matches!(
         profile,
         ValidationProfile::PdfA2a | ValidationProfile::PdfA3a
@@ -1914,12 +1989,7 @@ fn validate_document(
     }
     validate_font_embedding(&inspections.font_embedding, &mut failures);
 
-    finish_report(
-        document,
-        profile,
-        failures,
-        profile.implemented_check_count(),
-    )
+    failures
 }
 
 fn validate_tagged_document(

@@ -155,6 +155,7 @@ pub struct PdfDocument {
     pub object_count: usize,
 }
 
+#[derive(Default)]
 pub(crate) struct InspectionSummary {
     pub(crate) header: crate::syntax::HeaderSummary,
     pub(crate) content: crate::content_support::ContentExecutionSummary,
@@ -169,6 +170,22 @@ pub(crate) struct InspectionSummary {
     pub(crate) object_limits: crate::object_limits::ObjectLimitsSummary,
     pub(crate) stream_safety: crate::stream_safety::StreamSafetySummary,
     pub(crate) unicode_names: crate::unicode_names::UnicodeNameSummary,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum InspectionStage {
+    DocumentFeatures,
+    Content,
+    IccBased,
+    XObjects,
+    Graphics,
+    Annotations,
+    Actions,
+    Forms,
+    DocumentFeaturesComplete,
+    StreamSafety,
+    UnicodeNames,
+    Complete,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -384,6 +401,13 @@ impl ValidationPreparation {
         &self.normalized
     }
 
+    pub(crate) fn check_content_limits(&self, limits: &SafetyLimits) -> Result<(), PdfError> {
+        let Some(pages) = self.pages.as_ref() else {
+            return Ok(());
+        };
+        crate::content_support::check_content_limits(&self.document, pages, limits)
+    }
+
     pub(crate) fn with_syntax(
         self,
         bytes: &[u8],
@@ -409,6 +433,20 @@ impl ValidationPreparation {
         syntax: crate::syntax::SyntaxSummary,
         plan: InspectionPlan,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
+        self.into_inspections_with_syntax_staged(bytes, limits, syntax, plan, |_, _, _| Ok(false))
+    }
+
+    pub(crate) fn into_inspections_with_syntax_staged<F>(
+        self,
+        bytes: &[u8],
+        limits: &SafetyLimits,
+        syntax: crate::syntax::SyntaxSummary,
+        plan: InspectionPlan,
+        mut after_stage: F,
+    ) -> Result<(PdfDocument, InspectionSummary), PdfError>
+    where
+        F: FnMut(InspectionStage, &PdfDocument, &InspectionSummary) -> Result<bool, PdfError>,
+    {
         let Self {
             document,
             pages,
@@ -418,18 +456,7 @@ impl ValidationPreparation {
         let inspections = if normalized.encrypted_content_unavailable {
             InspectionSummary {
                 header,
-                content: crate::content_support::ContentExecutionSummary::default(),
-                font_embedding: FontEmbeddingSummary::default(),
-                icc_based: crate::icc_based::IccBasedSummary::default(),
-                xobjects: crate::xobject::XObjectSummary::default(),
-                graphics: crate::graphics::GraphicsSummary::default(),
-                annotations: crate::annotations::AnnotationSummary::default(),
-                actions: crate::actions::ActionSummary::default(),
-                forms: crate::forms::FormSummary::default(),
-                document_features: crate::document_features::DocumentFeatureSummary::default(),
-                object_limits: crate::object_limits::ObjectLimitsSummary::default(),
-                stream_safety: crate::stream_safety::StreamSafetySummary::default(),
-                unicode_names: crate::unicode_names::UnicodeNameSummary::default(),
+                ..InspectionSummary::default()
             }
         } else {
             // Computed once and shared: every inspector below that walks the
@@ -445,57 +472,100 @@ impl ValidationPreparation {
             // One shared execution establishes the exact resource population
             // used by colour, XObject, graphics, and font rule predicates.
             let document_features = crate::document_features::inspect(&document, &pages, limits)?;
+            let mut inspections = InspectionSummary {
+                header,
+                document_features,
+                object_limits: syntax.object_limits.clone(),
+                ..InspectionSummary::default()
+            };
+            if after_stage(InspectionStage::DocumentFeatures, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
             let mut content_cache = crate::content_support::ContentCache::new();
             let content = crate::content_support::execute_content(
                 &document,
                 &pages,
                 &mut content_cache,
-                &document_features.tagged_text_language,
+                &inspections.document_features.tagged_text_language,
                 limits,
             )?;
             let plan = plan.after_content_discovery(
                 Some(!content.fonts.is_empty()),
                 Some(!content.xobjects.is_empty()),
                 Some(content.has_annotations),
-                Some(document_features.catalog_has_acro_form || content.has_widget_annotations),
                 Some(
-                    document_features.catalog_has_action_candidates
+                    inspections.document_features.catalog_has_acro_form
+                        || content.has_widget_annotations,
+                ),
+                Some(
+                    inspections.document_features.catalog_has_action_candidates
                         || content.has_page_or_annotation_actions,
                 ),
             );
-            let icc_based = crate::icc_based::inspect(&document, &content, limits)?;
-            let xobjects = crate::xobject::inspect(&document, &content, limits, plan.xobjects)?;
-            let graphics = crate::graphics::inspect(&document, &content, &pages, limits)?;
-            let actions = crate::actions::inspect(&document, &pages, limits, plan.actions)?;
-            let forms = crate::forms::inspect(&document, &pages, limits, plan.forms)?;
-            let annotations = crate::annotations::inspect(
+            inspections.content = content;
+            if after_stage(InspectionStage::Content, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            let icc_based = crate::icc_based::inspect(&document, &inspections.content, limits)?;
+            inspections.icc_based = icc_based;
+            if after_stage(InspectionStage::IccBased, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.xobjects =
+                crate::xobject::inspect(&document, &inspections.content, limits, plan.xobjects)?;
+            if after_stage(InspectionStage::XObjects, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.graphics =
+                crate::graphics::inspect(&document, &inspections.content, &pages, limits)?;
+            if after_stage(InspectionStage::Graphics, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.actions = crate::actions::inspect(&document, &pages, limits, plan.actions)?;
+            if after_stage(InspectionStage::Actions, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.forms = crate::forms::inspect(&document, &pages, limits, plan.forms)?;
+            if after_stage(InspectionStage::Forms, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.annotations = crate::annotations::inspect(
                 &document,
                 &pages,
-                document_features.catalog_contains_lang,
+                inspections.document_features.catalog_contains_lang,
                 limits,
                 plan.annotations,
             )?;
-            let object_limits = syntax.object_limits.clone();
-            let stream_safety = crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
-            let unicode_names =
-                crate::unicode_names::inspect(&document, &pages, limits, plan.unicode_names)?;
-            let font_embedding =
-                font_embedding::inspect(&document, &content, limits, plan.font_details)?;
-            InspectionSummary {
-                header,
-                content,
-                font_embedding,
-                icc_based,
-                xobjects,
-                graphics,
-                annotations,
-                actions,
-                forms,
-                document_features,
-                object_limits,
-                stream_safety,
-                unicode_names,
+            if after_stage(InspectionStage::Annotations, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
             }
+            if after_stage(
+                InspectionStage::DocumentFeaturesComplete,
+                &normalized,
+                &inspections,
+            )? {
+                return Ok((normalized, inspections));
+            }
+            inspections.stream_safety =
+                crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+            if after_stage(InspectionStage::StreamSafety, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.unicode_names =
+                crate::unicode_names::inspect(&document, &pages, limits, plan.unicode_names)?;
+            if after_stage(InspectionStage::UnicodeNames, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections.font_embedding = font_embedding::inspect(
+                &document,
+                &inspections.content,
+                limits,
+                plan.font_details,
+            )?;
+            if after_stage(InspectionStage::Complete, &normalized, &inspections)? {
+                return Ok((normalized, inspections));
+            }
+            inspections
         };
         Ok((normalized, inspections))
     }

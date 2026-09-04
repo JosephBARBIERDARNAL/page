@@ -341,6 +341,68 @@ pub(crate) fn execute_content(
     Ok(executor.summary)
 }
 
+pub(crate) fn check_content_limits(
+    document: &Document,
+    pages: &[PageEntry],
+    limits: &SafetyLimits,
+) -> Result<(), PdfError> {
+    let mut cache = ContentCache::new();
+    let mut total_decoded_bytes = 0usize;
+    for page_entry in pages {
+        let page = page_entry
+            .resolve(document)
+            .ok_or(PdfError::UnexpectedObject("page is not a dictionary"))?;
+        let Ok(contents) = page.get(b"Contents") else {
+            continue;
+        };
+        check_content_streams(
+            document,
+            contents,
+            &mut cache,
+            limits,
+            &mut total_decoded_bytes,
+            0,
+        )?;
+    }
+    Ok(())
+}
+
+fn check_content_streams(
+    document: &Document,
+    object: &Object,
+    cache: &mut ContentCache,
+    limits: &SafetyLimits,
+    total_decoded_bytes: &mut usize,
+    depth: usize,
+) -> Result<(), PdfError> {
+    if depth > limits.max_reference_depth {
+        return Err(PdfError::ReferenceDepth(limits.max_reference_depth));
+    }
+    let object_id = object.as_reference().ok();
+    let Some(resolved) = resolve_optional(document, object, limits.max_reference_depth)? else {
+        return Ok(());
+    };
+    match resolved {
+        Object::Array(items) => {
+            for item in items {
+                check_content_streams(
+                    document,
+                    item,
+                    cache,
+                    limits,
+                    total_decoded_bytes,
+                    depth + 1,
+                )?;
+            }
+        }
+        Object::Stream(stream) => {
+            decode_content_stream_cached(stream, object_id, cache, limits, total_decoded_bytes)?;
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 struct ContentExecutor<'a> {
     document: &'a Document,
     limits: &'a SafetyLimits,

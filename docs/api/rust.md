@@ -6,17 +6,8 @@ The [`page_validation`](https://crates.io/crates/page_validation) crate validate
 
 ## Installation
 
-Either run:
-
 ```sh
 cargo add page_validation
-```
-
-Or add the following to your `Cargo.toml`:
-
-```toml
-[dependencies]
-page_validation = "0.6.1"
 ```
 
 ## Check compliance of a PDF
