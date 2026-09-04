@@ -4,6 +4,9 @@
         <loc>https://josephbarbierdarnal.github.io/page/</loc>
       </url>
       <url>
+        <loc>https://josephbarbierdarnal.github.io/page/demo/</loc>
+      </url>
+      <url>
         <loc>https://josephbarbierdarnal.github.io/page/installation/</loc>
       </url>
       <url>
@@ -14,6 +17,9 @@
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/api/python/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/wasm/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/benchmark/</loc>
