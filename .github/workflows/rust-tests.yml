@@ -1,4 +1,4 @@
-name: Unit tests
+name: Rust | Unit tests
 
 on:
   push:
@@ -29,6 +29,11 @@ jobs:
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Python for PyO3
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
       - name: Install Typst
         uses: typst-community/setup-typst@v5
         with:
@@ -41,4 +46,4 @@ jobs:
         run: just typst
 
       - name: Run tests
-        run: cargo test --workspace --all-features --locked
+        run: just rust-test

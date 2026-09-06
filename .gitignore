@@ -4,17 +4,14 @@ CLAUDE.md
 site/
 .venv
 sandbox
-.cache
+*cache*
 .claude
 docs/javascripts/demo/
 
 veraPDF-library
-page-brand-guideline.typ
-page-brand-guideline.pdf
-brand-guideline.md
 
 PDF-ISO
 
 bench/*.pdf
-release.sh
 node_modules
+.venv

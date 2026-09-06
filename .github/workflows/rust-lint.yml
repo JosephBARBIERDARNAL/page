@@ -1,4 +1,4 @@
-name: Format/Lint
+name: Rust | Format/Lint
 
 on:
   push:
@@ -18,27 +18,24 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Install Typst
-        uses: typst-community/setup-typst@v5
-        with:
-          typst-version: 0.15.1
-
-      - name: Install just
-        uses: taiki-e/install-action@just
-
-      - name: Generate PDF fixtures
-        run: just typst
-
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Install Python for PyO3
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
       - name: Check formatting
-        run: cargo fmt --all --check
+        run: just rust-fmt-check
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: just rust-lint
 
       - name: Check dependency licenses
         uses: EmbarkStudios/cargo-deny-action@v2
