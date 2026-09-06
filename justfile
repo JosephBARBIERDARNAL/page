@@ -115,3 +115,8 @@ logo:
 # Build demo Wasm page
 demo:
     cd demo && npm run build
+
+# Run python tests and checks
+py-check:
+    uvx ruff format --check crates/page_python
+    uvx pytest crates/page_python -v
