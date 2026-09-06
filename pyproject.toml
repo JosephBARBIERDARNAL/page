@@ -1,6 +1,5 @@
 [project]
 name = "page-validation"
-dynamic = ["version"]
 description = "Python bindings to page, a fast and lightweight PDF accessibility and compliance checker."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,6 +18,7 @@ classifiers = [
   "Programming Language :: Rust",
 ]
 dependencies = []
+dynamic = ["version"]
 
 [project.urls]
 Documentation = "https://josephbarbierdarnal.github.io/page/api/python/"
@@ -47,16 +47,9 @@ manifest-path = "crates/page_python/Cargo.toml"
 module-name = "page._page"
 python-source = "crates/page_python"
 
-[tool.uv]
-cache-keys = [
-  { file = "pyproject.toml" },
-  { file = "Cargo.toml" },
-  { file = "Cargo.lock" },
-  { file = "crates/page_python/Cargo.toml" },
-  { file = "crates/page_python/src/**/*.rs" },
-  { file = "crates/page_validation/Cargo.toml" },
-  { file = "crates/page_validation/src/**/*" },
-]
+[tool.pyrefly]
+project-includes = ["crates/page_python/**/*.py", "crates/page_python/**/*.pyi"]
+search-path = ["crates/page_python"]
 
 [tool.pytest.ini_options]
 testpaths = ["crates/page_python/tests"]
@@ -68,6 +61,13 @@ target-version = "py310"
 [tool.ty.src]
 include = ["crates/page_python"]
 
-[tool.pyrefly]
-project-includes = ["crates/page_python/**/*.py", "crates/page_python/**/*.pyi"]
-search-path = ["crates/page_python"]
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "Cargo.lock" },
+  { file = "crates/page_python/Cargo.toml" },
+  { file = "crates/page_python/src/**/*.rs" },
+  { file = "crates/page_validation/Cargo.toml" },
+  { file = "crates/page_validation/src/**/*" },
+]

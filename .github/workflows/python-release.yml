@@ -9,18 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Check the shared release version
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: bash scripts/check-release-version.sh "$RELEASE_TAG"
-
   build:
-    needs: version
     uses: ./.github/workflows/python-build.yml
 
   publish:

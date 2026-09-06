@@ -1,4 +1,4 @@
-from importlib.metadata import version as _version
+from importlib.metadata import version
 
 from page._page import (
     FailureCategory,
@@ -16,7 +16,7 @@ from page._page import (
     validate_pdf_bytes,
 )
 
-__version__ = _version("page-validation")
+__version__ = version("page-validation")
 
 __all__ = [
     "FailureCategory",
