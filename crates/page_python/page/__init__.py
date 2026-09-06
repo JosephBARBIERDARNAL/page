@@ -1,3 +1,5 @@
+from importlib.metadata import version as _version
+
 from page._page import (
     FailureCategory,
     PdfDocument,
@@ -14,7 +16,7 @@ from page._page import (
     validate_pdf_bytes,
 )
 
-__version__ = "0.6.0"
+__version__ = _version("page-validation")
 
 __all__ = [
     "FailureCategory",

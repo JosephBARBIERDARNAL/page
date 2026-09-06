@@ -708,16 +708,16 @@ dependencies = [
  "anstyle",
  "clap",
  "indicatif",
- "page_validation 0.6.1",
+ "page_validation",
  "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "page_python"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
- "page_validation 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "page_validation",
  "pyo3",
  "serde_json",
 ]
@@ -732,24 +732,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sxd-xpath",
- "thiserror",
- "ttf-parser",
- "unicode-properties",
- "wait-timeout",
-]
-
-[[package]]
-name = "page_validation"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b9696d0bf57ac02ada6845e637cf0857f313670f308bdc05e590d37bf965fa"
-dependencies = [
- "chrono",
- "lopdf",
- "roxmltree",
- "serde",
- "serde_json",
  "sxd-xpath",
  "thiserror",
  "ttf-parser",

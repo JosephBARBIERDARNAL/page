@@ -1,6 +1,6 @@
 [project]
 name = "page-validation"
-version = "0.6.0"
+dynamic = ["version"]
 description = "Python bindings to page, a fast and lightweight PDF accessibility and compliance checker."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,8 +23,8 @@ dependencies = []
 [project.urls]
 Documentation = "https://josephbarbierdarnal.github.io/page/api/python/"
 Homepage = "https://josephbarbierdarnal.github.io/page/api/python/"
-Issues = "https://github.com/josephbarbierdarnal/page-python/issues"
-Repository = "https://github.com/josephbarbierdarnal/page-python"
+Issues = "https://github.com/josephbarbierdarnal/page/issues"
+Repository = "https://github.com/josephbarbierdarnal/page"
 
 [dependency-groups]
 dev = [
@@ -43,8 +43,31 @@ requires = ["maturin>=1.14,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
+manifest-path = "crates/page_python/Cargo.toml"
 module-name = "page._page"
-python-source = "."
+python-source = "crates/page_python"
 
-[tool.uv.sources]
-page = { workspace = true }
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "Cargo.lock" },
+  { file = "crates/page_python/Cargo.toml" },
+  { file = "crates/page_python/src/**/*.rs" },
+  { file = "crates/page_validation/Cargo.toml" },
+  { file = "crates/page_validation/src/**/*" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["crates/page_python/tests"]
+
+[tool.ruff]
+include = ["crates/page_python/**/*.py", "crates/page_python/**/*.pyi"]
+target-version = "py310"
+
+[tool.ty.src]
+include = ["crates/page_python"]
+
+[tool.pyrefly]
+project-includes = ["crates/page_python/**/*.py", "crates/page_python/**/*.pyi"]
+search-path = ["crates/page_python"]

@@ -6,26 +6,29 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  check-formatting:
+  type-check:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
-      - name: Install the project
-        run: uv sync --all-groups
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: ty
-        run: uv run ty check
+      - name: Install just
+        uses: taiki-e/install-action@just
 
-      - name: pyrefly
-        run: uv run pyrefly check
+      - name: Check Python types
+        run: just py-type

@@ -3,6 +3,9 @@ CLAUDE.md
 .DS_Store
 site/
 .venv
+.pytest_cache/
+.ruff_cache/
+__pycache__/
 sandbox
 .cache
 .claude

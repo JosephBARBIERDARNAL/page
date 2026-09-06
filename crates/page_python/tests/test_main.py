@@ -1,8 +1,8 @@
+from importlib.metadata import version
 from pathlib import Path
 
-import pytest
-
 import page
+import pytest
 
 
 def minimal_pdf() -> bytes:
@@ -28,7 +28,7 @@ def minimal_pdf() -> bytes:
 
 
 def test_version():
-    assert page.__version__ == "0.6.0"
+    assert page.__version__ == version("page-validation")
 
 
 def test_default_safety_limits():

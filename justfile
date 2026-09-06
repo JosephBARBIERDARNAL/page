@@ -13,20 +13,36 @@ verapdf_corpus_profiles := `awk '{ printf "%s ", $1 }' crates/page_cli/src/corpu
 default:
     @just --list
 
-# Check formatting without changing files.
-fmt:
+# Format Rust and Python sources.
+fmt: rust-fmt py-fmt
+
+# Check Rust and Python formatting without changing files.
+fmt-check: rust-fmt-check py-fmt-check
+
+# Run Rust and Python linters and Python type checks.
+lint: rust-lint py-lint py-type
+
+# Run Rust and Python tests, building the local Python extension first.
+test: rust-test py-test
+
+# Run the same formatting, lint, type, and unit-test checks as CI.
+check: fmt-check lint test
+
+# Format Rust sources.
+rust-fmt:
     cargo fmt --all
 
+# Check Rust formatting without changing files.
+rust-fmt-check:
+    cargo fmt --all --check
+
 # Run Clippy with the same strict settings as CI.
-lint:
-    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings --fix --allow-dirty
+rust-lint:
+    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
-# Run the complete offline test suite.
-test:
+# Run the Rust workspace test suite.
+rust-test:
     cargo test --workspace --all-features --locked
-
-# Run formatting and linting
-check: fmt lint
 
 # Run every checked-in atomic and corpus case against pinned veraPDF.
 verapdf verapdf=verapdf_bin:
@@ -116,7 +132,34 @@ logo:
 demo:
     cd demo && npm run build
 
-# Run python tests and checks
-py-check:
-    uvx ruff format --check crates/page_python
-    uvx pytest crates/page_python -v
+# Install Python development dependencies and build the local extension.
+py-sync:
+    uv sync --locked --all-groups
+
+# Format Python sources.
+py-fmt:
+    uv run --locked --only-dev ruff format
+
+# Check Python formatting without changing files.
+py-fmt-check:
+    uv run --locked --only-dev ruff format --check
+
+# Lint Python sources.
+py-lint:
+    uv run --locked --only-dev ruff check
+
+# Run both Python type checkers against the installed bindings.
+py-type: py-sync
+    uv run --locked --no-sync ty check
+    uv run --locked --no-sync pyrefly check
+
+# Test the locally built Python bindings.
+py-test: py-sync
+    uv run --locked --no-sync pytest -v
+
+# Run all Python checks and tests.
+py-check: py-fmt-check py-lint py-type py-test
+
+# Build Python wheels and a source distribution from the workspace.
+py-build:
+    uv build --out-dir target/python-dist
