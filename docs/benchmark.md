@@ -2,13 +2,15 @@ Mean validation speedups are based on timings measured in milliseconds and norma
 
 The 5 documents have varying size, content and method of creation. We're working on making the benchmark fully reproducible and share the documents used.
 
-| Document      | veraPDF | page | page fail-fast |
-| ------------- | ------: | ---: | -------------: |
-| document1.pdf |    1.0× | 6.2× |          13.7× |
-| document2.pdf |    1.0× | 7.8× |          17.5× |
-| document3.pdf |    1.0× | 2.6× |           5.4× |
-| document4.pdf |    1.0× | 3.8× |          23.6× |
-| document5.pdf |    1.0× | 1.9× |          19.5× |
+The benchmark code can be found [here](https://github.com/JosephBARBIERDARNAL/page/blob/main/bench/benchmark.rs).
+
+| Document | veraPDF | page | page fail-fast |
+| --- | ---: | ---: | ---: |
+| document1.pdf | 1.0× | 5.9× | 13.0× |
+| document2.pdf | 1.0× | 6.9× | 15.7× |
+| document3.pdf | 1.0× | 2.6× | 5.3× |
+| document4.pdf | 1.0× | 3.6× | 22.2× |
+| document5.pdf | 1.0× | 1.9× | 18.9× |
 
 !!! note
 

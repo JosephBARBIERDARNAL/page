@@ -15,4 +15,4 @@ Ready to get started? Check out [installation instructions](installation.md).
 
 ## Roadmap
 
-So far, all PDF/A and PDF/UA-1 formats have been implemented. The current focus is on consolidating those, making sure they are heavily tested against a large corpus of documents. The goal is to have those foundations completed by **the end of 2026**.
+So far, PDF/A (1, 2 and 3) and PDF/UA-1 formats have been implemented. The current focus is on consolidating those, making sure they are heavily tested against a large corpus of documents. The goal is to have those foundations completed by **the end of 2026**.

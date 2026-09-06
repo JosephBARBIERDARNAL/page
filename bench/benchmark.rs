@@ -142,6 +142,7 @@ fn markdown(results: &[BenchmarkResult]) -> String {
         "Mean validation speedups are based on timings measured in milliseconds and normalized per document to veraPDF = 1.0×. Higher values are faster. Each value uses {RUNS} runs (with {WARMUP_RUNS} warmup runs) per validator and document.\n\n"
     );
     output.push_str("The 5 documents have varying size, content and method of creation. We're working on making the benchmark fully reproducible and share the documents used.\n\n");
+    output.push_str("The benchmark code can be found [here](https://github.com/JosephBARBIERDARNAL/page/blob/main/bench/benchmark.rs).\n\n");
     output.push_str("| Document | veraPDF | page | page fail-fast |\n");
     output.push_str("| --- | ---: | ---: | ---: |\n");
     for result in results {
@@ -157,7 +158,7 @@ fn markdown(results: &[BenchmarkResult]) -> String {
         ));
     }
     output.push_str("\n!!! note\n\n");
-    output.push_str("      The fail fast mode of `page` (used automatically when possible) allows to get much faster results, but does not give details about which specific rules failed.");
+    output.push_str("      The fail fast mode of `page` (used automatically when possible) allows to get much faster results, but does not give details about which specific rules failed.\n");
     output
 }
 

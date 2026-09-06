@@ -11,13 +11,13 @@ title: "Installation"
 ### macOS/Linux
 
 ```sh
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.6.1/page_cli-installer.sh | sh
 ```
 
 ### PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.4.0/page_cli-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.6.1/page_cli-installer.ps1 | iex"
 ```
 
 ### Cargo

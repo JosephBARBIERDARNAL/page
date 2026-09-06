@@ -15,11 +15,11 @@ default:
 
 # Check formatting without changing files.
 fmt:
-    cargo fmt --all --check
+    cargo fmt --all
 
 # Run Clippy with the same strict settings as CI.
 lint:
-    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings --fix --allow-dirty
 
 # Run the complete offline test suite.
 test:
@@ -91,9 +91,6 @@ diff file format="text" verapdf=verapdf_bin:
 bench:
     cargo build --quiet --release -p page_cli --bin page
     rust-script bench/benchmark.rs
-
-# Backward-compatible name for the benchmark command.
-benchmark: bench
 
 # Clean documentation cache
 doc-clean:

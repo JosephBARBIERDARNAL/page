@@ -1,4 +1,4 @@
-Thanks for taking the time to improve `page`. This guide covers the local setup and the main checks to run before opening a pull request.
+This guide covers the local setup and the main checks to run before opening a pull request.
 
 **Before making changes, comment on an existing issue or open a new one.**
 
