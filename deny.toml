@@ -13,3 +13,8 @@ allow = [
 
 [licenses.private]
 ignore = false
+
+# PyO3's build tooling uses target-lexicon.
+[[licenses.exceptions]]
+name = "target-lexicon"
+allow = ["Apache-2.0 WITH LLVM-exception"]
