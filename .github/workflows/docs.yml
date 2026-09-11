@@ -20,14 +20,16 @@ jobs:
         with:
           bun-version: 1.4.2
 
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+
       - name: Install demo dependencies
         run: bun install --frozen-lockfile
 
       - name: Build validation demo
         run: bun run --cwd demo build
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install just
         uses: taiki-e/install-action@just
