@@ -7,6 +7,7 @@ sandbox
 *cache*
 .claude
 docs/javascripts/demo/
+/crates/page_wasm/dist-bun/
 
 veraPDF-library
 
@@ -15,3 +16,9 @@ PDF-ISO
 bench/*.pdf
 node_modules
 .venv
+
+dist
+generated
+node_modules
+pdf
+index.html

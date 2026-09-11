@@ -438,9 +438,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
  "rand_core",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -700,6 +702,18 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
+
+[[package]]
+name = "page-validation-wasm"
+version = "0.6.0"
+dependencies = [
+ "getrandom",
+ "js-sys",
+ "page_validation",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "page_cli"

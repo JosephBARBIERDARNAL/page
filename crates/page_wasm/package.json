@@ -1,0 +1,63 @@
+{
+  "name": "page-validation-wasm",
+  "version": "0.6.0",
+  "description": "WebAssembly bindings for page PDF/A and PDF/UA validation.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josephbarbierdarnal/page.git"
+  },
+  "bugs": {
+    "url": "https://github.com/josephbarbierdarnal/page/issues"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/index.d.ts.map",
+    "dist/page_validation.js",
+    "dist/page_validation.d.ts",
+    "dist/page_validation_bg.js",
+    "dist/page_validation_bg.wasm",
+    "dist/page_validation_bg.wasm.d.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "bun run build:wasm && bun run build:ts",
+    "build:ts": "bunx --bun --no-install tsc -p tsconfig.json",
+    "build:wasm": "wasm-pack build --target bundler --release --no-opt --out-dir dist --out-name page_validation",
+    "build:wasm:test": "wasm-pack build --target nodejs --release --no-opt --out-dir dist-bun --out-name page_validation",
+    "postbuild:wasm": "bun -e \"require('node:fs').rmSync('dist/.gitignore', { force: true })\"",
+    "prepack": "bun run build",
+    "dev": "bun run build && vite --host 127.0.0.1",
+    "format": "bunx --bun --no-install prettier --write eslint.config.js src tests vite.config.ts package.json tsconfig.json tsconfig.test.json",
+    "format:check": "bunx --bun --no-install prettier --check eslint.config.js src tests vite.config.ts package.json tsconfig.json tsconfig.test.json",
+    "lint": "bunx --bun --no-install eslint src tests",
+    "test": "bun run build && bun run test:unit",
+    "test:unit": "bun run build:wasm:test && bun test",
+    "typecheck": "bun run build:wasm:test && bunx --bun --no-install tsc --noEmit -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "24.10.1",
+    "bun-types": "1.4.2",
+    "eslint": "^10.9.1",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
+    "vite": "^7.3.6",
+    "vite-plugin-wasm": "^3.6.0"
+  },
+  "trustedDependencies": [
+    "esbuild"
+  ]
+}

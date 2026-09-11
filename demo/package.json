@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "bun run --cwd ../crates/page_wasm build && vite build"
   },
   "dependencies": {
-    "page-validation-wasm": "0.6.0"
+    "page-validation-wasm": "workspace:*"
   },
   "devDependencies": {
     "vite": "7.1.5",

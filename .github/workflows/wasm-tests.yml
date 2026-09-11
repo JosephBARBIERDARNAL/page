@@ -1,0 +1,42 @@
+name: Wasm | Unit tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd crates/page_wasm build
+      - run: bun run --cwd crates/page_wasm test:unit
+      - run: bun pm pack --dry-run
+        working-directory: crates/page_wasm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - run: cargo test -p page-validation-wasm --locked --all-features
