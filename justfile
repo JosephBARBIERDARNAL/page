@@ -1,6 +1,4 @@
-# Export recipe parameters so veraPDF-backed tests can receive their binary.
-
-set export := true
+# veraPDF-backed recipes pass VERAPDF_BIN explicitly to their test commands.
 
 # veraPDF is resolved from PATH unless the caller supplies VERAPDF_BIN.
 

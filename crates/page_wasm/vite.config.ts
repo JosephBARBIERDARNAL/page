@@ -3,4 +3,10 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [wasm()],
+  esbuild: {
+    target: "esnext",
+  },
+  build: {
+    target: "esnext",
+  },
 });
