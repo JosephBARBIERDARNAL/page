@@ -38,11 +38,7 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 </div>
 
-</div>
-
 ## Built for trustworthy validation
-
-<!-- prettier-ignore-start -->
 
 <!-- prettier-ignore-start -->
 
@@ -88,13 +84,9 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 <!-- prettier-ignore-end -->
 
-<!-- prettier-ignore-end -->
-
 ## One engine, four ways to use it
 
 Choose the interface that fits your workflow. All bindings use the same validation engine.
-
-<!-- prettier-ignore-start -->
 
 <!-- prettier-ignore-start -->
 
@@ -133,8 +125,6 @@ Choose the interface that fits your workflow. All bindings use the same validati
     [:octicons-arrow-right-24: WebAssembly usage](api/wasm.md)
 
 </div>
-
-<!-- prettier-ignore-end -->
 
 <!-- prettier-ignore-end -->
 

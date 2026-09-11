@@ -583,14 +583,23 @@ h4 {
 .md-nav__link {
   padding: 0.15rem 0.5rem;
 }
+.md-tabs__link {
+  font-size: 0.8rem;
+}
 
 /* Homepage */
 .home-page {
   --home-muted: var(--color-slate);
 }
 
-body:has(.home-page) .md-main__inner.md-grid {
+body:has(.home-page) .md-main__inner.md-grid,
+body:has(.home-page) .md-content {
   max-width: 54.5rem;
+}
+
+body:has(.home-page) .md-content__inner {
+  margin-right: auto;
+  margin-left: auto;
 }
 
 [data-md-color-scheme="slate"] .home-page {
@@ -616,7 +625,7 @@ body:has(.home-page) .md-main__inner.md-grid {
 .home-page h2 {
   margin-top: 3.5rem !important;
   padding-top: 0 !important;
-  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
   font-weight: 500;
 }
 
