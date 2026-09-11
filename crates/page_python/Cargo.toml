@@ -1,7 +1,10 @@
 [package]
 name = "page_python"
 version.workspace = true
-edition = "2024"
+edition.workspace = true
+rust-version.workspace = true
+description = "Python bindings for page, a fast and lightweight PDF accessibility and compliance checker."
+repository.workspace = true
 license.workspace = true
 
 [lib]

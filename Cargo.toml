@@ -14,9 +14,6 @@ rust-version = "1.88.0"
 repository = "https://github.com/josephbarbierdarnal/page"
 license = "MIT"
 
-[workspace.lints.rust]
-unsafe_code = "forbid"
-
 [workspace.lints.clippy]
 get_unwrap = "warn"
 indexing_slicing = "warn"
@@ -71,13 +68,16 @@ rc_mutex = "warn"
 allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
 # page is a CPU-bound, single-binary CLI with no plugin or dynamic-linking
 # need, so trade slower release builds for a faster validator.
 [profile.release]
 debug = true
 lto = "thin"
-codegen-units = 1
 panic = "abort"
+codegen-units = 1
 
 # The profile that 'dist' will build with
 [profile.dist]

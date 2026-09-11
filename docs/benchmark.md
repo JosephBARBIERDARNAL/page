@@ -6,11 +6,11 @@ The benchmark code can be found [here](https://github.com/JosephBARBIERDARNAL/pa
 
 | Document | veraPDF | page | page fail-fast |
 | --- | ---: | ---: | ---: |
-| document1.pdf | 1.0× | 5.9× | 13.0× |
-| document2.pdf | 1.0× | 6.9× | 15.7× |
-| document3.pdf | 1.0× | 2.6× | 5.3× |
-| document4.pdf | 1.0× | 3.6× | 22.2× |
-| document5.pdf | 1.0× | 1.9× | 18.9× |
+| document1.pdf | 1.0× | 6.2× | 13.6× |
+| document2.pdf | 1.0× | 7.3× | 16.5× |
+| document3.pdf | 1.0× | 2.5× | 5.2× |
+| document4.pdf | 1.0× | 3.7× | 22.9× |
+| document5.pdf | 1.0× | 1.9× | 19.5× |
 
 !!! note
 

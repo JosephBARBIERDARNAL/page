@@ -1,6 +1,6 @@
 [package]
 name = "page-validation-wasm"
-version = "0.6.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "WebAssembly bindings for page, a fast and lightweight PDF accessibility and compliance checker."
