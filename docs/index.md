@@ -38,19 +38,17 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 </div>
 
-<div class="home-stats" aria-label="Project highlights">
-<div class="home-stat"><strong>3–15×</strong><span>faster than veraPDF</span></div>
-<div class="home-stat"><strong>~8 MB</strong><span>binary size</span></div>
-<div class="home-stat"><strong>3–8×</strong><span>lower peak RSS</span></div>
 </div>
 
 ## Built for trustworthy validation
 
 `page` is a fast and lightweight PDF accessibility and compliance checker. It is tested against the same corpus as _veraPDF_, the reference implementation used for PDF/A validation.
 
+<!-- prettier-ignore-start -->
+
 <div class="grid cards home-card-grid" markdown>
 
-- :material-human-wheelchair: **Accessibility**
+- :material-accessibility: **Accessibility**
 
     ***
 
@@ -88,9 +86,13 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 </div>
 
+<!-- prettier-ignore-end -->
+
 ## One engine, four ways to use it
 
 Choose the interface that fits your workflow. All bindings use the same validation engine.
+
+<!-- prettier-ignore-start -->
 
 <div class="grid cards home-interface-grid" markdown>
 
@@ -127,6 +129,8 @@ Choose the interface that fits your workflow. All bindings use the same validati
     [:octicons-arrow-right-24: WebAssembly usage](api/wasm.md)
 
 </div>
+
+<!-- prettier-ignore-end -->
 
 ## Roadmap
 
