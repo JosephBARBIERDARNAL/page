@@ -25,6 +25,7 @@ nav = [
     { "Project overview" = "contributing/project-internals-overview.md" },
     { "Code of conduct" = "contributing/code-of-conduct.md" },
   ] },
+  { "Changelog" = "changelog.md" },
   { "About" = "about.md" },
 ]
 

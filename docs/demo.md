@@ -1,7 +1,3 @@
----
-description: Validate a PDF/A document locally in your browser with page.
----
-
 # page demo
 
 Upload a PDF to validate it <u>locally</u> in your browser. **The document is not sent to a server**.
