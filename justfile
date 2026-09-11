@@ -114,7 +114,7 @@ doc-clean:
 
 # Serve documentation
 preview:
-    cd demo && npm run build
+    bun run --cwd demo build
     uvx zensical serve
 
 # Install locally
@@ -128,9 +128,40 @@ logo:
     typst compile docs/images/logo.typ docs/images/logo-on-dark.svg --input label=false --input surface=dark --ppi 300
     typst compile docs/images/logo.typ docs/images/logo-on-light.svg --input label=false --input surface=light --ppi 300
 
-# Build demo Wasm page
+# Build the Wasm package.
+wasm-build: wasm-sync
+    bun run --cwd crates/page_wasm build
+
+# Install JavaScript and TypeScript development dependencies.
+wasm-sync:
+    bun install --frozen-lockfile
+
+# Format Wasm TypeScript sources.
+wasm-fmt: wasm-sync
+    bun run --cwd crates/page_wasm format
+
+# Check Wasm TypeScript formatting without changing files.
+wasm-fmt-check: wasm-sync
+    bun run --cwd crates/page_wasm format:check
+
+# Lint Wasm TypeScript sources.
+wasm-lint: wasm-sync
+    bun run --cwd crates/page_wasm lint
+
+# Typecheck Wasm TypeScript sources.
+wasm-type: wasm-build
+    bun run --cwd crates/page_wasm typecheck
+
+# Run Wasm TypeScript tests.
+wasm-test: wasm-sync
+    bun run --cwd crates/page_wasm test
+
+# Run all Wasm checks.
+wasm-check: wasm-fmt-check wasm-lint wasm-type wasm-test
+
+# Build the demo page.
 demo:
-    cd demo && npm run build
+    bun run --cwd demo build
 
 # Install Python development dependencies and build the local extension.
 py-sync:
@@ -165,29 +196,22 @@ py-build:
     uv build --out-dir target/python-dist
 
 # Format JS/TS sources.
-js-fmt:
-    npm run format
+js-fmt: wasm-fmt
 
 # Check JS/TS formatting without changing files.
-js-fmt-check:
-    npm run format:check
+js-fmt-check: wasm-fmt-check
 
 # Lint JS/TS sources.
-js-lint:
-    npm run lint
+js-lint: wasm-lint
 
 # JS/TS typechecking
-js-type:
-    uv run --locked --no-sync ty check
-    uv run --locked --no-sync pyrefly check
+js-type: wasm-type
 
 # Test the locally built JS/TS bindings.
-js-test:
-    npm test
+js-test: wasm-test
 
 # Run all JS/TS checks and tests.
-js-check: fmt-check lint test
+js-check: wasm-check
 
-# Build JS/TS wheels and a source distribution from the workspace.
-js-build:
-    npm build
+# Build JS/TS packages.
+js-build: wasm-build

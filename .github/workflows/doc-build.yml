@@ -11,19 +11,15 @@ jobs:
         with:
           python-version: 3.x
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: demo/package-lock.json
+          bun-version: 1.4.2
 
       - name: Install demo dependencies
-        run: npm ci
-        working-directory: demo
+        run: bun install --frozen-lockfile
 
       - name: Build validation demo
-        run: npm run build
-        working-directory: demo
+        run: bun run --cwd demo build
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable

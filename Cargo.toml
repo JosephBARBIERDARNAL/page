@@ -4,6 +4,7 @@ members = [
   "crates/page_cli",
   "crates/page_python",
   "crates/page_validation",
+  "crates/page_wasm",
 ]
 
 [workspace.package]
@@ -12,6 +13,9 @@ edition = "2024"
 rust-version = "1.88.0"
 repository = "https://github.com/josephbarbierdarnal/page"
 license = "MIT"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 get_unwrap = "warn"
@@ -73,6 +77,7 @@ allow_attributes_without_reason = "warn"
 debug = true
 lto = "thin"
 codegen-units = 1
+panic = "abort"
 
 # The profile that 'dist' will build with
 [profile.dist]

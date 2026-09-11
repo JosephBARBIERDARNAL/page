@@ -1,13 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 
+import * as wasm from "../dist-bun/page_validation.js";
 import {
+  createApi,
   FailureCategory,
   SafetyLimits,
   ValidationError,
   ValidationProfile,
-  isPdfCompliantBytes,
-  validatePdfBytes,
-} from "../src/index.js";
+} from "../src/api.js";
+
+const { isPdfCompliantBytes, validatePdfBytes } = createApi(wasm);
 
 function minimalPdf(): Uint8Array {
   const objects = [

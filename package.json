@@ -1,0 +1,12 @@
+{
+  "name": "page",
+  "private": true,
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "crates/page_wasm",
+    "demo"
+  ],
+  "trustedDependencies": [
+    "esbuild"
+  ]
+}

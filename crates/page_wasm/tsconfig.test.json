@@ -3,7 +3,8 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node", "vitest/globals"]
+    "skipLibCheck": true,
+    "types": ["bun-types", "node"]
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

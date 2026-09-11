@@ -15,14 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
+          bun-version: 1.4.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: latest
-      - run: npm ci
-      - run: npm run build
-      - run: npm run typecheck
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd crates/page_wasm build
+      - run: bun run --cwd crates/page_wasm typecheck
