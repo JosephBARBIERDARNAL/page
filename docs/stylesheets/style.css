@@ -587,8 +587,10 @@ h4 {
 /* Homepage */
 .home-page {
   --home-muted: var(--color-slate);
-  max-width: 64rem;
-  margin: 0 auto;
+}
+
+body:has(.home-page) .md-main__inner.md-grid {
+  max-width: 54.5rem;
 }
 
 [data-md-color-scheme="slate"] .home-page {
@@ -891,7 +893,7 @@ h4 {
   border-color: var(--color-border);
   border-radius: var(--radius-md);
   background: var(--content-bg-light);
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: none !important;
 }
 
@@ -932,12 +934,12 @@ h4 {
 
 .home-card-grid > ul > li > p:first-child,
 .home-interface-grid > ul > li > p:first-child {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 
 .home-card-grid > ul > li > p:not(:first-child),
 .home-interface-grid > ul > li > p:not(:first-child) {
-  font-size: 0.98rem;
+  font-size: 0.88rem;
   line-height: 1.55;
 }
 
@@ -947,7 +949,7 @@ h4 {
 
 .home-interface-grid > ul > li > p:last-child {
   margin-top: 1.25rem;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .home-demo-callout {
