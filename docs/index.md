@@ -9,9 +9,14 @@ A fast and lightweight PDF accessibility and compliance checker. You can current
 - **Tested**: uses the same test corpus as _veraPDF_ :material-information-outline:{ title="veraPDF is the gold standard of PDF/A validation, which is why it's used as a reference." }
 - **Fast**: preliminary tests suggest that `page` is [3x to 15x faster than veraPDF](benchmark.md)
 - **Lightweight**: ~9 MB binary, with peak RSS 3x to 8x lower than veraPDF
-- **Easy to use**: ships as a single binary with zero runtime requirements, and can be used from the command line, Rust, Python or in the browser via WebAssembly
+- **Easy to use**: ships as a single binary with zero runtime requirements
+- **Works anywhere**: CLI, Rust, Python or WebAssembly.
 
-Ready to get started? Check out [installation instructions](installation.md).
+Ready to get started? Check out the [installation instructions](installation.md) or look at the [demo](demo.md).
+
+## Version
+
+`page` uses semantic versionning, and the version is shared for all bindings.
 
 ## Roadmap
 
