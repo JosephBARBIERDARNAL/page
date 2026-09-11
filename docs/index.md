@@ -50,41 +50,41 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 <div class="grid cards home-card-grid" markdown>
 
-- :material-accessibility: **Accessibility**
+- :material-human-wheelchair: **Accessibility**
 
-  ***
+    ***
 
-  Check PDFs against PDF/UA-1 accessibility requirements.
+    Check PDFs against PDF/UA-1 accessibility requirements.
 
 - :material-file-check-outline: **PDF/A compliance**
 
-  ***
+    ***
 
-  Validate PDF/A-1, PDF/A-2, and PDF/A-3 documents.
+    Validate PDF/A-1, PDF/A-2, and PDF/A-3 documents.
 
 - :material-test-tube: **Corpus-tested**
 
-  ***
+    ***
 
-  Compare behavior against the veraPDF test corpus.
+    Compare behavior against the veraPDF test corpus.
 
 - :material-speedometer: **Fast**
 
-  ***
+    ***
 
-  Preliminary tests suggest that `page` is [3x to 15x faster than veraPDF](benchmark.md).
+    Preliminary tests suggest that `page` is [3x to 15x faster than veraPDF](benchmark.md).
 
 - :material-package-variant-closed: **Lightweight**
 
-  ***
+    ***
 
-  Ships as an approximately 8 MB binary with peak RSS 3x to 8x lower than veraPDF.
+    Ships as an approximately 8 MB binary with peak RSS 3x to 8x lower than veraPDF.
 
 - :material-application-brackets-outline: **Works anywhere**
 
-  ***
+    ***
 
-  Use it from the CLI, Rust, Python, or WebAssembly.
+    Use it from the CLI, Rust, Python, or WebAssembly.
 
 </div>
 
@@ -96,37 +96,35 @@ Choose the interface that fits your workflow. All bindings use the same validati
 
 - :material-console: **CLI**
 
-  ***
+    ***
 
-  Validate files directly from your terminal.
+    Validate files directly from your terminal.
 
-  [:octicons-arrow-right-24: CLI usage](api/cli.md)
+    [:octicons-arrow-right-24: CLI usage](api/cli.md)
 
 - :material-language-rust: **Rust crate**
 
-  ***
+    ***
 
-  Embed validation in Rust applications and services.
+    Embed validation in Rust applications and services.
 
-  [:octicons-arrow-right-24: Rust usage](api/rust.md)
+    [:octicons-arrow-right-24: Rust usage](api/rust.md)
 
 - :material-language-python: **Python package**
 
-  ***
+    ***
 
-  Add PDF validation to Python workflows and tooling.
+    Add PDF validation to Python workflows and tooling.
 
-  [:octicons-arrow-right-24: Python usage](api/python.md)
+    [:octicons-arrow-right-24: Python usage](api/python.md)
 
 - :material-web: **WebAssembly**
 
-  ***
+    ***
 
-  Run validation locally in web applications and browsers.
+    Run validation locally in web applications and browsers.
 
-  [:octicons-arrow-right-24: WebAssembly usage](api/wasm.md)
-
-</div>
+    [:octicons-arrow-right-24: WebAssembly usage](api/wasm.md)
 
 </div>
 
