@@ -590,16 +590,23 @@ h4 {
 /* Homepage */
 .home-page {
   --home-muted: var(--color-slate);
+  padding-right: clamp(1.5rem, 6vw, 4.5rem);
+  padding-left: clamp(1.5rem, 6vw, 4.5rem);
 }
 
 body:has(.home-page) .md-main__inner.md-grid,
 body:has(.home-page) .md-content {
-  max-width: 54.5rem;
+  max-width: 52rem;
 }
 
 body:has(.home-page) .md-content__inner {
-  margin-right: auto;
-  margin-left: auto;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+body:has(.home-page) .md-content .md-typeset {
+  padding-right: 0;
+  padding-left: 0;
 }
 
 [data-md-color-scheme="slate"] .home-page {
@@ -613,11 +620,10 @@ body:has(.home-page) .md-content__inner {
 }
 
 .home-page h1 {
-  max-width: 13ch;
   margin: 0.7rem 0 1rem !important;
   padding: 0 !important;
   color: var(--color-white) !important;
-  font-size: clamp(2rem, 4.25vw, 3.75rem);
+  font-size: clamp(1.6rem, 3.8vw, 3.3rem);
   font-weight: 500 !important;
   line-height: 0.98;
 }
@@ -639,7 +645,7 @@ body:has(.home-page) .md-content__inner {
   gap: clamp(2rem, 6vw, 5rem);
   align-items: center;
   margin: 0;
-  padding: clamp(2.5rem, 6vw, 5rem) clamp(1.5rem, 6vw, 4.5rem);
+  padding: clamp(2.5rem, 6vw, 5rem) 0;
   overflow: hidden;
   color: var(--color-white);
 }
@@ -1023,9 +1029,14 @@ body:has(.home-page) .md-content__inner {
 }
 
 @media screen and (max-width: 40em) {
+  body:has(.home-page) .md-content .md-typeset {
+    padding-right: 0.8rem;
+    padding-left: 0.8rem;
+  }
+
   .home-hero {
-    padding-right: 1.25rem;
-    padding-left: 1.25rem;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   .home-stats {

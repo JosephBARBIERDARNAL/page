@@ -48,7 +48,7 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
     ***
 
-    Check PDFs against PDF/UA-1 accessibility requirements.
+    Check PDFs against PDF/UA-1 **accessibility requirements**.
 
 - :material-file-check-outline: **PDF/A compliance**
 
@@ -78,51 +78,7 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
     ***
 
-    Use it from the CLI, Rust, Python, or WebAssembly.
-
-</div>
-
-<!-- prettier-ignore-end -->
-
-## One engine, four ways to use it
-
-Choose the interface that fits your workflow. All bindings use the same validation engine.
-
-<!-- prettier-ignore-start -->
-
-<div class="grid cards home-interface-grid" markdown>
-
-- :material-console: **CLI**
-
-    ***
-
-    Validate files directly from your terminal.
-
-    [:octicons-arrow-right-24: CLI usage](api/cli.md)
-
-- :material-language-rust: **Rust crate**
-
-    ***
-
-    Embed validation in Rust applications and services.
-
-    [:octicons-arrow-right-24: Rust usage](api/rust.md)
-
-- :material-language-python: **Python package**
-
-    ***
-
-    Add PDF validation to Python workflows and tooling.
-
-    [:octicons-arrow-right-24: Python usage](api/python.md)
-
-- :material-web: **WebAssembly**
-
-    ***
-
-    Run validation locally in web applications and browsers.
-
-    [:octicons-arrow-right-24: WebAssembly usage](api/wasm.md)
+    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [WebAssembly](api/wasm.md).
 
 </div>
 
