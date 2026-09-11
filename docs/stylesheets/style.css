@@ -606,7 +606,7 @@ h4 {
   margin: 0.7rem 0 1rem !important;
   padding: 0 !important;
   color: var(--color-white) !important;
-  font-size: clamp(2.35rem, 5vw, 4.4rem);
+  font-size: clamp(2rem, 4.25vw, 3.75rem);
   font-weight: 500 !important;
   line-height: 0.98;
 }
@@ -614,7 +614,8 @@ h4 {
 .home-page h2 {
   margin-top: 3.5rem !important;
   padding-top: 0 !important;
-  font-size: clamp(1.65rem, 3vw, 2.3rem);
+  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+  font-weight: 500;
 }
 
 .home-page p {
@@ -623,7 +624,7 @@ h4 {
 
 .home-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(17rem, 0.8fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(17rem, 0.9fr);
   gap: clamp(2rem, 6vw, 5rem);
   align-items: center;
   margin: 0;
@@ -655,7 +656,7 @@ h4 {
 .home-hero__content > p {
   max-width: 54ch;
   color: rgba(255, 255, 255, 0.82);
-  font-size: 1.08rem;
+  font-size: 0.92rem;
   line-height: 1.7;
 }
 
@@ -689,6 +690,11 @@ h4 {
   font-weight: 700;
 }
 
+.home-hero .md-button--primary,
+.home-hero .md-button--primary:hover {
+  color: var(--color-white) !important;
+}
+
 .home-hero .md-button--primary:hover,
 .home-demo-callout .md-button--primary:hover {
   border-color: var(--color-mint);
@@ -704,6 +710,13 @@ h4 {
 [data-md-color-scheme="default"] .home-hero .md-button:not(.md-button--primary):hover {
   border-color: var(--color-teal);
   color: var(--color-teal);
+}
+
+[data-md-color-scheme="default"] .home-hero .md-button--primary,
+[data-md-color-scheme="default"] .home-hero .md-button--primary:hover {
+  border-color: var(--color-teal);
+  background-color: var(--color-teal);
+  color: var(--color-white) !important;
 }
 
 .home-hero__meta {
@@ -731,6 +744,12 @@ h4 {
   background: rgba(2, 12, 29, 0.6);
   box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.22);
   transform: rotate(1.5deg);
+}
+
+[data-md-color-scheme="default"] .home-hero__preview {
+  border-color: var(--color-navy);
+  background: var(--color-navy);
+  box-shadow: 0 1.5rem 3rem rgba(7, 26, 56, 0.2);
 }
 
 .home-preview__bar {
