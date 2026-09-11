@@ -12,7 +12,6 @@ h4 {
   --color-navy: #071a38;
   --color-teal: #10b981;
   --color-mint: #a7f3d0;
-  --color-sky: #38bdf8;
 
   /* Neutral colors */
   --color-slate: #64748b;
@@ -83,7 +82,7 @@ h4 {
   --md-code-hl-punctuation-color: #27272a;
 
   /* Links */
-  --md-typeset-a-color: var(--color-sky);
+  --md-typeset-a-color: var(--color-teal);
 }
 
 /* Dark Mode Theme */
@@ -119,7 +118,23 @@ h4 {
   --md-code-hl-punctuation-color: #c9d1d9;
 
   /* Links */
-  --md-typeset-a-color: var(--color-sky);
+  --md-typeset-a-color: var(--color-mint);
+}
+
+[data-md-color-scheme="slate"] .md-typeset a {
+  color: var(--color-mint);
+}
+
+[data-md-color-scheme="slate"] .md-typeset a:hover {
+  color: var(--color-teal);
+}
+
+[data-md-color-scheme="default"] .md-typeset a {
+  color: var(--color-teal);
+}
+
+[data-md-color-scheme="default"] .md-typeset a:hover {
+  color: var(--color-mint);
 }
 
 [data-md-color-scheme="default"] .md-header {
@@ -202,18 +217,12 @@ h4 {
   margin-top: 1rem;
 }
 
-[data-md-color-scheme="default"]
-  .md-nav__item--section
-  > .md-nav__link
-  > .md-ellipsis,
+[data-md-color-scheme="default"] .md-nav__item--section > .md-nav__link > .md-ellipsis,
 [data-md-color-scheme="default"] .md-nav--secondary > .md-nav__title {
   color: var(--text-light);
 }
 
-[data-md-color-scheme="slate"]
-  .md-nav__item--section
-  > .md-nav__link
-  > .md-ellipsis,
+[data-md-color-scheme="slate"] .md-nav__item--section > .md-nav__link > .md-ellipsis,
 [data-md-color-scheme="slate"] .md-nav--secondary > .md-nav__title {
   color: var(--text-dark);
 }
@@ -435,11 +444,19 @@ h4 {
 }
 
 [data-md-color-scheme="slate"] .md-typeset a > code {
-  color: var(--color-teal);
+  color: var(--color-mint);
 }
 
 [data-md-color-scheme="default"] .md-typeset a > code {
-  color: var(--color-sky);
+  color: var(--color-teal);
+}
+
+[data-md-color-scheme="slate"] .md-typeset a:hover > code {
+  color: var(--color-teal);
+}
+
+[data-md-color-scheme="default"] .md-typeset a:hover > code {
+  color: var(--color-mint);
 }
 
 [data-md-color-scheme="default"] .highlight span.filename {
