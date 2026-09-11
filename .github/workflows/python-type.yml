@@ -1,4 +1,4 @@
-name: Python | Check Static Typing
+name: Python | Typing
 
 on:
   push:

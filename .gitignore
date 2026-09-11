@@ -15,3 +15,9 @@ PDF-ISO
 bench/*.pdf
 node_modules
 .venv
+
+dist
+generated
+node_modules
+pdf
+index.html

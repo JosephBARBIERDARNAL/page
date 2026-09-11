@@ -1,0 +1,3 @@
+# The package.json "files" field is the publish allowlist.
+!dist/
+!dist/**

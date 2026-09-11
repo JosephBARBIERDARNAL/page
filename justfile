@@ -163,3 +163,31 @@ py-check: py-fmt-check py-lint py-type py-test
 # Build Python wheels and a source distribution from the workspace.
 py-build:
     uv build --out-dir target/python-dist
+
+# Format JS/TS sources.
+js-fmt:
+    npm run format
+
+# Check JS/TS formatting without changing files.
+js-fmt-check:
+    npm run format:check
+
+# Lint JS/TS sources.
+js-lint:
+    npm run lint
+
+# JS/TS typechecking
+js-type:
+    uv run --locked --no-sync ty check
+    uv run --locked --no-sync pyrefly check
+
+# Test the locally built JS/TS bindings.
+js-test:
+    npm test
+
+# Run all JS/TS checks and tests.
+js-check: fmt-check lint test
+
+# Build JS/TS wheels and a source distribution from the workspace.
+js-build:
+    npm build
