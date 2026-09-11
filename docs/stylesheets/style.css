@@ -630,20 +630,10 @@ h4 {
   padding: clamp(2.5rem, 6vw, 5rem) clamp(1.5rem, 6vw, 4.5rem);
   overflow: hidden;
   color: var(--color-white);
-  background:
-    radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.22), transparent 26%),
-    radial-gradient(circle at 8% 100%, rgba(167, 243, 208, 0.12), transparent 30%),
-    var(--color-navy);
-  border-radius: var(--radius-lg);
 }
 
 [data-md-color-scheme="default"] .home-hero {
   color: var(--color-navy);
-  border: 1px solid var(--color-border);
-  background:
-    radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.13), transparent 26%),
-    radial-gradient(circle at 8% 100%, rgba(167, 243, 208, 0.2), transparent 30%),
-    var(--color-white);
 }
 
 [data-md-color-scheme="default"] .home-hero h1 {
@@ -738,7 +728,7 @@ h4 {
   overflow: hidden;
   border: 1px solid rgba(167, 243, 208, 0.28);
   border-radius: var(--radius-lg);
-  background: rgba(2, 12, 29, 0.48);
+  background: rgba(2, 12, 29, 0.6);
   box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.22);
   transform: rotate(1.5deg);
 }
@@ -878,6 +868,7 @@ h4 {
 
 .home-card-grid > ul > li,
 .home-interface-grid > ul > li {
+  border: 1px solid var(--color-border);
   border-color: var(--color-border);
   border-radius: var(--radius-md);
   background: var(--content-bg-light);
@@ -887,14 +878,21 @@ h4 {
 
 .home-card-grid > ul > li:hover,
 .home-interface-grid > ul > li:hover {
+  border-color: var(--color-border) !important;
   box-shadow: none !important;
   transform: none !important;
 }
 
 [data-md-color-scheme="slate"] .home-card-grid > ul > li,
 [data-md-color-scheme="slate"] .home-interface-grid > ul > li {
+  border: 1px solid var(--color-slate);
   border-color: var(--color-slate);
   background: var(--content-bg-dark);
+}
+
+[data-md-color-scheme="slate"] .home-card-grid > ul > li:hover,
+[data-md-color-scheme="slate"] .home-interface-grid > ul > li:hover {
+  border-color: var(--color-slate) !important;
 }
 
 .home-card-grid > ul > li > p:first-child,

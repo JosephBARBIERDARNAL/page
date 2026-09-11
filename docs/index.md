@@ -138,12 +138,4 @@ Choose the interface that fits your workflow. All bindings use the same validati
 
 <!-- prettier-ignore-end -->
 
-## Roadmap
-
-PDF/A-1, PDF/A-2, PDF/A-3, and PDF/UA-1 formats have been implemented. The current focus is on consolidating those foundations and testing them against a large corpus of documents. The goal is to have those foundations completed by **the end of 2026**.
-
-## Version
-
-`page` uses semantic versioning, and the version is shared across all bindings.
-
 </div>
