@@ -244,8 +244,9 @@ export function createApi(wasm: WasmBindings) {
     limits?: SafetyLimits | Partial<SafetyLimitsOptions>,
   ): Promise<ValidationReport> {
     await initialize();
+    const serializedLimits = serializeLimits(limits);
     try {
-      const json = wasm.validatePdfBytes(bytes, profile, serializeLimits(limits));
+      const json = wasm.validatePdfBytes(bytes, profile, serializedLimits);
       return new ValidationReport(JSON.parse(json) as RawValidationReport);
     } catch (error) {
       throw asValidationError(error);
@@ -258,8 +259,9 @@ export function createApi(wasm: WasmBindings) {
     limits?: SafetyLimits | Partial<SafetyLimitsOptions>,
   ): Promise<boolean> {
     await initialize();
+    const serializedLimits = serializeLimits(limits);
     try {
-      return wasm.isPdfCompliantBytes(bytes, profile, serializeLimits(limits));
+      return wasm.isPdfCompliantBytes(bytes, profile, serializedLimits);
     } catch (error) {
       throw asValidationError(error);
     }

@@ -64,4 +64,28 @@ describe("page-validation", () => {
       ),
     ).rejects.toBeInstanceOf(ValidationError);
   });
+
+  it("preserves configuration errors before invoking WASM", async () => {
+    let wasmCalls = 0;
+    const api = createApi({
+      validatePdfBytes: () => {
+        wasmCalls += 1;
+        return "";
+      },
+      isPdfCompliantBytes: () => {
+        wasmCalls += 1;
+        return false;
+      },
+    });
+    const invalidLimits = { maxInputSize: -1 };
+
+    await expect(
+      api.validatePdfBytes(minimalPdf(), ValidationProfile.PDF_A_1B, invalidLimits),
+    ).rejects.toBeInstanceOf(RangeError);
+    await expect(
+      api.isPdfCompliantBytes(minimalPdf(), ValidationProfile.PDF_A_1B, invalidLimits),
+    ).rejects.toBeInstanceOf(RangeError);
+
+    expect(wasmCalls).toBe(0);
+  });
 });
