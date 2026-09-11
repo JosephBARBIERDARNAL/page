@@ -42,8 +42,6 @@ Check PDF documents against accessibility and compliance requirements with a sma
 
 ## Built for trustworthy validation
 
-`page` is a fast and lightweight PDF accessibility and compliance checker. It is tested against the same corpus as _veraPDF_, the reference implementation used for PDF/A validation.
-
 <!-- prettier-ignore-start -->
 
 <div class="grid cards home-card-grid" markdown>
