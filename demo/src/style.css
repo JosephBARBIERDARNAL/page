@@ -173,9 +173,3 @@
 [data-md-color-scheme="slate"] .validator-failure-rule {
   color: var(--text-dark);
 }
-
-@media (max-width: 700px) {
-  .validator-controls {
-    grid-template-columns: 1fr;
-  }
-}

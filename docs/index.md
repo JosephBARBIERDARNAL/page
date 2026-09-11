@@ -19,12 +19,6 @@ Check PDF documents against accessibility and compliance requirements with a sma
 [Get started](installation.md){ .md-button .md-button--primary }
 [Try the demo](demo.md){ .md-button }
 
-<div class="home-hero__meta">
-<span>Very fast</span>
-<span>No runtime required</span>
-<span>Runs in the browser</span>
-</div>
-
 </div>
 
 <div class="home-hero__preview" aria-label="Example successful page validation">
