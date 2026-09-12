@@ -54,7 +54,7 @@ pub enum PdfError {
     TableSpanLimit { actual: usize, limit: usize },
 
     #[error(
-        "table grid dimensions {rows}x{columns} exceed the configured {max_rows}x{max_columns} and {max_cells}-cell limits"
+        "table grid dimensions {rows}x{columns} violate configured limits: at most {max_rows} rows, {max_columns} columns, and {max_cells} cells"
     )]
     TableGridLimit {
         rows: usize,
