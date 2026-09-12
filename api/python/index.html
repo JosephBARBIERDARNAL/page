@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.60">
+      <meta name="generator" content="zensical-0.0.61">
     
     
       
@@ -1216,10 +1216,7 @@
 <p>Pass a profile to <code>validate_pdf()</code> when the caller, rather than the document, selects it:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">"document.pdf"</span><span class="p">,</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">page</span><span class="o">.</span><span class="n">ValidationProfile</span><span class="o">.</span><span class="n">PDF_A_1B</span><span class="p">,</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">,</span> <span class="n">page</span><span class="o">.</span><span class="n">ValidationProfile</span><span class="o">.</span><span class="n">PDF_A_1B</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use <code>is_pdf_compliant()</code> or the corresponding bytes function when you only need a boolean result.</p>
 <h2 id="failures">Failures<a class="headerlink" href="#failures" title="Permanent link">&para;</a></h2>
@@ -1261,11 +1258,16 @@
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">max_object_count</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>                       <span class="c1"># 1,000,000 objects</span>
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">max_reference_depth</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>                          <span class="c1"># 256 levels</span>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">max_xref_revisions</span><span class="o">=</span><span class="mi">1_024</span><span class="p">,</span>                         <span class="c1"># 1,024 revisions</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="p">)</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="n">limits</span><span class="p">)</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">max_table_span</span><span class="o">=</span><span class="mi">1_024</span><span class="p">,</span>                             <span class="c1"># rows or columns per cell</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">max_table_grid_rows</span><span class="o">=</span><span class="mi">1_024</span><span class="p">,</span>                        <span class="c1"># rows</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">max_table_grid_columns</span><span class="o">=</span><span class="mi">1_024</span><span class="p">,</span>                     <span class="c1"># columns</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="n">max_table_grid_cells</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>                   <span class="c1"># cells</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">max_unicode_cmap_mappings</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>              <span class="c1"># mappings per ToUnicode CMap</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="p">)</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="n">limits</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>max_decoded_stream_size</code> bounds one decoded stream and <code>max_total_decoded_content_size</code> bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. <code>max_xref_revisions</code> bounds the number of incremental-update revisions read from the cross-reference chain.</p>
+<p><code>max_decoded_stream_size</code> bounds one decoded stream and <code>max_total_decoded_content_size</code> bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. <code>max_xref_revisions</code> bounds the number of incremental-update revisions read from the cross-reference chain. <code>max_table_span</code> bounds the row or column span of an individual tagged-table cell. <code>max_table_grid_rows</code>, <code>max_table_grid_columns</code>, and <code>max_table_grid_cells</code> bound the derived table-grid dimensions and total cells. <code>max_unicode_cmap_mappings</code> bounds the total mappings expanded from one ToUnicode CMap.</p>
 <h2 id="use-the-exit-code">Use the exit code<a class="headerlink" href="#use-the-exit-code" title="Permanent link">&para;</a></h2>
 <p>For command-line integrations or automated checks, a report can provide an appropriate process exit code:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
@@ -1384,10 +1386,14 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.sections","navigation.top","navigation.tracking","search.highlight","navigation.prune"],"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.sections","navigation.top","navigation.tracking","search.highlight","navigation.prune"],"redirect":null,"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88ee1349.min.js"></script>
+      <script src="../../assets/javascripts/bundle.df5d1f2b.min.js"></script>
       
         <script src="../../javascripts/demo/demo.js" type="module"></script>
       
