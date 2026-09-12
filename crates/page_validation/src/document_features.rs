@@ -1780,13 +1780,7 @@ fn inspect_structure_element(
             });
     }
     if resolved_type == Some(b"Table".as_slice())
-        && table_contains_caption_not_first_or_last(
-            document,
-            dictionary,
-            context.role_map,
-            limits.max_reference_depth,
-            limits.max_object_count,
-        )?
+        && table_contains_caption_not_first_or_last(document, dictionary, context.role_map, limits)?
     {
         summary
             .table_elements_with_caption_not_first_or_last
@@ -2255,16 +2249,9 @@ fn table_contains_caption_not_first_or_last(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
-    max_reference_depth: usize,
-    max_object_count: usize,
+    limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    let kids = direct_structure_kids(
-        document,
-        dictionary,
-        role_map,
-        max_reference_depth,
-        max_object_count,
-    )?;
+    let kids = direct_structure_kids(document, dictionary, role_map, limits)?;
     Ok(kids.iter().enumerate().any(|(index, (_, structure_type))| {
         *structure_type == b"Caption" && index != 0 && index.saturating_add(1) < kids.len()
     }))
@@ -2442,25 +2429,13 @@ fn table_grid_spans(
     limits: &SafetyLimits,
 ) -> Result<(Vec<usize>, Vec<usize>), PdfError> {
     let mut rows = Vec::new();
-    for (child, structure_type) in direct_structure_kids(
-        document,
-        dictionary,
-        role_map,
-        limits.max_reference_depth,
-        limits.max_object_count,
-    )? {
+    for (child, structure_type) in direct_structure_kids(document, dictionary, role_map, limits)? {
         match structure_type {
-            b"TR" => rows.push(child),
+            b"TR" => push_table_grid_item(&mut rows, child, limits)?,
             b"THead" | b"TBody" | b"TFoot" => {
-                for (row, row_type) in direct_structure_kids(
-                    document,
-                    child,
-                    role_map,
-                    limits.max_reference_depth,
-                    limits.max_object_count,
-                )? {
+                for (row, row_type) in direct_structure_kids(document, child, role_map, limits)? {
                     if row_type == b"TR" {
-                        rows.push(row);
+                        push_table_grid_item(&mut rows, row, limits)?;
                     }
                 }
             }
@@ -2476,13 +2451,7 @@ fn table_grid_spans(
             .iter()
             .rposition(|end| *end > row_index)
             .map_or(0, |column| column.saturating_add(1));
-        let cells = direct_structure_kids(
-            document,
-            row,
-            role_map,
-            limits.max_reference_depth,
-            limits.max_object_count,
-        )?;
+        let cells = direct_structure_kids(document, row, role_map, limits)?;
         for (cell, structure_type) in cells {
             if !matches!(structure_type, b"TH" | b"TD") {
                 continue;
@@ -2664,6 +2633,22 @@ fn table_cell_metadata(
     Ok((id, headers, scope))
 }
 
+fn push_table_grid_item<T>(
+    items: &mut Vec<T>,
+    item: T,
+    limits: &SafetyLimits,
+) -> Result<(), PdfError> {
+    let next_count = items
+        .len()
+        .checked_add(1)
+        .ok_or_else(|| table_grid_limit(limits, usize::MAX, 1))?;
+    if next_count > limits.max_table_grid_rows {
+        return Err(table_grid_limit(limits, next_count, 1));
+    }
+    items.push(item);
+    Ok(())
+}
+
 fn table_rows<'a>(
     document: &'a Document,
     dictionary: &'a lopdf::Dictionary,
@@ -2679,18 +2664,20 @@ fn table_rows<'a>(
         limits.max_object_count,
     )? {
         match kid.standard_type.as_slice() {
-            b"TR" => rows.push(kid),
-            b"THead" | b"TBody" | b"TFoot" => rows.extend(
-                table_structure_kids(
+            b"TR" => push_table_grid_item(&mut rows, kid, limits)?,
+            b"THead" | b"TBody" | b"TFoot" => {
+                for child in table_structure_kids(
                     document,
                     kid.dictionary,
                     role_map,
                     limits.max_reference_depth,
                     limits.max_object_count,
-                )?
-                .into_iter()
-                .filter(|child| child.standard_type == b"TR"),
-            ),
+                )? {
+                    if child.standard_type == b"TR" {
+                        push_table_grid_item(&mut rows, child, limits)?;
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -3083,13 +3070,12 @@ fn direct_structure_kids<'a>(
     document: &'a Document,
     dictionary: &'a lopdf::Dictionary,
     role_map: &'a BTreeMap<Vec<u8>, Vec<u8>>,
-    max_reference_depth: usize,
-    max_object_count: usize,
+    limits: &SafetyLimits,
 ) -> Result<Vec<(&'a lopdf::Dictionary, &'a [u8])>, PdfError> {
     let Ok(kids_value) = dictionary.get(b"K") else {
         return Ok(Vec::new());
     };
-    let Some(kids) = resolve_optional(document, kids_value, max_reference_depth)? else {
+    let Some(kids) = resolve_optional(document, kids_value, limits.max_reference_depth)? else {
         return Ok(Vec::new());
     };
     let values = match kids {
@@ -3097,9 +3083,9 @@ fn direct_structure_kids<'a>(
         value => std::slice::from_ref(value),
     };
     let mut result = Vec::new();
-    for kid in values.iter().take(max_object_count) {
+    for kid in values.iter().take(limits.max_object_count) {
         let Some(Object::Dictionary(dictionary)) =
-            resolve_optional(document, kid, max_reference_depth)?
+            resolve_optional(document, kid, limits.max_reference_depth)?
         else {
             continue;
         };
@@ -3111,11 +3097,11 @@ fn direct_structure_kids<'a>(
             continue;
         };
         let Some(structure_type) =
-            resolved_standard_type(structure_type, role_map, max_object_count)
+            resolved_standard_type(structure_type, role_map, limits.max_object_count)
         else {
             continue;
         };
-        result.push((dictionary, structure_type));
+        push_table_grid_item(&mut result, (dictionary, structure_type), limits)?;
     }
     Ok(result)
 }
