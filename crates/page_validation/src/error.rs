@@ -64,6 +64,11 @@ pub enum PdfError {
         max_cells: usize,
     },
 
+    #[error(
+        "ToUnicode CMap expands to {actual} mappings, exceeding the configured {limit}-mapping limit"
+    )]
+    UnicodeCmapMappingLimit { actual: usize, limit: usize },
+
     #[error("embedded font program exceeds the decoded-size limit of {0} bytes")]
     FontDecodeLimit(usize),
 
@@ -84,6 +89,7 @@ impl PdfError {
                 | Self::TotalContentDecodeLimit(_)
                 | Self::TableSpanLimit { .. }
                 | Self::TableGridLimit { .. }
+                | Self::UnicodeCmapMappingLimit { .. }
                 | Self::FontDecodeLimit(_)
                 | Self::XfaDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(

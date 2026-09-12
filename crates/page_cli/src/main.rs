@@ -81,6 +81,10 @@ struct Cli {
     /// Maximum number of cells represented in an inspected table grid.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS)]
     max_table_grid_cells: usize,
+
+    /// Maximum number of mappings expanded from one ToUnicode CMap.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS)]
+    max_unicode_cmap_mappings: usize,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -351,6 +355,7 @@ fn run_validate(cli: Cli) {
         max_table_grid_rows: cli.max_table_grid_rows,
         max_table_grid_columns: cli.max_table_grid_columns,
         max_table_grid_cells: cli.max_table_grid_cells,
+        max_unicode_cmap_mappings: cli.max_unicode_cmap_mappings,
     };
     let spinner_enabled = selected_format != SelectedFormat::Json
         && io::stdout().is_terminal()

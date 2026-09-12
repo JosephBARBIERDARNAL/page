@@ -35,6 +35,7 @@ class SafetyLimits:
     DEFAULT_MAX_TABLE_GRID_ROWS: ClassVar[int]
     DEFAULT_MAX_TABLE_GRID_COLUMNS: ClassVar[int]
     DEFAULT_MAX_TABLE_GRID_CELLS: ClassVar[int]
+    DEFAULT_MAX_UNICODE_CMAP_MAPPINGS: ClassVar[int]
 
     max_input_size: int
     max_decoded_stream_size: int
@@ -46,6 +47,7 @@ class SafetyLimits:
     max_table_grid_rows: int
     max_table_grid_columns: int
     max_table_grid_cells: int
+    max_unicode_cmap_mappings: int
 
     def __init__(
         self,
@@ -60,6 +62,7 @@ class SafetyLimits:
         max_table_grid_rows: int | None = None,
         max_table_grid_columns: int | None = None,
         max_table_grid_cells: int | None = None,
+        max_unicode_cmap_mappings: int | None = None,
     ) -> None: ...
 
 class PdfObjectId:

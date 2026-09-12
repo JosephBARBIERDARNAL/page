@@ -56,6 +56,7 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("--max-table-grid-rows <MAX_TABLE_GRID_ROWS>"));
     assert!(stdout.contains("--max-table-grid-columns <MAX_TABLE_GRID_COLUMNS>"));
     assert!(stdout.contains("--max-table-grid-cells <MAX_TABLE_GRID_CELLS>"));
+    assert!(stdout.contains("--max-unicode-cmap-mappings <MAX_UNICODE_CMAP_MAPPINGS>"));
     assert!(!stdout.contains("--json"));
     assert!(stdout.contains("1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, 4, 4e, 4f, ua1, ua2"));
 }

@@ -45,8 +45,15 @@ def test_default_safety_limits():
     assert limits.max_xref_revisions == page.SafetyLimits.DEFAULT_MAX_XREF_REVISIONS
     assert limits.max_table_span == page.SafetyLimits.DEFAULT_MAX_TABLE_SPAN
     assert limits.max_table_grid_rows == page.SafetyLimits.DEFAULT_MAX_TABLE_GRID_ROWS
-    assert limits.max_table_grid_columns == page.SafetyLimits.DEFAULT_MAX_TABLE_GRID_COLUMNS
+    assert (
+        limits.max_table_grid_columns
+        == page.SafetyLimits.DEFAULT_MAX_TABLE_GRID_COLUMNS
+    )
     assert limits.max_table_grid_cells == page.SafetyLimits.DEFAULT_MAX_TABLE_GRID_CELLS
+    assert (
+        limits.max_unicode_cmap_mappings
+        == page.SafetyLimits.DEFAULT_MAX_UNICODE_CMAP_MAPPINGS
+    )
 
 
 def test_custom_safety_limits():
@@ -59,6 +66,7 @@ def test_custom_safety_limits():
         max_table_grid_rows=10,
         max_table_grid_columns=11,
         max_table_grid_cells=12,
+        max_unicode_cmap_mappings=13,
     )
 
     assert limits.max_input_size == 42
@@ -69,6 +77,7 @@ def test_custom_safety_limits():
     assert limits.max_table_grid_rows == 10
     assert limits.max_table_grid_columns == 11
     assert limits.max_table_grid_cells == 12
+    assert limits.max_unicode_cmap_mappings == 13
 
 
 def test_compliance_api_rejects_invalid_bytes():

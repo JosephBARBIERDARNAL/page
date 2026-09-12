@@ -130,12 +130,14 @@ struct SafetyLimits {
     max_table_grid_columns: usize,
     #[pyo3(get, set)]
     max_table_grid_cells: usize,
+    #[pyo3(get, set)]
+    max_unicode_cmap_mappings: usize,
 }
 
 #[pymethods]
 impl SafetyLimits {
     #[new]
-    #[pyo3(signature = (*, max_input_size=None, max_decoded_stream_size=None, max_total_decoded_content_size=None, max_object_count=None, max_reference_depth=None, max_xref_revisions=None, max_table_span=None, max_table_grid_rows=None, max_table_grid_columns=None, max_table_grid_cells=None))]
+    #[pyo3(signature = (*, max_input_size=None, max_decoded_stream_size=None, max_total_decoded_content_size=None, max_object_count=None, max_reference_depth=None, max_xref_revisions=None, max_table_span=None, max_table_grid_rows=None, max_table_grid_columns=None, max_table_grid_cells=None, max_unicode_cmap_mappings=None))]
     fn new(
         max_input_size: Option<u64>,
         max_decoded_stream_size: Option<usize>,
@@ -147,6 +149,7 @@ impl SafetyLimits {
         max_table_grid_rows: Option<usize>,
         max_table_grid_columns: Option<usize>,
         max_table_grid_cells: Option<usize>,
+        max_unicode_cmap_mappings: Option<usize>,
     ) -> Self {
         let defaults = RustSafetyLimits::default();
         Self {
@@ -163,6 +166,8 @@ impl SafetyLimits {
             max_table_grid_columns: max_table_grid_columns
                 .unwrap_or(defaults.max_table_grid_columns),
             max_table_grid_cells: max_table_grid_cells.unwrap_or(defaults.max_table_grid_cells),
+            max_unicode_cmap_mappings: max_unicode_cmap_mappings
+                .unwrap_or(defaults.max_unicode_cmap_mappings),
         }
     }
 
@@ -198,9 +203,13 @@ impl SafetyLimits {
     #[classattr]
     const DEFAULT_MAX_TABLE_GRID_CELLS: usize = RustSafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS;
 
+    #[classattr]
+    const DEFAULT_MAX_UNICODE_CMAP_MAPPINGS: usize =
+        RustSafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS;
+
     fn __repr__(&self) -> String {
         format!(
-            "SafetyLimits(max_input_size={}, max_decoded_stream_size={}, max_total_decoded_content_size={}, max_object_count={}, max_reference_depth={}, max_xref_revisions={}, max_table_span={}, max_table_grid_rows={}, max_table_grid_columns={}, max_table_grid_cells={})",
+            "SafetyLimits(max_input_size={}, max_decoded_stream_size={}, max_total_decoded_content_size={}, max_object_count={}, max_reference_depth={}, max_xref_revisions={}, max_table_span={}, max_table_grid_rows={}, max_table_grid_columns={}, max_table_grid_cells={}, max_unicode_cmap_mappings={})",
             self.max_input_size,
             self.max_decoded_stream_size,
             self.max_total_decoded_content_size,
@@ -211,6 +220,7 @@ impl SafetyLimits {
             self.max_table_grid_rows,
             self.max_table_grid_columns,
             self.max_table_grid_cells,
+            self.max_unicode_cmap_mappings,
         )
     }
 }
@@ -228,6 +238,7 @@ impl From<&SafetyLimits> for RustSafetyLimits {
             max_table_grid_rows: limits.max_table_grid_rows,
             max_table_grid_columns: limits.max_table_grid_columns,
             max_table_grid_cells: limits.max_table_grid_cells,
+            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings,
         }
     }
 }

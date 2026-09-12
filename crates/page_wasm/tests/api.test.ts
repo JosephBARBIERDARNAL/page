@@ -44,6 +44,9 @@ describe("page-validation", () => {
       SafetyLimits.DEFAULT_MAX_TABLE_GRID_COLUMNS,
     );
     expect(limits.maxTableGridCells).toBe(SafetyLimits.DEFAULT_MAX_TABLE_GRID_CELLS);
+    expect(limits.maxUnicodeCmapMappings).toBe(
+      SafetyLimits.DEFAULT_MAX_UNICODE_CMAP_MAPPINGS,
+    );
   });
 
   it("serializes custom table safety limits", () => {
@@ -52,6 +55,7 @@ describe("page-validation", () => {
       maxTableGridRows: 10,
       maxTableGridColumns: 11,
       maxTableGridCells: 12,
+      maxUnicodeCmapMappings: 13,
     });
 
     expect(limits.toJSON()).toMatchObject({
@@ -59,6 +63,7 @@ describe("page-validation", () => {
       max_table_grid_rows: 10,
       max_table_grid_columns: 11,
       max_table_grid_cells: 12,
+      max_unicode_cmap_mappings: 13,
     });
   });
 

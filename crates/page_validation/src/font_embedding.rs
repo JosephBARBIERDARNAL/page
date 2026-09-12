@@ -665,7 +665,7 @@ impl Scanner<'_> {
                 continue;
             };
             let bytes = decode_font_stream(stream, self.limits)?;
-            let Some(map) = UnicodeCmap::parse(&bytes) else {
+            let Some(map) = UnicodeCmap::parse(&bytes, self.limits)? else {
                 self.invalid_unicode_mapping(&usage, "has a malformed ToUnicode CMap", false);
                 continue;
             };
@@ -732,7 +732,9 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(map) = UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?) else {
+            let Some(map) =
+                UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?, self.limits)?
+            else {
                 continue;
             };
             if map.has_reserved_values {
@@ -775,7 +777,9 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(map) = UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?) else {
+            let Some(map) =
+                UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?, self.limits)?
+            else {
                 continue;
             };
             for (shown_bytes, actual_text_present, page_object_id, marked_content_id) in
@@ -3582,15 +3586,18 @@ struct UnicodeCmap {
 }
 
 impl UnicodeCmap {
-    fn parse(bytes: &[u8]) -> Option<Self> {
+    fn parse(bytes: &[u8], limits: &SafetyLimits) -> Result<Option<Self>, PdfError> {
         let tokens = cmap_tokens(bytes);
         let mut mappings = BTreeMap::new();
+        let mut expanded_mappings = 0_usize;
         let mut cursor = 0;
         while cursor + 1 < tokens.len() {
             let Some(token) = tokens.get(cursor) else {
                 break;
             };
-            let Some(count) = parse_cmap_integer(token).map(|count| count as usize) else {
+            let Some(count) =
+                parse_cmap_integer(token).and_then(|count| usize::try_from(count).ok())
+            else {
                 cursor += 1;
                 continue;
             };
@@ -3600,8 +3607,19 @@ impl UnicodeCmap {
             match *keyword {
                 b"beginbfchar" => {
                     for index in 0..count {
-                        let source = parse_cmap_bytes(tokens.get(cursor + 2 + index * 2)?)?;
-                        let destination = parse_cmap_bytes(tokens.get(cursor + 3 + index * 2)?)?;
+                        let Some(source) = tokens
+                            .get(cursor + 2 + index * 2)
+                            .and_then(|token| parse_cmap_bytes(token))
+                        else {
+                            return Ok(None);
+                        };
+                        let Some(destination) = tokens
+                            .get(cursor + 3 + index * 2)
+                            .and_then(|token| parse_cmap_bytes(token))
+                        else {
+                            return Ok(None);
+                        };
+                        add_unicode_cmap_mappings(&mut expanded_mappings, 1, limits)?;
                         mappings.insert(source, destination);
                     }
                     cursor += 2 + count * 2;
@@ -3609,19 +3627,41 @@ impl UnicodeCmap {
                 b"beginbfrange" => {
                     for index in 0..count {
                         let base = cursor + 2 + index * 3;
-                        let start = parse_cmap_bytes(tokens.get(base)?)?;
-                        let end = parse_cmap_bytes(tokens.get(base + 1)?)?;
-                        let first = parse_cmap_bytes(tokens.get(base + 2)?)?;
+                        let Some(start) =
+                            tokens.get(base).and_then(|token| parse_cmap_bytes(token))
+                        else {
+                            return Ok(None);
+                        };
+                        let Some(end) = tokens
+                            .get(base + 1)
+                            .and_then(|token| parse_cmap_bytes(token))
+                        else {
+                            return Ok(None);
+                        };
+                        let Some(first) = tokens
+                            .get(base + 2)
+                            .and_then(|token| parse_cmap_bytes(token))
+                        else {
+                            return Ok(None);
+                        };
                         if start.len() != end.len() || start > end {
-                            return None;
+                            return Ok(None);
                         }
                         let start_value = bytes_value(&start);
                         let end_value = bytes_value(&end);
                         let first_value = bytes_value(&first);
                         let range_length = end_value - start_value;
                         if range_length > 65_535 {
-                            return None;
+                            return Ok(None);
                         }
+                        let expansion_count = usize::try_from(range_length)
+                            .ok()
+                            .and_then(|length| length.checked_add(1))
+                            .ok_or(PdfError::UnicodeCmapMappingLimit {
+                                actual: usize::MAX,
+                                limit: limits.max_unicode_cmap_mappings,
+                            })?;
+                        add_unicode_cmap_mappings(&mut expanded_mappings, expansion_count, limits)?;
                         for offset in 0..=range_length {
                             let source = value_bytes(start_value + offset, start.len());
                             let destination = value_bytes(first_value + offset, first.len());
@@ -3633,17 +3673,19 @@ impl UnicodeCmap {
                 _ => cursor += 1,
             }
         }
-        (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
-            .then_some(Self {
-                has_reserved_values: mappings.values().any(|value| {
-                    value
-                        .as_chunks::<2>()
-                        .0
-                        .iter()
-                        .any(|pair| matches!(u16::from_be_bytes(*pair), 0 | 0xFEFF | 0xFFFE))
+        Ok(
+            (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
+                .then_some(Self {
+                    has_reserved_values: mappings.values().any(|value| {
+                        value
+                            .as_chunks::<2>()
+                            .0
+                            .iter()
+                            .any(|pair| matches!(u16::from_be_bytes(*pair), 0 | 0xFEFF | 0xFFFE))
+                    }),
+                    mappings,
                 }),
-                mappings,
-            })
+        )
     }
 
     fn maps_usable(&self, code: &[u8]) -> bool {
@@ -3672,6 +3714,27 @@ impl UnicodeCmap {
             })
         })
     }
+}
+
+fn add_unicode_cmap_mappings(
+    total: &mut usize,
+    additional: usize,
+    limits: &SafetyLimits,
+) -> Result<(), PdfError> {
+    let Some(total_after) = total.checked_add(additional) else {
+        return Err(PdfError::UnicodeCmapMappingLimit {
+            actual: usize::MAX,
+            limit: limits.max_unicode_cmap_mappings,
+        });
+    };
+    if total_after > limits.max_unicode_cmap_mappings {
+        return Err(PdfError::UnicodeCmapMappingLimit {
+            actual: total_after,
+            limit: limits.max_unicode_cmap_mappings,
+        });
+    }
+    *total = total_after;
+    Ok(())
 }
 
 fn parse_cmap_bytes(token: &[u8]) -> Option<Vec<u8>> {
@@ -5076,14 +5139,84 @@ mod tests {
 
     #[test]
     fn parses_usable_unicode_cmaps_and_rejects_incomplete_or_invalid_values() {
+        let limits = SafetyLimits::default();
         let map = UnicodeCmap::parse(
             b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <41> <0041> endbfchar",
+            &limits,
         )
+        .expect("parse valid ToUnicode CMap")
         .expect("valid ToUnicode CMap");
         assert!(map.maps_usable(b"A"));
         assert!(!map.maps_usable(b"B"));
-        assert!(UnicodeCmap::parse(b"1 beginbfchar <41> <d800> endbfchar").is_none());
-        assert!(UnicodeCmap::parse(b"1 beginbfrange <00> <ffff> <d800> endbfrange").is_none());
+        assert!(
+            UnicodeCmap::parse(b"1 beginbfchar <41> <d800> endbfchar", &limits)
+                .expect("parse invalid Unicode value")
+                .is_none()
+        );
+        assert!(
+            UnicodeCmap::parse(b"1 beginbfrange <00> <ffff> <d800> endbfrange", &limits)
+                .expect("parse invalid Unicode range value")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn expands_increasing_valid_unicode_cmaps_within_total_budget() {
+        let limits = SafetyLimits {
+            max_unicode_cmap_mappings: 64,
+            ..SafetyLimits::default()
+        };
+        for (range_count, entries_per_range, expected_mappings) in
+            [(1, 1, 1), (2, 2, 4), (4, 4, 16), (8, 8, 64)]
+        {
+            let fixture = valid_unicode_cmap_fixture(range_count, entries_per_range);
+            let map = UnicodeCmap::parse(&fixture, &limits)
+                .expect("parse valid ToUnicode CMap")
+                .expect("valid ToUnicode CMap");
+            assert_eq!(map.mappings.len(), expected_mappings);
+        }
+
+        let fixture = valid_unicode_cmap_fixture(9, 8);
+        assert!(matches!(
+            UnicodeCmap::parse(&fixture, &limits),
+            Err(PdfError::UnicodeCmapMappingLimit {
+                actual: 72,
+                limit: 64
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_cumulative_maximal_bfranges_before_exceeding_budget() {
+        let limits = SafetyLimits {
+            max_unicode_cmap_mappings: 65_535,
+            ..SafetyLimits::default()
+        };
+        let fixture =
+            b"2 beginbfrange <000000> <00fffe> <0041> <00ffff> <01fffd> <0041> endbfrange";
+
+        assert!(matches!(
+            UnicodeCmap::parse(fixture, &limits),
+            Err(PdfError::UnicodeCmapMappingLimit {
+                actual: 131_070,
+                limit: 65_535
+            })
+        ));
+    }
+
+    fn valid_unicode_cmap_fixture(range_count: usize, entries_per_range: usize) -> Vec<u8> {
+        use std::fmt::Write as _;
+
+        let mut fixture = format!("{range_count} beginbfrange\n");
+        for range in 0..range_count {
+            let start = range * entries_per_range;
+            let end = start + entries_per_range - 1;
+            let first = 0x41 + start;
+            writeln!(fixture, "<{start:04x}> <{end:04x}> <{first:04x}>")
+                .expect("write valid ToUnicode CMap fixture");
+        }
+        fixture.push_str("endbfrange");
+        fixture.into_bytes()
     }
 
     #[test]

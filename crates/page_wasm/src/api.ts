@@ -45,6 +45,7 @@ export interface SafetyLimitsOptions {
   maxTableGridRows: number;
   maxTableGridColumns: number;
   maxTableGridCells: number;
+  maxUnicodeCmapMappings: number;
 }
 
 const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
@@ -58,6 +59,7 @@ const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
   maxTableGridRows: 1_024,
   maxTableGridColumns: 1_024,
   maxTableGridCells: 1_000_000,
+  maxUnicodeCmapMappings: 1_000_000,
 };
 
 export class SafetyLimits implements SafetyLimitsOptions {
@@ -75,6 +77,8 @@ export class SafetyLimits implements SafetyLimitsOptions {
     DEFAULT_SAFETY_LIMITS.maxTableGridColumns;
   static readonly DEFAULT_MAX_TABLE_GRID_CELLS =
     DEFAULT_SAFETY_LIMITS.maxTableGridCells;
+  static readonly DEFAULT_MAX_UNICODE_CMAP_MAPPINGS =
+    DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings;
 
   maxInputSize: number;
   maxDecodedStreamSize: number;
@@ -86,6 +90,7 @@ export class SafetyLimits implements SafetyLimitsOptions {
   maxTableGridRows: number;
   maxTableGridColumns: number;
   maxTableGridCells: number;
+  maxUnicodeCmapMappings: number;
 
   constructor(options: Partial<SafetyLimitsOptions> = {}) {
     this.maxInputSize = validateLimit(
@@ -129,6 +134,10 @@ export class SafetyLimits implements SafetyLimitsOptions {
       options.maxTableGridCells ?? DEFAULT_SAFETY_LIMITS.maxTableGridCells,
       "maxTableGridCells",
     );
+    this.maxUnicodeCmapMappings = validateLimit(
+      options.maxUnicodeCmapMappings ?? DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings,
+      "maxUnicodeCmapMappings",
+    );
   }
 
   toJSON(): Record<string, number> {
@@ -143,6 +152,7 @@ export class SafetyLimits implements SafetyLimitsOptions {
       max_table_grid_rows: this.maxTableGridRows,
       max_table_grid_columns: this.maxTableGridColumns,
       max_table_grid_cells: this.maxTableGridCells,
+      max_unicode_cmap_mappings: this.maxUnicodeCmapMappings,
     };
   }
 }
