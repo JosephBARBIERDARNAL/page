@@ -46,6 +46,16 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("details, json"));
     assert!(stdout.contains("--output <FILE>"));
     assert!(stdout.contains("--no-color"));
+    assert!(stdout.contains("--max-input-size <MAX_INPUT_SIZE>"));
+    assert!(stdout.contains("--max-decoded-stream-size <MAX_DECODED_STREAM_SIZE>"));
+    assert!(stdout.contains("--max-total-decoded-content-size <MAX_TOTAL_DECODED_CONTENT_SIZE>"));
+    assert!(stdout.contains("--max-object-count <MAX_OBJECT_COUNT>"));
+    assert!(stdout.contains("--max-reference-depth <MAX_REFERENCE_DEPTH>"));
+    assert!(stdout.contains("--max-xref-revisions <MAX_XREF_REVISIONS>"));
+    assert!(stdout.contains("--max-table-span <MAX_TABLE_SPAN>"));
+    assert!(stdout.contains("--max-table-grid-rows <MAX_TABLE_GRID_ROWS>"));
+    assert!(stdout.contains("--max-table-grid-columns <MAX_TABLE_GRID_COLUMNS>"));
+    assert!(stdout.contains("--max-table-grid-cells <MAX_TABLE_GRID_CELLS>"));
     assert!(!stdout.contains("--json"));
     assert!(stdout.contains("1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, 4, 4e, 4f, ua1, ua2"));
 }

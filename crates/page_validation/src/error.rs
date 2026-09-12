@@ -50,6 +50,20 @@ pub enum PdfError {
     #[error("content streams exceed the total decoded-size limit of {0} bytes")]
     TotalContentDecodeLimit(usize),
 
+    #[error("table cell span {actual} exceeds the configured {limit} span limit")]
+    TableSpanLimit { actual: usize, limit: usize },
+
+    #[error(
+        "table grid dimensions {rows}x{columns} exceed the configured {max_rows}x{max_columns} and {max_cells}-cell limits"
+    )]
+    TableGridLimit {
+        rows: usize,
+        columns: usize,
+        max_rows: usize,
+        max_columns: usize,
+        max_cells: usize,
+    },
+
     #[error("embedded font program exceeds the decoded-size limit of {0} bytes")]
     FontDecodeLimit(usize),
 
@@ -68,6 +82,8 @@ impl PdfError {
                 | Self::IccDecodeLimit(_)
                 | Self::ContentDecodeLimit(_)
                 | Self::TotalContentDecodeLimit(_)
+                | Self::TableSpanLimit { .. }
+                | Self::TableGridLimit { .. }
                 | Self::FontDecodeLimit(_)
                 | Self::XfaDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(

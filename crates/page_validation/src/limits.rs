@@ -1,6 +1,6 @@
 /// Configurable bounds that keep PDF parsing and inspection resource use predictable regardless of what an untrusted input contains.
 ///
-/// Each field caps a distinct resource: the raw input size, a single decoded stream, the sum of all decoded content streams, the number of indirect objects, the depth of a chased reference chain, and the number of incremental-update revisions read from the cross-reference chain. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
+/// Each field caps a distinct resource: the raw input size, a single decoded stream, the sum of all decoded content streams, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, or the dimensions of an inspected table grid. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
 ///
 /// ## Examples
 ///
@@ -22,6 +22,10 @@ pub struct SafetyLimits {
     pub max_object_count: usize,
     pub max_reference_depth: usize,
     pub max_xref_revisions: usize,
+    pub max_table_span: usize,
+    pub max_table_grid_rows: usize,
+    pub max_table_grid_columns: usize,
+    pub max_table_grid_cells: usize,
 }
 
 impl SafetyLimits {
@@ -33,6 +37,10 @@ impl SafetyLimits {
     pub const DEFAULT_MAX_OBJECT_COUNT: usize = 1_000_000;
     pub const DEFAULT_MAX_REFERENCE_DEPTH: usize = 256;
     pub const DEFAULT_MAX_XREF_REVISIONS: usize = 1_024;
+    pub const DEFAULT_MAX_TABLE_SPAN: usize = 1_024;
+    pub const DEFAULT_MAX_TABLE_GRID_ROWS: usize = 1_024;
+    pub const DEFAULT_MAX_TABLE_GRID_COLUMNS: usize = 1_024;
+    pub const DEFAULT_MAX_TABLE_GRID_CELLS: usize = 1_000_000;
 }
 
 impl Default for SafetyLimits {
@@ -44,6 +52,10 @@ impl Default for SafetyLimits {
             max_object_count: Self::DEFAULT_MAX_OBJECT_COUNT,
             max_reference_depth: Self::DEFAULT_MAX_REFERENCE_DEPTH,
             max_xref_revisions: Self::DEFAULT_MAX_XREF_REVISIONS,
+            max_table_span: Self::DEFAULT_MAX_TABLE_SPAN,
+            max_table_grid_rows: Self::DEFAULT_MAX_TABLE_GRID_ROWS,
+            max_table_grid_columns: Self::DEFAULT_MAX_TABLE_GRID_COLUMNS,
+            max_table_grid_cells: Self::DEFAULT_MAX_TABLE_GRID_CELLS,
         }
     }
 }

@@ -2468,6 +2468,7 @@ fn table_grid_spans(
         }
     }
 
+    ensure_table_grid_dimensions(limits, rows.len(), 1)?;
     let mut row_widths = Vec::with_capacity(rows.len());
     let mut column_ends = Vec::new();
     for (row_index, row) in rows.iter().enumerate() {
@@ -2487,9 +2488,14 @@ fn table_grid_spans(
                 continue;
             }
             let (row_span, column_span) = table_cell_spans(document, cell, limits)?;
+            let row_end = row_index
+                .checked_add(row_span)
+                .ok_or_else(|| table_grid_limit(limits, row_index, 0))?;
             let mut column = 0_usize;
             loop {
-                let column_after_cell = column.saturating_add(column_span);
+                let column_after_cell =
+                    checked_table_grid_columns(limits, row_index, column, column_span)?;
+                ensure_table_grid_dimensions(limits, row_end, column_after_cell)?;
                 if column_after_cell > column_ends.len() {
                     column_ends.resize(column_after_cell, 0);
                 }
@@ -2499,9 +2505,10 @@ fn table_grid_spans(
                     row_width = row_width.max(column_after_cell);
                     break;
                 }
-                column = column.saturating_add(1);
+                column = column
+                    .checked_add(1)
+                    .ok_or_else(|| table_grid_limit(limits, row_index, column_after_cell))?;
             }
-            let row_end = row_index.saturating_add(row_span);
             for end in column_ends.iter_mut().skip(column).take(column_span) {
                 *end = (*end).max(row_end);
             }
@@ -2710,15 +2717,15 @@ fn table_cell_intersection_failures<'a>(
     let number_of_columns = first_row_cells
         .iter()
         .filter(|kid| matches!(kid.standard_type.as_slice(), b"TH" | b"TD"))
-        .map(|kid| table_cell_spans(document, kid.dictionary, limits))
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .map(|(_, column_span)| column_span)
-        .sum::<usize>();
+        .try_fold(0_usize, |columns, kid| {
+            let (_, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
+            checked_table_grid_columns(limits, rows.len(), columns, column_span)
+        })?;
     if number_of_columns == 0 {
         return Ok(Vec::new());
     }
     let mut number_of_rows = rows.len();
+    ensure_table_grid_dimensions(limits, number_of_rows, number_of_columns)?;
     for (row_number, row) in rows.iter().enumerate() {
         for kid in table_structure_kids(
             document,
@@ -2729,10 +2736,15 @@ fn table_cell_intersection_failures<'a>(
         )? {
             if matches!(kid.standard_type.as_slice(), b"TH" | b"TD") {
                 let (row_span, _) = table_cell_spans(document, kid.dictionary, limits)?;
-                number_of_rows = number_of_rows.max(row_number.saturating_add(row_span));
+                let row_end = row_number
+                    .checked_add(row_span)
+                    .ok_or_else(|| table_grid_limit(limits, number_of_rows, number_of_columns))?;
+                ensure_table_grid_dimensions(limits, row_end, number_of_columns)?;
+                number_of_rows = number_of_rows.max(row_end);
             }
         }
     }
+    ensure_table_grid_dimensions(limits, number_of_rows, number_of_columns)?;
     let mut cells: Vec<Vec<Option<TableStructureKid<'a>>>> =
         vec![vec![None; number_of_columns]; number_of_rows];
     for (row_number, row) in rows.iter().enumerate() {
@@ -2754,15 +2766,21 @@ fn table_cell_intersection_failures<'a>(
                     .and_then(|row| row.get(column_number))
                     .is_some_and(Option::is_some)
             {
-                column_number += 1;
+                column_number = column_number
+                    .checked_add(1)
+                    .ok_or_else(|| table_grid_limit(limits, rows.len(), number_of_columns))?;
             }
-            if column_number.saturating_add(column_span) > number_of_columns
-                || row_number.saturating_add(row_span) > number_of_rows
-            {
+            let column_end = column_number
+                .checked_add(column_span)
+                .ok_or_else(|| table_grid_limit(limits, number_of_rows, number_of_columns))?;
+            let row_end = row_number
+                .checked_add(row_span)
+                .ok_or_else(|| table_grid_limit(limits, number_of_rows, number_of_columns))?;
+            if column_end > number_of_columns || row_end > number_of_rows {
                 return Ok(Vec::new());
             }
-            if let Some(existing) = (row_number..row_number + row_span).find_map(|row_index| {
-                (column_number..column_number + column_span).find_map(|column_index| {
+            if let Some(existing) = (row_number..row_end).find_map(|row_index| {
+                (column_number..column_end).find_map(|column_index| {
                     cells
                         .get(row_index)
                         .and_then(|row| row.get(column_index))
@@ -2781,8 +2799,12 @@ fn table_cell_intersection_failures<'a>(
                     })
                     .collect());
             }
-            for row in cells.iter_mut().skip(row_number).take(row_span) {
-                for slot in row.iter_mut().skip(column_number).take(column_span) {
+            for row in cells.iter_mut().skip(row_number).take(row_end - row_number) {
+                for slot in row
+                    .iter_mut()
+                    .skip(column_number)
+                    .take(column_end - column_number)
+                {
                     *slot = Some(kid.clone());
                 }
             }
@@ -2817,11 +2839,11 @@ fn table_grid(
     let number_of_columns = first_row
         .iter()
         .filter(|kid| matches!(kid.standard_type.as_slice(), b"TH" | b"TD"))
-        .map(|kid| table_cell_spans(document, kid.dictionary, limits))
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .map(|(_, column_span)| column_span)
-        .sum::<usize>();
+        .try_fold(0_usize, |columns, kid| {
+            let (_, column_span) = table_cell_spans(document, kid.dictionary, limits)?;
+            checked_table_grid_columns(limits, rows.len(), columns, column_span)
+        })?;
+    ensure_table_grid_dimensions(limits, rows.len(), number_of_columns)?;
     let mut cells = vec![vec![None; number_of_columns]; rows.len()];
 
     for (row_number, row) in rows.iter().enumerate() {
@@ -2845,15 +2867,21 @@ fn table_grid(
                     .and_then(|row| row.get(column_number))
                     .is_some_and(Option::is_some)
             {
-                column_number += 1;
+                column_number = column_number
+                    .checked_add(1)
+                    .ok_or_else(|| table_grid_limit(limits, rows.len(), number_of_columns))?;
             }
-            if column_number.saturating_add(column_span) > number_of_columns
-                || row_number.saturating_add(row_span) > rows.len()
-            {
+            let column_end = column_number
+                .checked_add(column_span)
+                .ok_or_else(|| table_grid_limit(limits, rows.len(), number_of_columns))?;
+            let row_end = row_number
+                .checked_add(row_span)
+                .ok_or_else(|| table_grid_limit(limits, rows.len(), number_of_columns))?;
+            if column_end > number_of_columns || row_end > rows.len() {
                 return Ok(None);
             }
-            if (row_number..row_number + row_span).any(|row_index| {
-                (column_number..column_number + column_span).any(|column_index| {
+            if (row_number..row_end).any(|row_index| {
+                (column_number..column_end).any(|column_index| {
                     cells
                         .get(row_index)
                         .and_then(|row| row.get(column_index))
@@ -2874,8 +2902,12 @@ fn table_grid(
                 headers,
                 scope,
             };
-            for row in cells.iter_mut().skip(row_number).take(row_span) {
-                for slot in row.iter_mut().skip(column_number).take(column_span) {
+            for row in cells.iter_mut().skip(row_number).take(row_end - row_number) {
+                for slot in row
+                    .iter_mut()
+                    .skip(column_number)
+                    .take(column_end - column_number)
+                {
                     *slot = Some(cell.clone());
                 }
             }
@@ -3123,6 +3155,12 @@ fn table_cell_spans(
                 .and_then(|value| usize::try_from(value).ok())
                 .filter(|value| *value > 0)
         {
+            if value > limits.max_table_span {
+                return Err(PdfError::TableSpanLimit {
+                    actual: value,
+                    limit: limits.max_table_span,
+                });
+            }
             row_span = value;
         }
         if let Some(value) =
@@ -3130,10 +3168,56 @@ fn table_cell_spans(
                 .and_then(|value| usize::try_from(value).ok())
                 .filter(|value| *value > 0)
         {
+            if value > limits.max_table_span {
+                return Err(PdfError::TableSpanLimit {
+                    actual: value,
+                    limit: limits.max_table_span,
+                });
+            }
             column_span = value;
         }
     }
     Ok((row_span, column_span))
+}
+
+fn table_grid_limit(limits: &SafetyLimits, rows: usize, columns: usize) -> PdfError {
+    PdfError::TableGridLimit {
+        rows,
+        columns,
+        max_rows: limits.max_table_grid_rows,
+        max_columns: limits.max_table_grid_columns,
+        max_cells: limits.max_table_grid_cells,
+    }
+}
+
+fn ensure_table_grid_dimensions(
+    limits: &SafetyLimits,
+    rows: usize,
+    columns: usize,
+) -> Result<(), PdfError> {
+    if rows > limits.max_table_grid_rows || columns > limits.max_table_grid_columns {
+        return Err(table_grid_limit(limits, rows, columns));
+    }
+    if rows
+        .checked_mul(columns)
+        .is_none_or(|cells| cells > limits.max_table_grid_cells)
+    {
+        return Err(table_grid_limit(limits, rows, columns));
+    }
+    Ok(())
+}
+
+fn checked_table_grid_columns(
+    limits: &SafetyLimits,
+    rows: usize,
+    columns: usize,
+    additional_columns: usize,
+) -> Result<usize, PdfError> {
+    let columns = columns
+        .checked_add(additional_columns)
+        .ok_or_else(|| table_grid_limit(limits, rows, usize::MAX))?;
+    ensure_table_grid_dimensions(limits, rows, columns)?;
+    Ok(columns)
 }
 
 fn any_direct_structure_kid<F>(
@@ -3460,6 +3544,90 @@ mod tests {
         let features = inspect(&document, &[], &SafetyLimits::default()).expect("inspect");
         assert!(features.struct_tree_root_present);
         assert!(features.struct_tree_root_valid);
+    }
+
+    #[test]
+    fn rejects_near_maximum_table_spans_before_grid_allocation() {
+        for span_key in [b"RowSpan".as_slice(), b"ColSpan".as_slice()] {
+            let mut document = Document::with_version("1.4");
+            document.trailer.set("Root", Object::Reference((1, 0)));
+            document.objects.insert(
+                (1, 0),
+                Object::Dictionary(dictionary! {
+                    "Type" => "Catalog",
+                    "StructTreeRoot" => Object::Reference((2, 0)),
+                }),
+            );
+            document.objects.insert(
+                (2, 0),
+                Object::Dictionary(dictionary! {
+                    "K" => vec![Object::Reference((3, 0))],
+                }),
+            );
+            document.objects.insert(
+                (3, 0),
+                Object::Dictionary(dictionary! {
+                    "S" => "Table",
+                    "P" => Object::Reference((2, 0)),
+                    "K" => vec![Object::Reference((4, 0))],
+                }),
+            );
+            document.objects.insert(
+                (4, 0),
+                Object::Dictionary(dictionary! {
+                    "S" => "TBody",
+                    "P" => Object::Reference((3, 0)),
+                    "K" => vec![Object::Reference((5, 0))],
+                }),
+            );
+            document.objects.insert(
+                (5, 0),
+                Object::Dictionary(dictionary! {
+                    "S" => "TR",
+                    "P" => Object::Reference((4, 0)),
+                    "K" => vec![Object::Reference((6, 0))],
+                }),
+            );
+            let mut attributes = dictionary! { "O" => "Table" };
+            attributes.set(span_key.to_vec(), i64::from(i32::MAX));
+            document.objects.insert(
+                (6, 0),
+                Object::Dictionary(dictionary! {
+                    "S" => "TD",
+                    "P" => Object::Reference((5, 0)),
+                    "A" => Object::Dictionary(attributes),
+                }),
+            );
+
+            let limits = SafetyLimits::default();
+            assert!(matches!(
+                inspect(&document, &[], &limits),
+                Err(PdfError::TableSpanLimit { actual, limit })
+                    if actual > limit && limit == SafetyLimits::DEFAULT_MAX_TABLE_SPAN
+            ));
+        }
+    }
+
+    #[test]
+    fn rejects_table_grid_dimensions_before_allocation() {
+        let limits = SafetyLimits::default();
+        for (rows, columns) in [
+            (SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS + 1, 1),
+            (1, SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS + 1),
+            (
+                SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS,
+                SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS,
+            ),
+        ] {
+            assert!(matches!(
+                super::ensure_table_grid_dimensions(&limits, rows, columns),
+                Err(PdfError::TableGridLimit {
+                    rows: actual_rows,
+                    columns: actual_columns,
+                    ..
+                }) if actual_rows == rows && actual_columns == columns
+            ));
+        }
     }
 
     /// Confirmed against veraPDF 1.30.2: the same name-tree leaf reachable
