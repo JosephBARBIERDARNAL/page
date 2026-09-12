@@ -2586,7 +2586,10 @@ fn decode_font_stream(stream: &Stream, limits: &SafetyLimits) -> Result<Vec<u8>,
         Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
             Err(PdfError::FontDecodeLimit(limits.max_decoded_stream_size))
         }
-        Err(_) => Ok(stream.content.clone()),
+        Err(_) if stream.content.len() <= limits.max_decoded_stream_size => {
+            Ok(stream.content.clone())
+        }
+        Err(_) => Err(PdfError::FontDecodeLimit(limits.max_decoded_stream_size)),
     }
 }
 
@@ -4985,11 +4988,28 @@ mod tests {
 
     use super::{
         CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
-        cmap_maximal_cid, cmap_uses_identity_base, inspect, inspect_all_embedded_cmap_cids,
-        parse_cmap, parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
-        type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
+        cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
+        inspect_all_embedded_cmap_cids, parse_cmap, parse_cmap_with_predefined_bases,
+        shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
+        type1_program_charstring_widths,
     };
-    use crate::{SafetyLimits, model::InspectionNeed, predefined_cmaps};
+    use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn oversized_font_stream_with_unsupported_filter_hits_decode_limit() {
+        let mut dictionary = Dictionary::new();
+        dictionary.set("Filter", "UnsupportedDecode");
+        let stream = Stream::new(dictionary, vec![0; 5]);
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 4,
+            ..SafetyLimits::default()
+        };
+
+        assert!(matches!(
+            decode_font_stream(&stream, &limits),
+            Err(PdfError::FontDecodeLimit(4))
+        ));
+    }
 
     /// A malicious CMap can declare an astronomical entry count while
     /// supplying almost no real tokens (`99999999999999 begincidrange <00>
