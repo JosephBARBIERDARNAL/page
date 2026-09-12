@@ -50,6 +50,25 @@ pub enum PdfError {
     #[error("content streams exceed the total decoded-size limit of {0} bytes")]
     TotalContentDecodeLimit(usize),
 
+    #[error("table cell span {actual} exceeds the configured {limit} span limit")]
+    TableSpanLimit { actual: usize, limit: usize },
+
+    #[error(
+        "table grid dimensions {rows}x{columns} violate configured limits: at most {max_rows} rows, {max_columns} columns, and {max_cells} cells"
+    )]
+    TableGridLimit {
+        rows: usize,
+        columns: usize,
+        max_rows: usize,
+        max_columns: usize,
+        max_cells: usize,
+    },
+
+    #[error(
+        "ToUnicode CMap expands to {actual} mappings, exceeding the configured {limit}-mapping limit"
+    )]
+    UnicodeCmapMappingLimit { actual: usize, limit: usize },
+
     #[error("embedded font program exceeds the decoded-size limit of {0} bytes")]
     FontDecodeLimit(usize),
 
@@ -68,6 +87,9 @@ impl PdfError {
                 | Self::IccDecodeLimit(_)
                 | Self::ContentDecodeLimit(_)
                 | Self::TotalContentDecodeLimit(_)
+                | Self::TableSpanLimit { .. }
+                | Self::TableGridLimit { .. }
+                | Self::UnicodeCmapMappingLimit { .. }
                 | Self::FontDecodeLimit(_)
                 | Self::XfaDecodeLimit(_)
                 | Self::Parse(lopdf::Error::Decompress(

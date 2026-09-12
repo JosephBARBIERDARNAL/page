@@ -120,12 +120,17 @@ const limits = new SafetyLimits({
   maxObjectCount: 1_000_000, // 1,000,000 objects
   maxReferenceDepth: 256, // 256 levels
   maxXrefRevisions: 1_024, // 1,024 revisions
+  maxTableSpan: 1_024, // rows or columns per cell
+  maxTableGridRows: 1_024, // rows
+  maxTableGridColumns: 1_024, // columns
+  maxTableGridCells: 1_000_000, // cells
+  maxUnicodeCmapMappings: 1_000_000, // mappings per ToUnicode CMap
 });
 
 const report = await validatePdfBytes(bytes, undefined, limits);
 ```
 
-You can also pass a partial options object instead of constructing `SafetyLimits`. `maxDecodedStreamSize` bounds one decoded stream and `maxTotalDecodedContentSize` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. `maxXrefRevisions` bounds the number of incremental-update revisions read from the cross-reference chain.
+You can also pass a partial options object instead of constructing `SafetyLimits`. `maxDecodedStreamSize` bounds one decoded stream and `maxTotalDecodedContentSize` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. `maxXrefRevisions` bounds the number of incremental-update revisions read from the cross-reference chain. `maxTableSpan` bounds the row or column span of an individual tagged-table cell. `maxTableGridRows`, `maxTableGridColumns`, and `maxTableGridCells` bound the derived table-grid dimensions and total cells. `maxUnicodeCmapMappings` bounds the total mappings expanded from one ToUnicode CMap.
 
 ## Use the exit code
 

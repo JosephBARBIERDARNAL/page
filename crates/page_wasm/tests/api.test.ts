@@ -38,6 +38,33 @@ describe("page-validation", () => {
     expect(limits.maxInputSize).toBe(256 * 1024 * 1024);
     expect(limits.maxObjectCount).toBe(1_000_000);
     expect(limits.maxReferenceDepth).toBe(256);
+    expect(limits.maxTableSpan).toBe(SafetyLimits.DEFAULT_MAX_TABLE_SPAN);
+    expect(limits.maxTableGridRows).toBe(SafetyLimits.DEFAULT_MAX_TABLE_GRID_ROWS);
+    expect(limits.maxTableGridColumns).toBe(
+      SafetyLimits.DEFAULT_MAX_TABLE_GRID_COLUMNS,
+    );
+    expect(limits.maxTableGridCells).toBe(SafetyLimits.DEFAULT_MAX_TABLE_GRID_CELLS);
+    expect(limits.maxUnicodeCmapMappings).toBe(
+      SafetyLimits.DEFAULT_MAX_UNICODE_CMAP_MAPPINGS,
+    );
+  });
+
+  it("serializes custom table safety limits", () => {
+    const limits = new SafetyLimits({
+      maxTableSpan: 9,
+      maxTableGridRows: 10,
+      maxTableGridColumns: 11,
+      maxTableGridCells: 12,
+      maxUnicodeCmapMappings: 13,
+    });
+
+    expect(limits.toJSON()).toMatchObject({
+      max_table_span: 9,
+      max_table_grid_rows: 10,
+      max_table_grid_columns: 11,
+      max_table_grid_cells: 12,
+      max_unicode_cmap_mappings: 13,
+    });
   });
 
   it("returns a typed report for byte input", async () => {

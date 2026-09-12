@@ -82,7 +82,11 @@
   border-left-color: color-mix(in srgb, var(--color-success) 65%, var(--color-border));
 }
 
-[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--pass h3,
+[data-md-color-scheme="default"]
+  .md-typeset
+  [data-page-demo]
+  .validator-result--pass
+  h3,
 [data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--pass h3 {
   color: var(--color-success);
 }
@@ -92,10 +96,22 @@
   border-left-color: color-mix(in srgb, var(--color-error) 65%, var(--color-border));
 }
 
-[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--fail h3,
-[data-md-color-scheme="default"] .md-typeset [data-page-demo] .validator-result--error h3,
+[data-md-color-scheme="default"]
+  .md-typeset
+  [data-page-demo]
+  .validator-result--fail
+  h3,
+[data-md-color-scheme="default"]
+  .md-typeset
+  [data-page-demo]
+  .validator-result--error
+  h3,
 [data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--fail h3,
-[data-md-color-scheme="slate"] .md-typeset [data-page-demo] .validator-result--error h3 {
+[data-md-color-scheme="slate"]
+  .md-typeset
+  [data-page-demo]
+  .validator-result--error
+  h3 {
   color: var(--color-error);
 }
 

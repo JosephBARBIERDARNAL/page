@@ -4418,20 +4418,21 @@ mod tests {
     }
 
     #[test]
-    fn encryption_takes_precedence_over_object_safety_limit() {
+    fn encrypted_input_respects_object_safety_limit() {
         let limits = SafetyLimits {
             max_object_count: 0,
             ..SafetyLimits::default()
         };
-        let report = validate_pdf_bytes(
+        let error = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/encrypted.pdf"),
             Some(ValidationProfile::PdfA1b),
             &limits,
         )
-        .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-ENCRYPTION-001");
-        assert!(!report.has_operational_failure());
-        assert_eq!(report.exit_code(), 2);
+        .expect_err("object limit");
+        assert!(matches!(
+            error,
+            ValidationError::Pdf(PdfError::TooManyObjects { limit: 0, .. })
+        ));
     }
 
     #[test]

@@ -41,6 +41,11 @@ export interface SafetyLimitsOptions {
   maxObjectCount: number;
   maxReferenceDepth: number;
   maxXrefRevisions: number;
+  maxTableSpan: number;
+  maxTableGridRows: number;
+  maxTableGridColumns: number;
+  maxTableGridCells: number;
+  maxUnicodeCmapMappings: number;
 }
 
 const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
@@ -50,6 +55,11 @@ const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
   maxObjectCount: 1_000_000,
   maxReferenceDepth: 256,
   maxXrefRevisions: 1_024,
+  maxTableSpan: 1_024,
+  maxTableGridRows: 1_024,
+  maxTableGridColumns: 1_024,
+  maxTableGridCells: 1_000_000,
+  maxUnicodeCmapMappings: 1_000_000,
 };
 
 export class SafetyLimits implements SafetyLimitsOptions {
@@ -61,6 +71,14 @@ export class SafetyLimits implements SafetyLimitsOptions {
   static readonly DEFAULT_MAX_OBJECT_COUNT = DEFAULT_SAFETY_LIMITS.maxObjectCount;
   static readonly DEFAULT_MAX_REFERENCE_DEPTH = DEFAULT_SAFETY_LIMITS.maxReferenceDepth;
   static readonly DEFAULT_MAX_XREF_REVISIONS = DEFAULT_SAFETY_LIMITS.maxXrefRevisions;
+  static readonly DEFAULT_MAX_TABLE_SPAN = DEFAULT_SAFETY_LIMITS.maxTableSpan;
+  static readonly DEFAULT_MAX_TABLE_GRID_ROWS = DEFAULT_SAFETY_LIMITS.maxTableGridRows;
+  static readonly DEFAULT_MAX_TABLE_GRID_COLUMNS =
+    DEFAULT_SAFETY_LIMITS.maxTableGridColumns;
+  static readonly DEFAULT_MAX_TABLE_GRID_CELLS =
+    DEFAULT_SAFETY_LIMITS.maxTableGridCells;
+  static readonly DEFAULT_MAX_UNICODE_CMAP_MAPPINGS =
+    DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings;
 
   maxInputSize: number;
   maxDecodedStreamSize: number;
@@ -68,6 +86,11 @@ export class SafetyLimits implements SafetyLimitsOptions {
   maxObjectCount: number;
   maxReferenceDepth: number;
   maxXrefRevisions: number;
+  maxTableSpan: number;
+  maxTableGridRows: number;
+  maxTableGridColumns: number;
+  maxTableGridCells: number;
+  maxUnicodeCmapMappings: number;
 
   constructor(options: Partial<SafetyLimitsOptions> = {}) {
     this.maxInputSize = validateLimit(
@@ -95,6 +118,26 @@ export class SafetyLimits implements SafetyLimitsOptions {
       options.maxXrefRevisions ?? DEFAULT_SAFETY_LIMITS.maxXrefRevisions,
       "maxXrefRevisions",
     );
+    this.maxTableSpan = validateLimit(
+      options.maxTableSpan ?? DEFAULT_SAFETY_LIMITS.maxTableSpan,
+      "maxTableSpan",
+    );
+    this.maxTableGridRows = validateLimit(
+      options.maxTableGridRows ?? DEFAULT_SAFETY_LIMITS.maxTableGridRows,
+      "maxTableGridRows",
+    );
+    this.maxTableGridColumns = validateLimit(
+      options.maxTableGridColumns ?? DEFAULT_SAFETY_LIMITS.maxTableGridColumns,
+      "maxTableGridColumns",
+    );
+    this.maxTableGridCells = validateLimit(
+      options.maxTableGridCells ?? DEFAULT_SAFETY_LIMITS.maxTableGridCells,
+      "maxTableGridCells",
+    );
+    this.maxUnicodeCmapMappings = validateLimit(
+      options.maxUnicodeCmapMappings ?? DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings,
+      "maxUnicodeCmapMappings",
+    );
   }
 
   toJSON(): Record<string, number> {
@@ -105,6 +148,11 @@ export class SafetyLimits implements SafetyLimitsOptions {
       max_object_count: this.maxObjectCount,
       max_reference_depth: this.maxReferenceDepth,
       max_xref_revisions: this.maxXrefRevisions,
+      max_table_span: this.maxTableSpan,
+      max_table_grid_rows: this.maxTableGridRows,
+      max_table_grid_columns: this.maxTableGridColumns,
+      max_table_grid_cells: this.maxTableGridCells,
+      max_unicode_cmap_mappings: this.maxUnicodeCmapMappings,
     };
   }
 }

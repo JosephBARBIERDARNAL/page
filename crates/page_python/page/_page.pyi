@@ -31,6 +31,11 @@ class SafetyLimits:
     DEFAULT_MAX_OBJECT_COUNT: ClassVar[int]
     DEFAULT_MAX_REFERENCE_DEPTH: ClassVar[int]
     DEFAULT_MAX_XREF_REVISIONS: ClassVar[int]
+    DEFAULT_MAX_TABLE_SPAN: ClassVar[int]
+    DEFAULT_MAX_TABLE_GRID_ROWS: ClassVar[int]
+    DEFAULT_MAX_TABLE_GRID_COLUMNS: ClassVar[int]
+    DEFAULT_MAX_TABLE_GRID_CELLS: ClassVar[int]
+    DEFAULT_MAX_UNICODE_CMAP_MAPPINGS: ClassVar[int]
 
     max_input_size: int
     max_decoded_stream_size: int
@@ -38,6 +43,11 @@ class SafetyLimits:
     max_object_count: int
     max_reference_depth: int
     max_xref_revisions: int
+    max_table_span: int
+    max_table_grid_rows: int
+    max_table_grid_columns: int
+    max_table_grid_cells: int
+    max_unicode_cmap_mappings: int
 
     def __init__(
         self,
@@ -48,6 +58,11 @@ class SafetyLimits:
         max_object_count: int | None = None,
         max_reference_depth: int | None = None,
         max_xref_revisions: int | None = None,
+        max_table_span: int | None = None,
+        max_table_grid_rows: int | None = None,
+        max_table_grid_columns: int | None = None,
+        max_table_grid_cells: int | None = None,
+        max_unicode_cmap_mappings: int | None = None,
     ) -> None: ...
 
 class PdfObjectId:

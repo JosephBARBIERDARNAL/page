@@ -118,21 +118,27 @@ match failure.category {
 
 ## Safety limits
 
-The goal of the safety limits protect the validator from excessively large or complex inputs. Defaults are the following and should be sufficient for most cases:
+Safety limits protect the validator from excessively large or complex inputs. Defaults are sufficient for most cases:
 
 ```rust
 use page_validation::SafetyLimits;
 
 let limits = SafetyLimits {
-    max_input_size: 100 * 1024 * 1024,                 // 100 MiB
+    max_input_size: 256 * 1024 * 1024,                 // 256 MiB
     max_decoded_stream_size: 32 * 1024 * 1024,         // 32 MiB
-    max_total_decoded_content_size: 100 * 1024 * 1024, // 100 MiB
-    max_object_count: 500_000,                         // 500,000 objects
+    max_total_decoded_content_size: 256 * 1024 * 1024, // 256 MiB
+    max_object_count: 1_000_000,                       // 1,000,000 objects
     max_reference_depth: 256,                          // 256 levels
+    max_xref_revisions: 1_024,                         // 1,024 revisions
+    max_table_span: 1_024,                             // rows or columns per cell
+    max_table_grid_rows: 1_024,                        // rows
+    max_table_grid_columns: 1_024,                     // columns
+    max_table_grid_cells: 1_000_000,                   // cells
+    max_unicode_cmap_mappings: 1_000_000,              // mappings per ToUnicode CMap
 };
 ```
 
-`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document.
+`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
 
 ## Use the exit code
 

@@ -14,6 +14,10 @@ Next, `page` selects the validation profile: it uses the profile passed on the c
 
 Internally, `page` has a "fail fast" mode, which lets us be around 2x to 5x faster depending on the document. Instead of checking for every possible rule, it stops at the very first one that is violated, and only all rules checked when it's required. This feature is automatically used when possible, and only relevant when the document isn't compliant.
 
+!!! note
+
+      `page` has zero unsafe usage.
+
 ## What are the alternatives?
 
 There are multiple projects that attempt to provide a PDF validator, but only one is:

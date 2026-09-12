@@ -1372,11 +1372,7 @@
     "status": "complete",
     "coverage_gap_is_success": false,
     "profiles": ["ua1"],
-    "required_evidence_states": [
-      "applicable_pass",
-      "applicable_fail",
-      "inapplicable"
-    ],
+    "required_evidence_states": ["applicable_pass", "applicable_fail", "inapplicable"],
     "blockers": []
   }
 }

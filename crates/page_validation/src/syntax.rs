@@ -68,16 +68,6 @@ pub(crate) fn preflight_object_limit(bytes: &[u8], limits: &SafetyLimits) -> Res
     let mut preflight_limits = limits.clone();
     preflight_limits.max_object_count = preflight_limits.max_object_count.max(1_024);
     let revisions = inspect_revisions(bytes, &preflight_limits)?;
-    if revisions.iter().any(|revision| {
-        revision
-            .trailer
-            .as_ref()
-            .and_then(|trailer| trailer.dictionary_value(b"Encrypt"))
-            .is_some()
-    }) || trailer_declares_encryption(bytes, &preflight_limits)
-    {
-        return Ok(());
-    }
 
     let xref_count = revisions.iter().fold(0usize, |count, revision| {
         count.saturating_add(revision.object_count)
@@ -91,25 +81,6 @@ pub(crate) fn preflight_object_limit(bytes: &[u8], limits: &SafetyLimits) -> Res
         });
     }
     Ok(())
-}
-
-fn trailer_declares_encryption(bytes: &[u8], limits: &SafetyLimits) -> bool {
-    let Some(start) = final_startxref(bytes) else {
-        return false;
-    };
-    let Some(relative_trailer) = bytes.get(start..).and_then(|tail| {
-        tail.windows(b"trailer".len())
-            .rposition(|window| window == b"trailer")
-    }) else {
-        return false;
-    };
-    let mut parser = RawParser::at(bytes, start + relative_trailer + b"trailer".len(), limits).ok();
-    parser.as_mut().is_some_and(|parser| {
-        parser.skip_space_and_comments();
-        parser
-            .parse_value(0)
-            .is_some_and(|trailer| trailer.dictionary_value(b"Encrypt").is_some())
-    })
 }
 
 fn count_indirect_object_headers(bytes: &[u8], limit: usize) -> usize {

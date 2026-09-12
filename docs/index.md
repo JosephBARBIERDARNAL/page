@@ -14,7 +14,7 @@ hide:
 
 # Fast, lightweight PDF validation
 
-Check PDF documents against accessibility and compliance requirements with a small Rust-based engine that runs as a CLI, library, Python package, or WebAssembly module.
+Check PDF documents against accessibility and compliance requirements with a Rust-based engine that runs as a CLI, Rust crate, Python package, or WebAssembly module.
 
 [Get started](installation.md){ .md-button .md-button--primary }
 [Try the demo](demo.md){ .md-button }

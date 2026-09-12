@@ -61,6 +61,30 @@ struct Cli {
     /// Maximum reference-chain depth used by the normalized model.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH)]
     max_reference_depth: usize,
+
+    /// Maximum number of incremental-update revisions read from the cross-reference chain.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_XREF_REVISIONS)]
+    max_xref_revisions: usize,
+
+    /// Maximum number of rows or columns covered by one table cell.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_SPAN)]
+    max_table_span: usize,
+
+    /// Maximum number of rows represented in an inspected table grid.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS)]
+    max_table_grid_rows: usize,
+
+    /// Maximum number of columns represented in an inspected table grid.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS)]
+    max_table_grid_columns: usize,
+
+    /// Maximum number of cells represented in an inspected table grid.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS)]
+    max_table_grid_cells: usize,
+
+    /// Maximum number of mappings expanded from one ToUnicode CMap.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS)]
+    max_unicode_cmap_mappings: usize,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -326,7 +350,12 @@ fn run_validate(cli: Cli) {
         max_total_decoded_content_size: cli.max_total_decoded_content_size,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
-        max_xref_revisions: SafetyLimits::DEFAULT_MAX_XREF_REVISIONS,
+        max_xref_revisions: cli.max_xref_revisions,
+        max_table_span: cli.max_table_span,
+        max_table_grid_rows: cli.max_table_grid_rows,
+        max_table_grid_columns: cli.max_table_grid_columns,
+        max_table_grid_cells: cli.max_table_grid_cells,
+        max_unicode_cmap_mappings: cli.max_unicode_cmap_mappings,
     };
     let spinner_enabled = selected_format != SelectedFormat::Json
         && io::stdout().is_terminal()

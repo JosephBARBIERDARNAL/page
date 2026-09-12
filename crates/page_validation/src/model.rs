@@ -284,10 +284,8 @@ impl PdfDocument {
         limits: &SafetyLimits,
     ) -> Result<ValidationPreparation, PdfError> {
         let document = load_document(bytes, limits)?;
+        enforce_object_limit(&document, limits)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
-        if !encrypted_content_unavailable {
-            enforce_object_limit(&document, limits)?;
-        }
         let pages = if encrypted_content_unavailable {
             None
         } else {
@@ -1137,7 +1135,9 @@ fn font_is_embedded(
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Object, StringFormat, dictionary};
+    use lopdf::{
+        EncryptionState, EncryptionVersion, Object, Permissions, StringFormat, dictionary,
+    };
 
     use super::*;
 
@@ -1164,15 +1164,45 @@ mod tests {
     }
 
     #[test]
-    fn encrypted_documents_are_normalized_before_the_object_safety_cap() {
+    fn encrypted_documents_cannot_bypass_the_object_safety_cap() {
         let limits = SafetyLimits {
             max_object_count: 0,
             ..SafetyLimits::default()
         };
-        let document =
-            PdfDocument::from_bytes(include_bytes!("../tests/fixtures/encrypted.pdf"), &limits)
-                .expect("encryption is a terminal PDF/A finding");
-        assert!(document.encrypted);
+        let mut document = Document::with_version("1.4");
+        document.trailer.set(
+            "ID",
+            vec![
+                Object::string_literal("0123456789abcdef"),
+                Object::string_literal("0123456789abcdef"),
+            ],
+        );
+        let catalog_id = document.add_object(dictionary! { "Type" => "Catalog" });
+        document.trailer.set("Root", catalog_id);
+        for _ in 0..3 {
+            document.add_object(Object::Null);
+        }
+        let state = EncryptionState::try_from(EncryptionVersion::V1 {
+            document: &document,
+            owner_password: "owner",
+            user_password: "user",
+            permissions: Permissions::all(),
+        })
+        .expect("create encryption state");
+        document.encrypt(&state).expect("encrypt test document");
+        let mut bytes = Vec::new();
+        document
+            .save_to(&mut bytes)
+            .expect("save encrypted document");
+
+        assert!(matches!(
+            crate::syntax::preflight_object_limit(&bytes, &limits),
+            Err(PdfError::TooManyObjects { limit: 0, .. })
+        ));
+        assert!(matches!(
+            PdfDocument::from_bytes(&bytes, &limits),
+            Err(PdfError::TooManyObjects { limit: 0, .. })
+        ));
     }
 
     #[test]
