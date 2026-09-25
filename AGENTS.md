@@ -32,7 +32,7 @@ Validation unit and integration tests live with `page_validation`; keep its shar
 
 ## Versionning
 
-page uses semantic versionning. All crates must share the exact same version. Current version is 0.6.1.
+page uses semantic versionning. All crates must share the exact same version. Current version is 0.7.0.
 
 ## Testing Guidelines
 

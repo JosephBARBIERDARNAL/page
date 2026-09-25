@@ -1,6 +1,6 @@
 {
   "name": "page-validation-wasm",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "WebAssembly bindings for page PDF/A and PDF/UA validation.",
   "type": "module",
   "license": "MIT",
