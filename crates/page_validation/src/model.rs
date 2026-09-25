@@ -203,6 +203,7 @@ impl InspectionNeed {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct InspectionPlan {
+    pub(crate) document_features: crate::document_features::FeatureDemand,
     pub(crate) font_details: InspectionNeed,
     pub(crate) xobjects: InspectionNeed,
     pub(crate) annotations: InspectionNeed,
@@ -214,6 +215,7 @@ pub(crate) struct InspectionPlan {
 impl InspectionPlan {
     pub(crate) const fn all() -> Self {
         Self {
+            document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Unknown,
             xobjects: InspectionNeed::Unknown,
             annotations: InspectionNeed::Unknown,
@@ -232,6 +234,7 @@ impl InspectionPlan {
             _ => InspectionNeed::Unknown,
         };
         Self {
+            document_features: crate::document_features::FeatureDemand::for_profile(profile),
             unicode_names,
             ..Self::all()
         }
@@ -246,6 +249,7 @@ impl InspectionPlan {
         action_candidate_present: Option<bool>,
     ) -> Self {
         Self {
+            document_features: self.document_features,
             font_details: Self::after_fact(self.font_details, font_usage_present),
             xobjects: Self::after_fact(self.xobjects, xobject_usage_present),
             annotations: Self::after_fact(self.annotations, annotation_present),
@@ -300,13 +304,6 @@ impl PdfDocument {
             pages,
             normalized,
         })
-    }
-
-    pub(crate) fn from_bytes_with_inspections(
-        bytes: &[u8],
-        limits: &SafetyLimits,
-    ) -> Result<(Self, InspectionSummary), PdfError> {
-        Self::prepare_for_validation(bytes, limits)?.into_inspections(bytes, limits)
     }
 
     fn normalize(
@@ -419,9 +416,10 @@ impl ValidationPreparation {
         self,
         bytes: &[u8],
         limits: &SafetyLimits,
+        plan: InspectionPlan,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let (preparation, syntax) = self.with_syntax(bytes, limits)?;
-        preparation.into_inspections_with_syntax(bytes, limits, syntax, InspectionPlan::all())
+        preparation.into_inspections_with_syntax(bytes, limits, syntax, plan)
     }
 
     pub(crate) fn into_inspections_with_syntax(
@@ -469,7 +467,12 @@ impl ValidationPreparation {
             let pages = pages.unwrap_or_default();
             // One shared execution establishes the exact resource population
             // used by colour, XObject, graphics, and font rule predicates.
-            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
+            let document_features = crate::document_features::inspect(
+                &document,
+                &pages,
+                limits,
+                plan.document_features,
+            )?;
             let mut inspections = InspectionSummary {
                 header,
                 document_features,
@@ -1361,6 +1364,7 @@ mod tests {
     #[test]
     fn required_inspection_needs_are_not_overridden_by_absence() {
         let plan = InspectionPlan {
+            document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Required,
             xobjects: InspectionNeed::Required,
             annotations: InspectionNeed::Required,

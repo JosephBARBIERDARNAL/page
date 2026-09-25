@@ -312,9 +312,14 @@ fn validate_bytes_with_mode(
     mode: ValidationMode,
 ) -> Result<ValidationReport, ValidationError> {
     reject_unimplemented_profile(profile)?;
-    let (document, inspections) = PdfDocument::from_bytes_with_inspections(bytes, limits)?;
-    let profile = profile.map_or_else(|| declared_profile(&document), Ok)?;
+    let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
+    let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
     reject_unimplemented_profile(Some(profile))?;
+    let (document, inspections) = preparation.into_inspections(
+        bytes,
+        limits,
+        crate::model::InspectionPlan::for_profile(profile),
+    )?;
     Ok(validate_document(document, inspections, profile, mode))
 }
 
@@ -3940,8 +3945,14 @@ mod tests {
     fn rejects_mismatched_linearized_trailer_ids() {
         let bytes = fixture(Some(VALID_XMP), true);
         let (mut document, mut inspections) =
-            PdfDocument::from_bytes_with_inspections(&bytes, &SafetyLimits::default())
-                .expect("parse fixture");
+            PdfDocument::prepare_for_validation(&bytes, &SafetyLimits::default())
+                .expect("prepare fixture")
+                .into_inspections(
+                    &bytes,
+                    &SafetyLimits::default(),
+                    crate::model::InspectionPlan::all(),
+                )
+                .expect("inspect fixture");
         document.trailer_id = Some(vec![b"last-one".to_vec(), b"last-two".to_vec()]);
         inspections.header.is_linearized = true;
         inspections.header.first_linearized_trailer_id = Some(b"first-onefirst-two".to_vec());
@@ -4019,8 +4030,14 @@ mod tests {
             ValidationProfile::PdfA3u,
         ] {
             let (mut document, mut inspections) =
-                PdfDocument::from_bytes_with_inspections(&bytes, &SafetyLimits::default())
-                    .expect("parse fixture");
+                PdfDocument::prepare_for_validation(&bytes, &SafetyLimits::default())
+                    .expect("prepare fixture")
+                    .into_inspections(
+                        &bytes,
+                        &SafetyLimits::default(),
+                        crate::model::InspectionPlan::all(),
+                    )
+                    .expect("inspect fixture");
             document.trailer_id = Some(vec![b"parser fallback".to_vec()]);
             inspections.header.last_trailer_id = Some(Vec::new());
             let report =

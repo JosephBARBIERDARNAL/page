@@ -1,6 +1,7 @@
 ## Dev
 
-- Fix: Inferred-profile summary mode now uses fail-fast validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
+- Perf: Make document feature inspection profile-demand driven [#325](https://github.com/JosephBARBIERDARNAL/page/issues/325)
+- Perf: Inferred-profile summary mode now uses fail-fast validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
 
 ## 0.7.0
 
