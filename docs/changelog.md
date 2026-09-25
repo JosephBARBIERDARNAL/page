@@ -1,5 +1,8 @@
 ## Dev
 
+- Fix: ToUnicode CMap ranges lack a cumulative expansion limit [#318](https://github.com/JosephBARBIERDARNAL/page/issues/318)
+- Fix: Tagged-table spans can cause unbounded grid allocations [#317](https://github.com/JosephBARBIERDARNAL/page/issues/317)
+- Fix: font stream decode fallback bypasses max_decoded_stream_size [#316](https://github.com/JosephBARBIERDARNAL/page/issues/316)
 - Fix: encrypted PDFs can bypass the configured object-count limit [#315](https://github.com/JosephBARBIERDARNAL/page/issues/315)
 - Doc: make a better landing page [#282](https://github.com/JosephBARBIERDARNAL/page/issues/282)
 - Doc: add changelog page [#274](https://github.com/JosephBARBIERDARNAL/page/issues/274)
