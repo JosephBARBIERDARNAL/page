@@ -213,7 +213,7 @@ fn missing_declared_profile_is_an_explicit_error() {
     assert!(output.stdout.is_empty());
     assert_eq!(
         String::from_utf8(output.stderr).expect("UTF-8 error"),
-        "error: document does not declare a PDF/A or PDF/UA validation profile, declare it with --profile\n"
+        "error: document does not declare a PDF/A or PDF/UA validation profile; an explicit profile is required\n"
     );
 }
 
