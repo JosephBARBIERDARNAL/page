@@ -15,6 +15,7 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 - always check for ways to reuse code
 - minimize useless abstraction
 - never update documentation (readme + docs/\*.md files), unless explicitely asked to
+- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries
 
 ## Project Structure & Module Organization
 
