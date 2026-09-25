@@ -178,6 +178,19 @@ fn only<T>(items: &[T]) -> Option<&T> {
     items.first().filter(|_| items.len() == 1)
 }
 
+/// The selected profile and compliance outcome returned by [`validate_pdf_fast`].
+///
+/// `profile` is either the explicitly requested profile or the one inferred
+/// from the document's XMP metadata. `is_compliant` is `false` as soon as the
+/// validator finds the first failing rule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ComplianceResult {
+    /// The profile used for validation.
+    pub profile: ValidationProfile,
+    /// Whether every rule checked before completion passed.
+    pub is_compliant: bool,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ValidationMode {
     Exhaustive,
@@ -322,8 +335,7 @@ pub fn is_pdf_compliant(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<bool, ValidationError> {
-    reject_unimplemented_profile(profile)?;
-    is_pdf_compliant_bytes(&read_file(path, limits)?, profile, limits)
+    validate_pdf_fast(path, profile, limits).map(|result| result.is_compliant)
 }
 
 /// Performs fast validation of bytes and returns only the compliance outcome.
@@ -332,6 +344,27 @@ pub fn is_pdf_compliant_bytes(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<bool, ValidationError> {
+    validate_pdf_bytes_fast(bytes, profile, limits).map(|result| result.is_compliant)
+}
+
+/// Performs fast validation and returns the selected profile with the compliance outcome.
+///
+/// This is useful when callers need both the boolean result and the profile inferred from the document.
+pub fn validate_pdf_fast(
+    path: &Path,
+    profile: Option<ValidationProfile>,
+    limits: &SafetyLimits,
+) -> Result<ComplianceResult, ValidationError> {
+    reject_unimplemented_profile(profile)?;
+    validate_pdf_bytes_fast(&read_file(path, limits)?, profile, limits)
+}
+
+/// Performs fast validation of bytes and returns the selected profile with the compliance outcome.
+pub fn validate_pdf_bytes_fast(
+    bytes: &[u8],
+    profile: Option<ValidationProfile>,
+    limits: &SafetyLimits,
+) -> Result<ComplianceResult, ValidationError> {
     reject_unimplemented_profile(profile)?;
     let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
@@ -340,7 +373,10 @@ pub fn is_pdf_compliant_bytes(
     let preflight_failed = has_preflight_failure(preparation.document(), &syntax.header, profile);
     if preflight_failed {
         preparation.check_content_limits(limits)?;
-        return Ok(false);
+        return Ok(ComplianceResult {
+            profile,
+            is_compliant: false,
+        });
     }
 
     let mut stopped = false;
@@ -389,7 +425,10 @@ pub fn is_pdf_compliant_bytes(
             Ok(stopped)
         },
     )?;
-    Ok(!stopped)
+    Ok(ComplianceResult {
+        profile,
+        is_compliant: !stopped,
+    })
 }
 
 fn has_preflight_failure(
@@ -3753,10 +3792,11 @@ mod tests {
     fn fast_validation_infers_the_profile_and_returns_compliance() {
         let bytes = fixture(Some(VALID_XMP), true);
 
-        let result = is_pdf_compliant_bytes(&bytes, None, &SafetyLimits::default())
+        let result = validate_pdf_bytes_fast(&bytes, None, &SafetyLimits::default())
             .expect("PDF/A-1b profile declaration");
 
-        assert!(result);
+        assert_eq!(result.profile, ValidationProfile::PdfA1b);
+        assert!(result.is_compliant);
     }
 
     #[test]
@@ -3784,14 +3824,11 @@ mod tests {
         let path =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/trailer-id-missing.pdf");
 
-        let result = is_pdf_compliant(
-            &path,
-            Some(ValidationProfile::PdfA1b),
-            &SafetyLimits::default(),
-        )
-        .expect("validate fixture");
+        let result =
+            validate_pdf_fast(&path, None, &SafetyLimits::default()).expect("validate fixture");
 
-        assert!(!result);
+        assert_eq!(result.profile, ValidationProfile::PdfA1b);
+        assert!(!result.is_compliant);
     }
 
     #[test]
