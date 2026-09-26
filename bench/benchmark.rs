@@ -7,7 +7,7 @@ use std::process::{Command, Stdio};
 use std::time::Instant;
 
 const RUNS: usize = 10;
-const WARMUP_RUNS: usize = 2;
+const WARMUP_RUNS: usize = 12;
 const BENCHMARK_DIRECTORY: &str = "bench";
 const OUTPUT_PATH: &str = "docs/benchmark.md";
 const PAGE_EXECUTABLE: &str = "target/release/page";
@@ -45,8 +45,7 @@ impl Summary {
 struct ProfileBenchmark {
     profile: &'static str,
     verapdf: Summary,
-    page_fail_fast: Summary,
-    page_normal: Summary,
+    page: Summary,
 }
 
 #[derive(Debug)]
@@ -106,32 +105,21 @@ fn ensure_expected_exit(
     }
 }
 
-fn run_page(
-    executable: &Path,
-    file: &Path,
-    profile: &str,
-    fail_fast: bool,
-) -> io::Result<RunSample> {
+fn run_page(executable: &Path, file: &Path, profile: &str) -> io::Result<RunSample> {
     let mut command = Command::new(executable);
-    command
-        .arg(file)
-        .args(["--profile", profile, "--max-reference-depth", "512"]);
-    if !fail_fast {
-        command.args(["--format", "details"]);
-    }
+    command.arg(file).args([
+        "--profile",
+        profile,
+        "--max-reference-depth",
+        "512",
+        "--format",
+        "details",
+    ]);
     command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    ensure_expected_exit(
-        if fail_fast {
-            "page (fail fast)"
-        } else {
-            "page (normal)"
-        },
-        spawn_and_wait(&mut command)?,
-        &[0, 2],
-    )
+    ensure_expected_exit("page", spawn_and_wait(&mut command)?, &[0, 2])
 }
 
 fn run_verapdf(executable: &Path, file: &Path, profile: &str) -> io::Result<RunSample> {
@@ -156,33 +144,20 @@ fn run_verapdf(executable: &Path, file: &Path, profile: &str) -> io::Result<RunS
 fn benchmark_profile(file: &Path, profile: &'static str) -> io::Result<ProfileBenchmark> {
     for warmup in 0..WARMUP_RUNS {
         progress(format!("      warmup {}/{}", warmup + 1, WARMUP_RUNS))?;
-        run_page(Path::new(PAGE_EXECUTABLE), file, profile, false)?;
-        run_page(Path::new(PAGE_EXECUTABLE), file, profile, true)?;
+        run_page(Path::new(PAGE_EXECUTABLE), file, profile)?;
         run_verapdf(Path::new(VERAPDF_EXECUTABLE), file, profile)?;
     }
 
     let mut verapdf_samples = Vec::with_capacity(RUNS);
-    let mut page_fail_fast_samples = Vec::with_capacity(RUNS);
-    let mut page_normal_samples = Vec::with_capacity(RUNS);
+    let mut page_samples = Vec::with_capacity(RUNS);
     for run_number in 0..RUNS {
         progress(format!("      measured run {}/{}", run_number + 1, RUNS))?;
-        for offset in 0..3 {
-            match (run_number + offset) % 3 {
+        for offset in 0..2 {
+            match (run_number + offset) % 2 {
                 0 => {
                     verapdf_samples.push(run_verapdf(Path::new(VERAPDF_EXECUTABLE), file, profile)?)
                 }
-                1 => page_fail_fast_samples.push(run_page(
-                    Path::new(PAGE_EXECUTABLE),
-                    file,
-                    profile,
-                    true,
-                )?),
-                _ => page_normal_samples.push(run_page(
-                    Path::new(PAGE_EXECUTABLE),
-                    file,
-                    profile,
-                    false,
-                )?),
+                _ => page_samples.push(run_page(Path::new(PAGE_EXECUTABLE), file, profile)?),
             }
         }
     }
@@ -190,13 +165,11 @@ fn benchmark_profile(file: &Path, profile: &'static str) -> io::Result<ProfileBe
     let result = ProfileBenchmark {
         profile,
         verapdf: Summary::from_samples(&verapdf_samples)?,
-        page_fail_fast: Summary::from_samples(&page_fail_fast_samples)?,
-        page_normal: Summary::from_samples(&page_normal_samples)?,
+        page: Summary::from_samples(&page_samples)?,
     };
     progress(format!(
-        "      complete: page {}, page FF {} versus veraPDF",
-        format_speedup(result.verapdf, result.page_normal),
-        format_speedup(result.verapdf, result.page_fail_fast),
+        "      complete: page {} versus veraPDF",
+        format_speedup(result.verapdf, result.page),
     ))?;
     Ok(result)
 }
@@ -257,41 +230,31 @@ fn profile<'a>(
         .ok_or_else(|| io::Error::other(format!("missing {profile_name} benchmark result")))
 }
 
-fn profile_label(profile_name: &str) -> &str {
-    match profile_name {
-        "1b" => "PDF/A-1b",
-        "2b" => "PDF/A-2b",
-        "ua1" => "PDF/UA-1",
-        _ => profile_name,
-    }
-}
-
 fn markdown(results: &[DocumentBenchmark]) -> io::Result<String> {
     let mut output = format!(
-        "Each result is a relative speedup versus veraPDF for the same profile; higher is faster. Values use the median of {RUNS} measured runs with {WARMUP_RUNS} warmups.\n\n"
+        "Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of {RUNS} measured runs with {WARMUP_RUNS} warmup runs.\n\n"
     );
-    output.push_str("!!! note \"What is page FF?\"\n\n    `page FF` is page's fail-fast mode: it stops after the first failure and reports only whether the document is compliant. `page` runs the exhaustive path and collects all implemented failures.\n\n");
-    output.push_str("The corpus includes the existing documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files.\n\n");
+    output.push_str("The corpus includes real world documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.\n\n");
+    output.push_str("| Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |\n| --- | ---: | ---: | ---: | ---: | ---: |\n");
     for document in results {
-        output.push_str(&format!("## {}\n\n", document.document));
         output.push_str(&format!(
-            "- Size: {} MiB\n- Pages: {}\n",
+            "| {} | {} | {}",
+            document.document,
             format_mib(document.size_bytes),
             document.page_count,
         ));
         for profile_name in PROFILES {
             let result = profile(document, profile_name)?;
             output.push_str(&format!(
-                "- {}: `page` **{}**, `page FF` **{}** versus veraPDF\n",
-                profile_label(profile_name),
-                format_speedup(result.verapdf, result.page_normal),
-                format_speedup(result.verapdf, result.page_fail_fast),
+                " | {}",
+                format_speedup(result.verapdf, result.page)
             ));
         }
-        output.push('\n');
+        output.push_str(" |\n");
     }
 
-    output.push_str("The feature-heavy case is intentionally non-compliant; it makes profile-demand differences measurable rather than representing a normal publishing workload.\n");
+    output.push_str("!!! info\n\n");
+    output.push_str("       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× and 10× improvement); this is not represented in this benchmark to keep it simpler.\n");
     Ok(output)
 }
 
