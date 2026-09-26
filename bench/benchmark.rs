@@ -254,7 +254,7 @@ fn markdown(results: &[DocumentBenchmark]) -> io::Result<String> {
     }
 
     output.push_str("!!! info\n\n");
-    output.push_str("       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× and 10× improvement); this is not represented in this benchmark to keep it simpler.\n");
+    output.push_str("       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× to 10× improvement); this is not represented in this benchmark to keep it simpler.\n");
     Ok(output)
 }
 
