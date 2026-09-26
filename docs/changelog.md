@@ -1,5 +1,6 @@
 ## Dev
 
+- Perf: Defer whole-document font summaries on the fast validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
 - Doc: Add page dedicated to safety limits [#320](https://github.com/JosephBARBIERDARNAL/page/issues/320)
 - Perf: Expand the benchmark with profile comparisons and a feature-heavy fixture
 - Perf: Make document feature inspection profile-demand driven [#325](https://github.com/JosephBARBIERDARNAL/page/issues/325)

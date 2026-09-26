@@ -371,7 +371,7 @@ pub fn validate_pdf_bytes_fast(
     limits: &SafetyLimits,
 ) -> Result<ComplianceResult, ValidationError> {
     reject_unimplemented_profile(profile)?;
-    let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
+    let preparation = PdfDocument::prepare_for_validation_without_font_summary(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
     reject_unimplemented_profile(Some(profile))?;
     let (preparation, syntax) = preparation.with_syntax(bytes, limits)?;

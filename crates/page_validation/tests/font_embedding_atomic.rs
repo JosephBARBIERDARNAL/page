@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 
+use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile,
+    is_pdf_compliant_bytes, validate_pdf_bytes,
 };
 
 pub mod common;
@@ -58,6 +60,34 @@ fn no_shown_text_skips_font_details_but_keeps_the_informational_summary() {
             .total,
         1
     );
+}
+
+#[test]
+fn fast_validation_skips_unused_font_summary_resolution() {
+    let mut document = Document::load_mem(&common::font_fixture("unused_resource"))
+        .expect("load unused-font fixture");
+    let limits = SafetyLimits::default();
+    let terminal = document.add_object(dictionary! {});
+    let mut descriptor = Object::Reference(terminal);
+    for _ in 0..=limits.max_reference_depth {
+        descriptor = Object::Reference(document.add_object(descriptor));
+    }
+    document.add_object(dictionary! {
+        "Type" => "Font",
+        "FontDescriptor" => descriptor,
+    });
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save unused-font fixture");
+
+    assert!(is_pdf_compliant_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits).is_ok());
+    assert!(matches!(
+        validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits),
+        Err(ValidationError::Pdf(PdfError::ReferenceDepth(
+            SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
+        )))
+    ));
 }
 
 #[test]

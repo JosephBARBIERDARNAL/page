@@ -287,6 +287,21 @@ impl PdfDocument {
         bytes: &[u8],
         limits: &SafetyLimits,
     ) -> Result<ValidationPreparation, PdfError> {
+        Self::prepare_for_validation_with_font_summary(bytes, limits, true)
+    }
+
+    pub(crate) fn prepare_for_validation_without_font_summary(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<ValidationPreparation, PdfError> {
+        Self::prepare_for_validation_with_font_summary(bytes, limits, false)
+    }
+
+    fn prepare_for_validation_with_font_summary(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+        include_font_summary: bool,
+    ) -> Result<ValidationPreparation, PdfError> {
         let document = load_document(bytes, limits)?;
         enforce_object_limit(&document, limits)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
@@ -298,7 +313,12 @@ impl PdfDocument {
                 None => Vec::new(),
             })
         };
-        let normalized = Self::normalize(&document, limits, pages.as_ref().map(Vec::len))?;
+        let normalized = Self::normalize(
+            &document,
+            limits,
+            pages.as_ref().map(Vec::len),
+            include_font_summary,
+        )?;
         Ok(ValidationPreparation {
             document,
             pages,
@@ -310,6 +330,7 @@ impl PdfDocument {
         document: &Document,
         limits: &SafetyLimits,
         collected_page_count: Option<usize>,
+        include_font_summary: bool,
     ) -> Result<Self, PdfError> {
         let catalog_reference = root_reference_id(document);
         let (encrypted, encrypted_content_unavailable) = encryption_status(document);
@@ -385,7 +406,10 @@ impl PdfDocument {
             catalog_metadata,
             output_intents,
             output_intents_summary,
-            fonts: summarize_fonts(document, limits)?,
+            fonts: include_font_summary
+                .then(|| summarize_fonts(document, limits))
+                .transpose()?
+                .unwrap_or_default(),
             object_count: document.objects.len(),
         })
     }
@@ -1161,8 +1185,8 @@ mod tests {
         let catalog_id = document.add_object(dictionary! { "Type" => "Catalog" });
         document.trailer.set("Root", catalog_id);
 
-        let normalized =
-            PdfDocument::normalize(&document, &SafetyLimits::default(), None).expect("normalize");
+        let normalized = PdfDocument::normalize(&document, &SafetyLimits::default(), None, true)
+            .expect("normalize");
         assert!(!normalized.encrypted);
     }
 
