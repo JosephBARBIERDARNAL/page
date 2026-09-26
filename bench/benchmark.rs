@@ -7,7 +7,7 @@ use std::process::{Command, Stdio};
 use std::time::Instant;
 
 const RUNS: usize = 10;
-const WARMUP_RUNS: usize = 12;
+const WARMUP_RUNS: usize = 2;
 const BENCHMARK_DIRECTORY: &str = "bench";
 const OUTPUT_PATH: &str = "docs/benchmark.md";
 const PAGE_EXECUTABLE: &str = "target/release/page";
