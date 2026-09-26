@@ -1,27 +1,55 @@
-Median validation timings are in milliseconds; each cell is `median ± IQR` over 10 measured runs with 2 warmups. The release CLI is measured end to end, including process startup.
+Each result is a relative speedup versus veraPDF for the same profile; higher is faster. Values use the median of 10 measured runs with 2 warmups.
 
-The overview compares PDF/UA-1 with veraPDF across the full corpus; the profile matrix compares every implemented profile on the representative document and feature-heavy stress case.
+!!! note "What is page FF?"
 
-The corpus includes the existing documents and a deterministic feature-heavy PDF covering structure, optional-content, name-tree, and embedded-file paths.
+    `page FF` is page's fail-fast mode: it stops after the first failure and reports only whether the document is compliant. `page` runs the exhaustive path and collects all implemented failures.
 
-## Overview (PDF/UA-1)
+The corpus includes the existing documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files.
 
-| Document | Size (MiB) | page (ms) | fail-fast (ms) | veraPDF (ms) | page / veraPDF | fail-fast / veraPDF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| document-feature-heavy.pdf | 4.0 | 81.5 ± 0.6 | 72.6 ± 0.3 | 1218.6 ± 22.8 | 14.96× | 16.78× |
-| document1.pdf | 21.4 | 2419.2 ± 47.9 | 1166.0 ± 24.9 | 15007.6 ± 750.8 | 6.20× | 12.87× |
-| document2.pdf | 6.5 | 326.6 ± 5.1 | 146.1 ± 1.6 | 2407.6 ± 85.0 | 7.37× | 16.48× |
-| document3.pdf | 38.2 | 1242.5 ± 33.9 | 600.0 ± 2.9 | 3277.2 ± 108.1 | 2.64× | 5.46× |
-| document4.pdf | 9.6 | 1478.6 ± 35.5 | 226.9 ± 1.1 | 5605.2 ± 164.4 | 3.79× | 24.70× |
-| document5.pdf | 5.7 | 1673.8 ± 40.0 | 164.1 ± 1.1 | 3316.4 ± 130.2 | 1.98× | 20.21× |
+## feature-heavy
 
-## Profile matrix
+- Size: 4.0 MiB
+- Pages: 10
+- PDF/A-1b: `page` **15.85×**, `page FF` **17.42×** versus veraPDF
+- PDF/A-2b: `page` **16.11×**, `page FF` **18.21×** versus veraPDF
+- PDF/UA-1: `page` **15.32×**, `page FF` **17.28×** versus veraPDF
 
-Each cell is `page / fail-fast` speedup versus veraPDF; higher is faster.
+## document 1
 
-| Document | 1b | 2b | 3b | ua1 |
-| --- | ---: | ---: | ---: | ---: |
-| document-feature-heavy.pdf | 16.13× / 17.77× | 15.93× / 17.75× | 15.53× / 17.32× | 14.96× / 16.78× |
-| document2.pdf | 7.76× / 16.92× | 7.66× / 16.94× | 7.66× / 16.88× | 7.37× / 16.48× |
+- Size: 21.4 MiB
+- Pages: 756
+- PDF/A-1b: `page` **4.56×**, `page FF` **8.80×** versus veraPDF
+- PDF/A-2b: `page` **4.65×**, `page FF` **9.19×** versus veraPDF
+- PDF/UA-1: `page` **6.10×**, `page FF` **12.64×** versus veraPDF
 
-The feature-heavy case is intentionally non-compliant; it is included to make profile-demand differences measurable rather than to represent a normal publishing workload.
+## document 2
+
+- Size: 6.5 MiB
+- Pages: 51
+- PDF/A-1b: `page` **7.82×**, `page FF` **17.11×** versus veraPDF
+- PDF/A-2b: `page` **7.71×**, `page FF` **16.95×** versus veraPDF
+- PDF/UA-1: `page` **7.28×**, `page FF` **16.23×** versus veraPDF
+
+## document 3
+
+- Size: 38.2 MiB
+- Pages: 518
+- PDF/A-1b: `page` **2.86×**, `page FF` **5.88×** versus veraPDF
+- PDF/A-2b: `page` **3.11×**, `page FF` **6.41×** versus veraPDF
+- PDF/UA-1: `page` **2.56×**, `page FF` **5.27×** versus veraPDF
+
+## document 4
+
+- Size: 9.6 MiB
+- Pages: 332
+- PDF/A-1b: `page` **4.02×**, `page FF` **25.40×** versus veraPDF
+- PDF/A-2b: `page` **4.24×**, `page FF` **27.01×** versus veraPDF
+- PDF/UA-1: `page` **3.72×**, `page FF` **23.97×** versus veraPDF
+
+## document 5
+
+- Size: 5.7 MiB
+- Pages: 88
+- PDF/A-1b: `page` **2.03×**, `page FF` **20.75×** versus veraPDF
+- PDF/A-2b: `page` **2.08×**, `page FF` **21.35×** versus veraPDF
+- PDF/UA-1: `page` **1.94×**, `page FF` **19.69×** versus veraPDF
