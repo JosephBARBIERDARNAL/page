@@ -81,7 +81,7 @@ fn fast_validation_skips_unused_font_summary_resolution() {
         .save_to(&mut bytes)
         .expect("save unused-font fixture");
 
-    assert!(is_pdf_compliant_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits).is_ok());
+    assert!(is_pdf_compliant_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits).unwrap());
     assert!(matches!(
         validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits),
         Err(ValidationError::Pdf(PdfError::ReferenceDepth(
