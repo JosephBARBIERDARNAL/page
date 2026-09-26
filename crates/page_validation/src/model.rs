@@ -276,6 +276,7 @@ pub(crate) struct ValidationPreparation {
     document: Document,
     pages: Option<Vec<page_tree::PageEntry>>,
     normalized: PdfDocument,
+    raw_scan: crate::syntax::RawScanIndex,
 }
 
 impl PdfDocument {
@@ -302,7 +303,14 @@ impl PdfDocument {
         limits: &SafetyLimits,
         include_font_summary: bool,
     ) -> Result<ValidationPreparation, PdfError> {
-        let document = load_document(bytes, limits)?;
+        if bytes.len() as u64 > limits.max_input_size {
+            return Err(PdfError::InputTooLarge {
+                actual: bytes.len() as u64,
+                limit: limits.max_input_size,
+            });
+        }
+        let raw_scan = crate::syntax::scan_raw_index(bytes, limits)?;
+        let document = load_document(bytes, limits, &raw_scan)?;
         enforce_object_limit(&document, limits)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
         let pages = if encrypted_content_unavailable {
@@ -323,6 +331,7 @@ impl PdfDocument {
             document,
             pages,
             normalized,
+            raw_scan,
         })
     }
 
@@ -432,7 +441,7 @@ impl ValidationPreparation {
         bytes: &[u8],
         limits: &SafetyLimits,
     ) -> Result<(Self, crate::syntax::SyntaxSummary), PdfError> {
-        let syntax = crate::syntax::inspect(bytes, &self.document, limits)?;
+        let syntax = crate::syntax::inspect(bytes, &self.document, limits, &self.raw_scan)?;
         Ok((self, syntax))
     }
 
@@ -471,6 +480,7 @@ impl ValidationPreparation {
             document,
             pages,
             normalized,
+            raw_scan,
         } = self;
         let header = syntax.header.clone();
         let inspections = if normalized.encrypted_content_unavailable {
@@ -572,7 +582,7 @@ impl ValidationPreparation {
                 return Ok((normalized, inspections));
             }
             inspections.stream_safety =
-                crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+                crate::stream_safety::inspect(&document, limits, bytes, &syntax, &raw_scan)?;
             if after_stage(InspectionStage::StreamSafety, &normalized, &inspections)? {
                 return Ok((normalized, inspections));
             }
@@ -654,14 +664,18 @@ fn extract_trailer_id(document: &Document) -> Option<Vec<Vec<u8>>> {
         .collect()
 }
 
-fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfError> {
+fn load_document(
+    bytes: &[u8],
+    limits: &SafetyLimits,
+    raw_scan: &crate::syntax::RawScanIndex,
+) -> Result<Document, PdfError> {
     if bytes.len() as u64 > limits.max_input_size {
         return Err(PdfError::InputTooLarge {
             actual: bytes.len() as u64,
             limit: limits.max_input_size,
         });
     }
-    crate::syntax::preflight_object_limit(bytes, limits)?;
+    raw_scan.enforce_object_limit(limits)?;
 
     let options = LoadOptions {
         strict: true,

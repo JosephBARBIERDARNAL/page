@@ -10,11 +10,11 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 - always write markdown paragraph / bullet point on a single line. Only use linebreaks for new paragraph, an heading, new bullet point, etc.
 - every time you implement a new rule or a new feature, think of the impact it will have on performance and look for low hanging fruit that would improve performance.
 - make sure, when possible, to reuse code from different profiles
-- ignore git changes that you didn't create, it's just someone else working on the project simultaneously.
+- Treat every git change you did not explicitly make as belonging to someone else working on the project simultaneously; preserve it exactly and do not revert, restore, overwrite, format, or otherwise “clean up” that file.
+- If a test, formatter, generator, or other command unexpectedly changes a tracked file, do not assume the command owns the change and do not restore it from `HEAD`; preserve the change and report it or ask before touching it.
 - never add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant, but this behavior should be banned by default.
 - always check for ways to reuse code
 - minimize useless abstraction
-- never update documentation (readme + docs/\*.md files), unless explicitely asked to
 - when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries
 
 ## Project Structure & Module Organization

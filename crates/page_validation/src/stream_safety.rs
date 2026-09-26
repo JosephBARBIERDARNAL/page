@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use lopdf::xref::XrefType;
 use lopdf::{Document, Object};
 
+#[cfg(test)]
 use crate::content_support::is_pdf_boundary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
@@ -39,6 +40,7 @@ pub(crate) fn inspect(
     limits: &SafetyLimits,
     bytes: &[u8],
     syntax: &crate::syntax::SyntaxSummary,
+    raw_scan: &crate::syntax::RawScanIndex,
 ) -> Result<StreamSafetySummary, PdfError> {
     let mut summary = StreamSafetySummary {
         has_odd_hex_string: syntax.has_odd_hex_string,
@@ -52,10 +54,7 @@ pub(crate) fn inspect(
         ),
         ..StreamSafetySummary::default()
     };
-    let mut stream_data_ranges = Vec::new();
-    let raw_stream_starts = raw_stream_data_starts(bytes);
     let mut used_stream_starts = BTreeSet::new();
-    let mut all_stream_ranges_known = true;
     for (object_id, object) in &document.objects {
         if let Some(dictionary) = object.as_dict().ok()
             && resolved_name(document, dictionary, b"Type", limits.max_reference_depth)?
@@ -102,17 +101,20 @@ pub(crate) fn inspect(
             .raw_stream_locations
             .get(&(*object_id).into())
             .copied();
-        let raw_start = raw_location
-            .map(|location| location.data_start)
-            .or(stream.start_position)
+        let indexed_location = raw_location
             .or_else(|| {
-                locate_raw_stream_data_start(
-                    bytes,
-                    &stream.content,
-                    &raw_stream_starts,
-                    &used_stream_starts,
-                )
+                stream
+                    .start_position
+                    .and_then(|start| raw_scan.streams.location_at(start))
+            })
+            .or_else(|| {
+                raw_scan
+                    .streams
+                    .locate(bytes, &stream.content, &used_stream_starts)
             });
+        let raw_start = indexed_location
+            .map(|location| location.data_start)
+            .or(stream.start_position);
         if let Some(start) = raw_start {
             used_stream_starts.insert(start);
             inspect_raw_stream_syntax_with_declared(
@@ -122,19 +124,10 @@ pub(crate) fn inspect(
                 start,
                 limits,
                 bytes,
-                raw_location.and_then(|location| location.endstream),
-                raw_location.and_then(|location| location.declared_length),
+                indexed_location.and_then(|location| location.endstream),
+                indexed_location.and_then(|location| location.declared_length),
                 &mut summary,
             )?;
-        }
-        let raw_range = match raw_start {
-            Some(start) => raw_stream_data_range(document, stream, start, limits)?,
-            None => None,
-        };
-        if let Some(range) = raw_range {
-            stream_data_ranges.push(range);
-        } else {
-            all_stream_ranges_known = false;
         }
         let keys = [
             (b"F".as_slice(), "F"),
@@ -191,26 +184,6 @@ pub(crate) fn inspect(
             &mut summary,
         );
     }
-    for object in document.objects.values() {
-        if matches!(object, Object::Stream(_)) {
-            continue;
-        }
-        if !collect_nested_stream_data_ranges(
-            document,
-            object,
-            limits,
-            bytes,
-            &raw_stream_starts,
-            &mut used_stream_starts,
-            &mut stream_data_ranges,
-        )? {
-            all_stream_ranges_known = false;
-        }
-    }
-    if has_unaccounted_stream(bytes, &stream_data_ranges, &used_stream_starts) {
-        all_stream_ranges_known = false;
-    }
-    let _ = all_stream_ranges_known;
     Ok(summary)
 }
 
@@ -334,137 +307,6 @@ fn signature_byte_range_covers_document(
         && end.saturating_add(*stream_length) >= document_length)
 }
 
-fn has_unaccounted_stream(
-    bytes: &[u8],
-    stream_data_ranges: &[std::ops::Range<usize>],
-    used_stream_starts: &BTreeSet<usize>,
-) -> bool {
-    let mut ranges = stream_data_ranges.to_vec();
-    ranges.sort_unstable_by_key(|range| range.start);
-    let mut range_index = 0;
-    let mut cursor = 0;
-    while cursor < bytes.len() {
-        while ranges
-            .get(range_index)
-            .is_some_and(|range| range.end <= cursor)
-        {
-            range_index += 1;
-        }
-        if let Some(range) = ranges
-            .get(range_index)
-            .filter(|range| range.contains(&cursor))
-        {
-            cursor = range.end;
-            continue;
-        }
-        let Some(byte) = bytes.get(cursor).copied() else {
-            break;
-        };
-        match byte {
-            b'%' => {
-                cursor += 1;
-                while cursor < bytes.len()
-                    && !matches!(bytes.get(cursor).copied(), Some(b'\r' | b'\n'))
-                {
-                    cursor += 1;
-                }
-            }
-            b'(' => cursor = skip_literal_string(bytes, cursor + 1),
-            b'<' if bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
-            b'<' => {
-                cursor += 1;
-                while cursor < bytes.len() && bytes.get(cursor) != Some(&b'>') {
-                    cursor += 1;
-                }
-                cursor += usize::from(cursor < bytes.len());
-            }
-            b's' if bytes.get(cursor..cursor + b"stream".len()) == Some(b"stream")
-                && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
-                && is_pdf_boundary(bytes.get(cursor + b"stream".len()).copied()) =>
-            {
-                if stream_data_start_after_keyword(bytes, cursor + b"stream".len())
-                    .is_some_and(|start| !used_stream_starts.contains(&start))
-                {
-                    return true;
-                }
-                cursor += b"stream".len();
-            }
-            _ => cursor += 1,
-        }
-    }
-    false
-}
-
-fn collect_nested_stream_data_ranges(
-    document: &Document,
-    object: &Object,
-    limits: &SafetyLimits,
-    bytes: &[u8],
-    raw_stream_starts: &[usize],
-    used_stream_starts: &mut BTreeSet<usize>,
-    stream_data_ranges: &mut Vec<std::ops::Range<usize>>,
-) -> Result<bool, PdfError> {
-    match object {
-        Object::Stream(stream) => {
-            let Some(start) = locate_raw_stream_data_start(
-                bytes,
-                &stream.content,
-                raw_stream_starts,
-                used_stream_starts,
-            ) else {
-                return Ok(false);
-            };
-            used_stream_starts.insert(start);
-            let Some(range) = raw_stream_data_range(document, stream, start, limits)? else {
-                return Ok(false);
-            };
-            stream_data_ranges.push(range);
-            collect_nested_stream_data_ranges(
-                document,
-                &Object::Dictionary(stream.dict.clone()),
-                limits,
-                bytes,
-                raw_stream_starts,
-                used_stream_starts,
-                stream_data_ranges,
-            )
-        }
-        Object::Dictionary(dictionary) => {
-            for (_, value) in dictionary.iter() {
-                if !collect_nested_stream_data_ranges(
-                    document,
-                    value,
-                    limits,
-                    bytes,
-                    raw_stream_starts,
-                    used_stream_starts,
-                    stream_data_ranges,
-                )? {
-                    return Ok(false);
-                }
-            }
-            Ok(true)
-        }
-        Object::Array(values) => {
-            for value in values {
-                if !collect_nested_stream_data_ranges(
-                    document,
-                    value,
-                    limits,
-                    bytes,
-                    raw_stream_starts,
-                    used_stream_starts,
-                    stream_data_ranges,
-                )? {
-                    return Ok(false);
-                }
-            }
-            Ok(true)
-        }
-        _ => Ok(true),
-    }
-}
-
 #[cfg(test)]
 fn inspect_raw_stream_syntax(
     document: &Document,
@@ -532,7 +374,9 @@ fn inspect_raw_stream_measurements(
     summary: &mut StreamSafetySummary,
 ) {
     let valid_start = stream_keyword_has_required_eol(bytes, start);
-    let endstream = known_endstream.or_else(|| find_endstream(bytes, start, declared_length));
+    let endstream = known_endstream;
+    #[cfg(test)]
+    let endstream = endstream.or_else(|| find_endstream(bytes, start, declared_length));
     let actual_length = endstream.and_then(|keyword| {
         declared_length
             .filter(|length| {
@@ -566,6 +410,7 @@ fn stream_keyword_has_required_eol(bytes: &[u8], start: usize) -> bool {
         .is_some_and(|before_eol| before_eol.ends_with(b"stream"))
 }
 
+#[cfg(test)]
 fn find_endstream(bytes: &[u8], start: usize, declared_length: Option<usize>) -> Option<usize> {
     if let Some(length) = declared_length {
         let end = start.checked_add(length)?;
@@ -584,25 +429,23 @@ fn find_endstream(bytes: &[u8], start: usize, declared_length: Option<usize>) ->
             return keyword;
         }
     }
-    let candidates = bytes
-        .get(start..)?
-        .windows(b"endstream".len())
-        .enumerate()
-        .filter_map(|(offset, window)| {
-            let position = start + offset;
-            (window == b"endstream"
-                && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
-                && is_pdf_boundary(bytes.get(position + b"endstream".len()).copied()))
-            .then_some(position)
-        })
-        .collect::<Vec<_>>();
-    declared_length
-        .and_then(|declared_length| {
-            candidates.iter().copied().find(|position| {
-                stream_data_end_before_eol(bytes, *position) == start.checked_add(declared_length)
-            })
-        })
-        .or_else(|| candidates.first().copied())
+    let mut first = None;
+    for (offset, window) in bytes.get(start..)?.windows(b"endstream".len()).enumerate() {
+        let position = start + offset;
+        if window != b"endstream"
+            || !is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
+            || !is_pdf_boundary(bytes.get(position + b"endstream".len()).copied())
+        {
+            continue;
+        }
+        first.get_or_insert(position);
+        if declared_length.is_some_and(|length| {
+            stream_data_end_before_eol(bytes, position) == start.checked_add(length)
+        }) {
+            return Some(position);
+        }
+    }
+    first
 }
 
 fn declared_stream_end_matches(
@@ -652,63 +495,6 @@ fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
     }
 }
 
-fn raw_stream_data_range(
-    document: &Document,
-    stream: &lopdf::Stream,
-    start: usize,
-    limits: &SafetyLimits,
-) -> Result<Option<std::ops::Range<usize>>, PdfError> {
-    let Some(length) = stream
-        .dict
-        .get(b"Length")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|value| value.as_i64().ok())
-        .and_then(|length| usize::try_from(length).ok())
-    else {
-        return Ok(None);
-    };
-    Ok(start.checked_add(length).map(|end| start..end))
-}
-
-fn raw_stream_data_starts(bytes: &[u8]) -> Vec<usize> {
-    bytes
-        .windows(b"stream".len())
-        .enumerate()
-        .filter_map(|(offset, window)| {
-            (window == b"stream"
-                && is_pdf_boundary(bytes.get(offset.wrapping_sub(1)).copied())
-                && is_pdf_boundary(bytes.get(offset + b"stream".len()).copied()))
-            .then(|| stream_data_start_after_keyword(bytes, offset + b"stream".len()))?
-        })
-        .collect()
-}
-
-fn locate_raw_stream_data_start(
-    bytes: &[u8],
-    content: &[u8],
-    raw_stream_starts: &[usize],
-    used_starts: &BTreeSet<usize>,
-) -> Option<usize> {
-    raw_stream_starts.iter().copied().find(|start| {
-        !used_starts.contains(start)
-            && bytes.get(*start..start.saturating_add(content.len())) == Some(content)
-    })
-}
-
-fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
-    while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
-        cursor += 1;
-    }
-    match (bytes.get(cursor), bytes.get(cursor + 1)) {
-        (Some(b'\r'), Some(b'\n')) => Some(cursor + 2),
-        (Some(b'\r' | b'\n'), _) => Some(cursor + 1),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 fn inspect_hex_strings(
     bytes: &[u8],
@@ -752,6 +538,7 @@ fn inspect_hex_strings(
     }
 }
 
+#[cfg(test)]
 fn skip_literal_string(bytes: &[u8], mut cursor: usize) -> usize {
     let mut nesting = 1;
     while cursor < bytes.len() && nesting > 0 {
@@ -1075,14 +862,9 @@ fn pdfa2_filter_is_allowed(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
-    use super::{
-        StreamSafetySummary, inspect_raw_stream_syntax, locate_raw_stream_data_start,
-        raw_stream_data_starts,
-    };
+    use super::{StreamSafetySummary, inspect_raw_stream_syntax};
     use crate::SafetyLimits;
 
     #[test]
@@ -1175,16 +957,26 @@ mod tests {
     #[test]
     fn raw_stream_index_locates_distinct_streams_without_rescanning_input() {
         let bytes = b"stream\nfirst\nendstream\nstream\nsecond\nendstream";
-        let starts = raw_stream_data_starts(bytes);
-        let mut used = BTreeSet::new();
-        let first = locate_raw_stream_data_start(bytes, b"first", &starts, &used)
+        let index = crate::syntax::scan_raw_index(bytes, &SafetyLimits::default())
+            .expect("scan raw stream index")
+            .streams;
+        let mut used = std::collections::BTreeSet::new();
+        let first = index
+            .locate(bytes, b"first", &used)
             .expect("first stream location");
-        used.insert(first);
-        let second = locate_raw_stream_data_start(bytes, b"second", &starts, &used)
+        used.insert(first.data_start);
+        let second = index
+            .locate(bytes, b"second", &used)
             .expect("second stream location");
 
-        assert_eq!(&bytes[first..first + b"first".len()], b"first");
-        assert_eq!(&bytes[second..second + b"second".len()], b"second");
+        assert_eq!(
+            &bytes[first.data_start..first.data_start + b"first".len()],
+            b"first"
+        );
+        assert_eq!(
+            &bytes[second.data_start..second.data_start + b"second".len()],
+            b"second"
+        );
     }
 
     #[test]
@@ -1207,6 +999,7 @@ mod tests {
             &SafetyLimits::default(),
             &bytes,
             &crate::syntax::SyntaxSummary::default(),
+            &crate::syntax::RawScanIndex::default(),
         )
         .expect("inspect stream");
         assert!(summary.invalid_lengths.is_empty());
@@ -1228,6 +1021,7 @@ mod tests {
             &SafetyLimits::default(),
             &bytes,
             &crate::syntax::SyntaxSummary::default(),
+            &crate::syntax::RawScanIndex::default(),
         )
         .expect("inspect stream");
         assert!(!summary.has_odd_hex_string);

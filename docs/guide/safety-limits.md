@@ -1,4 +1,4 @@
-In order to protect user from too large files and unexpected input, `page` defines safety limits. Each of those is meant to ensure no matter the input sent to `page`, nothing weird or unexpected will happen.
+To limit resource use when processing untrusted PDFs, `page` enforces configurable bounds on input size, decoded data, parsed objects, reference depth, and selected inspection work.
 
 | Option CLI                         |   Default | Purpose                                                                             |
 | ---------------------------------- | --------: | ----------------------------------------------------------------------------------- |
@@ -14,6 +14,6 @@ In order to protect user from too large files and unexpected input, `page` defin
 | `--max-table-grid-cells`           | 1,000,000 | Maximum number of cells represented in an inspected table grid.                     |
 | `--max-unicode-cmap-mappings`      | 1,000,000 | Maximum number of mappings expanded from one ToUnicode CMap.                        |
 
-The defaults try to be convenient (they should be enough for most files) while ensuring some level of default security. Obviously those are configurables, **with no limits** (see [this issue](https://github.com/JosephBARBIERDARNAL/page/issues/301)).
+The defaults try to be convenient (they should be large enough for most files) while ensuring some level of default security. Obviously those are configurables, **with no limits** (see [this issue](https://github.com/JosephBARBIERDARNAL/page/issues/301)).
 
 Disabling/changing safety limits is a security risk and must be done with control.
