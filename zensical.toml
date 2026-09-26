@@ -13,10 +13,15 @@ nav = [
   { "Demo" = "demo.md" },
   { "Installation" = "installation.md" },
   { "Usage" = [
-    { "CLI" = "api/cli.md" },
-    { "Rust" = "api/rust.md" },
-    { "Python" = "api/python.md" },
-    { "WebAssembly" = "api/wasm.md" },
+    { "Usage" = [
+      { "CLI" = "api/cli.md" },
+      { "Rust" = "api/rust.md" },
+      { "Python" = "api/python.md" },
+      { "WebAssembly" = "api/wasm.md" },
+    ] },
+    { "Guide" = [
+      { "Safety limits" = "guide/safety-limits.md" },
+    ] },
   ] },
   { "Benchmark" = "benchmark.md" },
   { "Contributing" = [

@@ -104,6 +104,7 @@ diff file format="text" verapdf=verapdf_bin:
 # Build the release validator and regenerate the benchmark.md.
 bench:
     cargo build --quiet --release -p page_cli --bin page
+    uv run --no-project python bench/generate_feature_benchmark.py
     rust-script bench/benchmark.rs
 
 # Clean documentation cache

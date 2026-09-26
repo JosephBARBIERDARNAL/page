@@ -1,4 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::hash::{Hash, Hasher};
+use std::ops::Range;
 
 use lopdf::xref::XrefEntry;
 use lopdf::{Document, Object};
@@ -32,16 +34,85 @@ pub(crate) struct SyntaxSummary {
     pub(crate) has_invalid_indirect_object_syntax: bool,
 }
 
-/// The physical positions of a stream in its source indirect object.
-///
-/// These are collected while the syntax inspector is already walking every
-/// xref-addressable object, so downstream raw-stream checks do not need to
-/// rediscover streams by searching the whole input for matching bytes.
+/// The physical positions of a stream in the source bytes.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct RawStreamLocation {
     pub(crate) data_start: usize,
     pub(crate) endstream: Option<usize>,
     pub(crate) declared_length: Option<usize>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct RawObjectLocation {
+    value: Option<RawValue>,
+    header_valid: bool,
+    pub(crate) stream: Option<RawStreamLocation>,
+    pub(crate) endobj: Option<usize>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct RawStreamIndex {
+    pub(crate) locations: Vec<RawStreamLocation>,
+    pub(crate) ranges: Vec<Option<Range<usize>>>,
+    by_content_hash: BTreeMap<u64, Vec<usize>>,
+    by_start: BTreeMap<usize, RawStreamLocation>,
+}
+
+impl RawStreamIndex {
+    pub(crate) fn locate(
+        &self,
+        bytes: &[u8],
+        content: &[u8],
+        used_starts: &BTreeSet<usize>,
+    ) -> Option<RawStreamLocation> {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        content.hash(&mut hasher);
+        let hash = hasher.finish();
+        self.by_content_hash.get(&hash)?.iter().find_map(|index| {
+            let location = self.locations.get(*index).copied()?;
+            let range = self.ranges.get(*index)?.as_ref()?;
+            if used_starts.contains(&location.data_start) {
+                return None;
+            }
+            let end = location.data_start.checked_add(content.len())?;
+            (range.start == location.data_start
+                && end <= range.end
+                && bytes.get(location.data_start..end) == Some(content))
+            .then_some(location)
+        })
+    }
+
+    pub(crate) fn location_at(&self, data_start: usize) -> Option<RawStreamLocation> {
+        self.by_start.get(&data_start).copied()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct RawScanIndex {
+    revisions: Vec<Revision>,
+    objects: BTreeMap<usize, RawObjectLocation>,
+    pub(crate) streams: RawStreamIndex,
+    pub(crate) object_header_count: usize,
+}
+
+impl RawScanIndex {
+    pub(crate) fn enforce_object_limit(&self, limits: &SafetyLimits) -> Result<(), PdfError> {
+        let xref_count = self.revisions.iter().fold(0usize, |count, revision| {
+            count.saturating_add(revision.object_count)
+        });
+        let actual = xref_count.max(self.object_header_count);
+        if actual > limits.max_object_count {
+            return Err(PdfError::TooManyObjects {
+                actual,
+                limit: limits.max_object_count,
+            });
+        }
+        Ok(())
+    }
+
+    fn object_at(&self, offset: usize) -> Option<&RawObjectLocation> {
+        self.objects.get(&offset)
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -57,47 +128,237 @@ pub(crate) struct HeaderSummary {
     pub(crate) last_trailer_id: Option<Vec<u8>>,
 }
 
-/// Bounds the number of objects that the full `lopdf` load may materialize.
-///
-/// `lopdf` applies its xref table and object parsing before this crate can
-/// inspect `Document::objects`, so the configured object limit cannot be the
-/// first line of defense on its own. This preflight only keeps the bounded raw
-/// syntax state needed to count xref entries and object headers; it does not
-/// construct PDF objects.
-pub(crate) fn preflight_object_limit(bytes: &[u8], limits: &SafetyLimits) -> Result<(), PdfError> {
+/// Builds the bounded raw syntax state shared by loading, syntax inspection,
+/// and stream safety checks.
+pub(crate) fn scan_raw_index(
+    bytes: &[u8],
+    limits: &SafetyLimits,
+) -> Result<RawScanIndex, PdfError> {
     let mut preflight_limits = limits.clone();
     preflight_limits.max_object_count = preflight_limits.max_object_count.max(1_024);
     let revisions = inspect_revisions(bytes, &preflight_limits)?;
 
-    let xref_count = revisions.iter().fold(0usize, |count, revision| {
-        count.saturating_add(revision.object_count)
-    });
-    let object_header_count = count_indirect_object_headers(bytes, limits.max_object_count);
-    let actual = xref_count.max(object_header_count);
-    if actual > limits.max_object_count {
-        return Err(PdfError::TooManyObjects {
-            actual,
-            limit: limits.max_object_count,
-        });
-    }
-    Ok(())
+    let (objects, streams) = index_raw_objects_and_streams(bytes, limits, limits.max_object_count);
+    let object_header_count = objects.len();
+    Ok(RawScanIndex {
+        revisions,
+        objects,
+        streams,
+        object_header_count,
+    })
 }
 
-fn count_indirect_object_headers(bytes: &[u8], limit: usize) -> usize {
-    let mut count = 0usize;
+#[cfg(test)]
+pub(crate) fn preflight_object_limit(bytes: &[u8], limits: &SafetyLimits) -> Result<(), PdfError> {
+    let index = scan_raw_index(bytes, limits)?;
+    index.enforce_object_limit(limits)
+}
+
+fn index_raw_objects_and_streams(
+    bytes: &[u8],
+    limits: &SafetyLimits,
+    limit: usize,
+) -> (BTreeMap<usize, RawObjectLocation>, RawStreamIndex) {
+    let mut objects = BTreeMap::new();
+    let mut streams = RawStreamIndexBuilder::default();
     let mut cursor = 0;
     while cursor < bytes.len() {
-        if let Some((_, _, next)) = indirect_object_header(bytes, cursor) {
-            count = count.saturating_add(1);
-            if count > limit {
-                return count;
+        if is_line_start(bytes, cursor)
+            && let Some((_, _, after_header)) = indirect_object_header(bytes, cursor)
+        {
+            if objects.len() > limit {
+                break;
             }
-            cursor = stream_end_after_object(bytes, next).unwrap_or(next);
-        } else {
-            cursor = read_line(bytes, cursor).map_or(bytes.len(), |(_, next)| next);
+            let mut location = index_indirect_object(bytes, cursor, limits);
+            let mut next_cursor = after_header;
+            if let Some(stream) = location.stream.as_mut() {
+                *stream = complete_raw_stream_location(bytes, *stream);
+                streams.push(*stream, bytes);
+                location.endobj = stream
+                    .endstream
+                    .and_then(|offset| offset.checked_add(b"endstream".len()))
+                    .and_then(|start| find_bounded_keyword(bytes, b"endobj", start));
+                next_cursor = stream
+                    .endstream
+                    .and_then(|offset| offset.checked_add(b"endstream".len()))
+                    .unwrap_or(bytes.len());
+            }
+            objects.insert(cursor, location);
+            cursor = next_cursor;
+            continue;
+        }
+        if bytes.get(cursor..cursor + b"stream".len()) == Some(b"stream")
+            && is_pdf_boundary(bytes.get(cursor.wrapping_sub(1)).copied())
+            && is_pdf_boundary(bytes.get(cursor + b"stream".len()).copied())
+            && let Some(start) = stream_data_start_after_keyword(bytes, cursor + b"stream".len())
+        {
+            let location = complete_raw_stream_location(
+                bytes,
+                RawStreamLocation {
+                    data_start: start,
+                    endstream: None,
+                    declared_length: None,
+                },
+            );
+            streams.push(location, bytes);
+            cursor = location
+                .endstream
+                .and_then(|offset| offset.checked_add(b"endstream".len()))
+                .unwrap_or(start.saturating_add(1));
+            continue;
+        }
+        cursor += 1;
+    }
+    (objects, streams.finish())
+}
+
+fn index_indirect_object(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> RawObjectLocation {
+    let Some(mut parser) = RawParser::at(bytes, offset, limits).ok() else {
+        return RawObjectLocation {
+            value: None,
+            header_valid: false,
+            stream: None,
+            endobj: None,
+        };
+    };
+    parser.skip_space_and_comments();
+    let header_start = parser.position;
+    let number = parser.take_unsigned_integer_token();
+    let first_separator_start = parser.position;
+    parser.skip_space_and_comments();
+    let generation = parser.take_unsigned_integer_token();
+    let second_separator_start = parser.position;
+    parser.skip_space_and_comments();
+    let obj_start = parser.position;
+    let has_obj = parser.consume_keyword(b"obj");
+    let header_end = parser.position;
+    let header_valid = number.is_some()
+        && generation.is_some()
+        && first_separator_start + 1
+            == second_separator_start.saturating_sub(generation.map_or(0, <[u8]>::len))
+        && second_separator_start + 1 == obj_start
+        && has_obj
+        && is_eol_before(bytes, header_start)
+        && single_eol_end(bytes, header_end).is_some();
+    parser.skip_space_and_comments();
+    let value = parser.parse_value(0);
+    let stream = if matches!(value, Some(RawValue::Dictionary(_))) {
+        parser.skip_space_and_comments();
+        let Some(data_start) = parser
+            .consume_keyword(b"stream")
+            .then_some(())
+            .and_then(|()| stream_data_start_after_keyword(bytes, parser.position))
+        else {
+            return RawObjectLocation {
+                value,
+                header_valid,
+                stream: None,
+                endobj: find_bounded_keyword(bytes, b"endobj", parser.position),
+            };
+        };
+        let declared_length = value
+            .as_ref()
+            .and_then(|value| value.dictionary_value(b"Length"))
+            .and_then(RawValue::integer)
+            .and_then(|length| usize::try_from(length).ok());
+        Some(RawStreamLocation {
+            data_start,
+            endstream: None,
+            declared_length,
+        })
+    } else {
+        None
+    };
+    let endobj_start = stream
+        .is_none()
+        .then_some(parser.position)
+        .and_then(|start| find_bounded_keyword(bytes, b"endobj", start));
+    RawObjectLocation {
+        value,
+        header_valid,
+        stream,
+        endobj: endobj_start,
+    }
+}
+
+#[derive(Default)]
+struct RawStreamIndexBuilder {
+    locations: Vec<RawStreamLocation>,
+    ranges: Vec<Option<Range<usize>>>,
+    by_content_hash: BTreeMap<u64, Vec<usize>>,
+    by_start: BTreeMap<usize, RawStreamLocation>,
+}
+
+impl RawStreamIndexBuilder {
+    fn push(&mut self, location: RawStreamLocation, bytes: &[u8]) {
+        if self.by_start.contains_key(&location.data_start) {
+            return;
+        }
+        let location_index = self.locations.len();
+        let range = raw_stream_range(location, bytes);
+        if let Some(range) = range.clone() {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            bytes
+                .get(range.clone())
+                .unwrap_or_default()
+                .hash(&mut hasher);
+            self.by_content_hash
+                .entry(hasher.finish())
+                .or_default()
+                .push(location_index);
+        }
+        self.ranges.push(range);
+        self.by_start.insert(location.data_start, location);
+        self.locations.push(location);
+    }
+
+    fn finish(self) -> RawStreamIndex {
+        RawStreamIndex {
+            locations: self.locations,
+            ranges: self.ranges,
+            by_content_hash: self.by_content_hash,
+            by_start: self.by_start,
         }
     }
-    count
+}
+
+fn complete_raw_stream_location(
+    bytes: &[u8],
+    mut location: RawStreamLocation,
+) -> RawStreamLocation {
+    location.endstream = location
+        .declared_length
+        .and_then(|length| {
+            location
+                .data_start
+                .checked_add(length)
+                .and_then(|data_end| find_bounded_keyword(bytes, b"endstream", data_end))
+        })
+        .or_else(|| find_bounded_keyword(bytes, b"endstream", location.data_start));
+    location
+}
+
+fn raw_stream_range(location: RawStreamLocation, bytes: &[u8]) -> Option<Range<usize>> {
+    if let Some(length) = location.declared_length {
+        return Some(location.data_start..location.data_start.checked_add(length)?);
+    }
+    let endstream = location.endstream?;
+    Some(location.data_start..stream_data_end_before_eol(bytes, endstream).unwrap_or(endstream))
+}
+
+fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
+    match (
+        bytes.get(endstream.wrapping_sub(2)),
+        bytes.get(endstream.wrapping_sub(1)),
+    ) {
+        (Some(b'\r'), Some(b'\n')) => Some(endstream - 2),
+        (_, Some(b'\r' | b'\n')) => Some(endstream - 1),
+        _ => None,
+    }
+}
+
+fn is_line_start(bytes: &[u8], cursor: usize) -> bool {
+    cursor == 0 || matches!(bytes.get(cursor.wrapping_sub(1)), Some(b'\r' | b'\n'))
 }
 
 #[derive(Clone, Debug)]
@@ -464,10 +725,10 @@ pub(crate) fn inspect(
     bytes: &[u8],
     document: &Document,
     limits: &SafetyLimits,
+    raw_scan: &RawScanIndex,
 ) -> Result<SyntaxSummary, PdfError> {
-    let revisions = inspect_revisions(bytes, limits)?;
     let mut summary = SyntaxSummary {
-        header: inspect_header(bytes, &revisions),
+        header: inspect_header(bytes, &raw_scan.revisions),
         ..SyntaxSummary::default()
     };
 
@@ -487,12 +748,14 @@ pub(crate) fn inspect(
             .ok()
             .and_then(|offset| offset.checked_add(summary.header.offset))
             .unwrap_or(usize::MAX);
+        let indexed_object = raw_scan.object_at(adjusted_offset);
         if let Some(value) = inspect_indirect_object(
             bytes,
             adjusted_offset,
             object_id,
             document,
             limits,
+            indexed_object,
             &mut summary,
         )? {
             collect_value_findings(&value, object_id, &mut summary);
@@ -518,7 +781,7 @@ pub(crate) fn inspect(
         .count();
     summary.object_limits.too_many_indirect_objects = indirect_count > MAX_INDIRECT_OBJECTS;
 
-    for revision in &revisions {
+    for revision in &raw_scan.revisions {
         summary.has_invalid_xref_subsection_spacing |= !revision.spacing_compliant;
         summary.has_invalid_xref_eol |= !revision.eol_compliant;
         if let Some(trailer) = &revision.trailer {
@@ -541,9 +804,30 @@ fn inspect_indirect_object(
     object_id: PdfObjectId,
     document: &Document,
     limits: &SafetyLimits,
+    indexed_object: Option<&RawObjectLocation>,
     summary: &mut SyntaxSummary,
 ) -> Result<Option<RawValue>, PdfError> {
     if offset >= bytes.len() {
+        return Ok(None);
+    }
+    if let Some(indexed_object) = indexed_object {
+        summary.has_invalid_indirect_object_syntax |= !indexed_object.header_valid;
+        if let Some(location) = indexed_object.stream {
+            summary.raw_stream_locations.insert(object_id, location);
+        }
+        let Some(mut cursor) = indexed_object.endobj else {
+            summary.has_invalid_indirect_object_syntax = true;
+            if let Some(value) = &indexed_object.value {
+                collect_value_findings(value, object_id, summary);
+            }
+            return Ok(None);
+        };
+        summary.has_invalid_indirect_object_syntax |= !is_eol_before(bytes, cursor);
+        cursor += b"endobj".len();
+        summary.has_invalid_indirect_object_syntax |= single_eol_end(bytes, cursor).is_none();
+        if let Some(value) = &indexed_object.value {
+            collect_value_findings(value, object_id, summary);
+        }
         return Ok(None);
     }
     let mut parser = RawParser::at(bytes, offset, limits)?;
@@ -569,11 +853,7 @@ fn inspect_indirect_object(
     summary.has_invalid_indirect_object_syntax |= !valid_header;
 
     parser.skip_space_and_comments();
-    let value_start = parser.position;
     let value = parser.parse_value(0);
-    if let Some(location) = raw_stream_location(bytes, value_start, document) {
-        summary.raw_stream_locations.insert(object_id, location);
-    }
     let Some(mut cursor) = find_endobj_start(bytes, parser.position, document, object_id) else {
         summary.has_invalid_indirect_object_syntax = true;
         return Ok(value);
@@ -582,101 +862,6 @@ fn inspect_indirect_object(
     cursor += b"endobj".len();
     summary.has_invalid_indirect_object_syntax |= single_eol_end(bytes, cursor).is_none();
     Ok(value)
-}
-
-fn raw_stream_location(
-    bytes: &[u8],
-    after_dictionary: usize,
-    document: &Document,
-) -> Option<RawStreamLocation> {
-    let endobj = find_bounded_keyword(bytes, b"endobj", after_dictionary)?;
-    let keyword = find_bounded_keyword(bytes.get(..endobj)?, b"stream", after_dictionary)?;
-    let data_start = stream_data_start_after_keyword(bytes, keyword + b"stream".len())?;
-    Some(RawStreamLocation {
-        data_start,
-        endstream: find_bounded_keyword(bytes, b"endstream", data_start),
-        declared_length: raw_stream_declared_length(bytes, after_dictionary, keyword, document),
-    })
-}
-
-fn raw_stream_declared_length(
-    bytes: &[u8],
-    dictionary_start: usize,
-    stream_keyword: usize,
-    document: &Document,
-) -> Option<usize> {
-    let dictionary = bytes.get(dictionary_start..stream_keyword)?;
-    let length_key = dictionary
-        .windows(b"/Length".len())
-        .enumerate()
-        .rev()
-        .find_map(|(offset, window)| {
-            (window == b"/Length"
-                && is_pdf_boundary(dictionary.get(offset + b"/Length".len()).copied()))
-            .then_some(offset)
-        })?;
-    let mut cursor = length_key + b"/Length".len();
-    while dictionary
-        .get(cursor)
-        .copied()
-        .is_some_and(is_pdf_whitespace)
-    {
-        cursor += 1;
-    }
-    let number_start = cursor;
-    while dictionary
-        .get(cursor)
-        .copied()
-        .is_some_and(|byte| byte.is_ascii_digit())
-    {
-        cursor += 1;
-    }
-    let first = std::str::from_utf8(dictionary.get(number_start..cursor)?)
-        .ok()?
-        .parse::<usize>()
-        .ok()?;
-    let mut after_first = cursor;
-    while dictionary
-        .get(after_first)
-        .copied()
-        .is_some_and(is_pdf_whitespace)
-    {
-        after_first += 1;
-    }
-    let second_start = after_first;
-    while dictionary
-        .get(after_first)
-        .copied()
-        .is_some_and(|byte| byte.is_ascii_digit())
-    {
-        after_first += 1;
-    }
-    if second_start != after_first {
-        let mut after_second = after_first;
-        while dictionary
-            .get(after_second)
-            .copied()
-            .is_some_and(is_pdf_whitespace)
-        {
-            after_second += 1;
-        }
-        if dictionary
-            .get(after_second..)
-            .is_some_and(|tail| tail.starts_with(b"R"))
-        {
-            let object_number = u32::try_from(first).ok()?;
-            let generation = std::str::from_utf8(dictionary.get(second_start..after_first)?)
-                .ok()?
-                .parse::<u16>()
-                .ok()?;
-            return document
-                .objects
-                .get(&(object_number, generation))
-                .and_then(|object| object.as_i64().ok())
-                .and_then(|value| usize::try_from(value).ok());
-        }
-    }
-    (number_start != cursor).then_some(first)
 }
 
 fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<usize> {
@@ -2040,6 +2225,25 @@ mod tests {
                 limit: 8
             })
         ));
+    }
+
+    #[test]
+    fn raw_scan_indexes_objects_streams_and_ranges_together() {
+        let bytes = b"%PDF-1.4\n1 0 obj\n<< /Length 5 >>\nstream\nhello\nendstream\nendobj\n";
+        let index = scan_raw_index(bytes, &SafetyLimits::default()).expect("scan raw input");
+        let object_offset = bytes
+            .windows(b"1 0 obj".len())
+            .position(|window| window == b"1 0 obj")
+            .expect("object header");
+        let object = index.objects.get(&object_offset).expect("raw object");
+        let stream = object.stream.expect("object stream");
+        assert_eq!(&bytes[stream.data_start..stream.data_start + 5], b"hello");
+        assert_eq!(stream.declared_length, Some(5));
+        assert_eq!(index.streams.locations.len(), 1);
+        assert_eq!(
+            index.streams.ranges,
+            vec![Some(stream.data_start..stream.data_start + 5)]
+        );
     }
 
     #[test]

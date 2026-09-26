@@ -1,17 +1,15 @@
-Mean validation speedups are based on timings measured in milliseconds and normalized per document to veraPDF = 1.0×. Higher values are faster. Each value uses 10 runs (with 2 warmup runs) per validator and document.
+Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of 10 measured runs with 2 warmup runs.
 
-The 5 documents have varying size, content and method of creation. We're working on making the benchmark fully reproducible and share the documents used.
+The corpus includes real world documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.
 
-The benchmark code can be found [here](https://github.com/JosephBARBIERDARNAL/page/blob/main/bench/benchmark.rs).
+| Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| feature-heavy | 4.0 | 10 | 14.99× | 14.58× | 14.18× |
+| document 1 | 21.4 | 756 | 4.38× | 5.95× | 6.10× |
+| document 2 | 6.5 | 51 | 8.25× | 7.78× | 7.37× |
+| document 3 | 38.2 | 518 | 3.18× | 3.37× | 2.78× |
+| document 4 | 9.6 | 332 | 4.39× | 4.53× | 3.97× |
+| document 5 | 5.7 | 88 | 2.43× | 2.55× | 2.34× |
+!!! info
 
-| Document | veraPDF | page | page fail-fast |
-| --- | ---: | ---: | ---: |
-| document1.pdf | 1.0× | 6.0× | 12.5× |
-| document2.pdf | 1.0× | 7.3× | 16.5× |
-| document3.pdf | 1.0× | 2.6× | 5.4× |
-| document4.pdf | 1.0× | 4.0× | 25.8× |
-| document5.pdf | 1.0× | 2.2× | 22.0× |
-
-!!! note
-
-      The fail fast mode of `page` (used automatically when possible) allows to get much faster results, but does not give details about which specific rules failed.
+       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× and 10× improvement); this is not represented in this benchmark to keep it simpler.
