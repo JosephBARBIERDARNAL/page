@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://josephbarbierdarnal.github.io/page/benchmark/">
       
       
-        <link rel="prev" href="../api/wasm/">
+        <link rel="prev" href="../guide/safety-limits/">
       
       
         <link rel="next" href="../contributing/">
@@ -280,6 +280,22 @@
       
         
       
+    
+    
+    
+    
+      
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
         
       
         
@@ -296,6 +312,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -520,10 +539,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -541,6 +556,11 @@
     <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
       
         
+  
+  
+  
+  
+    
   
   
   
@@ -563,6 +583,8 @@
         <span class="md-nav__icon md-icon"></span>
       
     </a>
+  
+
   
 
       
@@ -772,54 +794,73 @@
 
   <h1 id="__skip">Benchmark</h1>
 
-<p>Mean validation speedups are based on timings measured in milliseconds and normalized per document to veraPDF = 1.0×. Higher values are faster. Each value uses 10 runs (with 2 warmup runs) per validator and document.</p>
-<p>The 5 documents have varying size, content and method of creation. We're working on making the benchmark fully reproducible and share the documents used.</p>
-<p>The benchmark code can be found <a href="https://github.com/JosephBARBIERDARNAL/page/blob/main/bench/benchmark.rs">here</a>.</p>
+<p>Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); <strong>higher is faster</strong>. Values use the median of 10 measured runs with 2 warmup runs.</p>
+<p>The corpus includes real world documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.</p>
 <table>
 <thead>
 <tr>
 <th>Document</th>
-<th style="text-align: right;">veraPDF</th>
-<th style="text-align: right;">page</th>
-<th style="text-align: right;">page fail-fast</th>
+<th style="text-align: right;">Size (MiB)</th>
+<th style="text-align: right;">Pages</th>
+<th style="text-align: right;">PDF/A-1b</th>
+<th style="text-align: right;">PDF/A-2b</th>
+<th style="text-align: right;">PDF/UA-1</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>document1.pdf</td>
-<td style="text-align: right;">1.0×</td>
-<td style="text-align: right;">6.0×</td>
-<td style="text-align: right;">12.5×</td>
+<td>feature-heavy</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">28.54×</td>
+<td style="text-align: right;">28.42×</td>
+<td style="text-align: right;">25.69×</td>
 </tr>
 <tr>
-<td>document2.pdf</td>
-<td style="text-align: right;">1.0×</td>
-<td style="text-align: right;">7.3×</td>
-<td style="text-align: right;">16.5×</td>
+<td>document 1</td>
+<td style="text-align: right;">21.4</td>
+<td style="text-align: right;">756</td>
+<td style="text-align: right;">4.91×</td>
+<td style="text-align: right;">4.98×</td>
+<td style="text-align: right;">6.55×</td>
 </tr>
 <tr>
-<td>document3.pdf</td>
-<td style="text-align: right;">1.0×</td>
-<td style="text-align: right;">2.6×</td>
-<td style="text-align: right;">5.4×</td>
+<td>document 2</td>
+<td style="text-align: right;">6.5</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">9.89×</td>
+<td style="text-align: right;">9.62×</td>
+<td style="text-align: right;">9.03×</td>
 </tr>
 <tr>
-<td>document4.pdf</td>
-<td style="text-align: right;">1.0×</td>
-<td style="text-align: right;">4.0×</td>
-<td style="text-align: right;">25.8×</td>
+<td>document 3</td>
+<td style="text-align: right;">38.2</td>
+<td style="text-align: right;">518</td>
+<td style="text-align: right;">4.33×</td>
+<td style="text-align: right;">4.72×</td>
+<td style="text-align: right;">3.82×</td>
 </tr>
 <tr>
-<td>document5.pdf</td>
-<td style="text-align: right;">1.0×</td>
-<td style="text-align: right;">2.2×</td>
-<td style="text-align: right;">22.0×</td>
+<td>document 4</td>
+<td style="text-align: right;">9.6</td>
+<td style="text-align: right;">332</td>
+<td style="text-align: right;">5.17×</td>
+<td style="text-align: right;">5.96×</td>
+<td style="text-align: right;">5.54×</td>
+</tr>
+<tr>
+<td>document 5</td>
+<td style="text-align: right;">5.7</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">3.36×</td>
+<td style="text-align: right;">2.73×</td>
+<td style="text-align: right;">2.46×</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The fail fast mode of <code>page</code> (used automatically when possible) allows to get much faster results, but does not give details about which specific rules failed.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× to 10× improvement); this is not represented in this benchmark to keep it simpler.</p>
 </div>
 
 
@@ -858,7 +899,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../api/wasm/" class="md-footer__link md-footer__link--prev" aria-label="Previous: WebAssembly">
+          <a href="../guide/safety-limits/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Safety limits">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -868,7 +909,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                WebAssembly
+                Safety limits
               </div>
             </div>
           </a>
