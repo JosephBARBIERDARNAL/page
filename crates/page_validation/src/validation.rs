@@ -2278,12 +2278,15 @@ fn validate_object_limits(
     ];
     for (rule_id, description, objects) in checks {
         if !objects.is_empty() {
-            failures.push(failure(
-                rule_id,
-                description,
-                only(objects).copied(),
-                FailureCategory::Conformance,
-            ));
+            failures.push_with_check_count(
+                failure(
+                    rule_id,
+                    description,
+                    only(objects).copied(),
+                    FailureCategory::Conformance,
+                ),
+                objects.len(),
+            );
         }
     }
     aggregate_failures_with_location(
@@ -2322,17 +2325,20 @@ fn validate_object_limits(
     if _profile.is_pdfa_2_or_3()
         && (!limits.underflow_reals_pdfa_2.is_empty() || !content.underflow_reals_pdfa_2.is_empty())
     {
-        failures.push(failure(
-            "PDFA1B-REAL-MINIMUM-001",
-            "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
-            limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
-                content
-                    .underflow_reals_pdfa_2
-                    .first()
-                    .and_then(|failure| failure.object_id)
-            }),
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-REAL-MINIMUM-001",
+                "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
+                limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
+                    content
+                        .underflow_reals_pdfa_2
+                        .first()
+                        .and_then(|failure| failure.object_id)
+                }),
+                FailureCategory::Conformance,
+            ),
+            limits.underflow_reals_pdfa_2.len() + content.underflow_reals_pdfa_2.len(),
+        );
     }
     if limits.too_many_indirect_objects {
         failures.push(failure(
@@ -2673,57 +2679,75 @@ fn validate_stream_safety(
             })
             .collect::<Vec<_>>()
             .join("; ");
-        failures.push(failure(
-            "PDFA1B-STREAM-EXTERNAL-DATA-001",
-            description,
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-EXTERNAL-DATA-001",
+                description,
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.external_stream_entries.len(),
+        );
     }
     if !profile.is_pdfa_2_or_3() && !streams.lzw_filters.is_empty() {
         let object_id = only(&streams.lzw_filters).copied();
-        failures.push(failure(
-            "PDFA1B-STREAM-LZW-001",
-            "a parsed stream declares the forbidden LZWDecode filter",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-LZW-001",
+                "a parsed stream declares the forbidden LZWDecode filter",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.lzw_filters.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_filters_pdfa2.is_empty() {
         let object_id = only(&streams.invalid_filters_pdfa2).copied();
-        failures.push(failure(
-            "PDFA1B-STREAM-FILTER-001",
-            "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-FILTER-001",
+                "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_filters_pdfa2.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_byte_ranges.is_empty() {
         let object_id = only(&streams.invalid_signature_byte_ranges).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-BYTERANGE-001",
-            "a signature /ByteRange does not cover the complete PDF except for its signature contents",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-BYTERANGE-001",
+                "a signature /ByteRange does not cover the complete PDF except for its signature contents",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_byte_ranges.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
         let object_id = only(&streams.invalid_signature_certificates).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-CERTIFICATE-001",
-            "a parsed PKCS#7 signature does not contain a signing certificate",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-CERTIFICATE-001",
+                "a parsed PKCS#7 signature does not contain a signing certificate",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_certificates.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
         let object_id = only(&streams.invalid_signature_signer_counts).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
-            "a parsed PKCS#7 signature does not contain exactly one signer",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+                "a parsed PKCS#7 signature does not contain exactly one signer",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_signer_counts.len(),
+        );
     }
     if profile.is_pdfa_2_or_3()
         && let Some(context) = &content.inline_image_invalid_filter_context
@@ -2739,12 +2763,18 @@ fn validate_stream_safety(
         && !profile.permits_xref_streams()
     {
         let object_id = only(&streams.xref_streams).copied();
-        failures.push(failure(
-            "PDFA1B-XREF-STREAM-001",
-            "the document contains an xref stream",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-XREF-STREAM-001",
+                "the document contains an xref stream",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams
+                .xref_streams
+                .len()
+                .max(usize::from(streams.has_xref_stream)),
+        );
     }
     for (invalid, rule_id, message) in [
         (
@@ -2795,12 +2825,15 @@ fn validate_stream_safety(
         ),
     ] {
         if !invalid.is_empty() {
-            failures.push(failure(
-                rule_id,
-                message,
-                only(invalid).copied(),
-                FailureCategory::Conformance,
-            ));
+            failures.push_with_check_count(
+                failure(
+                    rule_id,
+                    message,
+                    only(invalid).copied(),
+                    FailureCategory::Conformance,
+                ),
+                invalid.len(),
+            );
         }
     }
 }
@@ -4725,6 +4758,62 @@ mod tests {
         assert_eq!(failures.entries[0].message, "the same problem");
         assert_eq!(failures.entries.len(), 1);
         assert_eq!(failures.failed_checks, 4);
+    }
+
+    #[test]
+    fn object_limit_failures_count_each_failed_object() {
+        let mut limits = crate::object_limits::ObjectLimitsSummary::default();
+        limits.out_of_range_integers = vec![
+            PdfObjectId {
+                object_number: 10,
+                generation: 0,
+            },
+            PdfObjectId {
+                object_number: 11,
+                generation: 0,
+            },
+            PdfObjectId {
+                object_number: 12,
+                generation: 0,
+            },
+        ];
+        let mut failures = ValidationFailures::default();
+
+        validate_object_limits(
+            ValidationProfile::PdfA1b,
+            &limits,
+            &crate::content_support::ContentExecutionSummary::default(),
+            &mut failures,
+        );
+
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 3);
+    }
+
+    #[test]
+    fn stream_safety_failures_count_each_failed_stream() {
+        let mut streams = crate::stream_safety::StreamSafetySummary::default();
+        streams.invalid_lengths = vec![
+            PdfObjectId {
+                object_number: 20,
+                generation: 0,
+            },
+            PdfObjectId {
+                object_number: 21,
+                generation: 0,
+            },
+        ];
+        let mut failures = ValidationFailures::default();
+
+        validate_stream_safety(
+            ValidationProfile::PdfA1b,
+            &streams,
+            &crate::content_support::ContentExecutionSummary::default(),
+            &mut failures,
+        );
+
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 2);
     }
 
     fn assert_rule(report: &ValidationReport, rule: &str) {
