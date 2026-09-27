@@ -44,8 +44,10 @@ let doc = Path::new("document.pdf")
 let report = validate_pdf(doc, None, &SafetyLimits::default())?;
 
 if report.is_compliant {
-    println!("The document passed all implemented checks.");
+    println!("The document passed all implemented rules.");
 } else {
+    println!("{} rules failed", report.rules.failed);
+    println!("{} checks failed", report.checks.failed);
     for failure in &report.failures {
         eprintln!(
             "[{}] {}",
@@ -97,6 +99,8 @@ for failure in &report.failures {
     println!("Message: {}", failure.message);
 }
 ```
+
+`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
 Failure categories distinguish conformance problems from parser or operational errors:
 

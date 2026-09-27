@@ -167,12 +167,7 @@ fn print_error(message: impl fmt::Display, colors: bool) {
     eprintln!("{error}error:{error:#} {message}");
 }
 
-fn render_summary(
-    profile: ValidationProfile,
-    is_compliant: bool,
-    elapsed: Duration,
-    colors: bool,
-) -> String {
+fn render_result_line(is_compliant: bool, colors: bool) -> String {
     let mut output = String::new();
     let (result_text, result_style) = if is_compliant {
         ("Conformant", SUMMARY_SUCCESS)
@@ -183,6 +178,16 @@ fn render_summary(
 
     writeln!(output, "Result  : {result}{result_text}{result:#}")
         .expect("writing to a String cannot fail");
+    output
+}
+
+fn render_summary(
+    profile: ValidationProfile,
+    is_compliant: bool,
+    elapsed: Duration,
+    colors: bool,
+) -> String {
+    let mut output = render_result_line(is_compliant, colors);
     writeln!(output, "Profile : {profile}").expect("writing to a String cannot fail");
     writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
         .expect("writing to a String cannot fail");
@@ -190,7 +195,49 @@ fn render_summary(
 }
 
 fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
-    let mut output = render_summary(report.profile, report.is_compliant, elapsed, colors);
+    let mut output = render_result_line(report.is_compliant, colors);
+    let failed_rules_style = selected_style(
+        colors,
+        if report.rules.failed == 0 {
+            SUMMARY_SUCCESS
+        } else {
+            FAILURE
+        },
+    );
+    let failed_checks_style = selected_style(
+        colors,
+        if report.checks.failed == 0 {
+            SUMMARY_SUCCESS
+        } else {
+            FAILURE
+        },
+    );
+    writeln!(
+        output,
+        "Rules   : {failed_rules_style}{}{failed_rules_style:#} failed {} / {} total",
+        report.rules.failed,
+        if report.rules.failed == 1 {
+            "rule"
+        } else {
+            "rules"
+        },
+        report.rules.total,
+    )
+    .expect("writing to a String cannot fail");
+    writeln!(
+        output,
+        "Checks  : {failed_checks_style}{}{failed_checks_style:#} failed {}",
+        report.checks.failed,
+        if report.checks.failed == 1 {
+            "check"
+        } else {
+            "checks"
+        },
+    )
+    .expect("writing to a String cannot fail");
+    writeln!(output, "Profile : {}", report.profile).expect("writing to a String cannot fail");
+    writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
+        .expect("writing to a String cannot fail");
     if !report.failures.is_empty() {
         output.push('\n');
     }
@@ -289,6 +336,8 @@ fn emit_json_validation_error(
         file: Some(path.display().to_string()),
         profile,
         valid: false,
+        rules: None,
+        checks: None,
         failures: Vec::new(),
         error: Some(JsonError {
             kind,
@@ -489,9 +538,11 @@ fn run_validate(cli: Cli) {
 mod tests {
     use std::time::Duration;
 
-    use page_validation::ValidationProfile;
+    use page_validation::{
+        ValidationCheckCounts, ValidationCounts, ValidationProfile, ValidationReport,
+    };
 
-    use super::{colors_enabled, render_summary};
+    use super::{colors_enabled, render_details, render_summary};
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
@@ -506,5 +557,28 @@ mod tests {
         let summary = render_summary(ValidationProfile::PdfA1b, true, Duration::ZERO, true);
 
         assert!(summary.contains("92mConformant"));
+    }
+
+    #[test]
+    fn detailed_counts_use_actual_plural_and_total_rules() {
+        let report = ValidationReport {
+            source: None,
+            profile: ValidationProfile::PdfA1b,
+            is_compliant: false,
+            preliminary: false,
+            rules: ValidationCounts {
+                total: 10,
+                passed: 9,
+                failed: 1,
+            },
+            checks: ValidationCheckCounts { failed: 1 },
+            document: None,
+            failures: Vec::new(),
+        };
+
+        let details = render_details(&report, Duration::ZERO, false);
+
+        assert!(details.contains("Rules   : 1 failed rule / 10 total"));
+        assert!(details.contains("Checks  : 1 failed check"));
     }
 }

@@ -11,8 +11,46 @@ use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
 use crate::report::{
-    FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
+    FailureCategory, RuleFailure, ValidationCheckCounts, ValidationCounts, ValidationFailure,
+    ValidationReport,
 };
+
+#[derive(Default)]
+struct ValidationFailures {
+    entries: Vec<ValidationFailure>,
+    failed_checks: usize,
+}
+
+impl ValidationFailures {
+    fn push(&mut self, failure: ValidationFailure) {
+        self.push_with_check_count(failure, 1);
+    }
+
+    fn push_with_check_count(&mut self, failure: ValidationFailure, check_count: usize) {
+        self.failed_checks = self.failed_checks.saturating_add(check_count);
+        self.entries.push(failure);
+    }
+
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    fn iter_mut(&mut self) -> std::slice::IterMut<'_, ValidationFailure> {
+        self.entries.iter_mut()
+    }
+
+    fn sort_by_key<F, K>(&mut self, f: F)
+    where
+        F: FnMut(&ValidationFailure) -> K,
+        K: Ord,
+    {
+        self.entries.sort_by_key(f);
+    }
+
+    fn into_parts(self) -> (Vec<ValidationFailure>, usize) {
+        (self.entries, self.failed_checks)
+    }
+}
 
 /// A PDF/A or PDF/UA conformance level this crate can validate a document against.
 ///
@@ -461,7 +499,7 @@ fn has_preflight_failure(
             || !xmp.is_some_and(|xmp| xmp.dc_title_present);
     }
 
-    let mut header_failures = Vec::new();
+    let mut header_failures = ValidationFailures::default();
     validate_header(profile, header, &mut header_failures);
     if !header_failures.is_empty() {
         return true;
@@ -655,8 +693,8 @@ fn collect_validation_failures(
     profile: ValidationProfile,
     mode: ValidationMode,
     stage: Option<InspectionStage>,
-) -> Vec<ValidationFailure> {
-    let mut failures = Vec::new();
+) -> ValidationFailures {
+    let mut failures = ValidationFailures::default();
 
     macro_rules! finish_on_first_failure {
         () => {
@@ -2038,7 +2076,7 @@ fn collect_validation_failures(
 
 fn validate_tagged_document(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     validate_mark_info(
         features,
@@ -2050,7 +2088,7 @@ fn validate_tagged_document(
 
 fn validate_mark_info(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
     rule_id: &'static str,
     message: &'static str,
 ) {
@@ -2066,7 +2104,7 @@ fn validate_mark_info(
 
 fn validate_suspects(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if features.suspects == Some(true) {
         failures.push(failure(
@@ -2080,7 +2118,7 @@ fn validate_suspects(
 
 fn validate_viewer_preferences(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if !features.viewer_preferences_is_dictionary || features.display_doc_title != Some(true) {
         failures.push(failure(
@@ -2096,7 +2134,7 @@ fn validate_viewer_preferences(
 
 fn validate_structure_tree(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if !features.struct_tree_root_present || !features.struct_tree_root_valid {
         failures.push(failure(
@@ -2134,7 +2172,7 @@ fn validate_structure_tree(
 
 fn validate_struct_tree_root_presence(
     features: &crate::document_features::DocumentFeatureSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
     rule_id: &'static str,
     message: &'static str,
 ) {
@@ -2151,7 +2189,7 @@ fn validate_struct_tree_root_presence(
 fn validate_header(
     profile: ValidationProfile,
     header: &crate::syntax::HeaderSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     let valid = if profile.is_pdfa_2_or_3() {
         header.has_valid_pdfa23_header
@@ -2188,7 +2226,7 @@ fn validate_object_limits(
     _profile: ValidationProfile,
     limits: &crate::object_limits::ObjectLimitsSummary,
     content: &crate::content_support::ContentExecutionSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     let checks = [
         (
@@ -2240,12 +2278,15 @@ fn validate_object_limits(
     ];
     for (rule_id, description, objects) in checks {
         if !objects.is_empty() {
-            failures.push(failure(
-                rule_id,
-                description,
-                only(objects).copied(),
-                FailureCategory::Conformance,
-            ));
+            failures.push_with_check_count(
+                failure(
+                    rule_id,
+                    description,
+                    only(objects).copied(),
+                    FailureCategory::Conformance,
+                ),
+                objects.len(),
+            );
         }
     }
     aggregate_failures_with_location(
@@ -2284,17 +2325,20 @@ fn validate_object_limits(
     if _profile.is_pdfa_2_or_3()
         && (!limits.underflow_reals_pdfa_2.is_empty() || !content.underflow_reals_pdfa_2.is_empty())
     {
-        failures.push(failure(
-            "PDFA1B-REAL-MINIMUM-001",
-            "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
-            limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
-                content
-                    .underflow_reals_pdfa_2
-                    .first()
-                    .and_then(|failure| failure.object_id)
-            }),
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-REAL-MINIMUM-001",
+                "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
+                limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
+                    content
+                        .underflow_reals_pdfa_2
+                        .first()
+                        .and_then(|failure| failure.object_id)
+                }),
+                FailureCategory::Conformance,
+            ),
+            limits.underflow_reals_pdfa_2.len() + content.underflow_reals_pdfa_2.len(),
+        );
     }
     if limits.too_many_indirect_objects {
         failures.push(failure(
@@ -2401,7 +2445,7 @@ fn identification_prefix_rule(test: u8) -> Option<(&'static str, &'static str)> 
 fn validate_actions(
     _profile: ValidationProfile,
     actions: &crate::actions::ActionSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if _profile.is_pdfa_2_or_3() {
         let widget_action_failures = actions
@@ -2461,7 +2505,7 @@ fn validate_actions(
     }
 }
 
-fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut Vec<ValidationFailure>) {
+fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut ValidationFailures) {
     for (invalid, rule_id) in [
         (
             forms.invalid_need_appearances.as_slice(),
@@ -2480,7 +2524,7 @@ fn validate_document_features(
     profile: ValidationProfile,
     features: &crate::document_features::DocumentFeatureSummary,
     actions: &crate::actions::ActionSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id, description) in [
         (
@@ -2596,7 +2640,7 @@ fn validate_pdf_specifications(
     profile: ValidationProfile,
     document_features: &crate::document_features::DocumentFeatureSummary,
     actions: &crate::actions::ActionSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if profile.is_pdfa_2_or_3() {
         return;
@@ -2618,7 +2662,7 @@ fn validate_stream_safety(
     profile: ValidationProfile,
     streams: &crate::stream_safety::StreamSafetySummary,
     content: &crate::content_support::ContentExecutionSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if !streams.external_stream_entries.is_empty() {
         let object_id = only(&streams.external_stream_entries).map(|entry| entry.object_id);
@@ -2635,57 +2679,75 @@ fn validate_stream_safety(
             })
             .collect::<Vec<_>>()
             .join("; ");
-        failures.push(failure(
-            "PDFA1B-STREAM-EXTERNAL-DATA-001",
-            description,
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-EXTERNAL-DATA-001",
+                description,
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.external_stream_entries.len(),
+        );
     }
     if !profile.is_pdfa_2_or_3() && !streams.lzw_filters.is_empty() {
         let object_id = only(&streams.lzw_filters).copied();
-        failures.push(failure(
-            "PDFA1B-STREAM-LZW-001",
-            "a parsed stream declares the forbidden LZWDecode filter",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-LZW-001",
+                "a parsed stream declares the forbidden LZWDecode filter",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.lzw_filters.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_filters_pdfa2.is_empty() {
         let object_id = only(&streams.invalid_filters_pdfa2).copied();
-        failures.push(failure(
-            "PDFA1B-STREAM-FILTER-001",
-            "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-STREAM-FILTER-001",
+                "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_filters_pdfa2.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_byte_ranges.is_empty() {
         let object_id = only(&streams.invalid_signature_byte_ranges).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-BYTERANGE-001",
-            "a signature /ByteRange does not cover the complete PDF except for its signature contents",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-BYTERANGE-001",
+                "a signature /ByteRange does not cover the complete PDF except for its signature contents",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_byte_ranges.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
         let object_id = only(&streams.invalid_signature_certificates).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-CERTIFICATE-001",
-            "a parsed PKCS#7 signature does not contain a signing certificate",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-CERTIFICATE-001",
+                "a parsed PKCS#7 signature does not contain a signing certificate",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_certificates.len(),
+        );
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
         let object_id = only(&streams.invalid_signature_signer_counts).copied();
-        failures.push(failure(
-            "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
-            "a parsed PKCS#7 signature does not contain exactly one signer",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+                "a parsed PKCS#7 signature does not contain exactly one signer",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams.invalid_signature_signer_counts.len(),
+        );
     }
     if profile.is_pdfa_2_or_3()
         && let Some(context) = &content.inline_image_invalid_filter_context
@@ -2701,12 +2763,18 @@ fn validate_stream_safety(
         && !profile.permits_xref_streams()
     {
         let object_id = only(&streams.xref_streams).copied();
-        failures.push(failure(
-            "PDFA1B-XREF-STREAM-001",
-            "the document contains an xref stream",
-            object_id,
-            FailureCategory::Conformance,
-        ));
+        failures.push_with_check_count(
+            failure(
+                "PDFA1B-XREF-STREAM-001",
+                "the document contains an xref stream",
+                object_id,
+                FailureCategory::Conformance,
+            ),
+            streams
+                .xref_streams
+                .len()
+                .max(usize::from(streams.has_xref_stream)),
+        );
     }
     for (invalid, rule_id, message) in [
         (
@@ -2757,12 +2825,15 @@ fn validate_stream_safety(
         ),
     ] {
         if !invalid.is_empty() {
-            failures.push(failure(
-                rule_id,
-                message,
-                only(invalid).copied(),
-                FailureCategory::Conformance,
-            ));
+            failures.push_with_check_count(
+                failure(
+                    rule_id,
+                    message,
+                    only(invalid).copied(),
+                    FailureCategory::Conformance,
+                ),
+                invalid.len(),
+            );
         }
     }
 }
@@ -2792,18 +2863,21 @@ fn joined_failure(invalid: &[RuleFailure]) -> (Option<PdfObjectId>, String) {
 fn aggregate_failures(
     invalid: &[RuleFailure],
     rule_id: &'static str,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if invalid.is_empty() {
         return;
     }
     let (object_id, description) = joined_failure(invalid);
-    failures.push(failure(
-        rule_id,
-        description,
-        object_id,
-        FailureCategory::Conformance,
-    ));
+    failures.push_with_check_count(
+        failure(
+            rule_id,
+            description,
+            object_id,
+            FailureCategory::Conformance,
+        ),
+        invalid.len(),
+    );
 }
 
 /// Like [`aggregate_failures`], but keeps the first distinct failure
@@ -2813,7 +2887,7 @@ fn aggregate_failures_with_location(
     invalid: &[RuleFailure],
     rule_id: &'static str,
     no_id_label: Option<&str>,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if invalid.is_empty() {
         return;
@@ -2841,18 +2915,16 @@ fn aggregate_failures_with_location(
         && only_failure)
         .then_some(first.object_id)
         .flatten();
-    failures.push(failure(
-        rule_id,
-        detail,
-        object_id,
-        FailureCategory::Conformance,
-    ));
+    failures.push_with_check_count(
+        failure(rule_id, detail, object_id, FailureCategory::Conformance),
+        invalid.len(),
+    );
 }
 
 fn validate_device_color_spaces(
     output_color_space: Option<&str>,
     color_spaces: &crate::icc_based::IccBasedSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if let Some(context) = &color_spaces.device_rgb_context
         && output_color_space != Some("RGB ")
@@ -2916,7 +2988,7 @@ fn pdfa_output_color_space(document: &PdfDocument) -> Option<&str> {
 fn validate_xobjects(
     profile: ValidationProfile,
     xobjects: &crate::xobject::XObjectSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     if profile.is_pdfa_2_or_3() {
         let form_forbidden_entries = xobjects
@@ -2996,7 +3068,7 @@ fn validate_graphics(
     graphics: &crate::graphics::GraphicsSummary,
     content: &crate::content_support::ContentExecutionSummary,
     output_color_space: Option<&str>,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id) in [
         (
@@ -3141,7 +3213,7 @@ fn validate_annotations(
     output_color_space: Option<&str>,
     _profile: ValidationProfile,
     annotations: &crate::annotations::AnnotationSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id) in [
         (
@@ -3210,25 +3282,28 @@ fn validate_annotations(
 
 fn validate_font_embedding(
     font_embedding: &crate::font_embedding::FontEmbeddingSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     let invalid = &font_embedding.failures;
     if invalid.is_empty() {
         return;
     }
     let (object_id, message) = joined_failure(invalid);
-    failures.push(failure(
-        "PDFA1B-FONT-EMBEDDING-001",
-        format!("font program is not embedded for {message}"),
-        object_id,
-        FailureCategory::Conformance,
-    ));
+    failures.push_with_check_count(
+        failure(
+            "PDFA1B-FONT-EMBEDDING-001",
+            format!("font program is not embedded for {message}"),
+            object_id,
+            FailureCategory::Conformance,
+        ),
+        invalid.len(),
+    );
 }
 
 fn validate_font_dictionaries(
     _profile: ValidationProfile,
     fonts: &crate::font_embedding::FontEmbeddingSummary,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id) in [
         (fonts.invalid_types.as_slice(), "PDFA1B-FONT-TYPE-001"),
@@ -3412,7 +3487,7 @@ fn require_single_declared_value(
 fn validate_output_intents(
     profile: ValidationProfile,
     document: &PdfDocument,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     validate_output_intent_profiles(profile, document, failures);
     validate_output_intent_identity(document, failures);
@@ -3433,7 +3508,7 @@ fn validate_output_intents(
 fn validate_output_intent_profiles(
     profile: ValidationProfile,
     document: &PdfDocument,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
 ) {
     let entries = document
         .output_intents_summary
@@ -3499,7 +3574,7 @@ fn validate_output_intent_profiles(
     }
 }
 
-fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+fn validate_output_intent_identity(document: &PdfDocument, failures: &mut ValidationFailures) {
     let entries = document
         .output_intents_summary
         .entries
@@ -3525,7 +3600,7 @@ fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Vec<Va
     }
 }
 
-fn validate_info_consistency(document: &PdfDocument, failures: &mut Vec<ValidationFailure>) {
+fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFailures) {
     let xmp = document.xmp.as_ref();
     let empty = &[];
     let object_id = document.info_object;
@@ -3637,7 +3712,7 @@ fn compare_field(
     rule_id: &'static str,
     xmp_name: &str,
     object_id: Option<PdfObjectId>,
-    failures: &mut Vec<ValidationFailure>,
+    failures: &mut ValidationFailures,
     matches: impl Fn(&str, &str) -> bool,
 ) {
     if let Some(info_value) = document.info.values.get(info_key)
@@ -3660,23 +3735,34 @@ fn compare_field(
 fn finish_report(
     document: PdfDocument,
     profile: ValidationProfile,
-    mut failures: Vec<ValidationFailure>,
-    total_checks: usize,
+    mut failures: ValidationFailures,
+    total_rules: usize,
 ) -> ValidationReport {
-    for failure in &mut failures {
+    for failure in failures.iter_mut() {
         failure.rule_id = remap_local_rule_id(profile, &failure.rule_id);
     }
     failures.sort_by_key(|failure| failure.rule_id.clone());
-    let failed = failures.len();
+    let (failures, failed_checks) = failures.into_parts();
+    let mut failed_rules = 0;
+    let mut previous_rule = None;
+    for failure in &failures {
+        if previous_rule != Some(failure.rule_id.as_str()) {
+            failed_rules += 1;
+            previous_rule = Some(failure.rule_id.as_str());
+        }
+    }
     ValidationReport {
         source: None,
         profile,
         is_compliant: failures.is_empty(),
         preliminary: false,
-        checks: ValidationCounts {
-            total: total_checks,
-            passed: total_checks.saturating_sub(failed),
-            failed,
+        rules: ValidationCounts {
+            total: total_rules,
+            passed: total_rules.saturating_sub(failed_rules),
+            failed: failed_rules,
+        },
+        checks: ValidationCheckCounts {
+            failed: failed_checks,
         },
         document: Some(document),
         failures,
@@ -3778,7 +3864,7 @@ mod tests {
         .expect("explicit profile validation");
         assert!(report.is_compliant, "{:#?}", report.failures);
         assert_eq!(
-            report.checks.passed,
+            report.rules.passed,
             ValidationProfile::PdfA1b.implemented_check_count()
         );
     }
@@ -3856,7 +3942,7 @@ mod tests {
         assert_eq!(report.profile, ValidationProfile::PdfA1a);
         assert!(report.is_compliant, "{:#?}", report.failures);
         assert_eq!(
-            report.checks.total,
+            report.rules.total,
             ValidationProfile::PdfA1a.implemented_check_count()
         );
     }
@@ -3894,7 +3980,7 @@ mod tests {
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
         assert!(report.is_compliant, "{report:#?}");
         assert_eq!(
-            report.checks.total,
+            report.rules.total,
             ValidationProfile::PdfUa1.implemented_check_count()
         );
     }
@@ -4385,7 +4471,7 @@ mod tests {
         .expect("explicit profile validation");
         assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
         assert_eq!(
-            a.checks.total,
+            a.rules.total,
             ValidationProfile::PdfA1a.implemented_check_count()
         );
     }
@@ -4466,7 +4552,7 @@ mod tests {
         assert!(document.catalog_present);
         assert!(document.xmp.is_some());
         assert_eq!(
-            report.checks.total,
+            report.rules.total,
             ValidationProfile::PdfA1b.implemented_check_count()
         );
     }
@@ -4661,13 +4747,77 @@ mod tests {
         };
         let invalid = vec![repeated.clone(), repeated, distinct, other];
 
-        let mut failures = Vec::new();
+        let mut failures = ValidationFailures::default();
         aggregate_failures_with_location(&invalid, "TEST-001", None, &mut failures);
-        assert_eq!(failures[0].message, "the same problem");
+        assert_eq!(failures.entries[0].message, "the same problem");
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 4);
 
-        let mut failures = Vec::new();
+        let mut failures = ValidationFailures::default();
         aggregate_failures(&invalid, "TEST-001", &mut failures);
-        assert_eq!(failures[0].message, "the same problem");
+        assert_eq!(failures.entries[0].message, "the same problem");
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 4);
+    }
+
+    #[test]
+    fn object_limit_failures_count_each_failed_object() {
+        let limits = crate::object_limits::ObjectLimitsSummary {
+            out_of_range_integers: vec![
+                PdfObjectId {
+                    object_number: 10,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 11,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 12,
+                    generation: 0,
+                },
+            ],
+            ..Default::default()
+        };
+        let mut failures = ValidationFailures::default();
+
+        validate_object_limits(
+            ValidationProfile::PdfA1b,
+            &limits,
+            &crate::content_support::ContentExecutionSummary::default(),
+            &mut failures,
+        );
+
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 3);
+    }
+
+    #[test]
+    fn stream_safety_failures_count_each_failed_stream() {
+        let streams = crate::stream_safety::StreamSafetySummary {
+            invalid_lengths: vec![
+                PdfObjectId {
+                    object_number: 20,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 21,
+                    generation: 0,
+                },
+            ],
+            ..Default::default()
+        };
+        let mut failures = ValidationFailures::default();
+
+        validate_stream_safety(
+            ValidationProfile::PdfA1b,
+            &streams,
+            &crate::content_support::ContentExecutionSummary::default(),
+            &mut failures,
+        );
+
+        assert_eq!(failures.entries.len(), 1);
+        assert_eq!(failures.failed_checks, 2);
     }
 
     fn assert_rule(report: &ValidationReport, rule: &str) {

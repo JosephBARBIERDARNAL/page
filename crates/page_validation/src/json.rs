@@ -1,6 +1,8 @@
 use serde::Serialize;
 
-use crate::{FailureCategory, ValidationProfile, ValidationReport};
+use crate::{
+    FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationProfile, ValidationReport,
+};
 
 /// Stable, serializable representation of a validation report.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -9,6 +11,10 @@ pub struct JsonValidationReport {
     pub file: Option<String>,
     pub profile: Option<ValidationProfile>,
     pub valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rules: Option<ValidationCounts>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checks: Option<ValidationCheckCounts>,
     pub failures: Vec<JsonFailure>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<JsonError>,
@@ -72,6 +78,8 @@ impl ValidationReport {
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
             valid: self.is_compliant,
+            rules: error.is_none().then_some(self.rules),
+            checks: error.is_none().then_some(self.checks),
             failures,
             error,
         }
@@ -82,7 +90,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, ValidationCounts, ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure,
+        ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -92,11 +101,12 @@ mod tests {
             profile: ValidationProfile::PdfA1b,
             is_compliant: false,
             preliminary: true,
-            checks: ValidationCounts {
+            rules: ValidationCounts {
                 total: 1,
                 passed: 0,
                 failed: 1,
             },
+            checks: ValidationCheckCounts { failed: 1 },
             document: None,
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
@@ -112,6 +122,9 @@ mod tests {
         assert_eq!(value["file"], "document.pdf");
         assert_eq!(value["profile"], "1b");
         assert_eq!(value["valid"], false);
+        assert_eq!(value["rules"]["total"], 1);
+        assert_eq!(value["rules"]["failed"], 1);
+        assert_eq!(value["checks"]["failed"], 1);
         assert_eq!(value["failures"][0]["rule"], "RULE-001");
         assert!(value.get("error").is_none());
     }
@@ -123,11 +136,12 @@ mod tests {
             profile: ValidationProfile::PdfA1b,
             is_compliant: false,
             preliminary: true,
-            checks: ValidationCounts {
+            rules: ValidationCounts {
                 total: 1,
                 passed: 0,
                 failed: 1,
             },
+            checks: ValidationCheckCounts { failed: 1 },
             document: None,
             failures: vec![ValidationFailure {
                 rule_id: "PDF-PARSE-001".to_owned(),
@@ -140,6 +154,8 @@ mod tests {
         let json: JsonValidationReport = report.json_report();
 
         assert!(json.failures.is_empty());
+        assert!(json.rules.is_none());
+        assert!(json.checks.is_none());
         assert_eq!(
             json.error.expect("parser error").kind,
             JsonErrorKind::Parser
@@ -153,11 +169,12 @@ mod tests {
             profile: ValidationProfile::PdfA1b,
             is_compliant: true,
             preliminary: true,
-            checks: ValidationCounts {
+            rules: ValidationCounts {
                 total: 1,
                 passed: 1,
                 failed: 0,
             },
+            checks: ValidationCheckCounts { failed: 0 },
             document: None,
             failures: Vec::new(),
         };

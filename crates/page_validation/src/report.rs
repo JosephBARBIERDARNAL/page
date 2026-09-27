@@ -61,9 +61,9 @@ pub(crate) struct RuleFailure {
     pub(crate) description: String,
 }
 
-/// A tally of how many implemented checks ran against a document and how many of those passed or failed.
+/// A tally of how many implemented rules ran against a document and how many of those passed or failed.
 ///
-/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+/// `total` is always `passed + failed`; it does not count rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
 ///
 /// ## Examples
 ///
@@ -84,7 +84,14 @@ pub struct ValidationCounts {
     pub failed: usize,
 }
 
-/// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many checks ran, and every recorded `ValidationFailure`.
+/// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
+/// rule can contribute more than one failed check.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct ValidationCheckCounts {
+    pub failed: usize,
+}
+
+/// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many rules passed or failed, how many raw checks failed, and every recorded `ValidationFailure`.
 ///
 /// `is_compliant` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
 ///
@@ -104,7 +111,8 @@ pub struct ValidationReport {
     pub profile: ValidationProfile,
     pub is_compliant: bool,
     pub preliminary: bool,
-    pub checks: ValidationCounts,
+    pub rules: ValidationCounts,
+    pub checks: ValidationCheckCounts,
     pub document: Option<PdfDocument>,
     pub failures: Vec<ValidationFailure>,
 }
@@ -191,16 +199,27 @@ impl ValidationReport {
         message: impl Into<String>,
         category: FailureCategory,
     ) -> Self {
+        let (rules, checks) = match category {
+            FailureCategory::Metadata | FailureCategory::Conformance => (
+                ValidationCounts {
+                    total: 1,
+                    passed: 0,
+                    failed: 1,
+                },
+                ValidationCheckCounts { failed: 1 },
+            ),
+            FailureCategory::Operational | FailureCategory::Parser => (
+                ValidationCounts::default(),
+                ValidationCheckCounts::default(),
+            ),
+        };
         Self {
             source: None,
             profile,
             is_compliant: false,
             preliminary: false,
-            checks: ValidationCounts {
-                total: 1,
-                passed: 0,
-                failed: 1,
-            },
+            rules,
+            checks,
             document: None,
             failures: vec![ValidationFailure {
                 rule_id: rule_id.to_owned(),
@@ -247,9 +266,10 @@ impl fmt::Display for ValidationReport {
         )?;
         writeln!(
             output,
-            "Checks: {} passed, {} failed, {} total",
-            self.checks.passed, self.checks.failed, self.checks.total
+            "Rules: {} passed, {} failed, {} total",
+            self.rules.passed, self.rules.failed, self.rules.total
         )?;
+        writeln!(output, "Checks: {} failed", self.checks.failed)?;
         if let Some(document) = &self.document {
             writeln!(
                 output,
@@ -274,8 +294,42 @@ impl fmt::Display for ValidationReport {
 
 #[cfg(test)]
 mod tests {
-    use super::ValidationReport;
+    use super::{FailureCategory, ValidationReport};
     use crate::{PdfError, ValidationError, ValidationProfile};
+
+    #[test]
+    fn parser_and_operational_failures_have_zero_validation_counts() {
+        for category in [FailureCategory::Parser, FailureCategory::Operational] {
+            let report = ValidationReport::single_failure(
+                ValidationProfile::PdfA1b,
+                "TEST-001",
+                "failure",
+                category,
+            );
+
+            assert_eq!(report.rules.total, 0);
+            assert_eq!(report.rules.passed, 0);
+            assert_eq!(report.rules.failed, 0);
+            assert_eq!(report.checks.failed, 0);
+        }
+    }
+
+    #[test]
+    fn metadata_and_conformance_failures_have_one_failed_rule_and_check() {
+        for category in [FailureCategory::Metadata, FailureCategory::Conformance] {
+            let report = ValidationReport::single_failure(
+                ValidationProfile::PdfA1b,
+                "TEST-001",
+                "failure",
+                category,
+            );
+
+            assert_eq!(report.rules.total, 1);
+            assert_eq!(report.rules.passed, 0);
+            assert_eq!(report.rules.failed, 1);
+            assert_eq!(report.checks.failed, 1);
+        }
+    }
 
     #[test]
     fn indirect_object_count_errors_use_the_active_profile_rule() {
@@ -304,6 +358,9 @@ mod tests {
                 }),
             );
             assert_eq!(report.failures[0].rule_id, expected_rule_id);
+            assert_eq!(report.rules.total, 1);
+            assert_eq!(report.rules.failed, 1);
+            assert_eq!(report.checks.failed, 1);
         }
     }
 }

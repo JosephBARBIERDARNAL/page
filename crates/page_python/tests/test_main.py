@@ -98,6 +98,9 @@ def test_validation_and_compliance_apis_return_expected_values():
 
     assert compliance is False
     assert report.profile == page.ValidationProfile.PDF_A_1B
+    assert report.rules.total > 0
+    assert report.rules.failed > 0
+    assert report.checks.failed > 0
     assert report.is_compliant is False
     assert report.failures
 

@@ -50,8 +50,10 @@ const bytes = new Uint8Array(await pdfFile.arrayBuffer());
 const report = await validatePdfBytes(bytes);
 
 if (report.isCompliant) {
-  console.log("The document passed all implemented checks.");
+  console.log("The document passed all implemented rules.");
 } else {
+  console.log(`${report.rules.failed} rules failed`);
+  console.log(`${report.checks.failed} checks failed`);
   for (const failure of report.failures) {
     console.log(`[${failure.ruleId}] ${failure.message}`);
   }
@@ -86,6 +88,8 @@ for (const failure of report.failures) {
   console.log(`Message: ${failure.message}`);
 }
 ```
+
+`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
 Failure categories distinguish conformance problems from parser or operational errors:
 

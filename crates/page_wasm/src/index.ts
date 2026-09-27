@@ -12,6 +12,7 @@ export type {
   PdfDocument,
   PdfObjectId,
   SafetyLimitsOptions,
+  ValidationCheckCounts,
   ValidationCounts,
   ValidationFailure,
 } from "./api.js";

@@ -234,7 +234,7 @@ fn markdown(results: &[DocumentBenchmark]) -> io::Result<String> {
     let mut output = format!(
         "Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of {RUNS} measured runs with {WARMUP_RUNS} warmup runs.\n\n"
     );
-    output.push_str("The corpus includes real world documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.\n\n");
+    output.push_str("The corpus includes real world PDFs with many pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.\n\n");
     output.push_str("| Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |\n| --- | ---: | ---: | ---: | ---: | ---: |\n");
     for document in results {
         output.push_str(&format!(

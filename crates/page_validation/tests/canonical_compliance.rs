@@ -134,7 +134,7 @@ fn canonical_pdfa_2_and_3_profiles_are_locally_compliant() {
         assert!(report.is_compliant, "{profile}: {report}");
         assert!(report.failures.is_empty(), "{profile}: {report}");
         assert_eq!(
-            report.checks.total,
+            report.rules.total,
             profile.implemented_check_count(),
             "{profile}: {report}"
         );

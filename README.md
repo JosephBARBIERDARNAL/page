@@ -83,7 +83,7 @@ You can use the `page_validation` crate to integrate into any existing Rust work
 
 ```rust
 use std::path::Path;
-use page_validation::{SafetyLimits, validate_pdf};
+use page_validation::{validate_pdf, ValidationProfile, SafetyLimits};
 
 let doc = Path::new("document.pdf")
 let report = validate_pdf(

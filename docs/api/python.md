@@ -44,8 +44,10 @@ import page
 report = page.validate_pdf("document.pdf")
 
 if report.is_compliant:
-    print("The document passed all implemented checks.")
+    print("The document passed all implemented rules.")
 else:
+    print(f"{report.rules.failed} rules failed")
+    print(f"{report.checks.failed} checks failed")
     for failure in report.failures:
         print(f"[{failure.rule_id}] {failure.message}")
 ```
@@ -80,6 +82,8 @@ for failure in report.failures:
     print(f"Category: {failure.category}")
     print(f"Message: {failure.message}")
 ```
+
+`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
 Failure categories distinguish conformance problems from parser or operational errors:
 
