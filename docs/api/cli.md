@@ -43,7 +43,7 @@ page document.pdf --format details
 ```
 Result  : Non-conformant
 Rules   : 11 failed rules / 134 total
-Checks  : 11 failed checks
+Checks  : 24 failed checks
 Profile : PDF/A-1b
 Time    : 0.007s
 
@@ -117,19 +117,19 @@ The CLI exposes every `SafetyLimits` bound. Defaults are suitable for most docum
 page document.pdf --max-table-span 256 --max-table-grid-cells 250000
 ```
 
-| Option | Default | Purpose |
-| --- | ---: | --- |
-| `--max-input-size` | 256 MiB | Maximum input file size. |
-| `--max-decoded-stream-size` | 32 MiB | Maximum decoded size of one stream. |
-| `--max-total-decoded-content-size` | 256 MiB | Maximum total decoded page, Form, appearance, Pattern, and Type3 content. |
-| `--max-object-count` | 1,000,000 | Maximum number of parsed indirect objects. |
-| `--max-reference-depth` | 256 | Maximum reference-chain depth. |
-| `--max-xref-revisions` | 1,024 | Maximum number of incremental-update revisions read from the cross-reference chain. |
-| `--max-table-span` | 1,024 | Maximum number of rows or columns covered by one table cell. |
-| `--max-table-grid-rows` | 1,024 | Maximum number of rows represented in an inspected table grid. |
-| `--max-table-grid-columns` | 1,024 | Maximum number of columns represented in an inspected table grid. |
-| `--max-table-grid-cells` | 1,000,000 | Maximum number of cells represented in an inspected table grid. |
-| `--max-unicode-cmap-mappings` | 1,000,000 | Maximum number of mappings expanded from one ToUnicode CMap. |
+| Option                             |   Default | Purpose                                                                             |
+| ---------------------------------- | --------: | ----------------------------------------------------------------------------------- |
+| `--max-input-size`                 |   256 MiB | Maximum input file size.                                                            |
+| `--max-decoded-stream-size`        |    32 MiB | Maximum decoded size of one stream.                                                 |
+| `--max-total-decoded-content-size` |   256 MiB | Maximum total decoded page, Form, appearance, Pattern, and Type3 content.           |
+| `--max-object-count`               | 1,000,000 | Maximum number of parsed indirect objects.                                          |
+| `--max-reference-depth`            |       256 | Maximum reference-chain depth.                                                      |
+| `--max-xref-revisions`             |     1,024 | Maximum number of incremental-update revisions read from the cross-reference chain. |
+| `--max-table-span`                 |     1,024 | Maximum number of rows or columns covered by one table cell.                        |
+| `--max-table-grid-rows`            |     1,024 | Maximum number of rows represented in an inspected table grid.                      |
+| `--max-table-grid-columns`         |     1,024 | Maximum number of columns represented in an inspected table grid.                   |
+| `--max-table-grid-cells`           | 1,000,000 | Maximum number of cells represented in an inspected table grid.                     |
+| `--max-unicode-cmap-mappings`      | 1,000,000 | Maximum number of mappings expanded from one ToUnicode CMap.                        |
 
 ## Colors
 

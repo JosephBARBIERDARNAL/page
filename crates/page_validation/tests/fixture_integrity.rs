@@ -1,10 +1,8 @@
-use std::fs;
-
 use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 268] = [
+    let fixtures: [(&str, &[u8], &str); 259] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -19,18 +17,6 @@ fn pdf_fixtures_remain_byte_exact() {
             "canonical-pdfa-1b-truetype.pdf",
             include_bytes!("fixtures/canonical-pdfa-1b-truetype.pdf"),
             "2bfb118a370eeabd853a4be0b409e539f81d0782b7fcf0134fceacd4d833001f",
-        ),
-        (
-            "mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf",
-            include_bytes!(
-                "fixtures/mutations/PDFA1B-TRUETYPE-GLYPH-PRESENCE-001/canonical_missing_glyph.pdf"
-            ),
-            "22e28100b347b7b57fb109c125d8aec015fbafc21e77160cd8e9c60509d2d2e1",
-        ),
-        (
-            "mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf",
-            include_bytes!("fixtures/mutations/PDFA1B-HEADER-001/canonical_header_offset.pdf"),
-            "10c194554521139f055f9eea8516140cb01f0c261a184193a06fb647f5380bfe",
         ),
         (
             "canonical-pdfa-1a-unused-invalid-font.pdf",
@@ -61,47 +47,6 @@ fn pdf_fixtures_remain_byte_exact() {
             "canonical-pdfa-1a-forms.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a-forms.pdf"),
             "803aca6a6132c80a6a03209229bc7c11c44d6c8d40871b856451f981c88f8a49",
-        ),
-        (
-            "mutations/PDFA1A-ID-CONFORMANCE-001/id_conformance_b.pdf",
-            include_bytes!("fixtures/mutations/PDFA1A-ID-CONFORMANCE-001/id_conformance_b.pdf"),
-            "4535f3418740ce757c62bcdbe20d1b563f0783f25445c2aa8a49d3c8998d1074",
-        ),
-        (
-            "mutations/PDFA1A-TAGGED-DOCUMENT-001/tagged_missing.pdf",
-            include_bytes!("fixtures/mutations/PDFA1A-TAGGED-DOCUMENT-001/tagged_missing.pdf"),
-            "2544eb85653838af6fc33cd1fb4e28edf38923f876480ce577ce11189f8be0c8",
-        ),
-        (
-            "mutations/PDFA1A-STRUCT-TREE-ROOT-001/struct_tree_missing.pdf",
-            include_bytes!(
-                "fixtures/mutations/PDFA1A-STRUCT-TREE-ROOT-001/struct_tree_missing.pdf"
-            ),
-            "8cc643b739c5da39316cdfa5e26da4197189a62ad169fdd7cb175150b56955f4",
-        ),
-        (
-            "mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-001/role_map_wrong_type.pdf",
-            include_bytes!(
-                "fixtures/mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-001/role_map_wrong_type.pdf"
-            ),
-            "ffdf3c95104df1498ce492dbe5083b4867ebe2d8b3d886ba5217dd545f5e6fc9",
-        ),
-        (
-            "mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001/role_map_cycle.pdf",
-            include_bytes!(
-                "fixtures/mutations/PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001/role_map_cycle.pdf"
-            ),
-            "f03f48572a611c42b890577e3864965fee27b9f95c16d5ed3bffd343ef61d8d1",
-        ),
-        (
-            "mutations/PDFA1A-LANG-001/language_missing.pdf",
-            include_bytes!("fixtures/mutations/PDFA1A-LANG-001/language_missing.pdf"),
-            "c8e6653e277983b5280c9b2bab5b9575d2c8d62bc0a8b782d859bc2a18e27149",
-        ),
-        (
-            "mutations/PDFA1A-UNICODE-MAPPING-001/unicode_missing.pdf",
-            include_bytes!("fixtures/mutations/PDFA1A-UNICODE-MAPPING-001/unicode_missing.pdf"),
-            "3e12fd8f734be9745476077f024fd37db1117740145a9cba1f80c1f877c53026",
         ),
         (
             "encrypted.pdf",
@@ -1361,29 +1306,5 @@ fn pdf_fixtures_remain_byte_exact() {
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
         assert_eq!(actual, expected, "{name} changed byte-for-byte");
-    }
-}
-
-#[test]
-fn shared_mutation_fixtures_remain_byte_exact() {
-    let manifest: serde_json::Value = serde_json::from_slice(
-        &fs::read("tests/fixtures/verapdf-diff-cases.json")
-            .expect("read shared differential manifest"),
-    )
-    .expect("parse shared differential manifest");
-    for mutation in manifest["checked_in_mutations"]
-        .as_array()
-        .expect("checked-in mutation list")
-    {
-        let path = mutation["path"].as_str().expect("mutation path");
-        let expected = mutation["sha256"].as_str().expect("mutation hash");
-        let actual = Sha256::digest(
-            fs::read(path)
-                .unwrap_or_else(|error| panic!("read checked-in mutation {path}: {error}")),
-        )
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-        assert_eq!(actual, expected, "{path} changed byte-for-byte");
     }
 }

@@ -392,18 +392,3 @@ fn missing_input_ignores_json_format_and_reports_a_direct_error() {
     assert_eq!(with_json.stdout, without_json.stdout);
     assert_eq!(with_json.stderr, without_json.stderr);
 }
-
-#[test]
-fn differential_help_keeps_its_own_client_contract() {
-    let output = Command::new(env!("CARGO_BIN_EXE_verapdf-diff"))
-        .arg("--help")
-        .output()
-        .expect("run verapdf-diff --help");
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
-    assert!(stdout.contains("Usage: verapdf-diff"));
-    assert!(stdout.contains("--verapdf"));
-    assert!(stdout.contains("--expected-version"));
-    assert!(stdout.contains("--batch-size"));
-}

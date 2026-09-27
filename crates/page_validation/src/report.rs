@@ -63,7 +63,7 @@ pub(crate) struct RuleFailure {
 
 /// A tally of how many implemented rules ran against a document and how many of those passed or failed.
 ///
-/// `total` is always `passed + failed`; it does not count rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+/// `total` is always `passed + failed`; it does not count rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus gate track separately.
 ///
 /// ## Examples
 ///

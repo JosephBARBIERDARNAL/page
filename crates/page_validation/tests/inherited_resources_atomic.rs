@@ -1,6 +1,3 @@
-use std::{env, fs};
-
-use page_validation::differential::{DifferentialRunner, ReferenceConfig, ReferenceProfile};
 use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
@@ -35,23 +32,12 @@ const CASES: &[(&str, bool)] = &[
 ];
 
 #[test]
-fn inherited_resource_names_match_pinned_verapdf_when_opted_in() {
-    let Some(executable) = env::var_os("VERAPDF_BIN") else {
-        return;
-    };
-    let directory =
-        env::temp_dir().join(format!("page-inherited-resources-{}", std::process::id()));
-    fs::create_dir_all(&directory).expect("create inherited-resource fixture directory");
+fn inherited_resource_names_are_checked_in_pdfa_2_and_3() {
     for (case, expected_failure) in CASES {
-        let path = directory.join(format!("{case}.pdf"));
-        fs::write(&path, common::graphics_fixture(case)).expect("write fixture");
+        let bytes = common::graphics_fixture(case);
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
-            let report = validate_pdf_bytes(
-                &common::graphics_fixture(case),
-                Some(profile),
-                &SafetyLimits::default(),
-            )
-            .expect("explicit profile validation");
+            let report = validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+                .expect("explicit profile validation");
             assert_eq!(
                 report
                     .failures
@@ -61,26 +47,5 @@ fn inherited_resource_names_match_pinned_verapdf_when_opted_in() {
                 "{case}: unexpected local {profile} Resources result"
             );
         }
-        for (profile, expected_rule) in [
-            (ReferenceProfile::PdfA2b, "ISO 19005-2:2011:6.2.2:2"),
-            (ReferenceProfile::PdfA3b, "ISO 19005-3:2012:6.2.2:2"),
-        ] {
-            let mut config = ReferenceConfig::pinned(&executable);
-            config.profile = profile;
-            let reference = DifferentialRunner::new(config)
-                .expect("pinned veraPDF")
-                .compare_file(&path, &SafetyLimits::default())
-                .reference_result
-                .expect("veraPDF result");
-            assert_eq!(
-                reference
-                    .failed_rule_ids
-                    .iter()
-                    .any(|rule| rule.to_string() == expected_rule),
-                *expected_failure,
-                "{case}: unexpected {profile} Resources result"
-            );
-        }
     }
-    fs::remove_dir_all(directory).expect("remove inherited-resource fixture directory");
 }

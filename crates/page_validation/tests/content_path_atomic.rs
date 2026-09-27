@@ -1,46 +1,19 @@
-use std::collections::BTreeMap;
-use std::fs;
-
 pub mod common;
 
-const VIOLATIONS: &[(&str, &str, &str)] = &[
-    (
-        "undefined",
-        "PDFA1B-CONTENT-OPERATOR-001",
-        "ISO 19005-1:2005:6.2.10:1",
-    ),
-    (
-        "extgstate_tr",
-        "PDFA1B-EXTGSTATE-TR-001",
-        "ISO 19005-1:2005:6.2.8:1",
-    ),
-    (
-        "image_bpc_16",
-        "PDFA1B-IMAGE-BPC-001",
-        "ISO 19005-1:2005:6.2.4:4",
-    ),
-    (
-        "nesting_29",
-        "PDFA1B-GRAPHICS-STATE-NESTING-001",
-        "ISO 19005-1:2005:6.1.12:8",
-    ),
-    (
-        "inline_lzw",
-        "PDFA1B-INLINE-IMAGE-LZW-001",
-        "ISO 19005-1:2005:6.1.10:2",
-    ),
-    (
-        "invalid_intent",
-        "PDFA1B-RENDERING-INTENT-001",
-        "ISO 19005-1:2005:6.2.9:1",
-    ),
+const VIOLATIONS: &[(&str, &str)] = &[
+    ("undefined", "PDFA1B-CONTENT-OPERATOR-001"),
+    ("extgstate_tr", "PDFA1B-EXTGSTATE-TR-001"),
+    ("image_bpc_16", "PDFA1B-IMAGE-BPC-001"),
+    ("nesting_29", "PDFA1B-GRAPHICS-STATE-NESTING-001"),
+    ("inline_lzw", "PDFA1B-INLINE-IMAGE-LZW-001"),
+    ("invalid_intent", "PDFA1B-RENDERING-INTENT-001"),
 ];
 
 #[test]
-fn every_verapdf_content_source_runs_the_shared_rule_population() {
+fn every_content_source_runs_the_shared_rule_population() {
     let baseline = common::failure_ids(&common::graphics_fixture("baseline"));
     for source in ["form", "appearance", "pattern", "type3"] {
-        for (violation, rule, _) in VIOLATIONS {
+        for (violation, rule) in VIOLATIONS {
             let case = format!("path_{source}_{violation}");
             let actual = common::failure_ids(&common::graphics_fixture(&case));
             let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
@@ -171,132 +144,12 @@ fn type3_charproc_inherits_the_callers_pattern_selection() {
 }
 
 #[test]
-fn verapdf_1_28_2_does_not_execute_soft_mask_group_contents() {
+fn soft_mask_group_contents_use_the_smasks_restriction() {
     let baseline = common::failure_ids(&common::graphics_fixture("baseline"));
-    for (violation, _, _) in VIOLATIONS {
+    for (violation, _) in VIOLATIONS {
         let case = format!("path_soft_mask_{violation}");
         let actual = common::failure_ids(&common::graphics_fixture(&case));
         let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
         assert_eq!(added, ["PDFA1B-EXTGSTATE-SMASK-001"], "{case}");
     }
-}
-
-#[test]
-fn differential_manifest_pins_the_complete_content_path_matrix() {
-    let manifest: serde_json::Value = serde_json::from_slice(
-        &fs::read("tests/fixtures/verapdf-diff-cases.json").expect("read differential manifest"),
-    )
-    .expect("parse differential manifest");
-    let cases = manifest["atomic_graphics_cases"]
-        .as_array()
-        .expect("atomic graphics cases")
-        .iter()
-        .map(|case| (case["name"].as_str().expect("case name"), case))
-        .collect::<BTreeMap<_, _>>();
-
-    for source in ["form", "appearance", "pattern", "type3"] {
-        for (violation, local_rule, verapdf_rule) in VIOLATIONS {
-            let name = format!("path_{source}_{violation}");
-            let case = cases
-                .get(name.as_str())
-                .unwrap_or_else(|| panic!("missing differential case {name}"));
-            assert_rule_membership(case, "expected_local_failed_rule_ids", local_rule, &name);
-            assert_rule_membership(
-                case,
-                "expected_verapdf_failed_rule_ids",
-                verapdf_rule,
-                &name,
-            );
-        }
-        let name = format!("path_{source}_fallback_extgstate_tr");
-        let case = cases
-            .get(name.as_str())
-            .unwrap_or_else(|| panic!("missing differential case {name}"));
-        assert_rule_membership(
-            case,
-            "expected_local_failed_rule_ids",
-            "PDFA1B-EXTGSTATE-TR-001",
-            &name,
-        );
-        assert_rule_membership(
-            case,
-            "expected_verapdf_failed_rule_ids",
-            "ISO 19005-1:2005:6.2.8:1",
-            &name,
-        );
-        let name = format!("path_{source}_missing_resources_fallback_extgstate_tr");
-        let case = cases
-            .get(name.as_str())
-            .unwrap_or_else(|| panic!("missing differential case {name}"));
-        assert_rule_membership(
-            case,
-            "expected_local_failed_rule_ids",
-            "PDFA1B-EXTGSTATE-TR-001",
-            &name,
-        );
-        assert_rule_membership(
-            case,
-            "expected_verapdf_failed_rule_ids",
-            "ISO 19005-1:2005:6.2.8:1",
-            &name,
-        );
-    }
-
-    for (violation, local_rule, verapdf_rule) in VIOLATIONS {
-        let name = format!("path_soft_mask_{violation}");
-        let case = cases
-            .get(name.as_str())
-            .unwrap_or_else(|| panic!("missing differential case {name}"));
-        assert_rule_membership(
-            case,
-            "expected_local_failed_rule_ids",
-            "PDFA1B-EXTGSTATE-SMASK-001",
-            &name,
-        );
-        assert_rule_membership(
-            case,
-            "expected_verapdf_failed_rule_ids",
-            "ISO 19005-1:2005:6.4:1",
-            &name,
-        );
-        assert_rule_membership(case, "expected_local_passed_rule_ids", local_rule, &name);
-        assert_rule_membership(
-            case,
-            "expected_verapdf_passed_rule_ids",
-            verapdf_rule,
-            &name,
-        );
-    }
-
-    for name in [
-        "path_form_parent_only_extgstate_tr",
-        "path_form_missing_resources_parent_extgstate_tr",
-        "path_appearance_missing_subtype_undefined",
-        "path_appearance_missing_subtype_form_ref",
-        "path_appearance_image_subtype_bpc_16",
-        "path_appearance_appearance_and_painted_image_bpc_16",
-        "path_appearance_nested_state_undefined",
-        "path_pattern_missing_resources_parent_extgstate_tr",
-        "path_pattern_empty_resources_parent_extgstate_tr",
-        "path_type3_missing_resources_parent_extgstate_tr",
-        "path_type3_empty_resources_parent_extgstate_tr",
-        "unused_form_undefined",
-        "unused_appearance_undefined",
-        "unused_pattern_undefined",
-        "unused_type3_undefined",
-        "unused_soft_mask_group_undefined",
-    ] {
-        assert!(cases.contains_key(name), "missing differential case {name}");
-    }
-}
-
-fn assert_rule_membership(case: &serde_json::Value, field: &str, rule: &str, case_name: &str) {
-    assert!(
-        case[field]
-            .as_array()
-            .expect("rule ID array")
-            .iter()
-            .any(|value| value.as_str() == Some(rule)),
-        "{case_name} does not pin {rule} in {field}"
-    );
 }

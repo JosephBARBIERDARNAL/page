@@ -26,9 +26,9 @@ This Rust 2024 project is a virtual Cargo workspace with 4 packages:
 - page_python: Python bindings with Pyo3
 - page_wasm: Wasm bindings
 
-Keep reusable PDF parsing, normalization, validation rules, reports, safety limits, and veraPDF differential logic in `crates/page_validation`. Keep CLI argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
+Keep reusable PDF parsing, normalization, validation rules, reports, and safety limits in `crates/page_validation`. Keep CLI argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
 
-Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/`, PDF inputs and the differential manifest in `crates/page_validation/tests/fixtures/`, and sanitized veraPDF output in `crates/page_validation/tests/reference-reports/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
+Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
 
 ## Versionning
 
@@ -43,8 +43,7 @@ Place focused unit tests beside their owning validation modules in `#[cfg(test)]
 ```text
 -> bounded file input
 -> strict lopdf parser
--> normalized PdfDocument model
-  (metadata, XMP declaration, output intents, fonts)
+-> normalized PdfDocument model (metadata, XMP declaration, output intents, fonts)
 -> private bounded font, colour-space, graphics, annotation, action, and form inspections
 -> preliminary rule evaluator
 -> deterministic ValidationReport
@@ -52,44 +51,9 @@ Place focused unit tests beside their owning validation modules in `#[cfg(test)]
 
 Operational and parser failures are kept separate from metadata and conformance failures. Limits are configurable for input bytes, decoded stream bytes, object count, and reference-chain depth. Operational failures use `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance. Library tests and fixtures live under `crates/page_validation/tests`; CLI contract tests live under `crates/page_cli/tests`. Each package declares only the dependencies it uses.
 
-## Differential testing against veraPDF
-
-Entire source code of the veraPDF-library lives in `veraPDF-library/`, and it's exactly the one for 1.30.x (all versions after 1.30 are OK). Do not install other veraPDF version, unless explicitely asked for it, use whatever 1.30.x version is available on PATH. It's excluded from git tracking.
-
-The `verapdf-diff` binary compares the local subset with an explicitly pinned veraPDF installation:
-
-```bash
-cargo run -p page_cli --bin verapdf-diff -- \
-  --verapdf /path/to/verapdf \
-  --expected-version 1.30.2 \
-  --profile 1b \
-  --format text \
-  file.pdf another.pdf
-```
-
-The runner first verifies the executable's version, then groups PDFs into bounded batches of 32 by default and invokes veraPDF with `--loglevel 0`, `--format json`, and `--flavour 1b`. Use `--batch-size` to tune the bound. Disabling veraPDF logging is necessary because Java warning records can otherwise be inserted into its JSON stdout. Every PDF path is passed as a separate argument directly through `std::process::Command`; no shell command string is constructed.
-
-The classifications are:
-
-- `agreement`: veraPDF reports compliant and all local implemented checks pass.
-- `both_noncompliant`: both validators reject the input or report failures.
-- `coverage_gap`: the local subset passes while veraPDF reports failures from rules not implemented locally. This is expected during development and must never be read as a conformance result.
-- `local_false_negative`: veraPDF passes while a local implemented check fails.
-- `local_parser_discrepancy`: the local parser rejects a PDF that veraPDF can process.
-- `reference_parser_discrepancy`: veraPDF cannot process a PDF that the local parser can process.
-- `operational`: the executable is unavailable, its version is wrong, it times out, its report is invalid, or local input/resource handling fails.
-
-`agreement`, `both_noncompliant`, and `coverage_gap` exit with status `0`. Semantic or parser discrepancies exit with status `2`; operational failures exit with status `1`. Across multiple files, operational status takes precedence over discrepancy status.
-
-Use `just diff path/to/file.pdf` for an ad-hoc comparison of one PDF, `just verapdf` to run the checked-in differential fixture suite, and `just verapdf-all` to run every validation test with the pinned veraPDF executable. `just pdfa-release-gate` additionally requires the implemented-rule coverage and mapping gates before running the full differential suite. These commands use `VERAPDF_BIN` when it is set, otherwise they expect the pinned-compatible `verapdf` executable on `PATH`.
-
-Run a focused differential comparison when changing a rule or investigating a discrepancy. Run `just verapdf` after changes affecting checked-in differential fixtures, and run `just verapdf-all` or `just pdfa-release-gate` before a release or after broad parser, model, or validation changes. Always confirm unexpected veraPDF behavior with a minimal reproduction before changing a rule expectation.
-
-The full veraPDF differential suite is intentionally not a required pull-request check. It is slow and can fail because veraPDF's exact rule attribution for a fixture changes even when both validators agree that the PDF is noncompliant. Pull-request CI uses the corpus gate below as its required conformance signal; that gate validates against a checked-in manifest generated from pinned veraPDF output, including expected rule failures without assigning meaning to diagnostic order, but it does not invoke the Java veraPDF executable. Keep the differential runner, focused tests, and `just verapdf-all`/`just pdfa-release-gate` recipes for manual, nightly, or release validation.
-
 ## veraPDF corpus conformance gate
 
-The required pull-request CI check runs `page corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). It intentionally does not install or invoke the Java veraPDF executable: the checked-in rule expectation manifest was generated from pinned veraPDF output, and the gate validates both the expected exit status and a matching expected rule without assigning meaning to diagnostic order. The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.
+The required pull-request CI check runs `page corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). It does not install or invoke the Java veraPDF executable; the checked-in result and rule expectation manifests record the expected outcomes for that pinned corpus revision. The gate validates the expected exit status and a matching expected rule without assigning meaning to diagnostic order. The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.
 
 The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-2u, PDF/A-3b, and PDF/UA-1. A corpus filename must contain exactly one `-pass-` or `-fail-` marker; its profile is taken from the top-level `PDF_A-*` or `PDF_UA-*` directory, and all nested rule-section directories are included.
 

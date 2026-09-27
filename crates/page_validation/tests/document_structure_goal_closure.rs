@@ -5,11 +5,8 @@
 //! asserted in a chat summary that can go stale the moment the code moves.
 //!
 //! Every test here either exercises the real validator end to end
-//! (`common::validate`) or scans the *pinned* profile XML directly (so if a
-//! future veraPDF profile update ever adds a predicate this file claims
-//! doesn't exist, the SHA256-pinned-profile test in `coverage_inventory.rs`
-//! forces a conscious update, and these tests would then need re-auditing
-//! rather than silently going stale).
+//! (`common::validate`) or scans the checked-in profile XML directly. If the
+//! profile XML changes, the assertions about its predicates need re-auditing.
 
 pub mod common;
 
@@ -106,14 +103,11 @@ fn gap_1b_duplicate_non_cyclic_name_tree_references_are_not_treated_as_cycles() 
 }
 
 /// Gap 2: "file specifications reachable outside the currently modeled name
-/// tree." Confirmed (differentially, against real veraPDF 1.30.2) and
-/// implemented this session: a `GoToR`/`SubmitForm` action's `/F` file
-/// specification is a second, independent reachability path, pinned in
-/// `verapdf-diff-cases.json`'s `atomic_action_cases` as
-/// `gotor_action_with_ef_file_spec` / `submit_form_action_with_ef_file_spec`.
-/// Re-asserted here at the fast offline tier, with no EmbeddedFiles name
-/// tree present in the fixture at all, so the failure can only have come
-/// from the action path.
+/// tree." Confirmed against veraPDF 1.30.2 and implemented this session: a
+/// `GoToR`/`SubmitForm` action's `/F` file specification is a second,
+/// independent reachability path. Re-asserted here at the fast offline tier,
+/// with no EmbeddedFiles name tree present in the fixture at all, so the
+/// failure can only have come from the action path.
 #[test]
 fn gap_2_file_specifications_are_discovered_outside_the_embedded_files_tree() {
     let report = common::validate(&common::action_fixture("gotor_action_with_ef_file_spec"));
