@@ -4,12 +4,12 @@ The corpus includes real world documents and a deterministic feature-heavy PDF w
 
 | Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| feature-heavy | 4.0 | 10 | 14.99× | 14.58× | 14.18× |
-| document 1 | 21.4 | 756 | 4.38× | 5.95× | 6.10× |
-| document 2 | 6.5 | 51 | 8.25× | 7.78× | 7.37× |
-| document 3 | 38.2 | 518 | 3.18× | 3.37× | 2.78× |
-| document 4 | 9.6 | 332 | 4.39× | 4.53× | 3.97× |
-| document 5 | 5.7 | 88 | 2.43× | 2.55× | 2.34× |
+| feature-heavy | 4.0 | 10 | 28.54× | 28.42× | 25.69× |
+| document 1 | 21.4 | 756 | 4.91× | 4.98× | 6.55× |
+| document 2 | 6.5 | 51 | 9.89× | 9.62× | 9.03× |
+| document 3 | 38.2 | 518 | 4.33× | 4.72× | 3.82× |
+| document 4 | 9.6 | 332 | 5.17× | 5.96× | 5.54× |
+| document 5 | 5.7 | 88 | 3.36× | 2.73× | 2.46× |
 !!! info
 
-       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× and 10× improvement); this is not represented in this benchmark to keep it simpler.
+       When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× to 10× improvement); this is not represented in this benchmark to keep it simpler.

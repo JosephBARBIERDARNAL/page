@@ -51,6 +51,22 @@ pub(crate) struct RawObjectLocation {
 }
 
 #[derive(Clone, Debug, Default)]
+struct RawKeywordPositions {
+    endobj: Vec<usize>,
+    endstream: Vec<usize>,
+}
+
+impl RawKeywordPositions {
+    fn next_endobj(&self, start: usize) -> Option<usize> {
+        next_position(&self.endobj, start)
+    }
+
+    fn next_endstream(&self, start: usize) -> Option<usize> {
+        next_position(&self.endstream, start)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 pub(crate) struct RawStreamIndex {
     pub(crate) locations: Vec<RawStreamLocation>,
     pub(crate) ranges: Vec<Option<Range<usize>>>,
@@ -93,6 +109,7 @@ pub(crate) struct RawScanIndex {
     objects: BTreeMap<usize, RawObjectLocation>,
     pub(crate) streams: RawStreamIndex,
     pub(crate) object_header_count: usize,
+    keyword_positions: RawKeywordPositions,
 }
 
 impl RawScanIndex {
@@ -113,6 +130,33 @@ impl RawScanIndex {
     fn object_at(&self, offset: usize) -> Option<&RawObjectLocation> {
         self.objects.get(&offset)
     }
+}
+
+fn index_raw_keyword_positions(bytes: &[u8]) -> RawKeywordPositions {
+    let mut positions = RawKeywordPositions::default();
+    for position in 0..bytes.len() {
+        if bounded_keyword_at(bytes, position, b"endobj") {
+            positions.endobj.push(position);
+        }
+        if bounded_keyword_at(bytes, position, b"endstream") {
+            positions.endstream.push(position);
+        }
+    }
+    positions
+}
+
+fn next_position(positions: &[usize], start: usize) -> Option<usize> {
+    let index = positions.partition_point(|position| *position < start);
+    positions.get(index).copied()
+}
+
+fn bounded_keyword_at(bytes: &[u8], position: usize, keyword: &[u8]) -> bool {
+    let Some(end) = position.checked_add(keyword.len()) else {
+        return false;
+    };
+    bytes.get(position..end) == Some(keyword)
+        && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
+        && is_pdf_boundary(bytes.get(end).copied())
 }
 
 #[derive(Clone, Debug, Default)]
@@ -138,13 +182,16 @@ pub(crate) fn scan_raw_index(
     preflight_limits.max_object_count = preflight_limits.max_object_count.max(1_024);
     let revisions = inspect_revisions(bytes, &preflight_limits)?;
 
-    let (objects, streams) = index_raw_objects_and_streams(bytes, limits, limits.max_object_count);
+    let keyword_positions = index_raw_keyword_positions(bytes);
+    let (objects, streams) =
+        index_raw_objects_and_streams(bytes, limits, limits.max_object_count, &keyword_positions);
     let object_header_count = objects.len();
     Ok(RawScanIndex {
         revisions,
         objects,
         streams,
         object_header_count,
+        keyword_positions,
     })
 }
 
@@ -158,6 +205,7 @@ fn index_raw_objects_and_streams(
     bytes: &[u8],
     limits: &SafetyLimits,
     limit: usize,
+    keyword_positions: &RawKeywordPositions,
 ) -> (BTreeMap<usize, RawObjectLocation>, RawStreamIndex) {
     let mut objects = BTreeMap::new();
     let mut streams = RawStreamIndexBuilder::default();
@@ -169,15 +217,15 @@ fn index_raw_objects_and_streams(
             if objects.len() > limit {
                 break;
             }
-            let mut location = index_indirect_object(bytes, cursor, limits);
+            let mut location = index_indirect_object(bytes, cursor, limits, keyword_positions);
             let mut next_cursor = after_header;
             if let Some(stream) = location.stream.as_mut() {
-                *stream = complete_raw_stream_location(bytes, *stream);
+                *stream = complete_raw_stream_location(*stream, keyword_positions);
                 streams.push(*stream, bytes);
                 location.endobj = stream
                     .endstream
                     .and_then(|offset| offset.checked_add(b"endstream".len()))
-                    .and_then(|start| find_bounded_keyword(bytes, b"endobj", start));
+                    .and_then(|start| keyword_positions.next_endobj(start));
                 next_cursor = stream
                     .endstream
                     .and_then(|offset| offset.checked_add(b"endstream".len()))
@@ -193,12 +241,12 @@ fn index_raw_objects_and_streams(
             && let Some(start) = stream_data_start_after_keyword(bytes, cursor + b"stream".len())
         {
             let location = complete_raw_stream_location(
-                bytes,
                 RawStreamLocation {
                     data_start: start,
                     endstream: None,
                     declared_length: None,
                 },
+                keyword_positions,
             );
             streams.push(location, bytes);
             cursor = location
@@ -212,7 +260,12 @@ fn index_raw_objects_and_streams(
     (objects, streams.finish())
 }
 
-fn index_indirect_object(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> RawObjectLocation {
+fn index_indirect_object(
+    bytes: &[u8],
+    offset: usize,
+    limits: &SafetyLimits,
+    keyword_positions: &RawKeywordPositions,
+) -> RawObjectLocation {
     let Some(mut parser) = RawParser::at(bytes, offset, limits).ok() else {
         return RawObjectLocation {
             value: None,
@@ -253,7 +306,7 @@ fn index_indirect_object(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> 
                 value,
                 header_valid,
                 stream: None,
-                endobj: find_bounded_keyword(bytes, b"endobj", parser.position),
+                endobj: keyword_positions.next_endobj(parser.position),
             };
         };
         let declared_length = value
@@ -272,7 +325,7 @@ fn index_indirect_object(bytes: &[u8], offset: usize, limits: &SafetyLimits) -> 
     let endobj_start = stream
         .is_none()
         .then_some(parser.position)
-        .and_then(|start| find_bounded_keyword(bytes, b"endobj", start));
+        .and_then(|start| keyword_positions.next_endobj(start));
     RawObjectLocation {
         value,
         header_valid,
@@ -323,8 +376,8 @@ impl RawStreamIndexBuilder {
 }
 
 fn complete_raw_stream_location(
-    bytes: &[u8],
     mut location: RawStreamLocation,
+    keyword_positions: &RawKeywordPositions,
 ) -> RawStreamLocation {
     location.endstream = location
         .declared_length
@@ -332,9 +385,9 @@ fn complete_raw_stream_location(
             location
                 .data_start
                 .checked_add(length)
-                .and_then(|data_end| find_bounded_keyword(bytes, b"endstream", data_end))
+                .and_then(|data_end| keyword_positions.next_endstream(data_end))
         })
-        .or_else(|| find_bounded_keyword(bytes, b"endstream", location.data_start));
+        .or_else(|| keyword_positions.next_endstream(location.data_start));
     location
 }
 
@@ -756,6 +809,7 @@ pub(crate) fn inspect(
             document,
             limits,
             indexed_object,
+            &raw_scan.keyword_positions,
             &mut summary,
         )? {
             collect_value_findings(&value, object_id, &mut summary);
@@ -805,6 +859,7 @@ fn inspect_indirect_object(
     document: &Document,
     limits: &SafetyLimits,
     indexed_object: Option<&RawObjectLocation>,
+    keyword_positions: &RawKeywordPositions,
     summary: &mut SyntaxSummary,
 ) -> Result<Option<RawValue>, PdfError> {
     if offset >= bytes.len() {
@@ -854,7 +909,9 @@ fn inspect_indirect_object(
 
     parser.skip_space_and_comments();
     let value = parser.parse_value(0);
-    let Some(mut cursor) = find_endobj_start(bytes, parser.position, document, object_id) else {
+    let Some(mut cursor) =
+        find_endobj_start(parser.position, document, object_id, keyword_positions)
+    else {
         summary.has_invalid_indirect_object_syntax = true;
         return Ok(value);
     };
@@ -876,10 +933,10 @@ fn stream_data_start_after_keyword(bytes: &[u8], mut cursor: usize) -> Option<us
 }
 
 fn find_endobj_start(
-    bytes: &[u8],
     after_value: usize,
     document: &Document,
     object_id: PdfObjectId,
+    keyword_positions: &RawKeywordPositions,
 ) -> Option<usize> {
     let lopdf_id = (object_id.object_number, object_id.generation);
     let search_start = document
@@ -892,7 +949,7 @@ fn find_endobj_start(
                 .and_then(|start| start.checked_add(stream.content.len()))
         })
         .unwrap_or(after_value);
-    find_bounded_keyword(bytes, b"endobj", search_start)
+    keyword_positions.next_endobj(search_start)
 }
 
 fn collect_value_findings(value: &RawValue, object_id: PdfObjectId, summary: &mut SyntaxSummary) {
@@ -2244,6 +2301,20 @@ mod tests {
             index.streams.ranges,
             vec![Some(stream.data_start..stream.data_start + 5)]
         );
+    }
+
+    #[test]
+    fn raw_keyword_index_preserves_boundary_checks() {
+        let bytes = b"endobj endobjx xendobj\nendstream endstreamx xendstream\n";
+        let positions = index_raw_keyword_positions(bytes);
+        let endstream = bytes
+            .windows(b"endstream".len())
+            .position(|window| window == b"endstream")
+            .expect("endstream keyword");
+        assert_eq!(positions.endobj, vec![0]);
+        assert_eq!(positions.endstream, vec![endstream]);
+        assert_eq!(positions.next_endobj(1), None);
+        assert_eq!(positions.next_endstream(endstream + 1), None);
     }
 
     #[test]
