@@ -89,7 +89,7 @@ for (const failure of report.failures) {
 }
 ```
 
-`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks. These counts are available on exhaustive validation reports; fail-fast compliance functions return only the compliance outcome.
+`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
 Failure categories distinguish conformance problems from parser or operational errors:
 
