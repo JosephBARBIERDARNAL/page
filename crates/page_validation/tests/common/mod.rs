@@ -1139,21 +1139,7 @@ pub fn metadata_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
-pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
-    let xmp: &[u8] = match case {
-        "identification_present" => {
-            br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
-<?xpacket end="w"?>"#
-        }
-        "identification_missing" => {
-            br#"<?xpacket begin=""?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
-<?xpacket end="w"?>"#
-        }
-        _ => panic!("unknown PDF/UA-1 rule 5-1 fixture case {case}"),
-    };
-
+fn pdfua1_xmp_fixture(xmp: &[u8], save_error: &'static str) -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();
     let page_id = document.add_object(dictionary! {
@@ -1179,10 +1165,26 @@ pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
     });
     document.trailer.set("Root", catalog_id);
     let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 5-1 fixture");
+    document.save_to(&mut bytes).expect(save_error);
     bytes
+}
+
+pub fn pdfua1_rule_5_1_fixture(case: &str) -> Vec<u8> {
+    let xmp: &[u8] = match case {
+        "identification_present" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description pdfuaid:part="1"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        "identification_missing" => {
+            br#"<?xpacket begin=""?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Document title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"#
+        }
+        _ => panic!("unknown PDF/UA-1 rule 5-1 fixture case {case}"),
+    };
+
+    pdfua1_xmp_fixture(xmp, "save PDF/UA-1 rule 5-1 fixture")
 }
 
 pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
@@ -1200,35 +1202,7 @@ pub fn pdfua1_rule_5_2_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown PDF/UA-1 rule 5-2 fixture case {case}"),
     };
 
-    let mut document = pdf_document();
-    let pages_id = document.new_object_id();
-    let page_id = document.add_object(dictionary! {
-        "Type" => "Page",
-        "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-    });
-    wrap_pages(&mut document, pages_id, page_id);
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        xmp.to_vec(),
-    ));
-    let catalog_id = document.add_object(dictionary! {
-        "Type" => "Catalog",
-        "Pages" => pages_id,
-        "Metadata" => metadata_id,
-        "MarkInfo" => dictionary! { "Marked" => true },
-        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
-        "StructTreeRoot" => Dictionary::new(),
-    });
-    document.trailer.set("Root", catalog_id);
-    let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 5-2 fixture");
-    bytes
+    pdfua1_xmp_fixture(xmp, "save PDF/UA-1 rule 5-2 fixture")
 }
 
 pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
@@ -1246,35 +1220,7 @@ pub fn pdfua1_rule_5_3_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown PDF/UA-1 rule 5-3 fixture case {case}"),
     };
 
-    let mut document = pdf_document();
-    let pages_id = document.new_object_id();
-    let page_id = document.add_object(dictionary! {
-        "Type" => "Page",
-        "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-    });
-    wrap_pages(&mut document, pages_id, page_id);
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        xmp.to_vec(),
-    ));
-    let catalog_id = document.add_object(dictionary! {
-        "Type" => "Catalog",
-        "Pages" => pages_id,
-        "Metadata" => metadata_id,
-        "MarkInfo" => dictionary! { "Marked" => true },
-        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
-        "StructTreeRoot" => Dictionary::new(),
-    });
-    document.trailer.set("Root", catalog_id);
-    let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 5-3 fixture");
-    bytes
+    pdfua1_xmp_fixture(xmp, "save PDF/UA-1 rule 5-3 fixture")
 }
 
 pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
@@ -1292,35 +1238,7 @@ pub fn pdfua1_rule_5_4_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown PDF/UA-1 rule 5-4 fixture case {case}"),
     };
 
-    let mut document = pdf_document();
-    let pages_id = document.new_object_id();
-    let page_id = document.add_object(dictionary! {
-        "Type" => "Page",
-        "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-    });
-    wrap_pages(&mut document, pages_id, page_id);
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        xmp.to_vec(),
-    ));
-    let catalog_id = document.add_object(dictionary! {
-        "Type" => "Catalog",
-        "Pages" => pages_id,
-        "Metadata" => metadata_id,
-        "MarkInfo" => dictionary! { "Marked" => true },
-        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
-        "StructTreeRoot" => Dictionary::new(),
-    });
-    document.trailer.set("Root", catalog_id);
-    let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 5-4 fixture");
-    bytes
+    pdfua1_xmp_fixture(xmp, "save PDF/UA-1 rule 5-4 fixture")
 }
 
 pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
@@ -1338,35 +1256,7 @@ pub fn pdfua1_rule_5_5_fixture(case: &str) -> Vec<u8> {
         _ => panic!("unknown PDF/UA-1 rule 5-5 fixture case {case}"),
     };
 
-    let mut document = pdf_document();
-    let pages_id = document.new_object_id();
-    let page_id = document.add_object(dictionary! {
-        "Type" => "Page",
-        "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-    });
-    wrap_pages(&mut document, pages_id, page_id);
-    let metadata_id = document.add_object(Stream::new(
-        dictionary! {
-            "Type" => "Metadata",
-            "Subtype" => "XML",
-        },
-        xmp.to_vec(),
-    ));
-    let catalog_id = document.add_object(dictionary! {
-        "Type" => "Catalog",
-        "Pages" => pages_id,
-        "Metadata" => metadata_id,
-        "MarkInfo" => dictionary! { "Marked" => true },
-        "ViewerPreferences" => dictionary! { "DisplayDocTitle" => true },
-        "StructTreeRoot" => Dictionary::new(),
-    });
-    document.trailer.set("Root", catalog_id);
-    let mut bytes = Vec::new();
-    document
-        .save_to(&mut bytes)
-        .expect("save PDF/UA-1 rule 5-5 fixture");
-    bytes
+    pdfua1_xmp_fixture(xmp, "save PDF/UA-1 rule 5-5 fixture")
 }
 
 pub fn pdfua1_rule_6_1_fixture(case: &str) -> Vec<u8> {

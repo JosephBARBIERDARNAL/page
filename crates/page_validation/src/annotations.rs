@@ -8,8 +8,8 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
-    dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
-    resolved_name, walk_inherited,
+    dictionary_based, has_non_empty_string_entry, has_non_null_entry, object_number,
+    resolve_optional, resolved_integer, resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -272,8 +272,12 @@ fn inspect_annotation(
         ));
     }
 
-    if has_non_null_entry(document, annotation, b"Contents", limits)?
-        && !annotation_has_language(document, annotation, limits)?
+    if has_non_null_entry(
+        document,
+        annotation,
+        b"Contents",
+        limits.max_reference_depth,
+    )? && !annotation_has_language(document, annotation, limits)?
         && !catalog_contains_lang
     {
         summary.contents_language_failures.push(annotation_failure(
@@ -592,14 +596,6 @@ fn rectangle(value: &Object) -> Option<[f64; 4]> {
     ])
 }
 
-fn object_number(value: &Object) -> Option<f64> {
-    value
-        .as_i64()
-        .map(|value| value as f64)
-        .or_else(|_| value.as_float().map(f64::from))
-        .ok()
-}
-
 fn zero_annotation_rect(
     document: &Document,
     annotation: &Dictionary,
@@ -659,21 +655,6 @@ fn contains_array(
     )
 }
 
-fn has_non_null_entry(
-    document: &Document,
-    dictionary: &Dictionary,
-    key: &[u8],
-    limits: &SafetyLimits,
-) -> Result<bool, PdfError> {
-    let Ok(value) = dictionary.get(key) else {
-        return Ok(false);
-    };
-    Ok(
-        resolve_optional(document, value, limits.max_reference_depth)?
-            .is_some_and(|value| !matches!(value, Object::Null)),
-    )
-}
-
 fn annotation_has_language(
     document: &Document,
     annotation: &Dictionary,
@@ -685,7 +666,12 @@ fn annotation_has_language(
     else {
         return Ok(false);
     };
-    has_non_null_entry(document, structure_element, b"Lang", limits)
+    has_non_null_entry(
+        document,
+        structure_element,
+        b"Lang",
+        limits.max_reference_depth,
+    )
 }
 
 fn find_number_tree_entry<'a>(

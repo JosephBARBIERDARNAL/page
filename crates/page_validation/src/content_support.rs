@@ -13,6 +13,7 @@ use crate::object_resolution::{
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
+use crate::syntax::{is_pdf_boundary, is_pdf_whitespace};
 
 #[derive(Clone, Debug)]
 pub(crate) struct SelectedColorSpace {
@@ -136,16 +137,6 @@ pub(crate) struct ContentExecutionSummary {
     pub(crate) inherited_resources: Vec<RuleFailure>,
     pub(crate) icc_cmyk_overprint: Vec<RuleFailure>,
     pub(crate) pages_with_transparency: BTreeSet<u32>,
-}
-
-/// A byte is a PDF token boundary when it is absent (end of buffer), one of
-/// the six PDF32000 whitespace characters (`NUL`, HT, LF, FF, CR, SP — a
-/// superset of `u8::is_ascii_whitespace`'s five, since the ASCII definition
-/// omits `NUL`), or one of the nine PDF delimiter characters.
-pub(crate) fn is_pdf_boundary(byte: Option<u8>) -> bool {
-    byte.is_none_or(|byte| {
-        matches!(byte, 0 | 9 | 10 | 12 | 13 | 32) || b"()<>[]{}/%".contains(&byte)
-    })
 }
 
 pub(crate) fn decode_content_stream(
@@ -2551,7 +2542,7 @@ fn resource<'a>(
     Ok(object)
 }
 
-fn is_standard_rendering_intent(name: &str) -> bool {
+pub(crate) fn is_standard_rendering_intent(name: &str) -> bool {
     matches!(
         name,
         "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
@@ -3028,10 +3019,6 @@ fn is_pdf_delimiter_or_whitespace(byte: u8) -> bool {
             byte,
             b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%'
         )
-}
-
-fn is_pdf_whitespace(byte: u8) -> bool {
-    matches!(byte, 0 | 9 | 10 | 12 | 13 | 32)
 }
 
 #[cfg(test)]

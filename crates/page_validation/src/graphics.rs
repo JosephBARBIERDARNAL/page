@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document};
 
-use crate::content_support::ContentExecutionSummary;
+use crate::content_support::{ContentExecutionSummary, is_standard_rendering_intent};
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
@@ -347,13 +347,6 @@ fn inspect_group(
         });
     }
     Ok(())
-}
-
-pub(crate) fn is_standard_rendering_intent(name: &str) -> bool {
-    matches!(
-        name,
-        "RelativeColorimetric" | "AbsoluteColorimetric" | "Perceptual" | "Saturation"
-    )
 }
 
 fn inspect_rendering_intent(

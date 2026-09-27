@@ -399,7 +399,7 @@ fn raw_stream_range(location: RawStreamLocation, bytes: &[u8]) -> Option<Range<u
     Some(location.data_start..stream_data_end_before_eol(bytes, endstream).unwrap_or(endstream))
 }
 
-fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
+pub(crate) fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
     match (
         bytes.get(endstream.wrapping_sub(2)),
         bytes.get(endstream.wrapping_sub(1)),
@@ -2008,7 +2008,7 @@ fn final_startxref_parts(bytes: &[u8]) -> Option<(usize, usize, usize)> {
     ))
 }
 
-fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
+pub(crate) fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
     let end = bytes
         .get(start..)?
         .iter()
@@ -2032,7 +2032,7 @@ fn skip_horizontal_space(bytes: &[u8], cursor: &mut usize) {
     }
 }
 
-fn single_eol_end(bytes: &[u8], cursor: usize) -> Option<usize> {
+pub(crate) fn single_eol_end(bytes: &[u8], cursor: usize) -> Option<usize> {
     match bytes.get(cursor) {
         Some(b'\n') => Some(cursor + 1),
         Some(b'\r') if bytes.get(cursor + 1) == Some(&b'\n') => Some(cursor + 2),
@@ -2055,15 +2055,19 @@ fn find_bounded_keyword(bytes: &[u8], keyword: &[u8], start: usize) -> Option<us
         })
 }
 
-fn is_eol_before(bytes: &[u8], cursor: usize) -> bool {
+pub(crate) fn is_eol_before(bytes: &[u8], cursor: usize) -> bool {
     cursor == 0 || matches!(bytes.get(cursor.wrapping_sub(1)), Some(b'\r' | b'\n'))
 }
 
-fn is_pdf_boundary(byte: Option<u8>) -> bool {
+/// A byte is a PDF token boundary when it is absent (end of buffer), one of
+/// the six PDF32000 whitespace characters (`NUL`, HT, LF, FF, CR, SP — a
+/// superset of `u8::is_ascii_whitespace`'s five, since the ASCII definition
+/// omits `NUL`), or one of the nine PDF delimiter characters.
+pub(crate) fn is_pdf_boundary(byte: Option<u8>) -> bool {
     byte.is_none_or(|byte| is_pdf_whitespace(byte) || is_delimiter(byte))
 }
 
-fn is_pdf_whitespace(byte: u8) -> bool {
+pub(crate) fn is_pdf_whitespace(byte: u8) -> bool {
     matches!(byte, b'\0' | b'\t' | b'\n' | b'\x0c' | b'\r' | b' ')
 }
 

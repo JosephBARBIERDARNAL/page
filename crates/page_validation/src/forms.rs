@@ -13,8 +13,8 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
-    contains_key, dictionary_based, has_non_empty_string_entry, resolve_optional, resolved_integer,
-    resolved_name, walk_inherited,
+    contains_key, dictionary_based, has_non_empty_string_entry, has_non_null_entry, object_number,
+    resolve_optional, resolved_integer, resolved_name, walk_inherited,
 };
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
@@ -95,11 +95,16 @@ fn inspect_acro_form(
             let associated_structure_contains_lang =
                 annotation_structure_element(document, field, limits)?
                     .map(|structure_element| {
-                        has_non_null_entry(document, structure_element, b"Lang", limits)
+                        has_non_null_entry(
+                            document,
+                            structure_element,
+                            b"Lang",
+                            limits.max_reference_depth,
+                        )
                     })
                     .transpose()?
                     .unwrap_or(false);
-            if has_non_null_entry(document, field, b"TU", limits)?
+            if has_non_null_entry(document, field, b"TU", limits.max_reference_depth)?
                 && !catalog_contains_lang
                 && !associated_structure_contains_lang
             {
@@ -278,21 +283,6 @@ fn visit_form_field(
     Ok(())
 }
 
-fn has_non_null_entry(
-    document: &Document,
-    dictionary: &Dictionary,
-    key: &[u8],
-    limits: &SafetyLimits,
-) -> Result<bool, PdfError> {
-    let Ok(value) = dictionary.get(key) else {
-        return Ok(false);
-    };
-    Ok(
-        resolve_optional(document, value, limits.max_reference_depth)?
-            .is_some_and(|value| !matches!(value, Object::Null)),
-    )
-}
-
 fn inspect_page_widgets(
     document: &Document,
     pages: &[PageEntry],
@@ -423,14 +413,6 @@ fn widget_has_non_empty_tu(
         })?
         .unwrap_or(false),
     )
-}
-
-fn object_number(value: &Object) -> Option<f64> {
-    value
-        .as_i64()
-        .map(|value| value as f64)
-        .or_else(|_| value.as_float().map(f64::from))
-        .ok()
 }
 
 #[cfg(test)]

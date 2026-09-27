@@ -104,6 +104,14 @@ pub(crate) fn dictionary_based(object: &Object) -> Option<&Dictionary> {
     }
 }
 
+pub(crate) fn object_number(value: &Object) -> Option<f64> {
+    value
+        .as_i64()
+        .map(|value| value as f64)
+        .or_else(|_| value.as_float().map(f64::from))
+        .ok()
+}
+
 pub(crate) fn has_non_empty_string_entry(
     document: &Document,
     dictionary: &Dictionary,
@@ -120,6 +128,19 @@ pub(crate) fn has_non_empty_string_entry(
         return Ok(false);
     };
     Ok(value.as_str().is_ok_and(|value| !value.is_empty()))
+}
+
+pub(crate) fn has_non_null_entry(
+    document: &Document,
+    dictionary: &Dictionary,
+    key: &[u8],
+    maximum_depth: usize,
+) -> Result<bool, PdfError> {
+    let Ok(value) = dictionary.get(key) else {
+        return Ok(false);
+    };
+    Ok(resolve_optional(document, value, maximum_depth)?
+        .is_some_and(|value| !matches!(value, Object::Null)))
 }
 
 /// Whether `dictionary` has `key` as a *meaningfully present* entry for a

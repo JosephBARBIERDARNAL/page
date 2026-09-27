@@ -3,12 +3,13 @@ use std::collections::BTreeSet;
 use lopdf::xref::XrefType;
 use lopdf::{Document, Object};
 
-#[cfg(test)]
-use crate::content_support::is_pdf_boundary;
 use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::PdfObjectId;
 use crate::object_resolution::{resolve_optional, resolved_name};
+use crate::syntax::stream_data_end_before_eol;
+#[cfg(test)]
+use crate::syntax::{is_eol_before, is_pdf_boundary, read_line, single_eol_end};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StreamSafetySummary {
@@ -484,17 +485,6 @@ fn declared_length_includes_utf16le_delimiter(
         && bytes.get(endstream - 2..endstream) == Some(b"\r\n")
 }
 
-fn stream_data_end_before_eol(bytes: &[u8], endstream: usize) -> Option<usize> {
-    match (
-        bytes.get(endstream.wrapping_sub(2)),
-        bytes.get(endstream.wrapping_sub(1)),
-    ) {
-        (Some(b'\r'), Some(b'\n')) => Some(endstream - 2),
-        (_, Some(b'\r' | b'\n')) => Some(endstream - 1),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 fn inspect_hex_strings(
     bytes: &[u8],
@@ -632,25 +622,6 @@ fn inspect_xref_table(bytes: &[u8], after_xref: usize, summary: &mut StreamSafet
 }
 
 #[cfg(test)]
-fn single_eol_end(bytes: &[u8], cursor: usize) -> Option<usize> {
-    match bytes.get(cursor) {
-        Some(b'\n') => Some(cursor + 1),
-        Some(b'\r') if bytes.get(cursor + 1) == Some(&b'\n') => Some(cursor + 2),
-        Some(b'\r') => Some(cursor + 1),
-        _ => None,
-    }
-}
-
-#[cfg(test)]
-fn read_line(bytes: &[u8], start: usize) -> Option<(&[u8], usize)> {
-    let end = bytes[start..]
-        .iter()
-        .position(|byte| matches!(byte, b'\r' | b'\n'))
-        .map(|offset| start + offset)?;
-    Some((&bytes[start..end], single_eol_end(bytes, end)?))
-}
-
-#[cfg(test)]
 fn subsection_entry_count(line: &[u8]) -> Option<usize> {
     let separator = line.iter().position(|byte| !byte.is_ascii_digit())?;
     (separator > 0 && line.get(separator) == Some(&b' ') && line.get(separator + 1) != Some(&b' '))
@@ -758,11 +729,6 @@ fn skip_whitespace(bytes: &[u8], mut cursor: usize) -> (usize, usize) {
         cursor += 1;
     }
     (cursor, cursor - start)
-}
-
-#[cfg(test)]
-fn is_eol_before(bytes: &[u8], cursor: usize) -> bool {
-    matches!(bytes.get(cursor.wrapping_sub(1)), Some(b'\r' | b'\n'))
 }
 
 fn filter_contains_lzw_decode(
