@@ -782,17 +782,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-verapdf" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install veraPDF
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1029,17 +1018,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-verapdf" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install veraPDF
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1199,32 +1177,25 @@
 <li><a href="https://docs.astral.sh/uv/"><code>uv</code></a> if you want to preview the documentation website</li>
 <li>(optional but recommended) <a href="https://github.com/casey/just"><code>just</code></a> for running project tasks, see <code>justfile</code> file</li>
 </ul>
-<h2 id="install-verapdf">Install veraPDF<a class="headerlink" href="#install-verapdf" title="Permanent link">&para;</a></h2>
-<p>Download the <a href="https://software.verapdf.org/rel/1.30/">veraPDF 1.30.2 Greenfield installer</a>, extract it, and run <code>verapdf-install</code> on macOS/Linux or <code>verapdf-install.bat</code> on Windows.</p>
-<p>Put the installed CLI on <code>PATH</code>, or point the project to it explicitly:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">VERAPDF_BIN</span><span class="o">=</span>/path/to/verapdf/bin/verapdf
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="s2">"</span><span class="nv">$VERAPDF_BIN</span><span class="s2">"</span><span class="w"> </span>--version
-</span></code></pre></div>
-<p>The version must be 1.30.x; 1.30.2 is recommended.</p>
 <h2 id="install-dependencies">Install dependencies<a class="headerlink" href="#install-dependencies" title="Permanent link">&para;</a></h2>
 <p>Fetch the locked Rust dependencies:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cargo<span class="w"> </span>fetch<span class="w"> </span>--locked
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo<span class="w"> </span>fetch<span class="w"> </span>--locked
 </span></code></pre></div>
 <h2 id="run-unit-tests">Run unit tests<a class="headerlink" href="#run-unit-tests" title="Permanent link">&para;</a></h2>
 <p>Run the full workspace test suite:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>just<span class="w"> </span><span class="nb">test</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>just<span class="w"> </span><span class="nb">test</span>
 </span></code></pre></div>
 <h2 id="run-corpus-tests">Run corpus tests<a class="headerlink" href="#run-corpus-tests" title="Permanent link">&para;</a></h2>
 <p>Run the corpus conformance gate. The first run downloads a sparse checkout of the pinned veraPDF corpus:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>just<span class="w"> </span>verapdf-corpus
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>just<span class="w"> </span>verapdf-corpus
 </span></code></pre></div>
 <h2 id="formatting-and-checks">Formatting and checks<a class="headerlink" href="#formatting-and-checks" title="Permanent link">&para;</a></h2>
 <p>Run formatting and lint checks with warnings treated as errors:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>just<span class="w"> </span>fmt<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>just<span class="w"> </span>lint
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>just<span class="w"> </span>fmt<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>just<span class="w"> </span>lint
 </span></code></pre></div>
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Serve the documentation locally with:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>just<span class="w"> </span>preview
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>just<span class="w"> </span>preview
 </span></code></pre></div>
 <p>Then open <code>http://localhost:8000</code> to preview the documentation website.</p>
 
