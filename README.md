@@ -7,6 +7,8 @@ A fast and lightweight PDF accessibility and compliance checker.
 - Usage: [CLI](https://josephbarbierdarnal.github.io/page/docs/api/cli), [Rust](https://josephbarbierdarnal.github.io/page/docs/api/rust), [Python](https://josephbarbierdarnal.github.io/page/docs/api/python) or [WebAssembly](https://josephbarbierdarnal.github.io/page/api/wasm/)
 - [License](#license)
 
+`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA profiles (accessibility) and PDF/A (archiving). Its PDF/UA-1 validation is based on the <u>Matterhorn Protocol</u> and cross-tested against veraPDF's corpus.
+
 <br>
 
 ## Installation

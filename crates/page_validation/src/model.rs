@@ -203,6 +203,7 @@ impl InspectionNeed {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct InspectionPlan {
+    pub(crate) document_features: crate::document_features::FeatureDemand,
     pub(crate) font_details: InspectionNeed,
     pub(crate) xobjects: InspectionNeed,
     pub(crate) annotations: InspectionNeed,
@@ -214,6 +215,7 @@ pub(crate) struct InspectionPlan {
 impl InspectionPlan {
     pub(crate) const fn all() -> Self {
         Self {
+            document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Unknown,
             xobjects: InspectionNeed::Unknown,
             annotations: InspectionNeed::Unknown,
@@ -232,6 +234,7 @@ impl InspectionPlan {
             _ => InspectionNeed::Unknown,
         };
         Self {
+            document_features: crate::document_features::FeatureDemand::for_profile(profile),
             unicode_names,
             ..Self::all()
         }
@@ -246,6 +249,7 @@ impl InspectionPlan {
         action_candidate_present: Option<bool>,
     ) -> Self {
         Self {
+            document_features: self.document_features,
             font_details: Self::after_fact(self.font_details, font_usage_present),
             xobjects: Self::after_fact(self.xobjects, xobject_usage_present),
             annotations: Self::after_fact(self.annotations, annotation_present),
@@ -272,6 +276,7 @@ pub(crate) struct ValidationPreparation {
     document: Document,
     pages: Option<Vec<page_tree::PageEntry>>,
     normalized: PdfDocument,
+    raw_scan: crate::syntax::RawScanIndex,
 }
 
 impl PdfDocument {
@@ -283,7 +288,29 @@ impl PdfDocument {
         bytes: &[u8],
         limits: &SafetyLimits,
     ) -> Result<ValidationPreparation, PdfError> {
-        let document = load_document(bytes, limits)?;
+        Self::prepare_for_validation_with_font_summary(bytes, limits, true)
+    }
+
+    pub(crate) fn prepare_for_validation_without_font_summary(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+    ) -> Result<ValidationPreparation, PdfError> {
+        Self::prepare_for_validation_with_font_summary(bytes, limits, false)
+    }
+
+    fn prepare_for_validation_with_font_summary(
+        bytes: &[u8],
+        limits: &SafetyLimits,
+        include_font_summary: bool,
+    ) -> Result<ValidationPreparation, PdfError> {
+        if bytes.len() as u64 > limits.max_input_size {
+            return Err(PdfError::InputTooLarge {
+                actual: bytes.len() as u64,
+                limit: limits.max_input_size,
+            });
+        }
+        let raw_scan = crate::syntax::scan_raw_index(bytes, limits)?;
+        let document = load_document(bytes, limits, &raw_scan)?;
         enforce_object_limit(&document, limits)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
         let pages = if encrypted_content_unavailable {
@@ -294,25 +321,25 @@ impl PdfDocument {
                 None => Vec::new(),
             })
         };
-        let normalized = Self::normalize(&document, limits, pages.as_ref().map(Vec::len))?;
+        let normalized = Self::normalize(
+            &document,
+            limits,
+            pages.as_ref().map(Vec::len),
+            include_font_summary,
+        )?;
         Ok(ValidationPreparation {
             document,
             pages,
             normalized,
+            raw_scan,
         })
-    }
-
-    pub(crate) fn from_bytes_with_inspections(
-        bytes: &[u8],
-        limits: &SafetyLimits,
-    ) -> Result<(Self, InspectionSummary), PdfError> {
-        Self::prepare_for_validation(bytes, limits)?.into_inspections(bytes, limits)
     }
 
     fn normalize(
         document: &Document,
         limits: &SafetyLimits,
         collected_page_count: Option<usize>,
+        include_font_summary: bool,
     ) -> Result<Self, PdfError> {
         let catalog_reference = root_reference_id(document);
         let (encrypted, encrypted_content_unavailable) = encryption_status(document);
@@ -388,7 +415,10 @@ impl PdfDocument {
             catalog_metadata,
             output_intents,
             output_intents_summary,
-            fonts: summarize_fonts(document, limits)?,
+            fonts: include_font_summary
+                .then(|| summarize_fonts(document, limits))
+                .transpose()?
+                .unwrap_or_default(),
             object_count: document.objects.len(),
         })
     }
@@ -411,7 +441,7 @@ impl ValidationPreparation {
         bytes: &[u8],
         limits: &SafetyLimits,
     ) -> Result<(Self, crate::syntax::SyntaxSummary), PdfError> {
-        let syntax = crate::syntax::inspect(bytes, &self.document, limits)?;
+        let syntax = crate::syntax::inspect(bytes, &self.document, limits, &self.raw_scan)?;
         Ok((self, syntax))
     }
 
@@ -419,9 +449,10 @@ impl ValidationPreparation {
         self,
         bytes: &[u8],
         limits: &SafetyLimits,
+        plan: InspectionPlan,
     ) -> Result<(PdfDocument, InspectionSummary), PdfError> {
         let (preparation, syntax) = self.with_syntax(bytes, limits)?;
-        preparation.into_inspections_with_syntax(bytes, limits, syntax, InspectionPlan::all())
+        preparation.into_inspections_with_syntax(bytes, limits, syntax, plan)
     }
 
     pub(crate) fn into_inspections_with_syntax(
@@ -449,6 +480,7 @@ impl ValidationPreparation {
             document,
             pages,
             normalized,
+            raw_scan,
         } = self;
         let header = syntax.header.clone();
         let inspections = if normalized.encrypted_content_unavailable {
@@ -469,7 +501,12 @@ impl ValidationPreparation {
             let pages = pages.unwrap_or_default();
             // One shared execution establishes the exact resource population
             // used by colour, XObject, graphics, and font rule predicates.
-            let document_features = crate::document_features::inspect(&document, &pages, limits)?;
+            let document_features = crate::document_features::inspect(
+                &document,
+                &pages,
+                limits,
+                plan.document_features,
+            )?;
             let mut inspections = InspectionSummary {
                 header,
                 document_features,
@@ -545,7 +582,7 @@ impl ValidationPreparation {
                 return Ok((normalized, inspections));
             }
             inspections.stream_safety =
-                crate::stream_safety::inspect(&document, limits, bytes, &syntax)?;
+                crate::stream_safety::inspect(&document, limits, bytes, &syntax, &raw_scan)?;
             if after_stage(InspectionStage::StreamSafety, &normalized, &inspections)? {
                 return Ok((normalized, inspections));
             }
@@ -627,14 +664,18 @@ fn extract_trailer_id(document: &Document) -> Option<Vec<Vec<u8>>> {
         .collect()
 }
 
-fn load_document(bytes: &[u8], limits: &SafetyLimits) -> Result<Document, PdfError> {
+fn load_document(
+    bytes: &[u8],
+    limits: &SafetyLimits,
+    raw_scan: &crate::syntax::RawScanIndex,
+) -> Result<Document, PdfError> {
     if bytes.len() as u64 > limits.max_input_size {
         return Err(PdfError::InputTooLarge {
             actual: bytes.len() as u64,
             limit: limits.max_input_size,
         });
     }
-    crate::syntax::preflight_object_limit(bytes, limits)?;
+    raw_scan.enforce_object_limit(limits)?;
 
     let options = LoadOptions {
         strict: true,
@@ -1158,8 +1199,8 @@ mod tests {
         let catalog_id = document.add_object(dictionary! { "Type" => "Catalog" });
         document.trailer.set("Root", catalog_id);
 
-        let normalized =
-            PdfDocument::normalize(&document, &SafetyLimits::default(), None).expect("normalize");
+        let normalized = PdfDocument::normalize(&document, &SafetyLimits::default(), None, true)
+            .expect("normalize");
         assert!(!normalized.encrypted);
     }
 
@@ -1361,6 +1402,7 @@ mod tests {
     #[test]
     fn required_inspection_needs_are_not_overridden_by_absence() {
         let plan = InspectionPlan {
+            document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Required,
             xobjects: InspectionNeed::Required,
             annotations: InspectionNeed::Required,

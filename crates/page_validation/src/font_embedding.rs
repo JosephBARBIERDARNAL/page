@@ -1,3 +1,4 @@
+use std::cell::{OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
@@ -88,7 +89,6 @@ struct SelectedFont {
 
 type ShownTextRecord = (Vec<u8>, bool, Option<ObjectId>, Option<i64>);
 
-#[derive(Clone)]
 struct FontUse {
     object: Object,
     object_id: Option<PdfObjectId>,
@@ -97,7 +97,106 @@ struct FontUse {
     embedded: bool,
     visible: bool,
     shown_bytes: Vec<u8>,
+    unique_shown_bytes: BTreeSet<u8>,
     shown_text_actual_text: Vec<ShownTextRecord>,
+    rendered_cids: Option<Option<Vec<u16>>>,
+    unique_rendered_cids: BTreeSet<u16>,
+}
+
+struct CachedType1Program {
+    bytes: Rc<[u8]>,
+    char_names: OnceCell<BTreeSet<String>>,
+    charstring_widths: OnceCell<BTreeMap<String, f64>>,
+    encoding: OnceCell<Type1ProgramEncoding>,
+}
+
+struct ParsedCffProgram {
+    glyph_names: Vec<Option<String>>,
+    glyph_by_name: HashMap<String, ttf_parser::GlyphId>,
+    glyph_by_byte: [Option<ttf_parser::GlyphId>; 256],
+    glyph_by_cid: HashMap<u16, ttf_parser::GlyphId>,
+}
+
+struct CachedCffProgram {
+    bytes: Rc<[u8]>,
+    parsed: OnceCell<Option<ParsedCffProgram>>,
+}
+
+impl CachedCffProgram {
+    fn parsed(&self) -> Option<&ParsedCffProgram> {
+        self.parsed
+            .get_or_init(|| {
+                let cff = ttf_parser::cff::Table::parse(&self.bytes)?;
+                let glyph_count = usize::from(cff.number_of_glyphs());
+                let mut glyph_names = Vec::with_capacity(glyph_count);
+                let mut glyph_by_name = HashMap::new();
+                let mut glyph_by_cid = HashMap::new();
+                for index in 0..glyph_count {
+                    let glyph = ttf_parser::GlyphId(u16::try_from(index).ok()?);
+                    let name = cff.glyph_name(glyph).map(ToOwned::to_owned);
+                    if let Some(name) = &name {
+                        glyph_by_name.insert(name.clone(), glyph);
+                    }
+                    if let Some(cid) = cff.glyph_cid(glyph) {
+                        glyph_by_cid.entry(cid).or_insert(glyph);
+                    }
+                    glyph_names.push(name);
+                }
+                for encoding in [
+                    PredefinedEncoding::Standard,
+                    PredefinedEncoding::MacRoman,
+                    PredefinedEncoding::MacExpert,
+                    PredefinedEncoding::WinAnsi,
+                ] {
+                    for byte in u8::MIN..=u8::MAX {
+                        let Some(name) = font_encodings::glyph_name(encoding, byte) else {
+                            continue;
+                        };
+                        if let Some(glyph) = cff.glyph_index_by_name(name) {
+                            glyph_by_name.entry(name.to_owned()).or_insert(glyph);
+                        }
+                    }
+                }
+                let mut glyph_by_byte = [None; 256];
+                for byte in u8::MIN..=u8::MAX {
+                    if let Some(glyph) = cff.glyph_index(byte)
+                        && let Some(slot) = glyph_by_byte.get_mut(usize::from(byte))
+                    {
+                        *slot = Some(glyph);
+                    }
+                }
+                Some(ParsedCffProgram {
+                    glyph_names,
+                    glyph_by_name,
+                    glyph_by_byte,
+                    glyph_by_cid,
+                })
+            })
+            .as_ref()
+    }
+}
+
+impl CachedType1Program {
+    fn char_names(&self) -> &BTreeSet<String> {
+        self.char_names
+            .get_or_init(|| type1_program_char_names(&self.bytes))
+    }
+
+    fn charstring_widths(&self) -> &BTreeMap<String, f64> {
+        self.charstring_widths
+            .get_or_init(|| type1_program_charstring_widths(&self.bytes))
+    }
+
+    fn encoding(&self) -> &Type1ProgramEncoding {
+        self.encoding
+            .get_or_init(|| type1_program_encoding(&self.bytes))
+    }
+}
+
+impl FontUse {
+    fn unique_shown_bytes(&self) -> impl Iterator<Item = u8> + '_ {
+        self.unique_shown_bytes.iter().copied()
+    }
 }
 
 struct Scanner<'a> {
@@ -107,6 +206,10 @@ struct Scanner<'a> {
     /// several checks that otherwise each independently decode and
     /// re-tokenize the same CMap stream for the same font.
     cmap_decoders: HashMap<ObjectId, Rc<CmapDecoder>>,
+    decoded_font_streams: RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    unicode_cmaps: RefCell<HashMap<ObjectId, Rc<UnicodeCmap>>>,
+    type1_programs: RefCell<HashMap<ObjectId, Rc<CachedType1Program>>>,
+    cff_programs: RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
     uses: BTreeMap<ResourceKey, FontUse>,
     active_descendant_fonts: BTreeSet<ResourceKey>,
     invalid_types: Vec<RuleFailure>,
@@ -174,6 +277,10 @@ pub(crate) fn inspect(
         document,
         limits,
         cmap_decoders: HashMap::new(),
+        decoded_font_streams: RefCell::new(HashMap::new()),
+        unicode_cmaps: RefCell::new(HashMap::new()),
+        type1_programs: RefCell::new(HashMap::new()),
+        cff_programs: RefCell::new(HashMap::new()),
         uses: BTreeMap::new(),
         active_descendant_fonts: BTreeSet::new(),
         invalid_types: Vec::new(),
@@ -231,6 +338,12 @@ pub(crate) fn inspect(
             &usage.text_runs,
         )?;
     }
+    for usage in scanner.uses.values_mut() {
+        usage
+            .unique_shown_bytes
+            .extend(usage.shown_bytes.iter().copied());
+    }
+    scanner.cache_rendered_cids()?;
     scanner.oversized_cmap_cids = inspect_all_embedded_cmap_cids(document, limits)?;
     scanner.inspect_rendered_notdef_glyphs()?;
     scanner.inspect_pdfua1_notdef_glyphs()?;
@@ -438,6 +551,7 @@ impl Scanner<'_> {
             // was rendering mode 3; veraPDF retains that first mode for
             // visibility while later visible runs still feed glyph checks.
             shown_bytes: shown_bytes.to_vec(),
+            unique_shown_bytes: BTreeSet::new(),
             shown_text_actual_text: text_runs
                 .iter()
                 .map(|run| {
@@ -449,6 +563,8 @@ impl Scanner<'_> {
                     )
                 })
                 .collect(),
+            rendered_cids: None,
+            unique_rendered_cids: BTreeSet::new(),
         });
 
         if subtype.as_deref() == Some("Type0")
@@ -480,25 +596,145 @@ impl Scanner<'_> {
         Ok(())
     }
 
+    fn cache_rendered_cids(&mut self) -> Result<(), PdfError> {
+        let document = self.document;
+        let limits = self.limits;
+        let cmap_decoders = &mut self.cmap_decoders;
+        for usage in self.uses.values_mut() {
+            if usage.subtype.as_deref() != Some("Type0") || usage.shown_bytes.is_empty() {
+                continue;
+            }
+            let Some(font) = resolve_optional(document, &usage.object, limits.max_reference_depth)?
+                .and_then(|object| object.as_dict().ok())
+            else {
+                continue;
+            };
+            let Ok(encoding) = font.get(b"Encoding") else {
+                continue;
+            };
+            let cids = Self::cached_cids_for_rendered_bytes(
+                document,
+                limits,
+                cmap_decoders,
+                encoding,
+                &usage.shown_bytes,
+            )?;
+            usage.unique_rendered_cids.clear();
+            if let Some(cids) = cids.as_ref() {
+                usage.unique_rendered_cids.extend(cids.iter().copied());
+            }
+            usage.rendered_cids = Some(cids);
+        }
+        Ok(())
+    }
+
+    fn cached_font_stream(&self, source: &Object, stream: &Stream) -> Result<Rc<[u8]>, PdfError> {
+        cached_font_stream(&self.decoded_font_streams, source, stream, self.limits)
+    }
+
+    fn cached_unicode_cmap(
+        &self,
+        source: &Object,
+        stream: &Stream,
+    ) -> Result<Option<Rc<UnicodeCmap>>, PdfError> {
+        let Ok(object_id) = source.as_reference() else {
+            let bytes = self.cached_font_stream(source, stream)?;
+            return Ok(UnicodeCmap::parse(&bytes, self.limits)?.map(Rc::new));
+        };
+        if let Some(map) = self.unicode_cmaps.borrow().get(&object_id) {
+            return Ok(Some(Rc::clone(map)));
+        }
+        let bytes = self.cached_font_stream(source, stream)?;
+        let Some(map) = UnicodeCmap::parse(&bytes, self.limits)? else {
+            return Ok(None);
+        };
+        let map = Rc::new(map);
+        self.unicode_cmaps
+            .borrow_mut()
+            .insert(object_id, Rc::clone(&map));
+        Ok(Some(map))
+    }
+
+    fn cached_type1_program(
+        &self,
+        source: &Object,
+        stream: &Stream,
+    ) -> Result<Rc<CachedType1Program>, PdfError> {
+        let Ok(object_id) = source.as_reference() else {
+            return Ok(Rc::new(CachedType1Program {
+                bytes: self.cached_font_stream(source, stream)?,
+                char_names: OnceCell::new(),
+                charstring_widths: OnceCell::new(),
+                encoding: OnceCell::new(),
+            }));
+        };
+        if let Some(program) = self.type1_programs.borrow().get(&object_id) {
+            return Ok(Rc::clone(program));
+        }
+        let program = Rc::new(CachedType1Program {
+            bytes: self.cached_font_stream(source, stream)?,
+            char_names: OnceCell::new(),
+            charstring_widths: OnceCell::new(),
+            encoding: OnceCell::new(),
+        });
+        self.type1_programs
+            .borrow_mut()
+            .insert(object_id, Rc::clone(&program));
+        Ok(program)
+    }
+
+    fn cached_embedded_type1_program(
+        &self,
+        font: &Dictionary,
+    ) -> Result<Option<Rc<CachedType1Program>>, PdfError> {
+        let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)? else {
+            return Ok(None);
+        };
+        let Ok(font_file) = descriptor.get(b"FontFile") else {
+            return Ok(None);
+        };
+        let Some(stream) =
+            resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                .and_then(|value| value.as_stream().ok())
+        else {
+            return Ok(None);
+        };
+        Ok(Some(self.cached_type1_program(font_file, stream)?))
+    }
+
+    fn cached_cff_program(
+        &self,
+        source: &Object,
+        stream: &Stream,
+    ) -> Result<Rc<CachedCffProgram>, PdfError> {
+        cached_cff_program(
+            &self.cff_programs,
+            &self.decoded_font_streams,
+            source,
+            stream,
+            self.limits,
+        )
+    }
+
     /// Resolves the CIDs a Type0 font's `encoding` maps `shown_bytes`
     /// through, reusing a previously decoded/parsed embedded CMap for the
     /// same indirect object instead of re-decompressing and re-tokenizing it.
-    /// The two glyph-presence and width checks that need this both look it
-    /// up for the same font, so a cache hit is the common case.
     fn cached_cids_for_rendered_bytes(
-        &mut self,
+        document: &Document,
+        limits: &SafetyLimits,
+        cmap_decoders: &mut HashMap<ObjectId, Rc<CmapDecoder>>,
         encoding: &Object,
         shown_bytes: &[u8],
     ) -> Result<Option<Vec<u16>>, PdfError> {
         let Some(object_id) = encoding.as_reference().ok() else {
-            let decoder = resolve_cmap_decoder(self.document, encoding, self.limits)?;
+            let decoder = resolve_cmap_decoder(document, encoding, limits)?;
             return Ok(decoder.decode(shown_bytes));
         };
-        let decoder = match self.cmap_decoders.get(&object_id) {
+        let decoder = match cmap_decoders.get(&object_id) {
             Some(decoder) => Rc::clone(decoder),
             None => {
-                let decoder = Rc::new(resolve_cmap_decoder(self.document, encoding, self.limits)?);
-                self.cmap_decoders.insert(object_id, Rc::clone(&decoder));
+                let decoder = Rc::new(resolve_cmap_decoder(document, encoding, limits)?);
+                cmap_decoders.insert(object_id, Rc::clone(&decoder));
                 decoder
             }
         };
@@ -602,21 +838,21 @@ impl Scanner<'_> {
     }
 
     fn invalid_unicode_mapping(
-        &mut self,
+        invalid_unicode_mappings: &mut Vec<RuleFailure>,
+        unicode_mapping_type3_exemptions: &mut Vec<RuleFailure>,
         usage: &FontUse,
         message: &str,
         type3_exempt_in_pdfa2: bool,
     ) {
         let failure = font_failure(usage.object_id, &usage.description, message);
         if type3_exempt_in_pdfa2 {
-            self.unicode_mapping_type3_exemptions.push(failure.clone());
+            unicode_mapping_type3_exemptions.push(failure.clone());
         }
-        self.invalid_unicode_mappings.push(failure);
+        invalid_unicode_mappings.push(failure);
     }
 
     fn inspect_rendered_unicode_mappings(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !usage.visible || usage.shown_bytes.is_empty() {
                 continue;
             }
@@ -629,18 +865,29 @@ impl Scanner<'_> {
                 continue;
             };
             let Ok(font) = object.as_dict() else { continue };
+            let embedded_type1_program =
+                if matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1")) {
+                    self.cached_embedded_type1_program(font)?
+                } else {
+                    None
+                };
             if unicode_mapping_exception(
                 self.document,
                 font,
                 usage.subtype.as_deref(),
                 &usage.shown_bytes,
+                embedded_type1_program
+                    .as_ref()
+                    .map(|program| program.encoding()),
                 self.limits,
             )? {
                 continue;
             }
-            let Some(value) = font.get(b"ToUnicode").ok() else {
-                self.invalid_unicode_mapping(
-                    &usage,
+            let Some(to_unicode) = font.get(b"ToUnicode").ok() else {
+                Self::invalid_unicode_mapping(
+                    &mut self.invalid_unicode_mappings,
+                    &mut self.unicode_mapping_type3_exemptions,
+                    usage,
                     "does not define a ToUnicode CMap for rendered text",
                     usage.subtype.as_deref() == Some("Type3")
                         && matches!(
@@ -651,22 +898,35 @@ impl Scanner<'_> {
                 continue;
             };
             let Some(value) =
-                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                resolve_optional(self.document, to_unicode, self.limits.max_reference_depth)?
             else {
-                self.invalid_unicode_mapping(&usage, "has an unresolved ToUnicode entry", false);
+                Self::invalid_unicode_mapping(
+                    &mut self.invalid_unicode_mappings,
+                    &mut self.unicode_mapping_type3_exemptions,
+                    usage,
+                    "has an unresolved ToUnicode entry",
+                    false,
+                );
                 continue;
             };
             let Some(stream) = value.as_stream().ok() else {
-                self.invalid_unicode_mapping(
-                    &usage,
+                Self::invalid_unicode_mapping(
+                    &mut self.invalid_unicode_mappings,
+                    &mut self.unicode_mapping_type3_exemptions,
+                    usage,
                     "has a ToUnicode entry that is not a CMap stream",
                     false,
                 );
                 continue;
             };
-            let bytes = decode_font_stream(stream, self.limits)?;
-            let Some(map) = UnicodeCmap::parse(&bytes, self.limits)? else {
-                self.invalid_unicode_mapping(&usage, "has a malformed ToUnicode CMap", false);
+            let Some(map) = self.cached_unicode_cmap(to_unicode, stream)? else {
+                Self::invalid_unicode_mapping(
+                    &mut self.invalid_unicode_mappings,
+                    &mut self.unicode_mapping_type3_exemptions,
+                    usage,
+                    "has a malformed ToUnicode CMap",
+                    false,
+                );
                 continue;
             };
             if map.has_reserved_values {
@@ -695,8 +955,10 @@ impl Scanner<'_> {
                 usage.shown_bytes.iter().map(|byte| vec![*byte]).collect()
             };
             if rendered_codes.iter().any(|code| !map.maps_usable(code)) {
-                self.invalid_unicode_mapping(
-                    &usage,
+                Self::invalid_unicode_mapping(
+                    &mut self.invalid_unicode_mappings,
+                    &mut self.unicode_mapping_type3_exemptions,
+                    usage,
                     "has rendered character codes missing from or invalid in its ToUnicode CMap",
                     false,
                 );
@@ -706,8 +968,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_unicode_values(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             // PDF/UA-1 applies this value predicate to invisible text too;
             // keep its broader population separate from PDF/A-2/3's
             // existing rendered-glyph population.
@@ -723,18 +984,16 @@ impl Scanner<'_> {
                 continue;
             };
             let Ok(font) = object.as_dict() else { continue };
-            let Some(value) = font.get(b"ToUnicode").ok() else {
+            let Some(to_unicode) = font.get(b"ToUnicode").ok() else {
                 continue;
             };
             let Some(stream) =
-                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                resolve_optional(self.document, to_unicode, self.limits.max_reference_depth)?
                     .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
-            let Some(map) =
-                UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?, self.limits)?
-            else {
+            let Some(map) = self.cached_unicode_cmap(to_unicode, stream)? else {
                 continue;
             };
             if map.has_reserved_values {
@@ -749,13 +1008,12 @@ impl Scanner<'_> {
     }
 
     fn inspect_unicode_pua_actual_text(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
         // Built once for the whole document instead of rescanning every
         // indirect object per rendered text run: a document with N shown-text
         // records and M objects previously did O(N * M) structure-tree
         // lookups here, which dominates runtime on large tagged documents.
         let actual_text_coverage = actual_text_mcid_coverage(self.document);
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.shown_text_actual_text.is_empty() {
                 continue;
             }
@@ -768,28 +1026,26 @@ impl Scanner<'_> {
                 continue;
             };
             let Ok(font) = object.as_dict() else { continue };
-            let Some(value) = font.get(b"ToUnicode").ok() else {
+            let Some(to_unicode) = font.get(b"ToUnicode").ok() else {
                 continue;
             };
             let Some(stream) =
-                resolve_optional(self.document, value, self.limits.max_reference_depth)?
+                resolve_optional(self.document, to_unicode, self.limits.max_reference_depth)?
                     .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
-            let Some(map) =
-                UnicodeCmap::parse(&decode_font_stream(stream, self.limits)?, self.limits)?
-            else {
+            let Some(map) = self.cached_unicode_cmap(to_unicode, stream)? else {
                 continue;
             };
             for (shown_bytes, actual_text_present, page_object_id, marked_content_id) in
-                usage.shown_text_actual_text
+                &usage.shown_text_actual_text
             {
-                if actual_text_present
+                if *actual_text_present
                     || structure_element_has_actual_text(
                         &actual_text_coverage,
-                        page_object_id,
-                        marked_content_id,
+                        *page_object_id,
+                        *marked_content_id,
                     )
                 {
                     continue;
@@ -799,7 +1055,7 @@ impl Scanner<'_> {
                         continue;
                     };
                     let Some(codes) = resolve_cmap_decoder(self.document, encoding, self.limits)?
-                        .codes(&shown_bytes)
+                        .codes(shown_bytes)
                     else {
                         continue;
                     };
@@ -821,8 +1077,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_truetype_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !usage.embedded
                 || usage.subtype.as_deref() != Some("TrueType")
                 || usage.shown_bytes.is_empty()
@@ -871,7 +1126,7 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let bytes = decode_font_stream(stream, self.limits)?;
+            let bytes = self.cached_font_stream(file, stream)?;
             let Some(face) = RawTrueType::parse(&bytes) else {
                 continue;
             };
@@ -890,7 +1145,7 @@ impl Scanner<'_> {
             } else {
                 None
             };
-            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+            for byte in usage.unique_shown_bytes() {
                 let glyph = if symbolic {
                     face.glyph_index_for_symbolic_byte(byte)
                 } else {
@@ -952,8 +1207,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_notdef_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.shown_bytes.is_empty() {
                 continue;
             }
@@ -1005,8 +1259,7 @@ impl Scanner<'_> {
     /// per operator for that reason, while shown_bytes intentionally keeps
     /// the older visible-only population used by PDF/A checks.
     fn inspect_pdfua1_notdef_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.shown_text_actual_text.is_empty() {
                 continue;
             }
@@ -1052,8 +1305,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_cidfont_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") || usage.shown_bytes.is_empty() {
                 continue;
             }
@@ -1068,11 +1320,7 @@ impl Scanner<'_> {
             let Ok(font) = object.as_dict() else {
                 continue;
             };
-            let Ok(encoding) = font.get(b"Encoding") else {
-                continue;
-            };
-            let cids = self.cached_cids_for_rendered_bytes(encoding, &usage.shown_bytes)?;
-            let Some(cids) = cids else {
+            let Some(_) = usage.rendered_cids.as_ref().and_then(Option::as_ref) else {
                 continue;
             };
             let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
@@ -1082,7 +1330,18 @@ impl Scanner<'_> {
             let descendant_subtype =
                 resolved_name(self.document, descendant, b"Subtype", self.limits)?;
             if descendant_subtype == Some(b"CIDFontType0".as_slice()) {
-                self.inspect_rendered_cff_cidfont_glyphs(&usage, descendant, &cids)?;
+                Self::inspect_rendered_cff_cidfont_glyphs(
+                    self.document,
+                    self.limits,
+                    &self.decoded_font_streams,
+                    &self.cff_programs,
+                    &mut self.notdef_glyphs,
+                    &mut self.missing_truetype_glyphs,
+                    &mut self.inconsistent_truetype_widths,
+                    usage,
+                    descendant,
+                    &usage.unique_rendered_cids,
+                )?;
                 continue;
             }
             if descendant_subtype != Some(b"CIDFontType2".as_slice()) {
@@ -1096,26 +1355,23 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(stream) = descriptor
-                .get(b"FontFile2")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
+            let Ok(font_file) = descriptor.get(b"FontFile2") else {
+                continue;
+            };
+            let Some(stream) =
+                resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                    .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
-            let bytes = decode_font_stream(stream, self.limits)?;
+            let bytes = self.cached_font_stream(font_file, stream)?;
             let Some(face) = RawTrueType::parse(&bytes) else {
                 continue;
             };
             // Resolved/parsed once per font instead of once per rendered CID.
             let cid_to_gid_map = resolve_cid_to_gid_map(self.document, cid_to_gid, self.limits)?;
             let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
-            for cid in cids.into_iter().collect::<BTreeSet<_>>() {
+            for cid in usage.unique_rendered_cids.iter().copied() {
                 if cid == 0 {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
@@ -1165,69 +1421,69 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_cff_cidfont_glyphs(
-        &mut self,
+        document: &Document,
+        limits: &SafetyLimits,
+        decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+        cff_programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
+        notdef_glyphs: &mut Vec<RuleFailure>,
+        missing_truetype_glyphs: &mut Vec<RuleFailure>,
+        inconsistent_truetype_widths: &mut Vec<RuleFailure>,
         usage: &FontUse,
         descendant: &Dictionary,
-        cids: &[u16],
+        cids: &BTreeSet<u16>,
     ) -> Result<(), PdfError> {
-        let Some(descriptor) = font_descriptor_dictionary(self.document, descendant, self.limits)?
-        else {
+        let Some(descriptor) = font_descriptor_dictionary(document, descendant, limits)? else {
             return Ok(());
         };
-        let Some(stream) = descriptor
-            .get(b"FontFile3")
-            .ok()
-            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
-            .transpose()?
-            .flatten()
+        let Ok(font_file) = descriptor.get(b"FontFile3") else {
+            return Ok(());
+        };
+        let Some(stream) = resolve_optional(document, font_file, limits.max_reference_depth)?
             .and_then(|value| value.as_stream().ok())
         else {
             return Ok(());
         };
-        if resolved_name(self.document, &stream.dict, b"Subtype", self.limits)?
+        if resolved_name(document, &stream.dict, b"Subtype", limits)?
             != Some(b"CIDFontType0C".as_slice())
         {
             return Ok(());
         }
-        let bytes = decode_font_stream(stream, self.limits)?;
-        let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+        let program = cached_cff_program(
+            cff_programs,
+            decoded_font_streams,
+            font_file,
+            stream,
+            limits,
+        )?;
+        let Some(parsed) = program.parsed() else {
             return Ok(());
         };
-        // Built once per font instead of scanning every glyph per rendered
-        // CID; `or_insert` keeps the same lowest-glyph-id tie-break as the
-        // original `.find()` over an ascending glyph-id range.
-        let mut glyph_by_cid: HashMap<u16, ttf_parser::GlyphId> = HashMap::new();
-        for glyph in (0..cff.number_of_glyphs()).map(ttf_parser::GlyphId) {
-            if let Some(cid) = cff.glyph_cid(glyph) {
-                glyph_by_cid.entry(cid).or_insert(glyph);
-            }
-        }
-        let cid_widths = parse_cid_widths(self.document, descendant, self.limits)?;
-        for cid in cids.iter().copied().collect::<BTreeSet<_>>() {
+        let cid_widths = parse_cid_widths(document, descendant, limits)?;
+        for cid in cids.iter().copied() {
             if cid == 0 {
-                self.notdef_glyphs.push(font_failure(
+                notdef_glyphs.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     "references the .notdef glyph for a rendered CID",
                 ));
                 continue;
             }
-            let Some(&glyph) = glyph_by_cid.get(&cid) else {
-                self.missing_truetype_glyphs.push(font_failure(
+            let Some(&glyph) = parsed.glyph_by_cid.get(&cid) else {
+                missing_truetype_glyphs.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     &format!("has no embedded CIDFontType0C glyph for rendered CID {cid}"),
                 ));
                 continue;
             };
-            let Some(program_width) = cff_cid_glyph_width(&bytes, glyph.0) else {
+            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph.0) else {
                 continue;
             };
             let Some(dictionary_width) = cid_widths.width_for(cid) else {
                 continue;
             };
             if (program_width - dictionary_width).abs() > 1.0 {
-                self.inconsistent_truetype_widths.push(font_failure(
+                inconsistent_truetype_widths.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     &format!(
@@ -1240,8 +1496,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_type1_subset_charsets(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
             {
@@ -1273,55 +1528,49 @@ impl Scanner<'_> {
                 continue;
             };
             let char_set = type1_charset_names(&char_set_bytes);
-            let invalid = if let Some(stream) = descriptor
-                .get(b"FontFile")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
+            let invalid = if let Ok(font_file) = descriptor.get(b"FontFile")
+                && let Some(stream) =
+                    resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                        .and_then(|value| value.as_stream().ok())
             {
-                let program_bytes = decode_font_stream(stream, self.limits)?;
-                let program_names = type1_program_char_names(&program_bytes);
+                let program = self.cached_type1_program(font_file, stream)?;
+                let program_names = program.char_names();
                 let encoding = simple_font_encoding(self.document, font, self.limits)?;
-                let rendered_bytes = usage.shown_bytes.into_iter().collect::<BTreeSet<_>>();
                 program_names.is_empty()
-                    || rendered_bytes.iter().copied().any(|byte| {
+                    || usage.unique_shown_bytes().any(|byte| {
                         let name = encoding.glyph_name(byte);
                         name.is_some_and(|name| {
                             program_names.contains(name) && !char_set.contains(name)
                         })
                     })
-            } else if let Some(stream) = descriptor
-                .get(b"FontFile3")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
+            } else if let Ok(font_file) = descriptor.get(b"FontFile3")
+                && let Some(stream) =
+                    resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                        .and_then(|value| value.as_stream().ok())
             {
                 if resolved_name(self.document, &stream.dict, b"Subtype", self.limits)?
                     != Some(b"Type1C".as_slice())
                 {
                     true
-                } else if let Some(cff) =
-                    ttf_parser::cff::Table::parse(&decode_font_stream(stream, self.limits)?)
-                {
-                    let encoding = simple_font_encoding(self.document, font, self.limits)?;
-                    let rendered_bytes = usage.shown_bytes.into_iter().collect::<BTreeSet<_>>();
-                    rendered_bytes.iter().copied().any(|byte| {
-                        encoding
-                            .glyph_name(byte)
-                            .and_then(|name| cff_glyph_index_by_name(&cff, name))
-                            .and_then(|glyph| cff.glyph_name(glyph))
-                            .is_some_and(|name| !char_set.contains(name))
-                    })
                 } else {
-                    true
+                    let program = self.cached_cff_program(font_file, stream)?;
+                    if let Some(parsed) = program.parsed() {
+                        let encoding = simple_font_encoding(self.document, font, self.limits)?;
+                        usage.unique_shown_bytes().any(|byte| {
+                            encoding
+                                .glyph_name(byte)
+                                .and_then(|name| parsed.glyph_by_name.get(name))
+                                .and_then(|glyph| {
+                                    parsed
+                                        .glyph_names
+                                        .get(usize::from(glyph.0))
+                                        .and_then(Option::as_deref)
+                                })
+                                .is_some_and(|name| !char_set.contains(name))
+                        })
+                    } else {
+                        true
+                    }
                 }
             } else {
                 true
@@ -1338,8 +1587,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_type1_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !usage.embedded
                 || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
@@ -1361,22 +1609,19 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(stream) = descriptor
-                .get(b"FontFile")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
+            let Ok(font_file) = descriptor.get(b"FontFile") else {
+                continue;
+            };
+            let Some(stream) =
+                resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                    .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
-            let program_bytes = decode_font_stream(stream, self.limits)?;
-            let program_names = type1_program_char_names(&program_bytes);
-            let program_widths = type1_program_charstring_widths(&program_bytes);
-            let program_encoding = type1_program_encoding(&program_bytes);
+            let program = self.cached_type1_program(font_file, stream)?;
+            let program_names = program.char_names();
+            let program_widths = program.charstring_widths();
+            let program_encoding = program.encoding();
             if program_names.is_empty() {
                 continue;
             }
@@ -1388,7 +1633,7 @@ impl Scanner<'_> {
                 .transpose()?
                 .flatten();
             let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
-            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+            for byte in usage.unique_shown_bytes() {
                 let name = encoding
                     .glyph_name(byte)
                     .or_else(|| program_encoding.glyph_name(byte))
@@ -1435,8 +1680,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_type3_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type3") || usage.shown_bytes.is_empty() {
                 continue;
             }
@@ -1471,7 +1715,7 @@ impl Scanner<'_> {
                 .transpose()?
                 .flatten();
             let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
-            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
+            for byte in usage.unique_shown_bytes() {
                 let Some(name) = encoding.glyph_name(byte) else {
                     continue;
                 };
@@ -1533,8 +1777,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_cff_type1_glyphs(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !usage.embedded
                 || !matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1"))
                 || usage.shown_bytes.is_empty()
@@ -1556,15 +1799,12 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(stream) = descriptor
-                .get(b"FontFile3")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
+            let Ok(font_file) = descriptor.get(b"FontFile3") else {
+                continue;
+            };
+            let Some(stream) =
+                resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                    .and_then(|value| value.as_stream().ok())
             else {
                 continue;
             };
@@ -1573,8 +1813,11 @@ impl Scanner<'_> {
             {
                 continue;
             }
-            let bytes = decode_font_stream(stream, self.limits)?;
-            let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+            let program = self.cached_cff_program(font_file, stream)?;
+            let Some(parsed) = program.parsed() else {
+                continue;
+            };
+            let Some(cff) = ttf_parser::cff::Table::parse(&program.bytes) else {
                 continue;
             };
             let encoding = simple_font_encoding(self.document, font, self.limits)?;
@@ -1585,8 +1828,17 @@ impl Scanner<'_> {
                 .transpose()?
                 .flatten();
             let widths = resolved_array(self.document, font, b"Widths", self.limits)?;
-            for byte in usage.shown_bytes.into_iter().collect::<BTreeSet<_>>() {
-                let glyph = cff_glyph_for_byte(&cff, &encoding, byte);
+            for byte in usage.unique_shown_bytes() {
+                let glyph = encoding
+                    .glyph_name(byte)
+                    .and_then(|name| parsed.glyph_by_name.get(name).copied())
+                    .or_else(|| {
+                        parsed
+                            .glyph_by_byte
+                            .get(usize::from(byte))
+                            .copied()
+                            .flatten()
+                    });
                 let Some(glyph) = glyph else {
                     self.missing_type1_glyphs.push(font_failure(
                         usage.object_id,
@@ -1637,8 +1889,7 @@ impl Scanner<'_> {
     }
 
     fn inspect_rendered_cid_subset_sets(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if !usage.visible
                 || usage.subtype.as_deref() != Some("Type0")
                 || usage.shown_bytes.is_empty()
@@ -1656,11 +1907,7 @@ impl Scanner<'_> {
             let Ok(font) = object.as_dict() else {
                 continue;
             };
-            let Ok(encoding) = font.get(b"Encoding") else {
-                continue;
-            };
-            let Some(cids) = self.cached_cids_for_rendered_bytes(encoding, &usage.shown_bytes)?
-            else {
+            let Some(cids) = usage.rendered_cids.as_ref().and_then(Option::as_ref) else {
                 continue;
             };
             let Some(descendant) = first_descendant_dictionary(self.document, font, self.limits)?
@@ -1680,19 +1927,18 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(cid_set) = descriptor
-                .get(b"CIDSet")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
-            else {
+            let Ok(cid_set_source) = descriptor.get(b"CIDSet") else {
                 continue;
             };
-            let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
+            let Some(cid_set) = resolve_optional(
+                self.document,
+                cid_set_source,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(|value| value.as_stream().ok()) else {
+                continue;
+            };
+            let cid_set_bytes = self.cached_font_stream(cid_set_source, cid_set)?;
             let rendered_cid_missing = cids
                 .iter()
                 .any(|cid| *cid != 0 && !cid_set_contains(&cid_set_bytes, *cid));
@@ -1716,8 +1962,7 @@ impl Scanner<'_> {
     /// coverage itself is deliberately independent of rendering mode and
     /// shown bytes.
     fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
-        let uses: Vec<_> = self.uses.values().cloned().collect();
-        for usage in uses {
+        for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") {
                 continue;
             }
@@ -1749,21 +1994,26 @@ impl Scanner<'_> {
             else {
                 continue;
             };
-            let Some(cid_set) = descriptor
-                .get(b"CIDSet")
-                .ok()
-                .map(|value| {
-                    resolve_optional(self.document, value, self.limits.max_reference_depth)
-                })
-                .transpose()?
-                .flatten()
-                .and_then(|value| value.as_stream().ok())
-            else {
+            let Ok(cid_set_source) = descriptor.get(b"CIDSet") else {
                 continue;
             };
-            let cid_set_bytes = decode_font_stream(cid_set, self.limits)?;
-            let Some(program_cids) =
-                cid_font_program_cids(self.document, descendant, descendant_subtype, self.limits)?
+            let Some(cid_set) = resolve_optional(
+                self.document,
+                cid_set_source,
+                self.limits.max_reference_depth,
+            )?
+            .and_then(|value| value.as_stream().ok()) else {
+                continue;
+            };
+            let cid_set_bytes = self.cached_font_stream(cid_set_source, cid_set)?;
+            let Some(program_cids) = cid_font_program_cids(
+                self.document,
+                descendant,
+                descendant_subtype,
+                self.limits,
+                &self.decoded_font_streams,
+                &self.cff_programs,
+            )?
             else {
                 continue;
             };
@@ -1812,24 +2062,25 @@ impl Scanner<'_> {
         };
         // PDF/UA-1 7.21.4.2-1 compares /CharSet with every glyph in the
         // embedded Type 1 or Type 1C program, not only rendered glyphs.
-        let program_names = if let Some(font_file) = descriptor
-            .get(b"FontFile")
-            .ok()
-            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
-            .transpose()?
-            .flatten()
+        let program_names = if let Ok(font_file_source) = descriptor.get(b"FontFile")
+            && let Some(font_file) = resolve_optional(
+                self.document,
+                font_file_source,
+                self.limits.max_reference_depth,
+            )?
             .and_then(|value| value.as_stream().ok())
         {
             if !valid_font_program(self.document, b"FontFile", font_file, self.limits)? {
                 return Ok(());
             }
-            type1_program_char_names(&decode_font_stream(font_file, self.limits)?)
-        } else if let Some(font_file) = descriptor
-            .get(b"FontFile3")
-            .ok()
-            .map(|value| resolve_optional(self.document, value, self.limits.max_reference_depth))
-            .transpose()?
-            .flatten()
+            let program = self.cached_type1_program(font_file_source, font_file)?;
+            program.char_names().clone()
+        } else if let Ok(font_file_source) = descriptor.get(b"FontFile3")
+            && let Some(font_file) = resolve_optional(
+                self.document,
+                font_file_source,
+                self.limits.max_reference_depth,
+            )?
             .and_then(|value| value.as_stream().ok())
         {
             if resolved_name(self.document, &font_file.dict, b"Subtype", self.limits)?
@@ -1838,11 +2089,11 @@ impl Scanner<'_> {
             {
                 return Ok(());
             }
-            let bytes = decode_font_stream(font_file, self.limits)?;
-            let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+            let program = self.cached_cff_program(font_file_source, font_file)?;
+            let Some(parsed) = program.parsed() else {
                 return Ok(());
             };
-            type1c_program_char_names(&cff)
+            parsed.glyph_names.iter().filter_map(Clone::clone).collect()
         } else {
             return Ok(());
         };
@@ -2597,6 +2848,49 @@ fn decode_font_stream(stream: &Stream, limits: &SafetyLimits) -> Result<Vec<u8>,
     }
 }
 
+fn cached_font_stream(
+    cache: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    source: &Object,
+    stream: &Stream,
+    limits: &SafetyLimits,
+) -> Result<Rc<[u8]>, PdfError> {
+    let Ok(object_id) = source.as_reference() else {
+        return Ok(Rc::from(
+            decode_font_stream(stream, limits)?.into_boxed_slice(),
+        ));
+    };
+    if let Some(bytes) = cache.borrow().get(&object_id) {
+        return Ok(Rc::clone(bytes));
+    }
+    let bytes = Rc::from(decode_font_stream(stream, limits)?.into_boxed_slice());
+    cache.borrow_mut().insert(object_id, Rc::clone(&bytes));
+    Ok(bytes)
+}
+
+fn cached_cff_program(
+    programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
+    decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    source: &Object,
+    stream: &Stream,
+    limits: &SafetyLimits,
+) -> Result<Rc<CachedCffProgram>, PdfError> {
+    let Ok(object_id) = source.as_reference() else {
+        return Ok(Rc::new(CachedCffProgram {
+            bytes: cached_font_stream(decoded_font_streams, source, stream, limits)?,
+            parsed: OnceCell::new(),
+        }));
+    };
+    if let Some(program) = programs.borrow().get(&object_id) {
+        return Ok(Rc::clone(program));
+    }
+    let program = Rc::new(CachedCffProgram {
+        bytes: cached_font_stream(decoded_font_streams, source, stream, limits)?,
+        parsed: OnceCell::new(),
+    });
+    programs.borrow_mut().insert(object_id, Rc::clone(&program));
+    Ok(program)
+}
+
 fn cmap_content_wmode(bytes: &[u8]) -> Option<i64> {
     let mut tokens = bytes
         .split(|byte| byte.is_ascii_whitespace())
@@ -3309,6 +3603,7 @@ fn unicode_mapping_exception(
     font: &Dictionary,
     subtype: Option<&str>,
     shown_bytes: &[u8],
+    program_encoding: Option<&Type1ProgramEncoding>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
     if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3")) {
@@ -3336,14 +3631,11 @@ fn unicode_mapping_exception(
                 let names = type1_charset_names(bytes);
                 !names.is_empty() && names.iter().all(|name| is_symbol_glyph_name(name))
             });
-            let program_encoding = embedded_type1_program_encoding(document, font, limits)?;
             let rendered_symbol_names = shown_bytes
                 .iter()
                 .filter_map(|byte| {
                     encoding.glyph_name(*byte).or_else(|| {
-                        program_encoding
-                            .as_ref()
-                            .and_then(|encoding| encoding.glyph_name(*byte))
+                        program_encoding.and_then(|encoding| encoding.glyph_name(*byte))
                     })
                 })
                 .collect::<Vec<_>>();
@@ -3825,6 +4117,8 @@ fn cid_font_program_cids(
     font: &Dictionary,
     subtype: Option<&[u8]>,
     limits: &SafetyLimits,
+    decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    cff_programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
 ) -> Result<Option<BTreeSet<u16>>, PdfError> {
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(None);
@@ -3834,12 +4128,10 @@ fn cid_font_program_cids(
         Some(b"CIDFontType0") => (b"FontFile3".as_slice(), Some(b"CIDFontType0C".as_slice())),
         _ => return Ok(None),
     };
-    let Some(stream) = descriptor
-        .get(stream_key)
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
+    let Ok(stream_source) = descriptor.get(stream_key) else {
+        return Ok(None);
+    };
+    let Some(stream) = resolve_optional(document, stream_source, limits.max_reference_depth)?
         .and_then(|value| value.as_stream().ok())
     else {
         return Ok(None);
@@ -3849,9 +4141,8 @@ fn cid_font_program_cids(
     {
         return Ok(None);
     }
-    let bytes = decode_font_stream(stream, limits)?;
-
     if subtype == Some(b"CIDFontType2".as_slice()) {
+        let bytes = cached_font_stream(decoded_font_streams, stream_source, stream, limits)?;
         let Some(face) = RawTrueType::parse(&bytes) else {
             return Ok(None);
         };
@@ -3887,11 +4178,20 @@ fn cid_font_program_cids(
         return Ok(Some(cids));
     }
 
-    let Some(cff) = ttf_parser::cff::Table::parse(&bytes) else {
+    let program = cached_cff_program(
+        cff_programs,
+        decoded_font_streams,
+        stream_source,
+        stream,
+        limits,
+    )?;
+    let Some(parsed) = program.parsed() else {
         return Ok(None);
     };
-    let cids = (1..cff.number_of_glyphs())
-        .filter_map(|glyph| cff.glyph_cid(ttf_parser::GlyphId(glyph)))
+    let cids = parsed
+        .glyph_by_cid
+        .keys()
+        .copied()
         .filter(|cid| *cid != 0)
         .collect();
     Ok(Some(cids))
@@ -4004,28 +4304,6 @@ fn is_type1_charstring_definition(bytes: &[u8]) -> bool {
 struct Type1ProgramEncoding {
     names: BTreeMap<u8, String>,
     standard_base: bool,
-}
-
-fn embedded_type1_program_encoding(
-    document: &Document,
-    font: &Dictionary,
-    limits: &SafetyLimits,
-) -> Result<Option<Type1ProgramEncoding>, PdfError> {
-    let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
-        return Ok(None);
-    };
-    let Some(font_file) = descriptor
-        .get(b"FontFile")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|value| value.as_stream().ok())
-    else {
-        return Ok(None);
-    };
-    let bytes = decode_font_stream(font_file, limits)?;
-    Ok(Some(type1_program_encoding(&bytes)))
 }
 
 impl Type1ProgramEncoding {
@@ -4296,38 +4574,6 @@ fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16) -> Option<f64> {
         .and_then(|values| values.first().copied())
         .unwrap_or(0.001);
     Some(width * matrix * 1000.0)
-}
-
-fn cff_glyph_for_byte(
-    cff: &ttf_parser::cff::Table<'_>,
-    encoding: &SimpleFontEncoding,
-    byte: u8,
-) -> Option<ttf_parser::GlyphId> {
-    match encoding.glyph_name(byte) {
-        Some(name) => cff_glyph_index_by_name(cff, name),
-        None => cff.glyph_index(byte),
-    }
-}
-
-fn cff_glyph_index_by_name(
-    cff: &ttf_parser::cff::Table<'_>,
-    name: &str,
-) -> Option<ttf_parser::GlyphId> {
-    cff.glyph_index_by_name(name).or_else(|| {
-        // ttf-parser cannot reverse-map names through predefined CFF
-        // charsets, although it can resolve the corresponding glyph name.
-        (0..cff.number_of_glyphs()).find_map(|index| {
-            let glyph = ttf_parser::GlyphId(index);
-            (cff.glyph_name(glyph) == Some(name)).then_some(glyph)
-        })
-    })
-}
-
-fn type1c_program_char_names(cff: &ttf_parser::cff::Table<'_>) -> BTreeSet<String> {
-    (0..cff.number_of_glyphs())
-        .filter_map(|index| cff.glyph_name(ttf_parser::GlyphId(index)))
-        .map(ToOwned::to_owned)
-        .collect()
 }
 
 fn type3_charproc_width(stream: &Stream, limits: &SafetyLimits) -> Result<Option<f64>, PdfError> {

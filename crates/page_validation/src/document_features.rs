@@ -14,6 +14,79 @@ use crate::object_resolution::{
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct FeatureDemand(u16);
+
+impl FeatureDemand {
+    const STRUCTURE_TREE: u16 = 1 << 0;
+    const STRUCTURE_RULES: u16 = 1 << 1;
+    const STRUCTURE_NAMES: u16 = 1 << 2;
+    const PDFA_STRUCTURE_LANGUAGE: u16 = 1 << 3;
+    const PDFUA_STRUCTURE_LANGUAGE: u16 = 1 << 4;
+    const OPTIONAL_CONTENT: u16 = 1 << 5;
+    const OPTIONAL_CONTENT_EXTENDED: u16 = 1 << 6;
+    const FILE_SPEC_NAME_TREE: u16 = 1 << 7;
+    const EMBEDDED_FILE_NAME_TREE: u16 = 1 << 8;
+    const EMBEDDED_FILE_SPECIFICATIONS: u16 = 1 << 9;
+    const EMBEDDED_FILE_STREAMS: u16 = 1 << 10;
+    const EMBEDDED_FILE_PDFA: u16 = 1 << 11;
+    const FILE_ASSOCIATIONS: u16 = 1 << 12;
+
+    pub(crate) const fn all() -> Self {
+        Self(u16::MAX)
+    }
+
+    pub(crate) const fn for_profile(profile: crate::validation::ValidationProfile) -> Self {
+        let mut bits = 0;
+        let is_pdfua = matches!(profile, crate::validation::ValidationProfile::PdfUa1);
+        let is_tagged_pdfa = matches!(profile.pdfa_conformance(), Some('A'));
+        let part = profile.pdfa_part();
+
+        if is_pdfua {
+            bits |= Self::STRUCTURE_TREE | Self::PDFUA_STRUCTURE_LANGUAGE;
+        }
+        if is_tagged_pdfa {
+            bits |= Self::STRUCTURE_TREE | Self::STRUCTURE_RULES | Self::PDFA_STRUCTURE_LANGUAGE;
+        }
+        if is_pdfua {
+            bits |= Self::STRUCTURE_RULES
+                | Self::OPTIONAL_CONTENT
+                | Self::EMBEDDED_FILE_NAME_TREE
+                | Self::EMBEDDED_FILE_SPECIFICATIONS;
+        }
+        if matches!(part, Some(2 | 3)) {
+            bits |= Self::STRUCTURE_NAMES
+                | Self::OPTIONAL_CONTENT
+                | Self::OPTIONAL_CONTENT_EXTENDED
+                | Self::EMBEDDED_FILE_SPECIFICATIONS
+                | Self::EMBEDDED_FILE_STREAMS;
+        }
+        if matches!(part, Some(1)) {
+            bits |= Self::FILE_SPEC_NAME_TREE;
+        }
+        if matches!(part, Some(2)) {
+            bits |= Self::EMBEDDED_FILE_PDFA;
+        }
+        if matches!(part, Some(3)) {
+            bits |= Self::FILE_ASSOCIATIONS;
+        }
+
+        Self(bits)
+    }
+
+    const fn contains(self, demand: u16) -> bool {
+        self.0 & demand == demand
+    }
+
+    const fn needs_structure_tree(self) -> bool {
+        self.contains(Self::STRUCTURE_TREE) || self.contains(Self::STRUCTURE_RULES)
+    }
+
+    const fn needs_structure_names(self) -> bool {
+        self.contains(Self::STRUCTURE_NAMES)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DocumentFeatureSummary {
     pub(crate) catalog_id: Option<PdfObjectId>,
@@ -114,6 +187,7 @@ pub(crate) fn inspect(
     document: &Document,
     pages: &[PageEntry],
     limits: &SafetyLimits,
+    demand: FeatureDemand,
 ) -> Result<DocumentFeatureSummary, PdfError> {
     let catalog_id = root_reference_id(document);
     let Some(catalog) = resolve_catalog(document, limits)?.map(|catalog| catalog.dictionary) else {
@@ -166,7 +240,11 @@ pub(crate) fn inspect(
             .transpose()?
             .unwrap_or((None, false, None));
 
-    let structure_tree = inspect_structure_tree(document, catalog, limits)?;
+    let structure_tree = if demand.needs_structure_tree() || demand.needs_structure_names() {
+        inspect_structure_tree(document, catalog, limits, demand)?
+    } else {
+        StructureTreeSummary::default()
+    };
     let catalog_contains_lang = contains_key(catalog, b"Lang");
     let catalog_has_acro_form = contains_key(catalog, b"AcroForm");
     let catalog_has_action_candidates = [
@@ -225,7 +303,10 @@ pub(crate) fn inspect(
     });
     let mut file_specs_with_embedded_files = Vec::new();
     let mut file_specs_missing_or_empty_f_or_uf = Vec::new();
-    if let Some(names) = names
+    let inspect_name_tree_file_specs = demand.contains(FeatureDemand::FILE_SPEC_NAME_TREE);
+    let inspect_name_tree_embedded_files = demand.contains(FeatureDemand::EMBEDDED_FILE_NAME_TREE);
+    if (inspect_name_tree_file_specs || inspect_name_tree_embedded_files)
+        && let Some(names) = names
         && let Ok(embedded_files) = names.get(b"EmbeddedFiles")
     {
         let mut ancestors = BTreeSet::new();
@@ -234,6 +315,8 @@ pub(crate) fn inspect(
             document,
             embedded_files,
             limits,
+            inspect_name_tree_file_specs,
+            inspect_name_tree_embedded_files,
             &mut file_specs_with_embedded_files,
             &mut file_specs_missing_or_empty_f_or_uf,
             &mut ancestors,
@@ -249,7 +332,11 @@ pub(crate) fn inspect(
         optional_content_duplicate_names,
         optional_content_invalid_orders,
         optional_content_as_entries,
-    ) = inspect_optional_content(document, catalog, limits)?;
+    ) = if demand.contains(FeatureDemand::OPTIONAL_CONTENT) {
+        inspect_optional_content(document, catalog, limits, demand)?
+    } else {
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new())
+    };
 
     let mut invalid_page_boundaries = Vec::new();
     let mut pages_with_pres_steps = Vec::new();
@@ -406,52 +493,54 @@ pub(crate) fn inspect(
     }
 
     let mut associated_file_spec_ids = BTreeSet::new();
-    collect_associated_file_spec_ids(
-        document,
-        catalog.get(b"AF").ok(),
-        limits,
-        &mut associated_file_spec_ids,
-    )?;
-    for page_entry in pages {
-        if let Some(page) = page_entry.resolve(document) {
-            collect_associated_file_spec_ids(
-                document,
-                page.get(b"AF").ok(),
-                limits,
-                &mut associated_file_spec_ids,
-            )?;
-            if let Some(annotations) = page
-                .get(b"Annots")
-                .ok()
-                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-                .transpose()?
-                .flatten()
-                .and_then(|object| object.as_array().ok())
-            {
-                for annotation in annotations {
-                    if let Some(annotation) =
-                        resolve_optional(document, annotation, limits.max_reference_depth)?
-                            .and_then(dictionary_based)
-                    {
-                        collect_associated_file_spec_ids(
-                            document,
-                            annotation.get(b"AF").ok(),
-                            limits,
-                            &mut associated_file_spec_ids,
-                        )?;
+    if demand.contains(FeatureDemand::FILE_ASSOCIATIONS) {
+        collect_associated_file_spec_ids(
+            document,
+            catalog.get(b"AF").ok(),
+            limits,
+            &mut associated_file_spec_ids,
+        )?;
+        for page_entry in pages {
+            if let Some(page) = page_entry.resolve(document) {
+                collect_associated_file_spec_ids(
+                    document,
+                    page.get(b"AF").ok(),
+                    limits,
+                    &mut associated_file_spec_ids,
+                )?;
+                if let Some(annotations) = page
+                    .get(b"Annots")
+                    .ok()
+                    .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                    .transpose()?
+                    .flatten()
+                    .and_then(|object| object.as_array().ok())
+                {
+                    for annotation in annotations {
+                        if let Some(annotation) =
+                            resolve_optional(document, annotation, limits.max_reference_depth)?
+                                .and_then(dictionary_based)
+                        {
+                            collect_associated_file_spec_ids(
+                                document,
+                                annotation.get(b"AF").ok(),
+                                limits,
+                                &mut associated_file_spec_ids,
+                            )?;
+                        }
                     }
                 }
             }
         }
-    }
-    for object in document.objects.values() {
-        if let Some(dictionary) = dictionary_based(object) {
-            collect_associated_file_spec_ids(
-                document,
-                dictionary.get(b"AF").ok(),
-                limits,
-                &mut associated_file_spec_ids,
-            )?;
+        for object in document.objects.values() {
+            if let Some(dictionary) = dictionary_based(object) {
+                collect_associated_file_spec_ids(
+                    document,
+                    dictionary.get(b"AF").ok(),
+                    limits,
+                    &mut associated_file_spec_ids,
+                )?;
+            }
         }
     }
     let mut embedded_files_with_invalid_mime = Vec::new();
@@ -459,126 +548,148 @@ pub(crate) fn inspect(
     let mut file_specs_missing_f_or_uf = Vec::new();
     let mut file_specs_missing_af_relationship = Vec::new();
     let mut file_specs_not_associated = Vec::new();
-    for (object_id, object) in &document.objects {
-        let Some(dictionary) = dictionary_based(object) else {
-            continue;
-        };
-        if !contains_key(dictionary, b"EF") {
-            continue;
-        }
-        let raw_object_id = *object_id;
-        let object_id = Some(raw_object_id.into());
-        if !contains_key(dictionary, b"F") || !contains_key(dictionary, b"UF") {
-            file_specs_missing_f_or_uf.push(RuleFailure {
-                object_id,
-                description: "embedded-file specification is missing /F or /UF".to_owned(),
-            });
-        }
-        if !file_spec::has_non_empty_string_entry(
-            document,
-            dictionary,
-            b"F",
-            limits.max_reference_depth,
-        )? || !file_spec::has_non_empty_string_entry(
-            document,
-            dictionary,
-            b"UF",
-            limits.max_reference_depth,
-        )? {
-            file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
-                object_id,
-                description: "embedded-file specification is missing or has an empty /F or /UF"
-                    .to_owned(),
-            });
-        }
-        if resolved_name(
-            document,
-            dictionary,
-            b"AFRelationship",
-            limits.max_reference_depth,
-        )?
-        .is_none()
-        {
-            file_specs_missing_af_relationship.push(RuleFailure {
-                object_id,
-                description: "associated-file specification is missing /AFRelationship".to_owned(),
-            });
-        }
-        if !associated_file_spec_ids.contains(&raw_object_id) {
-            file_specs_not_associated.push(RuleFailure {
-                object_id,
-                description: "embedded-file specification is not referenced by an /AF association"
-                    .to_owned(),
-            });
-        }
-        let Some(embedded_files) = dictionary
-            .get(b"EF")
-            .ok()
-            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-            .transpose()?
-            .flatten()
-            .and_then(dictionary_based)
-        else {
-            continue;
-        };
-        for key in [b"F".as_slice(), b"UF"] {
-            let Some(value) = embedded_files
-                .get(key)
+    if demand.contains(FeatureDemand::EMBEDDED_FILE_SPECIFICATIONS) {
+        for (object_id, object) in &document.objects {
+            let Some(dictionary) = dictionary_based(object) else {
+                continue;
+            };
+            if !contains_key(dictionary, b"EF") {
+                continue;
+            }
+            let raw_object_id = *object_id;
+            let object_id = Some(raw_object_id.into());
+            if demand.contains(FeatureDemand::EMBEDDED_FILE_STREAMS)
+                && (!contains_key(dictionary, b"F") || !contains_key(dictionary, b"UF"))
+            {
+                file_specs_missing_f_or_uf.push(RuleFailure {
+                    object_id,
+                    description: "embedded-file specification is missing /F or /UF".to_owned(),
+                });
+            }
+            if demand.contains(FeatureDemand::EMBEDDED_FILE_NAME_TREE)
+                && (!file_spec::has_non_empty_string_entry(
+                    document,
+                    dictionary,
+                    b"F",
+                    limits.max_reference_depth,
+                )? || !file_spec::has_non_empty_string_entry(
+                    document,
+                    dictionary,
+                    b"UF",
+                    limits.max_reference_depth,
+                )?)
+            {
+                file_specs_missing_or_empty_f_or_uf.push(RuleFailure {
+                    object_id,
+                    description: "embedded-file specification is missing or has an empty /F or /UF"
+                        .to_owned(),
+                });
+            }
+            if demand.contains(FeatureDemand::FILE_ASSOCIATIONS)
+                && resolved_name(
+                    document,
+                    dictionary,
+                    b"AFRelationship",
+                    limits.max_reference_depth,
+                )?
+                .is_none()
+            {
+                file_specs_missing_af_relationship.push(RuleFailure {
+                    object_id,
+                    description: "associated-file specification is missing /AFRelationship"
+                        .to_owned(),
+                });
+            }
+            if demand.contains(FeatureDemand::FILE_ASSOCIATIONS)
+                && !associated_file_spec_ids.contains(&raw_object_id)
+            {
+                file_specs_not_associated.push(RuleFailure {
+                    object_id,
+                    description:
+                        "embedded-file specification is not referenced by an /AF association"
+                            .to_owned(),
+                });
+            }
+            if !demand.contains(FeatureDemand::EMBEDDED_FILE_STREAMS) {
+                continue;
+            }
+            let Some(embedded_files) = dictionary
+                .get(b"EF")
                 .ok()
                 .map(|value| resolve_optional(document, value, limits.max_reference_depth))
                 .transpose()?
                 .flatten()
+                .and_then(dictionary_based)
             else {
                 continue;
             };
-            let valid_mime = value
-                .as_stream()
-                .ok()
-                .and_then(|stream| {
-                    stream
-                        .dict
-                        .get(b"Subtype")
+            for key in [b"F".as_slice(), b"UF"] {
+                let Some(value) = embedded_files
+                    .get(key)
+                    .ok()
+                    .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                    .transpose()?
+                    .flatten()
+                else {
+                    continue;
+                };
+                if demand.contains(FeatureDemand::FILE_ASSOCIATIONS) {
+                    let valid_mime = value
+                        .as_stream()
                         .ok()
-                        .and_then(|value| value.as_name().ok())
-                })
-                .is_some_and(is_mime_type);
-            if !valid_mime {
-                embedded_files_with_invalid_mime.push(RuleFailure {
-                    object_id,
-                    description: format!(
-                        "embedded-file stream /{} has no valid MIME /Subtype",
-                        String::from_utf8_lossy(key)
-                    ),
-                });
-            }
-            let valid_pdfa = value
-                .as_stream()
-                .ok()
-                .and_then(|stream| {
-                    stream
-                        .decompressed_content_with_limit(limits.max_decoded_stream_size)
-                        .ok()
-                })
-                .is_some_and(|bytes| {
-                    bytes.starts_with(b"%PDF-")
-                        && [
-                            crate::validation::ValidationProfile::PdfA1b,
-                            crate::validation::ValidationProfile::PdfA2b,
-                        ]
-                        .into_iter()
-                        .any(|profile| {
-                            crate::validation::validate_pdf_bytes(&bytes, Some(profile), limits)
-                                .is_ok_and(|report| report.is_compliant)
+                        .and_then(|stream| {
+                            stream
+                                .dict
+                                .get(b"Subtype")
+                                .ok()
+                                .and_then(|value| value.as_name().ok())
                         })
-                });
-            if !valid_pdfa {
-                embedded_files_not_pdfa.push(RuleFailure {
-                    object_id,
-                    description: format!(
-                        "embedded-file stream /{} is not a valid PDF/A-1 or PDF/A-2 document",
-                        String::from_utf8_lossy(key)
-                    ),
-                });
+                        .is_some_and(is_mime_type);
+                    if !valid_mime {
+                        embedded_files_with_invalid_mime.push(RuleFailure {
+                            object_id,
+                            description: format!(
+                                "embedded-file stream /{} has no valid MIME /Subtype",
+                                String::from_utf8_lossy(key)
+                            ),
+                        });
+                    }
+                }
+                if demand.contains(FeatureDemand::EMBEDDED_FILE_PDFA) {
+                    let valid_pdfa = value
+                        .as_stream()
+                        .ok()
+                        .and_then(|stream| {
+                            stream
+                                .decompressed_content_with_limit(limits.max_decoded_stream_size)
+                                .ok()
+                        })
+                        .is_some_and(|bytes| {
+                            bytes.starts_with(b"%PDF-")
+                                && [
+                                    crate::validation::ValidationProfile::PdfA1b,
+                                    crate::validation::ValidationProfile::PdfA2b,
+                                ]
+                                .into_iter()
+                                .any(|profile| {
+                                    crate::validation::validate_pdf_bytes(
+                                        &bytes,
+                                        Some(profile),
+                                        limits,
+                                    )
+                                    .is_ok_and(|report| report.is_compliant)
+                                })
+                        });
+                    if !valid_pdfa {
+                        embedded_files_not_pdfa.push(RuleFailure {
+                            object_id,
+                            description: format!(
+                                "embedded-file stream /{} is not a valid PDF/A-1 or PDF/A-2 document",
+                                String::from_utf8_lossy(key)
+                            ),
+                        });
+                    }
+                }
             }
         }
     }
@@ -699,6 +810,7 @@ fn inspect_optional_content(
     document: &Document,
     catalog: &lopdf::Dictionary,
     limits: &SafetyLimits,
+    demand: FeatureDemand,
 ) -> Result<OptionalContentFailures, PdfError> {
     // The configuration list is shared by PDF/A-2/3 naming and /AS checks and
     // PDF/UA-1 rules 7.10-1/2. Only dictionaries addressed by /D or /Configs
@@ -742,20 +854,25 @@ fn inspect_optional_content(
             }
         }
     }
-    let ocg_ids = properties
-        .get(b"OCGs")
-        .ok()
-        .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-        .transpose()?
-        .flatten()
-        .and_then(|object| object.as_array().ok())
-        .map(|values| {
-            values
-                .iter()
-                .filter_map(|value| value.as_reference().ok())
-                .collect::<BTreeSet<_>>()
-        })
-        .unwrap_or_default();
+    let inspect_extended = demand.contains(FeatureDemand::OPTIONAL_CONTENT_EXTENDED);
+    let ocg_ids = if inspect_extended {
+        properties
+            .get(b"OCGs")
+            .ok()
+            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+            .transpose()?
+            .flatten()
+            .and_then(|object| object.as_array().ok())
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(|value| value.as_reference().ok())
+                    .collect::<BTreeSet<_>>()
+            })
+            .unwrap_or_default()
+    } else {
+        BTreeSet::new()
+    };
     let mut names = BTreeSet::new();
     let mut missing_names = Vec::new();
     let mut duplicate_names = Vec::new();
@@ -766,7 +883,7 @@ fn inspect_optional_content(
         let name = configuration_name(document, configuration, limits)?;
         match name {
             Some(name) if !name.is_empty() => {
-                if !names.insert(name.clone()) {
+                if inspect_extended && !names.insert(name.clone()) {
                     duplicate_names.push(RuleFailure {
                         object_id,
                         description: format!(
@@ -790,13 +907,14 @@ fn inspect_optional_content(
                 description: format!("optional-content configuration {index} contains /AS"),
             });
         }
-        if let Some(order) = configuration
-            .get(b"Order")
-            .ok()
-            .map(|value| resolve_optional(document, value, limits.max_reference_depth))
-            .transpose()?
-            .flatten()
-            .and_then(|object| object.as_array().ok())
+        if inspect_extended
+            && let Some(order) = configuration
+                .get(b"Order")
+                .ok()
+                .map(|value| resolve_optional(document, value, limits.max_reference_depth))
+                .transpose()?
+                .flatten()
+                .and_then(|object| object.as_array().ok())
         {
             let mut ordered_ids = BTreeSet::new();
             collect_object_references(order, &mut ordered_ids);
@@ -993,6 +1111,7 @@ fn inspect_structure_tree(
     document: &Document,
     catalog: &lopdf::Dictionary,
     limits: &SafetyLimits,
+    demand: FeatureDemand,
 ) -> Result<StructureTreeSummary, PdfError> {
     let Ok(entry) = catalog.get(b"StructTreeRoot") else {
         return Ok(StructureTreeSummary::default());
@@ -1077,12 +1196,16 @@ fn inspect_structure_tree(
         language_failures_pdfua1: Vec::new(),
         invalid_unicode_structure_types: Vec::new(),
     };
-    let role_map = root_dictionary
-        .get(b"RoleMap")
-        .ok()
-        .map(|value| inspect_role_map(document, value, limits))
-        .transpose()?
-        .unwrap_or_default();
+    let role_map = if demand.contains(FeatureDemand::STRUCTURE_TREE) {
+        root_dictionary
+            .get(b"RoleMap")
+            .ok()
+            .map(|value| inspect_role_map(document, value, limits))
+            .transpose()?
+            .unwrap_or_default()
+    } else {
+        RoleMapSummary::default()
+    };
     summary.role_map_has_cycle = role_map.has_cycle;
     summary.role_map_has_standard_remap = role_map.has_standard_remap;
     let mut ancestors = BTreeSet::new();
@@ -1099,6 +1222,7 @@ fn inspect_structure_tree(
             &mut ancestors,
             &mut steps,
             0,
+            demand,
             StructureTraversalContext {
                 parent_standard_type: None,
                 parent_has_lang: false,
@@ -1107,15 +1231,17 @@ fn inspect_structure_tree(
             },
         )?;
     }
-    summary.has_unmapped_type = summary.structure_types.iter().any(|structure_type| {
-        !is_standard_structure_type(structure_type)
-            && !resolves_to_standard_type(
-                structure_type,
-                &role_map.mappings,
-                limits.max_object_count,
-            )
-    });
-    if summary.uses_hn {
+    if demand.contains(FeatureDemand::STRUCTURE_TREE) {
+        summary.has_unmapped_type = summary.structure_types.iter().any(|structure_type| {
+            !is_standard_structure_type(structure_type)
+                && !resolves_to_standard_type(
+                    structure_type,
+                    &role_map.mappings,
+                    limits.max_object_count,
+                )
+        });
+    }
+    if demand.contains(FeatureDemand::STRUCTURE_RULES) && summary.uses_hn {
         summary.heading_elements_with_h_in_presence_of_hn =
             std::mem::take(&mut summary.h_heading_elements);
     }
@@ -1298,6 +1424,7 @@ fn inspect_structure_kids(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
+    demand: FeatureDemand,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
@@ -1325,6 +1452,7 @@ fn inspect_structure_kids(
                     ancestors,
                     steps,
                     depth + 1,
+                    demand,
                     context,
                 )?;
             }
@@ -1363,6 +1491,7 @@ fn inspect_structure_kids(
                 ancestors,
                 steps,
                 depth,
+                demand,
                 context,
             );
             if let Some(structure_id) = structure_id {
@@ -1384,35 +1513,40 @@ fn inspect_structure_element(
     ancestors: &mut BTreeSet<ObjectId>,
     steps: &mut usize,
     depth: usize,
+    demand: FeatureDemand,
     context: StructureTraversalContext<'_, '_>,
 ) -> Result<(), PdfError> {
-    let parent_has_lang = context.parent_has_lang;
-    let parent_page_id = context.parent_page_id;
-    if let Some(failure) = crate::language::inspect_dictionary(
-        document,
-        limits,
-        dictionary,
-        object_id,
-        "structure element",
-    ) {
+    if demand.contains(FeatureDemand::PDFA_STRUCTURE_LANGUAGE)
+        && let Some(failure) = crate::language::inspect_dictionary(
+            document,
+            limits,
+            dictionary,
+            object_id,
+            "structure element",
+        )
+    {
         summary.language_failures.push(failure);
     }
-    if let Some(failure) = crate::language::inspect_dictionary_pdfa23(
-        document,
-        limits,
-        dictionary,
-        object_id,
-        "structure element",
-    ) {
+    if demand.contains(FeatureDemand::PDFA_STRUCTURE_LANGUAGE)
+        && let Some(failure) = crate::language::inspect_dictionary_pdfa23(
+            document,
+            limits,
+            dictionary,
+            object_id,
+            "structure element",
+        )
+    {
         summary.language_failures_pdfa23.push(failure);
     }
-    if let Some(failure) = crate::language::inspect_dictionary_pdfua1(
-        document,
-        limits,
-        dictionary,
-        object_id,
-        "structure element",
-    ) {
+    if demand.contains(FeatureDemand::PDFUA_STRUCTURE_LANGUAGE)
+        && let Some(failure) = crate::language::inspect_dictionary_pdfua1(
+            document,
+            limits,
+            dictionary,
+            object_id,
+            "structure element",
+        )
+    {
         summary.language_failures_pdfua1.push(failure);
     }
     let Some(structure_type) = dictionary
@@ -1430,6 +1564,28 @@ fn inspect_structure_element(
         return Ok(());
     };
     summary.structure_types.insert(structure_type.to_vec());
+    if demand.needs_structure_names() && !crate::unicode_names::is_valid_utf8(structure_type) {
+        summary.invalid_unicode_structure_types.push(RuleFailure {
+            object_id,
+            description: "a structure element /S name is not valid UTF-8".to_owned(),
+        });
+    }
+    if !demand.contains(FeatureDemand::STRUCTURE_RULES) {
+        inspect_structure_children(
+            document,
+            dictionary,
+            object_id,
+            limits,
+            summary,
+            ancestors,
+            steps,
+            depth,
+            demand,
+            context,
+            structure_type,
+        )?;
+        return Ok(());
+    }
     if !contains_key(dictionary, b"P") {
         summary.structure_elements_missing_parent.push(RuleFailure {
             object_id,
@@ -1739,12 +1895,6 @@ fn inspect_structure_element(
                 .to_owned(),
         });
     }
-    if !crate::unicode_names::is_valid_utf8(structure_type) {
-        summary.invalid_unicode_structure_types.push(RuleFailure {
-            object_id,
-            description: "a structure element /S name is not valid UTF-8".to_owned(),
-        });
-    }
     if resolved_type == Some(b"Table".as_slice())
         && table_contains_invalid_child(
             document,
@@ -1955,43 +2105,78 @@ fn inspect_structure_element(
                 description: "a TFoot structure element contains a child other than TR".to_owned(),
             });
     }
+    inspect_structure_children(
+        document,
+        dictionary,
+        object_id,
+        limits,
+        summary,
+        ancestors,
+        steps,
+        depth,
+        demand,
+        context,
+        structure_type,
+    )?;
+    Ok(())
+}
+
+fn inspect_structure_children(
+    document: &Document,
+    dictionary: &lopdf::Dictionary,
+    object_id: Option<PdfObjectId>,
+    limits: &SafetyLimits,
+    summary: &mut StructureTreeSummary,
+    ancestors: &mut BTreeSet<ObjectId>,
+    steps: &mut usize,
+    depth: usize,
+    demand: FeatureDemand,
+    context: StructureTraversalContext<'_, '_>,
+    structure_type: &[u8],
+) -> Result<(), PdfError> {
     let contains_lang = contains_key(dictionary, b"Lang");
-    if has_text_attribute(document, dictionary, limits, b"ActualText")?
-        && !contains_lang
-        && !parent_has_lang
-    {
-        summary.actual_text_language_failures.push(RuleFailure {
-            object_id,
-            description:
-                "a structure element /ActualText string has no local, inherited, or catalog /Lang"
-                    .to_owned(),
-        });
-    }
-    if has_text_attribute(document, dictionary, limits, b"Alt")?
-        && !contains_lang
-        && !parent_has_lang
-    {
-        summary.alt_text_language_failures.push(RuleFailure {
-            object_id,
-            description:
-                "a structure element /Alt string has no local, inherited, or catalog /Lang"
-                    .to_owned(),
-        });
-    }
-    if has_text_attribute(document, dictionary, limits, b"E")? && !contains_lang && !parent_has_lang
-    {
-        summary.expansion_text_language_failures.push(RuleFailure {
-            object_id,
-            description: "a structure element /E string has no local, inherited, or catalog /Lang"
-                .to_owned(),
-        });
-    }
     let page_id = dictionary
         .get(b"Pg")
         .ok()
         .and_then(|value| value.as_reference().ok())
-        .or(parent_page_id);
-    if (contains_lang || parent_has_lang)
+        .or(context.parent_page_id);
+    if demand.contains(FeatureDemand::STRUCTURE_RULES) {
+        if has_text_attribute(document, dictionary, limits, b"ActualText")?
+            && !contains_lang
+            && !context.parent_has_lang
+        {
+            summary.actual_text_language_failures.push(RuleFailure {
+                object_id,
+                description:
+                    "a structure element /ActualText string has no local, inherited, or catalog /Lang"
+                        .to_owned(),
+            });
+        }
+        if has_text_attribute(document, dictionary, limits, b"Alt")?
+            && !contains_lang
+            && !context.parent_has_lang
+        {
+            summary.alt_text_language_failures.push(RuleFailure {
+                object_id,
+                description:
+                    "a structure element /Alt string has no local, inherited, or catalog /Lang"
+                        .to_owned(),
+            });
+        }
+        if has_text_attribute(document, dictionary, limits, b"E")?
+            && !contains_lang
+            && !context.parent_has_lang
+        {
+            summary.expansion_text_language_failures.push(RuleFailure {
+                object_id,
+                description:
+                    "a structure element /E string has no local, inherited, or catalog /Lang"
+                        .to_owned(),
+            });
+        }
+    }
+    if demand.contains(FeatureDemand::STRUCTURE_TREE)
+        && (contains_lang || context.parent_has_lang)
         && let Some(page_id) = page_id
         && let Ok(kids) = dictionary.get(b"K")
         && let Some(kids) = resolve_optional(document, kids, limits.max_reference_depth)?
@@ -2019,13 +2204,19 @@ fn inspect_structure_element(
             ancestors,
             steps,
             depth + 1,
+            demand,
             StructureTraversalContext {
-                parent_standard_type: resolved_standard_type(
-                    structure_type,
-                    context.role_map,
-                    limits.max_object_count,
-                ),
-                parent_has_lang: parent_has_lang || contains_lang,
+                parent_standard_type: demand
+                    .contains(FeatureDemand::STRUCTURE_RULES)
+                    .then(|| {
+                        resolved_standard_type(
+                            structure_type,
+                            context.role_map,
+                            limits.max_object_count,
+                        )
+                    })
+                    .flatten(),
+                parent_has_lang: context.parent_has_lang || contains_lang,
                 parent_page_id: page_id,
                 role_map: context.role_map,
             },
@@ -3323,6 +3514,8 @@ fn inspect_name_tree(
     document: &Document,
     node: &Object,
     limits: &SafetyLimits,
+    inspect_file_specs: bool,
+    inspect_embedded_file_names: bool,
     failures: &mut Vec<RuleFailure>,
     file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
@@ -3349,6 +3542,8 @@ fn inspect_name_tree(
         document,
         node,
         limits,
+        inspect_file_specs,
+        inspect_embedded_file_names,
         failures,
         file_specs_missing_or_empty_f_or_uf,
         ancestors,
@@ -3365,6 +3560,8 @@ fn inspect_name_tree_node(
     document: &Document,
     node: &Object,
     limits: &SafetyLimits,
+    inspect_file_specs: bool,
+    inspect_embedded_file_names: bool,
     failures: &mut Vec<RuleFailure>,
     file_specs_missing_or_empty_f_or_uf: &mut Vec<RuleFailure>,
     ancestors: &mut BTreeSet<ObjectId>,
@@ -3381,7 +3578,8 @@ fn inspect_name_tree_node(
             .and_then(|object| object.as_array().ok())
     {
         for value in names.iter().skip(1).step_by(2) {
-            if value.as_reference().is_err()
+            if inspect_embedded_file_names
+                && value.as_reference().is_err()
                 && let Some(file_spec_dictionary) =
                     resolve_optional(document, value, limits.max_reference_depth)?
                         .and_then(dictionary_based)
@@ -3404,12 +3602,14 @@ fn inspect_name_tree_node(
                         .to_owned(),
                 });
             }
-            if let Some(failure) = file_spec::inspect(
-                document,
-                value,
-                limits,
-                "file specification in the EmbeddedFiles name tree",
-            )? {
+            if inspect_file_specs
+                && let Some(failure) = file_spec::inspect(
+                    document,
+                    value,
+                    limits,
+                    "file specification in the EmbeddedFiles name tree",
+                )?
+            {
                 failures.push(failure);
             }
         }
@@ -3423,6 +3623,8 @@ fn inspect_name_tree_node(
                 document,
                 value,
                 limits,
+                inspect_file_specs,
+                inspect_embedded_file_names,
                 failures,
                 file_specs_missing_or_empty_f_or_uf,
                 ancestors,
@@ -3438,7 +3640,7 @@ fn inspect_name_tree_node(
 mod tests {
     use lopdf::{Document, Object, dictionary};
 
-    use super::inspect;
+    use super::{FeatureDemand, inspect};
     use crate::{PdfError, SafetyLimits};
 
     #[test]
@@ -3466,7 +3668,12 @@ mod tests {
         );
 
         assert!(matches!(
-            inspect(&document, &[], &SafetyLimits::default()),
+            inspect(
+                &document,
+                &[],
+                &SafetyLimits::default(),
+                FeatureDemand::all()
+            ),
             Err(PdfError::ReferenceDepth(_))
         ));
     }
@@ -3495,9 +3702,68 @@ mod tests {
         );
 
         assert!(matches!(
-            inspect(&document, &[], &SafetyLimits::default()),
+            inspect(
+                &document,
+                &[],
+                &SafetyLimits::default(),
+                FeatureDemand::all()
+            ),
             Err(PdfError::ReferenceDepth(_))
         ));
+    }
+
+    #[test]
+    fn skips_embedded_files_name_tree_for_pdfa2b() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Names" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "EmbeddedFiles" => Object::Reference((3, 0)) }),
+        );
+        document.objects.insert(
+            (3, 0),
+            Object::Dictionary(dictionary! { "Kids" => vec![Object::Reference((3, 0))] }),
+        );
+
+        inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            FeatureDemand::for_profile(crate::validation::ValidationProfile::PdfA2b),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn skips_structure_tree_for_pdfa1b() {
+        let mut document = Document::with_version("1.4");
+        document.trailer.set("Root", Object::Reference((1, 0)));
+        document.objects.insert(
+            (1, 0),
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "StructTreeRoot" => Object::Reference((2, 0)),
+            }),
+        );
+        document.objects.insert(
+            (2, 0),
+            Object::Dictionary(dictionary! { "K" => vec![Object::Reference((2, 0))] }),
+        );
+
+        inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            FeatureDemand::for_profile(crate::validation::ValidationProfile::PdfA1b),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -3527,7 +3793,13 @@ mod tests {
             .objects
             .insert((4, 0), Object::Dictionary(dictionary! { "S" => "Span" }));
 
-        let features = inspect(&document, &[], &SafetyLimits::default()).expect("inspect");
+        let features = inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            FeatureDemand::all(),
+        )
+        .expect("inspect");
         assert!(features.struct_tree_root_present);
         assert!(features.struct_tree_root_valid);
     }
@@ -3587,7 +3859,7 @@ mod tests {
 
             let limits = SafetyLimits::default();
             assert!(matches!(
-                inspect(&document, &[], &limits),
+                inspect(&document, &[], &limits, FeatureDemand::all()),
                 Err(PdfError::TableSpanLimit { actual, limit })
                     if actual > limit && limit == SafetyLimits::DEFAULT_MAX_TABLE_SPAN
             ));
@@ -3662,6 +3934,12 @@ mod tests {
             }),
         );
 
-        inspect(&document, &[], &SafetyLimits::default()).unwrap();
+        inspect(
+            &document,
+            &[],
+            &SafetyLimits::default(),
+            FeatureDemand::all(),
+        )
+        .unwrap();
     }
 }
