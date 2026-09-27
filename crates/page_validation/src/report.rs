@@ -199,17 +199,27 @@ impl ValidationReport {
         message: impl Into<String>,
         category: FailureCategory,
     ) -> Self {
+        let (rules, checks) = match category {
+            FailureCategory::Metadata | FailureCategory::Conformance => (
+                ValidationCounts {
+                    total: 1,
+                    passed: 0,
+                    failed: 1,
+                },
+                ValidationCheckCounts { failed: 1 },
+            ),
+            FailureCategory::Operational | FailureCategory::Parser => (
+                ValidationCounts::default(),
+                ValidationCheckCounts::default(),
+            ),
+        };
         Self {
             source: None,
             profile,
             is_compliant: false,
             preliminary: false,
-            rules: ValidationCounts {
-                total: 1,
-                passed: 0,
-                failed: 1,
-            },
-            checks: ValidationCheckCounts { failed: 1 },
+            rules,
+            checks,
             document: None,
             failures: vec![ValidationFailure {
                 rule_id: rule_id.to_owned(),
@@ -284,8 +294,42 @@ impl fmt::Display for ValidationReport {
 
 #[cfg(test)]
 mod tests {
-    use super::ValidationReport;
+    use super::{FailureCategory, ValidationReport};
     use crate::{PdfError, ValidationError, ValidationProfile};
+
+    #[test]
+    fn parser_and_operational_failures_have_zero_validation_counts() {
+        for category in [FailureCategory::Parser, FailureCategory::Operational] {
+            let report = ValidationReport::single_failure(
+                ValidationProfile::PdfA1b,
+                "TEST-001",
+                "failure",
+                category,
+            );
+
+            assert_eq!(report.rules.total, 0);
+            assert_eq!(report.rules.passed, 0);
+            assert_eq!(report.rules.failed, 0);
+            assert_eq!(report.checks.failed, 0);
+        }
+    }
+
+    #[test]
+    fn metadata_and_conformance_failures_have_one_failed_rule_and_check() {
+        for category in [FailureCategory::Metadata, FailureCategory::Conformance] {
+            let report = ValidationReport::single_failure(
+                ValidationProfile::PdfA1b,
+                "TEST-001",
+                "failure",
+                category,
+            );
+
+            assert_eq!(report.rules.total, 1);
+            assert_eq!(report.rules.passed, 0);
+            assert_eq!(report.rules.failed, 1);
+            assert_eq!(report.checks.failed, 1);
+        }
+    }
 
     #[test]
     fn indirect_object_count_errors_use_the_active_profile_rule() {
@@ -314,6 +358,9 @@ mod tests {
                 }),
             );
             assert_eq!(report.failures[0].rule_id, expected_rule_id);
+            assert_eq!(report.rules.total, 1);
+            assert_eq!(report.rules.failed, 1);
+            assert_eq!(report.checks.failed, 1);
         }
     }
 }

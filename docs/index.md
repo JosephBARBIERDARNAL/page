@@ -66,7 +66,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    Ships as an approximately 8 MB binary with peak RSS 3x to 8x lower than veraPDF.
+    Ships as an approximately ~8 MB binary, with **zero runtime requirements**.
 
 - :material-application-brackets-outline: **Works anywhere**
 
