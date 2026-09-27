@@ -1078,7 +1078,8 @@ mod tests {
     use std::time::Duration;
 
     use crate::{
-        FailureCategory, ValidationCounts, ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure,
+        ValidationProfile, ValidationReport,
     };
 
     use super::*;
@@ -1107,9 +1108,12 @@ mod tests {
             profile: ValidationProfile::PdfA1b,
             is_compliant: passed,
             preliminary: true,
-            checks: ValidationCounts {
+            rules: ValidationCounts {
                 total: 1,
                 passed: usize::from(passed),
+                failed: usize::from(!passed),
+            },
+            checks: ValidationCheckCounts {
                 failed: usize::from(!passed),
             },
             document: None,

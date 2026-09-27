@@ -73,9 +73,9 @@ pub fn assert_single_failure<'a>(
     rule_id: &str,
 ) -> &'a ValidationFailure {
     let total = ValidationProfile::PdfA1b.implemented_check_count();
-    assert_eq!(report.checks.total, total);
-    assert_eq!(report.checks.failed, 1);
-    assert_eq!(report.checks.passed, total - 1);
+    assert_eq!(report.rules.total, total);
+    assert_eq!(report.rules.failed, 1);
+    assert_eq!(report.rules.passed, total - 1);
     report
         .failures
         .iter()

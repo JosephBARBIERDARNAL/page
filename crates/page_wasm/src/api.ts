@@ -175,6 +175,10 @@ export interface ValidationCounts {
   failed: number;
 }
 
+export interface ValidationCheckCounts {
+  failed: number;
+}
+
 export interface PdfDocument {
   version: string;
   encrypted: boolean;
@@ -187,11 +191,8 @@ interface RawValidationReport {
   profile: string;
   is_compliant: boolean;
   preliminary: boolean;
-  checks: {
-    total: number;
-    passed: number;
-    failed: number;
-  };
+  rules: ValidationCounts;
+  checks: ValidationCheckCounts;
   document: {
     version: string;
     encrypted: boolean;
@@ -214,7 +215,8 @@ export class ValidationReport {
   readonly profile: ValidationProfile;
   readonly isCompliant: boolean;
   readonly preliminary: boolean;
-  readonly checks: ValidationCounts;
+  readonly rules: ValidationCounts;
+  readonly checks: ValidationCheckCounts;
   readonly document: PdfDocument | null;
   readonly failures: ValidationFailure[];
   private readonly raw: RawValidationReport;
@@ -225,6 +227,7 @@ export class ValidationReport {
     this.profile = raw.profile as ValidationProfile;
     this.isCompliant = raw.is_compliant;
     this.preliminary = raw.preliminary;
+    this.rules = raw.rules;
     this.checks = raw.checks;
     this.document = raw.document
       ? {

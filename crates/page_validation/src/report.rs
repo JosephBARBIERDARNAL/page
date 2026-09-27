@@ -61,9 +61,9 @@ pub(crate) struct RuleFailure {
     pub(crate) description: String,
 }
 
-/// A tally of how many implemented checks ran against a document and how many of those passed or failed.
+/// A tally of how many implemented rules ran against a document and how many of those passed or failed.
 ///
-/// `total` is always `passed + failed`; it does not count checks for rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
+/// `total` is always `passed + failed`; it does not count rules that are not yet implemented for the report's `ValidationProfile`, so a `is_compliant` report can still be missing coverage that `ValidationProfile::implemented_check_count` and the corpus/differential tooling track separately.
 ///
 /// ## Examples
 ///
@@ -84,7 +84,14 @@ pub struct ValidationCounts {
     pub failed: usize,
 }
 
-/// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many checks ran, and every recorded `ValidationFailure`.
+/// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
+/// rule can contribute more than one failed check.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct ValidationCheckCounts {
+    pub failed: usize,
+}
+
+/// The outcome of validating one document against one `ValidationProfile`: whether it passed, how many rules passed or failed, how many raw checks failed, and every recorded `ValidationFailure`.
 ///
 /// `is_compliant` is `true` only when every implemented check for `profile` passed; `preliminary` marks the result as based on this crate's still-growing rule subset rather than full veraPDF conformance. `document` holds the normalized document used during validation, or `None` when validation stopped before one could be built. Use `Self::exit_code` to translate a report into the process exit status this crate's CLI relies on, and `Self::has_operational_failure` to check whether any recorded failure is `FailureCategory::Operational` rather than a conformance finding.
 ///
@@ -104,7 +111,8 @@ pub struct ValidationReport {
     pub profile: ValidationProfile,
     pub is_compliant: bool,
     pub preliminary: bool,
-    pub checks: ValidationCounts,
+    pub rules: ValidationCounts,
+    pub checks: ValidationCheckCounts,
     pub document: Option<PdfDocument>,
     pub failures: Vec<ValidationFailure>,
 }
@@ -196,11 +204,12 @@ impl ValidationReport {
             profile,
             is_compliant: false,
             preliminary: false,
-            checks: ValidationCounts {
+            rules: ValidationCounts {
                 total: 1,
                 passed: 0,
                 failed: 1,
             },
+            checks: ValidationCheckCounts { failed: 1 },
             document: None,
             failures: vec![ValidationFailure {
                 rule_id: rule_id.to_owned(),
@@ -247,9 +256,10 @@ impl fmt::Display for ValidationReport {
         )?;
         writeln!(
             output,
-            "Checks: {} passed, {} failed, {} total",
-            self.checks.passed, self.checks.failed, self.checks.total
+            "Rules: {} passed, {} failed, {} total",
+            self.rules.passed, self.rules.failed, self.rules.total
         )?;
+        writeln!(output, "Checks: {} failed", self.checks.failed)?;
         if let Some(document) = &self.document {
             writeln!(
                 output,

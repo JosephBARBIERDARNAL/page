@@ -74,6 +74,9 @@ describe("page-validation", () => {
     expect(report.isCompliant).toBe(false);
     expect(report.failures.length).toBeGreaterThan(0);
     expect(report.failures[0]?.category).toBe(FailureCategory.CONFORMANCE);
+    expect(report.rules.total).toBeGreaterThan(0);
+    expect(report.rules.failed).toBeGreaterThan(0);
+    expect(report.checks.failed).toBeGreaterThan(0);
     expect(report.exitCode()).toBe(2);
   });
 

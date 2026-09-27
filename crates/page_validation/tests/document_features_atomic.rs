@@ -26,9 +26,9 @@ fn document_feature_failures_attach_the_catalog_object() {
             "{case}: missing catalog object ID"
         );
         let total = ValidationProfile::PdfA1b.implemented_check_count();
-        assert_eq!(report.checks.total, total);
+        assert_eq!(report.rules.total, total);
         let expected_failed = if rule_id == FILE_SPEC { 2 } else { 1 };
-        assert_eq!(report.checks.failed, expected_failed);
-        assert_eq!(report.checks.passed, total - expected_failed);
+        assert_eq!(report.rules.failed, expected_failed);
+        assert_eq!(report.rules.passed, total - expected_failed);
     }
 }

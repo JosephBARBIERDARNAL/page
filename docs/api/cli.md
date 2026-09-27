@@ -42,6 +42,8 @@ page document.pdf --format details
 
 ```
 Result  : Non-conformant
+Rules   : 11 failed rules / 134 total
+Checks  : 11 failed checks
 Profile : PDF/A-1b
 Time    : 0.007s
 
@@ -75,6 +77,14 @@ page document.pdf --format json
   "file": "document.pdf",
   "profile": "1b",
   "valid": false,
+  "rules": {
+    "total": 134,
+    "passed": 132,
+    "failed": 2
+  },
+  "checks": {
+    "failed": 2
+  },
   "failures": [
     {
       "rule": "PDFA1B-TRAILER-ID-001",

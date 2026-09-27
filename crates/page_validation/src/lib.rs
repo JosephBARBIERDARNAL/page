@@ -42,7 +42,9 @@ pub use metadata::{DocumentMetadata, XmpMetadata};
 pub use model::{
     FontSummary, IccHeader, OutputIntentSummary, OutputIntentsSummary, PdfDocument, PdfObjectId,
 };
-pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
+pub use report::{
+    FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure, ValidationReport,
+};
 pub use validation::{
     ComplianceResult, ValidationProfile, is_pdf_compliant, is_pdf_compliant_bytes, validate_pdf,
     validate_pdf_bytes, validate_pdf_bytes_fast, validate_pdf_fast,

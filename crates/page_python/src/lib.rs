@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use page_validation::{
     FailureCategory as RustFailureCategory, PdfObjectId as RustPdfObjectId,
-    SafetyLimits as RustSafetyLimits, ValidationCounts as RustValidationCounts,
-    ValidationFailure as RustValidationFailure, ValidationProfile as RustValidationProfile,
-    ValidationReport as RustValidationReport,
+    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
+    ValidationCounts as RustValidationCounts, ValidationFailure as RustValidationFailure,
+    ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
@@ -343,6 +343,28 @@ impl ValidationCounts {
     }
 }
 
+#[pyclass(name = "ValidationCheckCounts", frozen, from_py_object)]
+#[derive(Clone)]
+struct ValidationCheckCounts {
+    #[pyo3(get)]
+    failed: usize,
+}
+
+impl From<RustValidationCheckCounts> for ValidationCheckCounts {
+    fn from(counts: RustValidationCheckCounts) -> Self {
+        Self {
+            failed: counts.failed,
+        }
+    }
+}
+
+#[pymethods]
+impl ValidationCheckCounts {
+    fn __repr__(&self) -> String {
+        format!("ValidationCheckCounts(failed={})", self.failed)
+    }
+}
+
 #[pyclass(name = "PdfDocument", frozen, from_py_object)]
 #[derive(Clone)]
 struct PdfDocument {
@@ -395,7 +417,12 @@ impl ValidationReport {
     }
 
     #[getter]
-    fn checks(&self) -> ValidationCounts {
+    fn rules(&self) -> ValidationCounts {
+        self.inner.rules.into()
+    }
+
+    #[getter]
+    fn checks(&self) -> ValidationCheckCounts {
         self.inner.checks.into()
     }
 
@@ -515,6 +542,7 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PdfObjectId>()?;
     module.add_class::<ValidationFailure>()?;
     module.add_class::<ValidationCounts>()?;
+    module.add_class::<ValidationCheckCounts>()?;
     module.add_class::<PdfDocument>()?;
     module.add_class::<ValidationReport>()?;
     module.add_function(wrap_pyfunction!(is_pdf_compliant, module)?)?;
