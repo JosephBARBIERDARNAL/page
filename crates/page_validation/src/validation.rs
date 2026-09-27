@@ -4762,21 +4762,23 @@ mod tests {
 
     #[test]
     fn object_limit_failures_count_each_failed_object() {
-        let mut limits = crate::object_limits::ObjectLimitsSummary::default();
-        limits.out_of_range_integers = vec![
-            PdfObjectId {
-                object_number: 10,
-                generation: 0,
-            },
-            PdfObjectId {
-                object_number: 11,
-                generation: 0,
-            },
-            PdfObjectId {
-                object_number: 12,
-                generation: 0,
-            },
-        ];
+        let limits = crate::object_limits::ObjectLimitsSummary {
+            out_of_range_integers: vec![
+                PdfObjectId {
+                    object_number: 10,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 11,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 12,
+                    generation: 0,
+                },
+            ],
+            ..Default::default()
+        };
         let mut failures = ValidationFailures::default();
 
         validate_object_limits(
@@ -4792,17 +4794,19 @@ mod tests {
 
     #[test]
     fn stream_safety_failures_count_each_failed_stream() {
-        let mut streams = crate::stream_safety::StreamSafetySummary::default();
-        streams.invalid_lengths = vec![
-            PdfObjectId {
-                object_number: 20,
-                generation: 0,
-            },
-            PdfObjectId {
-                object_number: 21,
-                generation: 0,
-            },
-        ];
+        let streams = crate::stream_safety::StreamSafetySummary {
+            invalid_lengths: vec![
+                PdfObjectId {
+                    object_number: 20,
+                    generation: 0,
+                },
+                PdfObjectId {
+                    object_number: 21,
+                    generation: 0,
+                },
+            ],
+            ..Default::default()
+        };
         let mut failures = ValidationFailures::default();
 
         validate_stream_safety(
