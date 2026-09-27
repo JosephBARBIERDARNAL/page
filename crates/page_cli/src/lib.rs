@@ -1,4 +1,4 @@
-//! Shared presentation helpers for the `page` and `verapdf-diff` binaries.
+//! Shared presentation helpers for the CLI binaries.
 
 pub mod output;
 pub mod spinner;

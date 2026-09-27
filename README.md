@@ -53,6 +53,8 @@ Time    : 0.052s
 ```console
 $ page document.pdf --profile ua1 --format details
 Result  : Non-conformant
+Rules   : 11 failed rules / 134 total
+Checks  : 24 failed checks
 Profile : PDF/UA-1
 Time    : 0.147s
 

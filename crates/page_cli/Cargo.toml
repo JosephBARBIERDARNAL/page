@@ -12,10 +12,6 @@ name = "page"
 path = "src/main.rs"
 
 [[bin]]
-name = "verapdf-diff"
-path = "src/bin/verapdf-diff.rs"
-
-[[bin]]
 name = "page-corpus"
 path = "src/bin/page-corpus.rs"
 required-features = ["internal"]

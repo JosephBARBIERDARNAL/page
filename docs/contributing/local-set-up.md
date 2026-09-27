@@ -28,19 +28,6 @@ Install these tools before setting up the project:
 - [`uv`](https://docs.astral.sh/uv/) if you want to preview the documentation website
 - (optional but recommended) [`just`](https://github.com/casey/just) for running project tasks, see `justfile` file
 
-## Install veraPDF
-
-Download the [veraPDF 1.30.2 Greenfield installer](https://software.verapdf.org/rel/1.30/), extract it, and run `verapdf-install` on macOS/Linux or `verapdf-install.bat` on Windows.
-
-Put the installed CLI on `PATH`, or point the project to it explicitly:
-
-```bash
-export VERAPDF_BIN=/path/to/verapdf/bin/verapdf
-"$VERAPDF_BIN" --version
-```
-
-The version must be 1.30.x; 1.30.2 is recommended.
-
 ## Install dependencies
 
 Fetch the locked Rust dependencies:
