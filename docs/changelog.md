@@ -1,6 +1,6 @@
 ## Dev
 
-- Feat: Report distinct failed rules and raw failed checks across APIs and detailed CLI output
+- Feat: Report distinct failed rules and raw failed checks across APIs and detailed CLI output [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
 - Perf: Consolidate raw syntax and stream scans [#328](https://github.com/JosephBARBIERDARNAL/page/issues/328)
 - Perf: Cache font usages, shown bytes, CIDs, and embedded font streams [#327](https://github.com/JosephBARBIERDARNAL/page/issues/327)
 - Perf: Defer whole-document font summaries on the fast validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
