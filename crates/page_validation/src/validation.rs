@@ -3755,7 +3755,6 @@ fn finish_report(
         source: None,
         profile,
         is_compliant: failures.is_empty(),
-        preliminary: false,
         rules: ValidationCounts {
             total: total_rules,
             passed: total_rules.saturating_sub(failed_rules),

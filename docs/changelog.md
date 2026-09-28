@@ -1,14 +1,15 @@
 ## Dev
 
-- Refactor: Replace `ttf-parser` with Fontations `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
-- Feat: Report distinct failed rules and raw failed checks across APIs and detailed CLI output [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
+- Refactor: Remove the obsolete validation report status field
+- Refactor: Replace `ttf-parser` with `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
+- Feat: Report distinct failed rules and raw failed checks [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
 - Perf: Consolidate raw syntax and stream scans [#328](https://github.com/JosephBARBIERDARNAL/page/issues/328)
 - Perf: Cache font usages, shown bytes, CIDs, and embedded font streams [#327](https://github.com/JosephBARBIERDARNAL/page/issues/327)
-- Perf: Defer whole-document font summaries on the fast validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
+- Perf: Defer whole-document font summaries on the lazy validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
 - Doc: Add page dedicated to safety limits [#320](https://github.com/JosephBARBIERDARNAL/page/issues/320)
 - Perf: Expand the benchmark with profile comparisons and a feature-heavy fixture
 - Perf: Make document feature inspection profile-demand driven [#325](https://github.com/JosephBARBIERDARNAL/page/issues/325)
-- Perf: Inferred-profile summary mode now uses fail-fast validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
+- Perf: Inferred-profile summary mode now uses lazy validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
 
 ## 0.7.0
 

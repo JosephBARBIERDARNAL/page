@@ -412,11 +412,6 @@ impl ValidationReport {
     }
 
     #[getter]
-    fn preliminary(&self) -> bool {
-        self.inner.preliminary
-    }
-
-    #[getter]
     fn rules(&self) -> ValidationCounts {
         self.inner.rules.into()
     }

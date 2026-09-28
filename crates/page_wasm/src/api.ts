@@ -190,7 +190,6 @@ interface RawValidationReport {
   source: string | null;
   profile: string;
   is_compliant: boolean;
-  preliminary: boolean;
   rules: ValidationCounts;
   checks: ValidationCheckCounts;
   document: {
@@ -214,7 +213,6 @@ export class ValidationReport {
   readonly source: string | null;
   readonly profile: ValidationProfile;
   readonly isCompliant: boolean;
-  readonly preliminary: boolean;
   readonly rules: ValidationCounts;
   readonly checks: ValidationCheckCounts;
   readonly document: PdfDocument | null;
@@ -226,7 +224,6 @@ export class ValidationReport {
     this.source = raw.source;
     this.profile = raw.profile as ValidationProfile;
     this.isCompliant = raw.is_compliant;
-    this.preliminary = raw.preliminary;
     this.rules = raw.rules;
     this.checks = raw.checks;
     this.document = raw.document

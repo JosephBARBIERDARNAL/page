@@ -565,7 +565,6 @@ mod tests {
             source: None,
             profile: ValidationProfile::PdfA1b,
             is_compliant: false,
-            preliminary: false,
             rules: ValidationCounts {
                 total: 10,
                 passed: 9,

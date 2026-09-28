@@ -100,7 +100,6 @@ mod tests {
             source: Some("document.pdf".into()),
             profile: ValidationProfile::PdfA1b,
             is_compliant: false,
-            preliminary: true,
             rules: ValidationCounts {
                 total: 1,
                 passed: 0,
@@ -135,7 +134,6 @@ mod tests {
             source: None,
             profile: ValidationProfile::PdfA1b,
             is_compliant: false,
-            preliminary: true,
             rules: ValidationCounts {
                 total: 1,
                 passed: 0,
@@ -168,7 +166,6 @@ mod tests {
             source: None,
             profile: ValidationProfile::PdfA1b,
             is_compliant: true,
-            preliminary: true,
             rules: ValidationCounts {
                 total: 1,
                 passed: 1,
