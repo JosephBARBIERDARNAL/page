@@ -5,9 +5,9 @@ use std::rc::Rc;
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
 use read_fonts::ps::cff::CffFontRef;
 use read_fonts::ps::cs::CommandSink;
-use read_fonts::tables::cmap::{Cmap, CmapSubtable};
-use read_fonts::types::{Fixed, GlyphId, PlatformId, Tag};
-use read_fonts::{FontData, FontRead, FontRef, TableProvider};
+use read_fonts::tables::cmap::{Cmap, CmapSubtable, PlatformId};
+use read_fonts::types::{Fixed, GlyphId, Tag};
+use read_fonts::{FontData, FontRead, FontRef};
 
 use crate::content_support::{ContentExecutionSummary, FontTextRun};
 use crate::error::PdfError;
@@ -1916,7 +1916,11 @@ impl Scanner<'_> {
                 else {
                     continue;
                 };
-                let program_width = f64::from(width) * f64::from(cff.matrix().sx) * 1000.0;
+                let matrix_x = cff
+                    .matrix()
+                    .map(|matrix| matrix.matrix.xx.to_f32())
+                    .unwrap_or(0.001);
+                let program_width = f64::from(width) * f64::from(matrix_x) * 1000.0;
                 if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
                     self.inconsistent_truetype_widths.push(font_failure(
                         usage.object_id,
@@ -5021,7 +5025,7 @@ impl<'a> RawTrueType<'a> {
     }
 
     fn glyph_index(&self, character: char) -> Option<GlyphId> {
-        let cmap = self.cmap?;
+        let cmap = self.cmap.as_ref()?;
         for record in cmap.encoding_records() {
             let platform_id = record.platform_id();
             let encoding_id = record.encoding_id();
@@ -5036,7 +5040,7 @@ impl<'a> RawTrueType<'a> {
                 && let Some(glyph) = cmap_glyph_index(
                     &subtable,
                     cmap.offset_data().as_bytes(),
-                    record.subtable_offset().get(),
+                    record.subtable_offset().to_u32(),
                     u32::from(character),
                 )
             {
@@ -5047,7 +5051,7 @@ impl<'a> RawTrueType<'a> {
     }
 
     fn glyph_index_for_symbolic_byte(&self, byte: u8) -> Option<GlyphId> {
-        let cmap = self.cmap?;
+        let cmap = self.cmap.as_ref()?;
         for record in cmap.encoding_records() {
             let platform_id = record.platform_id();
             let encoding_id = record.encoding_id();
@@ -5058,21 +5062,21 @@ impl<'a> RawTrueType<'a> {
                 cmap_glyph_index(
                     &subtable,
                     cmap.offset_data().as_bytes(),
-                    record.subtable_offset().get(),
+                    record.subtable_offset().to_u32(),
                     u32::from(byte),
                 )
             } else if platform_id == PlatformId::Windows && encoding_id == 0 {
                 cmap_glyph_index(
                     &subtable,
                     cmap.offset_data().as_bytes(),
-                    record.subtable_offset().get(),
+                    record.subtable_offset().to_u32(),
                     0xF000 + u32::from(byte),
                 )
                 .or_else(|| {
                     cmap_glyph_index(
                         &subtable,
                         cmap.offset_data().as_bytes(),
-                        record.subtable_offset().get(),
+                        record.subtable_offset().to_u32(),
                         u32::from(byte),
                     )
                 })
@@ -5080,7 +5084,7 @@ impl<'a> RawTrueType<'a> {
                 cmap_glyph_index(
                     &subtable,
                     cmap.offset_data().as_bytes(),
-                    record.subtable_offset().get(),
+                    record.subtable_offset().to_u32(),
                     u32::from(byte),
                 )
             };
