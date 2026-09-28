@@ -5469,7 +5469,7 @@ mod tests {
     #[test]
     fn format_2_cmap_maps_single_byte_codes_including_ff() {
         let subheader_offset = 6 + 512;
-        let first_glyph_offset = subheader_offset + 8 + 2;
+        let first_glyph_offset = subheader_offset + 8;
         let mut cmap = vec![0; first_glyph_offset + 191 * 2];
         cmap[subheader_offset..subheader_offset + 2].copy_from_slice(&65_u16.to_be_bytes());
         cmap[subheader_offset + 2..subheader_offset + 4].copy_from_slice(&191_u16.to_be_bytes());
