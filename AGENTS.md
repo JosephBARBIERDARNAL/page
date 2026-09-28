@@ -46,7 +46,7 @@ Place focused unit tests beside their owning validation modules in `#[cfg(test)]
 -> strict lopdf parser
 -> normalized PdfDocument model (metadata, XMP declaration, output intents, fonts)
 -> private bounded font, colour-space, graphics, annotation, action, and form inspections
--> preliminary rule evaluator
+-> rule evaluator
 -> deterministic ValidationReport
 ```
 

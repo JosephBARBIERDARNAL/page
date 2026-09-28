@@ -14,7 +14,7 @@ flowchart TD
     G -- "No" --> E4["Profile error\nPROFILE-001 or VALIDATION-PROFILE-001"]
     G -- "Yes" --> H["Bounded inspections + profile rule evaluation"]
     H --> I{"Any implemented rule failed?"}
-    I -- "No" --> J["Compliant\nValidationReport (preliminary)"]
+    I -- "No" --> J["Compliant\nValidationReport"]
     I -- "Yes" --> K["Non-conformant\nValidationReport"]
 
     classDef error fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
