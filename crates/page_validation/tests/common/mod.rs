@@ -15388,14 +15388,14 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
 
 /// A symbolic TrueType font whose embedded program's `cmap` table is fully
 /// valid (declaring 2 subtables) but whose `maxp` table is truncated to 2
-/// bytes (too short to read `numGlyphs`), so `ttf_parser`'s whole-font
-/// `Face::parse` fails even though the `cmap` table itself is perfectly
-/// readable. Confirmed live against veraPDF 1.30.2: it reads the `cmap`
+/// bytes (too short to read `numGlyphs`), so parsing the `maxp` table fails
+/// even though the `cmap` table itself is perfectly readable. Confirmed live
+/// against veraPDF 1.30.2: it reads the `cmap`
 /// table's subtable count directly (matching its own mapping note, "read
 /// from the bounded SFNT cmap table header"), so `PDFA1B-TRUETYPE-SYMBOLIC-
 /// CMAP-001` must not gate on a full-font parse either -- see
-/// `truetype_cmap_count` in `font_embedding.rs`, which now uses
-/// `ttf_parser::RawFace` to read just the `cmap` table directly.
+/// `truetype_cmap_count` in `font_embedding.rs`, which reads the SFNT
+/// directory and `cmap` table independently through Fontations.
 pub fn symbolic_cmap_with_malformed_maxp_fixture() -> Vec<u8> {
     let mut document = pdf_document();
     let pages_id = document.new_object_id();

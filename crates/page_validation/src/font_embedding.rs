@@ -3,6 +3,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
+use read_fonts::ps::cff::CffFontRef;
+use read_fonts::ps::cs::CommandSink;
+use read_fonts::tables::cmap::{Cmap, CmapSubtable, PlatformId};
+use read_fonts::types::{Fixed, GlyphId, Tag};
+use read_fonts::{FontData, FontRead, FontRef};
 
 use crate::content_support::{ContentExecutionSummary, FontTextRun};
 use crate::error::PdfError;
@@ -112,9 +117,9 @@ struct CachedType1Program {
 
 struct ParsedCffProgram {
     glyph_names: Vec<Option<String>>,
-    glyph_by_name: HashMap<String, ttf_parser::GlyphId>,
-    glyph_by_byte: [Option<ttf_parser::GlyphId>; 256],
-    glyph_by_cid: HashMap<u16, ttf_parser::GlyphId>,
+    glyph_by_name: HashMap<String, GlyphId>,
+    glyph_by_byte: [Option<GlyphId>; 256],
+    glyph_by_cid: HashMap<u16, GlyphId>,
 }
 
 struct CachedCffProgram {
@@ -126,40 +131,44 @@ impl CachedCffProgram {
     fn parsed(&self) -> Option<&ParsedCffProgram> {
         self.parsed
             .get_or_init(|| {
-                let cff = ttf_parser::cff::Table::parse(&self.bytes)?;
-                let glyph_count = usize::from(cff.number_of_glyphs());
+                let cff = CffFontRef::new_cff(&self.bytes, 0, None).ok()?;
+                let charset = cff.charset()?;
+                let glyph_count = usize::try_from(cff.num_glyphs()).ok()?;
                 let mut glyph_names = Vec::with_capacity(glyph_count);
                 let mut glyph_by_name = HashMap::new();
                 let mut glyph_by_cid = HashMap::new();
                 for index in 0..glyph_count {
-                    let glyph = ttf_parser::GlyphId(u16::try_from(index).ok()?);
-                    let name = cff.glyph_name(glyph).map(ToOwned::to_owned);
+                    let glyph = GlyphId::new(u32::from(u16::try_from(index).ok()?));
+                    let sid = charset.string_id(glyph);
+                    let name = if cff.is_cid() {
+                        None
+                    } else {
+                        sid.and_then(|sid| cff.string(sid))
+                            .and_then(|name| std::str::from_utf8(name).ok())
+                            .map(ToOwned::to_owned)
+                    };
                     if let Some(name) = &name {
                         glyph_by_name.insert(name.clone(), glyph);
                     }
-                    if let Some(cid) = cff.glyph_cid(glyph) {
+                    if cff.is_cid()
+                        && let Some(cid) = sid.map(|sid| sid.to_u16())
+                    {
                         glyph_by_cid.entry(cid).or_insert(glyph);
                     }
                     glyph_names.push(name);
                 }
-                for encoding in [
-                    PredefinedEncoding::Standard,
-                    PredefinedEncoding::MacRoman,
-                    PredefinedEncoding::MacExpert,
-                    PredefinedEncoding::WinAnsi,
-                ] {
-                    for byte in u8::MIN..=u8::MAX {
-                        let Some(name) = font_encodings::glyph_name(encoding, byte) else {
-                            continue;
-                        };
-                        if let Some(glyph) = cff.glyph_index_by_name(name) {
-                            glyph_by_name.entry(name.to_owned()).or_insert(glyph);
-                        }
-                    }
-                }
+                let cff_encoding = cff.encoding();
                 let mut glyph_by_byte = [None; 256];
                 for byte in u8::MIN..=u8::MAX {
-                    if let Some(glyph) = cff.glyph_index(byte)
+                    let glyph = cff_encoding
+                        .as_ref()
+                        .and_then(|encoding| encoding.map(byte))
+                        .or_else(|| {
+                            read_fonts::ps::encoding::PredefinedEncoding::Standard
+                                .sid(byte)
+                                .and_then(|sid| charset.glyph_id(sid))
+                        });
+                    if let Some(glyph) = glyph
                         && let Some(slot) = glyph_by_byte.get_mut(usize::from(byte))
                     {
                         *slot = Some(glyph);
@@ -174,6 +183,37 @@ impl CachedCffProgram {
             })
             .as_ref()
     }
+}
+
+struct DiscardCharstringCommands;
+
+impl CommandSink for DiscardCharstringCommands {
+    fn move_to(&mut self, _x: Fixed, _y: Fixed) {}
+
+    fn line_to(&mut self, _x: Fixed, _y: Fixed) {}
+
+    fn curve_to(
+        &mut self,
+        _cx0: Fixed,
+        _cy0: Fixed,
+        _cx1: Fixed,
+        _cy1: Fixed,
+        _x: Fixed,
+        _y: Fixed,
+    ) {
+    }
+
+    fn close(&mut self) {}
+}
+
+fn cff_type1_glyph_width(cff: &CffFontRef<'_>, glyph: GlyphId) -> Option<u16> {
+    let subfont = cff.subfont(cff.subfont_index(glyph)?, &[]).ok()?;
+    let mut commands = DiscardCharstringCommands;
+    let width = cff
+        .evaluate_charstring(&subfont, glyph, &[], &mut commands)
+        .ok()?
+        .unwrap_or(Fixed::ZERO);
+    u16::try_from(width.to_f32() as i32).ok()
 }
 
 impl CachedType1Program {
@@ -1154,7 +1194,7 @@ impl Scanner<'_> {
                         .and_then(|encoding| single_encoded_character(encoding, byte))
                         .and_then(|character| face.glyph_index(character))
                 };
-                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.0 == 0) {
+                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.to_u32() == 0) {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1383,7 +1423,7 @@ impl Scanner<'_> {
                 let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
                     continue;
                 };
-                if glyph.0 == 0 {
+                if glyph.to_u32() == 0 {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1476,7 +1516,10 @@ impl Scanner<'_> {
                 ));
                 continue;
             };
-            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph.0) else {
+            let Ok(glyph_id) = u16::try_from(glyph.to_u32()) else {
+                continue;
+            };
+            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph_id) else {
                 continue;
             };
             let Some(dictionary_width) = cid_widths.width_for(cid) else {
@@ -1563,7 +1606,7 @@ impl Scanner<'_> {
                                 .and_then(|glyph| {
                                     parsed
                                         .glyph_names
-                                        .get(usize::from(glyph.0))
+                                        .get(usize::try_from(glyph.to_u32()).ok()?)
                                         .and_then(Option::as_deref)
                                 })
                                 .is_some_and(|name| !char_set.contains(name))
@@ -1817,7 +1860,7 @@ impl Scanner<'_> {
             let Some(parsed) = program.parsed() else {
                 continue;
             };
-            let Some(cff) = ttf_parser::cff::Table::parse(&program.bytes) else {
+            let Some(cff) = CffFontRef::new_cff(&program.bytes, 0, None).ok() else {
                 continue;
             };
             let encoding = simple_font_encoding(self.document, font, self.limits)?;
@@ -1847,7 +1890,7 @@ impl Scanner<'_> {
                     ));
                     continue;
                 };
-                if glyph.0 == 0 {
+                if glyph.to_u32() == 0 {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1855,7 +1898,7 @@ impl Scanner<'_> {
                     ));
                 }
                 let (Some(first_char), Some(widths), Some(width)) =
-                    (first_char, widths, cff.glyph_width(glyph))
+                    (first_char, widths, cff_type1_glyph_width(&cff, glyph))
                 else {
                     continue;
                 };
@@ -1873,7 +1916,11 @@ impl Scanner<'_> {
                 else {
                     continue;
                 };
-                let program_width = f64::from(width) * f64::from(cff.matrix().sx) * 1000.0;
+                let matrix_x = cff
+                    .matrix()
+                    .map(|matrix| f64::from(matrix.matrix.xx.to_f32()) / f64::from(matrix.scale))
+                    .unwrap_or(0.001);
+                let program_width = f64::from(width) * matrix_x * 1000.0;
                 if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
                     self.inconsistent_truetype_widths.push(font_failure(
                         usage.object_id,
@@ -2505,14 +2552,14 @@ enum CidToGidMap {
 }
 
 impl CidToGidMap {
-    fn glyph_for(&self, cid: u16) -> Option<ttf_parser::GlyphId> {
+    fn glyph_for(&self, cid: u16) -> Option<GlyphId> {
         match self {
-            Self::Identity => Some(ttf_parser::GlyphId(cid)),
+            Self::Identity => Some(GlyphId::new(u32::from(cid))),
             Self::Table(bytes) => {
                 let offset = usize::from(cid).checked_mul(2)?;
                 let entry = bytes.get(offset..offset.saturating_add(2))?;
                 let bytes = entry.try_into().ok()?;
-                Some(ttf_parser::GlyphId(u16::from_be_bytes(bytes)))
+                Some(GlyphId::new(u32::from(u16::from_be_bytes(bytes))))
             }
             Self::Unavailable => None,
         }
@@ -4167,8 +4214,8 @@ fn cid_font_program_cids(
                     let Ok(cid) = u16::try_from(cid) else {
                         break;
                     };
-                    let glyph = ttf_parser::GlyphId(u16::from_be_bytes([entry[0], entry[1]]));
-                    if cid != 0 && glyph.0 != 0 && face.glyph_is_present(glyph) {
+                    let glyph = GlyphId::new(u32::from(u16::from_be_bytes([entry[0], entry[1]])));
+                    if cid != 0 && glyph.to_u32() != 0 && face.glyph_is_present(glyph) {
                         cids.insert(cid);
                     }
                 }
@@ -4888,9 +4935,9 @@ fn differences_are_unicode_compliant(
         return Ok(false);
     };
     Ok(face.cmap.is_some_and(|cmap| {
-        cmap.subtables.into_iter().any(|subtable| {
-            subtable.platform_id == ttf_parser::PlatformId::Windows && subtable.encoding_id == 1
-        })
+        cmap.encoding_records()
+            .iter()
+            .any(|record| record.platform_id() == PlatformId::Windows && record.encoding_id() == 1)
     }))
 }
 
@@ -4911,12 +4958,11 @@ fn is_adobe_glyph_name(name: &[u8]) -> bool {
 }
 
 /// The subset of an SFNT needed by veraPDF's glyph-presence and width model.
-/// It deliberately does not parse `maxp`, `loca`, or `glyf`: the pinned
-/// malformed-`maxp` fixture proves those unrelated tables do not make these
-/// model properties inapplicable. The `hmtx` byte extent itself supplies a
-/// bounded glyph-count upper bound.
+/// It deliberately does not parse `glyf`: the pinned malformed-`maxp` fixture
+/// proves unrelated tables do not make these model properties inapplicable.
+/// The `hmtx` byte extent itself supplies a bounded glyph-count upper bound.
 struct RawTrueType<'a> {
-    cmap: Option<ttf_parser::cmap::Table<'a>>,
+    cmap: Option<Cmap<'a>>,
     hmtx: Option<&'a [u8]>,
     number_of_h_metrics: Option<usize>,
     glyph_count: Option<usize>,
@@ -4925,10 +4971,16 @@ struct RawTrueType<'a> {
 
 impl<'a> RawTrueType<'a> {
     fn parse(bytes: &'a [u8]) -> Option<Self> {
-        let face = ttf_parser::RawFace::parse(bytes, 0).ok()?;
-        let head = face.table(ttf_parser::Tag::from_bytes(b"head"));
-        let hhea = face.table(ttf_parser::Tag::from_bytes(b"hhea"));
-        let hmtx = face.table(ttf_parser::Tag::from_bytes(b"hmtx"));
+        let face = FontRef::new(bytes).ok()?;
+        let head = face
+            .table_data(Tag::new(b"head"))
+            .map(|table| table.as_bytes());
+        let hhea = face
+            .table_data(Tag::new(b"hhea"))
+            .map(|table| table.as_bytes());
+        let hmtx = face
+            .table_data(Tag::new(b"hmtx"))
+            .map(|table| table.as_bytes());
         let units_per_em = head
             .and_then(|head| be_u16(head, 18))
             .filter(|value| *value != 0);
@@ -4943,7 +4995,8 @@ impl<'a> RawTrueType<'a> {
             (bearings_bytes % 2 == 0).then(|| count + bearings_bytes / 2)
         });
         let maxp_glyph_count = face
-            .table(ttf_parser::Tag::from_bytes(b"maxp"))
+            .table_data(Tag::new(b"maxp"))
+            .map(|table| table.as_bytes())
             .and_then(|maxp| be_u16(maxp, 4))
             .map(usize::from);
         let loca_glyph_count = head.and_then(|head| {
@@ -4952,15 +5005,16 @@ impl<'a> RawTrueType<'a> {
                 1 => 4,
                 _ => return None,
             };
-            let loca = face.table(ttf_parser::Tag::from_bytes(b"loca"))?;
+            let loca = face.table_data(Tag::new(b"loca"))?;
+            let loca = loca.as_bytes();
             (loca.len() % entry_size == 0)
                 .then(|| loca.len() / entry_size)
                 .and_then(|entries| entries.checked_sub(1))
         });
         let glyph_count = maxp_glyph_count.or(loca_glyph_count).or(metric_glyph_count);
         let cmap = face
-            .table(ttf_parser::Tag::from_bytes(b"cmap"))
-            .and_then(ttf_parser::cmap::Table::parse);
+            .table_data(Tag::new(b"cmap"))
+            .and_then(|table| parse_sfnt_cmap(table.as_bytes()));
         Some(Self {
             cmap,
             hmtx,
@@ -4970,14 +5024,24 @@ impl<'a> RawTrueType<'a> {
         })
     }
 
-    fn glyph_index(&self, character: char) -> Option<ttf_parser::GlyphId> {
-        for subtable in self.cmap?.subtables {
-            let direct_byte_subtable =
-                matches!(subtable.platform_id, ttf_parser::PlatformId::Macintosh)
-                    || (subtable.platform_id == ttf_parser::PlatformId::Windows
-                        && subtable.encoding_id != 0);
-            if (subtable.is_unicode() || direct_byte_subtable)
-                && let Some(glyph) = subtable.glyph_index(u32::from(character))
+    fn glyph_index(&self, character: char) -> Option<GlyphId> {
+        let cmap = self.cmap.as_ref()?;
+        for record in cmap.encoding_records() {
+            let platform_id = record.platform_id();
+            let encoding_id = record.encoding_id();
+            let direct_byte_subtable = platform_id == PlatformId::Macintosh
+                || (platform_id == PlatformId::Windows && encoding_id != 0);
+            let Ok(subtable) = record.subtable(cmap.offset_data()) else {
+                continue;
+            };
+            if (cmap_subtable_is_unicode(platform_id, encoding_id, &subtable)
+                || direct_byte_subtable)
+                && let Some(glyph) = cmap_glyph_index(
+                    &subtable,
+                    cmap.offset_data().as_bytes(),
+                    record.subtable_offset().to_u32(),
+                    u32::from(character),
+                )
             {
                 return Some(glyph);
             }
@@ -4985,19 +5049,43 @@ impl<'a> RawTrueType<'a> {
         None
     }
 
-    fn glyph_index_for_symbolic_byte(&self, byte: u8) -> Option<ttf_parser::GlyphId> {
-        let cmap = self.cmap?;
-        for subtable in cmap.subtables {
-            let glyph = if subtable.is_unicode() {
-                subtable.glyph_index(u32::from(byte))
-            } else if subtable.platform_id == ttf_parser::PlatformId::Windows
-                && subtable.encoding_id == 0
-            {
-                subtable
-                    .glyph_index(0xF000 + u32::from(byte))
-                    .or_else(|| subtable.glyph_index(u32::from(byte)))
+    fn glyph_index_for_symbolic_byte(&self, byte: u8) -> Option<GlyphId> {
+        let cmap = self.cmap.as_ref()?;
+        for record in cmap.encoding_records() {
+            let platform_id = record.platform_id();
+            let encoding_id = record.encoding_id();
+            let Ok(subtable) = record.subtable(cmap.offset_data()) else {
+                continue;
+            };
+            let glyph = if cmap_subtable_is_unicode(platform_id, encoding_id, &subtable) {
+                cmap_glyph_index(
+                    &subtable,
+                    cmap.offset_data().as_bytes(),
+                    record.subtable_offset().to_u32(),
+                    u32::from(byte),
+                )
+            } else if platform_id == PlatformId::Windows && encoding_id == 0 {
+                cmap_glyph_index(
+                    &subtable,
+                    cmap.offset_data().as_bytes(),
+                    record.subtable_offset().to_u32(),
+                    0xF000 + u32::from(byte),
+                )
+                .or_else(|| {
+                    cmap_glyph_index(
+                        &subtable,
+                        cmap.offset_data().as_bytes(),
+                        record.subtable_offset().to_u32(),
+                        u32::from(byte),
+                    )
+                })
             } else {
-                subtable.glyph_index(u32::from(byte))
+                cmap_glyph_index(
+                    &subtable,
+                    cmap.offset_data().as_bytes(),
+                    record.subtable_offset().to_u32(),
+                    u32::from(byte),
+                )
             };
             if glyph.is_some() {
                 return glyph;
@@ -5006,8 +5094,8 @@ impl<'a> RawTrueType<'a> {
         None
     }
 
-    fn glyph_hor_advance(&self, glyph: ttf_parser::GlyphId) -> Option<u16> {
-        let glyph = usize::from(glyph.0);
+    fn glyph_hor_advance(&self, glyph: GlyphId) -> Option<u16> {
+        let glyph = usize::try_from(glyph.to_u32()).ok()?;
         if glyph >= self.glyph_count? {
             return None;
         }
@@ -5015,10 +5103,81 @@ impl<'a> RawTrueType<'a> {
         be_u16(self.hmtx?, metric.checked_mul(4)?)
     }
 
-    fn glyph_is_present(&self, glyph: ttf_parser::GlyphId) -> bool {
+    fn glyph_is_present(&self, glyph: GlyphId) -> bool {
         self.glyph_count
-            .is_some_and(|count| usize::from(glyph.0) < count)
+            .is_some_and(|count| usize::try_from(glyph.to_u32()).is_ok_and(|glyph| glyph < count))
     }
+}
+
+fn parse_sfnt_cmap(data: &[u8]) -> Option<Cmap<'_>> {
+    let cmap = Cmap::read(FontData::new(data)).ok()?;
+    (cmap.encoding_records().len() == usize::from(cmap.num_tables())).then_some(cmap)
+}
+
+fn cmap_subtable_is_unicode(
+    platform_id: PlatformId,
+    encoding_id: u16,
+    subtable: &CmapSubtable<'_>,
+) -> bool {
+    match platform_id {
+        PlatformId::Unicode => true,
+        PlatformId::Windows if encoding_id == 1 => true,
+        PlatformId::Windows if encoding_id == 10 => {
+            matches!(
+                subtable,
+                CmapSubtable::Format12(_) | CmapSubtable::Format13(_)
+            )
+        }
+        _ => false,
+    }
+}
+
+fn cmap_glyph_index(
+    subtable: &CmapSubtable<'_>,
+    cmap_data: &[u8],
+    subtable_offset: u32,
+    codepoint: u32,
+) -> Option<GlyphId> {
+    let glyph = match subtable {
+        CmapSubtable::Format2(_) => cmap_format2_glyph(cmap_data, subtable_offset, codepoint),
+        _ => subtable.map_codepoint(codepoint),
+    }?;
+    (glyph.to_u32() != 0).then_some(glyph)
+}
+
+fn cmap_format2_glyph(data: &[u8], subtable_offset: u32, codepoint: u32) -> Option<GlyphId> {
+    let codepoint = u16::try_from(codepoint).ok()?;
+    let subtable_offset = usize::try_from(subtable_offset).ok()?;
+    let high_byte = usize::from(codepoint >> 8);
+    let low_byte = codepoint & 0x00ff;
+    let subheader_index = if codepoint <= 0x00ff {
+        0
+    } else {
+        let key_offset = subtable_offset
+            .checked_add(6)?
+            .checked_add(high_byte.checked_mul(2)?)?;
+        usize::from(be_u16(data, key_offset)? / 8)
+    };
+    let subheaders_offset = subtable_offset.checked_add(6 + 512)?;
+    let subheader_offset = subheaders_offset.checked_add(subheader_index.checked_mul(8)?)?;
+    let first_code = be_u16(data, subheader_offset)?;
+    let entry_count = be_u16(data, subheader_offset.checked_add(2)?)?;
+    let delta = be_i16(data, subheader_offset.checked_add(4)?)?;
+    let range_offset = usize::from(be_u16(data, subheader_offset.checked_add(6)?)?);
+    let range_end = first_code.checked_add(entry_count)?;
+    if low_byte < first_code || low_byte >= range_end {
+        return None;
+    }
+    let glyph_offset = subheader_offset
+        .checked_add(6)?
+        .checked_add(range_offset)?
+        .checked_add(usize::from(low_byte.checked_sub(first_code)?).checked_mul(2)?)?;
+    let glyph = be_u16(data, glyph_offset)?;
+    if glyph == 0 {
+        return None;
+    }
+    let glyph = u16::try_from((i32::from(glyph) + i32::from(delta)) % 65_536).ok()?;
+    Some(GlyphId::new(u32::from(glyph)))
 }
 
 fn be_u16(bytes: &[u8], offset: usize) -> Option<u16> {
@@ -5057,29 +5216,33 @@ fn truetype_cmap_summary(
     // of whether the rest of the font (`maxp`, `hhea`, ...) otherwise
     // parses -- a font whose `cmap` table is valid but whose `maxp` table
     // is malformed still gets this predicate evaluated. `RawFace` reads
-    // only the table directory, unlike `Face::parse`, which additionally
-    // requires several unrelated mandatory tables to succeed.
-    Ok(ttf_parser::RawFace::parse(&bytes, 0)
-        .ok()
-        .and_then(|face| face.table(ttf_parser::Tag::from_bytes(b"cmap")))
-        .and_then(ttf_parser::cmap::Table::parse)
-        .map(|cmap| {
-            let cmap_count = usize::from(cmap.subtables.len());
-            let (cmap30_present, cmap31_present) = cmap.subtables.into_iter().fold(
-                (false, false),
-                |(cmap30_present, cmap31_present), subtable| {
-                    (
-                        cmap30_present
-                            || (subtable.platform_id == ttf_parser::PlatformId::Windows
-                                && subtable.encoding_id == 0),
-                        cmap31_present
-                            || (subtable.platform_id == ttf_parser::PlatformId::Windows
-                                && subtable.encoding_id == 1),
-                    )
-                },
-            );
-            (cmap_count, cmap30_present, cmap31_present)
-        }))
+    // only the table directory, unlike a full font parser, which can require
+    // several unrelated mandatory tables to succeed.
+    let Some(face) = FontRef::new(&bytes).ok() else {
+        return Ok(None);
+    };
+    let Some(cmap) = face
+        .table_data(Tag::new(b"cmap"))
+        .and_then(|table| parse_sfnt_cmap(table.as_bytes()))
+    else {
+        return Ok(None);
+    };
+    let (cmap30_present, cmap31_present) = cmap.encoding_records().iter().fold(
+        (false, false),
+        |(cmap30_present, cmap31_present), record| {
+            (
+                cmap30_present
+                    || (record.platform_id() == PlatformId::Windows && record.encoding_id() == 0),
+                cmap31_present
+                    || (record.platform_id() == PlatformId::Windows && record.encoding_id() == 1),
+            )
+        },
+    );
+    Ok(Some((
+        cmap.encoding_records().len(),
+        cmap30_present,
+        cmap31_present,
+    )))
 }
 
 fn font_is_embedded(
@@ -5167,14 +5330,13 @@ fn valid_font_program(
         // satisfy only the CFF header-byte shape (major/minor version,
         // hdrSize) but contain no parseable CFF structure beyond that still
         // fails `PDFA1B-FONT-EMBEDDING-001` -- the header alone is not
-        // sufficient. Uses the same `ttf_parser::cff::Table::parse` already
-        // relied on for glyph lookups (`inspect_rendered_cff_type1_glyphs`/
-        // `inspect_rendered_cff_cidfont_glyphs`), for consistency.
+        // sufficient. Uses the same CFF parser already relied on for glyph
+        // lookups (`inspect_rendered_cff_type1_glyphs`), for consistency.
         b"FontFile3" => {
             matches!(
                 resolved_name(document, &stream.dict, b"Subtype", limits)?,
                 Some(b"Type1C" | b"CIDFontType0C")
-            ) && ttf_parser::cff::Table::parse(&bytes).is_some()
+            ) && CffFontRef::new_cff(&bytes, 0, None).is_ok()
                 || resolved_name(document, &stream.dict, b"Subtype", limits)?
                     == Some(b"OpenType".as_slice())
                     && valid_sfnt(&bytes)
@@ -5186,13 +5348,13 @@ fn valid_font_program(
 // Confirmed live against veraPDF 1.30.2 (the same fixture that confirmed
 // `truetype_cmap_count`'s fix): it still considers a `/FontFile2` stream
 // "embedded" (no `PDFA1B-FONT-EMBEDDING-001` failure) even when the font's
-// `maxp` table is malformed enough that a full `ttf_parser::Face::parse`
-// fails, as long as the SFNT signature and table directory are themselves
-// readable. `RawFace::parse` reads only the table directory, matching that
-// narrower bar, instead of requiring every mandatory table
+// `maxp` table is malformed enough that parsing the specific maxp table fails,
+// as long as the SFNT signature and table directory are themselves readable.
+// `FontRef::new` reads only the table directory, matching that narrower bar,
+// instead of requiring every mandatory table
 // (`head`/`hhea`/`maxp`/`hmtx`/glyph outlines) to individually succeed.
 fn valid_sfnt(bytes: &[u8]) -> bool {
-    ttf_parser::RawFace::parse(bytes, 0).is_ok()
+    FontRef::new(bytes).is_ok()
 }
 
 fn object_key(object: &Object, context: &str, name: Option<&Object>) -> ResourceKey {
@@ -5297,12 +5459,37 @@ mod tests {
 
     use super::{
         CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
-        cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
+        cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
         inspect_all_embedded_cmap_cids, parse_cmap, parse_cmap_with_predefined_bases,
         shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
         type1_program_charstring_widths,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn format_2_cmap_maps_single_byte_codes_including_ff() {
+        let subheader_offset = 6 + 512;
+        let first_glyph_offset = subheader_offset + 8;
+        let mut cmap = vec![0; first_glyph_offset + 191 * 2];
+        cmap[subheader_offset..subheader_offset + 2].copy_from_slice(&65_u16.to_be_bytes());
+        cmap[subheader_offset + 2..subheader_offset + 4].copy_from_slice(&191_u16.to_be_bytes());
+        cmap[subheader_offset + 4..subheader_offset + 6].copy_from_slice(&1_i16.to_be_bytes());
+        cmap[subheader_offset + 6..subheader_offset + 8].copy_from_slice(&2_u16.to_be_bytes());
+        cmap[first_glyph_offset..first_glyph_offset + 2].copy_from_slice(&2_u16.to_be_bytes());
+        let last_glyph_offset = first_glyph_offset + 190 * 2;
+        cmap[last_glyph_offset..last_glyph_offset + 2].copy_from_slice(&4_u16.to_be_bytes());
+
+        assert_eq!(
+            cmap_format2_glyph(&cmap, 0, 65).map(|glyph| glyph.to_u32()),
+            Some(3)
+        );
+        assert_eq!(
+            cmap_format2_glyph(&cmap, 0, 0x00ff).map(|glyph| glyph.to_u32()),
+            Some(5)
+        );
+        assert_eq!(cmap_format2_glyph(&cmap, 0, 0x0100), None);
+        assert_eq!(cmap_format2_glyph(&cmap[..cmap.len() - 1], 0, 0x00ff), None);
+    }
 
     #[test]
     fn oversized_font_stream_with_unsupported_filter_hits_decode_limit() {
@@ -5650,9 +5837,8 @@ mod tests {
     /// truncated or empty input, since embedded font programs are attacker
     /// controlled. Reaching the final assertions at all (rather than
     /// aborting on a panic) is the test; the specific `None`/empty return
-    /// values are incidental. This does not exercise `ttf_parser`/`lopdf`
-    /// -backed paths (`RawFace`, `cff::Table`), which are already
-    /// panic-free by the external crate's own contract.
+    /// values are incidental. Fontations-backed parsing is also kept
+    /// panic-free by its public API contract.
     #[test]
     fn hand_rolled_font_parsers_do_not_panic_on_truncated_input() {
         for truncated in [b"".as_slice(), b"\x00", b"\x00\x01\x02", b"\x80\x01\x00"] {
