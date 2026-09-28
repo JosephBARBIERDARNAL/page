@@ -4,31 +4,31 @@
         <loc>https://josephbarbierdarnal.github.io/page/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/demo/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/installation/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/about/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/api/cli/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/rust/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/python/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/python/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/api/rust/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/api/wasm/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/guide/safety-limits/</loc>
-      </url>
-      <url>
         <loc>https://josephbarbierdarnal.github.io/page/benchmark/</loc>
       </url>
       <url>
+        <loc>https://josephbarbierdarnal.github.io/page/changelog/</loc>
+      </url>
+      <url>
         <loc>https://josephbarbierdarnal.github.io/page/contributing/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/contributing/code-of-conduct/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/contributing/local-set-up/</loc>
@@ -37,12 +37,12 @@
         <loc>https://josephbarbierdarnal.github.io/page/contributing/project-internals-overview/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/contributing/code-of-conduct/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/demo/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/changelog/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/guide/safety-limits/</loc>
       </url>
       <url>
-        <loc>https://josephbarbierdarnal.github.io/page/about/</loc>
+        <loc>https://josephbarbierdarnal.github.io/page/installation/</loc>
       </url>
 </urlset>
