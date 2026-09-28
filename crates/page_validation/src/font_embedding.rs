@@ -1918,9 +1918,9 @@ impl Scanner<'_> {
                 };
                 let matrix_x = cff
                     .matrix()
-                    .map(|matrix| matrix.matrix.xx.to_f32())
+                    .map(|matrix| f64::from(matrix.matrix.xx.to_f32()) / f64::from(matrix.scale))
                     .unwrap_or(0.001);
-                let program_width = f64::from(width) * f64::from(matrix_x) * 1000.0;
+                let program_width = f64::from(width) * matrix_x * 1000.0;
                 if (program_width - f64::from(dictionary_width)).abs() > 1.0 {
                     self.inconsistent_truetype_widths.push(font_failure(
                         usage.object_id,

@@ -1,5 +1,6 @@
 ## Dev
 
+- Fix: Preserve the CFF matrix scale when comparing embedded Type1C glyph widths
 - Refactor: Replace `ttf-parser` with Fontations `read-fonts` for embedded font inspection
 - Fix: Count each failed object or stream in grouped failed-check totals
 - Feat: Report distinct failed rules and raw failed checks across APIs and detailed CLI output [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
