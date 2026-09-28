@@ -1605,7 +1605,7 @@ impl Scanner<'_> {
                                 .and_then(|name| parsed.glyph_by_name.get(name))
                                 .and_then(|glyph| {
                                     parsed
-                                .glyph_names
+                                        .glyph_names
                                         .get(usize::try_from(glyph.to_u32()).ok()?)
                                         .and_then(Option::as_deref)
                                 })
@@ -4935,9 +4935,9 @@ fn differences_are_unicode_compliant(
         return Ok(false);
     };
     Ok(face.cmap.is_some_and(|cmap| {
-        cmap.encoding_records().iter().any(|record| {
-            record.platform_id() == PlatformId::Windows && record.encoding_id() == 1
-        })
+        cmap.encoding_records()
+            .iter()
+            .any(|record| record.platform_id() == PlatformId::Windows && record.encoding_id() == 1)
     }))
 }
 
@@ -5029,9 +5029,8 @@ impl<'a> RawTrueType<'a> {
         for record in cmap.encoding_records() {
             let platform_id = record.platform_id();
             let encoding_id = record.encoding_id();
-            let direct_byte_subtable =
-                platform_id == PlatformId::Macintosh
-                    || (platform_id == PlatformId::Windows && encoding_id != 0);
+            let direct_byte_subtable = platform_id == PlatformId::Macintosh
+                || (platform_id == PlatformId::Windows && encoding_id != 0);
             let Ok(subtable) = record.subtable(cmap.offset_data()) else {
                 continue;
             };
@@ -5124,7 +5123,10 @@ fn cmap_subtable_is_unicode(
         PlatformId::Unicode => true,
         PlatformId::Windows if encoding_id == 1 => true,
         PlatformId::Windows if encoding_id == 10 => {
-            matches!(subtable, CmapSubtable::Format12(_) | CmapSubtable::Format13(_))
+            matches!(
+                subtable,
+                CmapSubtable::Format12(_) | CmapSubtable::Format13(_)
+            )
         }
         _ => false,
     }
@@ -5148,7 +5150,7 @@ fn cmap_format2_glyph(data: &[u8], subtable_offset: u32, codepoint: u32) -> Opti
     let subtable_offset = usize::try_from(subtable_offset).ok()?;
     let high_byte = usize::from(codepoint >> 8);
     let low_byte = codepoint & 0x00ff;
-    let subheader_index = if codepoint < 0x00ff {
+    let subheader_index = if codepoint <= 0x00ff {
         0
     } else {
         let key_offset = subtable_offset
@@ -5457,12 +5459,37 @@ mod tests {
 
     use super::{
         CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
-        cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
+        cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
         inspect_all_embedded_cmap_cids, parse_cmap, parse_cmap_with_predefined_bases,
         shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
         type1_program_charstring_widths,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn format_2_cmap_maps_single_byte_codes_including_ff() {
+        let subheader_offset = 6 + 512;
+        let first_glyph_offset = subheader_offset + 8 + 2;
+        let mut cmap = vec![0; first_glyph_offset + 191 * 2];
+        cmap[subheader_offset..subheader_offset + 2].copy_from_slice(&65_u16.to_be_bytes());
+        cmap[subheader_offset + 2..subheader_offset + 4].copy_from_slice(&191_u16.to_be_bytes());
+        cmap[subheader_offset + 4..subheader_offset + 6].copy_from_slice(&1_i16.to_be_bytes());
+        cmap[subheader_offset + 6..subheader_offset + 8].copy_from_slice(&2_u16.to_be_bytes());
+        cmap[first_glyph_offset..first_glyph_offset + 2].copy_from_slice(&2_u16.to_be_bytes());
+        let last_glyph_offset = first_glyph_offset + 190 * 2;
+        cmap[last_glyph_offset..last_glyph_offset + 2].copy_from_slice(&4_u16.to_be_bytes());
+
+        assert_eq!(
+            cmap_format2_glyph(&cmap, 0, 65).map(|glyph| glyph.to_u32()),
+            Some(3)
+        );
+        assert_eq!(
+            cmap_format2_glyph(&cmap, 0, 0x00ff).map(|glyph| glyph.to_u32()),
+            Some(5)
+        );
+        assert_eq!(cmap_format2_glyph(&cmap, 0, 0x0100), None);
+        assert_eq!(cmap_format2_glyph(&cmap[..cmap.len() - 1], 0, 0x00ff), None);
+    }
 
     #[test]
     fn oversized_font_stream_with_unsupported_filter_hits_decode_limit() {
