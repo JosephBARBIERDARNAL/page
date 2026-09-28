@@ -150,27 +150,14 @@ impl CachedCffProgram {
                     if let Some(name) = &name {
                         glyph_by_name.insert(name.clone(), glyph);
                     }
-                    if let Some(cid) = cff.is_cid().then(|| sid.map(|sid| sid.to_u16())).flatten() {
+                    if cff.is_cid()
+                        && let Some(cid) = sid.map(|sid| sid.to_u16())
+                    {
                         glyph_by_cid.entry(cid).or_insert(glyph);
                     }
                     glyph_names.push(name);
                 }
                 let cff_encoding = cff.encoding();
-                for encoding in [
-                    PredefinedEncoding::Standard,
-                    PredefinedEncoding::MacRoman,
-                    PredefinedEncoding::MacExpert,
-                    PredefinedEncoding::WinAnsi,
-                ] {
-                    for byte in u8::MIN..=u8::MAX {
-                        let Some(name) = font_encodings::glyph_name(encoding, byte) else {
-                            continue;
-                        };
-                        if let Some(glyph) = glyph_by_name.get(name).copied() {
-                            glyph_by_name.entry(name.to_owned()).or_insert(glyph);
-                        }
-                    }
-                }
                 let mut glyph_by_byte = [None; 256];
                 for byte in u8::MIN..=u8::MAX {
                     let glyph = cff_encoding
@@ -196,6 +183,37 @@ impl CachedCffProgram {
             })
             .as_ref()
     }
+}
+
+struct DiscardCharstringCommands;
+
+impl CommandSink for DiscardCharstringCommands {
+    fn move_to(&mut self, _x: Fixed, _y: Fixed) {}
+
+    fn line_to(&mut self, _x: Fixed, _y: Fixed) {}
+
+    fn curve_to(
+        &mut self,
+        _cx0: Fixed,
+        _cy0: Fixed,
+        _cx1: Fixed,
+        _cy1: Fixed,
+        _x: Fixed,
+        _y: Fixed,
+    ) {
+    }
+
+    fn close(&mut self) {}
+}
+
+fn cff_type1_glyph_width(cff: &CffFontRef<'_>, glyph: GlyphId) -> Option<u16> {
+    let subfont = cff.subfont(cff.subfont_index(glyph)?, &[]).ok()?;
+    let mut commands = DiscardCharstringCommands;
+    let width = cff
+        .evaluate_charstring(&subfont, glyph, &[], &mut commands)
+        .ok()?
+        .unwrap_or(Fixed::ZERO);
+    u16::try_from(width.to_f32() as i32).ok()
 }
 
 impl CachedType1Program {
@@ -1176,7 +1194,7 @@ impl Scanner<'_> {
                         .and_then(|encoding| single_encoded_character(encoding, byte))
                         .and_then(|character| face.glyph_index(character))
                 };
-                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.0 == 0) {
+                if glyph.is_none() || glyph.is_some_and(|glyph| glyph.to_u32() == 0) {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1405,7 +1423,7 @@ impl Scanner<'_> {
                 let Some(glyph) = cid_to_gid_map.glyph_for(cid) else {
                     continue;
                 };
-                if glyph.0 == 0 {
+                if glyph.to_u32() == 0 {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1498,7 +1516,10 @@ impl Scanner<'_> {
                 ));
                 continue;
             };
-            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph.0) else {
+            let Ok(glyph_id) = u16::try_from(glyph.to_u32()) else {
+                continue;
+            };
+            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph_id) else {
                 continue;
             };
             let Some(dictionary_width) = cid_widths.width_for(cid) else {
@@ -1585,7 +1606,7 @@ impl Scanner<'_> {
                                 .and_then(|glyph| {
                                     parsed
                                         .glyph_names
-                                        .get(usize::from(glyph.0))
+                                        .get(usize::try_from(glyph.to_u32()).unwrap_or(usize::MAX))
                                         .and_then(Option::as_deref)
                                 })
                                 .is_some_and(|name| !char_set.contains(name))
@@ -1839,7 +1860,7 @@ impl Scanner<'_> {
             let Some(parsed) = program.parsed() else {
                 continue;
             };
-            let Some(cff) = ttf_parser::cff::Table::parse(&program.bytes) else {
+            let Some(cff) = CffFontRef::new(&program.bytes, 0, None).ok() else {
                 continue;
             };
             let encoding = simple_font_encoding(self.document, font, self.limits)?;
@@ -1869,7 +1890,7 @@ impl Scanner<'_> {
                     ));
                     continue;
                 };
-                if glyph.0 == 0 {
+                if glyph.to_u32() == 0 {
                     self.notdef_glyphs.push(font_failure(
                         usage.object_id,
                         &usage.description,
@@ -1877,7 +1898,7 @@ impl Scanner<'_> {
                     ));
                 }
                 let (Some(first_char), Some(widths), Some(width)) =
-                    (first_char, widths, cff.glyph_width(glyph))
+                    (first_char, widths, cff_type1_glyph_width(&cff, glyph))
                 else {
                     continue;
                 };
@@ -2527,14 +2548,14 @@ enum CidToGidMap {
 }
 
 impl CidToGidMap {
-    fn glyph_for(&self, cid: u16) -> Option<ttf_parser::GlyphId> {
+    fn glyph_for(&self, cid: u16) -> Option<GlyphId> {
         match self {
-            Self::Identity => Some(ttf_parser::GlyphId(cid)),
+            Self::Identity => Some(GlyphId::new(u32::from(cid))),
             Self::Table(bytes) => {
                 let offset = usize::from(cid).checked_mul(2)?;
                 let entry = bytes.get(offset..offset.saturating_add(2))?;
                 let bytes = entry.try_into().ok()?;
-                Some(ttf_parser::GlyphId(u16::from_be_bytes(bytes)))
+                Some(GlyphId::new(u32::from(u16::from_be_bytes(bytes))))
             }
             Self::Unavailable => None,
         }
@@ -4189,8 +4210,8 @@ fn cid_font_program_cids(
                     let Ok(cid) = u16::try_from(cid) else {
                         break;
                     };
-                    let glyph = ttf_parser::GlyphId(u16::from_be_bytes([entry[0], entry[1]]));
-                    if cid != 0 && glyph.0 != 0 && face.glyph_is_present(glyph) {
+                    let glyph = GlyphId::new(u32::from(u16::from_be_bytes([entry[0], entry[1]])));
+                    if cid != 0 && glyph.to_u32() != 0 && face.glyph_is_present(glyph) {
                         cids.insert(cid);
                     }
                 }
