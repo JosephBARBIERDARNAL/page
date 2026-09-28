@@ -3,6 +3,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
+use read_fonts::ps::cff::CffFontRef;
+use read_fonts::ps::cs::CommandSink;
+use read_fonts::tables::cmap::{Cmap, CmapSubtable};
+use read_fonts::types::{Fixed, GlyphId, PlatformId, Tag};
+use read_fonts::{FontData, FontRead, FontRef, TableProvider};
 
 use crate::content_support::{ContentExecutionSummary, FontTextRun};
 use crate::error::PdfError;
@@ -112,9 +117,9 @@ struct CachedType1Program {
 
 struct ParsedCffProgram {
     glyph_names: Vec<Option<String>>,
-    glyph_by_name: HashMap<String, ttf_parser::GlyphId>,
-    glyph_by_byte: [Option<ttf_parser::GlyphId>; 256],
-    glyph_by_cid: HashMap<u16, ttf_parser::GlyphId>,
+    glyph_by_name: HashMap<String, GlyphId>,
+    glyph_by_byte: [Option<GlyphId>; 256],
+    glyph_by_cid: HashMap<u16, GlyphId>,
 }
 
 struct CachedCffProgram {
@@ -126,22 +131,31 @@ impl CachedCffProgram {
     fn parsed(&self) -> Option<&ParsedCffProgram> {
         self.parsed
             .get_or_init(|| {
-                let cff = ttf_parser::cff::Table::parse(&self.bytes)?;
-                let glyph_count = usize::from(cff.number_of_glyphs());
+                let cff = CffFontRef::new(&self.bytes, 0, None).ok()?;
+                let charset = cff.charset()?;
+                let glyph_count = usize::try_from(cff.num_glyphs()).ok()?;
                 let mut glyph_names = Vec::with_capacity(glyph_count);
                 let mut glyph_by_name = HashMap::new();
                 let mut glyph_by_cid = HashMap::new();
                 for index in 0..glyph_count {
-                    let glyph = ttf_parser::GlyphId(u16::try_from(index).ok()?);
-                    let name = cff.glyph_name(glyph).map(ToOwned::to_owned);
+                    let glyph = GlyphId::new(u32::from(u16::try_from(index).ok()?));
+                    let sid = charset.string_id(glyph);
+                    let name = if cff.is_cid() {
+                        None
+                    } else {
+                        sid.and_then(|sid| cff.string(sid))
+                            .and_then(|name| std::str::from_utf8(name).ok())
+                            .map(ToOwned::to_owned)
+                    };
                     if let Some(name) = &name {
                         glyph_by_name.insert(name.clone(), glyph);
                     }
-                    if let Some(cid) = cff.glyph_cid(glyph) {
+                    if let Some(cid) = cff.is_cid().then(|| sid.map(|sid| sid.to_u16())).flatten() {
                         glyph_by_cid.entry(cid).or_insert(glyph);
                     }
                     glyph_names.push(name);
                 }
+                let cff_encoding = cff.encoding();
                 for encoding in [
                     PredefinedEncoding::Standard,
                     PredefinedEncoding::MacRoman,
@@ -152,14 +166,22 @@ impl CachedCffProgram {
                         let Some(name) = font_encodings::glyph_name(encoding, byte) else {
                             continue;
                         };
-                        if let Some(glyph) = cff.glyph_index_by_name(name) {
+                        if let Some(glyph) = glyph_by_name.get(name).copied() {
                             glyph_by_name.entry(name.to_owned()).or_insert(glyph);
                         }
                     }
                 }
                 let mut glyph_by_byte = [None; 256];
                 for byte in u8::MIN..=u8::MAX {
-                    if let Some(glyph) = cff.glyph_index(byte)
+                    let glyph = cff_encoding
+                        .as_ref()
+                        .and_then(|encoding| encoding.map(byte))
+                        .or_else(|| {
+                            read_fonts::ps::encoding::PredefinedEncoding::Standard
+                                .sid(byte)
+                                .and_then(|sid| charset.glyph_id(sid))
+                        });
+                    if let Some(glyph) = glyph
                         && let Some(slot) = glyph_by_byte.get_mut(usize::from(byte))
                     {
                         *slot = Some(glyph);
