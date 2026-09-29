@@ -1,0 +1,16 @@
+{
+  "documents": [
+    {
+      "path": "bench/document2.pdf",
+      "sha256": "b24f499655579d331b40b5f00e12f757b46901c2f574214ffc1f3f94691ebad2"
+    },
+    {
+      "path": "bench/document3.pdf",
+      "sha256": "dad1e24a8184a72733ff1969eb341490e9ff366f1245fd490bcce82f70e5f7d8"
+    }
+  ],
+  "profiles": ["1b", "2b", "ua1"],
+  "warmup_runs": 1,
+  "measured_runs": 5,
+  "max_slowdown_percent": 20
+}

@@ -1,0 +1,96 @@
+name: Performance regressions
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  performance:
+    name: Compare real-world PDF performance
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Cache Cargo downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: performance-cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            performance-cargo-${{ runner.os }}-
+
+      - name: Select comparison revision
+        id: baseline
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+            base_sha="$PUSH_BEFORE_SHA"
+          else
+            base_sha="$(git rev-parse HEAD^)"
+          fi
+          git cat-file -e "${base_sha}^{commit}"
+          echo "sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "Comparing against $base_sha"
+
+      - name: Build baseline revision
+        env:
+          BASE_SHA: ${{ steps.baseline.outputs.sha }}
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/page-baseline-worktree" "$BASE_SHA"
+          (
+            cd "$RUNNER_TEMP/page-baseline-worktree"
+            cargo build --locked --release -p page_cli --bin page
+          )
+          cp "$CARGO_TARGET_DIR/release/page" "$RUNNER_TEMP/page-baseline"
+
+      - name: Build candidate revision
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          cargo build --locked --release -p page_cli --bin page
+          cp "$CARGO_TARGET_DIR/release/page" "$RUNNER_TEMP/page-candidate"
+
+      - name: Measure performance
+        id: measure
+        env:
+          PERFORMANCE_BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
+        run: |
+          python3 bench/performance_regression.py \
+            --baseline-bin "$RUNNER_TEMP/page-baseline" \
+            --candidate-bin "$RUNNER_TEMP/page-candidate" \
+            --json-output "$RUNNER_TEMP/performance-results.json" \
+            --summary-output "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload raw timing results
+        if: ${{ always() && steps.measure.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ github.run_id }}
+          path: ${{ runner.temp }}/performance-results.json
+          retention-days: 14

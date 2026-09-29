@@ -1,6 +1,6 @@
 Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of 10 measured runs with 2 warmup runs.
 
-The corpus includes real world PDFs with many pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.
+The corpus includes real world PDFs with many pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. The two PDFs used by the CI regression check are tracked under `bench/`; other full-benchmark PDFs can remain local.
 
 | Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -12,3 +12,7 @@ The corpus includes real world PDFs with many pages, images, an embedded font, s
 !!! info
 
        When details of which rule failed are not required, validation is expected to be much, much faster. Internally, this mode is called **lazy mode** and brings an **additional 2× to 10× speed improvement**. This is not represented in this benchmark to keep it simpler.
+
+## CI performance regression check
+
+The separate **Performance regressions** workflow compares the PR build with its base revision on the same runner. It measures `document2.pdf` and `document3.pdf` with PDF/A-1b, PDF/A-2b, and PDF/UA-1, using one warmup and five paired runs per workload. It fails when the median paired slowdown exceeds 20%. The workflow reports timings in its run summary and uploads the raw JSON results.
