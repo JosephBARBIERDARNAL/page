@@ -937,10 +937,6 @@
 <p>When you give <code>page</code> a PDF, it reads the file and parses its structure into a <strong>normalized document model</strong>. This model brings together the PDF object graph and the information needed for validation, such as metadata, XMP declarations, output intents, fonts, pages, annotations, forms, and content streams. Parsing is done via <a href="https://github.com/J-F-Liu/lopdf">lopdf</a>, and is kept separate from conformance checks, so malformed input or resource-limit failures can be reported distinctly from a PDF that simply violates a standard.</p>
 <p>Next, <code>page</code> selects the validation profile: it uses the profile passed on the command line, or infers one from the PDF's XMP identification metadata when no profile is specified. A document is compliant only when <strong>every rule</strong> implemented for the selected profile passes.</p>
 <p>Internally, <code>page</code> has a "lazy" mode, which lets us be around 2x to 10x faster depending on the document. Instead of checking for every possible rule, it stops at the very first one that is violated, and only all rules checked when it's required. This feature is automatically used when possible, and only relevant when the document isn't compliant.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>page</code> has zero unsafe usage.</p>
-</div>
 <h2 id="what-are-the-alternatives">What are the alternatives?<a class="headerlink" href="#what-are-the-alternatives" title="Permanent link">&para;</a></h2>
 <p>There are multiple projects that attempt to provide a PDF validator, but only one is:</p>
 <ul>

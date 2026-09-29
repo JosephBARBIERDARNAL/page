@@ -795,7 +795,7 @@
   <h1 id="__skip">Benchmark</h1>
 
 <p>Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); <strong>higher is faster</strong>. Values use the median of 10 measured runs with 2 warmup runs.</p>
-<p>The corpus includes real world documents and a deterministic feature-heavy PDF with multiple pages, images, an embedded font, structure elements, optional-content groups, a name tree, and embedded files. We're currently working on sharing the documents used to make the process fully reproducible.</p>
+<p>The benchmark uses publicly available documents, you can find them <a href="https://github.com/JosephBARBIERDARNAL/page-fixtures">here</a>.</p>
 <table>
 <thead>
 <tr>
@@ -809,58 +809,50 @@
 </thead>
 <tbody>
 <tr>
-<td>feature-heavy</td>
-<td style="text-align: right;">4.0</td>
-<td style="text-align: right;">10</td>
-<td style="text-align: right;">28.54×</td>
-<td style="text-align: right;">28.42×</td>
-<td style="text-align: right;">25.69×</td>
+<td>gao-2024</td>
+<td style="text-align: right;">10.5</td>
+<td style="text-align: right;">153</td>
+<td style="text-align: right;">5.20×</td>
+<td style="text-align: right;">5.66×</td>
+<td style="text-align: right;">5.13×</td>
 </tr>
 <tr>
-<td>document 1</td>
-<td style="text-align: right;">21.4</td>
-<td style="text-align: right;">756</td>
-<td style="text-align: right;">4.91×</td>
-<td style="text-align: right;">4.98×</td>
-<td style="text-align: right;">6.55×</td>
+<td>health-of-canadians-2025</td>
+<td style="text-align: right;">1.4</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">10.71×</td>
+<td style="text-align: right;">11.56×</td>
+<td style="text-align: right;">9.20×</td>
 </tr>
 <tr>
-<td>document 2</td>
-<td style="text-align: right;">6.5</td>
-<td style="text-align: right;">51</td>
-<td style="text-align: right;">9.89×</td>
-<td style="text-align: right;">9.62×</td>
-<td style="text-align: right;">9.03×</td>
+<td>standards-for-development-world-bank</td>
+<td style="text-align: right;">10.7</td>
+<td style="text-align: right;">408</td>
+<td style="text-align: right;">5.75×</td>
+<td style="text-align: right;">6.01×</td>
+<td style="text-align: right;">5.85×</td>
 </tr>
 <tr>
-<td>document 3</td>
-<td style="text-align: right;">38.2</td>
-<td style="text-align: right;">518</td>
-<td style="text-align: right;">4.33×</td>
-<td style="text-align: right;">4.72×</td>
-<td style="text-align: right;">3.82×</td>
+<td>surveillance-drug-risk-2017</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">83</td>
+<td style="text-align: right;">8.79×</td>
+<td style="text-align: right;">9.15×</td>
+<td style="text-align: right;">7.98×</td>
 </tr>
 <tr>
-<td>document 4</td>
-<td style="text-align: right;">9.6</td>
-<td style="text-align: right;">332</td>
-<td style="text-align: right;">5.17×</td>
-<td style="text-align: right;">5.96×</td>
-<td style="text-align: right;">5.54×</td>
-</tr>
-<tr>
-<td>document 5</td>
+<td>world-health-statistics-2025</td>
 <td style="text-align: right;">5.7</td>
 <td style="text-align: right;">88</td>
-<td style="text-align: right;">3.36×</td>
-<td style="text-align: right;">2.73×</td>
-<td style="text-align: right;">2.46×</td>
+<td style="text-align: right;">2.44×</td>
+<td style="text-align: right;">2.61×</td>
+<td style="text-align: right;">2.38×</td>
 </tr>
 </tbody>
 </table>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>When details of which rule failed are not required, validation is expected to be much, much faster (an additional 2× to 10× improvement); this is not represented in this benchmark to keep it simpler.</p>
+<p>When details of which rule failed are not required, validation is expected to be much, much faster. Internally, this mode is called <strong>lazy mode</strong> and brings an <strong>additional 2× to 10× speed improvement</strong>. This is not represented in this benchmark to keep it simpler.</p>
 </div>
 
 
