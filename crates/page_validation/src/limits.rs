@@ -1,6 +1,6 @@
 /// Configurable bounds that keep PDF parsing and inspection resource use predictable regardless of what an untrusted input contains.
 ///
-/// Each field caps a distinct resource: the raw input size, a single decoded stream, the sum of all decoded content streams, the number of Form XObject invocations, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, the dimensions of an inspected table grid, or the number of mappings expanded from one ToUnicode CMap. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
+/// Each field caps a distinct resource: the raw input size, a single decoded stream, the combined decoded content streams and font streams retained during inspection, the number of Form XObject invocations, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, the dimensions of an inspected table grid, or the number of mappings expanded from one ToUnicode CMap. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
 ///
 /// ## Examples
 ///

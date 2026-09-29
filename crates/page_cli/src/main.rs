@@ -50,7 +50,7 @@ struct Cli {
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE)]
     max_decoded_stream_size: usize,
 
-    /// Maximum total decoded size of page, Form, appearance, Pattern, and Type3 content streams.
+    /// Maximum combined decoded size of content streams and retained font streams.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
     max_total_decoded_content_size: usize,
 

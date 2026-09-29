@@ -99,6 +99,8 @@ pub(crate) struct FontTextRun {
 /// instead of maintaining subtly different reachability walkers.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ContentExecutionSummary {
+    /// Decoded content bytes already charged to the document-wide stream budget.
+    pub(crate) decoded_content_bytes: usize,
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
     pub(crate) xobjects: BTreeMap<ResourceKey, XObjectUse>,
     pub(crate) has_annotations: bool,
@@ -330,6 +332,7 @@ pub(crate) fn execute_content(
             &mut total_decoded_bytes,
         )?;
     }
+    executor.summary.decoded_content_bytes = total_decoded_bytes;
     Ok(executor.summary)
 }
 
