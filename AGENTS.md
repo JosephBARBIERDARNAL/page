@@ -33,7 +33,7 @@ Validation unit and integration tests live with `page_validation`; keep its shar
 
 ## Performance and benchmark
 
-Performances are measured against verapdf in bench/benchmark.rs, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
+Performances are measured against verapdf in bench/benchmark.py, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
 
 ## Versionning
 
