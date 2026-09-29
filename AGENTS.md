@@ -31,6 +31,10 @@ Keep reusable PDF parsing, normalization, validation rules, reports, and safety 
 
 Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
 
+## Performance and benchmark
+
+Performances are measured against verapdf in bench/benchmark.rs, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
+
 ## Versionning
 
 page uses semantic versionning. All crates must share the exact same version. Current version is 0.7.0.
