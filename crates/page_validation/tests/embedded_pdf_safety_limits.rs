@@ -1,0 +1,81 @@
+use page_validation::{
+    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+};
+
+pub mod common;
+
+const EMBEDDED_PDF_A_CONFORMANCE: &str = "PDFA1B-EMBEDDED-FILE-PDFA-001";
+
+#[test]
+fn embedded_pdf_decode_limit_is_an_operational_failure() {
+    let limits = SafetyLimits {
+        max_decoded_stream_size: 4096,
+        ..SafetyLimits::default()
+    };
+    let error = validate_pdf_bytes(
+        &common::pdfa_2_3_fixture("embedded_pdf_decode_limit"),
+        Some(ValidationProfile::PdfA2b),
+        &limits,
+    )
+    .expect_err("the embedded PDF must exceed the decoded stream limit");
+
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::ContentDecodeLimit(4096))
+    ));
+}
+
+#[test]
+fn embedded_pdf_object_limit_is_an_operational_failure() {
+    let limits = SafetyLimits {
+        max_object_count: 20,
+        ..SafetyLimits::default()
+    };
+    let error = validate_pdf_bytes(
+        &common::pdfa_2_3_fixture("embedded_pdf_object_limit"),
+        Some(ValidationProfile::PdfA2b),
+        &limits,
+    )
+    .expect_err("the embedded PDF must exceed the object-count limit");
+
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::TooManyObjects { limit: 20, .. })
+    ));
+}
+
+#[test]
+fn malformed_embedded_pdf_remains_a_conformance_failure() {
+    let report = validate_pdf_bytes(
+        &common::pdfa_2_3_fixture("file_spec_association"),
+        Some(ValidationProfile::PdfA2b),
+        &SafetyLimits::default(),
+    )
+    .expect("malformed attachments remain rule failures");
+
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == EMBEDDED_PDF_A_CONFORMANCE),
+        "the embedded PDF conformance rule must fail: {report}"
+    );
+}
+
+#[test]
+fn noncompliant_embedded_pdf_remains_a_conformance_failure() {
+    let report = validate_pdf_bytes(
+        &common::pdfa_2_3_fixture("embedded_pdf_noncompliant"),
+        Some(ValidationProfile::PdfA2b),
+        &SafetyLimits::default(),
+    )
+    .expect("noncompliant attachments remain rule failures");
+
+    assert!(
+        report
+            .failures
+            .iter()
+            .any(|failure| failure.rule_id == EMBEDDED_PDF_A_CONFORMANCE),
+        "the embedded PDF conformance rule must fail: {report}"
+    );
+}

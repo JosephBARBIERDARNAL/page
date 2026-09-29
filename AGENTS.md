@@ -15,7 +15,7 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 - never add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant, but this behavior should be banned by default.
 - always check for ways to reuse code
 - minimize useless abstraction
-- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries. Most changelog entries must have a github issue referenced, ask if unsure what is the number for a given issue.
+- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries. Most changelog entries must have a github issue referenced, if you don't have one, ask for it.
 - after making code changes, make sure the code is well formatted and linted. See @justfile for key commands to run.
 
 ## Project Structure & Module Organization

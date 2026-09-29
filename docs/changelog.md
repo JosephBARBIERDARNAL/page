@@ -1,5 +1,6 @@
 ## Dev
 
+- Fix: Propagate safety-limit errors while inspecting embedded PDFs [#338](https://github.com/JosephBARBIERDARNAL/page/issues/338)
 - Fix: Bound repeated execution of shared Form XObjects [#335](https://github.com/JosephBARBIERDARNAL/page/issues/335)
 - Perf: Add a short real-world PDF regression benchmark to CI [#341](https://github.com/JosephBARBIERDARNAL/page/issues/341)
 - Fix: Include generated API files in the published WASM package [#334](https://github.com/JosephBARBIERDARNAL/page/issues/334)
