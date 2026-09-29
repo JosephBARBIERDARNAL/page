@@ -10,5 +10,5 @@
   "profiles": ["1b", "2b", "ua1"],
   "warmup_runs": 1,
   "measured_runs": 5,
-  "max_slowdown_percent": 10
+  "max_slowdown_percent": 3
 }
