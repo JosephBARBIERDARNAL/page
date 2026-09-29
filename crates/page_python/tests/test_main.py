@@ -40,6 +40,7 @@ def test_default_safety_limits():
         limits.max_total_decoded_content_size
         == page.SafetyLimits.DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE
     )
+    assert limits.max_form_invocations == page.SafetyLimits.DEFAULT_MAX_FORM_INVOCATIONS
     assert limits.max_object_count == 1_000_000
     assert limits.max_reference_depth == 256
     assert limits.max_xref_revisions == page.SafetyLimits.DEFAULT_MAX_XREF_REVISIONS
@@ -60,6 +61,7 @@ def test_custom_safety_limits():
     limits = page.SafetyLimits(
         max_input_size=42,
         max_total_decoded_content_size=43,
+        max_form_invocations=44,
         max_reference_depth=7,
         max_xref_revisions=8,
         max_table_span=9,
@@ -68,9 +70,9 @@ def test_custom_safety_limits():
         max_table_grid_cells=12,
         max_unicode_cmap_mappings=13,
     )
-
     assert limits.max_input_size == 42
     assert limits.max_total_decoded_content_size == 43
+    assert limits.max_form_invocations == 44
     assert limits.max_reference_depth == 7
     assert limits.max_xref_revisions == 8
     assert limits.max_table_span == 9

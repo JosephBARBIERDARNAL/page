@@ -1,0 +1,14 @@
+{
+  "documents": [
+    {
+      "path": "bench/standards-for-development-world-bank.pdf"
+    },
+    {
+      "path": "bench/gao-2024.pdf"
+    }
+  ],
+  "profiles": ["1b", "2b", "ua1"],
+  "warmup_runs": 1,
+  "measured_runs": 5,
+  "max_slowdown_percent": 1
+}

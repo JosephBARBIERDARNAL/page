@@ -1,5 +1,10 @@
 ## Dev
 
+- Fix: Bound aggregate decoded font-stream retention [#336](https://github.com/JosephBARBIERDARNAL/page/issues/336)
+- Fix: Propagate safety-limit errors while inspecting embedded PDFs [#338](https://github.com/JosephBARBIERDARNAL/page/issues/338)
+- Fix: Bound repeated execution of shared Form XObjects [#335](https://github.com/JosephBARBIERDARNAL/page/issues/335)
+- Perf: Add a short real-world PDF regression benchmark to CI [#341](https://github.com/JosephBARBIERDARNAL/page/issues/341)
+- Fix: Include generated API files in the published WASM package [#334](https://github.com/JosephBARBIERDARNAL/page/issues/334)
 - Refactor: Remove the obsolete validation report status field
 - Refactor: Replace `ttf-parser` with `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
 - Feat: Report distinct failed rules and raw failed checks [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)

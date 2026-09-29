@@ -1,4 +1,4 @@
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
@@ -247,6 +247,8 @@ struct Scanner<'a> {
     /// re-tokenize the same CMap stream for the same font.
     cmap_decoders: HashMap<ObjectId, Rc<CmapDecoder>>,
     decoded_font_streams: RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    /// Content bytes plus distinct font streams retained by the scanner.
+    total_decoded_stream_bytes: Cell<usize>,
     unicode_cmaps: RefCell<HashMap<ObjectId, Rc<UnicodeCmap>>>,
     type1_programs: RefCell<HashMap<ObjectId, Rc<CachedType1Program>>>,
     cff_programs: RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
@@ -318,6 +320,7 @@ pub(crate) fn inspect(
         limits,
         cmap_decoders: HashMap::new(),
         decoded_font_streams: RefCell::new(HashMap::new()),
+        total_decoded_stream_bytes: Cell::new(execution.decoded_content_bytes),
         unicode_cmaps: RefCell::new(HashMap::new()),
         type1_programs: RefCell::new(HashMap::new()),
         cff_programs: RefCell::new(HashMap::new()),
@@ -669,7 +672,13 @@ impl Scanner<'_> {
     }
 
     fn cached_font_stream(&self, source: &Object, stream: &Stream) -> Result<Rc<[u8]>, PdfError> {
-        cached_font_stream(&self.decoded_font_streams, source, stream, self.limits)
+        cached_font_stream(
+            &self.decoded_font_streams,
+            &self.total_decoded_stream_bytes,
+            source,
+            stream,
+            self.limits,
+        )
     }
 
     fn cached_unicode_cmap(
@@ -750,6 +759,7 @@ impl Scanner<'_> {
         cached_cff_program(
             &self.cff_programs,
             &self.decoded_font_streams,
+            &self.total_decoded_stream_bytes,
             source,
             stream,
             self.limits,
@@ -1374,6 +1384,7 @@ impl Scanner<'_> {
                     self.document,
                     self.limits,
                     &self.decoded_font_streams,
+                    &self.total_decoded_stream_bytes,
                     &self.cff_programs,
                     &mut self.notdef_glyphs,
                     &mut self.missing_truetype_glyphs,
@@ -1464,6 +1475,7 @@ impl Scanner<'_> {
         document: &Document,
         limits: &SafetyLimits,
         decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+        total_decoded_stream_bytes: &Cell<usize>,
         cff_programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
         notdef_glyphs: &mut Vec<RuleFailure>,
         missing_truetype_glyphs: &mut Vec<RuleFailure>,
@@ -1491,6 +1503,7 @@ impl Scanner<'_> {
         let program = cached_cff_program(
             cff_programs,
             decoded_font_streams,
+            total_decoded_stream_bytes,
             font_file,
             stream,
             limits,
@@ -2059,6 +2072,7 @@ impl Scanner<'_> {
                 descendant_subtype,
                 self.limits,
                 &self.decoded_font_streams,
+                &self.total_decoded_stream_bytes,
                 &self.cff_programs,
             )?
             else {
@@ -2895,8 +2909,11 @@ fn decode_font_stream(stream: &Stream, limits: &SafetyLimits) -> Result<Vec<u8>,
     }
 }
 
+/// Caches each indirect font stream once and charges retained decoded bytes
+/// against the content bytes already consumed from the document-wide budget.
 fn cached_font_stream(
     cache: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    total_decoded_stream_bytes: &Cell<usize>,
     source: &Object,
     stream: &Stream,
     limits: &SafetyLimits,
@@ -2909,21 +2926,40 @@ fn cached_font_stream(
     if let Some(bytes) = cache.borrow().get(&object_id) {
         return Ok(Rc::clone(bytes));
     }
-    let bytes = Rc::from(decode_font_stream(stream, limits)?.into_boxed_slice());
+    let bytes = Rc::<[u8]>::from(decode_font_stream(stream, limits)?.into_boxed_slice());
+    let total = total_decoded_stream_bytes
+        .get()
+        .checked_add(bytes.len())
+        .ok_or(PdfError::TotalDecodedStreamLimit(
+            limits.max_total_decoded_content_size,
+        ))?;
+    if total > limits.max_total_decoded_content_size {
+        return Err(PdfError::TotalDecodedStreamLimit(
+            limits.max_total_decoded_content_size,
+        ));
+    }
     cache.borrow_mut().insert(object_id, Rc::clone(&bytes));
+    total_decoded_stream_bytes.set(total);
     Ok(bytes)
 }
 
 fn cached_cff_program(
     programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
     decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    total_decoded_stream_bytes: &Cell<usize>,
     source: &Object,
     stream: &Stream,
     limits: &SafetyLimits,
 ) -> Result<Rc<CachedCffProgram>, PdfError> {
     let Ok(object_id) = source.as_reference() else {
         return Ok(Rc::new(CachedCffProgram {
-            bytes: cached_font_stream(decoded_font_streams, source, stream, limits)?,
+            bytes: cached_font_stream(
+                decoded_font_streams,
+                total_decoded_stream_bytes,
+                source,
+                stream,
+                limits,
+            )?,
             parsed: OnceCell::new(),
         }));
     };
@@ -2931,7 +2967,13 @@ fn cached_cff_program(
         return Ok(Rc::clone(program));
     }
     let program = Rc::new(CachedCffProgram {
-        bytes: cached_font_stream(decoded_font_streams, source, stream, limits)?,
+        bytes: cached_font_stream(
+            decoded_font_streams,
+            total_decoded_stream_bytes,
+            source,
+            stream,
+            limits,
+        )?,
         parsed: OnceCell::new(),
     });
     programs.borrow_mut().insert(object_id, Rc::clone(&program));
@@ -4165,6 +4207,7 @@ fn cid_font_program_cids(
     subtype: Option<&[u8]>,
     limits: &SafetyLimits,
     decoded_font_streams: &RefCell<HashMap<ObjectId, Rc<[u8]>>>,
+    total_decoded_stream_bytes: &Cell<usize>,
     cff_programs: &RefCell<HashMap<ObjectId, Rc<CachedCffProgram>>>,
 ) -> Result<Option<BTreeSet<u16>>, PdfError> {
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
@@ -4189,7 +4232,13 @@ fn cid_font_program_cids(
         return Ok(None);
     }
     if subtype == Some(b"CIDFontType2".as_slice()) {
-        let bytes = cached_font_stream(decoded_font_streams, stream_source, stream, limits)?;
+        let bytes = cached_font_stream(
+            decoded_font_streams,
+            total_decoded_stream_bytes,
+            stream_source,
+            stream,
+            limits,
+        )?;
         let Some(face) = RawTrueType::parse(&bytes) else {
             return Ok(None);
         };
@@ -4228,6 +4277,7 @@ fn cid_font_program_cids(
     let program = cached_cff_program(
         cff_programs,
         decoded_font_streams,
+        total_decoded_stream_bytes,
         stream_source,
         stream,
         limits,
@@ -5458,11 +5508,11 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        CidSystemInfo, UnicodeCmap, cff_fd_select, cff_index, cmap_bytes_system_info,
-        cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
-        inspect_all_embedded_cmap_cids, parse_cmap, parse_cmap_with_predefined_bases,
-        shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
-        type1_program_charstring_widths,
+        CidSystemInfo, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
+        cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base,
+        decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
+        parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
+        type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
 
@@ -5505,6 +5555,59 @@ mod tests {
             decode_font_stream(&stream, &limits),
             Err(PdfError::FontDecodeLimit(4))
         ));
+    }
+
+    #[test]
+    fn distinct_cached_font_streams_share_the_total_decoded_budget() {
+        use std::cell::{Cell, RefCell};
+        use std::collections::HashMap;
+        use std::rc::Rc;
+
+        let cache = RefCell::new(HashMap::<(u32, u16), Rc<[u8]>>::new());
+        let total_decoded_stream_bytes = Cell::new(1);
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 4_096,
+            max_total_decoded_content_size: 8_192,
+            ..SafetyLimits::default()
+        };
+        let mut stream = Stream::new(Dictionary::new(), vec![0; 4_096]);
+        stream.compress().expect("compress fixture stream");
+        assert!(stream.content.len() < 4_096);
+        let first_source = Object::Reference((1, 0));
+        let second_source = Object::Reference((2, 0));
+
+        cached_font_stream(
+            &cache,
+            &total_decoded_stream_bytes,
+            &first_source,
+            &stream,
+            &limits,
+        )
+        .expect("first font stream fits alongside decoded content");
+        assert_eq!(total_decoded_stream_bytes.get(), 4_097);
+
+        cached_font_stream(
+            &cache,
+            &total_decoded_stream_bytes,
+            &first_source,
+            &stream,
+            &limits,
+        )
+        .expect("cache hits are charged only once");
+        assert_eq!(total_decoded_stream_bytes.get(), 4_097);
+
+        assert!(matches!(
+            cached_font_stream(
+                &cache,
+                &total_decoded_stream_bytes,
+                &second_source,
+                &stream,
+                &limits,
+            ),
+            Err(PdfError::TotalDecodedStreamLimit(8_192))
+        ));
+        assert_eq!(cache.borrow().len(), 1);
+        assert_eq!(total_decoded_stream_bytes.get(), 4_097);
     }
 
     /// A malicious CMap can declare an astronomical entry count while

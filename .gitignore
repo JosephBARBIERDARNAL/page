@@ -14,6 +14,7 @@ veraPDF-library
 PDF-ISO
 
 bench/*.pdf
+
 node_modules
 .venv
 

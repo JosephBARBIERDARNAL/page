@@ -131,6 +131,7 @@ let limits = SafetyLimits {
     max_input_size: 256 * 1024 * 1024,                 // 256 MiB
     max_decoded_stream_size: 32 * 1024 * 1024,         // 32 MiB
     max_total_decoded_content_size: 256 * 1024 * 1024, // 256 MiB
+    max_form_invocations: 10_000,                      // Form XObject expansions per document
     max_object_count: 1_000_000,                       // 1,000,000 objects
     max_reference_depth: 256,                          // 256 levels
     max_xref_revisions: 1_024,                         // 1,024 revisions
@@ -142,7 +143,7 @@ let limits = SafetyLimits {
 };
 ```
 
-`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the total decoded page, Form, appearance, Pattern, and Type3 content inspected for one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
+`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
 
 ## Use the exit code
 

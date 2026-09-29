@@ -656,30 +656,48 @@ pub(crate) fn inspect(
                     }
                 }
                 if demand.contains(FeatureDemand::EMBEDDED_FILE_PDFA) {
-                    let valid_pdfa = value
-                        .as_stream()
-                        .ok()
-                        .and_then(|stream| {
-                            stream
-                                .decompressed_content_with_limit(limits.max_decoded_stream_size)
-                                .ok()
-                        })
-                        .is_some_and(|bytes| {
-                            bytes.starts_with(b"%PDF-")
-                                && [
+                    let valid_pdfa = if let Ok(stream) = value.as_stream() {
+                        match stream.decompressed_content_with_limit(limits.max_decoded_stream_size)
+                        {
+                            Ok(bytes) if bytes.starts_with(b"%PDF-") => {
+                                let mut valid_pdfa = false;
+                                for profile in [
                                     crate::validation::ValidationProfile::PdfA1b,
                                     crate::validation::ValidationProfile::PdfA2b,
-                                ]
-                                .into_iter()
-                                .any(|profile| {
-                                    crate::validation::validate_pdf_bytes(
+                                ] {
+                                    match crate::validation::validate_pdf_bytes(
                                         &bytes,
                                         Some(profile),
                                         limits,
-                                    )
-                                    .is_ok_and(|report| report.is_compliant)
-                                })
-                        });
+                                    ) {
+                                        Ok(report) if report.is_compliant => {
+                                            valid_pdfa = true;
+                                            break;
+                                        }
+                                        Ok(_) => {}
+                                        Err(crate::error::ValidationError::Pdf(error))
+                                            if error.is_safety_limit() =>
+                                        {
+                                            return Err(error);
+                                        }
+                                        Err(_) => {}
+                                    }
+                                }
+                                valid_pdfa
+                            }
+                            Ok(_) => false,
+                            Err(lopdf::Error::Decompress(
+                                lopdf::DecompressError::MemoryLimitExceeded { .. },
+                            )) => {
+                                return Err(PdfError::ContentDecodeLimit(
+                                    limits.max_decoded_stream_size,
+                                ));
+                            }
+                            Err(_) => false,
+                        }
+                    } else {
+                        false
+                    };
                     if !valid_pdfa {
                         embedded_files_not_pdfa.push(RuleFailure {
                             object_id,

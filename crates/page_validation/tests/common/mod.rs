@@ -12834,6 +12834,9 @@ pub fn pdfa_2_3_fixture(case: &str) -> Vec<u8> {
         "catalog_needs_rendering"
         | "file_spec_af_relationship"
         | "file_spec_association"
+        | "embedded_pdf_decode_limit"
+        | "embedded_pdf_noncompliant"
+        | "embedded_pdf_object_limit"
         | "pres_steps"
         | "signature_byte_range"
         | "signature_certificate"
@@ -12902,11 +12905,44 @@ pub fn pdfa_2_3_fixture(case: &str) -> Vec<u8> {
 
     match case {
         "catalog_needs_rendering" => catalog.set("NeedsRendering", true),
-        "file_spec_af_relationship" | "file_spec_association" => {
-            let embedded = document.add_object(Stream::new(
+        "file_spec_af_relationship"
+        | "file_spec_association"
+        | "embedded_pdf_decode_limit"
+        | "embedded_pdf_noncompliant"
+        | "embedded_pdf_object_limit" => {
+            let embedded_bytes = match case {
+                "embedded_pdf_decode_limit" => {
+                    let mut bytes = b"%PDF-1.4\n".to_vec();
+                    bytes.resize(bytes.len() + 8192, b' ');
+                    bytes.extend_from_slice(b"\n%%EOF\n");
+                    bytes
+                }
+                "embedded_pdf_noncompliant" => {
+                    include_bytes!("../fixtures/structural.pdf").to_vec()
+                }
+                "embedded_pdf_object_limit" => {
+                    let mut embedded_document = Document::with_version("1.4");
+                    for _ in 0..40 {
+                        embedded_document.add_object(Dictionary::new());
+                    }
+                    let mut bytes = Vec::new();
+                    embedded_document
+                        .save_to(&mut bytes)
+                        .expect("save embedded PDF object-limit fixture");
+                    bytes
+                }
+                _ => b"%PDF-1.4\n%%EOF\n".to_vec(),
+            };
+            let mut embedded_stream = Stream::new(
                 dictionary! { "Subtype" => "application/pdf" },
-                b"%PDF-1.4\n%%EOF\n".to_vec(),
-            ));
+                embedded_bytes,
+            );
+            if case == "embedded_pdf_decode_limit" {
+                embedded_stream
+                    .compress()
+                    .expect("compress embedded PDF decoded-size fixture");
+            }
+            let embedded = document.add_object(embedded_stream);
             let mut file_spec = dictionary! {
                 "Type" => "Filespec",
                 "F" => Object::string_literal("attachment.pdf"),

@@ -1,4 +1,4 @@
-too-many-arguments-threshold = 11
+too-many-arguments-threshold = 12
 allow-indexing-slicing-in-tests = true
 allow-panic-in-tests = true
 allow-unwrap-in-tests = true

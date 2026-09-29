@@ -38,6 +38,7 @@ describe("page-validation", () => {
     expect(limits.maxInputSize).toBe(256 * 1024 * 1024);
     expect(limits.maxObjectCount).toBe(1_000_000);
     expect(limits.maxReferenceDepth).toBe(256);
+    expect(limits.maxFormInvocations).toBe(SafetyLimits.DEFAULT_MAX_FORM_INVOCATIONS);
     expect(limits.maxTableSpan).toBe(SafetyLimits.DEFAULT_MAX_TABLE_SPAN);
     expect(limits.maxTableGridRows).toBe(SafetyLimits.DEFAULT_MAX_TABLE_GRID_ROWS);
     expect(limits.maxTableGridColumns).toBe(
@@ -49,8 +50,9 @@ describe("page-validation", () => {
     );
   });
 
-  it("serializes custom table safety limits", () => {
+  it("serializes custom safety limits", () => {
     const limits = new SafetyLimits({
+      maxFormInvocations: 44,
       maxTableSpan: 9,
       maxTableGridRows: 10,
       maxTableGridColumns: 11,
@@ -59,6 +61,7 @@ describe("page-validation", () => {
     });
 
     expect(limits.toJSON()).toMatchObject({
+      max_form_invocations: 44,
       max_table_span: 9,
       max_table_grid_rows: 10,
       max_table_grid_columns: 11,

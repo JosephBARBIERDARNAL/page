@@ -1,6 +1,6 @@
 /// Configurable bounds that keep PDF parsing and inspection resource use predictable regardless of what an untrusted input contains.
 ///
-/// Each field caps a distinct resource: the raw input size, a single decoded stream, the sum of all decoded content streams, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, the dimensions of an inspected table grid, or the number of mappings expanded from one ToUnicode CMap. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
+/// Each field caps a distinct resource: the raw input size, a single decoded stream, the combined decoded content streams and font streams retained during inspection, the number of Form XObject invocations, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, the dimensions of an inspected table grid, or the number of mappings expanded from one ToUnicode CMap. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
 ///
 /// ## Examples
 ///
@@ -19,6 +19,7 @@ pub struct SafetyLimits {
     pub max_input_size: u64,
     pub max_decoded_stream_size: usize,
     pub max_total_decoded_content_size: usize,
+    pub max_form_invocations: usize,
     pub max_object_count: usize,
     pub max_reference_depth: usize,
     pub max_xref_revisions: usize,
@@ -35,6 +36,7 @@ impl SafetyLimits {
     pub const DEFAULT_MAX_INPUT_SIZE: u64 = 256 * 1024 * 1024;
     pub const DEFAULT_MAX_DECODED_STREAM_SIZE: usize = 32 * 1024 * 1024;
     pub const DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE: usize = 256 * 1024 * 1024;
+    pub const DEFAULT_MAX_FORM_INVOCATIONS: usize = 10_000;
     pub const DEFAULT_MAX_OBJECT_COUNT: usize = 1_000_000;
     pub const DEFAULT_MAX_REFERENCE_DEPTH: usize = 256;
     pub const DEFAULT_MAX_XREF_REVISIONS: usize = 1_024;
@@ -51,6 +53,7 @@ impl Default for SafetyLimits {
             max_input_size: Self::DEFAULT_MAX_INPUT_SIZE,
             max_decoded_stream_size: Self::DEFAULT_MAX_DECODED_STREAM_SIZE,
             max_total_decoded_content_size: Self::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE,
+            max_form_invocations: Self::DEFAULT_MAX_FORM_INVOCATIONS,
             max_object_count: Self::DEFAULT_MAX_OBJECT_COUNT,
             max_reference_depth: Self::DEFAULT_MAX_REFERENCE_DEPTH,
             max_xref_revisions: Self::DEFAULT_MAX_XREF_REVISIONS,

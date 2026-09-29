@@ -15,7 +15,7 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 - never add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant, but this behavior should be banned by default.
 - always check for ways to reuse code
 - minimize useless abstraction
-- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries
+- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries. Most changelog entries must have a github issue referenced, if you don't have one, ask for it.
 - after making code changes, make sure the code is well formatted and linted. See @justfile for key commands to run.
 
 ## Project Structure & Module Organization
@@ -30,6 +30,10 @@ This Rust 2024 project is a virtual Cargo workspace with 4 packages:
 Keep reusable PDF parsing, normalization, validation rules, reports, and safety limits in `crates/page_validation`. Keep CLI argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
 
 Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
+
+## Performance and benchmark
+
+Performances are measured against verapdf in bench/benchmark.py, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
 
 ## Versionning
 
