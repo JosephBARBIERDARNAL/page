@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import json
 import os
 import platform
@@ -8,6 +7,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+from fixtures import FIXTURE_SHA256, ensure_fixture
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_LABELS = {
@@ -35,14 +36,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def sha256(path):
-    digest = hashlib.sha256()
-    with path.open("rb") as pdf:
-        for chunk in iter(lambda: pdf.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def validate_inputs(manifest, baseline_bin, candidate_bin):
     for binary in (baseline_bin, candidate_bin):
         if not binary.is_file():
@@ -51,15 +44,12 @@ def validate_inputs(manifest, baseline_bin, candidate_bin):
             raise PermissionError(f"validator binary is not executable: {binary}")
 
     for document in manifest["documents"]:
-        path = ROOT / document["path"]
-        if not path.is_file():
-            raise FileNotFoundError(f"benchmark PDF does not exist: {path}")
-        actual_hash = sha256(path)
-        if actual_hash != document["sha256"]:
-            raise ValueError(
-                f"SHA-256 mismatch for {document['path']}: "
-                f"expected {document['sha256']}, got {actual_hash}"
-            )
+        filename = Path(document["path"]).name
+        path = ensure_fixture(filename)
+        manifest_path = (ROOT / document["path"]).resolve()
+        if path.resolve() != manifest_path:
+            raise ValueError(f"performance PDF must be stored under bench/: {path}")
+        document["sha256"] = FIXTURE_SHA256[filename]
 
 
 def run_page(binary, pdf, profile):

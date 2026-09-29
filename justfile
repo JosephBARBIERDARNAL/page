@@ -78,7 +78,7 @@ typst:
 # Build the release validator and regenerate the benchmark.md.
 bench:
     cargo build --quiet --release -p page_cli --bin page
-    rust-script bench/benchmark.rs
+    uv run bench/benchmark.py
 
 # Clean documentation cache
 doc-clean:
