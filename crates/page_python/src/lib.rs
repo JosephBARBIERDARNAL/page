@@ -117,6 +117,8 @@ struct SafetyLimits {
     #[pyo3(get, set)]
     max_total_decoded_content_size: usize,
     #[pyo3(get, set)]
+    max_form_invocations: usize,
+    #[pyo3(get, set)]
     max_object_count: usize,
     #[pyo3(get, set)]
     max_reference_depth: usize,
@@ -137,11 +139,12 @@ struct SafetyLimits {
 #[pymethods]
 impl SafetyLimits {
     #[new]
-    #[pyo3(signature = (*, max_input_size=None, max_decoded_stream_size=None, max_total_decoded_content_size=None, max_object_count=None, max_reference_depth=None, max_xref_revisions=None, max_table_span=None, max_table_grid_rows=None, max_table_grid_columns=None, max_table_grid_cells=None, max_unicode_cmap_mappings=None))]
+    #[pyo3(signature = (*, max_input_size=None, max_decoded_stream_size=None, max_total_decoded_content_size=None, max_form_invocations=None, max_object_count=None, max_reference_depth=None, max_xref_revisions=None, max_table_span=None, max_table_grid_rows=None, max_table_grid_columns=None, max_table_grid_cells=None, max_unicode_cmap_mappings=None))]
     fn new(
         max_input_size: Option<u64>,
         max_decoded_stream_size: Option<usize>,
         max_total_decoded_content_size: Option<usize>,
+        max_form_invocations: Option<usize>,
         max_object_count: Option<usize>,
         max_reference_depth: Option<usize>,
         max_xref_revisions: Option<usize>,
@@ -158,6 +161,7 @@ impl SafetyLimits {
                 .unwrap_or(defaults.max_decoded_stream_size),
             max_total_decoded_content_size: max_total_decoded_content_size
                 .unwrap_or(defaults.max_total_decoded_content_size),
+            max_form_invocations: max_form_invocations.unwrap_or(defaults.max_form_invocations),
             max_object_count: max_object_count.unwrap_or(defaults.max_object_count),
             max_reference_depth: max_reference_depth.unwrap_or(defaults.max_reference_depth),
             max_xref_revisions: max_xref_revisions.unwrap_or(defaults.max_xref_revisions),
@@ -181,6 +185,9 @@ impl SafetyLimits {
     #[classattr]
     const DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE: usize =
         RustSafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE;
+
+    #[classattr]
+    const DEFAULT_MAX_FORM_INVOCATIONS: usize = RustSafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS;
 
     #[classattr]
     const DEFAULT_MAX_OBJECT_COUNT: usize = RustSafetyLimits::DEFAULT_MAX_OBJECT_COUNT;
@@ -209,10 +216,11 @@ impl SafetyLimits {
 
     fn __repr__(&self) -> String {
         format!(
-            "SafetyLimits(max_input_size={}, max_decoded_stream_size={}, max_total_decoded_content_size={}, max_object_count={}, max_reference_depth={}, max_xref_revisions={}, max_table_span={}, max_table_grid_rows={}, max_table_grid_columns={}, max_table_grid_cells={}, max_unicode_cmap_mappings={})",
+            "SafetyLimits(max_input_size={}, max_decoded_stream_size={}, max_total_decoded_content_size={}, max_form_invocations={}, max_object_count={}, max_reference_depth={}, max_xref_revisions={}, max_table_span={}, max_table_grid_rows={}, max_table_grid_columns={}, max_table_grid_cells={}, max_unicode_cmap_mappings={})",
             self.max_input_size,
             self.max_decoded_stream_size,
             self.max_total_decoded_content_size,
+            self.max_form_invocations,
             self.max_object_count,
             self.max_reference_depth,
             self.max_xref_revisions,
@@ -231,6 +239,7 @@ impl From<&SafetyLimits> for RustSafetyLimits {
             max_input_size: limits.max_input_size,
             max_decoded_stream_size: limits.max_decoded_stream_size,
             max_total_decoded_content_size: limits.max_total_decoded_content_size,
+            max_form_invocations: limits.max_form_invocations,
             max_object_count: limits.max_object_count,
             max_reference_depth: limits.max_reference_depth,
             max_xref_revisions: limits.max_xref_revisions,

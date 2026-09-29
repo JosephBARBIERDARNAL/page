@@ -54,6 +54,10 @@ struct Cli {
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
     max_total_decoded_content_size: usize,
 
+    /// Maximum number of Form XObject invocations across the document.
+    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS)]
+    max_form_invocations: usize,
+
     /// Maximum number of parsed indirect objects.
     #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT)]
     max_object_count: usize,
@@ -397,6 +401,7 @@ fn run_validate(cli: Cli) {
         max_input_size: cli.max_input_size,
         max_decoded_stream_size: cli.max_decoded_stream_size,
         max_total_decoded_content_size: cli.max_total_decoded_content_size,
+        max_form_invocations: cli.max_form_invocations,
         max_object_count: cli.max_object_count,
         max_reference_depth: cli.max_reference_depth,
         max_xref_revisions: cli.max_xref_revisions,

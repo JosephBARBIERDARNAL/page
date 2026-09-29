@@ -9,6 +9,7 @@ struct SafetyLimitsInput {
     max_input_size: Option<u64>,
     max_decoded_stream_size: Option<usize>,
     max_total_decoded_content_size: Option<usize>,
+    max_form_invocations: Option<usize>,
     max_object_count: Option<usize>,
     max_reference_depth: Option<usize>,
     max_xref_revisions: Option<usize>,
@@ -30,6 +31,9 @@ impl SafetyLimitsInput {
             max_total_decoded_content_size: self
                 .max_total_decoded_content_size
                 .unwrap_or(defaults.max_total_decoded_content_size),
+            max_form_invocations: self
+                .max_form_invocations
+                .unwrap_or(defaults.max_form_invocations),
             max_object_count: self.max_object_count.unwrap_or(defaults.max_object_count),
             max_reference_depth: self
                 .max_reference_depth
@@ -152,12 +156,13 @@ mod tests {
     #[test]
     fn applies_partial_safety_limits_over_defaults() {
         let limits = parse_limits(Some(
-            r#"{"max_input_size":42,"max_reference_depth":7,"max_table_span":9,"max_table_grid_rows":10,"max_table_grid_columns":11,"max_table_grid_cells":12,"max_unicode_cmap_mappings":13}"#.to_owned(),
+            r#"{"max_input_size":42,"max_reference_depth":7,"max_form_invocations":44,"max_table_span":9,"max_table_grid_rows":10,"max_table_grid_columns":11,"max_table_grid_cells":12,"max_unicode_cmap_mappings":13}"#.to_owned(),
         ))
         .expect("limits");
 
         assert_eq!(limits.max_input_size, 42);
         assert_eq!(limits.max_reference_depth, 7);
+        assert_eq!(limits.max_form_invocations, 44);
         assert_eq!(limits.max_table_span, 9);
         assert_eq!(limits.max_table_grid_rows, 10);
         assert_eq!(limits.max_table_grid_columns, 11);

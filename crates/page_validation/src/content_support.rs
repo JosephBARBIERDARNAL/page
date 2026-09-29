@@ -313,6 +313,7 @@ pub(crate) fn execute_content(
         summary: ContentExecutionSummary::default(),
         font_indices: BTreeMap::new(),
         form_stack: Vec::new(),
+        form_invocations: 0,
         current_page: 0,
         current_page_object_id: None,
     };
@@ -402,6 +403,7 @@ struct ContentExecutor<'a> {
     summary: ContentExecutionSummary,
     font_indices: BTreeMap<ResourceKey, usize>,
     form_stack: Vec<ObjectId>,
+    form_invocations: usize,
     current_page: u32,
     current_page_object_id: Option<ObjectId>,
 }
@@ -1568,6 +1570,12 @@ impl ContentExecutor<'_> {
             declared_subtype
         };
         if modeled_subtype == Some(b"Form".as_slice())
+            && resolved.as_stream().is_ok()
+            && !object_id.is_some_and(|id| active_forms.contains(&id))
+        {
+            self.reserve_form_invocation()?;
+        }
+        if modeled_subtype == Some(b"Form".as_slice())
             && let Some(object_id) = object_id
         {
             self.summary
@@ -1731,6 +1739,16 @@ impl ContentExecutor<'_> {
             }
             _ => {}
         }
+        Ok(())
+    }
+
+    fn reserve_form_invocation(&mut self) -> Result<(), PdfError> {
+        if self.form_invocations >= self.limits.max_form_invocations {
+            return Err(PdfError::FormInvocationLimit(
+                self.limits.max_form_invocations,
+            ));
+        }
+        self.form_invocations += 1;
         Ok(())
     }
 
@@ -3536,6 +3554,56 @@ mod tests {
         )
         .expect_err("content graph depth limit");
         assert!(matches!(error, crate::PdfError::ReferenceDepth(3)));
+    }
+
+    #[test]
+    fn repeated_shared_form_expansion_obeys_the_document_invocation_limit() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let mut child = None;
+        for _ in 0..6 {
+            let resources = child.map_or_else(Dictionary::new, |child| {
+                dictionary! {"XObject" => dictionary! {"Next" => child}}
+            });
+            child = Some(document.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Form",
+                    "BBox" => vec![0.into(), 0.into(), 1.into(), 1.into()],
+                    "Resources" => resources,
+                },
+                if child.is_some() {
+                    b"/Next Do\n/Next Do\n".to_vec()
+                } else {
+                    Vec::new()
+                },
+            )));
+        }
+        let contents = document.add_object(Stream::new(Dictionary::new(), b"/Root Do\n".to_vec()));
+        let page = document
+            .objects
+            .get_mut(&page_id)
+            .and_then(|object| object.as_dict_mut().ok())
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {"XObject" => dictionary! {"Root" => child.expect("form chain")}},
+        );
+        page.set("Contents", contents);
+        let limits = SafetyLimits {
+            max_form_invocations: 8,
+            ..SafetyLimits::default()
+        };
+
+        let error = execute_content(
+            &document,
+            &[PageEntry::Indirect(page_id)],
+            &mut ContentCache::new(),
+            &BTreeSet::new(),
+            &limits,
+        )
+        .expect_err("repeated shared-form expansion exceeds the document budget");
+
+        assert!(matches!(error, crate::PdfError::FormInvocationLimit(8)));
     }
 
     #[test]

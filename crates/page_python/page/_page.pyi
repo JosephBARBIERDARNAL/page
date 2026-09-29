@@ -28,6 +28,7 @@ class SafetyLimits:
     DEFAULT_MAX_INPUT_SIZE: ClassVar[int]
     DEFAULT_MAX_DECODED_STREAM_SIZE: ClassVar[int]
     DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE: ClassVar[int]
+    DEFAULT_MAX_FORM_INVOCATIONS: ClassVar[int]
     DEFAULT_MAX_OBJECT_COUNT: ClassVar[int]
     DEFAULT_MAX_REFERENCE_DEPTH: ClassVar[int]
     DEFAULT_MAX_XREF_REVISIONS: ClassVar[int]
@@ -40,6 +41,7 @@ class SafetyLimits:
     max_input_size: int
     max_decoded_stream_size: int
     max_total_decoded_content_size: int
+    max_form_invocations: int
     max_object_count: int
     max_reference_depth: int
     max_xref_revisions: int
@@ -55,6 +57,7 @@ class SafetyLimits:
         max_input_size: int | None = None,
         max_decoded_stream_size: int | None = None,
         max_total_decoded_content_size: int | None = None,
+        max_form_invocations: int | None = None,
         max_object_count: int | None = None,
         max_reference_depth: int | None = None,
         max_xref_revisions: int | None = None,

@@ -50,6 +50,9 @@ pub enum PdfError {
     #[error("content streams exceed the total decoded-size limit of {0} bytes")]
     TotalContentDecodeLimit(usize),
 
+    #[error("Form XObject invocations exceed the configured limit of {0}")]
+    FormInvocationLimit(usize),
+
     #[error("table cell span {actual} exceeds the configured {limit} span limit")]
     TableSpanLimit { actual: usize, limit: usize },
 
@@ -87,6 +90,7 @@ impl PdfError {
                 | Self::IccDecodeLimit(_)
                 | Self::ContentDecodeLimit(_)
                 | Self::TotalContentDecodeLimit(_)
+                | Self::FormInvocationLimit(_)
                 | Self::TableSpanLimit { .. }
                 | Self::TableGridLimit { .. }
                 | Self::UnicodeCmapMappingLimit { .. }

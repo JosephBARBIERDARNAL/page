@@ -38,6 +38,7 @@ export interface SafetyLimitsOptions {
   maxInputSize: number;
   maxDecodedStreamSize: number;
   maxTotalDecodedContentSize: number;
+  maxFormInvocations: number;
   maxObjectCount: number;
   maxReferenceDepth: number;
   maxXrefRevisions: number;
@@ -52,6 +53,7 @@ const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
   maxInputSize: 256 * 1024 * 1024,
   maxDecodedStreamSize: 32 * 1024 * 1024,
   maxTotalDecodedContentSize: 256 * 1024 * 1024,
+  maxFormInvocations: 10_000,
   maxObjectCount: 1_000_000,
   maxReferenceDepth: 256,
   maxXrefRevisions: 1_024,
@@ -68,6 +70,8 @@ export class SafetyLimits implements SafetyLimitsOptions {
     DEFAULT_SAFETY_LIMITS.maxDecodedStreamSize;
   static readonly DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE =
     DEFAULT_SAFETY_LIMITS.maxTotalDecodedContentSize;
+  static readonly DEFAULT_MAX_FORM_INVOCATIONS =
+    DEFAULT_SAFETY_LIMITS.maxFormInvocations;
   static readonly DEFAULT_MAX_OBJECT_COUNT = DEFAULT_SAFETY_LIMITS.maxObjectCount;
   static readonly DEFAULT_MAX_REFERENCE_DEPTH = DEFAULT_SAFETY_LIMITS.maxReferenceDepth;
   static readonly DEFAULT_MAX_XREF_REVISIONS = DEFAULT_SAFETY_LIMITS.maxXrefRevisions;
@@ -83,6 +87,7 @@ export class SafetyLimits implements SafetyLimitsOptions {
   maxInputSize: number;
   maxDecodedStreamSize: number;
   maxTotalDecodedContentSize: number;
+  maxFormInvocations: number;
   maxObjectCount: number;
   maxReferenceDepth: number;
   maxXrefRevisions: number;
@@ -105,6 +110,10 @@ export class SafetyLimits implements SafetyLimitsOptions {
       options.maxTotalDecodedContentSize ??
         DEFAULT_SAFETY_LIMITS.maxTotalDecodedContentSize,
       "maxTotalDecodedContentSize",
+    );
+    this.maxFormInvocations = validateLimit(
+      options.maxFormInvocations ?? DEFAULT_SAFETY_LIMITS.maxFormInvocations,
+      "maxFormInvocations",
     );
     this.maxObjectCount = validateLimit(
       options.maxObjectCount ?? DEFAULT_SAFETY_LIMITS.maxObjectCount,
@@ -145,6 +154,7 @@ export class SafetyLimits implements SafetyLimitsOptions {
       max_input_size: this.maxInputSize,
       max_decoded_stream_size: this.maxDecodedStreamSize,
       max_total_decoded_content_size: this.maxTotalDecodedContentSize,
+      max_form_invocations: this.maxFormInvocations,
       max_object_count: this.maxObjectCount,
       max_reference_depth: this.maxReferenceDepth,
       max_xref_revisions: this.maxXrefRevisions,
