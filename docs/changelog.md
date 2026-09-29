@@ -1,5 +1,6 @@
 ## Dev
 
+- Fix: Include generated API files in the published WASM package [#334](https://github.com/JosephBARBIERDARNAL/page/issues/334)
 - Refactor: Remove the obsolete validation report status field
 - Refactor: Replace `ttf-parser` with `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
 - Feat: Report distinct failed rules and raw failed checks [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
