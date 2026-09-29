@@ -142,7 +142,7 @@ def format_mib(size_bytes: int) -> str:
 
 
 def format_speedup(reference: Summary, candidate: Summary) -> str:
-    return f"{reference.median_seconds / candidate.median_seconds:.2f}×"
+    return f"{reference.median_seconds / candidate.median_seconds:.1f}×"
 
 
 def profile_result(benchmark: DocumentBenchmark, profile_name: str) -> ProfileBenchmark:
