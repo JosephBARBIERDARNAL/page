@@ -31,6 +31,35 @@ pub struct SafetyLimits {
 }
 
 impl SafetyLimits {
+    /// Removes all configurable resource ceilings up to the platform's integer bounds.
+    ///
+    /// Use only with trusted files: validation may consume unrestricted memory and CPU.
+    /// Cycle detection, arithmetic checks, parser checks, and PDF conformance limits remain active.
+    /// Individual fields can be set to finite bounds after constructing this preset.
+    ///
+    /// ```rs
+    /// use page_validation::SafetyLimits;
+    ///
+    /// let limits = SafetyLimits::unlimited();
+    /// assert_eq!(limits.max_input_size, u64::MAX);
+    /// ```
+    pub const fn unlimited() -> Self {
+        Self {
+            max_input_size: u64::MAX,
+            max_decoded_stream_size: usize::MAX,
+            max_total_decoded_content_size: usize::MAX,
+            max_form_invocations: usize::MAX,
+            max_object_count: usize::MAX,
+            max_reference_depth: usize::MAX,
+            max_xref_revisions: usize::MAX,
+            max_table_span: usize::MAX,
+            max_table_grid_rows: usize::MAX,
+            max_table_grid_columns: usize::MAX,
+            max_table_grid_cells: usize::MAX,
+            max_unicode_cmap_mappings: usize::MAX,
+        }
+    }
+
     /// ISO 19005-1:2005, 6.1.12-7 permits at most this many indirect objects.
     pub const PDF_A1_MAX_INDIRECT_OBJECTS: usize = 8_388_607;
     pub const DEFAULT_MAX_INPUT_SIZE: u64 = 256 * 1024 * 1024;
@@ -62,6 +91,32 @@ impl Default for SafetyLimits {
             max_table_grid_columns: Self::DEFAULT_MAX_TABLE_GRID_COLUMNS,
             max_table_grid_cells: Self::DEFAULT_MAX_TABLE_GRID_CELLS,
             max_unicode_cmap_mappings: Self::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SafetyLimits;
+
+    #[test]
+    fn unlimited_sets_every_resource_bound_to_its_native_maximum() {
+        const LIMITS: SafetyLimits = SafetyLimits::unlimited();
+        assert_eq!(LIMITS.max_input_size, u64::MAX);
+        for limit in [
+            LIMITS.max_decoded_stream_size,
+            LIMITS.max_total_decoded_content_size,
+            LIMITS.max_form_invocations,
+            LIMITS.max_object_count,
+            LIMITS.max_reference_depth,
+            LIMITS.max_xref_revisions,
+            LIMITS.max_table_span,
+            LIMITS.max_table_grid_rows,
+            LIMITS.max_table_grid_columns,
+            LIMITS.max_table_grid_cells,
+            LIMITS.max_unicode_cmap_mappings,
+        ] {
+            assert_eq!(limit, usize::MAX);
         }
     }
 }

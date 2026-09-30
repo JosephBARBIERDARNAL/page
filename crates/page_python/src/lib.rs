@@ -155,7 +155,7 @@ impl SafetyLimits {
         max_unicode_cmap_mappings: Option<usize>,
     ) -> Self {
         let defaults = RustSafetyLimits::default();
-        Self {
+        RustSafetyLimits {
             max_input_size: max_input_size.unwrap_or(defaults.max_input_size),
             max_decoded_stream_size: max_decoded_stream_size
                 .unwrap_or(defaults.max_decoded_stream_size),
@@ -173,6 +173,13 @@ impl SafetyLimits {
             max_unicode_cmap_mappings: max_unicode_cmap_mappings
                 .unwrap_or(defaults.max_unicode_cmap_mappings),
         }
+        .into()
+    }
+
+    /// Disable all configurable safety limits. Use only with trusted files.
+    #[staticmethod]
+    fn unlimited() -> Self {
+        RustSafetyLimits::unlimited().into()
     }
 
     #[classattr]
@@ -230,6 +237,25 @@ impl SafetyLimits {
             self.max_table_grid_cells,
             self.max_unicode_cmap_mappings,
         )
+    }
+}
+
+impl From<RustSafetyLimits> for SafetyLimits {
+    fn from(limits: RustSafetyLimits) -> Self {
+        Self {
+            max_input_size: limits.max_input_size,
+            max_decoded_stream_size: limits.max_decoded_stream_size,
+            max_total_decoded_content_size: limits.max_total_decoded_content_size,
+            max_form_invocations: limits.max_form_invocations,
+            max_object_count: limits.max_object_count,
+            max_reference_depth: limits.max_reference_depth,
+            max_xref_revisions: limits.max_xref_revisions,
+            max_table_span: limits.max_table_span,
+            max_table_grid_rows: limits.max_table_grid_rows,
+            max_table_grid_columns: limits.max_table_grid_columns,
+            max_table_grid_cells: limits.max_table_grid_cells,
+            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings,
+        }
     }
 }
 

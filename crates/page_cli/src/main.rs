@@ -20,7 +20,8 @@ use page_validation::{
     name = "page",
     bin_name = "page",
     version,
-    about = "PDF/A and PDF/UA validaton engine"
+    about = "PDF/A and PDF/UA validaton engine",
+    group(clap::ArgGroup::new("safety_limits").multiple(true))
 )]
 struct Cli {
     /// PDF file to validate.
@@ -42,52 +43,56 @@ struct Cli {
     #[arg(long)]
     no_color: bool,
 
+    /// Disable all configurable safety limits; use only with trusted files.
+    #[arg(long, conflicts_with = "safety_limits")]
+    disable_safety_limits: bool,
+
     /// Maximum input size in bytes.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE)]
     max_input_size: u64,
 
     /// Maximum decoded size of any individual stream.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE)]
     max_decoded_stream_size: usize,
 
     /// Maximum combined decoded size of content streams and retained font streams.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
     max_total_decoded_content_size: usize,
 
     /// Maximum number of Form XObject invocations across the document.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS)]
     max_form_invocations: usize,
 
     /// Maximum number of parsed indirect objects.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT)]
     max_object_count: usize,
 
     /// Maximum reference-chain depth used by the normalized model.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH)]
     max_reference_depth: usize,
 
     /// Maximum number of incremental-update revisions read from the cross-reference chain.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_XREF_REVISIONS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_XREF_REVISIONS)]
     max_xref_revisions: usize,
 
     /// Maximum number of rows or columns covered by one table cell.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_SPAN)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_SPAN)]
     max_table_span: usize,
 
     /// Maximum number of rows represented in an inspected table grid.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS)]
     max_table_grid_rows: usize,
 
     /// Maximum number of columns represented in an inspected table grid.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS)]
     max_table_grid_columns: usize,
 
     /// Maximum number of cells represented in an inspected table grid.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS)]
     max_table_grid_cells: usize,
 
     /// Maximum number of mappings expanded from one ToUnicode CMap.
-    #[arg(long, default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS)]
     max_unicode_cmap_mappings: usize,
 }
 
@@ -397,19 +402,23 @@ fn run_validate(cli: Cli) {
         );
         std::process::exit(1);
     }
-    let limits = SafetyLimits {
-        max_input_size: cli.max_input_size,
-        max_decoded_stream_size: cli.max_decoded_stream_size,
-        max_total_decoded_content_size: cli.max_total_decoded_content_size,
-        max_form_invocations: cli.max_form_invocations,
-        max_object_count: cli.max_object_count,
-        max_reference_depth: cli.max_reference_depth,
-        max_xref_revisions: cli.max_xref_revisions,
-        max_table_span: cli.max_table_span,
-        max_table_grid_rows: cli.max_table_grid_rows,
-        max_table_grid_columns: cli.max_table_grid_columns,
-        max_table_grid_cells: cli.max_table_grid_cells,
-        max_unicode_cmap_mappings: cli.max_unicode_cmap_mappings,
+    let limits = if cli.disable_safety_limits {
+        SafetyLimits::unlimited()
+    } else {
+        SafetyLimits {
+            max_input_size: cli.max_input_size,
+            max_decoded_stream_size: cli.max_decoded_stream_size,
+            max_total_decoded_content_size: cli.max_total_decoded_content_size,
+            max_form_invocations: cli.max_form_invocations,
+            max_object_count: cli.max_object_count,
+            max_reference_depth: cli.max_reference_depth,
+            max_xref_revisions: cli.max_xref_revisions,
+            max_table_span: cli.max_table_span,
+            max_table_grid_rows: cli.max_table_grid_rows,
+            max_table_grid_columns: cli.max_table_grid_columns,
+            max_table_grid_cells: cli.max_table_grid_cells,
+            max_unicode_cmap_mappings: cli.max_unicode_cmap_mappings,
+        }
     };
     let spinner_enabled = selected_format != SelectedFormat::Json
         && io::stdout().is_terminal()

@@ -46,6 +46,8 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("details, json"));
     assert!(stdout.contains("--output <FILE>"));
     assert!(stdout.contains("--no-color"));
+    assert!(stdout.contains("--disable-safety-limits"));
+    assert!(stdout.contains("trusted files"));
     assert!(stdout.contains("--max-input-size <MAX_INPUT_SIZE>"));
     assert!(stdout.contains("--max-decoded-stream-size <MAX_DECODED_STREAM_SIZE>"));
     assert!(stdout.contains("--max-total-decoded-content-size <MAX_TOTAL_DECODED_CONTENT_SIZE>"));
@@ -59,6 +61,87 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("--max-unicode-cmap-mappings <MAX_UNICODE_CMAP_MAPPINGS>"));
     assert!(!stdout.contains("--json"));
     assert!(stdout.contains("1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, 4, 4e, 4f, ua1, ua2"));
+}
+
+#[test]
+fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
+    let defaults = page_validation::SafetyLimits::default();
+    for (flag, value) in [
+        ("--max-input-size", defaults.max_input_size.to_string()),
+        (
+            "--max-decoded-stream-size",
+            defaults.max_decoded_stream_size.to_string(),
+        ),
+        (
+            "--max-total-decoded-content-size",
+            defaults.max_total_decoded_content_size.to_string(),
+        ),
+        (
+            "--max-form-invocations",
+            defaults.max_form_invocations.to_string(),
+        ),
+        ("--max-object-count", defaults.max_object_count.to_string()),
+        (
+            "--max-reference-depth",
+            defaults.max_reference_depth.to_string(),
+        ),
+        (
+            "--max-xref-revisions",
+            defaults.max_xref_revisions.to_string(),
+        ),
+        ("--max-table-span", defaults.max_table_span.to_string()),
+        (
+            "--max-table-grid-rows",
+            defaults.max_table_grid_rows.to_string(),
+        ),
+        (
+            "--max-table-grid-columns",
+            defaults.max_table_grid_columns.to_string(),
+        ),
+        (
+            "--max-table-grid-cells",
+            defaults.max_table_grid_cells.to_string(),
+        ),
+        (
+            "--max-unicode-cmap-mappings",
+            defaults.max_unicode_cmap_mappings.to_string(),
+        ),
+    ] {
+        for arguments in [
+            vec!["--disable-safety-limits", flag, value.as_str()],
+            vec![flag, value.as_str(), "--disable-safety-limits"],
+        ] {
+            let output = Command::new(env!("CARGO_BIN_EXE_page"))
+                .arg(noncompliant_fixture())
+                .args(arguments)
+                .output()
+                .expect("reject conflicting safety-limit arguments");
+            assert_eq!(output.status.code(), Some(2));
+            assert!(output.stdout.is_empty());
+            let stderr = String::from_utf8(output.stderr).expect("UTF-8 conflict");
+            assert!(stderr.contains("cannot be used with"), "{stderr}");
+            assert!(stderr.contains(flag), "{stderr}");
+        }
+    }
+}
+
+#[test]
+fn disabling_safety_limits_preserves_validation_in_every_output_format() {
+    for arguments in [
+        vec![],
+        vec!["--format", "details"],
+        vec!["--format", "json"],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_page"))
+            .arg(noncompliant_fixture())
+            .arg("--disable-safety-limits")
+            .args(arguments)
+            .output()
+            .expect("validate with unlimited safety limits");
+        assert_eq!(output.status.code(), Some(2));
+        assert!(!output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+    }
 }
 
 #[test]

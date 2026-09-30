@@ -70,6 +70,65 @@ describe("page-validation", () => {
     });
   });
 
+  it("creates independent unlimited presets and serializes every field", () => {
+    const limits = SafetyLimits.unlimited();
+    expect(Object.keys(limits).sort()).toEqual(Object.keys(new SafetyLimits()).sort());
+    expect(Object.values(limits).every((value) => value === Infinity)).toBe(true);
+    expect(Object.values(limits.toJSON()).every((value) => value === "unlimited")).toBe(
+      true,
+    );
+    expect(JSON.stringify(limits)).not.toContain("null");
+
+    limits.maxInputSize = 1;
+    expect(limits.toJSON().max_input_size).toBe(1);
+    expect(SafetyLimits.unlimited().maxInputSize).toBe(Infinity);
+  });
+
+  it("validates unlimited and mixed limits through the built Wasm module", async () => {
+    const bytes = minimalPdf();
+    const limits = SafetyLimits.unlimited();
+    const report = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, limits);
+    expect(report.exitCode()).toBe(2);
+    expect(report.document?.objectCount).toBeGreaterThan(0);
+    await expect(
+      isPdfCompliantBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+    ).resolves.toBe(false);
+
+    limits.maxInputSize = 1;
+    await expect(
+      validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+    ).rejects.toThrow("1-byte limit");
+    await expect(
+      isPdfCompliantBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+    ).rejects.toThrow("1-byte limit");
+
+    const partialReport = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, {
+      maxInputSize: Infinity,
+    });
+    expect(partialReport.exitCode()).toBe(2);
+  });
+
+  it("rejects invalid limit values during construction and after mutation", () => {
+    for (const value of [NaN, -Infinity, -1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => new SafetyLimits({ maxInputSize: value })).toThrow(RangeError);
+      const limits = SafetyLimits.unlimited();
+      limits.maxInputSize = value;
+      expect(() => JSON.stringify(limits)).toThrow(RangeError);
+    }
+  });
+
+  it("rejects invalid unlimited tokens at the Wasm boundary", () => {
+    for (const value of ["Infinity", "disabled", -1, 0.5]) {
+      expect(() =>
+        wasm.validatePdfBytes(
+          minimalPdf(),
+          "1b",
+          JSON.stringify({ max_input_size: value }),
+        ),
+      ).toThrow("invalid safety limits");
+    }
+  });
+
   it("returns a typed report for byte input", async () => {
     const report = await validatePdfBytes(minimalPdf(), ValidationProfile.PDF_A_1B);
 

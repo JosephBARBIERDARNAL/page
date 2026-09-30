@@ -1,5 +1,6 @@
 from importlib.metadata import version
 from pathlib import Path
+from struct import calcsize
 
 import page
 import pytest
@@ -80,6 +81,48 @@ def test_custom_safety_limits():
     assert limits.max_table_grid_columns == 11
     assert limits.max_table_grid_cells == 12
     assert limits.max_unicode_cmap_mappings == 13
+
+
+def test_unlimited_safety_limits():
+    limits = page.SafetyLimits.unlimited()
+    assert limits.max_input_size == 2**64 - 1
+    native_max = 2 ** (8 * calcsize("P")) - 1
+    for name in (
+        "max_decoded_stream_size",
+        "max_total_decoded_content_size",
+        "max_form_invocations",
+        "max_object_count",
+        "max_reference_depth",
+        "max_xref_revisions",
+        "max_table_span",
+        "max_table_grid_rows",
+        "max_table_grid_columns",
+        "max_table_grid_cells",
+        "max_unicode_cmap_mappings",
+    ):
+        assert getattr(limits, name) == native_max
+
+
+def test_unlimited_limits_allow_restoring_an_independent_bound():
+    limits = page.SafetyLimits.unlimited()
+    limits.max_input_size = 1
+    assert page.SafetyLimits.unlimited().max_input_size == 2**64 - 1
+
+    with pytest.raises(page.ValidationError, match="1-byte limit"):
+        page.validate_pdf_bytes(minimal_pdf(), page.ValidationProfile.PDF_A_1B, limits)
+
+
+def test_unlimited_limits_work_with_file_and_byte_apis(tmp_path: Path):
+    data = minimal_pdf()
+    path = tmp_path / "trusted.pdf"
+    path.write_bytes(data)
+    limits = page.SafetyLimits.unlimited()
+    profile = page.ValidationProfile.PDF_A_1B
+
+    assert page.validate_pdf(path, profile, limits).exit_code() == 2
+    assert page.validate_pdf_bytes(data, profile, limits).exit_code() == 2
+    assert page.is_pdf_compliant(path, profile, limits) is False
+    assert page.is_pdf_compliant_bytes(data, profile, limits) is False
 
 
 def test_compliance_api_rejects_invalid_bytes():

@@ -1,3 +1,7 @@
+## Dev
+
+- Feat: Disable all safety limits with a CLI flag or an unlimited preset in Rust, Python, and JavaScript [#342](https://github.com/JosephBARBIERDARNAL/page/issues/342)
+
 ## 0.8.0
 
 - Fix: Bound aggregate decoded font-stream retention [#336](https://github.com/JosephBARBIERDARNAL/page/issues/336)
