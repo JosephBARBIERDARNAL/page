@@ -155,8 +155,6 @@ pub struct PdfDocument {
     pub xmp_object: Option<PdfObjectId>,
     pub xmp_parse_error: Option<String>,
     pub catalog_metadata: CatalogMetadataStream,
-    /// Legacy array-entry identities retained for report compatibility.
-    pub output_intents: Vec<Option<PdfObjectId>>,
     pub output_intents_summary: OutputIntentsSummary,
     pub fonts: FontSummary,
     pub object_count: usize,
@@ -390,11 +388,6 @@ impl PdfDocument {
             parse_error: xmp_parse_error,
         } = extract_xmp(document, catalog, limits)?;
         let output_intents_summary = extract_output_intents(document, catalog, limits)?;
-        let output_intents = output_intents_summary
-            .entries
-            .iter()
-            .map(|entry| entry.object_id)
-            .collect();
         let page_count = match collected_page_count {
             Some(count) => count,
             None => match catalog {
@@ -420,7 +413,6 @@ impl PdfDocument {
             xmp_object,
             xmp_parse_error,
             catalog_metadata,
-            output_intents,
             output_intents_summary,
             fonts: include_font_summary
                 .then(|| summarize_fonts(document, limits))

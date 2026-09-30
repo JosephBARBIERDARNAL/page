@@ -2,6 +2,7 @@
 
 - Doc: Add a per-file overview to every core validation Rust source file and document the convention in `AGENTS.md` [#331](https://github.com/JosephBARBIERDARNAL/page/issues/331)
 - Feat: Disable all safety limits with a CLI flag or an unlimited preset in Rust, Python, and JavaScript [#342](https://github.com/JosephBARBIERDARNAL/page/issues/342)
+- Refactor: Remove the legacy `PdfDocument::output_intents` field; use `output_intents_summary` instead [#345](https://github.com/JosephBARBIERDARNAL/page/issues/345)
 
 ## 0.8.0
 
