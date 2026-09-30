@@ -1,3 +1,10 @@
+//! Inspects fonts, embedded font programs, encodings, and Unicode mappings for PDF/A and PDF/UA
+//! validation, using the fonts and text runs discovered during content execution.
+//!
+//! The scanner resolves font dictionaries and CMaps, parses TrueType, CFF, and Type1 programs,
+//! and checks embedding, glyph coverage, widths, and text mappings. Cached decoding and font
+//! analysis share bounded work across uses; selected CMap checks also cover unused objects.
+
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;

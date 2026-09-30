@@ -1,3 +1,9 @@
+//! Supplies predefined single-byte font encodings for font and glyph validation.
+//!
+//! Static Standard, MacRoman, MacExpert, and WinAnsi tables map character codes to glyph names;
+//! lookup helpers identify PDF encoding names and look up glyph names without decoding a font
+//! program. The source attribution for the adapted tables is retained below.
+
 // The encoding tables below are adapted from Mozilla PDF.js's
 // `src/core/encodings.js` (Apache License 2.0), with the table format and
 // lookup logic rewritten for this crate. The MacRoman table preserves the

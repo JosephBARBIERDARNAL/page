@@ -1,3 +1,10 @@
+//! Inspects document-wide features such as tagged structure, optional content, embedded files,
+//! and catalog settings for PDF/A and PDF/UA validation.
+//!
+//! Profile-specific demand selects the needed inspections. Bounded object-graph walks resolve
+//! structure roles, language, table relationships, name trees, and file associations, collecting
+//! facts and rule findings for validation and tagged-content execution.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};

@@ -1,3 +1,10 @@
+//! Defines validation reports, categorized failures, and rule and failed-check counts.
+//!
+//! Inspectors supply raw findings that validation aggregates into report failures. Report
+//! helpers convert terminal errors into categorized results, attach source paths, format
+//! output, and derive exit codes while keeping operational failures distinct from PDF
+//! conformance results.
+
 use std::fmt;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};

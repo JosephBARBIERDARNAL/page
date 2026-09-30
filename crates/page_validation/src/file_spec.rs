@@ -1,3 +1,9 @@
+//! Shares the PDF/A-1 embedded-file check across file-specification reachability paths.
+//!
+//! The checker resolves a file-specification dictionary within the reference-depth limit and
+//! reports a present, non-null `/EF` entry. Name-tree and action inspectors reuse this predicate
+//! so the same file specification receives consistent treatment wherever it is reached.
+
 use lopdf::{Document, Object};
 
 use crate::error::PdfError;

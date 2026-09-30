@@ -1,3 +1,9 @@
+//! Shares language-tag checks across document, structure, annotation, and content inspection.
+//!
+//! Dictionary checks resolve and decode string-valued `/Lang` entries, then apply the PDF/A-1,
+//! PDF/A-2/3, or PDF/UA-1 predicate, returning findings with the owning object's context. Shared
+//! tag predicates also support inherited-language checks on accessible text.
+
 use lopdf::{Dictionary, Document, Object};
 
 use crate::limits::SafetyLimits;

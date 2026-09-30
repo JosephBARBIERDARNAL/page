@@ -1,3 +1,10 @@
+//! Inspects reachable image and Form XObjects for PDF/A and PDF/UA restrictions.
+//!
+//! Content execution identifies XObject uses, appearances, and masks; this inspector checks
+//! their dictionaries for forbidden entries, image component sizes, and Form references.
+//! Bounded JPEG2000 parsing supplies codestream and colour metadata findings without decoding
+//! complete images.
+
 use lopdf::{Document, Object};
 use std::borrow::Cow;
 

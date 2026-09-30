@@ -1,3 +1,10 @@
+//! Executes PDF content streams to discover the resources and content properties used by
+//! font, colour-space, graphics, XObject, and accessibility checks.
+//!
+//! The executor follows page content, Form XObjects, and annotation appearances while tracking
+//! graphics state, text runs, and marked content. Shared resource lookups and decoded-stream
+//! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations.
+
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;

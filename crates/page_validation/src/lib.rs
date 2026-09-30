@@ -1,8 +1,9 @@
-//! A deliberately small foundation for PDF/A validation.
+//! Core PDF accessibility and compliance validation for PDF/A-1, PDF/A-2, PDF/A-3, and PDF/UA-1.
 //!
-//! The crate implements PDF/A-1, PDF/A-2, and PDF/A-3 validation rule sets. A successful report
-//! is a validation result for the selected profile, not a guarantee that every possible PDF
-//! producer defect is recoverable from malformed input.
+//! File and byte entry points parse bounded input, normalize document metadata and resources,
+//! run the inspections required by the selected profile, and return a validation report or a
+//! compliance result. This crate exposes shared models, limits, errors, and report types for
+//! the CLI and language bindings; a successful report covers the implemented profile rules.
 
 mod actions;
 mod annotations;

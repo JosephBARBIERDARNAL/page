@@ -1,3 +1,10 @@
+//! Provides validation entry points, profile selection, and PDF/A and PDF/UA rule evaluation.
+//!
+//! File and byte APIs prepare the document, infer or accept an explicit profile, and evaluate
+//! normalized metadata and inspection summaries. Exhaustive evaluation aggregates failures
+//! into deterministic reports and counts; staged fast paths stop at the first failed check
+//! while propagating parsing and resource-limit errors encountered along the way.
+
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;

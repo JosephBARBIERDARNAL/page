@@ -1,3 +1,9 @@
+//! Checks UTF-8 validity of font and colourant names reachable through page resources.
+//!
+//! A bounded resource-graph walk examines font `/BaseFont` names and Separation or DeviceN
+//! colourants, tracking visited references to avoid repeated traversal. Findings retain their
+//! owning object identities and are sorted and deduplicated for the rule evaluator.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, ObjectId};

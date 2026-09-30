@@ -1,3 +1,10 @@
+//! Shares bounded object resolution, dictionary access, and inherited-property lookup across
+//! parsing and inspection modules.
+//!
+//! Reference and parent-chain walks detect cycles and enforce depth limits, using inline
+//! visited-object storage for short chains. Typed accessors centralize PDF value semantics,
+//! and resource keys distinguish indirect identities from directly embedded resources.
+
 use lopdf::{Dictionary, Document, Object, ObjectId};
 
 use crate::error::PdfError;

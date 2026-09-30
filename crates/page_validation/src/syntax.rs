@@ -1,3 +1,11 @@
+//! Scans original PDF bytes for syntax and object-value details that normalized parsing can
+//! discard, and performs object-count preflight checks before loading the document.
+//!
+//! A shared index records revisions, indirect objects, stream boundaries, and keyword
+//! positions. Inspection combines that index with parsed objects to check headers, trailers,
+//! cross-references, tokens, and profile limits; targeted parser repairs leave original bytes
+//! available for conformance checks.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Range;

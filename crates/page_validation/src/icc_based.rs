@@ -1,3 +1,9 @@
+//! Inspects colour spaces and embedded ICC profiles used by PDF content for PDF/A rules.
+//!
+//! Selected colour spaces are resolved recursively to check profile headers, component counts,
+//! device-colour usage, and Separation consistency. Profile inspection is deduplicated, while
+//! a whole-document DeviceN scan covers restrictions independent of content selection.
+
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use lopdf::{Document, Object, ObjectId};

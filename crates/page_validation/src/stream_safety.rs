@@ -1,3 +1,10 @@
+//! Inspects stream dictionaries, raw stream boundaries, and digital signatures for PDF/A
+//! conformance findings.
+//!
+//! Parsed objects are matched to the shared raw-syntax index to check stream lengths, end
+//! markers, filters, and external data entries. Signature checks examine byte ranges and
+//! PKCS#7 signer data; the resulting summary also carries raw syntax findings into validation.
+
 use std::collections::BTreeSet;
 
 use lopdf::xref::XrefType;

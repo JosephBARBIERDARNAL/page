@@ -1,3 +1,10 @@
+//! Collects the ordered page entries shared by document normalization and all page inspectors.
+//!
+//! The walker follows the catalog's `/Pages` tree, retaining indirect page identities and
+//! directly embedded page dictionaries. Ancestor tracking detects cycles without rejecting
+//! shared branches, while depth and visit limits bound traversal and invalid node types
+//! produce parser failures.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};

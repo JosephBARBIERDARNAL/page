@@ -8,6 +8,7 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 
 - when you found a very unexpected result in veraPDF, figure out whether it's a real upstream bug or not. In order to prove that it is one, you need to create a reprex (as minimalist as possible).
 - always write markdown paragraph / bullet point on a single line. Only use linebreaks for new paragraph, an heading, new bullet point, etc.
+- Every Rust source file under `crates/page_validation/src/`, including newly added files, must start with a `//!` overview explaining its purpose, overall responsibility, and how it works, in at most two paragraphs. Keep the overview accurate when changing the file's responsibilities.
 - every time you implement a new rule or a new feature, think of the impact it will have on performance and look for low hanging fruit that would improve performance.
 - make sure, when possible, to reuse code from different profiles
 - Treat every git change you did not explicitly make as belonging to someone else working on the project simultaneously; preserve it exactly and do not revert, restore, overwrite, format, or otherwise “clean up” that file.

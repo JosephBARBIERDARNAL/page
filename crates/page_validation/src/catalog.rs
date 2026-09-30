@@ -1,3 +1,9 @@
+//! Provides the shared entry point for resolving the document catalog from the trailer.
+//!
+//! Catalog resolution requires an indirect `/Root` pointing to a `/Type /Catalog` dictionary
+//! and follows references within the configured depth limit. A separate identity lookup lets
+//! validation attribute failures to the root object even when the catalog is invalid.
+
 use lopdf::{Dictionary, Document};
 
 use crate::error::PdfError;

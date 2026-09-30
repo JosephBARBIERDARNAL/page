@@ -1,3 +1,10 @@
+//! Inspects actions reachable from the catalog, pages, annotations, form fields, and outlines
+//! for PDF/A and PDF/UA restrictions.
+//!
+//! A bounded traversal tracks visited objects and follows chained actions, recording findings
+//! about action types, additional actions, file specifications, and media clips in a shared
+//! summary for the rule evaluator.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, ObjectId};

@@ -1,3 +1,10 @@
+//! Defines errors raised before a validation report can be completed, including PDF parsing,
+//! resource limits, input I/O, and profile selection failures.
+//!
+//! `PdfError` describes parsing and inspection failures; `ValidationError` wraps these alongside
+//! entry-point errors. Safety-limit classification lets reporting distinguish operational
+//! failures from parser rejections and PDF conformance violations.
+
 use thiserror::Error;
 
 use crate::validation::ValidationProfile;

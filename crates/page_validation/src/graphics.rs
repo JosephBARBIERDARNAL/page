@@ -1,3 +1,10 @@
+//! Collects graphics-state and transparency findings for PDF/A validation.
+//!
+//! The inspector combines executed graphics states and XObjects with page dictionaries to
+//! check rendering intents, blend modes, alpha, soft masks, and blending colour spaces. A
+//! separate object scan covers halftone and graphics-state restrictions that also apply to
+//! unused resources.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document};

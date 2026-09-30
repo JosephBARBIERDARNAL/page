@@ -1,3 +1,9 @@
+//! Inspects page annotations and their accessibility relationships for PDF/A and PDF/UA rules.
+//!
+//! The inspector walks page annotation arrays, checks appearance dictionaries, flags, colours,
+//! and descriptive text, and resolves associated structure elements. It also provides shared
+//! helpers for annotation visibility and structure lookup used by form inspection.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};

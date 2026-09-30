@@ -1,3 +1,10 @@
+//! Defines document-information and XMP summaries and parses metadata for profile selection
+//! and metadata conformance checks.
+//!
+//! XMP processing decodes bounded XML, validates its RDF representation, and collects property
+//! values alongside identification, predefined-property, and extension-schema findings. Shared
+//! value and date helpers support comparisons between the PDF information dictionary and XMP.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{Duration, Local, LocalResult, NaiveDate, TimeZone};

@@ -1,3 +1,10 @@
+//! Inspects interactive forms and widget annotations for appearance and accessibility rules.
+//!
+//! A bounded field-tree traversal checks AcroForm settings, field descriptions, and structure
+//! relationships, while page widgets supply appearance and visibility checks. XFA packets are
+//! decoded and parsed with XML bounds to detect dynamic forms, and field walking is shared
+//! with action inspection.
+
 use std::collections::BTreeSet;
 
 use lopdf::{Dictionary, Document, Object, ObjectId};

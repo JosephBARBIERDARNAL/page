@@ -1,3 +1,10 @@
+//! Defines the stable serializable JSON view of a validation report for client applications.
+//!
+//! Report conversion copies the source, profile, compliance result, counts, and rule failures
+//! into shared output types. Parser and operational failures use a separate error field and
+//! omit conformance findings and counts, keeping the wire representation consistent across
+//! consumers.
+
 use serde::Serialize;
 
 use crate::{

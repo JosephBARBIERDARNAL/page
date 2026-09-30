@@ -1,3 +1,10 @@
+//! Holds findings about PDF object values that exceed profile conformance limits.
+//!
+//! Syntax inspection populates object identities for invalid numeric ranges, string and name
+//! lengths, and collection sizes, plus the indirect-object count flag. Validation consumes
+//! this summary to apply the limits for the selected profile; configurable safety limits
+//! are defined separately.
+
 use crate::model::PdfObjectId;
 
 #[derive(Clone, Debug, Default)]

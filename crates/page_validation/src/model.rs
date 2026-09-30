@@ -1,3 +1,10 @@
+//! Builds the normalized PDF document model and coordinates the private inspection pipeline.
+//!
+//! Preparation indexes raw syntax, loads the object graph with parser bounds, and extracts
+//! metadata, page identities, output intents, and font summaries. Staged inspections share
+//! content discovery and profile-specific demand, allowing validation to evaluate findings
+//! incrementally and stop early when only a compliance result is needed.
+
 use std::collections::BTreeMap;
 
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};

@@ -1,6 +1,8 @@
-//! Shared bounds and preflight checks for parsing untrusted XML payloads (XMP metadata, XFA
-//! forms) with `roxmltree`, whose own node limit does not by itself bound recursion depth during
-//! parsing.
+//! Shares XML parsing bounds and preflight checks for XMP metadata and XFA forms.
+//!
+//! A byte scan rejects excessive nesting and forbidden declarations before `roxmltree` parses
+//! the payload with DTDs disabled and a node limit. A second depth check on the parsed tree and
+//! shared delimiter helpers complete the bounded XML handling used by both consumers.
 
 use roxmltree::{Document, ParsingOptions};
 

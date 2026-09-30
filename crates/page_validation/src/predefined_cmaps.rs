@@ -1,8 +1,8 @@
 //! The predefined CMap collection bundled by veraPDF 1.30.2.
 //!
-//! These byte-exact resources are the data its font model resolves for a
-//! named Type0 `/Encoding`. Keeping the lookup private avoids exposing Adobe
-//! CMap details as part of page's public API.
+//! A private name lookup returns statically included, byte-exact Adobe CMap resources for
+//! Type0 font encoding and Unicode mapping inspection. These resources match the collection
+//! resolved by veraPDF's font model without exposing CMap details in page's public API.
 
 pub(crate) fn get(name: &[u8]) -> Option<&'static [u8]> {
     macro_rules! cmap {
