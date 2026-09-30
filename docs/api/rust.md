@@ -12,7 +12,7 @@ cargo add page_validation
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It uses lazy validation: it stops once it finds a failing rule and returns the boolean directly:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
 
 ```rust
 use page_validation::{ValidationOptions, is_pdf_compliant};
@@ -68,7 +68,7 @@ let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
 let report = validate_pdf("document.pdf", &options);
 ```
 
-The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
+The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration.
 
 ## Failures
 

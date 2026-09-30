@@ -63,7 +63,10 @@ Pass a profile to `validate_pdf()` when the caller, rather than the document, se
 ```python
 import page
 
-report = page.validate_pdf("document.pdf", profile=page.ValidationProfile.PDF_A_1B)
+report = page.validate_pdf(
+    "document.pdf",
+    profile=page.ValidationProfile.PDF_A_1B
+)
 ```
 
 The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `is_pdf_compliant()` or the corresponding bytes function when you only need a boolean result.
