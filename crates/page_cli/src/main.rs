@@ -20,7 +20,7 @@ use page_validation::{
     name = "page",
     bin_name = "page",
     version,
-    about = "PDF/A and PDF/UA validaton engine",
+    about = "PDF/A and PDF/UA validation engine",
     group(clap::ArgGroup::new("safety_limits").multiple(true))
 )]
 struct Cli {
