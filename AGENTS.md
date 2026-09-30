@@ -35,6 +35,10 @@ Validation unit and integration tests live with `page_validation`; keep its shar
 
 Performances are measured against verapdf in bench/benchmark.py, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
 
+## Security
+
+By default, page enforces ressource limitations called "safety limits". See @docs/guide/safety-limits.md.
+
 ## Versionning
 
 page uses semantic versionning. All crates must share the exact same version. Current version is 0.7.0.
