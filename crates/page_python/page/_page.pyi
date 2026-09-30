@@ -128,21 +128,25 @@ class ValidationReport:
 
 def is_pdf_compliant(
     path: str | PathLike[str],
+    *,
     profile: ValidationProfile | None = None,
     limits: SafetyLimits | None = None,
 ) -> bool: ...
 def is_pdf_compliant_bytes(
     data: bytes,
+    *,
     profile: ValidationProfile | None = None,
     limits: SafetyLimits | None = None,
 ) -> bool: ...
 def validate_pdf(
     path: str | PathLike[str],
+    *,
     profile: ValidationProfile | None = None,
     limits: SafetyLimits | None = None,
 ) -> ValidationReport: ...
 def validate_pdf_bytes(
     data: bytes,
+    *,
     profile: ValidationProfile | None = None,
     limits: SafetyLimits | None = None,
 ) -> ValidationReport: ...

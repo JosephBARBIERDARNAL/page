@@ -1,5 +1,6 @@
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    validate_pdf_bytes,
 };
 
 pub mod common;
@@ -14,8 +15,9 @@ fn embedded_pdf_decode_limit_is_an_operational_failure() {
     };
     let error = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("embedded_pdf_decode_limit"),
-        Some(ValidationProfile::PdfA2b),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA2b)
+            .limits(limits),
     )
     .expect_err("the embedded PDF must exceed the decoded stream limit");
 
@@ -33,8 +35,9 @@ fn embedded_pdf_object_limit_is_an_operational_failure() {
     };
     let error = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("embedded_pdf_object_limit"),
-        Some(ValidationProfile::PdfA2b),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA2b)
+            .limits(limits),
     )
     .expect_err("the embedded PDF must exceed the object-count limit");
 
@@ -48,8 +51,7 @@ fn embedded_pdf_object_limit_is_an_operational_failure() {
 fn malformed_embedded_pdf_remains_a_conformance_failure() {
     let report = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("file_spec_association"),
-        Some(ValidationProfile::PdfA2b),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
     )
     .expect("malformed attachments remain rule failures");
 
@@ -66,8 +68,7 @@ fn malformed_embedded_pdf_remains_a_conformance_failure() {
 fn noncompliant_embedded_pdf_remains_a_conformance_failure() {
     let report = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("embedded_pdf_noncompliant"),
-        Some(ValidationProfile::PdfA2b),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
     )
     .expect("noncompliant attachments remain rule failures");
 

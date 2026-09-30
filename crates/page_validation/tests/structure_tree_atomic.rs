@@ -2,7 +2,8 @@ pub mod common;
 
 use lopdf::{Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    validate_pdf_bytes,
 };
 
 #[test]
@@ -15,8 +16,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
     ] {
         let report = validate_pdf_bytes(
             &common::tagged_document_fixture(case),
-            Some(ValidationProfile::PdfA1a),
-            &SafetyLimits::default(),
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
         )
         .expect("explicit profile validation");
         assert_eq!(
@@ -38,8 +38,9 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     };
     let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_self_cycle"),
-        Some(ValidationProfile::PdfA1a),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1a)
+            .limits(limits),
     )
     .expect_err("the object limit must stop the traversal");
     assert!(matches!(
@@ -52,8 +53,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
 fn cyclic_structure_tree_is_an_operational_failure() {
     let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_cyclic"),
-        Some(ValidationProfile::PdfA1a),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
     )
     .expect_err("cyclic structure tree must exceed the reference-depth limit");
     assert!(matches!(error, ValidationError::Pdf(_)));
@@ -117,8 +117,13 @@ fn table_grid_row_limit_is_rejected_during_structure_inspection() {
         max_table_grid_rows: 1,
         ..SafetyLimits::default()
     };
-    let error = validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1a), &limits)
-        .expect_err("table inspection must reject rows before growing past the limit");
+    let error = validate_pdf_bytes(
+        &bytes,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1a)
+            .limits(limits),
+    )
+    .expect_err("table inspection must reject rows before growing past the limit");
     assert!(matches!(
         error,
         ValidationError::Pdf(PdfError::TableGridLimit {

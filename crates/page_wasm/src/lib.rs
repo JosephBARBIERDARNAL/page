@@ -1,5 +1,6 @@
 use page_validation::{
-    SafetyLimits, ValidationProfile, ValidationReport, is_pdf_compliant_bytes, validate_pdf_bytes,
+    SafetyLimits, ValidationOptions, ValidationProfile, ValidationReport, is_pdf_compliant_bytes,
+    validate_pdf_bytes,
 };
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -152,6 +153,15 @@ fn parse_limits(limits_json: Option<String>) -> Result<SafetyLimits, JsValue> {
         .map(Option::unwrap_or_default)
 }
 
+fn validation_options(
+    profile: Option<String>,
+    limits_json: Option<String>,
+) -> Result<ValidationOptions, JsValue> {
+    Ok(ValidationOptions::default()
+        .profile(parse_profile(profile)?)
+        .limits(parse_limits(limits_json)?))
+}
+
 fn report_json(report: ValidationReport) -> Result<String, JsValue> {
     serde_json::to_string(&report).map_err(|error| {
         js_error(
@@ -168,23 +178,19 @@ pub fn validate_pdf_bytes_wasm(
     profile: Option<String>,
     limits_json: Option<String>,
 ) -> Result<String, JsValue> {
-    let profile = parse_profile(profile)?;
-    let limits = parse_limits(limits_json)?;
-    validate_pdf_bytes(bytes, profile, &limits)
+    validate_pdf_bytes(bytes, &validation_options(profile, limits_json)?)
         .map_err(|error| js_error("ValidationError", error.to_string()))
         .and_then(report_json)
 }
 
-/// Performs fast PDF byte validation and returns only the compliance result.
+/// Performs lazy PDF byte validation and returns only the compliance result.
 #[wasm_bindgen(js_name = isPdfCompliantBytes)]
 pub fn is_pdf_compliant_bytes_wasm(
     bytes: &[u8],
     profile: Option<String>,
     limits_json: Option<String>,
 ) -> Result<bool, JsValue> {
-    let profile = parse_profile(profile)?;
-    let limits = parse_limits(limits_json)?;
-    is_pdf_compliant_bytes(bytes, profile, &limits)
+    is_pdf_compliant_bytes(bytes, &validation_options(profile, limits_json)?)
         .map_err(|error| js_error("ValidationError", error.to_string()))
 }
 

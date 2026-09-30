@@ -6,14 +6,14 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    validate_pdf_bytes,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {
     let error = validate_pdf_bytes(
         bytes,
-        Some(ValidationProfile::PdfA1b),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
     )
     .expect_err("reference cycle must exceed the configured reference depth");
     assert!(
@@ -69,8 +69,9 @@ fn cyclic_metadata_reference_is_a_resource_limit_failure() {
 
     let error = validate_pdf_bytes(
         &bytes,
-        Some(ValidationProfile::PdfA1b),
-        &SafetyLimits::unlimited(),
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(SafetyLimits::unlimited()),
     )
     .expect_err("unlimited limits must still detect reference cycles");
     assert!(matches!(
@@ -254,17 +255,19 @@ fn unlimited_reference_depth_accepts_a_tree_beyond_the_default_bound() {
     assert_resource_limit_failure(&bytes);
     let report = validate_pdf_bytes(
         &bytes,
-        Some(ValidationProfile::PdfA1b),
-        &SafetyLimits::unlimited(),
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(SafetyLimits::unlimited()),
     )
     .expect("unlimited reference depth");
     assert_eq!(report.document.expect("parsed document").page_count, 1);
     assert!(
         !page_validation::is_pdf_compliant_bytes(
             &bytes,
-            Some(ValidationProfile::PdfA1b),
-            &SafetyLimits::unlimited(),
+            &page_validation::ValidationOptions::default()
+                .profile(ValidationProfile::PdfA1b)
+                .limits(SafetyLimits::unlimited())
         )
-        .expect("fast validation with unlimited reference depth")
+        .expect("lazy validation with unlimited reference depth")
     );
 }

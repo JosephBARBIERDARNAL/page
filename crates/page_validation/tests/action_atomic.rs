@@ -1,6 +1,6 @@
 pub mod common;
 
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
+use page_validation::{SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
 const ACTION_TYPE: &str = "PDFA1B-ACTION-TYPE-001";
 const FIELD_AA: &str = "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001";
@@ -20,8 +20,9 @@ fn cyclic_field_graph_terminates_under_the_configured_reference_limit() {
     };
     let report = validate_pdf_bytes(
         &common::action_fixture("field_cycle"),
-        Some(ValidationProfile::PdfA1b),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(limits),
     )
     .expect("explicit profile validation");
 

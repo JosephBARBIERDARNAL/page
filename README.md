@@ -84,15 +84,10 @@ Time    : 0.147s
 You can use the `page_validation` crate to integrate into any existing Rust workflow:
 
 ```rust
-use std::path::Path;
-use page_validation::{validate_pdf, ValidationProfile, SafetyLimits};
+use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
 
-let doc = Path::new("document.pdf")
-let report = validate_pdf(
-   Path::new("file.pdf"),
-   Some(ValidationProfile::PdfUA1),
-   &SafetyLimits::default(),
-)?;
+let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+let report = validate_pdf("file.pdf", &options)?;
 
 if report.is_compliant {
     println!("The document passed all checks.");
@@ -135,7 +130,7 @@ Read a PDF as a `Uint8Array` and validate it in the browser:
 import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const report = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B);
+const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B });
 
 if (report.isCompliant) {
   console.log("The document passed all implemented checks.");

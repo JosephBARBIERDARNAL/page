@@ -1,5 +1,6 @@
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationProfile, validate_pdf_bytes,
+    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    validate_pdf_bytes,
 };
 
 pub mod common;
@@ -46,8 +47,9 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
     };
     let error = validate_pdf_bytes(
         &common::icc_based_fixture("large_compressed_profile"),
-        Some(ValidationProfile::PdfA1b),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(limits),
     )
     .expect_err("ICC profile must exceed the decoded-size limit");
     assert!(matches!(
@@ -58,17 +60,15 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
 
 #[test]
 fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
-    let limits = SafetyLimits {
-        max_reference_depth: 4,
-        ..SafetyLimits::default()
-    };
+    let options = ValidationOptions::default()
+        .profile(ValidationProfile::PdfA1b)
+        .limits(SafetyLimits {
+            max_reference_depth: 4,
+            ..SafetyLimits::default()
+        });
     for case in ["cyclic_indexed", "deep_indexed"] {
-        let error = validate_pdf_bytes(
-            &common::icc_based_fixture(case),
-            Some(ValidationProfile::PdfA1b),
-            &limits,
-        )
-        .expect_err("{case} must exceed the configured reference depth");
+        let error = validate_pdf_bytes(&common::icc_based_fixture(case), &options)
+            .expect_err("{case} must exceed the configured reference depth");
         assert!(
             matches!(error, ValidationError::Pdf(PdfError::ReferenceDepth(4))),
             "{case}: {error:?}"

@@ -1,9 +1,10 @@
 //! Core PDF accessibility and compliance validation for PDF/A-1, PDF/A-2, PDF/A-3, and PDF/UA-1.
 //!
-//! File and byte entry points parse bounded input, normalize document metadata and resources,
-//! run the inspections required by the selected profile, and return a validation report or a
-//! compliance result. This crate exposes shared models, limits, errors, and report types for
-//! the CLI and language bindings; a successful report covers the implemented profile rules.
+//! File and byte entry points take shared `ValidationOptions`, parse bounded input, normalize
+//! document metadata and resources, run the inspections required by the selected profile, and
+//! return either an exhaustive validation report or a lazily evaluated compliance boolean. This
+//! crate exposes shared models, limits, errors, and report types for the CLI and language
+//! bindings; a successful report covers the implemented profile rules.
 
 mod actions;
 mod annotations;
@@ -44,7 +45,9 @@ pub use model::{
 pub use report::{
     FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure, ValidationReport,
 };
+#[doc(hidden)]
+pub use validation::{ComplianceResult, validate_pdf_lazy};
 pub use validation::{
-    ComplianceResult, ValidationProfile, is_pdf_compliant, is_pdf_compliant_bytes, validate_pdf,
-    validate_pdf_bytes, validate_pdf_bytes_fast, validate_pdf_fast,
+    ValidationOptions, ValidationProfile, is_pdf_compliant, is_pdf_compliant_bytes, validate_pdf,
+    validate_pdf_bytes,
 };

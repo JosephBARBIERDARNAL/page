@@ -143,10 +143,9 @@ function initializeDemo(root: DemoRoot): void {
     try {
       const bytes = new Uint8Array(await selectedFile.arrayBuffer());
       const { validatePdfBytes } = await import("page-validation-wasm");
-      const report = await validatePdfBytes(
-        bytes,
-        profileInput.value as import("page-validation-wasm").ValidationProfile,
-      );
+      const report = await validatePdfBytes(bytes, {
+        profile: profileInput.value as import("page-validation-wasm").ValidationProfile,
+      });
       renderReport(output, report as ValidationReport);
     } catch (error) {
       renderError(output, error);

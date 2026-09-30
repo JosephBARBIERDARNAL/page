@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationProfile,
+    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
     is_pdf_compliant_bytes, validate_pdf_bytes,
 };
 
@@ -63,7 +63,7 @@ fn no_shown_text_skips_font_details_but_keeps_the_informational_summary() {
 }
 
 #[test]
-fn fast_validation_skips_unused_font_summary_resolution() {
+fn lazy_validation_skips_unused_font_summary_resolution() {
     let mut document = Document::load_mem(&common::font_fixture("unused_resource"))
         .expect("load unused-font fixture");
     let limits = SafetyLimits::default();
@@ -81,9 +81,12 @@ fn fast_validation_skips_unused_font_summary_resolution() {
         .save_to(&mut bytes)
         .expect("save unused-font fixture");
 
-    assert!(is_pdf_compliant_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits).unwrap());
+    let options = ValidationOptions::default()
+        .profile(ValidationProfile::PdfA1b)
+        .limits(limits);
+    assert!(is_pdf_compliant_bytes(&bytes, &options).unwrap());
     assert!(matches!(
-        validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits),
+        validate_pdf_bytes(&bytes, &options),
         Err(ValidationError::Pdf(PdfError::ReferenceDepth(
             SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
         )))
@@ -99,8 +102,13 @@ fn decoded_content_limit_is_an_operational_failure() {
     let bytes = common::font_fixture("large_content");
     PdfDocument::from_bytes(&bytes, &limits)
         .expect("public normalization does not run private font content traversal");
-    let error = validate_pdf_bytes(&bytes, Some(ValidationProfile::PdfA1b), &limits)
-        .expect_err("decoded content must exceed the configured limit");
+    let error = validate_pdf_bytes(
+        &bytes,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(limits),
+    )
+    .expect_err("decoded content must exceed the configured limit");
     assert!(matches!(
         error,
         ValidationError::Pdf(PdfError::ContentDecodeLimit(2048))
@@ -115,8 +123,9 @@ fn graphics_state_stack_is_bounded() {
     };
     let error = validate_pdf_bytes(
         &common::font_fixture("deep_graphics_state"),
-        Some(ValidationProfile::PdfA1b),
-        &limits,
+        &ValidationOptions::default()
+            .profile(ValidationProfile::PdfA1b)
+            .limits(limits),
     )
     .expect_err("graphics state must exceed the configured reference depth");
     assert!(matches!(

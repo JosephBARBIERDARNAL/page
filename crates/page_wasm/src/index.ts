@@ -15,6 +15,7 @@ export type {
   ValidationCheckCounts,
   ValidationCounts,
   ValidationFailure,
+  ValidationOptions,
 } from "./api.js";
 
 const api = createApi(wasm);

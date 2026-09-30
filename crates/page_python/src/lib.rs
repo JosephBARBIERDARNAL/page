@@ -503,39 +503,44 @@ impl ValidationReport {
     }
 }
 
-fn limits_or_default(limits: Option<&SafetyLimits>) -> RustSafetyLimits {
-    limits.map(Into::into).unwrap_or_default()
+fn validation_options(
+    profile: Option<ValidationProfile>,
+    limits: Option<&SafetyLimits>,
+) -> page_validation::ValidationOptions {
+    page_validation::ValidationOptions::default()
+        .profile(profile.map(Into::into))
+        .limits(limits.map(Into::into).unwrap_or_default())
 }
 
 #[pyfunction]
-#[pyo3(signature = (path, profile=None, limits=None))]
+#[pyo3(signature = (path, *, profile=None, limits=None))]
 fn is_pdf_compliant(
     py: Python<'_>,
     path: PathBuf,
     profile: Option<ValidationProfile>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
-    let limits = limits_or_default(limits);
-    py.detach(|| page_validation::is_pdf_compliant(&path, profile.map(Into::into), &limits))
+    let options = validation_options(profile, limits);
+    py.detach(|| page_validation::is_pdf_compliant(&path, &options))
         .map_err(|error| ValidationError::new_err(error.to_string()))
 }
 
 #[pyfunction]
-#[pyo3(signature = (path, profile=None, limits=None))]
+#[pyo3(signature = (path, *, profile=None, limits=None))]
 fn validate_pdf(
     py: Python<'_>,
     path: PathBuf,
     profile: Option<ValidationProfile>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
-    let limits = limits_or_default(limits);
-    py.detach(|| page_validation::validate_pdf(&path, profile.map(Into::into), &limits))
+    let options = validation_options(profile, limits);
+    py.detach(|| page_validation::validate_pdf(&path, &options))
         .map(Into::into)
         .map_err(|error| ValidationError::new_err(error.to_string()))
 }
 
 #[pyfunction]
-#[pyo3(signature = (data, profile=None, limits=None))]
+#[pyo3(signature = (data, *, profile=None, limits=None))]
 fn is_pdf_compliant_bytes(
     py: Python<'_>,
     data: &[u8],
@@ -543,13 +548,13 @@ fn is_pdf_compliant_bytes(
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
     let data = data.to_vec();
-    let limits = limits_or_default(limits);
-    py.detach(|| page_validation::is_pdf_compliant_bytes(&data, profile.map(Into::into), &limits))
+    let options = validation_options(profile, limits);
+    py.detach(|| page_validation::is_pdf_compliant_bytes(&data, &options))
         .map_err(|error| ValidationError::new_err(error.to_string()))
 }
 
 #[pyfunction]
-#[pyo3(signature = (data, profile=None, limits=None))]
+#[pyo3(signature = (data, *, profile=None, limits=None))]
 fn validate_pdf_bytes(
     py: Python<'_>,
     data: &[u8],
@@ -557,8 +562,8 @@ fn validate_pdf_bytes(
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
     let data = data.to_vec();
-    let limits = limits_or_default(limits);
-    py.detach(|| page_validation::validate_pdf_bytes(&data, profile.map(Into::into), &limits))
+    let options = validation_options(profile, limits);
+    py.detach(|| page_validation::validate_pdf_bytes(&data, &options))
         .map(Into::into)
         .map_err(|error| ValidationError::new_err(error.to_string()))
 }
