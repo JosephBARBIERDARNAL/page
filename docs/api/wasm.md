@@ -137,6 +137,14 @@ const report = await validatePdfBytes(bytes, undefined, limits);
 
 You can also pass a partial options object instead of constructing `SafetyLimits`. `maxDecodedStreamSize` bounds one decoded stream and `maxTotalDecodedContentSize` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `maxFormInvocations` bounds Form XObject expansions across all pages and nested content in one document. `maxXrefRevisions` bounds the number of incremental-update revisions read from the cross-reference chain. `maxTableSpan` bounds the row or column span of an individual tagged-table cell. `maxTableGridRows`, `maxTableGridColumns`, and `maxTableGridCells` bound the derived table-grid dimensions and total cells. `maxUnicodeCmapMappings` bounds the total mappings expanded from one ToUnicode CMap.
 
+For trusted files, pass `SafetyLimits.unlimited()` through the existing limits argument:
+
+```ts
+const report = await validatePdfBytes(bytes, undefined, SafetyLimits.unlimited());
+```
+
+The factory returns a fresh object with `Infinity` in every limit field. Wasm translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive `Infinity`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
+
 ## Use the exit code
 
 For automated checks, a report can provide an appropriate process exit code:

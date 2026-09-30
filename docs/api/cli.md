@@ -132,6 +132,8 @@ page document.pdf --max-table-span 256 --max-table-grid-cells 250000
 | `--max-table-grid-cells`           | 1,000,000 | Maximum number of cells represented in an inspected table grid.                     |
 | `--max-unicode-cmap-mappings`      | 1,000,000 | Maximum number of mappings expanded from one ToUnicode CMap.                        |
 
+For trusted files, disable all configurable limits with `page document.pdf --disable-safety-limits`. The flag conflicts with any explicitly supplied `--max-*` option. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details.
+
 ## Colors
 
 By default, `page` uses color in the terminal output.

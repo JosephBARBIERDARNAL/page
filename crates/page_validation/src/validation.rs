@@ -4655,6 +4655,13 @@ mod tests {
             error,
             ValidationError::Pdf(PdfError::XmpDecodeLimit(_))
         ));
+        let report = validate_pdf_bytes(
+            &fixture(Some(VALID_XMP), true),
+            Some(ValidationProfile::PdfA1b),
+            &SafetyLimits::unlimited(),
+        )
+        .expect("unlimited decoding");
+        assert!(report.is_compliant, "{report}");
     }
 
     #[test]
@@ -4674,6 +4681,13 @@ mod tests {
             error,
             ValidationError::Pdf(PdfError::ContentDecodeLimit(16))
         ));
+        let compliant = is_pdf_compliant_bytes(
+            &bytes,
+            Some(ValidationProfile::PdfA1b),
+            &SafetyLimits::unlimited(),
+        )
+        .expect("unlimited content decoding preserves the conformance result");
+        assert!(!compliant);
     }
 
     #[test]

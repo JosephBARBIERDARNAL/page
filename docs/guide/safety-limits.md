@@ -15,6 +15,74 @@ To limit resource use when processing untrusted PDFs, `page` enforces configurab
 | `--max-table-grid-cells`           | 1,000,000 | Maximum number of cells represented in an inspected table grid.                     |
 | `--max-unicode-cmap-mappings`      | 1,000,000 | Maximum number of mappings expanded from one ToUnicode CMap.                        |
 
-The defaults try to be convenient (they should be large enough for most files) while ensuring some level of default security. Obviously those are configurables, **with no limits** (see [this issue](https://github.com/JosephBARBIERDARNAL/page/issues/301)).
+The defaults should be large enough for most files while bounding resource use. You can adjust individual limits or disable all of them for a validation call.
 
-Disabling/changing safety limits is a security risk and must be done with control.
+## Disable all safety limits
+
+**Use unlimited limits only with trusted files.** Disabling these bounds allows validation to consume unrestricted memory and CPU, subject to the platform's capacity. Keep the default limits when processing untrusted PDFs.
+
+In the CLI, pass `--disable-safety-limits`:
+
+```sh
+page document.pdf --disable-safety-limits
+```
+
+The flag cannot be combined with any explicit `--max-*` option, even if that option specifies its default value.
+
+In Rust, Python, and JavaScript, pass the unlimited preset through the existing limits argument:
+
+=== "Rust"
+
+    ```rust
+    use std::path::Path;
+    use page_validation::{SafetyLimits, validate_pdf};
+
+    let report = validate_pdf(Path::new("document.pdf"), None, &SafetyLimits::unlimited())?;
+    ```
+
+=== "Python"
+
+    ```python
+    import page
+
+    report = page.validate_pdf("document.pdf", limits=page.SafetyLimits.unlimited())
+    ```
+
+=== "JavaScript"
+
+    ```js
+    import { SafetyLimits, validatePdfBytes } from "page-validation-wasm";
+
+    const report = await validatePdfBytes(bytes, undefined, SafetyLimits.unlimited());
+    ```
+
+The same preset works with the bytes and compliance-only functions. Existing calls continue to use the default safety limits when no preset is supplied.
+
+The preset sets all 12 configurable bounds to their native integer maxima. Rust and Python expose those integer values; JavaScript exposes `Infinity` and translates it to the target's native maxima in Wasm. Platform bounds, cycle detection, arithmetic checks, parser validity checks, and PDF conformance requirements remain active.
+
+## Restore an individual limit
+
+Each factory returns a fresh limits object. Library callers can start with unlimited limits and restore selected bounds:
+
+=== "Rust"
+
+    ```rust
+    let limits = SafetyLimits {
+        max_input_size: 512 * 1024 * 1024,
+        ..SafetyLimits::unlimited()
+    };
+    ```
+
+=== "Python"
+
+    ```python
+    limits = page.SafetyLimits.unlimited()
+    limits.max_input_size = 512 * 1024 * 1024
+    ```
+
+=== "JavaScript"
+
+    ```js
+    const limits = SafetyLimits.unlimited();
+    limits.maxInputSize = 512 * 1024 * 1024;
+    ```

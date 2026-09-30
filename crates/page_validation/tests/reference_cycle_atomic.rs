@@ -66,6 +66,17 @@ fn cyclic_metadata_reference_is_a_resource_limit_failure() {
         .expect("save cyclic metadata fixture");
 
     assert_resource_limit_failure(&bytes);
+
+    let error = validate_pdf_bytes(
+        &bytes,
+        Some(ValidationProfile::PdfA1b),
+        &SafetyLimits::unlimited(),
+    )
+    .expect_err("unlimited limits must still detect reference cycles");
+    assert!(matches!(
+        error,
+        ValidationError::Pdf(PdfError::ReferenceDepth(usize::MAX))
+    ));
 }
 
 #[test]
@@ -235,4 +246,25 @@ fn page_tree_at_the_reference_depth_boundary_is_a_resource_limit_failure() {
     let bytes = nested_page_tree_fixture(SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH);
 
     assert_resource_limit_failure(&bytes);
+}
+
+#[test]
+fn unlimited_reference_depth_accepts_a_tree_beyond_the_default_bound() {
+    let bytes = nested_page_tree_fixture(SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH + 32);
+    assert_resource_limit_failure(&bytes);
+    let report = validate_pdf_bytes(
+        &bytes,
+        Some(ValidationProfile::PdfA1b),
+        &SafetyLimits::unlimited(),
+    )
+    .expect("unlimited reference depth");
+    assert_eq!(report.document.expect("parsed document").page_count, 1);
+    assert!(
+        !page_validation::is_pdf_compliant_bytes(
+            &bytes,
+            Some(ValidationProfile::PdfA1b),
+            &SafetyLimits::unlimited(),
+        )
+        .expect("fast validation with unlimited reference depth")
+    );
 }

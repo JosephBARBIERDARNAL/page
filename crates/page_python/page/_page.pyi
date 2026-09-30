@@ -25,6 +25,9 @@ class FailureCategory:
     CONFORMANCE: ClassVar[FailureCategory]
 
 class SafetyLimits:
+    @staticmethod
+    def unlimited() -> SafetyLimits: ...
+
     DEFAULT_MAX_INPUT_SIZE: ClassVar[int]
     DEFAULT_MAX_DECODED_STREAM_SIZE: ClassVar[int]
     DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE: ClassVar[int]

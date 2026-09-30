@@ -23,3 +23,5 @@ generated
 node_modules
 pdf
 index.html
+
+*.tgz

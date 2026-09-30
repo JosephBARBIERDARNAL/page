@@ -65,6 +65,15 @@ const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
 };
 
 export class SafetyLimits implements SafetyLimitsOptions {
+  /** Disables all configurable safety limits. Use only with trusted files. */
+  static unlimited(): SafetyLimits {
+    return new SafetyLimits(
+      Object.fromEntries(
+        Object.keys(DEFAULT_SAFETY_LIMITS).map((name) => [name, Infinity]),
+      ),
+    );
+  }
+
   static readonly DEFAULT_MAX_INPUT_SIZE = DEFAULT_SAFETY_LIMITS.maxInputSize;
   static readonly DEFAULT_MAX_DECODED_STREAM_SIZE =
     DEFAULT_SAFETY_LIMITS.maxDecodedStreamSize;
@@ -149,8 +158,8 @@ export class SafetyLimits implements SafetyLimitsOptions {
     );
   }
 
-  toJSON(): Record<string, number> {
-    return {
+  toJSON(): Record<string, number | "unlimited"> {
+    const limits = {
       max_input_size: this.maxInputSize,
       max_decoded_stream_size: this.maxDecodedStreamSize,
       max_total_decoded_content_size: this.maxTotalDecodedContentSize,
@@ -164,6 +173,12 @@ export class SafetyLimits implements SafetyLimitsOptions {
       max_table_grid_cells: this.maxTableGridCells,
       max_unicode_cmap_mappings: this.maxUnicodeCmapMappings,
     };
+    return Object.fromEntries(
+      Object.entries(limits).map(([name, value]) => [
+        name,
+        validateLimit(value, name) === Infinity ? "unlimited" : value,
+      ]),
+    );
   }
 }
 
@@ -336,8 +351,8 @@ export function createApi(wasm: WasmBindings) {
 }
 
 function validateLimit(value: number, name: string): number {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(`${name} must be a non-negative safe integer`);
+  if (value !== Infinity && (!Number.isSafeInteger(value) || value < 0)) {
+    throw new RangeError(`${name} must be a non-negative safe integer or Infinity`);
   }
   return value;
 }

@@ -7,7 +7,7 @@ A fast and lightweight PDF accessibility and compliance checker.
 - Usage: [CLI](https://josephbarbierdarnal.github.io/page/docs/api/cli), [Rust](https://josephbarbierdarnal.github.io/page/docs/api/rust), [Python](https://josephbarbierdarnal.github.io/page/docs/api/python) or [WebAssembly](https://josephbarbierdarnal.github.io/page/api/wasm/)
 - [License](#license)
 
-`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA profile (accessibility) and PDF/A (archiving). Its PDF/UA-1 validation is based on the <u>Matterhorn Protocol</u> and cross-tested against veraPDF's corpus.
+`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). Its PDF/UA-1 validation is based on the <u>Matterhorn Protocol</u> and cross-tested against veraPDF's corpus.
 
 <br>
 
@@ -18,13 +18,13 @@ A fast and lightweight PDF accessibility and compliance checker.
 ### macOS/Linux
 
 ```sh
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.7.0/page_cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.8.0/page_cli-installer.sh | sh
 ```
 
 ### PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.7.0/page_cli-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.8.0/page_cli-installer.ps1 | iex"
 ```
 
 ### Cargo
