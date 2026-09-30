@@ -26,7 +26,7 @@ function g(e, a) {
     e.append(n);
   }
 }
-function v(e, a) {
+function p(e, a) {
   e.replaceChildren(), e.className = "validator-result validator-result--error";
   const r = l("p");
   r.textContent = a instanceof Error ? a.message : "Validation failed.", e.append(r);
@@ -52,7 +52,7 @@ function y(e) {
   }), t.addEventListener("click", async () => {
     if (i) {
       if (i.size > 52428800) {
-        v(
+        p(
           n,
           `Please choose a PDF smaller than ${m(52428800)}.`
         );
@@ -60,23 +60,22 @@ function y(e) {
       }
       t.disabled = !0, t.classList.add("validator-button--loading"), t.setAttribute("aria-busy", "true"), n.replaceChildren(), n.className = "validator-result validator-result--pending";
       try {
-        const o = new Uint8Array(await i.arrayBuffer()), { validatePdfBytes: d } = await import("./index-DUhUDzMK.js"), c = await d(
-          o,
-          r.value
-        );
+        const o = new Uint8Array(await i.arrayBuffer()), { validatePdfBytes: d } = await import("./index-D3vhaeWx.js"), c = await d(o, {
+          profile: r.value
+        });
         g(n, c);
       } catch (o) {
-        v(n, o);
+        p(n, o);
       } finally {
         t.disabled = !1, t.classList.remove("validator-button--loading"), t.removeAttribute("aria-busy");
       }
     }
   });
 }
-function p() {
+function v() {
   const e = document.querySelector("[data-page-demo]");
   e && y(e);
 }
-p();
+v();
 const h = globalThis.document$;
-h?.subscribe(p);
+h?.subscribe(v);

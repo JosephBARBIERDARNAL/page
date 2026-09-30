@@ -912,6 +912,7 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li>Refactor: Make validation entry points extensible with a Rust <code>ValidationOptions</code> value, keyword-only Python arguments, and a TypeScript options object; rename the first-failure mode to lazy and remove <code>validate_pdf_fast</code> / <code>validate_pdf_bytes_fast</code> from the public Rust API <a href="https://github.com/JosephBARBIERDARNAL/page/issues/347">#347</a></li>
 <li>Doc: Add a per-file overview to every core validation Rust source file and document the convention in <code>AGENTS.md</code> <a href="https://github.com/JosephBARBIERDARNAL/page/issues/331">#331</a></li>
 <li>Feat: Disable all safety limits with a CLI flag or an unlimited preset in Rust, Python, and JavaScript <a href="https://github.com/JosephBARBIERDARNAL/page/issues/342">#342</a></li>
 <li>Refactor: Remove the legacy <code>PdfDocument::output_intents</code> field; use <code>output_intents_summary</code> instead <a href="https://github.com/JosephBARBIERDARNAL/page/issues/345">#345</a></li>
