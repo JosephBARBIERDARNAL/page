@@ -8,7 +8,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
 use page_cli::spinner::Spinner;
-use page_validation::{SafetyLimits, ValidationProfile, ValidationReport, validate_pdf};
+use page_validation::{
+    SafetyLimits, ValidationOptions, ValidationProfile, ValidationReport, validate_pdf,
+};
 
 #[derive(Debug, Args)]
 pub(crate) struct CorpusArgs {
@@ -326,7 +328,13 @@ fn validate_case(
     profile: ValidationProfile,
     limits: &SafetyLimits,
 ) -> ValidationReport {
-    validate_pdf(path, Some(profile), limits).unwrap_or_else(|error| {
+    validate_pdf(
+        path,
+        &ValidationOptions::default()
+            .profile(profile)
+            .limits(limits.clone()),
+    )
+    .unwrap_or_else(|error| {
         let mut report = ValidationReport::from_validation_error(profile, error);
         report.source = Some(path.to_path_buf());
         report
@@ -667,7 +675,9 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{ExpectedResult, expected_result, expected_rules_are_reported};
-    use page_validation::{SafetyLimits, ValidationProfile, ValidationReport, validate_pdf_bytes};
+    use page_validation::{
+        ValidationOptions, ValidationProfile, ValidationReport, validate_pdf_bytes,
+    };
     use std::path::Path;
 
     #[test]
@@ -708,8 +718,7 @@ mod tests {
     fn requires_the_expected_rule_in_the_report() {
         let error = validate_pdf_bytes(
             b"not a PDF",
-            Some(ValidationProfile::PdfA1b),
-            &SafetyLimits::default(),
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect_err("invalid PDF should be rejected");
         let report = ValidationReport::from_validation_error(ValidationProfile::PdfA1b, error);

@@ -672,12 +672,12 @@ pub(crate) fn inspect(
                                     crate::validation::ValidationProfile::PdfA1b,
                                     crate::validation::ValidationProfile::PdfA2b,
                                 ] {
-                                    match crate::validation::validate_pdf_bytes(
+                                    match crate::validation::validate_bytes_lazy(
                                         &bytes,
                                         Some(profile),
                                         limits,
                                     ) {
-                                        Ok(report) if report.is_compliant => {
+                                        Ok(result) if result.is_compliant => {
                                             valid_pdfa = true;
                                             break;
                                         }

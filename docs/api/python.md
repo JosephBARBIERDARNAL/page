@@ -20,7 +20,7 @@ The [`page-validation`](https://pypi.org/project/page-validation/) package provi
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It returns both the selected profile and the boolean result:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses lazy validation: it stops once it finds a failing rule and returns the boolean directly:
 
 ```python
 import page
@@ -28,7 +28,7 @@ import page
 is_compliant: bool = page.is_pdf_compliant("file.pdf")
 ```
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises `page.ValidationError`.
+Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises `page.ValidationError`.
 
 !!! info
 
@@ -63,7 +63,10 @@ Pass a profile to `validate_pdf()` when the caller, rather than the document, se
 ```python
 import page
 
-report = page.validate_pdf("document.pdf", page.ValidationProfile.PDF_A_1B)
+report = page.validate_pdf(
+    "document.pdf",
+    profile=page.ValidationProfile.PDF_A_1B
+)
 ```
 
 The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `is_pdf_compliant()` or the corresponding bytes function when you only need a boolean result.

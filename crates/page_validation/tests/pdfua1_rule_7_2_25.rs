@@ -31,8 +31,8 @@ fn tagged_widget_case_remains_inapplicable() {
     let bytes = common::pdfua1_rule_7_18_1_3_fixture("tu");
     let report = page_validation::validate_pdf_bytes(
         &bytes,
-        Some(page_validation::ValidationProfile::PdfUa1),
-        &page_validation::SafetyLimits::default(),
+        &page_validation::ValidationOptions::default()
+            .profile(page_validation::ValidationProfile::PdfUa1),
     )
     .expect("explicit PDF/UA-1 profile validation");
     assert!(

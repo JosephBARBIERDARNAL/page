@@ -87,23 +87,27 @@ describe("page-validation", () => {
   it("validates unlimited and mixed limits through the built Wasm module", async () => {
     const bytes = minimalPdf();
     const limits = SafetyLimits.unlimited();
-    const report = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, limits);
+    const report = await validatePdfBytes(bytes, {
+      profile: ValidationProfile.PDF_A_1B,
+      limits,
+    });
     expect(report.exitCode()).toBe(2);
     expect(report.document?.objectCount).toBeGreaterThan(0);
     await expect(
-      isPdfCompliantBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+      isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_A_1B, limits }),
     ).resolves.toBe(false);
 
     limits.maxInputSize = 1;
     await expect(
-      validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+      validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B, limits }),
     ).rejects.toThrow("1-byte limit");
     await expect(
-      isPdfCompliantBytes(bytes, ValidationProfile.PDF_A_1B, limits),
+      isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_A_1B, limits }),
     ).rejects.toThrow("1-byte limit");
 
-    const partialReport = await validatePdfBytes(bytes, ValidationProfile.PDF_A_1B, {
-      maxInputSize: Infinity,
+    const partialReport = await validatePdfBytes(bytes, {
+      profile: ValidationProfile.PDF_A_1B,
+      limits: { maxInputSize: Infinity },
     });
     expect(partialReport.exitCode()).toBe(2);
   });
@@ -130,7 +134,9 @@ describe("page-validation", () => {
   });
 
   it("returns a typed report for byte input", async () => {
-    const report = await validatePdfBytes(minimalPdf(), ValidationProfile.PDF_A_1B);
+    const report = await validatePdfBytes(minimalPdf(), {
+      profile: ValidationProfile.PDF_A_1B,
+    });
 
     expect(report.profile).toBe(ValidationProfile.PDF_A_1B);
     expect(report.isCompliant).toBe(false);
@@ -142,18 +148,17 @@ describe("page-validation", () => {
     expect(report.exitCode()).toBe(2);
   });
 
-  it("returns the fast compliance result", async () => {
+  it("returns the lazy compliance result", async () => {
     await expect(
-      isPdfCompliantBytes(minimalPdf(), ValidationProfile.PDF_A_1B),
+      isPdfCompliantBytes(minimalPdf(), { profile: ValidationProfile.PDF_A_1B }),
     ).resolves.toBe(false);
   });
 
   it("raises ValidationError for malformed input", async () => {
     await expect(
-      validatePdfBytes(
-        new TextEncoder().encode("not a PDF"),
-        ValidationProfile.PDF_A_1B,
-      ),
+      validatePdfBytes(new TextEncoder().encode("not a PDF"), {
+        profile: ValidationProfile.PDF_A_1B,
+      }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
@@ -172,10 +177,16 @@ describe("page-validation", () => {
     const invalidLimits = { maxInputSize: -1 };
 
     await expect(
-      api.validatePdfBytes(minimalPdf(), ValidationProfile.PDF_A_1B, invalidLimits),
+      api.validatePdfBytes(minimalPdf(), {
+        profile: ValidationProfile.PDF_A_1B,
+        limits: invalidLimits,
+      }),
     ).rejects.toBeInstanceOf(RangeError);
     await expect(
-      api.isPdfCompliantBytes(minimalPdf(), ValidationProfile.PDF_A_1B, invalidLimits),
+      api.isPdfCompliantBytes(minimalPdf(), {
+        profile: ValidationProfile.PDF_A_1B,
+        limits: invalidLimits,
+      }),
     ).rejects.toBeInstanceOf(RangeError);
 
     expect(wasmCalls).toBe(0);

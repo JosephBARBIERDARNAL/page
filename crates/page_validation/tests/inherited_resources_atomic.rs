@@ -1,4 +1,4 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
+use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
 pub mod common;
 
@@ -36,7 +36,7 @@ fn inherited_resource_names_are_checked_in_pdfa_2_and_3() {
     for (case, expected_failure) in CASES {
         let bytes = common::graphics_fixture(case);
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
-            let report = validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+            let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
                 .expect("explicit profile validation");
             assert_eq!(
                 report

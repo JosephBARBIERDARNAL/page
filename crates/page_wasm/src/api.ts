@@ -294,6 +294,14 @@ export class ValidationReport {
   }
 }
 
+/** Options shared by every validation function. */
+export interface ValidationOptions {
+  /** Profile to validate against; inferred from the document's XMP metadata when omitted. */
+  profile?: ValidationProfile;
+  /** Resource bounds enforced while parsing and inspecting the document. */
+  limits?: SafetyLimits | Partial<SafetyLimitsOptions>;
+}
+
 export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -313,8 +321,7 @@ export function createApi(wasm: WasmBindings) {
 
   async function validatePdfBytes(
     bytes: Uint8Array,
-    profile?: ValidationProfile,
-    limits?: SafetyLimits | Partial<SafetyLimitsOptions>,
+    { profile, limits }: ValidationOptions = {},
   ): Promise<ValidationReport> {
     await initialize();
     const serializedLimits = serializeLimits(limits);
@@ -328,8 +335,7 @@ export function createApi(wasm: WasmBindings) {
 
   async function isPdfCompliantBytes(
     bytes: Uint8Array,
-    profile?: ValidationProfile,
-    limits?: SafetyLimits | Partial<SafetyLimitsOptions>,
+    { profile, limits }: ValidationOptions = {},
   ): Promise<boolean> {
     await initialize();
     const serializedLimits = serializeLimits(limits);

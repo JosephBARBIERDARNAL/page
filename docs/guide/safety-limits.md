@@ -29,15 +29,15 @@ page document.pdf --disable-safety-limits
 
 The flag cannot be combined with any explicit `--max-*` option, even if that option specifies its default value.
 
-In Rust, Python, and JavaScript, pass the unlimited preset through the existing limits argument:
+In Rust, Python, and JavaScript, pass the unlimited preset through the `limits` option:
 
 === "Rust"
 
     ```rust
-    use std::path::Path;
-    use page_validation::{SafetyLimits, validate_pdf};
+    use page_validation::{SafetyLimits, ValidationOptions, validate_pdf};
 
-    let report = validate_pdf(Path::new("document.pdf"), None, &SafetyLimits::unlimited())?;
+    let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
+    let report = validate_pdf("document.pdf", &options)?;
     ```
 
 === "Python"
@@ -53,7 +53,7 @@ In Rust, Python, and JavaScript, pass the unlimited preset through the existing 
     ```js
     import { SafetyLimits, validatePdfBytes } from "page-validation-wasm";
 
-    const report = await validatePdfBytes(bytes, undefined, SafetyLimits.unlimited());
+    const report = await validatePdfBytes(bytes, { limits: SafetyLimits.unlimited() });
     ```
 
 The same preset works with the bytes and compliance-only functions. Existing calls continue to use the default safety limits when no preset is supplied.

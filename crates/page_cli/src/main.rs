@@ -12,7 +12,7 @@ use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_validation::{
     JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError,
-    ValidationProfile, ValidationReport, validate_pdf, validate_pdf_fast,
+    ValidationOptions, ValidationProfile, ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
 #[derive(Debug, Parser)]
@@ -430,8 +430,11 @@ fn run_validate(cli: Cli) {
         format!("Validating {}", cli.file.display()),
     );
     let requested_profile = cli.profile.map(Into::into);
+    let options = ValidationOptions::default()
+        .profile(requested_profile)
+        .limits(limits);
     if selected_format == SelectedFormat::Summary {
-        let outcome = match validate_pdf_fast(&cli.file, requested_profile, &limits) {
+        let outcome = match validate_pdf_lazy(&cli.file, &options) {
             Ok(outcome) => outcome,
             Err(ValidationError::InputIo(error)) => {
                 spinner.finish_and_clear();
@@ -476,7 +479,7 @@ fn run_validate(cli: Cli) {
         };
         std::process::exit(status);
     }
-    let report = match validate_pdf(&cli.file, requested_profile, &limits) {
+    let report = match validate_pdf(&cli.file, &options) {
         Ok(report) => report,
         Err(ValidationError::InputIo(error)) => {
             spinner.finish_and_clear();

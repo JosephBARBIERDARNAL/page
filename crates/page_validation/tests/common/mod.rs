@@ -15,7 +15,7 @@ use lopdf::{
     Stream, StringFormat, dictionary,
 };
 use page_validation::{
-    SafetyLimits, ValidationFailure, ValidationProfile, ValidationReport, validate_pdf_bytes,
+    ValidationFailure, ValidationOptions, ValidationProfile, ValidationReport, validate_pdf_bytes,
 };
 
 pub mod sfnt;
@@ -47,8 +47,7 @@ pub fn rule_delta<T: Ord + Clone>(
 pub fn validate(bytes: &[u8]) -> ValidationReport {
     validate_pdf_bytes(
         bytes,
-        Some(ValidationProfile::PdfA1b),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
     )
     .expect("explicit profile validation")
 }
@@ -116,8 +115,7 @@ pub fn write_checked_in_fixture(name: &str, bytes: &[u8]) -> PathBuf {
 pub fn assert_pdfua1_rule_behavior(rule: &str, bytes: &[u8], expected_failure_ids: &[&str]) {
     let report = validate_pdf_bytes(
         bytes,
-        Some(ValidationProfile::PdfUa1),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfUa1),
     )
     .expect("explicit PDF/UA-1 profile validation");
     let actual = report

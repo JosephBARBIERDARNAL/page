@@ -1,11 +1,10 @@
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf_bytes};
+use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
 #[test]
 fn canonical_pdfa_1a_is_locally_compliant() {
     let report = validate_pdf_bytes(
         include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
-        Some(ValidationProfile::PdfA1a),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
     )
     .expect("explicit profile validation");
 
@@ -17,8 +16,7 @@ fn canonical_pdfa_1a_is_locally_compliant() {
 fn canonical_pdfa_1b_is_locally_compliant() {
     let report = validate_pdf_bytes(
         include_bytes!("fixtures/canonical-pdfa-1b.pdf"),
-        Some(ValidationProfile::PdfA1b),
-        &SafetyLimits::default(),
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
     )
     .expect("explicit profile validation");
 
@@ -92,7 +90,7 @@ fn canonical_pdfa_2_and_3_profiles_are_locally_compliant() {
         ),
     ];
     for (profile, bytes) in cases {
-        let report = validate_pdf_bytes(&bytes, Some(profile), &SafetyLimits::default())
+        let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
             .expect("explicit profile validation");
         assert!(report.is_compliant, "{profile}: {report}");
         assert!(report.failures.is_empty(), "{profile}: {report}");
@@ -119,8 +117,7 @@ fn pdfa_2_accepts_pdfa_1_xref_relaxations() {
         let bytes = reidentify(fixture, 2, b'B');
         let report = validate_pdf_bytes(
             &bytes,
-            Some(ValidationProfile::PdfA2b),
-            &SafetyLimits::default(),
+            &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
         )
         .expect("explicit profile validation");
         assert!(report.is_compliant, "{name}: {report}");

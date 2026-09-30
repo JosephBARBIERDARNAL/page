@@ -12,21 +12,18 @@ cargo add page_validation
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It stops once it finds a failing rule and returns the boolean directly:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
 
 ```rust
-use std::path::Path;
-use page_validation::{ValidationProfile, SafetyLimits, is_pdf_compliant};
+use page_validation::{ValidationOptions, is_pdf_compliant};
 
-let is_compliant = is_pdf_compliant(
-    Path::new("file.pdf"),            // path to a PDF
-    Some(ValidationProfile::PdfUA1),  // an optional profile
-    &SafetyLimits::default(),         // see below
-)?;
+let is_compliant = is_pdf_compliant("file.pdf", &ValidationOptions::default())?;
 println!("{is_compliant}");
 ```
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`. Also see, [safety limits](#safety-limits).
+Every validation function takes a path (anything implementing `AsRef<Path>`) or bytes, plus a `&ValidationOptions`. `ValidationOptions::default()` infers the profile and uses the default [safety limits](#safety-limits); chain `.profile(...)` and `.limits(...)` to change them.
+
+If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
 
 !!! info
 
@@ -34,14 +31,12 @@ If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in
 
 ## Validate a PDF with details
 
-If you details about which rule failed, use `validate_pdf()`:
+If you need details about which rule failed, use `validate_pdf()`:
 
 ```rust
-use std::path::Path;
-use page_validation::{SafetyLimits, validate_pdf};
+use page_validation::{ValidationOptions, validate_pdf};
 
-let doc = Path::new("document.pdf")
-let report = validate_pdf(doc, None, &SafetyLimits::default())?;
+let report = validate_pdf("document.pdf", &ValidationOptions::default())?;
 
 if report.is_compliant {
     println!("The document passed all implemented rules.");
@@ -64,34 +59,25 @@ if report.is_compliant {
 
 ## Select a profile explicitly
 
-Pass a profile to `validate_pdf()` when the caller, rather than the document, selects it:
+Set a profile in the options when the caller, rather than the document, selects it:
 
 ```rust
-use std::path::Path;
-use page_validation::{SafetyLimits, ValidationProfile, validate_pdf};
+use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
 
-let report = validate_pdf(
-    Path::new("document.pdf"),
-    Some(ValidationProfile::PdfA1b),
-    &SafetyLimits::default(),
-);
+let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
+let report = validate_pdf("document.pdf", &options);
 ```
 
-The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
+The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration.
 
 ## Failures
 
 Each report contains a list of failures:
 
 ```rust
-use std::path::Path;
-use page_validation::{SafetyLimits, validate_pdf};
+use page_validation::{ValidationOptions, validate_pdf};
 
-let report = validate_pdf(
-    Path::new("file.pdf"),
-    None,
-    &SafetyLimits::default()
-)?;
+let report = validate_pdf("file.pdf", &ValidationOptions::default())?;
 
 for failure in &report.failures {
     println!("Rule: {}", failure.rule_id);
@@ -141,14 +127,16 @@ let limits = SafetyLimits {
     max_table_grid_cells: 1_000_000,                   // cells
     max_unicode_cmap_mappings: 1_000_000,              // mappings per ToUnicode CMap
 };
+let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
 ```
 
 `max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
 
-For trusted files, pass `&SafetyLimits::unlimited()` through the existing limits argument:
+For trusted files, pass `SafetyLimits::unlimited()` through the options:
 
 ```rust
-let report = validate_pdf(Path::new("document.pdf"), None, &SafetyLimits::unlimited())?;
+let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
+let report = validate_pdf("document.pdf", &options)?;
 ```
 
 The factory sets every configurable bound to its native integer maximum. You can restore individual bounds using struct update syntax. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
