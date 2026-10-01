@@ -26,8 +26,23 @@ use crate::validation::ValidationProfile;
 ///
 /// assert!(FailureCategory::Operational < FailureCategory::Conformance);
 /// ```
+///
+/// Matches outside this crate must handle future categories with a wildcard arm:
+///
+/// ```compile_fail,E0004
+/// use page_validation::FailureCategory;
+/// fn label(category: FailureCategory) -> &'static str {
+///     match category {
+///         FailureCategory::Operational => "operational",
+///         FailureCategory::Parser => "parser",
+///         FailureCategory::Metadata => "metadata",
+///         FailureCategory::Conformance => "conformance",
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum FailureCategory {
     Operational,
     Parser,
@@ -42,17 +57,17 @@ pub enum FailureCategory {
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{FailureCategory, ValidationFailure};
+/// use page_validation::{FailureCategory, PdfError, ValidationProfile, ValidationReport};
 ///
-/// let failure = ValidationFailure {
-///     rule_id: "PDFA1B-CATALOG-001".to_owned(),
-///     message: "document trailer does not resolve to a Catalog dictionary".to_owned(),
-///     object_id: None,
-///     category: FailureCategory::Conformance,
-/// };
+/// let report = ValidationReport::from_validation_error(
+///     ValidationProfile::PdfA1b,
+///     PdfError::TooManyIndirectObjects { actual: 10, limit: 5 }.into(),
+/// );
+/// let failure = report.failures.first().expect("one conformance failure");
 /// assert_eq!(failure.category, FailureCategory::Conformance);
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct ValidationFailure {
     pub rule_id: String,
     pub message: String,
@@ -77,14 +92,13 @@ pub(crate) struct RuleFailure {
 /// ```rs
 /// use page_validation::ValidationCounts;
 ///
-/// let counts = ValidationCounts {
-///     total: 5,
-///     passed: 5,
-///     failed: 0,
-/// };
+/// let mut counts = ValidationCounts::default();
+/// counts.total = 5;
+/// counts.passed = 5;
 /// assert_eq!(counts.total, counts.passed + counts.failed);
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct ValidationCounts {
     pub total: usize,
     pub passed: usize,
@@ -94,11 +108,13 @@ pub struct ValidationCounts {
 /// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
 /// rule can contribute more than one failed check.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct ValidationCheckCounts {
     pub failed: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[non_exhaustive]
 pub struct ValidationReport {
     pub source: Option<PathBuf>,
     pub profile: ValidationProfile,

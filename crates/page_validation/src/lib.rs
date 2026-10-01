@@ -5,6 +5,43 @@
 //! return either an exhaustive validation report or a lazily evaluated compliance boolean. This
 //! crate exposes shared models, limits, errors, and report types for the CLI and language
 //! bindings; a successful report covers the implemented profile rules.
+//!
+//! # API evolution
+//!
+//! Public structs and enums are non-exhaustive so future releases can add fields and variants.
+//! Construct values with their constructors, conversions, or `Default`; customize
+//! [`SafetyLimits`] with chainable setters or field assignment. Public report fields remain
+//! directly accessible. Destructuring structs requires `..`, and enum matches require a
+//! wildcard arm for future variants.
+//!
+//! ```
+//! use page_validation::{FailureCategory, PdfError, ValidationProfile, ValidationReport};
+//!
+//! let report = ValidationReport::from_validation_error(
+//!     ValidationProfile::PdfA1b,
+//!     PdfError::UnexpectedObject("catalog").into(),
+//! );
+//! let ValidationReport { profile, .. } = &report;
+//! assert_eq!(*profile, ValidationProfile::PdfA1b);
+//! for failure in &report.failures {
+//!     match failure.category {
+//!         FailureCategory::Parser => assert_eq!(failure.rule_id, "PDF-PARSE-001"),
+//!         _ => {}
+//!     }
+//! }
+//! ```
+//!
+//! External callers cannot construct a report with struct update syntax:
+//!
+//! ```compile_fail,E0639
+//! use page_validation::{PdfError, ValidationProfile, ValidationReport};
+//!
+//! let report = ValidationReport::from_validation_error(
+//!     ValidationProfile::PdfA1b,
+//!     PdfError::UnexpectedObject("catalog").into(),
+//! );
+//! let report = ValidationReport { ..report };
+//! ```
 
 mod actions;
 mod annotations;

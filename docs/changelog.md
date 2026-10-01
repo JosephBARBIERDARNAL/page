@@ -1,5 +1,6 @@
 ## Dev
 
+- Refactor: Mark public Rust models and enums as non-exhaustive and add chainable safety-limit setters for future API extensions [#344](https://github.com/JosephBARBIERDARNAL/page/issues/344)
 - **Refactor**: Make validation entry points extensible with a Rust `ValidationOptions` value, keyword-only Python arguments, and a TypeScript options object; rename the first-failure mode to lazy and remove `validate_pdf_fast` / `validate_pdf_bytes_fast` from the public Rust API [#347](https://github.com/JosephBARBIERDARNAL/page/issues/347)
 - **Doc**: Add a per-file overview to every core validation Rust source file [#331](https://github.com/JosephBARBIERDARNAL/page/issues/331)
 - **Feat**: Disable all safety limits with a CLI flag or an unlimited preset [#342](https://github.com/JosephBARBIERDARNAL/page/issues/342)

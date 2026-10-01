@@ -669,6 +669,7 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
         page_validation::FailureCategory::Parser => "parser",
         page_validation::FailureCategory::Metadata => "metadata",
         page_validation::FailureCategory::Conformance => "conformance",
+        _ => "unknown",
     }
 }
 

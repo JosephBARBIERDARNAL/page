@@ -71,7 +71,23 @@ impl ValidationFailures {
 /// assert_eq!(ValidationProfile::PdfA1b.to_string(), "PDF/A-1b");
 /// assert!(ValidationProfile::PdfA1b.is_implemented());
 /// ```
+///
+/// Matches outside this crate must handle future profiles with a wildcard arm:
+///
+/// ```compile_fail,E0004
+/// use page_validation::ValidationProfile;
+/// fn is_pdfua(profile: ValidationProfile) -> bool {
+///     match profile {
+///         ValidationProfile::PdfUa1 | ValidationProfile::PdfUa2 => true,
+///         ValidationProfile::PdfA1a | ValidationProfile::PdfA1b
+///         | ValidationProfile::PdfA2a | ValidationProfile::PdfA2b | ValidationProfile::PdfA2u
+///         | ValidationProfile::PdfA3a | ValidationProfile::PdfA3b | ValidationProfile::PdfA3u
+///         | ValidationProfile::PdfA4 | ValidationProfile::PdfA4e | ValidationProfile::PdfA4f => false,
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub enum ValidationProfile {
     #[serde(rename = "1b")]
     PdfA1b,
@@ -268,6 +284,7 @@ impl ValidationOptions {
 /// validator finds the first failing rule.
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ComplianceResult {
     /// The profile used for validation.
     pub profile: ValidationProfile,

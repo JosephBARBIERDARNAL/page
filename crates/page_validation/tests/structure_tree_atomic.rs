@@ -32,10 +32,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
 
 #[test]
 fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
-    let limits = SafetyLimits {
-        max_object_count: 1,
-        ..SafetyLimits::default()
-    };
+    let limits = SafetyLimits::default().max_object_count(1);
     let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_self_cycle"),
         &ValidationOptions::default()
@@ -113,10 +110,7 @@ fn table_grid_row_limit_is_rejected_during_structure_inspection() {
         .save_to(&mut bytes)
         .expect("save table row-limit fixture");
 
-    let limits = SafetyLimits {
-        max_table_grid_rows: 1,
-        ..SafetyLimits::default()
-    };
+    let limits = SafetyLimits::default().max_table_grid_rows(1);
     let error = validate_pdf_bytes(
         &bytes,
         &ValidationOptions::default()

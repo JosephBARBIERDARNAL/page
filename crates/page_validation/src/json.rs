@@ -13,6 +13,7 @@ use crate::{
 
 /// Stable, serializable representation of a validation report.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
@@ -28,23 +29,69 @@ pub struct JsonValidationReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonFailure {
     pub rule: String,
     pub message: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonError {
     pub kind: JsonErrorKind,
     pub rule: String,
     pub message: String,
 }
 
+/// A parser or operational JSON error category, with room for future categories.
+///
+/// ```compile_fail,E0004
+/// use page_validation::JsonErrorKind;
+/// fn label(kind: JsonErrorKind) -> &'static str {
+///     match kind {
+///         JsonErrorKind::Parser => "parser",
+///         JsonErrorKind::Operational => "operational",
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum JsonErrorKind {
     Parser,
     Operational,
+}
+
+impl JsonError {
+    /// Creates a parser or operational error for the JSON report.
+    #[must_use]
+    pub fn new(kind: JsonErrorKind, rule: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            rule: rule.into(),
+            message: message.into(),
+        }
+    }
+}
+
+impl JsonValidationReport {
+    /// Creates a report for a terminal error, without conformance counts or failures.
+    #[must_use]
+    pub fn from_error(
+        file: Option<String>,
+        profile: Option<ValidationProfile>,
+        error: JsonError,
+    ) -> Self {
+        Self {
+            file,
+            profile,
+            valid: false,
+            rules: None,
+            checks: None,
+            failures: Vec::new(),
+            error: Some(error),
+        }
+    }
 }
 
 impl ValidationReport {

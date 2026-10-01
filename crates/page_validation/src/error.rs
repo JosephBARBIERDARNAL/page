@@ -18,15 +18,32 @@ use crate::validation::ValidationProfile;
 /// ```rs
 /// use page_validation::{SafetyLimits, ValidationError, ValidationOptions, validate_pdf_bytes};
 ///
-/// let limits = SafetyLimits {
-///     max_input_size: 4,
-///     ..SafetyLimits::default()
-/// };
+/// let limits = SafetyLimits::default().max_input_size(4);
 /// let options = ValidationOptions::default().limits(limits);
 /// let error = validate_pdf_bytes(b"%PDF-1.4", &options).unwrap_err();
 /// assert!(matches!(error, ValidationError::Pdf(_)));
 /// ```
+///
+/// Matches outside this crate must include a wildcard arm for future parser and limit errors:
+///
+/// ```compile_fail,E0004
+/// use page_validation::PdfError;
+/// fn handle(error: PdfError) {
+///     match error {
+///         PdfError::InputTooLarge { .. } | PdfError::Parse(_)
+///         | PdfError::TooManyObjects { .. } | PdfError::TooManyIndirectObjects { .. }
+///         | PdfError::ReferenceDepth(_) | PdfError::UnexpectedObject(_)
+///         | PdfError::XmpDecodeLimit(_) | PdfError::IccDecodeLimit(_)
+///         | PdfError::ContentDecodeLimit(_) | PdfError::TotalContentDecodeLimit(_)
+///         | PdfError::TotalDecodedStreamLimit(_) | PdfError::FormInvocationLimit(_)
+///         | PdfError::TableSpanLimit { .. } | PdfError::TableGridLimit { .. }
+///         | PdfError::UnicodeCmapMappingLimit { .. } | PdfError::FontDecodeLimit(_)
+///         | PdfError::XfaDecodeLimit(_) => {}
+///     }
+/// }
+/// ```
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum PdfError {
     #[error("input is {actual} bytes, exceeding the {limit}-byte limit")]
     InputTooLarge { actual: u64, limit: u64 },
@@ -129,7 +146,22 @@ impl PdfError {
 /// let error = validate_pdf_bytes(b"not a pdf", &ValidationOptions::default()).unwrap_err();
 /// assert!(matches!(error, ValidationError::Pdf(_)));
 /// ```
+///
+/// Matches outside this crate must include a wildcard arm for future validation errors:
+///
+/// ```compile_fail,E0004
+/// use page_validation::ValidationError;
+/// fn handle(error: ValidationError) {
+///     match error {
+///         ValidationError::InputIo(_) | ValidationError::Pdf(_)
+///         | ValidationError::MissingProfileDeclaration
+///         | ValidationError::InvalidProfileDeclaration(_)
+///         | ValidationError::UnsupportedProfile(_) => {}
+///     }
+/// }
+/// ```
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ValidationError {
     #[error("could not read input: {0}")]
     InputIo(#[from] std::io::Error),

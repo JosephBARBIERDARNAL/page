@@ -28,10 +28,9 @@ fn unlimited_file_input_works_with_detailed_and_lazy_validation() {
     let path =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/typst-pdfa-1b.pdf");
     let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
-    let bounded = options.clone().limits(SafetyLimits {
-        max_input_size: 1,
-        ..SafetyLimits::unlimited()
-    });
+    let bounded = options
+        .clone()
+        .limits(SafetyLimits::unlimited().max_input_size(1));
     for error in [
         validate_pdf(&path, &bounded).expect_err("detailed input bound"),
         is_pdf_compliant(&path, &bounded).expect_err("lazy input bound"),
