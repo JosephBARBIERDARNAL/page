@@ -10,7 +10,7 @@ A fast PDF accessibility and conformance checker.
 `page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isarthor test suite. It's between **2x to 10x faster** than veraPDF with **zero runtime requirements**.
 
 > [!NOTE]
-> Useful information that users should know, even when skimming content.
+> `page` hasn't reached stable stage yet, but is getting close to it.
 
 <br>
 
