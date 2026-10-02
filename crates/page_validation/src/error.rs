@@ -5,6 +5,7 @@
 //! entry-point errors. Safety-limit classification lets reporting distinguish operational
 //! failures from parser rejections and PDF conformance violations.
 
+use std::error::Error as StdError;
 use thiserror::Error;
 
 use crate::validation::ValidationProfile;
@@ -49,7 +50,7 @@ pub enum PdfError {
     InputTooLarge { actual: u64, limit: u64 },
 
     #[error("PDF parser rejected the input: {0}")]
-    Parse(#[from] lopdf::Error),
+    Parse(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("PDF contains {actual} objects, exceeding the {limit}-object limit")]
     TooManyObjects { actual: usize, limit: usize },
@@ -110,27 +111,34 @@ pub enum PdfError {
 }
 
 impl PdfError {
+    pub(crate) fn parse(error: impl StdError + Send + Sync + 'static) -> Self {
+        Self::Parse(Box::new(error))
+    }
+
     pub(crate) fn is_safety_limit(&self) -> bool {
-        matches!(
-            self,
+        match self {
             Self::InputTooLarge { .. }
-                | Self::TooManyObjects { .. }
-                | Self::ReferenceDepth(_)
-                | Self::XmpDecodeLimit(_)
-                | Self::IccDecodeLimit(_)
-                | Self::ContentDecodeLimit(_)
-                | Self::TotalContentDecodeLimit(_)
-                | Self::TotalDecodedStreamLimit(_)
-                | Self::FormInvocationLimit(_)
-                | Self::TableSpanLimit { .. }
-                | Self::TableGridLimit { .. }
-                | Self::UnicodeCmapMappingLimit { .. }
-                | Self::FontDecodeLimit(_)
-                | Self::XfaDecodeLimit(_)
-                | Self::Parse(lopdf::Error::Decompress(
-                    lopdf::DecompressError::MemoryLimitExceeded { .. }
-                ))
-        )
+            | Self::TooManyObjects { .. }
+            | Self::ReferenceDepth(_)
+            | Self::XmpDecodeLimit(_)
+            | Self::IccDecodeLimit(_)
+            | Self::ContentDecodeLimit(_)
+            | Self::TotalContentDecodeLimit(_)
+            | Self::TotalDecodedStreamLimit(_)
+            | Self::FormInvocationLimit(_)
+            | Self::TableSpanLimit { .. }
+            | Self::TableGridLimit { .. }
+            | Self::UnicodeCmapMappingLimit { .. }
+            | Self::FontDecodeLimit(_)
+            | Self::XfaDecodeLimit(_) => true,
+            Self::Parse(error) => error.downcast_ref::<lopdf::Error>().is_some_and(|error| {
+                matches!(
+                    error,
+                    lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })
+                )
+            }),
+            _ => false,
+        }
     }
 }
 

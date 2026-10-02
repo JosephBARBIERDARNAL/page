@@ -696,12 +696,13 @@ fn load_document(
                 lenient_options.strict = false;
                 Document::load_mem_with_options(bytes, lenient_options)
                     .or_else(|_| Document::load_mem_with_options(&repaired, options.clone()))
-                    .or_else(|_| Document::load_mem_with_options(bytes, options))?
+                    .or_else(|_| Document::load_mem_with_options(bytes, options))
+                    .map_err(PdfError::parse)?
             }
-            Err(_) => Document::load_mem_with_options(bytes, options)?,
+            Err(_) => Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?,
         }
     } else {
-        Document::load_mem_with_options(bytes, options)?
+        Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?
     };
     Ok(document)
 }
