@@ -1,6 +1,6 @@
 [project]
 name = "page-validation"
-description = "Python bindings to page, a fast and lightweight PDF accessibility and compliance checker."
+description = "Python bindings to page, a fast PDF accessibility and conformance checker."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

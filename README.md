@@ -1,13 +1,16 @@
 # page
 
-A fast and lightweight PDF accessibility and compliance checker.
+A fast PDF accessibility and conformance checker.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
-- Usage: [CLI](https://josephbarbierdarnal.github.io/page/docs/api/cli), [Rust](https://josephbarbierdarnal.github.io/page/docs/api/rust), [Python](https://josephbarbierdarnal.github.io/page/docs/api/python) or [WebAssembly](https://josephbarbierdarnal.github.io/page/api/wasm/)
+- [Usage](#quick-start)
 - [License](#license)
 
-`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving).
+`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isarthor test suite. It's between **2x to 10x faster** than veraPDF with **zero runtime requirements**.
+
+> [!NOTE]
+> Useful information that users should know, even when skimming content.
 
 <br>
 
@@ -36,8 +39,6 @@ cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --b
 <br>
 
 ## Quick start
-
-### CLI
 
 - Check accessibility (PDF/UA-1) compliance:
 
@@ -77,74 +78,10 @@ Time    : 0.147s
 > [!NOTE]
 > `[.........]` here are just placeholders of the actual messages
 
-[Learn more about how to use the CLI.](https://josephbarbierdarnal.github.io/page/api/cli/)
-
-### Rust
-
-You can use the `page_validation` crate to integrate into any existing Rust workflow:
-
-```rust
-use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
-
-let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
-let report = validate_pdf("file.pdf", &options)?;
-
-if report.is_compliant {
-    println!("The document passed all checks.");
-} else {
-    for failure in &report.failures {
-        eprintln!(
-            "[{}] {}",
-            failure.rule_id,
-            failure.message,
-        );
-    }
-}
-```
-
-[Learn more about how to use the Rust crate.](https://josephbarbierdarnal.github.io/page/api/rust/)
-
-### Python
-
-You can use the `page-validation` Python package to integrate into any existing Python workflow:
-
-```py
-import page
-
-report = page.validate_pdf("document.pdf")
-
-if report.is_compliant:
-    print("The document passed all implemented checks.")
-else:
-    for failure in report.failures:
-        print(f"[{failure.rule_id}] {failure.message}")
-```
-
-[Learn more about how to use the Python package.](https://josephbarbierdarnal.github.io/page/api/python/)
-
-### WebAssembly
-
-Read a PDF as a `Uint8Array` and validate it in the browser:
-
-```ts
-import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
-
-const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B });
-
-if (report.isCompliant) {
-  console.log("The document passed all implemented checks.");
-} else {
-  for (const failure of report.failures) {
-    console.log(`[${failure.ruleId}] ${failure.message}`);
-  }
-}
-```
-
-[Learn more about how to use the WebAssembly package.](https://josephbarbierdarnal.github.io/page/api/wasm/)
+`page` can also be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [Wasm](https://josephbarbierdarnal.github.io/page/api/wasm/).
 
 <br>
 
 ## License
 
-`page`'s original source code and all other project-authored material are licensed under the MIT License. Everything not expressly identified as third-party or reference material in the accompanying [THIRD_PARTY_NOTICES.md](./crates/page_validation/THIRD_PARTY_NOTICES.md) is MIT. The `page_validation` crate additionally includes Adobe CMap Resources under BSD-3-Clause and adapted Mozilla PDF.js encoding tables under Apache-2.0. See the notice and license files for details.
+`page`'s original source code and all other project-authored material are licensed under the **MIT License**. Everything not expressly identified as third-party or reference material in the accompanying [THIRD_PARTY_NOTICES.md](./crates/page_validation/THIRD_PARTY_NOTICES.md) is MIT. The `page_validation` crate additionally includes Adobe CMap Resources under BSD-3-Clause and adapted Mozilla PDF.js encoding tables under Apache-2.0. See the notice and license files for details.

@@ -12,7 +12,7 @@ hide:
 
 <div class="home-eyebrow">PDF accessibility and validation</div>
 
-# Fast, lightweight PDF validation
+# Fast PDF accessibility & compliance validation
 
 Check PDF documents against accessibility and compliance requirements with a Rust-based engine that runs as a CLI, Rust crate, Python package, or WebAssembly module.
 
@@ -54,7 +54,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    Compare behavior against the veraPDF test corpus.
+    Compare behavior against the **veraPDF test corpus** and the **Isartor** test suite.
 
 - :material-speedometer: **Fast**
 
@@ -77,5 +77,91 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 </div>
 
 <!-- prettier-ignore-end -->
+
+## Get started
+
+=== "CLI"
+
+    ```console
+    $ page document.pdf --profile ua1 --format details
+    Result  : Non-conformant
+    Rules   : 11 failed rules / 134 total
+    Checks  : 24 failed checks
+    Profile : PDF/UA-1
+    Time    : 0.147s
+
+    [PDFUA1-ALT-TEXT-LANGUAGE-001] [.........]
+    [PDFUA1-CONTENT-TAGGING-001] [.........]
+    [PDFUA1-FIGURE-ALTERNATIVE-TEXT-001] [.........]
+    [PDFUA1-HEADING-NESTING-001] [.........]
+    [PDFUA1-ID-PART-001] [.........]
+    [PDFUA1-ID-SCHEMA-001] [.........]
+    [PDFUA1-LINK-CONTENTS-001] [.........]
+    [PDFUA1-METADATA-TITLE-001] [.........]
+    [PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001] [.........]
+    [PDFUA1-TABLE-COLUMN-ROWSPAN-001] [.........]
+    [PDFUA1-TABLE-HEADERS-SCOPE-001] [.........]
+    [PDFUA1-TABLE-ROW-COLUMNSPAN-001] [.........]
+    [PDFUA1-TAGGED-DOCUMENT-001] [.........]
+    [PDFUA1-TEXT-LANGUAGE-001] [.........]
+    ```
+
+=== "Rust"
+
+    You can use the `page_validation` crate to integrate into any existing Rust workflow:
+
+    ```rust
+    use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
+
+    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+    let report = validate_pdf("file.pdf", &options)?;
+
+    if report.is_compliant {
+        println!("The document passed all checks.");
+    } else {
+        for failure in &report.failures {
+            eprintln!(
+                "[{}] {}",
+                failure.rule_id,
+                failure.message,
+            );
+        }
+    }
+    ```
+
+=== "Python"
+
+    You can use the `page-validation` Python package to integrate into any existing Python workflow:
+
+    ```py
+    import page
+
+    report = page.validate_pdf("document.pdf")
+
+    if report.is_compliant:
+        print("The document passed all implemented checks.")
+    else:
+        for failure in report.failures:
+            print(f"[{failure.rule_id}] {failure.message}")
+    ```
+
+=== "WebAssembly"
+
+    Read a PDF as a `Uint8Array` and validate it in the browser:
+
+    ```ts
+    import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
+
+    const bytes = new Uint8Array(await pdfFile.arrayBuffer());
+    const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B });
+
+    if (report.isCompliant) {
+        console.log("The document passed all implemented checks.");
+    } else {
+        for (const failure of report.failures) {
+            console.log(`[${failure.ruleId}] ${failure.message}`);
+        }
+    }
+    ```
 
 </div>

@@ -3,7 +3,7 @@ name = "page_validation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "A fast and lightweight PDF accessibility and compliance checker."
+description = "A fast PDF accessibility and conformance checker."
 documentation = "https://josephbarbierdarnal.github.io/page/"
 readme = "../../README.md"
 homepage = "https://josephbarbierdarnal.github.io/page/"
@@ -15,11 +15,11 @@ exclude = ["/tests/"]
 [dependencies]
 chrono = "0.4"
 lopdf = "0.44"
+read-fonts = "0.44.0"
 roxmltree = "0.21"
 serde = { version = "1", features = ["derive"] }
 sxd-xpath = "0.4.2"
 thiserror = "2"
-read-fonts = "0.44.0"
 unicode-properties = "0.1"
 
 [dev-dependencies]

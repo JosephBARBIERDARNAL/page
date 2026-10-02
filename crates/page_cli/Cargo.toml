@@ -3,7 +3,7 @@ name = "page_cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "page CLI, a fast and lightweight PDF accessibility and compliance checker."
+description = "page CLI, a fast PDF accessibility and conformance checker."
 repository.workspace = true
 license.workspace = true
 

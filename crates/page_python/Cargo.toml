@@ -3,7 +3,7 @@ name = "page_python"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Python bindings for page, a fast and lightweight PDF accessibility and compliance checker."
+description = "Python bindings for page, a fast PDF accessibility and conformance checker."
 repository.workspace = true
 license.workspace = true
 
