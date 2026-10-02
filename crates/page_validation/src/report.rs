@@ -1,9 +1,8 @@
 //! Defines validation reports, categorized failures, and rule and failed-check counts.
 //!
-//! Inspectors supply raw findings that validation aggregates into report failures. Report
-//! helpers convert terminal errors into categorized results, attach source paths, format
-//! output, and derive exit codes while keeping operational failures distinct from PDF
-//! conformance results.
+//! Inspectors supply raw findings that validation aggregates into report failures. Reports
+//! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
+//! remain `ValidationError` values returned from validation entry points.
 
 use std::fmt;
 use std::fmt::Write;
@@ -11,20 +10,19 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::error::{PdfError, ValidationError};
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
-/// The kind of problem a `ValidationFailure` represents, separating operational and parsing concerns from PDF/A or PDF/UA conformance itself.
+/// The kind of metadata or conformance problem a `ValidationFailure` represents.
 ///
-/// `Operational` covers input that could not be read or exceeded a configured `SafetyLimits` bound; `Parser` covers input the strict PDF parser rejected outright; `Metadata` covers XMP or document-information problems; `Conformance` covers every other rule violation. `ValidationReport::has_operational_failure` and `ValidationReport::exit_code` both key off whether any recorded failure is `Operational`.
+/// Input, profile, parser, and safety-limit errors are returned as `ValidationError` and do not appear in a `ValidationReport`.
 ///
 /// ## Examples
 ///
 /// ```rs
 /// use page_validation::FailureCategory;
 ///
-/// assert!(FailureCategory::Operational < FailureCategory::Conformance);
+/// assert!(FailureCategory::Metadata < FailureCategory::Conformance);
 /// ```
 ///
 /// Matches outside this crate must handle future categories with a wildcard arm:
@@ -33,8 +31,6 @@ use crate::validation::ValidationProfile;
 /// use page_validation::FailureCategory;
 /// fn label(category: FailureCategory) -> &'static str {
 ///     match category {
-///         FailureCategory::Operational => "operational",
-///         FailureCategory::Parser => "parser",
 ///         FailureCategory::Metadata => "metadata",
 ///         FailureCategory::Conformance => "conformance",
 ///     }
@@ -44,27 +40,21 @@ use crate::validation::ValidationProfile;
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum FailureCategory {
-    Operational,
-    Parser,
     Metadata,
     Conformance,
 }
 
-/// One recorded conformance, metadata, parser, or operational problem in a `ValidationReport`.
+/// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
 /// `rule_id` identifies the specific check (for example `PDFA1B-CATALOG-001`), `message` is a human-readable description, `object_id` is the indirect object the failure is attributed to when one applies, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{FailureCategory, PdfError, ValidationProfile, ValidationReport};
+/// use page_validation::FailureCategory;
 ///
-/// let report = ValidationReport::from_validation_error(
-///     ValidationProfile::PdfA1b,
-///     PdfError::TooManyIndirectObjects { actual: 10, limit: 5 }.into(),
-/// );
-/// let failure = report.failures.first().expect("one conformance failure");
-/// assert_eq!(failure.category, FailureCategory::Conformance);
+/// let category = FailureCategory::Conformance;
+/// assert_eq!(category, FailureCategory::Conformance);
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
@@ -131,129 +121,10 @@ impl ValidationReport {
         self
     }
 
-    pub(crate) fn parse_failure(profile: ValidationProfile, message: impl Into<String>) -> Self {
-        Self::single_failure(profile, "PDF-PARSE-001", message, FailureCategory::Parser)
-    }
-
-    pub(crate) fn operational_failure(
-        profile: ValidationProfile,
-        rule_id: &'static str,
-        message: impl Into<String>,
-    ) -> Self {
-        Self::single_failure(profile, rule_id, message, FailureCategory::Operational)
-    }
-
-    pub(crate) fn conformance_failure(
-        profile: ValidationProfile,
-        rule_id: &'static str,
-        message: impl Into<String>,
-    ) -> Self {
-        Self::single_failure(profile, rule_id, message, FailureCategory::Conformance)
-    }
-
-    /// Converts a terminal validation error into a one-failure report with the matching category.
-    ///
-    /// Parser rejections become parser failures, configured resource limits become operational failures, and the PDF/A-1 indirect-object limit becomes a conformance failure.
-    #[must_use]
-    pub fn from_validation_error(profile: ValidationProfile, error: ValidationError) -> Self {
-        match error {
-            ValidationError::UnsupportedProfile(profile) => Self::operational_failure(
-                profile,
-                "PROFILE-001",
-                format!("validation profile {profile} is not implemented yet"),
-            ),
-            ValidationError::InputIo(error) => {
-                Self::operational_failure(profile, "INPUT-IO-001", error.to_string())
-            }
-            ValidationError::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
-                let rule_id = match profile {
-                    ValidationProfile::PdfA1a | ValidationProfile::PdfA1b => {
-                        "PDFA1B-INDIRECT-OBJECT-COUNT-001"
-                    }
-                    ValidationProfile::PdfA2a => "PDFA2A-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA2b => "PDFA2B-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA2u => "PDFA2U-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA3a => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA3b => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA3u => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
-                    ValidationProfile::PdfA4
-                    | ValidationProfile::PdfA4e
-                    | ValidationProfile::PdfA4f
-                    | ValidationProfile::PdfUa1
-                    | ValidationProfile::PdfUa2 => "PDF-INDIRECT-OBJECT-COUNT-001",
-                };
-                Self::conformance_failure(
-                    profile,
-                    rule_id,
-                    format!(
-                        "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
-                    ),
-                )
-            }
-            ValidationError::Pdf(error) if error.is_safety_limit() => {
-                Self::operational_failure(profile, "RESOURCE-LIMIT-001", error.to_string())
-            }
-            ValidationError::Pdf(error) => Self::parse_failure(profile, error.to_string()),
-            error @ (ValidationError::MissingProfileDeclaration
-            | ValidationError::InvalidProfileDeclaration(_)) => {
-                Self::operational_failure(profile, "PROFILE-001", error.to_string())
-            }
-        }
-    }
-
-    fn single_failure(
-        profile: ValidationProfile,
-        rule_id: &'static str,
-        message: impl Into<String>,
-        category: FailureCategory,
-    ) -> Self {
-        let (rules, checks) = match category {
-            FailureCategory::Metadata | FailureCategory::Conformance => (
-                ValidationCounts {
-                    total: 1,
-                    passed: 0,
-                    failed: 1,
-                },
-                ValidationCheckCounts { failed: 1 },
-            ),
-            FailureCategory::Operational | FailureCategory::Parser => (
-                ValidationCounts::default(),
-                ValidationCheckCounts::default(),
-            ),
-        };
-        Self {
-            source: None,
-            profile,
-            is_compliant: false,
-            rules,
-            checks,
-            document: None,
-            failures: vec![ValidationFailure {
-                rule_id: rule_id.to_owned(),
-                message: message.into(),
-                object_id: None,
-                category,
-            }],
-        }
-    }
-
-    /// Whether this report's failures include one recorded as operational
-    /// (unreadable input, a configured safety limit, or report serialization)
-    /// rather than a PDF/A conformance or parser finding.
-    pub fn has_operational_failure(&self) -> bool {
-        self.failures
-            .iter()
-            .any(|failure| failure.category == FailureCategory::Operational)
-    }
-
+    /// Returns `0` when the document passes all implemented checks and `2` when a report
+    /// contains metadata or conformance failures.
     pub fn exit_code(&self) -> i32 {
-        if self.has_operational_failure() {
-            1
-        } else if self.is_compliant {
-            0
-        } else {
-            2
-        }
+        if self.is_compliant { 0 } else { 2 }
     }
 }
 
@@ -296,78 +167,5 @@ impl fmt::Display for ValidationReport {
             writeln!(output)?;
         }
         formatter.write_str(&output)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{FailureCategory, ValidationReport};
-    use crate::{PdfError, ValidationError, ValidationProfile};
-
-    #[test]
-    fn parser_and_operational_failures_have_zero_validation_counts() {
-        for category in [FailureCategory::Parser, FailureCategory::Operational] {
-            let report = ValidationReport::single_failure(
-                ValidationProfile::PdfA1b,
-                "TEST-001",
-                "failure",
-                category,
-            );
-
-            assert_eq!(report.rules.total, 0);
-            assert_eq!(report.rules.passed, 0);
-            assert_eq!(report.rules.failed, 0);
-            assert_eq!(report.checks.failed, 0);
-        }
-    }
-
-    #[test]
-    fn metadata_and_conformance_failures_have_one_failed_rule_and_check() {
-        for category in [FailureCategory::Metadata, FailureCategory::Conformance] {
-            let report = ValidationReport::single_failure(
-                ValidationProfile::PdfA1b,
-                "TEST-001",
-                "failure",
-                category,
-            );
-
-            assert_eq!(report.rules.total, 1);
-            assert_eq!(report.rules.passed, 0);
-            assert_eq!(report.rules.failed, 1);
-            assert_eq!(report.checks.failed, 1);
-        }
-    }
-
-    #[test]
-    fn indirect_object_count_errors_use_the_active_profile_rule() {
-        let cases = [
-            (
-                ValidationProfile::PdfA1b,
-                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (
-                ValidationProfile::PdfA2b,
-                "PDFA2B-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (
-                ValidationProfile::PdfA3u,
-                "PDFA3U-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (ValidationProfile::PdfUa1, "PDF-INDIRECT-OBJECT-COUNT-001"),
-        ];
-
-        for (profile, expected_rule_id) in cases {
-            let report = ValidationReport::from_validation_error(
-                profile,
-                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
-                    actual: 8_388_608,
-                    limit: 8_388_607,
-                }),
-            );
-            assert_eq!(report.failures[0].rule_id, expected_rule_id);
-            assert_eq!(report.rules.total, 1);
-            assert_eq!(report.rules.failed, 1);
-            assert_eq!(report.checks.failed, 1);
-        }
     }
 }

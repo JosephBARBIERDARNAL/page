@@ -93,10 +93,6 @@ impl TryFrom<RustValidationProfile> for ValidationProfile {
 #[pyclass(name = "FailureCategory", frozen, eq, hash, from_py_object)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum FailureCategory {
-    #[pyo3(name = "OPERATIONAL")]
-    Operational,
-    #[pyo3(name = "PARSER")]
-    Parser,
     #[pyo3(name = "METADATA")]
     Metadata,
     #[pyo3(name = "CONFORMANCE")]
@@ -108,8 +104,6 @@ impl TryFrom<RustFailureCategory> for FailureCategory {
 
     fn try_from(category: RustFailureCategory) -> PyResult<Self> {
         Ok(match category {
-            RustFailureCategory::Operational => Self::Operational,
-            RustFailureCategory::Parser => Self::Parser,
             RustFailureCategory::Metadata => Self::Metadata,
             RustFailureCategory::Conformance => Self::Conformance,
             _ => {
@@ -486,10 +480,6 @@ impl ValidationReport {
             .cloned()
             .map(Into::into)
             .collect()
-    }
-
-    fn has_operational_failure(&self) -> bool {
-        self.inner.has_operational_failure()
     }
 
     fn exit_code(&self) -> i32 {

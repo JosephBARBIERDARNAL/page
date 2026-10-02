@@ -2,8 +2,8 @@
 //! resource limits, input I/O, and profile selection failures.
 //!
 //! `PdfError` describes parsing and inspection failures; `ValidationError` wraps these alongside
-//! entry-point errors. Safety-limit classification lets reporting distinguish operational
-//! failures from parser rejections and PDF conformance violations.
+//! entry-point errors. Validation entry points return these failures as `Err`, keeping them
+//! separate from reports that describe metadata and conformance findings.
 
 use std::error::Error as StdError;
 use thiserror::Error;
@@ -12,7 +12,7 @@ use crate::validation::ValidationProfile;
 
 /// Errors from parsing a PDF or inspecting its object graph before the validation rules run.
 ///
-/// Each variant is either a strict-parser rejection (for example a malformed cross-reference table) or one of the configurable `SafetyLimits` bounds being exceeded, such as an oversized input or an over-deep reference chain. `ValidationError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `ValidationError` instead.
+/// Variants represent strict-parser rejections, configured `SafetyLimits` bounds being exceeded, or the PDF/A indirect-object conformance limit. `ValidationError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `ValidationError` instead.
 ///
 /// ## Examples
 ///
@@ -142,9 +142,9 @@ impl PdfError {
     }
 }
 
-/// The top-level error returned by the validation entry points when a document cannot be scored against a profile at all.
+/// The top-level error returned by the validation entry points when validation cannot complete or encounters a preflight conformance limit.
 ///
-/// This is distinct from a `ValidationReport` recording failures: a report means the profile's rules ran and found conformance problems, while `ValidationError` means the input could not be read, parsed, or matched to a profile in the first place. `Self::Pdf` carries the lower-level `PdfError` from parsing or inspecting the object graph.
+/// This is distinct from a `ValidationReport` recording rule findings: an error means validation did not produce a complete report, while `Self::Pdf` carries the lower-level `PdfError` from parsing or inspecting the object graph.
 ///
 /// ## Examples
 ///
@@ -187,4 +187,84 @@ pub enum ValidationError {
 
     #[error("validation profile {0} is not implemented yet")]
     UnsupportedProfile(ValidationProfile),
+}
+
+pub(crate) enum ValidationErrorDisposition {
+    Operational {
+        rule_id: &'static str,
+    },
+    Parser {
+        rule_id: &'static str,
+    },
+    Conformance {
+        rule_id: &'static str,
+        actual: usize,
+        limit: usize,
+    },
+}
+
+impl ValidationError {
+    pub(crate) fn disposition(
+        &self,
+        profile: Option<ValidationProfile>,
+    ) -> ValidationErrorDisposition {
+        match self {
+            Self::InputIo(_) => ValidationErrorDisposition::Operational {
+                rule_id: "INPUT-IO-001",
+            },
+            Self::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
+                ValidationErrorDisposition::Conformance {
+                    rule_id: indirect_object_count_rule(profile),
+                    actual: *actual,
+                    limit: *limit,
+                }
+            }
+            Self::Pdf(error) if error.is_safety_limit() => {
+                ValidationErrorDisposition::Operational {
+                    rule_id: "RESOURCE-LIMIT-001",
+                }
+            }
+            Self::Pdf(_) => ValidationErrorDisposition::Parser {
+                rule_id: "PDF-PARSE-001",
+            },
+            Self::MissingProfileDeclaration
+            | Self::InvalidProfileDeclaration(_)
+            | Self::UnsupportedProfile(_) => ValidationErrorDisposition::Operational {
+                rule_id: "PROFILE-001",
+            },
+        }
+    }
+
+    /// Returns the CLI exit code associated with this error.
+    ///
+    /// Input, profile, and configured safety-limit errors return `1`; parser rejections and the PDF/A indirect-object conformance limit return `2`.
+    pub fn exit_code(&self) -> i32 {
+        match self.disposition(None) {
+            ValidationErrorDisposition::Operational { .. } => 1,
+            ValidationErrorDisposition::Parser { .. }
+            | ValidationErrorDisposition::Conformance { .. } => 2,
+        }
+    }
+}
+
+fn indirect_object_count_rule(profile: Option<ValidationProfile>) -> &'static str {
+    match profile {
+        Some(ValidationProfile::PdfA1a | ValidationProfile::PdfA1b) => {
+            "PDFA1B-INDIRECT-OBJECT-COUNT-001"
+        }
+        Some(ValidationProfile::PdfA2a) => "PDFA2A-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfA2b) => "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfA2u) => "PDFA2U-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfA3a) => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfA3b) => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfA3u) => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+        Some(
+            ValidationProfile::PdfA4
+            | ValidationProfile::PdfA4e
+            | ValidationProfile::PdfA4f
+            | ValidationProfile::PdfUa1
+            | ValidationProfile::PdfUa2,
+        )
+        | None => "PDF-INDIRECT-OBJECT-COUNT-001",
+    }
 }

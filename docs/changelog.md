@@ -1,5 +1,6 @@
 ## Dev
 
+- **Refactor**: Keep terminal validation failures in `Result` errors and limit report failures to metadata and conformance findings [#349](https://github.com/JosephBARBIERDARNAL/page/issues/349)
 - **Refactor**: Mark public Rust models and enums as non-exhaustive and add chainable safety-limit setters for future API extensions [#344](https://github.com/JosephBARBIERDARNAL/page/issues/344)
 - **Refactor**: Make validation entry points extensible with a Rust `ValidationOptions` value, keyword-only Python arguments, and a TypeScript options object; rename the first-failure mode to lazy and remove `validate_pdf_fast` / `validate_pdf_bytes_fast` from the public Rust API [#347](https://github.com/JosephBARBIERDARNAL/page/issues/347)
 - **Refactor**: Keep parser errors behind a standard error source in the public Rust API [#346](https://github.com/JosephBARBIERDARNAL/page/issues/346)

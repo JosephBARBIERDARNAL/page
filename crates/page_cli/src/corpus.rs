@@ -9,7 +9,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use clap::Args;
 use page_cli::spinner::Spinner;
 use page_validation::{
-    SafetyLimits, ValidationOptions, ValidationProfile, ValidationReport, validate_pdf,
+    JsonValidationReport, SafetyLimits, ValidationFailure, ValidationOptions, ValidationProfile,
+    validate_pdf,
 };
 
 #[derive(Debug, Args)]
@@ -147,6 +148,26 @@ struct CorpusCase {
     expected_rules: Vec<String>,
 }
 
+enum CaseValidation {
+    Report {
+        exit_code: i32,
+        failures: Vec<ValidationFailure>,
+    },
+    Error {
+        exit_code: i32,
+        report: JsonValidationReport,
+    },
+}
+
+impl CaseValidation {
+    fn exit_code(&self) -> i32 {
+        match self {
+            Self::Report { exit_code, .. } => *exit_code,
+            Self::Error { exit_code, .. } => *exit_code,
+        }
+    }
+}
+
 struct CorpusRuleExpectation {
     reference_rule: String,
     local_rules: Vec<String>,
@@ -199,10 +220,10 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
     let mut displayed_mismatches = 0;
     let mut suppressed_mismatches = 0;
 
-    for (case, (actual, report)) in cases.iter().zip(&reports) {
-        let actual = *actual;
+    for (case, result) in cases.iter().zip(&reports) {
+        let actual = result.exit_code();
         if actual == case.expected.exit_code()
-            && expected_rules_are_reported(&case.expected_rules, report)
+            && expected_rules_are_reported(&case.expected_rules, result)
         {
             continue;
         }
@@ -213,7 +234,7 @@ pub(crate) fn run(args: &CorpusArgs) -> i32 {
             mismatches += 1;
         }
         if actual == 1 || displayed_mismatches < MAX_MISMATCH_DETAILS {
-            print_mismatch(case, actual, report);
+            print_mismatch(case, actual, result);
             if actual != 1 {
                 displayed_mismatches += 1;
             }
@@ -257,7 +278,7 @@ fn validate_cases(
     limits: &SafetyLimits,
     jobs: Option<NonZeroUsize>,
     spinner: &Spinner,
-) -> Vec<(i32, ValidationReport)> {
+) -> Vec<CaseValidation> {
     let available_workers = std::thread::available_parallelism()
         .map(std::num::NonZeroUsize::get)
         .unwrap_or(1);
@@ -273,19 +294,18 @@ fn validate_cases(
             .iter()
             .map(|case| {
                 let report = validate_case(&case.path, case.profile, limits);
-                let actual = report.exit_code();
                 let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                 spinner.set_message(format!(
                     "Validating corpus ({completed}/{} cases)",
                     cases.len()
                 ));
-                (actual, report)
+                report
             })
             .collect();
     }
 
     let next_index = AtomicUsize::new(0);
-    let mut indexed_results: Vec<(usize, i32, ValidationReport)> = std::thread::scope(|scope| {
+    let mut indexed_results: Vec<(usize, CaseValidation)> = std::thread::scope(|scope| {
         let handles: Vec<_> = (0..worker_count)
             .map(|_| {
                 let next_index = &next_index;
@@ -298,13 +318,12 @@ fn validate_cases(
                             break;
                         };
                         let report = validate_case(&case.path, case.profile, limits);
-                        let actual = report.exit_code();
                         let completed = completed.fetch_add(1, Ordering::Relaxed) + 1;
                         spinner.set_message(format!(
                             "Validating corpus ({completed}/{} cases)",
                             cases.len()
                         ));
-                        results.push((index, actual, report));
+                        results.push((index, report));
                     }
                     results
                 })
@@ -316,29 +335,34 @@ fn validate_cases(
             .collect()
     });
 
-    indexed_results.sort_by_key(|(index, _, _)| *index);
+    indexed_results.sort_by_key(|(index, _)| *index);
     indexed_results
         .into_iter()
-        .map(|(_, actual, report)| (actual, report))
+        .map(|(_, report)| report)
         .collect()
 }
 
-fn validate_case(
-    path: &Path,
-    profile: ValidationProfile,
-    limits: &SafetyLimits,
-) -> ValidationReport {
-    validate_pdf(
+fn validate_case(path: &Path, profile: ValidationProfile, limits: &SafetyLimits) -> CaseValidation {
+    match validate_pdf(
         path,
         &ValidationOptions::default()
             .profile(profile)
             .limits(limits.clone()),
-    )
-    .unwrap_or_else(|error| {
-        let mut report = ValidationReport::from_validation_error(profile, error);
-        report.source = Some(path.to_path_buf());
-        report
-    })
+    ) {
+        Ok(report) => CaseValidation::Report {
+            exit_code: report.exit_code(),
+            failures: report.failures,
+        },
+        Err(error) => {
+            let exit_code = error.exit_code();
+            let report = JsonValidationReport::from_validation_error(
+                Some(path.display().to_string()),
+                Some(profile),
+                error,
+            );
+            CaseValidation::Error { exit_code, report }
+        }
+    }
 }
 
 fn discover_cases(
@@ -566,13 +590,22 @@ fn load_result_expectations() -> Result<HashMap<String, ExpectedResult>, String>
     Ok(expectations)
 }
 
-fn expected_rules_are_reported(expected_rules: &[String], report: &ValidationReport) -> bool {
+fn expected_rules_are_reported(expected_rules: &[String], result: &CaseValidation) -> bool {
     expected_rules.is_empty()
-        || expected_rules.iter().any(|expected_rule| {
-            report
-                .failures
+        || expected_rules.iter().any(|expected_rule| match result {
+            CaseValidation::Report { failures, .. } => failures
                 .iter()
-                .any(|failure| failure.rule_id == *expected_rule)
+                .any(|failure| failure.rule_id == *expected_rule),
+            CaseValidation::Error { report, .. } => {
+                report
+                    .failures
+                    .iter()
+                    .any(|failure| failure.rule == *expected_rule)
+                    || report
+                        .error
+                        .as_ref()
+                        .is_some_and(|error| error.rule == *expected_rule)
+            }
         })
 }
 
@@ -625,7 +658,7 @@ fn expected_result(path: &Path) -> Result<ExpectedResult, String> {
     }
 }
 
-fn print_mismatch(case: &CorpusCase, actual: i32, report: &ValidationReport) {
+fn print_mismatch(case: &CorpusCase, actual: i32, result: &CaseValidation) {
     eprintln!();
     eprintln!("Corpus mismatch");
     eprintln!("  file:     {}", case.path.display());
@@ -642,14 +675,31 @@ fn print_mismatch(case: &CorpusCase, actual: i32, report: &ValidationReport) {
         eprintln!("  veraPDF rule:  {reference_rule}");
     }
     eprintln!("  actual:   {} (exit {actual})", exit_label(actual));
-    if report.failures.is_empty() {
-        eprintln!("  failures: none reported");
-    } else {
-        eprintln!("  failures:");
-        for failure in &report.failures {
-            eprintln!("    - rule:     {}", failure.rule_id);
-            eprintln!("      category: {}", category_label(failure.category));
-            eprintln!("      message:  {}", failure.message);
+    match result {
+        CaseValidation::Report { failures, .. } if failures.is_empty() => {
+            eprintln!("  failures: none reported");
+        }
+        CaseValidation::Report { failures, .. } => {
+            eprintln!("  failures:");
+            for failure in failures {
+                eprintln!("    - rule:     {}", failure.rule_id);
+                eprintln!("      category: {}", category_label(failure.category));
+                eprintln!("      message:  {}", failure.message);
+            }
+        }
+        CaseValidation::Error { report, .. } => {
+            if let Some(error) = &report.error {
+                eprintln!("  terminal error:");
+                eprintln!("    - rule:     {}", error.rule);
+                eprintln!("      category: {:?}", error.kind);
+                eprintln!("      message:  {}", error.message);
+            }
+            for failure in &report.failures {
+                eprintln!("  conformance failure:");
+                eprintln!("    - rule:     {}", failure.rule);
+                eprintln!("      category: conformance");
+                eprintln!("      message:  {}", failure.message);
+            }
         }
     }
 }
@@ -665,8 +715,6 @@ fn exit_label(exit_code: i32) -> &'static str {
 
 fn category_label(category: page_validation::FailureCategory) -> &'static str {
     match category {
-        page_validation::FailureCategory::Operational => "operational",
-        page_validation::FailureCategory::Parser => "parser",
         page_validation::FailureCategory::Metadata => "metadata",
         page_validation::FailureCategory::Conformance => "conformance",
         _ => "unknown",
@@ -675,10 +723,8 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{ExpectedResult, expected_result, expected_rules_are_reported};
-    use page_validation::{
-        ValidationOptions, ValidationProfile, ValidationReport, validate_pdf_bytes,
-    };
+    use super::{CaseValidation, ExpectedResult, expected_result, expected_rules_are_reported};
+    use page_validation::{JsonValidationReport, PdfError, ValidationError, ValidationProfile};
     use std::path::Path;
 
     #[test]
@@ -717,21 +763,25 @@ mod tests {
 
     #[test]
     fn requires_the_expected_rule_in_the_report() {
-        let error = validate_pdf_bytes(
-            b"not a PDF",
-            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
-        )
-        .expect_err("invalid PDF should be rejected");
-        let report = ValidationReport::from_validation_error(ValidationProfile::PdfA1b, error);
+        let error = ValidationError::Pdf(PdfError::UnexpectedObject("catalog"));
+        let report = JsonValidationReport::from_validation_error(
+            None,
+            Some(ValidationProfile::PdfA1b),
+            error,
+        );
+        let result = CaseValidation::Error {
+            exit_code: 2,
+            report,
+        };
 
         assert!(expected_rules_are_reported(
             &["PDF-PARSE-001".to_owned()],
-            &report
+            &result
         ));
         assert!(!expected_rules_are_reported(
             &["PDFA1B-HEADER-001".to_owned()],
-            &report
+            &result
         ));
-        assert!(expected_rules_are_reported(&[], &report));
+        assert!(expected_rules_are_reported(&[], &result));
     }
 }

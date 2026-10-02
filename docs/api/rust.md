@@ -90,26 +90,23 @@ for failure in &report.failures {
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
-Failure categories distinguish conformance problems from parser or operational errors:
+Failure categories describe findings from rules that ran on a parsed document:
 
 ```rust
 use page_validation::FailureCategory;
 
-match failure.category {
-    FailureCategory::Metadata | FailureCategory::Conformance => {
-        // The PDF was parsed, but failed a validation rule.
-    }
-    FailureCategory::Parser => {
-        // The PDF could not be parsed correctly.
-    }
-    FailureCategory::Operational => {
-        // Validation failed because of I/O or another runtime issue.
-    }
-    _ => {
-        // Handle categories added by future releases.
+for failure in &report.failures {
+    match failure.category {
+        FailureCategory::Metadata => { /* XMP or document-information finding. */ }
+        FailureCategory::Conformance => { /* PDF/A or PDF/UA rule finding. */ }
+        _ => {
+            // Handle categories added by future releases.
+        }
     }
 }
 ```
+
+Input, parser, profile, and safety-limit failures are returned as `Err(ValidationError)` and do not appear in a report. Handle them separately with `?`, `match`, or `map_err`.
 
 ## Safety limits
 
@@ -143,8 +140,11 @@ The factory sets every configurable bound to its native integer maximum. You can
 
 ## Use the exit code
 
-For command-line integrations or automated checks, the report can provide an appropriate process exit code:
+For command-line integrations or automated checks, the report returns `0` when all implemented checks pass and `2` when it contains metadata or conformance failures. Terminal errors remain `Err(ValidationError)` and have their own `exit_code()` method:
 
 ```rust
-std::process::exit(report.exit_code());
+match validate_pdf("file.pdf", &ValidationOptions::default()) {
+    Ok(report) => std::process::exit(report.exit_code()),
+    Err(error) => std::process::exit(error.exit_code()),
+}
 ```

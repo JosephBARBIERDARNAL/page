@@ -28,8 +28,6 @@ export enum ValidationProfile {
 }
 
 export enum FailureCategory {
-  OPERATIONAL = "operational",
-  PARSER = "parser",
   METADATA = "metadata",
   CONFORMANCE = "conformance",
 }
@@ -272,16 +270,7 @@ export class ValidationReport {
     }));
   }
 
-  hasOperationalFailure(): boolean {
-    return this.failures.some(
-      (failure) => failure.category === FailureCategory.OPERATIONAL,
-    );
-  }
-
   exitCode(): number {
-    if (this.hasOperationalFailure()) {
-      return 1;
-    }
     return this.isCompliant ? 0 : 2;
   }
 

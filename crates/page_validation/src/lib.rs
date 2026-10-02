@@ -15,33 +15,14 @@
 //! wildcard arm for future variants.
 //!
 //! ```
-//! use page_validation::{FailureCategory, PdfError, ValidationProfile, ValidationReport};
+//! use page_validation::FailureCategory;
 //!
-//! let report = ValidationReport::from_validation_error(
-//!     ValidationProfile::PdfA1b,
-//!     PdfError::UnexpectedObject("catalog").into(),
-//! );
-//! let ValidationReport { profile, .. } = &report;
-//! assert_eq!(*profile, ValidationProfile::PdfA1b);
-//! for failure in &report.failures {
-//!     match failure.category {
-//!         FailureCategory::Parser => assert_eq!(failure.rule_id, "PDF-PARSE-001"),
-//!         _ => {}
-//!     }
-//! }
+//! let category = FailureCategory::Conformance;
+//! assert_eq!(category, FailureCategory::Conformance);
 //! ```
 //!
-//! External callers cannot construct a report with struct update syntax:
-//!
-//! ```compile_fail,E0639
-//! use page_validation::{PdfError, ValidationProfile, ValidationReport};
-//!
-//! let report = ValidationReport::from_validation_error(
-//!     ValidationProfile::PdfA1b,
-//!     PdfError::UnexpectedObject("catalog").into(),
-//! );
-//! let report = ValidationReport { ..report };
-//! ```
+//! Parser, input, profile, and safety-limit failures are returned as `ValidationError` values;
+//! only metadata and conformance findings appear in `ValidationReport::failures`.
 
 mod actions;
 mod annotations;
