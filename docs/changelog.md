@@ -1,5 +1,6 @@
 ## Dev
 
+- **Refactor**: Keep validation report exit-code mapping in the CLI [#361](https://github.com/JosephBARBIERDARNAL/page/issues/361)
 - **Fix**: Hide unimplemented validation profiles from the CLI and language bindings [#360](https://github.com/JosephBARBIERDARNAL/page/issues/360)
 - **Feat**: Add canonical parsing and string names for validation profiles [#359](https://github.com/JosephBARBIERDARNAL/page/issues/359)
 - **Fix**: Use one stable JSON report schema across the CLI, Python, and Wasm bindings [#356](https://github.com/JosephBARBIERDARNAL/page/issues/356)

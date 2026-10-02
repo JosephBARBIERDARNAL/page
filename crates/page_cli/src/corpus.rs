@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Args;
 use page_cli::spinner::Spinner;
+use page_cli::validation_exit_code;
 use page_validation::{
     JsonValidationReport, SafetyLimits, ValidationFailure, ValidationOptions, ValidationProfile,
     validate_pdf,
@@ -350,7 +351,7 @@ fn validate_case(path: &Path, profile: ValidationProfile, limits: &SafetyLimits)
             .limits(limits.clone()),
     ) {
         Ok(report) => CaseValidation::Report {
-            exit_code: report.exit_code(),
+            exit_code: validation_exit_code(&report),
             failures: report.failures,
         },
         Err(error) => {

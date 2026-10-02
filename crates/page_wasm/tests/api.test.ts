@@ -90,7 +90,7 @@ describe("page-validation", () => {
       profile: ValidationProfile.PDF_A_1B,
       limits,
     });
-    expect(report.exitCode()).toBe(2);
+    expect(report.isCompliant).toBe(false);
     expect(report.toJSON()).not.toHaveProperty("document");
     await expect(
       isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_A_1B, limits }),
@@ -108,7 +108,7 @@ describe("page-validation", () => {
       profile: ValidationProfile.PDF_A_1B,
       limits: { maxInputSize: Infinity },
     });
-    expect(partialReport.exitCode()).toBe(2);
+    expect(partialReport.isCompliant).toBe(false);
   });
 
   it("rejects invalid limit values during construction and after mutation", () => {
@@ -144,7 +144,7 @@ describe("page-validation", () => {
     expect(report.rules.total).toBeGreaterThan(0);
     expect(report.rules.failed).toBeGreaterThan(0);
     expect(report.checks.failed).toBeGreaterThan(0);
-    expect(report.exitCode()).toBe(2);
+    expect(report).not.toHaveProperty("exitCode");
 
     const jsonReport = report.toJSON();
     expect(jsonReport).toMatchObject({

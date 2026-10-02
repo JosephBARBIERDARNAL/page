@@ -137,19 +137,19 @@ report = page.validate_pdf("document.pdf", limits=page.SafetyLimits.unlimited())
 
 The factory returns a fresh object with every configurable bound set to its native integer maximum. You can restore individual bounds by assigning to its fields. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
 
-## Use the exit code
+## Check compliance
 
-For command-line integrations or automated checks, a report can provide an appropriate process exit code:
+Use `is_compliant` to check whether the document passed all implemented checks:
 
 ```python
-import sys
 import page
 
 report = page.validate_pdf("document.pdf")
-sys.exit(report.exit_code())
+if not report.is_compliant:
+    print("The document failed one or more implemented checks.")
 ```
 
-The exit code is `0` for a compliant report and `2` for a noncompliant report. Input, parser, profile, and safety-limit failures raise `page.ValidationError` before a report is returned.
+Input, parser, profile, and safety-limit failures raise `page.ValidationError` before a report is returned.
 
 ## Export the report
 

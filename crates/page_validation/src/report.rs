@@ -120,12 +120,6 @@ impl ValidationReport {
         self.source = Some(source.to_path_buf());
         self
     }
-
-    /// Returns `0` when the document passes all implemented checks and `2` when a report
-    /// contains metadata or conformance failures.
-    pub fn exit_code(&self) -> i32 {
-        if self.is_compliant { 0 } else { 2 }
-    }
 }
 
 impl fmt::Display for ValidationReport {

@@ -234,10 +234,6 @@ export class ValidationReport {
     }));
   }
 
-  exitCode(): number {
-    return this.valid ? 0 : 2;
-  }
-
   toJson(): string {
     return JSON.stringify(this.raw);
   }
