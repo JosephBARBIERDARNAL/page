@@ -51,7 +51,7 @@ fn python_profile_name(profile: RustValidationProfile) -> String {
         if conformance.is_empty() {
             format!("PDF_A_{part}")
         } else {
-            format!("PDF_A_{part}_{}", conformance.to_ascii_uppercase())
+            format!("PDF_A_{part}{}", conformance.to_ascii_uppercase())
         }
     }
 }

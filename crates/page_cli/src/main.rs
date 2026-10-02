@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anstyle::{AnsiColor, Style};
+use clap::builder::{PossibleValuesParser, TypedValueParser as _};
 use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
@@ -28,7 +29,7 @@ struct Cli {
     file: PathBuf,
 
     /// Validation profile; defaults to the profile declared in XMP metadata.
-    #[arg(long, value_name = "PROFILE")]
+    #[arg(long, value_name = "PROFILE", value_parser = profile_parser())]
     profile: Option<ValidationProfile>,
 
     /// Select detailed text or JSON output instead of the compact summary.
@@ -100,6 +101,19 @@ struct Cli {
 enum FormatArg {
     Details,
     Json,
+}
+
+fn profile_parser() -> impl clap::builder::TypedValueParser<Value = ValidationProfile> {
+    PossibleValuesParser::new(
+        ValidationProfile::all()
+            .iter()
+            .map(ValidationProfile::as_str),
+    )
+    .map(|profile| {
+        profile
+            .parse::<ValidationProfile>()
+            .expect("available profile names must parse")
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
