@@ -1037,7 +1037,7 @@ flowchart TD
     D -- "Malformed PDF" --&gt; E3["Parser failure\nPDF-PARSE-001"]
     D -- "Yes" --&gt; F["Select requested or declared profile"]
     F --&gt; G{"Profile is declared and implemented?"}
-    G -- "No" --&gt; E4["Profile error\nPROFILE-001 or VALIDATION-PROFILE-001"]
+    G -- "No" --&gt; E4["Profile error\nPROFILE-001"]
     G -- "Yes" --&gt; H["Bounded inspections + profile rule evaluation"]
     H --&gt; I{"Any implemented rule failed?"}
     I -- "No" --&gt; J["Compliant\nValidationReport"]
