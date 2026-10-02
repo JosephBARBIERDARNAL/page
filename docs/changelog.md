@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Use the correct validation family in report headings [#354](https://github.com/JosephBARBIERDARNAL/page/issues/354)
 - **Refactor**: Remove duplicate snake_case and `init` aliases from the Wasm API [#373](https://github.com/JosephBARBIERDARNAL/page/issues/373)
 - **Refactor**: Keep validation report exit-code mapping in the CLI [#361](https://github.com/JosephBARBIERDARNAL/page/issues/361)
 - **Fix**: Hide unimplemented validation profiles from the CLI and language bindings [#360](https://github.com/JosephBARBIERDARNAL/page/issues/360)

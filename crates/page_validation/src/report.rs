@@ -125,7 +125,11 @@ impl ValidationReport {
 impl fmt::Display for ValidationReport {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut output = String::new();
-        writeln!(output, "PDF/A validation")?;
+        let standard = match self.profile {
+            ValidationProfile::PdfUa1 | ValidationProfile::PdfUa2 => "PDF/UA",
+            _ => "PDF/A",
+        };
+        writeln!(output, "{standard} validation")?;
         writeln!(output, "Profile: {}", self.profile)?;
         writeln!(
             output,
@@ -161,5 +165,34 @@ impl fmt::Display for ValidationReport {
             writeln!(output)?;
         }
         formatter.write_str(&output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn report(profile: ValidationProfile) -> ValidationReport {
+        ValidationReport {
+            source: None,
+            profile,
+            is_compliant: true,
+            rules: ValidationCounts::default(),
+            checks: ValidationCheckCounts::default(),
+            document: None,
+            failures: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn display_header_matches_validation_profile_family() {
+        assert_eq!(
+            report(ValidationProfile::PdfA1b).to_string().lines().next(),
+            Some("PDF/A validation")
+        );
+        assert_eq!(
+            report(ValidationProfile::PdfUa1).to_string().lines().next(),
+            Some("PDF/UA validation")
+        );
     }
 }
