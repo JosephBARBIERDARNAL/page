@@ -84,26 +84,11 @@ const report = await validatePdfBytes(bytes);
 
 for (const failure of report.failures) {
   console.log(`Rule: ${failure.ruleId}`);
-  console.log(`Category: ${failure.category}`);
   console.log(`Message: ${failure.message}`);
 }
 ```
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
-
-Failure categories describe findings from rules that ran on a parsed document:
-
-```ts
-import { FailureCategory } from "page-validation-wasm";
-
-for (const failure of report.failures) {
-  if (failure.category === FailureCategory.METADATA) {
-    console.log("metadata finding", failure.ruleId);
-  } else if (failure.category === FailureCategory.CONFORMANCE) {
-    console.log("conformance finding", failure.ruleId);
-  }
-}
-```
 
 Input, parser, profile, and safety-limit failures throw `ValidationError` and do not appear in a report.
 
@@ -165,3 +150,5 @@ import { validatePdfBytes } from "page-validation-wasm";
 const report = await validatePdfBytes(bytes);
 const json = report.toJson();
 ```
+
+`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. The schema includes the file when available, profile, validity, rule and check counts, concise rule failures, and optional parser or operational error details. Wasm terminal errors still reject with `ValidationError` before a report is returned.

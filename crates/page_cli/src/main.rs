@@ -566,6 +566,8 @@ mod tests {
         .expect("structural fixture should produce a report");
         report.rules.total = 10;
         report.rules.passed = 9;
+        report.rules.failed = 1;
+        report.checks.failed = 1;
 
         let details = render_details(&report, Duration::ZERO, false);
 

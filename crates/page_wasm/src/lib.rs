@@ -158,7 +158,7 @@ fn validation_options(
 }
 
 fn report_json(report: ValidationReport) -> Result<String, JsValue> {
-    serde_json::to_string(&report).map_err(|error| {
+    serde_json::to_string(&report.json_report()).map_err(|error| {
         js_error(
             "ValidationError",
             format!("could not serialize report: {error}"),
@@ -166,7 +166,7 @@ fn report_json(report: ValidationReport) -> Result<String, JsValue> {
     })
 }
 
-/// Validates PDF bytes and returns the complete structured report as JSON.
+/// Validates PDF bytes and returns the stable JSON report.
 #[wasm_bindgen(js_name = validatePdfBytes)]
 pub fn validate_pdf_bytes_wasm(
     bytes: &[u8],
