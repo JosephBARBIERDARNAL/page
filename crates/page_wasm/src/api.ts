@@ -297,11 +297,8 @@ export function createApi(wasm: WasmBindings) {
 
   return {
     initialize,
-    init: initialize,
     validatePdfBytes,
     isPdfCompliantBytes,
-    validate_pdf_bytes: validatePdfBytes,
-    is_pdf_compliant_bytes: isPdfCompliantBytes,
   };
 }
 

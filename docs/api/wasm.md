@@ -37,7 +37,7 @@ const isCompliant: boolean = await isPdfCompliantBytes(bytes);
 
 Both validation functions take the bytes plus an optional `{ profile, limits }` options object. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, throws `ValidationError`.
 
-The first call initializes the WebAssembly module automatically. Call `initialize()` during application startup if you want to control initialization explicitly.
+The bundler loads and starts the WebAssembly module with the package, so no initialization call is required. `initialize()` is an optional no-op Promise for callers who want an explicit startup hook; validation functions await it automatically.
 
 ## Validate a PDF with details
 
