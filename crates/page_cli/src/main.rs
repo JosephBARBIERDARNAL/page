@@ -477,21 +477,21 @@ fn run_validate(cli: Cli) {
                 );
                 1
             } else {
-                report.exit_code()
+                page_cli::validation_exit_code(&report)
             }
         }
         (None, SelectedFormat::Json) => {
             let json = report.json_report();
             match emit_json(&json, "validation report") {
-                0 => report.exit_code(),
+                0 => page_cli::validation_exit_code(&report),
                 status => status,
             }
         }
         (None, SelectedFormat::Details) => {
             print!("{}", render_details(&report, elapsed, stdout_colors));
-            report.exit_code()
+            page_cli::validation_exit_code(&report)
         }
-        (None, SelectedFormat::Summary) => report.exit_code(),
+        (None, SelectedFormat::Summary) => page_cli::validation_exit_code(&report),
     };
 
     std::process::exit(status);

@@ -448,10 +448,6 @@ impl ValidationReport {
             .collect()
     }
 
-    fn exit_code(&self) -> i32 {
-        self.inner.exit_code()
-    }
-
     fn to_json(&self) -> PyResult<String> {
         serde_json::to_string(&self.inner.json_report())
             .map_err(|error| PyValueError::new_err(error.to_string()))

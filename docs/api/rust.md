@@ -136,13 +136,13 @@ let report = validate_pdf("document.pdf", &options)?;
 
 The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
 
-## Use the exit code
+## Check compliance
 
-For command-line integrations or automated checks, the report returns `0` when all implemented checks pass and `2` when it contains metadata or conformance failures. Terminal errors remain `Err(ValidationError)` and have their own `exit_code()` method:
+Use `is_compliant` to check whether the document passed all implemented checks. Validation errors remain `Err(ValidationError)` and mean that no complete report was produced:
 
 ```rust
-match validate_pdf("file.pdf", &ValidationOptions::default()) {
-    Ok(report) => std::process::exit(report.exit_code()),
-    Err(error) => std::process::exit(error.exit_code()),
+let report = validate_pdf("file.pdf", &ValidationOptions::default())?;
+if !report.is_compliant {
+    eprintln!("The document failed one or more implemented checks.");
 }
 ```

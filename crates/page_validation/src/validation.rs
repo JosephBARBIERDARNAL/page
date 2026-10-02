@@ -4530,7 +4530,7 @@ mod tests {
                 .iter()
                 .all(|failure| failure.rule_id != "PDF-PARSE-001")
         );
-        assert_eq!(report.exit_code(), 2);
+        assert!(!report.is_compliant);
     }
 
     #[test]

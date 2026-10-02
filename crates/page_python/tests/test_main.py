@@ -121,9 +121,10 @@ def test_unlimited_limits_work_with_file_and_byte_apis(tmp_path: Path):
     limits = page.SafetyLimits.unlimited()
     profile = page.ValidationProfile.PDF_A_1B
 
-    assert page.validate_pdf(path, profile=profile, limits=limits).exit_code() == 2
+    assert page.validate_pdf(path, profile=profile, limits=limits).is_compliant is False
     assert (
-        page.validate_pdf_bytes(data, profile=profile, limits=limits).exit_code() == 2
+        page.validate_pdf_bytes(data, profile=profile, limits=limits).is_compliant
+        is False
     )
     assert page.is_pdf_compliant(path, profile=profile, limits=limits) is False
     assert page.is_pdf_compliant_bytes(data, profile=profile, limits=limits) is False
@@ -155,6 +156,7 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert report.rules.failed > 0
     assert report.checks.failed > 0
     assert report.is_compliant is False
+    assert not hasattr(report, "exit_code")
     assert report.failures
 
 

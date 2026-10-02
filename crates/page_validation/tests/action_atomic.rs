@@ -23,7 +23,7 @@ fn cyclic_field_graph_terminates_under_the_configured_reference_limit() {
     )
     .expect("explicit profile validation");
 
-    assert_eq!(report.exit_code(), 2, "{report:#?}");
+    assert!(!report.is_compliant, "{report:#?}");
     assert_eq!(
         report
             .failures
