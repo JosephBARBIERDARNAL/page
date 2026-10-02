@@ -12,11 +12,7 @@ class ValidationProfile:
     PDF_A_3B: ClassVar[ValidationProfile]
     PDF_A_3A: ClassVar[ValidationProfile]
     PDF_A_3U: ClassVar[ValidationProfile]
-    PDF_A_4: ClassVar[ValidationProfile]
-    PDF_A_4E: ClassVar[ValidationProfile]
-    PDF_A_4F: ClassVar[ValidationProfile]
     PDF_UA_1: ClassVar[ValidationProfile]
-    PDF_UA_2: ClassVar[ValidationProfile]
 
 class FailureCategory:
     METADATA: ClassVar[FailureCategory]

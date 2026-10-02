@@ -114,7 +114,7 @@ impl fmt::Display for ValidationProfile {
 }
 
 impl ValidationProfile {
-    /// Returns every profile known to this version of the crate.
+    /// Returns every profile implemented by this version of the crate.
     pub const fn all() -> &'static [Self] {
         const PROFILES: &[ValidationProfile] = &[
             ValidationProfile::PdfA1b,
@@ -125,11 +125,7 @@ impl ValidationProfile {
             ValidationProfile::PdfA3b,
             ValidationProfile::PdfA3a,
             ValidationProfile::PdfA3u,
-            ValidationProfile::PdfA4,
-            ValidationProfile::PdfA4e,
-            ValidationProfile::PdfA4f,
             ValidationProfile::PdfUa1,
-            ValidationProfile::PdfUa2,
         ];
         PROFILES
     }

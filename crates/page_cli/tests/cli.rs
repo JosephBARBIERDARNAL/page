@@ -60,7 +60,7 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("--max-table-grid-cells <MAX_TABLE_GRID_CELLS>"));
     assert!(stdout.contains("--max-unicode-cmap-mappings <MAX_UNICODE_CMAP_MAPPINGS>"));
     assert!(!stdout.contains("--json"));
-    assert!(stdout.contains("1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, 4, 4e, 4f, ua1, ua2"));
+    assert!(stdout.contains("1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, ua1"));
 }
 
 #[test]
@@ -352,28 +352,28 @@ fn details_format_prints_every_failed_rule() {
 }
 
 #[test]
-fn remaining_profiles_are_recognized_and_reported_as_unimplemented() {
+fn unimplemented_profiles_are_not_cli_choices() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
-    let profiles = [
-        ("4", "PDF/A-4"),
-        ("4e", "PDF/A-4e"),
-        ("4f", "PDF/A-4f"),
-        ("ua2", "PDF/UA-2"),
-    ];
+    let profiles = ["4", "4e", "4f", "ua2"];
 
-    for (argument, display_name) in profiles {
+    for argument in profiles {
         let output = Command::new(env!("CARGO_BIN_EXE_page"))
             .arg(&fixture)
             .args(["--profile", argument])
             .output()
-            .expect("run validation with a future profile");
+            .expect("reject an unimplemented profile");
 
-        assert_eq!(output.status.code(), Some(1), "profile {argument}");
+        assert_eq!(output.status.code(), Some(2), "profile {argument}");
         assert!(output.stdout.is_empty(), "profile {argument}");
-        assert_eq!(
-            String::from_utf8(output.stderr).expect("UTF-8 error"),
-            format!("error: validation profile {display_name} is not implemented yet\n")
+        let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
+        assert!(
+            stderr.contains(&format!("invalid value '{argument}'")),
+            "{stderr}"
+        );
+        assert!(
+            stderr.contains("possible values: 1b, 1a, 2b, 2a, 2u, 3b, 3a, 3u, ua1"),
+            "{stderr}"
         );
     }
 }
