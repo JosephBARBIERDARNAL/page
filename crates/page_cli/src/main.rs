@@ -28,8 +28,8 @@ struct Cli {
     file: PathBuf,
 
     /// Validation profile; defaults to the profile declared in XMP metadata.
-    #[arg(long, value_enum)]
-    profile: Option<ProfileArg>,
+    #[arg(long, value_name = "PROFILE")]
+    profile: Option<ValidationProfile>,
 
     /// Select detailed text or JSON output instead of the compact summary.
     #[arg(long, value_enum)]
@@ -107,56 +107,6 @@ enum SelectedFormat {
     Summary,
     Details,
     Json,
-}
-
-#[derive(Clone, Copy, Debug, ValueEnum)]
-enum ProfileArg {
-    #[value(name = "1b")]
-    PdfA1b,
-    #[value(name = "1a")]
-    PdfA1a,
-    #[value(name = "2b")]
-    PdfA2b,
-    #[value(name = "2a")]
-    PdfA2a,
-    #[value(name = "2u")]
-    PdfA2u,
-    #[value(name = "3b")]
-    PdfA3b,
-    #[value(name = "3a")]
-    PdfA3a,
-    #[value(name = "3u")]
-    PdfA3u,
-    #[value(name = "4")]
-    PdfA4,
-    #[value(name = "4e")]
-    PdfA4e,
-    #[value(name = "4f")]
-    PdfA4f,
-    #[value(name = "ua1")]
-    PdfUa1,
-    #[value(name = "ua2")]
-    PdfUa2,
-}
-
-impl From<ProfileArg> for ValidationProfile {
-    fn from(value: ProfileArg) -> Self {
-        match value {
-            ProfileArg::PdfA1b => Self::PdfA1b,
-            ProfileArg::PdfA1a => Self::PdfA1a,
-            ProfileArg::PdfA2b => Self::PdfA2b,
-            ProfileArg::PdfA2a => Self::PdfA2a,
-            ProfileArg::PdfA2u => Self::PdfA2u,
-            ProfileArg::PdfA3b => Self::PdfA3b,
-            ProfileArg::PdfA3a => Self::PdfA3a,
-            ProfileArg::PdfA3u => Self::PdfA3u,
-            ProfileArg::PdfA4 => Self::PdfA4,
-            ProfileArg::PdfA4e => Self::PdfA4e,
-            ProfileArg::PdfA4f => Self::PdfA4f,
-            ProfileArg::PdfUa1 => Self::PdfUa1,
-            ProfileArg::PdfUa2 => Self::PdfUa2,
-        }
-    }
 }
 
 const FAILURE: Style = AnsiColor::Red.on_default().bold();
@@ -427,7 +377,7 @@ fn run_validate(cli: Cli) {
         stderr_colors,
         format!("Validating {}", cli.file.display()),
     );
-    let requested_profile = cli.profile.map(Into::into);
+    let requested_profile = cli.profile;
     let options = ValidationOptions::default()
         .profile(requested_profile)
         .limits(limits);

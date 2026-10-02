@@ -115,24 +115,12 @@ fn js_error(name: &str, message: impl AsRef<str>) -> JsValue {
 
 fn parse_profile(profile: Option<String>) -> Result<Option<ValidationProfile>, JsValue> {
     profile
-        .map(|profile| match profile.as_str() {
-            "1a" => Ok(ValidationProfile::PdfA1a),
-            "1b" => Ok(ValidationProfile::PdfA1b),
-            "2a" => Ok(ValidationProfile::PdfA2a),
-            "2b" => Ok(ValidationProfile::PdfA2b),
-            "2u" => Ok(ValidationProfile::PdfA2u),
-            "3a" => Ok(ValidationProfile::PdfA3a),
-            "3b" => Ok(ValidationProfile::PdfA3b),
-            "3u" => Ok(ValidationProfile::PdfA3u),
-            "4" => Ok(ValidationProfile::PdfA4),
-            "4e" => Ok(ValidationProfile::PdfA4e),
-            "4f" => Ok(ValidationProfile::PdfA4f),
-            "ua1" => Ok(ValidationProfile::PdfUa1),
-            "ua2" => Ok(ValidationProfile::PdfUa2),
-            value => Err(js_error(
-                "ValidationError",
-                format!("unknown validation profile: {value}"),
-            )),
+        .map(|profile| {
+            profile
+                .parse()
+                .map_err(|error: page_validation::ParseValidationProfileError| {
+                    js_error("ValidationError", error.to_string())
+                })
         })
         .transpose()
 }

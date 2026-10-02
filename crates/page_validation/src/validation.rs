@@ -10,8 +10,9 @@ use std::fmt;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 use crate::error::{PdfError, ValidationError};
 use crate::limits::SafetyLimits;
@@ -60,58 +61,98 @@ impl ValidationFailures {
 }
 
 /// A PDF/A or PDF/UA conformance level this crate can validate a document against.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ValidationProfile {
-    #[serde(rename = "1b")]
     PdfA1b,
-    #[serde(rename = "1a")]
     PdfA1a,
-    #[serde(rename = "2b")]
     PdfA2b,
-    #[serde(rename = "2a")]
     PdfA2a,
-    #[serde(rename = "2u")]
     PdfA2u,
-    #[serde(rename = "3b")]
     PdfA3b,
-    #[serde(rename = "3a")]
     PdfA3a,
-    #[serde(rename = "3u")]
     PdfA3u,
-    #[serde(rename = "4")]
     PdfA4,
-    #[serde(rename = "4e")]
     PdfA4e,
-    #[serde(rename = "4f")]
     PdfA4f,
-    #[serde(rename = "ua1")]
     PdfUa1,
-    #[serde(rename = "ua2")]
     PdfUa2,
+}
+
+/// An input string did not identify a validation profile.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ParseValidationProfileError {
+    input: String,
+}
+
+impl fmt::Display for ParseValidationProfileError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "unknown validation profile: {}", self.input)
+    }
+}
+
+impl std::error::Error for ParseValidationProfileError {}
+
+impl Serialize for ValidationProfile {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
 }
 
 impl fmt::Display for ValidationProfile {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::PdfA1b => formatter.write_str("PDF/A-1b"),
-            Self::PdfA1a => formatter.write_str("PDF/A-1a"),
-            Self::PdfA2b => formatter.write_str("PDF/A-2b"),
-            Self::PdfA2a => formatter.write_str("PDF/A-2a"),
-            Self::PdfA2u => formatter.write_str("PDF/A-2u"),
-            Self::PdfA3b => formatter.write_str("PDF/A-3b"),
-            Self::PdfA3a => formatter.write_str("PDF/A-3a"),
-            Self::PdfA3u => formatter.write_str("PDF/A-3u"),
-            Self::PdfA4 => formatter.write_str("PDF/A-4"),
-            Self::PdfA4e => formatter.write_str("PDF/A-4e"),
-            Self::PdfA4f => formatter.write_str("PDF/A-4f"),
-            Self::PdfUa1 => formatter.write_str("PDF/UA-1"),
-            Self::PdfUa2 => formatter.write_str("PDF/UA-2"),
+        if let Some(version) = self.as_str().strip_prefix("ua") {
+            write!(formatter, "PDF/UA-{version}")
+        } else {
+            write!(formatter, "PDF/A-{}", self.as_str())
         }
     }
 }
 
 impl ValidationProfile {
+    /// Returns every profile known to this version of the crate.
+    pub const fn all() -> &'static [Self] {
+        const PROFILES: &[ValidationProfile] = &[
+            ValidationProfile::PdfA1b,
+            ValidationProfile::PdfA1a,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfA2a,
+            ValidationProfile::PdfA2u,
+            ValidationProfile::PdfA3b,
+            ValidationProfile::PdfA3a,
+            ValidationProfile::PdfA3u,
+            ValidationProfile::PdfA4,
+            ValidationProfile::PdfA4e,
+            ValidationProfile::PdfA4f,
+            ValidationProfile::PdfUa1,
+            ValidationProfile::PdfUa2,
+        ];
+        PROFILES
+    }
+
+    /// Returns the stable, compact profile name used by JSON reports and bindings.
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::PdfA1b => "1b",
+            Self::PdfA1a => "1a",
+            Self::PdfA2b => "2b",
+            Self::PdfA2a => "2a",
+            Self::PdfA2u => "2u",
+            Self::PdfA3b => "3b",
+            Self::PdfA3a => "3a",
+            Self::PdfA3u => "3u",
+            Self::PdfA4 => "4",
+            Self::PdfA4e => "4e",
+            Self::PdfA4f => "4f",
+            Self::PdfUa1 => "ua1",
+            Self::PdfUa2 => "ua2",
+        }
+    }
+
     /// Returns the number of checks implemented for this profile.
     pub const fn implemented_check_count(self) -> usize {
         match self {
@@ -204,6 +245,31 @@ impl ValidationProfile {
             }),
             _ => None,
         }
+    }
+}
+
+impl FromStr for ValidationProfile {
+    type Err = ParseValidationProfileError;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let normalized: String = input
+            .trim()
+            .chars()
+            .filter(|character| !matches!(character, '/' | '-' | '_'))
+            .map(|character| character.to_ascii_lowercase())
+            .collect();
+        let canonical = normalized
+            .strip_prefix("pdfua")
+            .map(|version| format!("ua{version}"))
+            .or_else(|| normalized.strip_prefix("pdfa").map(str::to_owned))
+            .unwrap_or(normalized);
+        ValidationProfile::all()
+            .iter()
+            .copied()
+            .find(|profile| profile.as_str() == canonical)
+            .ok_or_else(|| ParseValidationProfileError {
+                input: input.to_owned(),
+            })
     }
 }
 
