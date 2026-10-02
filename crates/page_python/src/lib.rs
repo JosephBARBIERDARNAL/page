@@ -13,7 +13,7 @@ use pyo3::prelude::*;
 create_exception!(_page, ValidationError, PyException);
 
 #[pyclass(name = "ValidationProfile", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum ValidationProfile {
     #[pyo3(name = "PDF_A_1B")]
     PdfA1b,
@@ -91,7 +91,7 @@ impl TryFrom<RustValidationProfile> for ValidationProfile {
 }
 
 #[pyclass(name = "FailureCategory", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum FailureCategory {
     #[pyo3(name = "METADATA")]
     Metadata,
