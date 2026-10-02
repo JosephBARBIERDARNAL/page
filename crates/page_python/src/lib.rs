@@ -1,3 +1,4 @@
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
 use page_validation::{
@@ -13,80 +14,45 @@ use pyo3::prelude::*;
 create_exception!(_page, ValidationError, PyException);
 
 #[pyclass(name = "ValidationProfile", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum ValidationProfile {
-    #[pyo3(name = "PDF_A_1B")]
-    PdfA1b,
-    #[pyo3(name = "PDF_A_1A")]
-    PdfA1a,
-    #[pyo3(name = "PDF_A_2B")]
-    PdfA2b,
-    #[pyo3(name = "PDF_A_2A")]
-    PdfA2a,
-    #[pyo3(name = "PDF_A_2U")]
-    PdfA2u,
-    #[pyo3(name = "PDF_A_3B")]
-    PdfA3b,
-    #[pyo3(name = "PDF_A_3A")]
-    PdfA3a,
-    #[pyo3(name = "PDF_A_3U")]
-    PdfA3u,
-    #[pyo3(name = "PDF_A_4")]
-    PdfA4,
-    #[pyo3(name = "PDF_A_4E")]
-    PdfA4e,
-    #[pyo3(name = "PDF_A_4F")]
-    PdfA4f,
-    #[pyo3(name = "PDF_UA_1")]
-    PdfUa1,
-    #[pyo3(name = "PDF_UA_2")]
-    PdfUa2,
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ValidationProfile(RustValidationProfile);
+
+#[pymethods]
+impl ValidationProfile {
+    fn __repr__(&self) -> String {
+        format!("ValidationProfile.{}", python_profile_name(self.0))
+    }
 }
 
 impl From<ValidationProfile> for RustValidationProfile {
     fn from(profile: ValidationProfile) -> Self {
-        match profile {
-            ValidationProfile::PdfA1b => Self::PdfA1b,
-            ValidationProfile::PdfA1a => Self::PdfA1a,
-            ValidationProfile::PdfA2b => Self::PdfA2b,
-            ValidationProfile::PdfA2a => Self::PdfA2a,
-            ValidationProfile::PdfA2u => Self::PdfA2u,
-            ValidationProfile::PdfA3b => Self::PdfA3b,
-            ValidationProfile::PdfA3a => Self::PdfA3a,
-            ValidationProfile::PdfA3u => Self::PdfA3u,
-            ValidationProfile::PdfA4 => Self::PdfA4,
-            ValidationProfile::PdfA4e => Self::PdfA4e,
-            ValidationProfile::PdfA4f => Self::PdfA4f,
-            ValidationProfile::PdfUa1 => Self::PdfUa1,
-            ValidationProfile::PdfUa2 => Self::PdfUa2,
-        }
+        profile.0
     }
 }
 
-impl TryFrom<RustValidationProfile> for ValidationProfile {
-    type Error = PyErr;
+impl From<RustValidationProfile> for ValidationProfile {
+    fn from(profile: RustValidationProfile) -> Self {
+        Self(profile)
+    }
+}
 
-    fn try_from(profile: RustValidationProfile) -> PyResult<Self> {
-        Ok(match profile {
-            RustValidationProfile::PdfA1b => Self::PdfA1b,
-            RustValidationProfile::PdfA1a => Self::PdfA1a,
-            RustValidationProfile::PdfA2b => Self::PdfA2b,
-            RustValidationProfile::PdfA2a => Self::PdfA2a,
-            RustValidationProfile::PdfA2u => Self::PdfA2u,
-            RustValidationProfile::PdfA3b => Self::PdfA3b,
-            RustValidationProfile::PdfA3a => Self::PdfA3a,
-            RustValidationProfile::PdfA3u => Self::PdfA3u,
-            RustValidationProfile::PdfA4 => Self::PdfA4,
-            RustValidationProfile::PdfA4e => Self::PdfA4e,
-            RustValidationProfile::PdfA4f => Self::PdfA4f,
-            RustValidationProfile::PdfUa1 => Self::PdfUa1,
-            RustValidationProfile::PdfUa2 => Self::PdfUa2,
-            _ => {
-                return Err(ValidationError::new_err(format!(
-                    "validation profile {profile} is not supported by the Python bindings"
-                )));
-            }
-        })
+impl Hash for ValidationProfile {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.as_str().hash(state);
+    }
+}
+
+fn python_profile_name(profile: RustValidationProfile) -> String {
+    let name = profile.as_str();
+    if let Some(version) = name.strip_prefix("ua") {
+        format!("PDF_UA_{}", version.to_ascii_uppercase())
+    } else {
+        let (part, conformance) = name.split_at(1);
+        if conformance.is_empty() {
+            format!("PDF_A_{part}")
+        } else {
+            format!("PDF_A_{part}{}", conformance.to_ascii_uppercase())
+        }
     }
 }
 
@@ -443,8 +409,8 @@ impl From<RustValidationReport> for ValidationReport {
 #[pymethods]
 impl ValidationReport {
     #[getter]
-    fn profile(&self) -> PyResult<ValidationProfile> {
-        self.inner.profile.try_into()
+    fn profile(&self) -> ValidationProfile {
+        self.inner.profile.into()
     }
 
     #[getter]
@@ -498,7 +464,7 @@ impl ValidationReport {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!(
             "ValidationReport(profile={:?}, is_compliant={}, failures={})",
-            self.profile()?,
+            self.profile(),
             self.inner.is_compliant,
             self.inner.failures.len(),
         ))
@@ -574,6 +540,13 @@ fn validate_pdf_bytes(
 fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("ValidationError", py.get_type::<ValidationError>())?;
     module.add_class::<ValidationProfile>()?;
+    let profile_class = module.getattr("ValidationProfile")?;
+    for &profile in RustValidationProfile::all() {
+        profile_class.setattr(
+            python_profile_name(profile),
+            Py::new(py, ValidationProfile(profile))?,
+        )?;
+    }
     module.add_class::<FailureCategory>()?;
     module.add_class::<SafetyLimits>()?;
     module.add_class::<PdfObjectId>()?;

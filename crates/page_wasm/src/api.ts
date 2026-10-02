@@ -20,11 +20,7 @@ export enum ValidationProfile {
   PDF_A_3A = "3a",
   PDF_A_3B = "3b",
   PDF_A_3U = "3u",
-  PDF_A_4 = "4",
-  PDF_A_4E = "4e",
-  PDF_A_4F = "4f",
   PDF_UA_1 = "ua1",
-  PDF_UA_2 = "ua2",
 }
 
 export interface SafetyLimitsOptions {

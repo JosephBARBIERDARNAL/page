@@ -66,6 +66,6 @@ pub use report::{
 #[doc(hidden)]
 pub use validation::{ComplianceResult, validate_pdf_lazy};
 pub use validation::{
-    ValidationOptions, ValidationProfile, is_pdf_compliant, is_pdf_compliant_bytes, validate_pdf,
-    validate_pdf_bytes,
+    ParseValidationProfileError, ValidationOptions, ValidationProfile, is_pdf_compliant,
+    is_pdf_compliant_bytes, validate_pdf, validate_pdf_bytes,
 };

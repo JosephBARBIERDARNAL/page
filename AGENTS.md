@@ -17,7 +17,7 @@ page is a new, modern, fast and lightweight PDF accessibility and compliance che
 - always check for ways to reuse code
 - minimize useless abstraction
 - when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries. Most changelog entries must have a github issue referenced, if you don't have one, ask for it.
-- after making code changes, make sure the code is well formatted and linted. See @justfile for key commands to run.
+- after making code changes, make sure the code is well formatted, linted and that unit tests pass. See @justfile for key commands to run.
 
 ## Project Structure & Module Organization
 

@@ -1,5 +1,7 @@
 ## Dev
 
+- **Fix**: Hide unimplemented validation profiles from the CLI and language bindings [#360](https://github.com/JosephBARBIERDARNAL/page/issues/360)
+- **Feat**: Add canonical parsing and string names for validation profiles [#359](https://github.com/JosephBARBIERDARNAL/page/issues/359)
 - **Fix**: Use one stable JSON report schema across the CLI, Python, and Wasm bindings [#356](https://github.com/JosephBARBIERDARNAL/page/issues/356)
 - **Refactor**: Keep terminal validation failures in `Result` errors and limit report failures to metadata and conformance findings [#349](https://github.com/JosephBARBIERDARNAL/page/issues/349)
 - **Refactor**: Mark public Rust models and enums as non-exhaustive and add chainable safety-limit setters for future API extensions [#344](https://github.com/JosephBARBIERDARNAL/page/issues/344)
