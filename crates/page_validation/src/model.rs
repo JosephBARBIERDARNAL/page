@@ -19,6 +19,7 @@ use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_
 use crate::page_tree;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[non_exhaustive]
 pub struct PdfObjectId {
     pub object_number: u32,
     pub generation: u16,
@@ -37,12 +38,14 @@ impl From<ObjectId> for PdfObjectId {
 /// predicate. See `font_is_embedded` in this module for why this is
 /// intentionally distinct from the pinned `PDFA1B-FONT-EMBEDDING-001` rule.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct FontSummary {
     pub total: usize,
     pub embedded: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct CatalogMetadataStream {
     pub present: bool,
     pub is_stream: bool,
@@ -60,6 +63,7 @@ impl CatalogMetadataStream {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct IccHeader {
     pub device_class: String,
     pub color_space: String,
@@ -114,6 +118,7 @@ impl IccHeader {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct OutputIntentSummary {
     pub object_id: Option<PdfObjectId>,
     pub is_dictionary_based: bool,
@@ -128,6 +133,7 @@ pub struct OutputIntentSummary {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct OutputIntentsSummary {
     pub present: bool,
     pub is_array: bool,
@@ -135,6 +141,7 @@ pub struct OutputIntentsSummary {
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
+#[non_exhaustive]
 pub struct PdfDocument {
     pub version: String,
     pub encrypted: bool,
@@ -689,12 +696,13 @@ fn load_document(
                 lenient_options.strict = false;
                 Document::load_mem_with_options(bytes, lenient_options)
                     .or_else(|_| Document::load_mem_with_options(&repaired, options.clone()))
-                    .or_else(|_| Document::load_mem_with_options(bytes, options))?
+                    .or_else(|_| Document::load_mem_with_options(bytes, options))
+                    .map_err(PdfError::parse)?
             }
-            Err(_) => Document::load_mem_with_options(bytes, options)?,
+            Err(_) => Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?,
         }
     } else {
-        Document::load_mem_with_options(bytes, options)?
+        Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?
     };
     Ok(document)
 }

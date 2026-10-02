@@ -27,13 +27,6 @@ export enum ValidationProfile {
   PDF_UA_2 = "ua2",
 }
 
-export enum FailureCategory {
-  OPERATIONAL = "operational",
-  PARSER = "parser",
-  METADATA = "metadata",
-  CONFORMANCE = "conformance",
-}
-
 export interface SafetyLimitsOptions {
   maxInputSize: number;
   maxDecodedStreamSize: number;
@@ -182,16 +175,9 @@ export class SafetyLimits implements SafetyLimitsOptions {
   }
 }
 
-export interface PdfObjectId {
-  objectNumber: number;
-  generation: number;
-}
-
 export interface ValidationFailure {
   ruleId: string;
   message: string;
-  objectId: PdfObjectId | null;
-  category: FailureCategory;
 }
 
 export interface ValidationCounts {
@@ -204,92 +190,63 @@ export interface ValidationCheckCounts {
   failed: number;
 }
 
-export interface PdfDocument {
-  version: string;
-  encrypted: boolean;
-  pageCount: number;
-  objectCount: number;
+export interface JsonValidationError {
+  kind: "parser" | "operational";
+  rule: string;
+  message: string;
 }
 
-interface RawValidationReport {
-  source: string | null;
-  profile: string;
-  is_compliant: boolean;
+export interface JsonValidationReport {
+  file?: string;
+  profile?: ValidationProfile;
+  valid: boolean;
+  rules?: ValidationCounts;
+  checks?: ValidationCheckCounts;
+  failures: { rule: string; message: string }[];
+  error?: JsonValidationError;
+}
+
+interface RawValidationReport extends JsonValidationReport {
+  profile: ValidationProfile;
   rules: ValidationCounts;
   checks: ValidationCheckCounts;
-  document: {
-    version: string;
-    encrypted: boolean;
-    page_count: number;
-    object_count: number;
-  } | null;
-  failures: {
-    rule_id: string;
-    message: string;
-    object_id: {
-      object_number: number;
-      generation: number;
-    } | null;
-    category: string;
-  }[];
 }
 
 export class ValidationReport {
+  readonly file: string | undefined;
   readonly source: string | null;
   readonly profile: ValidationProfile;
+  readonly valid: boolean;
   readonly isCompliant: boolean;
   readonly rules: ValidationCounts;
   readonly checks: ValidationCheckCounts;
-  readonly document: PdfDocument | null;
   readonly failures: ValidationFailure[];
   private readonly raw: RawValidationReport;
 
   constructor(raw: RawValidationReport) {
     this.raw = raw;
-    this.source = raw.source;
+    this.file = raw.file;
+    this.source = raw.file ?? null;
     this.profile = raw.profile as ValidationProfile;
-    this.isCompliant = raw.is_compliant;
+    this.valid = raw.valid;
+    this.isCompliant = raw.valid;
     this.rules = raw.rules;
     this.checks = raw.checks;
-    this.document = raw.document
-      ? {
-          version: raw.document.version,
-          encrypted: raw.document.encrypted,
-          pageCount: raw.document.page_count,
-          objectCount: raw.document.object_count,
-        }
-      : null;
     this.failures = raw.failures.map((failure) => ({
-      ruleId: failure.rule_id,
+      ruleId: failure.rule,
       message: failure.message,
-      objectId: failure.object_id
-        ? {
-            objectNumber: failure.object_id.object_number,
-            generation: failure.object_id.generation,
-          }
-        : null,
-      category: failure.category as FailureCategory,
     }));
   }
 
-  hasOperationalFailure(): boolean {
-    return this.failures.some(
-      (failure) => failure.category === FailureCategory.OPERATIONAL,
-    );
-  }
-
   exitCode(): number {
-    if (this.hasOperationalFailure()) {
-      return 1;
-    }
-    return this.isCompliant ? 0 : 2;
+    return this.valid ? 0 : 2;
   }
 
   toJson(): string {
     return JSON.stringify(this.raw);
   }
 
-  toJSON(): RawValidationReport {
+  toJSON(): JsonValidationReport {
     return this.raw;
   }
 }

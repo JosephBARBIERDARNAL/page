@@ -55,11 +55,13 @@ const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#"
 /// assert!(info.values.is_empty());
 /// ```
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct DocumentMetadata {
     pub values: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct XmpMetadata {
     /// Retained for API/report compatibility. Validation uses `pdfa_parts`,
     /// because selecting only the first value would hide duplicate declarations.

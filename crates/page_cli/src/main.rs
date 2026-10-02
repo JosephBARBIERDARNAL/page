@@ -11,8 +11,8 @@ use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_validation::{
-    JsonError, JsonErrorKind, JsonValidationReport, SafetyLimits, ValidationError,
-    ValidationOptions, ValidationProfile, ValidationReport, validate_pdf, validate_pdf_lazy,
+    JsonValidationReport, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
 #[derive(Debug, Parser)]
@@ -337,23 +337,12 @@ fn emit_json_validation_error(
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
-    let (kind, rule, exit_code) = match &error {
-        ValidationError::Pdf(_) => (JsonErrorKind::Parser, "PDF-PARSE-001", 2),
-        _ => (JsonErrorKind::Operational, "VALIDATION-PROFILE-001", 1),
-    };
-    let report = JsonValidationReport {
-        file: Some(path.display().to_string()),
+    let exit_code = error.exit_code();
+    let report = JsonValidationReport::from_validation_error(
+        Some(path.display().to_string()),
         profile,
-        valid: false,
-        rules: None,
-        checks: None,
-        failures: Vec::new(),
-        error: Some(JsonError {
-            kind,
-            rule: rule.to_owned(),
-            message: error.to_string(),
-        }),
-    };
+        error,
+    );
     if let Some(output) = output {
         let contents = serialize_json(&report).unwrap_or_else(|serialization_error| {
             print_error(
@@ -376,6 +365,16 @@ fn emit_json_validation_error(
     } else {
         1
     });
+}
+
+fn print_validation_error(path: &Path, error: &ValidationError, colors: bool) {
+    match error {
+        ValidationError::InputIo(error) => print_error(
+            format_args!("could not read '{}': {error}", path.display()),
+            colors,
+        ),
+        error => print_error(error, colors),
+    }
 }
 
 fn main() {
@@ -405,20 +404,19 @@ fn run_validate(cli: Cli) {
     let limits = if cli.disable_safety_limits {
         SafetyLimits::unlimited()
     } else {
-        SafetyLimits {
-            max_input_size: cli.max_input_size,
-            max_decoded_stream_size: cli.max_decoded_stream_size,
-            max_total_decoded_content_size: cli.max_total_decoded_content_size,
-            max_form_invocations: cli.max_form_invocations,
-            max_object_count: cli.max_object_count,
-            max_reference_depth: cli.max_reference_depth,
-            max_xref_revisions: cli.max_xref_revisions,
-            max_table_span: cli.max_table_span,
-            max_table_grid_rows: cli.max_table_grid_rows,
-            max_table_grid_columns: cli.max_table_grid_columns,
-            max_table_grid_cells: cli.max_table_grid_cells,
-            max_unicode_cmap_mappings: cli.max_unicode_cmap_mappings,
-        }
+        SafetyLimits::default()
+            .max_input_size(cli.max_input_size)
+            .max_decoded_stream_size(cli.max_decoded_stream_size)
+            .max_total_decoded_content_size(cli.max_total_decoded_content_size)
+            .max_form_invocations(cli.max_form_invocations)
+            .max_object_count(cli.max_object_count)
+            .max_reference_depth(cli.max_reference_depth)
+            .max_xref_revisions(cli.max_xref_revisions)
+            .max_table_span(cli.max_table_span)
+            .max_table_grid_rows(cli.max_table_grid_rows)
+            .max_table_grid_columns(cli.max_table_grid_columns)
+            .max_table_grid_cells(cli.max_table_grid_cells)
+            .max_unicode_cmap_mappings(cli.max_unicode_cmap_mappings)
     };
     let spinner_enabled = selected_format != SelectedFormat::Json
         && io::stdout().is_terminal()
@@ -436,18 +434,10 @@ fn run_validate(cli: Cli) {
     if selected_format == SelectedFormat::Summary {
         let outcome = match validate_pdf_lazy(&cli.file, &options) {
             Ok(outcome) => outcome,
-            Err(ValidationError::InputIo(error)) => {
-                spinner.finish_and_clear();
-                print_error(
-                    format_args!("could not read '{}': {error}", cli.file.display()),
-                    stderr_colors,
-                );
-                std::process::exit(1);
-            }
             Err(error) => {
                 spinner.finish_and_clear();
-                print_error(error, stderr_colors);
-                std::process::exit(1);
+                print_validation_error(&cli.file, &error, stderr_colors);
+                std::process::exit(error.exit_code());
             }
         };
         spinner.finish_and_clear();
@@ -481,14 +471,6 @@ fn run_validate(cli: Cli) {
     }
     let report = match validate_pdf(&cli.file, &options) {
         Ok(report) => report,
-        Err(ValidationError::InputIo(error)) => {
-            spinner.finish_and_clear();
-            print_error(
-                format_args!("could not read '{}': {error}", cli.file.display()),
-                stderr_colors,
-            );
-            std::process::exit(1);
-        }
         Err(error) => {
             spinner.finish_and_clear();
             if selected_format == SelectedFormat::Json {
@@ -500,8 +482,8 @@ fn run_validate(cli: Cli) {
                     stderr_colors,
                 );
             }
-            print_error(error, stderr_colors);
-            std::process::exit(1);
+            print_validation_error(&cli.file, &error, stderr_colors);
+            std::process::exit(error.exit_code());
         }
     };
     spinner.finish_and_clear();
@@ -555,9 +537,7 @@ fn run_validate(cli: Cli) {
 mod tests {
     use std::time::Duration;
 
-    use page_validation::{
-        ValidationCheckCounts, ValidationCounts, ValidationProfile, ValidationReport,
-    };
+    use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
     use super::{colors_enabled, render_details, render_summary};
 
@@ -578,19 +558,16 @@ mod tests {
 
     #[test]
     fn detailed_counts_use_actual_plural_and_total_rules() {
-        let report = ValidationReport {
-            source: None,
-            profile: ValidationProfile::PdfA1b,
-            is_compliant: false,
-            rules: ValidationCounts {
-                total: 10,
-                passed: 9,
-                failed: 1,
-            },
-            checks: ValidationCheckCounts { failed: 1 },
-            document: None,
-            failures: Vec::new(),
-        };
+        let bytes = include_bytes!("../../page_validation/tests/fixtures/structural.pdf");
+        let mut report = validate_pdf_bytes(
+            bytes,
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+        )
+        .expect("structural fixture should produce a report");
+        report.rules.total = 10;
+        report.rules.passed = 9;
+        report.rules.failed = 1;
+        report.checks.failed = 1;
 
         let details = render_details(&report, Duration::ZERO, false);
 

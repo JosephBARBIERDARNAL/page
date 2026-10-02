@@ -19,8 +19,6 @@ class ValidationProfile:
     PDF_UA_2: ClassVar[ValidationProfile]
 
 class FailureCategory:
-    OPERATIONAL: ClassVar[FailureCategory]
-    PARSER: ClassVar[FailureCategory]
     METADATA: ClassVar[FailureCategory]
     CONFORMANCE: ClassVar[FailureCategory]
 
@@ -122,7 +120,6 @@ class ValidationReport:
     def document(self) -> PdfDocument | None: ...
     @property
     def failures(self) -> list[ValidationFailure]: ...
-    def has_operational_failure(self) -> bool: ...
     def exit_code(self) -> int: ...
     def to_json(self) -> str: ...
 

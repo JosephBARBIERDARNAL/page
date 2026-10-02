@@ -1,34 +1,38 @@
 ## Dev
 
-- Refactor: Make validation entry points extensible with a Rust `ValidationOptions` value, keyword-only Python arguments, and a TypeScript options object; rename the first-failure mode to lazy and remove `validate_pdf_fast` / `validate_pdf_bytes_fast` from the public Rust API [#347](https://github.com/JosephBARBIERDARNAL/page/issues/347)
-- Doc: Add a per-file overview to every core validation Rust source file and document the convention in `AGENTS.md` [#331](https://github.com/JosephBARBIERDARNAL/page/issues/331)
-- Feat: Disable all safety limits with a CLI flag or an unlimited preset in Rust, Python, and JavaScript [#342](https://github.com/JosephBARBIERDARNAL/page/issues/342)
-- Refactor: Remove the legacy `PdfDocument::output_intents` field; use `output_intents_summary` instead [#345](https://github.com/JosephBARBIERDARNAL/page/issues/345)
+- **Fix**: Use one stable JSON report schema across the CLI, Python, and Wasm bindings [#356](https://github.com/JosephBARBIERDARNAL/page/issues/356)
+- **Refactor**: Keep terminal validation failures in `Result` errors and limit report failures to metadata and conformance findings [#349](https://github.com/JosephBARBIERDARNAL/page/issues/349)
+- **Refactor**: Mark public Rust models and enums as non-exhaustive and add chainable safety-limit setters for future API extensions [#344](https://github.com/JosephBARBIERDARNAL/page/issues/344)
+- **Refactor**: Make validation entry points extensible with a Rust `ValidationOptions` value, keyword-only Python arguments, and a TypeScript options object; rename the first-failure mode to lazy and remove `validate_pdf_fast` / `validate_pdf_bytes_fast` from the public Rust API [#347](https://github.com/JosephBARBIERDARNAL/page/issues/347)
+- **Refactor**: Keep parser errors behind a standard error source in the public Rust API [#346](https://github.com/JosephBARBIERDARNAL/page/issues/346)
+- **Doc**: Add a per-file overview to every core validation Rust source file [#331](https://github.com/JosephBARBIERDARNAL/page/issues/331)
+- **Feat**: Disable all safety limits with a CLI flag or an unlimited preset [#342](https://github.com/JosephBARBIERDARNAL/page/issues/342)
+- **Refactor**: Remove the legacy `PdfDocument::output_intents` field; use `output_intents_summary` instead [#345](https://github.com/JosephBARBIERDARNAL/page/issues/345)
 
 ## 0.8.0
 
-- Fix: Bound aggregate decoded font-stream retention [#336](https://github.com/JosephBARBIERDARNAL/page/issues/336)
-- Fix: Propagate safety-limit errors while inspecting embedded PDFs [#338](https://github.com/JosephBARBIERDARNAL/page/issues/338)
-- Fix: Bound repeated execution of shared Form XObjects [#335](https://github.com/JosephBARBIERDARNAL/page/issues/335)
-- Perf: Add a short real-world PDF regression benchmark to CI [#341](https://github.com/JosephBARBIERDARNAL/page/issues/341)
-- Fix: Include generated API files in the published WASM package [#334](https://github.com/JosephBARBIERDARNAL/page/issues/334)
-- Refactor: Remove the obsolete validation report status field
-- Refactor: Replace `ttf-parser` with `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
-- Feat: Report distinct failed rules and raw failed checks [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
-- Perf: Consolidate raw syntax and stream scans [#328](https://github.com/JosephBARBIERDARNAL/page/issues/328)
-- Perf: Cache font usages, shown bytes, CIDs, and embedded font streams [#327](https://github.com/JosephBARBIERDARNAL/page/issues/327)
-- Perf: Defer whole-document font summaries on the lazy validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
-- Doc: Add page dedicated to safety limits [#320](https://github.com/JosephBARBIERDARNAL/page/issues/320)
-- Perf: Expand the benchmark with profile comparisons and a feature-heavy fixture
-- Perf: Make document feature inspection profile-demand driven [#325](https://github.com/JosephBARBIERDARNAL/page/issues/325)
-- Perf: Inferred-profile summary mode now uses lazy validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
+- **Fix**: Bound aggregate decoded font-stream retention [#336](https://github.com/JosephBARBIERDARNAL/page/issues/336)
+- **Fix**: Propagate safety-limit errors while inspecting embedded PDFs [#338](https://github.com/JosephBARBIERDARNAL/page/issues/338)
+- **Fix**: Bound repeated execution of shared Form XObjects [#335](https://github.com/JosephBARBIERDARNAL/page/issues/335)
+- **Perf**: Add a short real-world PDF regression benchmark to CI [#341](https://github.com/JosephBARBIERDARNAL/page/issues/341)
+- **Fix**: Include generated API files in the published WASM package [#334](https://github.com/JosephBARBIERDARNAL/page/issues/334)
+- **Refactor**: Remove the obsolete validation report status field
+- **Refactor**: Replace `ttf-parser` with `read-fonts` for embedded font inspection [#36](https://github.com/JosephBARBIERDARNAL/page/issues/36)
+- **Feat**: Report distinct failed rules and raw failed checks [#306](https://github.com/JosephBARBIERDARNAL/page/issues/306)
+- **Perf**: Consolidate raw syntax and stream scans [#328](https://github.com/JosephBARBIERDARNAL/page/issues/328)
+- **Perf**: Cache font usages, shown bytes, CIDs, and embedded font streams [#327](https://github.com/JosephBARBIERDARNAL/page/issues/327)
+- **Perf**: Defer whole-document font summaries on the lazy validation path [#326](https://github.com/JosephBARBIERDARNAL/page/issues/326)
+- **Doc**: Add page dedicated to safety limits [#320](https://github.com/JosephBARBIERDARNAL/page/issues/320)
+- **Perf**: Expand the benchmark with profile comparisons and a feature-heavy fixture
+- **Perf**: Make document feature inspection profile-demand driven [#325](https://github.com/JosephBARBIERDARNAL/page/issues/325)
+- **Perf**: Inferred-profile summary mode now uses lazy validation [#324](https://github.com/JosephBARBIERDARNAL/page/issues/324)
 
 ## 0.7.0
 
-- Fix: Invalid error message made for the CLI is used by all consumers [#312](https://github.com/JosephBARBIERDARNAL/page/issues/312)
-- Fix: ToUnicode CMap ranges lack a cumulative expansion limit [#318](https://github.com/JosephBARBIERDARNAL/page/issues/318)
-- Fix: Tagged-table spans can cause unbounded grid allocations [#317](https://github.com/JosephBARBIERDARNAL/page/issues/317)
-- Fix: font stream decode fallback bypasses max_decoded_stream_size [#316](https://github.com/JosephBARBIERDARNAL/page/issues/316)
-- Fix: encrypted PDFs can bypass the configured object-count limit [#315](https://github.com/JosephBARBIERDARNAL/page/issues/315)
-- Doc: make a better landing page [#282](https://github.com/JosephBARBIERDARNAL/page/issues/282)
-- Doc: add changelog page [#274](https://github.com/JosephBARBIERDARNAL/page/issues/274)
+- **Fix**: Invalid error message made for the CLI is used by all consumers [#312](https://github.com/JosephBARBIERDARNAL/page/issues/312)
+- **Fix**: ToUnicode CMap ranges lack a cumulative expansion limit [#318](https://github.com/JosephBARBIERDARNAL/page/issues/318)
+- **Fix**: Tagged-table spans can cause unbounded grid allocations [#317](https://github.com/JosephBARBIERDARNAL/page/issues/317)
+- **Fix**: font stream decode fallback bypasses max_decoded_stream_size [#316](https://github.com/JosephBARBIERDARNAL/page/issues/316)
+- **Fix**: encrypted PDFs can bypass the configured object-count limit [#315](https://github.com/JosephBARBIERDARNAL/page/issues/315)
+- **Doc**: make a better landing page [#282](https://github.com/JosephBARBIERDARNAL/page/issues/282)
+- **Doc**: add changelog page [#274](https://github.com/JosephBARBIERDARNAL/page/issues/274)

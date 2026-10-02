@@ -45,70 +45,65 @@ struct SafetyLimitsInput {
 
 impl SafetyLimitsInput {
     fn into_limits(self) -> SafetyLimits {
-        let defaults = SafetyLimits::default();
+        let mut limits = SafetyLimits::default();
         let unlimited = SafetyLimits::unlimited();
-        SafetyLimits {
-            max_input_size: self
-                .max_input_size
-                .map_or(defaults.max_input_size, |limit| {
-                    limit.resolve(unlimited.max_input_size)
-                }),
-            max_decoded_stream_size: self
-                .max_decoded_stream_size
-                .map_or(defaults.max_decoded_stream_size, |limit| {
-                    limit.resolve(unlimited.max_decoded_stream_size)
-                }),
-            max_total_decoded_content_size: self
-                .max_total_decoded_content_size
-                .map_or(defaults.max_total_decoded_content_size, |limit| {
-                    limit.resolve(unlimited.max_total_decoded_content_size)
-                }),
-            max_form_invocations: self
-                .max_form_invocations
-                .map_or(defaults.max_form_invocations, |limit| {
-                    limit.resolve(unlimited.max_form_invocations)
-                }),
-            max_object_count: self
-                .max_object_count
-                .map_or(defaults.max_object_count, |limit| {
-                    limit.resolve(unlimited.max_object_count)
-                }),
-            max_reference_depth: self
-                .max_reference_depth
-                .map_or(defaults.max_reference_depth, |limit| {
-                    limit.resolve(unlimited.max_reference_depth)
-                }),
-            max_xref_revisions: self
-                .max_xref_revisions
-                .map_or(defaults.max_xref_revisions, |limit| {
-                    limit.resolve(unlimited.max_xref_revisions)
-                }),
-            max_table_span: self
-                .max_table_span
-                .map_or(defaults.max_table_span, |limit| {
-                    limit.resolve(unlimited.max_table_span)
-                }),
-            max_table_grid_rows: self
-                .max_table_grid_rows
-                .map_or(defaults.max_table_grid_rows, |limit| {
-                    limit.resolve(unlimited.max_table_grid_rows)
-                }),
-            max_table_grid_columns: self
-                .max_table_grid_columns
-                .map_or(defaults.max_table_grid_columns, |limit| {
-                    limit.resolve(unlimited.max_table_grid_columns)
-                }),
-            max_table_grid_cells: self
-                .max_table_grid_cells
-                .map_or(defaults.max_table_grid_cells, |limit| {
-                    limit.resolve(unlimited.max_table_grid_cells)
-                }),
-            max_unicode_cmap_mappings: self
-                .max_unicode_cmap_mappings
-                .map_or(defaults.max_unicode_cmap_mappings, |limit| {
-                    limit.resolve(unlimited.max_unicode_cmap_mappings)
-                }),
-        }
+        limits.max_input_size = self.max_input_size.map_or(limits.max_input_size, |limit| {
+            limit.resolve(unlimited.max_input_size)
+        });
+        limits.max_decoded_stream_size = self
+            .max_decoded_stream_size
+            .map_or(limits.max_decoded_stream_size, |limit| {
+                limit.resolve(unlimited.max_decoded_stream_size)
+            });
+        limits.max_total_decoded_content_size = self
+            .max_total_decoded_content_size
+            .map_or(limits.max_total_decoded_content_size, |limit| {
+                limit.resolve(unlimited.max_total_decoded_content_size)
+            });
+        limits.max_form_invocations = self
+            .max_form_invocations
+            .map_or(limits.max_form_invocations, |limit| {
+                limit.resolve(unlimited.max_form_invocations)
+            });
+        limits.max_object_count = self
+            .max_object_count
+            .map_or(limits.max_object_count, |limit| {
+                limit.resolve(unlimited.max_object_count)
+            });
+        limits.max_reference_depth = self
+            .max_reference_depth
+            .map_or(limits.max_reference_depth, |limit| {
+                limit.resolve(unlimited.max_reference_depth)
+            });
+        limits.max_xref_revisions = self
+            .max_xref_revisions
+            .map_or(limits.max_xref_revisions, |limit| {
+                limit.resolve(unlimited.max_xref_revisions)
+            });
+        limits.max_table_span = self.max_table_span.map_or(limits.max_table_span, |limit| {
+            limit.resolve(unlimited.max_table_span)
+        });
+        limits.max_table_grid_rows = self
+            .max_table_grid_rows
+            .map_or(limits.max_table_grid_rows, |limit| {
+                limit.resolve(unlimited.max_table_grid_rows)
+            });
+        limits.max_table_grid_columns = self
+            .max_table_grid_columns
+            .map_or(limits.max_table_grid_columns, |limit| {
+                limit.resolve(unlimited.max_table_grid_columns)
+            });
+        limits.max_table_grid_cells = self
+            .max_table_grid_cells
+            .map_or(limits.max_table_grid_cells, |limit| {
+                limit.resolve(unlimited.max_table_grid_cells)
+            });
+        limits.max_unicode_cmap_mappings = self
+            .max_unicode_cmap_mappings
+            .map_or(limits.max_unicode_cmap_mappings, |limit| {
+                limit.resolve(unlimited.max_unicode_cmap_mappings)
+            });
+        limits
     }
 }
 
@@ -163,7 +158,7 @@ fn validation_options(
 }
 
 fn report_json(report: ValidationReport) -> Result<String, JsValue> {
-    serde_json::to_string(&report).map_err(|error| {
+    serde_json::to_string(&report.json_report()).map_err(|error| {
         js_error(
             "ValidationError",
             format!("could not serialize report: {error}"),
@@ -171,7 +166,7 @@ fn report_json(report: ValidationReport) -> Result<String, JsValue> {
     })
 }
 
-/// Validates PDF bytes and returns the complete structured report as JSON.
+/// Validates PDF bytes and returns the stable JSON report.
 #[wasm_bindgen(js_name = validatePdfBytes)]
 pub fn validate_pdf_bytes_wasm(
     bytes: &[u8],

@@ -13,7 +13,7 @@ use pyo3::prelude::*;
 create_exception!(_page, ValidationError, PyException);
 
 #[pyclass(name = "ValidationProfile", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum ValidationProfile {
     #[pyo3(name = "PDF_A_1B")]
     PdfA1b,
@@ -63,9 +63,11 @@ impl From<ValidationProfile> for RustValidationProfile {
     }
 }
 
-impl From<RustValidationProfile> for ValidationProfile {
-    fn from(profile: RustValidationProfile) -> Self {
-        match profile {
+impl TryFrom<RustValidationProfile> for ValidationProfile {
+    type Error = PyErr;
+
+    fn try_from(profile: RustValidationProfile) -> PyResult<Self> {
+        Ok(match profile {
             RustValidationProfile::PdfA1b => Self::PdfA1b,
             RustValidationProfile::PdfA1a => Self::PdfA1a,
             RustValidationProfile::PdfA2b => Self::PdfA2b,
@@ -79,31 +81,37 @@ impl From<RustValidationProfile> for ValidationProfile {
             RustValidationProfile::PdfA4f => Self::PdfA4f,
             RustValidationProfile::PdfUa1 => Self::PdfUa1,
             RustValidationProfile::PdfUa2 => Self::PdfUa2,
-        }
+            _ => {
+                return Err(ValidationError::new_err(format!(
+                    "validation profile {profile} is not supported by the Python bindings"
+                )));
+            }
+        })
     }
 }
 
 #[pyclass(name = "FailureCategory", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum FailureCategory {
-    #[pyo3(name = "OPERATIONAL")]
-    Operational,
-    #[pyo3(name = "PARSER")]
-    Parser,
     #[pyo3(name = "METADATA")]
     Metadata,
     #[pyo3(name = "CONFORMANCE")]
     Conformance,
 }
 
-impl From<RustFailureCategory> for FailureCategory {
-    fn from(category: RustFailureCategory) -> Self {
-        match category {
-            RustFailureCategory::Operational => Self::Operational,
-            RustFailureCategory::Parser => Self::Parser,
+impl TryFrom<RustFailureCategory> for FailureCategory {
+    type Error = PyErr;
+
+    fn try_from(category: RustFailureCategory) -> PyResult<Self> {
+        Ok(match category {
             RustFailureCategory::Metadata => Self::Metadata,
             RustFailureCategory::Conformance => Self::Conformance,
-        }
+            _ => {
+                return Err(ValidationError::new_err(format!(
+                    "failure category {category:?} is not supported by the Python bindings"
+                )));
+            }
+        })
     }
 }
 
@@ -155,7 +163,7 @@ impl SafetyLimits {
         max_unicode_cmap_mappings: Option<usize>,
     ) -> Self {
         let defaults = RustSafetyLimits::default();
-        RustSafetyLimits {
+        Self {
             max_input_size: max_input_size.unwrap_or(defaults.max_input_size),
             max_decoded_stream_size: max_decoded_stream_size
                 .unwrap_or(defaults.max_decoded_stream_size),
@@ -173,7 +181,6 @@ impl SafetyLimits {
             max_unicode_cmap_mappings: max_unicode_cmap_mappings
                 .unwrap_or(defaults.max_unicode_cmap_mappings),
         }
-        .into()
     }
 
     /// Disable all configurable safety limits. Use only with trusted files.
@@ -261,20 +268,19 @@ impl From<RustSafetyLimits> for SafetyLimits {
 
 impl From<&SafetyLimits> for RustSafetyLimits {
     fn from(limits: &SafetyLimits) -> Self {
-        Self {
-            max_input_size: limits.max_input_size,
-            max_decoded_stream_size: limits.max_decoded_stream_size,
-            max_total_decoded_content_size: limits.max_total_decoded_content_size,
-            max_form_invocations: limits.max_form_invocations,
-            max_object_count: limits.max_object_count,
-            max_reference_depth: limits.max_reference_depth,
-            max_xref_revisions: limits.max_xref_revisions,
-            max_table_span: limits.max_table_span,
-            max_table_grid_rows: limits.max_table_grid_rows,
-            max_table_grid_columns: limits.max_table_grid_columns,
-            max_table_grid_cells: limits.max_table_grid_cells,
-            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings,
-        }
+        Self::default()
+            .max_input_size(limits.max_input_size)
+            .max_decoded_stream_size(limits.max_decoded_stream_size)
+            .max_total_decoded_content_size(limits.max_total_decoded_content_size)
+            .max_form_invocations(limits.max_form_invocations)
+            .max_object_count(limits.max_object_count)
+            .max_reference_depth(limits.max_reference_depth)
+            .max_xref_revisions(limits.max_xref_revisions)
+            .max_table_span(limits.max_table_span)
+            .max_table_grid_rows(limits.max_table_grid_rows)
+            .max_table_grid_columns(limits.max_table_grid_columns)
+            .max_table_grid_cells(limits.max_table_grid_cells)
+            .max_unicode_cmap_mappings(limits.max_unicode_cmap_mappings)
     }
 }
 
@@ -333,17 +339,17 @@ impl ValidationFailure {
     }
 
     #[getter]
-    fn category(&self) -> FailureCategory {
-        self.inner.category.into()
+    fn category(&self) -> PyResult<FailureCategory> {
+        self.inner.category.try_into()
     }
 
-    fn __repr__(&self) -> String {
-        format!(
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
             "ValidationFailure(rule_id={:?}, category={:?}, message={:?})",
             self.inner.rule_id,
-            FailureCategory::from(self.inner.category),
+            self.category()?,
             self.inner.message,
-        )
+        ))
     }
 }
 
@@ -437,8 +443,8 @@ impl From<RustValidationReport> for ValidationReport {
 #[pymethods]
 impl ValidationReport {
     #[getter]
-    fn profile(&self) -> ValidationProfile {
-        self.inner.profile.into()
+    fn profile(&self) -> PyResult<ValidationProfile> {
+        self.inner.profile.try_into()
     }
 
     #[getter]
@@ -476,10 +482,6 @@ impl ValidationReport {
             .collect()
     }
 
-    fn has_operational_failure(&self) -> bool {
-        self.inner.has_operational_failure()
-    }
-
     fn exit_code(&self) -> i32 {
         self.inner.exit_code()
     }
@@ -493,13 +495,13 @@ impl ValidationReport {
         self.inner.to_string()
     }
 
-    fn __repr__(&self) -> String {
-        format!(
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
             "ValidationReport(profile={:?}, is_compliant={}, failures={})",
-            ValidationProfile::from(self.inner.profile),
+            self.profile()?,
             self.inner.is_compliant,
             self.inner.failures.len(),
-        )
+        ))
     }
 }
 

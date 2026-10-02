@@ -60,18 +60,8 @@ impl ValidationFailures {
 }
 
 /// A PDF/A or PDF/UA conformance level this crate can validate a document against.
-///
-/// A profile is either declared by a document's own XMP identification schema or selected explicitly by a caller through [`ValidationOptions::profile`]. Not every profile in this enum is implemented yet; `Self::is_implemented` reports which ones a `ValidationReport`'s `is_compliant` can be trusted for, and `Self::implemented_check_count` reports how many rules currently back that result.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::ValidationProfile;
-///
-/// assert_eq!(ValidationProfile::PdfA1b.to_string(), "PDF/A-1b");
-/// assert!(ValidationProfile::PdfA1b.is_implemented());
-/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub enum ValidationProfile {
     #[serde(rename = "1b")]
     PdfA1b,
@@ -224,20 +214,6 @@ fn only<T>(items: &[T]) -> Option<&T> {
 }
 
 /// Options shared by every validation entry point.
-///
-/// The default infers the profile from the document's XMP identification schema and enforces [`SafetyLimits::default`]. Options are set with chainable setters so new options can be added without breaking callers.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::{SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf};
-///
-/// let options = ValidationOptions::default()
-///     .profile(ValidationProfile::PdfA1b)
-///     .limits(SafetyLimits::unlimited());
-/// let report = validate_pdf("input.pdf", &options)?;
-/// # Ok::<(), page_validation::ValidationError>(())
-/// ```
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct ValidationOptions {
@@ -268,6 +244,7 @@ impl ValidationOptions {
 /// validator finds the first failing rule.
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ComplianceResult {
     /// The profile used for validation.
     pub profile: ValidationProfile,
@@ -282,31 +259,6 @@ enum ValidationMode {
 }
 
 /// Reads a file from disk and validates it against a selected profile.
-///
-/// Leave the options' profile unset to infer it from the document's XMP metadata, or set it to validate against that profile regardless of the declaration. This is the file-based counterpart of [`validate_pdf_bytes`]. It enforces the `max_input_size` limit against the file's size before reading it into memory and bounds the read if the file grows, then delegates to `validate_pdf_bytes`. The returned report has its `source` set to `path`.
-///
-/// ## Arguments
-///
-/// - `path` - The PDF file to read and validate.
-/// - `options` - The validation profile and resource bounds enforced while reading, parsing, and inspecting the document.
-///
-/// ## Returns
-///
-/// A `ValidationReport` describing which implemented checks for the selected profile passed or failed, with `source` set to `path`.
-///
-/// ## Errors
-///
-/// Returns `ValidationError::InputIo` if `path` cannot be read or its size cannot be determined, every parser or safety-limit error `validate_pdf_bytes` can return once the file content is available, and a profile-declaration error when no profile is set and XMP does not unambiguously declare an implemented profile.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::{ValidationOptions, validate_pdf};
-///
-/// let report = validate_pdf("input.pdf", &ValidationOptions::default())?;
-/// println!("{report}");
-/// # Ok::<(), page_validation::ValidationError>(())
-/// ```
 pub fn validate_pdf(
     path: impl AsRef<Path>,
     options: &ValidationOptions,
@@ -348,30 +300,6 @@ fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationEr
 }
 
 /// Validates PDF bytes already in memory against a selected profile.
-///
-/// Leave the options' profile unset to infer it from the document's XMP Identification schema, or set it to validate against that profile regardless of the declaration.
-///
-/// ## Arguments
-///
-/// - `bytes` - The complete PDF file content.
-/// - `options` - The validation profile and resource bounds enforced while parsing and inspecting the document.
-///
-/// ## Returns
-///
-/// A `ValidationReport` describing which implemented checks for the selected profile passed or failed.
-///
-/// ## Errors
-///
-/// Returns `ValidationError::Pdf` if parsing or inspecting the object graph fails or a `SafetyLimits` bound is exceeded, `ValidationError::MissingProfileDeclaration` or `ValidationError::InvalidProfileDeclaration` if no profile is set and XMP does not unambiguously declare a profile, and `ValidationError::UnsupportedProfile` if the selected profile is not implemented yet.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::{ValidationOptions, validate_pdf_bytes};
-///
-/// let error = validate_pdf_bytes(b"not a pdf", &ValidationOptions::default()).unwrap_err();
-/// println!("{error}");
-/// ```
 pub fn validate_pdf_bytes(
     bytes: &[u8],
     options: &ValidationOptions,
@@ -412,18 +340,6 @@ fn reject_unimplemented_profile(profile: Option<ValidationProfile>) -> Result<()
 }
 
 /// Performs lazy validation of a file and returns only the compliance outcome.
-///
-/// The source and profile-selection behavior matches [`validate_pdf`], but lazy validation stops after the first failing rule, so it is usually much faster on non-compliant documents.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::{ValidationOptions, ValidationProfile, is_pdf_compliant};
-///
-/// let options = ValidationOptions::default().profile(ValidationProfile::PdfA2b);
-/// let is_compliant = is_pdf_compliant("input.pdf", &options)?;
-/// # Ok::<(), page_validation::ValidationError>(())
-/// ```
 pub fn is_pdf_compliant(
     path: impl AsRef<Path>,
     options: &ValidationOptions,

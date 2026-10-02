@@ -1,18 +1,17 @@
 //! Defines the stable serializable JSON view of a validation report for client applications.
 //!
-//! Report conversion copies the source, profile, compliance result, counts, and rule failures
-//! into shared output types. Parser and operational failures use a separate error field and
-//! omit conformance findings and counts, keeping the wire representation consistent across
-//! consumers.
+//! Report conversion copies the source, profile, compliance result, counts, and rule failures into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
 
 use serde::Serialize;
 
+use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationProfile, ValidationReport,
+    ValidationCheckCounts, ValidationCounts, ValidationError, ValidationProfile, ValidationReport,
 };
 
 /// Stable, serializable representation of a validation report.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
@@ -28,55 +27,114 @@ pub struct JsonValidationReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonFailure {
     pub rule: String,
     pub message: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub struct JsonError {
     pub kind: JsonErrorKind,
     pub rule: String,
     pub message: String,
 }
 
+/// A parser or operational JSON error category, with room for future categories.
+///
+/// ```compile_fail,E0004
+/// use page_validation::JsonErrorKind;
+/// fn label(kind: JsonErrorKind) -> &'static str {
+///     match kind {
+///         JsonErrorKind::Parser => "parser",
+///         JsonErrorKind::Operational => "operational",
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum JsonErrorKind {
     Parser,
     Operational,
 }
 
+impl JsonValidationReport {
+    /// Converts a terminal validation error into the shared JSON representation.
+    ///
+    /// Parser and operational errors populate the `error` field. The indirect-object limit is a conformance finding, so it populates `failures` and its corresponding rule counts.
+    #[must_use]
+    pub fn from_validation_error(
+        file: Option<String>,
+        profile: Option<ValidationProfile>,
+        error: ValidationError,
+    ) -> Self {
+        let (rules, checks, failures, error) = match error.disposition(profile) {
+            ValidationErrorDisposition::Conformance {
+                rule_id,
+                actual,
+                limit,
+            } => (
+                Some(ValidationCounts {
+                    total: 1,
+                    passed: 0,
+                    failed: 1,
+                }),
+                Some(ValidationCheckCounts { failed: 1 }),
+                vec![JsonFailure {
+                    rule: rule_id.to_owned(),
+                    message: format!(
+                        "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
+                    ),
+                }],
+                None,
+            ),
+            ValidationErrorDisposition::Operational { rule_id } => (
+                None,
+                None,
+                Vec::new(),
+                Some(JsonError {
+                    kind: JsonErrorKind::Operational,
+                    rule: rule_id.to_owned(),
+                    message: error.to_string(),
+                }),
+            ),
+            ValidationErrorDisposition::Parser { rule_id } => (
+                None,
+                None,
+                Vec::new(),
+                Some(JsonError {
+                    kind: JsonErrorKind::Parser,
+                    rule: rule_id.to_owned(),
+                    message: error.to_string(),
+                }),
+            ),
+        };
+
+        Self {
+            file,
+            profile,
+            valid: false,
+            rules,
+            checks,
+            failures,
+            error,
+        }
+    }
+}
+
 impl ValidationReport {
     /// Returns the stable, serializable JSON representation of this report.
     pub fn json_report(&self) -> JsonValidationReport {
-        let error = self
+        let failures = self
             .failures
             .iter()
-            .find_map(|failure| match failure.category {
-                FailureCategory::Parser => Some(JsonError {
-                    kind: JsonErrorKind::Parser,
-                    rule: failure.rule_id.clone(),
-                    message: failure.message.clone(),
-                }),
-                FailureCategory::Operational => Some(JsonError {
-                    kind: JsonErrorKind::Operational,
-                    rule: failure.rule_id.clone(),
-                    message: failure.message.clone(),
-                }),
-                FailureCategory::Metadata | FailureCategory::Conformance => None,
-            });
-        let failures = if error.is_some() {
-            Vec::new()
-        } else {
-            self.failures
-                .iter()
-                .map(|failure| JsonFailure {
-                    rule: failure.rule_id.clone(),
-                    message: failure.message.clone(),
-                })
-                .collect()
-        };
+            .map(|failure| JsonFailure {
+                rule: failure.rule_id.clone(),
+                message: failure.message.clone(),
+            })
+            .collect();
 
         JsonValidationReport {
             file: self
@@ -85,10 +143,10 @@ impl ValidationReport {
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
             valid: self.is_compliant,
-            rules: error.is_none().then_some(self.rules),
-            checks: error.is_none().then_some(self.checks),
+            rules: Some(self.rules),
+            checks: Some(self.checks),
             failures,
-            error,
+            error: None,
         }
     }
 }
@@ -97,8 +155,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure,
-        ValidationProfile, ValidationReport,
+        FailureCategory, PdfError, ValidationCheckCounts, ValidationCounts, ValidationError,
+        ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -136,27 +194,12 @@ mod tests {
     }
 
     #[test]
-    fn json_report_separates_parser_errors_from_failures() {
-        let report = ValidationReport {
-            source: None,
-            profile: ValidationProfile::PdfA1b,
-            is_compliant: false,
-            rules: ValidationCounts {
-                total: 1,
-                passed: 0,
-                failed: 1,
-            },
-            checks: ValidationCheckCounts { failed: 1 },
-            document: None,
-            failures: vec![ValidationFailure {
-                rule_id: "PDF-PARSE-001".to_owned(),
-                message: "malformed PDF".to_owned(),
-                object_id: None,
-                category: FailureCategory::Parser,
-            }],
-        };
-
-        let json: JsonValidationReport = report.json_report();
+    fn terminal_parser_errors_use_the_shared_json_error_path() {
+        let json = JsonValidationReport::from_validation_error(
+            None,
+            Some(ValidationProfile::PdfA1b),
+            ValidationError::Pdf(PdfError::UnexpectedObject("catalog")),
+        );
 
         assert!(json.failures.is_empty());
         assert!(json.rules.is_none());
@@ -165,6 +208,41 @@ mod tests {
             json.error.expect("parser error").kind,
             JsonErrorKind::Parser
         );
+    }
+
+    #[test]
+    fn indirect_object_limit_stays_a_conformance_finding_in_json() {
+        let cases = [
+            (
+                ValidationProfile::PdfA1b,
+                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA2b,
+                "PDFA2B-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (
+                ValidationProfile::PdfA3u,
+                "PDFA3U-INDIRECT-OBJECT-COUNT-001",
+            ),
+            (ValidationProfile::PdfUa1, "PDF-INDIRECT-OBJECT-COUNT-001"),
+        ];
+
+        for (profile, expected_rule) in cases {
+            let json = JsonValidationReport::from_validation_error(
+                None,
+                Some(profile),
+                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
+                    actual: 8_388_608,
+                    limit: 8_388_607,
+                }),
+            );
+
+            assert_eq!(json.failures[0].rule, expected_rule);
+            assert_eq!(json.rules.expect("conformance counts").failed, 1);
+            assert_eq!(json.checks.expect("conformance checks").failed, 1);
+            assert!(json.error.is_none());
+        }
     }
 
     #[test]

@@ -269,7 +269,7 @@ fn jpx_stream_bytes<'a>(
             lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. }) => {
                 PdfError::ContentDecodeLimit(limits.max_decoded_stream_size)
             }
-            error => PdfError::Parse(error),
+            error => PdfError::parse(error),
         })
 }
 

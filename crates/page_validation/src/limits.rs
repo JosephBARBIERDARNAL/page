@@ -1,27 +1,13 @@
 //! Defines the configurable resource ceilings used throughout PDF parsing and inspection.
 //!
-//! `SafetyLimits` supplies finite defaults and an unlimited preset for input, decoded streams,
-//! object traversal, Form execution, table grids, and Unicode CMap expansion. A separate
-//! constant records the PDF/A-1 indirect-object conformance limit, which remains distinct from
-//! configurable operational bounds.
+//! `SafetyLimits` supplies finite defaults, an unlimited preset, and chainable setters for input,
+//! decoded streams, object traversal, Form execution, table grids, and Unicode CMap expansion.
+//! A separate constant records the PDF/A-1 indirect-object conformance limit, which remains
+//! distinct from configurable operational bounds.
 
 /// Configurable bounds that keep PDF parsing and inspection resource use predictable regardless of what an untrusted input contains.
-///
-/// Each field caps a distinct resource: the raw input size, a single decoded stream, the combined decoded content streams and font streams retained during inspection, the number of Form XObject invocations, the number of indirect objects, the depth of a chased reference chain, the number of incremental-update revisions read from the cross-reference chain, an individual table-cell span, the dimensions of an inspected table grid, or the number of mappings expanded from one ToUnicode CMap. Exceeding any of these bounds during validation produces a `PdfError` variant instead of letting parsing or inspection consume unbounded memory or CPU. `Self::default` uses this type's `DEFAULT_*` associated constants.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::SafetyLimits;
-///
-/// let limits = SafetyLimits {
-///     max_input_size: 1024,
-///     ..SafetyLimits::default()
-/// };
-/// assert_eq!(limits.max_input_size, 1024);
-/// assert_eq!(limits.max_object_count, SafetyLimits::DEFAULT_MAX_OBJECT_COUNT);
-/// ```
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct SafetyLimits {
     pub max_input_size: u64,
     pub max_decoded_stream_size: usize,
@@ -38,6 +24,90 @@ pub struct SafetyLimits {
 }
 
 impl SafetyLimits {
+    /// Sets the maximum input size in bytes.
+    #[must_use]
+    pub const fn max_input_size(mut self, limit: u64) -> Self {
+        self.max_input_size = limit;
+        self
+    }
+
+    /// Sets the maximum decoded size of a single stream in bytes.
+    #[must_use]
+    pub const fn max_decoded_stream_size(mut self, limit: usize) -> Self {
+        self.max_decoded_stream_size = limit;
+        self
+    }
+
+    /// Sets the maximum combined decoded content and retained font-stream size in bytes.
+    #[must_use]
+    pub const fn max_total_decoded_content_size(mut self, limit: usize) -> Self {
+        self.max_total_decoded_content_size = limit;
+        self
+    }
+
+    /// Sets the maximum number of Form XObject invocations across a document.
+    #[must_use]
+    pub const fn max_form_invocations(mut self, limit: usize) -> Self {
+        self.max_form_invocations = limit;
+        self
+    }
+
+    /// Sets the maximum number of parsed indirect objects.
+    #[must_use]
+    pub const fn max_object_count(mut self, limit: usize) -> Self {
+        self.max_object_count = limit;
+        self
+    }
+
+    /// Sets the maximum depth of a reference chain.
+    #[must_use]
+    pub const fn max_reference_depth(mut self, limit: usize) -> Self {
+        self.max_reference_depth = limit;
+        self
+    }
+
+    /// Sets the maximum number of cross-reference revisions.
+    #[must_use]
+    pub const fn max_xref_revisions(mut self, limit: usize) -> Self {
+        self.max_xref_revisions = limit;
+        self
+    }
+
+    /// Sets the maximum row or column span of a table cell.
+    #[must_use]
+    pub const fn max_table_span(mut self, limit: usize) -> Self {
+        self.max_table_span = limit;
+        self
+    }
+
+    /// Sets the maximum number of rows in an inspected table grid.
+    #[must_use]
+    pub const fn max_table_grid_rows(mut self, limit: usize) -> Self {
+        self.max_table_grid_rows = limit;
+        self
+    }
+
+    /// Sets the maximum number of columns in an inspected table grid.
+    #[must_use]
+    pub const fn max_table_grid_columns(mut self, limit: usize) -> Self {
+        self.max_table_grid_columns = limit;
+        self
+    }
+
+    /// Sets the maximum number of cells in an inspected table grid.
+    #[must_use]
+    pub const fn max_table_grid_cells(mut self, limit: usize) -> Self {
+        self.max_table_grid_cells = limit;
+        self
+    }
+
+    /// Sets the maximum number of mappings expanded from one ToUnicode CMap.
+    #[must_use]
+    pub const fn max_unicode_cmap_mappings(mut self, limit: usize) -> Self {
+        self.max_unicode_cmap_mappings = limit;
+        self
+    }
+
     /// Removes all configurable resource ceilings up to the platform's integer bounds.
     ///
     /// Use only with trusted files: validation may consume unrestricted memory and CPU.

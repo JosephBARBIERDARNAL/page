@@ -5,6 +5,24 @@
 //! return either an exhaustive validation report or a lazily evaluated compliance boolean. This
 //! crate exposes shared models, limits, errors, and report types for the CLI and language
 //! bindings; a successful report covers the implemented profile rules.
+//!
+//! # API evolution
+//!
+//! Public structs and enums are non-exhaustive so future releases can add fields and variants.
+//! Construct values with their constructors, conversions, or `Default`; customize
+//! [`SafetyLimits`] with chainable setters or field assignment. Public report fields remain
+//! directly accessible. Destructuring structs requires `..`, and enum matches require a
+//! wildcard arm for future variants.
+//!
+//! ```
+//! use page_validation::FailureCategory;
+//!
+//! let category = FailureCategory::Conformance;
+//! assert_eq!(category, FailureCategory::Conformance);
+//! ```
+//!
+//! Parser, input, profile, and safety-limit failures are returned as `ValidationError` values;
+//! only metadata and conformance findings appear in `ValidationReport::failures`.
 
 mod actions;
 mod annotations;

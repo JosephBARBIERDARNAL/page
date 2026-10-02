@@ -447,7 +447,7 @@ fn validation_json_reports_inferred_profile_errors_without_a_profile() {
 }
 
 #[test]
-fn missing_input_ignores_json_format_and_reports_a_direct_error() {
+fn missing_input_uses_the_json_error_schema_when_requested() {
     let missing =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../page_validation/tests/fixtures/missing.pdf");
     let without_json = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -462,16 +462,23 @@ fn missing_input_ignores_json_format_and_reports_a_direct_error() {
         .expect("run missing PDF validation with JSON format");
 
     assert_eq!(with_json.status.code(), Some(1));
-    assert!(with_json.stdout.is_empty());
+    assert!(with_json.stderr.is_empty());
+    let report: serde_json::Value =
+        serde_json::from_slice(&with_json.stdout).expect("input error JSON");
+    assert_eq!(report["file"], missing.display().to_string());
+    assert_eq!(report["profile"], "1b");
+    assert_eq!(report["valid"], false);
+    assert_eq!(report["error"]["kind"], "operational");
+    assert_eq!(report["error"]["rule"], "INPUT-IO-001");
+
     let missing_file_error = std::io::Error::from_raw_os_error(2);
     assert_eq!(
-        std::str::from_utf8(&with_json.stderr).expect("UTF-8 error"),
+        std::str::from_utf8(&without_json.stderr).expect("UTF-8 error"),
         format!(
             "error: could not read '{}': {missing_file_error}\n",
             missing.display(),
         )
     );
-    assert_eq!(with_json.status, without_json.status);
-    assert_eq!(with_json.stdout, without_json.stdout);
-    assert_eq!(with_json.stderr, without_json.stderr);
+    assert_eq!(without_json.status.code(), Some(1));
+    assert!(without_json.stdout.is_empty());
 }

@@ -84,31 +84,13 @@ const report = await validatePdfBytes(bytes);
 
 for (const failure of report.failures) {
   console.log(`Rule: ${failure.ruleId}`);
-  console.log(`Category: ${failure.category}`);
   console.log(`Message: ${failure.message}`);
 }
 ```
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
-Failure categories distinguish conformance problems from parser or operational errors:
-
-```ts
-import { FailureCategory } from "page-validation-wasm";
-
-for (const failure of report.failures) {
-  if (
-    failure.category === FailureCategory.METADATA ||
-    failure.category === FailureCategory.CONFORMANCE
-  ) {
-    // The PDF was parsed, but failed a validation rule.
-  } else if (failure.category === FailureCategory.PARSER) {
-    // The PDF could not be parsed correctly.
-  } else if (failure.category === FailureCategory.OPERATIONAL) {
-    // Validation failed because of I/O or another runtime issue.
-  }
-}
-```
+Input, parser, profile, and safety-limit failures throw `ValidationError` and do not appear in a report.
 
 ## Safety limits
 
@@ -156,7 +138,7 @@ const report = await validatePdfBytes(bytes);
 process.exitCode = report.exitCode();
 ```
 
-The exit code is `0` for a compliant report, `2` for a noncompliant report, and `1` when the report contains an operational failure.
+The exit code is `0` for a compliant report and `2` for a noncompliant report. Input, parser, profile, and safety-limit failures reject with `ValidationError` before a report is returned.
 
 ## Export the report
 
@@ -168,3 +150,5 @@ import { validatePdfBytes } from "page-validation-wasm";
 const report = await validatePdfBytes(bytes);
 const json = report.toJson();
 ```
+
+`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. The schema includes the file when available, profile, validity, rule and check counts, concise rule failures, and optional parser or operational error details. Wasm terminal errors still reject with `ValidationError` before a report is returned.

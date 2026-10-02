@@ -43,10 +43,7 @@ fn normalization_retains_output_intent_diagnostics() {
 
 #[test]
 fn oversized_decoded_icc_profile_is_an_operational_failure() {
-    let limits = SafetyLimits {
-        max_decoded_stream_size: 2048,
-        ..SafetyLimits::default()
-    };
+    let limits = SafetyLimits::default().max_decoded_stream_size(2048);
     let error = validate_pdf_bytes(
         &common::output_intent_fixture("large_compressed_profile"),
         &ValidationOptions::default()

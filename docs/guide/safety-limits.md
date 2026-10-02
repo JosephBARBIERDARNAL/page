@@ -67,10 +67,7 @@ Each factory returns a fresh limits object. Library callers can start with unlim
 === "Rust"
 
     ```rust
-    let limits = SafetyLimits {
-        max_input_size: 512 * 1024 * 1024,
-        ..SafetyLimits::unlimited()
-    };
+    let limits = SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024);
     ```
 
 === "Python"

@@ -95,10 +95,7 @@ fn lazy_validation_skips_unused_font_summary_resolution() {
 
 #[test]
 fn decoded_content_limit_is_an_operational_failure() {
-    let limits = SafetyLimits {
-        max_decoded_stream_size: 2048,
-        ..SafetyLimits::default()
-    };
+    let limits = SafetyLimits::default().max_decoded_stream_size(2048);
     let bytes = common::font_fixture("large_content");
     PdfDocument::from_bytes(&bytes, &limits)
         .expect("public normalization does not run private font content traversal");
@@ -117,10 +114,7 @@ fn decoded_content_limit_is_an_operational_failure() {
 
 #[test]
 fn graphics_state_stack_is_bounded() {
-    let limits = SafetyLimits {
-        max_reference_depth: 4,
-        ..SafetyLimits::default()
-    };
+    let limits = SafetyLimits::default().max_reference_depth(4);
     let error = validate_pdf_bytes(
         &common::font_fixture("deep_graphics_state"),
         &ValidationOptions::default()

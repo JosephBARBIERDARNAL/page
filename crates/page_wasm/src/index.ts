@@ -2,15 +2,14 @@ import * as wasm from "../dist/page_validation.js";
 import { createApi } from "./api.js";
 
 export {
-  FailureCategory,
   SafetyLimits,
   ValidationError,
   ValidationProfile,
   ValidationReport,
 } from "./api.js";
 export type {
-  PdfDocument,
-  PdfObjectId,
+  JsonValidationError,
+  JsonValidationReport,
   SafetyLimitsOptions,
   ValidationCheckCounts,
   ValidationCounts,

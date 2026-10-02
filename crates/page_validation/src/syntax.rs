@@ -472,7 +472,7 @@ struct RawParser<'a> {
 impl<'a> RawParser<'a> {
     fn at(bytes: &'a [u8], position: usize, limits: &SafetyLimits) -> Result<Self, PdfError> {
         if position > bytes.len() {
-            return Err(PdfError::Parse(lopdf::Error::InvalidStream(
+            return Err(PdfError::parse(lopdf::Error::InvalidStream(
                 "raw object offset is outside the input".to_owned(),
             )));
         }

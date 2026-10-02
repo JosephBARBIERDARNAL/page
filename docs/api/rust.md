@@ -4,6 +4,8 @@ title: "Rust"
 
 The [`page_validation`](https://crates.io/crates/page_validation) crate validates PDF files against a supported PDF/A or PDF/UA profile. This page contains most common usages, but you can find reference documentation at [docs.rs](https://docs.rs/page_validation/latest/page_validation/index.html).
 
+Public structs and enums are `#[non_exhaustive]` so future releases can add fields and variants. Use constructors, conversions, or `Default` to create values, include `..` when destructuring structs, and include a wildcard arm when matching enums. Report fields remain directly accessible.
+
 ## Installation
 
 ```sh
@@ -88,46 +90,41 @@ for failure in &report.failures {
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
-Failure categories distinguish conformance problems from parser or operational errors:
+Failure categories describe findings from rules that ran on a parsed document:
 
 ```rust
 use page_validation::FailureCategory;
 
-match failure.category {
-    FailureCategory::Metadata | FailureCategory::Conformance => {
-        // The PDF was parsed, but failed a validation rule.
-    }
-    FailureCategory::Parser => {
-        // The PDF could not be parsed correctly.
-    }
-    FailureCategory::Operational => {
-        // Validation failed because of I/O or another runtime issue.
+for failure in &report.failures {
+    match failure.category {
+        FailureCategory::Metadata => { /* XMP or document-information finding. */ }
+        FailureCategory::Conformance => { /* PDF/A or PDF/UA rule finding. */ }
+        _ => {
+            // Handle categories added by future releases.
+        }
     }
 }
 ```
+
+Input, parser, profile, and safety-limit failures are returned as `Err(ValidationError)` and do not appear in a report. Handle them separately with `?`, `match`, or `map_err`.
 
 ## Safety limits
 
 Safety limits protect the validator from excessively large or complex inputs. Defaults are sufficient for most cases:
 
 ```rust
-use page_validation::SafetyLimits;
+use page_validation::{SafetyLimits, ValidationOptions, validate_pdf};
 
-let limits = SafetyLimits {
-    max_input_size: 256 * 1024 * 1024,                 // 256 MiB
-    max_decoded_stream_size: 32 * 1024 * 1024,         // 32 MiB
-    max_total_decoded_content_size: 256 * 1024 * 1024, // 256 MiB
-    max_form_invocations: 10_000,                      // Form XObject expansions per document
-    max_object_count: 1_000_000,                       // 1,000,000 objects
-    max_reference_depth: 256,                          // 256 levels
-    max_xref_revisions: 1_024,                         // 1,024 revisions
-    max_table_span: 1_024,                             // rows or columns per cell
-    max_table_grid_rows: 1_024,                        // rows
-    max_table_grid_columns: 1_024,                     // columns
-    max_table_grid_cells: 1_000_000,                   // cells
-    max_unicode_cmap_mappings: 1_000_000,              // mappings per ToUnicode CMap
-};
+let limits = SafetyLimits::default();
 let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
+```
+
+Customize individual bounds with chainable setters or field assignment:
+
+```rust
+let limits = SafetyLimits::default()
+    .max_input_size(512 * 1024 * 1024)
+    .max_decoded_stream_size(64 * 1024 * 1024);
 ```
 
 `max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
@@ -139,12 +136,15 @@ let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The factory sets every configurable bound to its native integer maximum. You can restore individual bounds using struct update syntax. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
+The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
 
 ## Use the exit code
 
-For command-line integrations or automated checks, the report can provide an appropriate process exit code:
+For command-line integrations or automated checks, the report returns `0` when all implemented checks pass and `2` when it contains metadata or conformance failures. Terminal errors remain `Err(ValidationError)` and have their own `exit_code()` method:
 
 ```rust
-std::process::exit(report.exit_code());
+match validate_pdf("file.pdf", &ValidationOptions::default()) {
+    Ok(report) => std::process::exit(report.exit_code()),
+    Err(error) => std::process::exit(error.exit_code()),
+}
 ```

@@ -3,7 +3,6 @@ import { describe, expect, it } from "bun:test";
 import * as wasm from "../dist-bun/page_validation.js";
 import {
   createApi,
-  FailureCategory,
   SafetyLimits,
   ValidationError,
   ValidationProfile,
@@ -92,7 +91,7 @@ describe("page-validation", () => {
       limits,
     });
     expect(report.exitCode()).toBe(2);
-    expect(report.document?.objectCount).toBeGreaterThan(0);
+    expect(report.toJSON()).not.toHaveProperty("document");
     await expect(
       isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_A_1B, limits }),
     ).resolves.toBe(false);
@@ -141,11 +140,27 @@ describe("page-validation", () => {
     expect(report.profile).toBe(ValidationProfile.PDF_A_1B);
     expect(report.isCompliant).toBe(false);
     expect(report.failures.length).toBeGreaterThan(0);
-    expect(report.failures[0]?.category).toBe(FailureCategory.CONFORMANCE);
+    expect(report.failures[0]?.ruleId).toBeTruthy();
     expect(report.rules.total).toBeGreaterThan(0);
     expect(report.rules.failed).toBeGreaterThan(0);
     expect(report.checks.failed).toBeGreaterThan(0);
     expect(report.exitCode()).toBe(2);
+
+    const jsonReport = report.toJSON();
+    expect(jsonReport).toMatchObject({
+      profile: "1b",
+      valid: false,
+      rules: report.rules,
+      checks: report.checks,
+      failures: report.failures.map(({ ruleId, message }) => ({
+        rule: ruleId,
+        message,
+      })),
+    });
+    expect(jsonReport).not.toHaveProperty("source");
+    expect(jsonReport).not.toHaveProperty("document");
+    expect(jsonReport).not.toHaveProperty("is_compliant");
+    expect(JSON.parse(report.toJson())).toEqual(jsonReport);
   });
 
   it("returns the lazy compliance result", async () => {
