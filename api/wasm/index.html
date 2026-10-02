@@ -870,10 +870,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1259,10 +1259,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1439,7 +1439,7 @@
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">const</span><span class="w"> </span><span class="nx">isCompliant</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">isPdfCompliantBytes</span><span class="p">(</span><span class="nx">bytes</span><span class="p">);</span>
 </span></code></pre></div>
 <p>Both validation functions take the bytes plus an optional <code>{ profile, limits }</code> options object. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, throws <code>ValidationError</code>.</p>
-<p>The first call initializes the WebAssembly module automatically. Call <code>initialize()</code> during application startup if you want to control initialization explicitly.</p>
+<p>The bundler loads and starts the WebAssembly module with the package, so no initialization call is required. <code>initialize()</code> is an optional no-op Promise for callers who want an explicit startup hook; validation functions await it automatically.</p>
 <h2 id="validate-a-pdf-with-details">Validate a PDF with details<a class="headerlink" href="#validate-a-pdf-with-details" title="Permanent link">&para;</a></h2>
 <p>If you need details about which rules failed, use <code>validatePdfBytes()</code>:</p>
 <div class="language-ts highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"page-validation-wasm"</span><span class="p">;</span>
@@ -1504,14 +1504,16 @@
 <div class="language-ts highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">limits</span><span class="o">:</span><span class="w"> </span><span class="kt">SafetyLimits.unlimited</span><span class="p">()</span><span class="w"> </span><span class="p">});</span>
 </span></code></pre></div>
 <p>The factory returns a fresh object with <code>Infinity</code> in every limit field. Wasm translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive <code>Infinity</code>. Validation may consume unrestricted memory and CPU; see the <a href="../../guide/safety-limits/">safety limits guide</a>.</p>
-<h2 id="use-the-exit-code">Use the exit code<a class="headerlink" href="#use-the-exit-code" title="Permanent link">&para;</a></h2>
-<p>For automated checks, a report can provide an appropriate process exit code:</p>
+<h2 id="check-compliance">Check compliance<a class="headerlink" href="#check-compliance" title="Permanent link">&para;</a></h2>
+<p>Use <code>isCompliant</code> to check whether the document passed all implemented checks:</p>
 <div class="language-ts highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"page-validation-wasm"</span><span class="p">;</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="p">(</span><span class="nx">bytes</span><span class="p">);</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nx">process</span><span class="p">.</span><span class="nx">exitCode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">report</span><span class="p">.</span><span class="nx">exitCode</span><span class="p">();</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">report</span><span class="p">.</span><span class="nx">isCompliant</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"The document failed one or more implemented checks."</span><span class="p">);</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>The exit code is <code>0</code> for a compliant report and <code>2</code> for a noncompliant report. Input, parser, profile, and safety-limit failures reject with <code>ValidationError</code> before a report is returned.</p>
+<p>Input, parser, profile, and safety-limit failures reject with <code>ValidationError</code> before a report is returned.</p>
 <h2 id="export-the-report">Export the report<a class="headerlink" href="#export-the-report" title="Permanent link">&para;</a></h2>
 <p>Validation reports can be exported as JSON:</p>
 <div class="language-ts highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"page-validation-wasm"</span><span class="p">;</span>

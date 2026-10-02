@@ -2,20 +2,20 @@ const V = "data:application/wasm;base64,AGFzbQEAAAAB2QRIYAAAYAABf2AAAX5gAX8AYAF/
   let g;
   if (D.startsWith("data:")) {
     const I = D.replace(/^data:.*?base64,/, "");
-    let N;
+    let Q;
     if (typeof Buffer == "function" && typeof Buffer.from == "function")
-      N = Buffer.from(I, "base64");
+      Q = Buffer.from(I, "base64");
     else if (typeof atob == "function") {
       const w = atob(I);
-      N = new Uint8Array(w.length);
+      Q = new Uint8Array(w.length);
       for (let M = 0; M < w.length; M++)
-        N[M] = w.charCodeAt(M);
+        Q[M] = w.charCodeAt(M);
     } else
       throw new Error("Cannot decode base64-encoded data URL");
-    g = await WebAssembly.instantiate(N, A);
+    g = await WebAssembly.instantiate(Q, A);
   } else {
-    const I = await fetch(D), N = I.headers.get("Content-Type") || "";
-    if ("instantiateStreaming" in WebAssembly && N.startsWith("application/wasm"))
+    const I = await fetch(D), Q = I.headers.get("Content-Type") || "";
+    if ("instantiateStreaming" in WebAssembly && Q.startsWith("application/wasm"))
       g = await WebAssembly.instantiateStreaming(I, A);
     else {
       const w = await I.arrayBuffer();
@@ -25,29 +25,29 @@ const V = "data:application/wasm;base64,AGFzbQEAAAAB2QRIYAAAYAABf2AAAX5gAX8AYAF/
   return g.instance.exports;
 };
 function L(A, D, g) {
-  const I = R(A, P.__wbindgen_malloc), N = T;
-  var w = o(D) ? 0 : G(D, P.__wbindgen_malloc, P.__wbindgen_realloc), M = T, C = o(g) ? 0 : G(g, P.__wbindgen_malloc, P.__wbindgen_realloc), j = T;
-  const E = P.isPdfCompliantBytes(I, N, w, M, C, j);
+  const I = R(A, P.__wbindgen_malloc), Q = T;
+  var w = U(D) ? 0 : o(D, P.__wbindgen_malloc, P.__wbindgen_realloc), M = T, C = U(g) ? 0 : o(g, P.__wbindgen_malloc, P.__wbindgen_realloc), j = T;
+  const E = P.isPdfCompliantBytes(I, Q, w, M, C, j);
   if (E[2])
     throw W(E[1]);
   return E[0] !== 0;
 }
 function d(A, D, g) {
-  let I, N;
+  let I, Q;
   try {
     const F = R(A, P.__wbindgen_malloc), S = T;
-    var w = o(D) ? 0 : G(D, P.__wbindgen_malloc, P.__wbindgen_realloc), M = T, C = o(g) ? 0 : G(g, P.__wbindgen_malloc, P.__wbindgen_realloc), j = T;
-    const Z = P.validatePdfBytes(F, S, w, M, C, j);
-    var E = Z[0], c = Z[1];
-    if (Z[3])
-      throw E = 0, c = 0, W(Z[2]);
-    return I = E, N = c, K(E, c);
+    var w = U(D) ? 0 : o(D, P.__wbindgen_malloc, P.__wbindgen_realloc), M = T, C = U(g) ? 0 : o(g, P.__wbindgen_malloc, P.__wbindgen_realloc), j = T;
+    const z = P.validatePdfBytes(F, S, w, M, C, j);
+    var E = z[0], K = z[1];
+    if (z[3])
+      throw E = 0, K = 0, W(z[2]);
+    return I = E, Q = K, x(E, K);
   } finally {
-    P.__wbindgen_free(I, N, 1);
+    P.__wbindgen_free(I, Q, 1);
   }
 }
 function a(A, D) {
-  throw new Error(K(A, D));
+  throw new Error(x(A, D));
 }
 function s() {
   return n(function(A, D) {
@@ -58,13 +58,13 @@ function b(A) {
   return A.getTimezoneOffset();
 }
 function t(A, D) {
-  return new Error(K(A, D));
+  return new Error(x(A, D));
 }
-function p(A, D, g, I, N, w) {
-  return new Date(A >>> 0, D, g, I, N, w);
+function p(A, D, g, I, Q, w) {
+  return new Date(A >>> 0, D, g, I, Q, w);
 }
 function X(A, D, g) {
-  A.name = K(D, g);
+  A.name = x(D, g);
 }
 function q() {
   const A = P.__wbindgen_externrefs, D = A.grow(4);
@@ -77,12 +77,12 @@ function e(A) {
 function f(A, D) {
   return A = A >>> 0, Y().subarray(A / 1, A / 1 + D);
 }
-function K(A, D) {
+function x(A, D) {
   return u(A >>> 0, D);
 }
-let O = null;
+let Z = null;
 function Y() {
-  return (O === null || O.byteLength === 0) && (O = new Uint8Array(P.memory.buffer)), O;
+  return (Z === null || Z.byteLength === 0) && (Z = new Uint8Array(P.memory.buffer)), Z;
 }
 function n(A, D) {
   try {
@@ -92,47 +92,47 @@ function n(A, D) {
     P.__wbindgen_exn_store(I);
   }
 }
-function o(A) {
+function U(A) {
   return A == null;
 }
 function R(A, D) {
   const g = D(A.length * 1, 1) >>> 0;
   return Y().set(A, g / 1), T = A.length, g;
 }
-function G(A, D, g) {
+function o(A, D, g) {
   if (g === void 0) {
-    const C = z.encode(A), j = D(C.length, 1) >>> 0;
+    const C = i.encode(A), j = D(C.length, 1) >>> 0;
     return Y().subarray(j, j + C.length).set(C), T = C.length, j;
   }
-  let I = A.length, N = D(I, 1) >>> 0;
+  let I = A.length, Q = D(I, 1) >>> 0;
   const w = Y();
   let M = 0;
   for (; M < I; M++) {
     const C = A.charCodeAt(M);
     if (C > 127) break;
-    w[N + M] = C;
+    w[Q + M] = C;
   }
   if (M !== I) {
-    M !== 0 && (A = A.slice(M)), N = g(N, I, I = M + A.length * 3, 1) >>> 0;
-    const C = Y().subarray(N + M, N + I), j = z.encodeInto(A, C);
-    M += j.written, N = g(N, I, M, 1) >>> 0;
+    M !== 0 && (A = A.slice(M)), Q = g(Q, I, I = M + A.length * 3, 1) >>> 0;
+    const C = Y().subarray(Q + M, Q + I), j = i.encodeInto(A, C);
+    M += j.written, Q = g(Q, I, M, 1) >>> 0;
   }
-  return T = M, N;
+  return T = M, Q;
 }
 function W(A) {
   const D = P.__wbindgen_externrefs.get(A);
   return P.__externref_table_dealloc(A), D;
 }
-let U = new TextDecoder("utf-8", { ignoreBOM: !0, fatal: !0 });
-U.decode();
+let k = new TextDecoder("utf-8", { ignoreBOM: !0, fatal: !0 });
+k.decode();
 const v = 2146435072;
-let y = 0;
+let c = 0;
 function u(A, D) {
-  return y += D, y >= v && (U = new TextDecoder("utf-8", { ignoreBOM: !0, fatal: !0 }), U.decode(), y = D), U.decode(Y().subarray(A, A + D));
+  return c += D, c >= v && (k = new TextDecoder("utf-8", { ignoreBOM: !0, fatal: !0 }), k.decode(), c = D), k.decode(Y().subarray(A, A + D));
 }
-const z = new TextEncoder();
-"encodeInto" in z || (z.encodeInto = function(A, D) {
-  const g = z.encode(A);
+const i = new TextEncoder();
+"encodeInto" in i || (i.encodeInto = function(A, D) {
+  const g = i.encode(A);
   return D.set(g), {
     read: A.length,
     written: g.length
@@ -192,7 +192,7 @@ var h;
 (function(A) {
   A.PDF_A_1A = "1a", A.PDF_A_1B = "1b", A.PDF_A_2A = "2a", A.PDF_A_2B = "2b", A.PDF_A_2U = "2u", A.PDF_A_3A = "3a", A.PDF_A_3B = "3b", A.PDF_A_3U = "3u", A.PDF_UA_1 = "ua1";
 })(h || (h = {}));
-const Q = {
+const N = {
   maxInputSize: 256 * 1024 * 1024,
   maxDecodedStreamSize: 32 * 1024 * 1024,
   maxTotalDecodedContentSize: 256 * 1024 * 1024,
@@ -206,23 +206,23 @@ const Q = {
   maxTableGridCells: 1e6,
   maxUnicodeCmapMappings: 1e6
 };
-class x {
+class G {
   /** Disables all configurable safety limits. Use only with trusted files. */
   static unlimited() {
-    return new x(Object.fromEntries(Object.keys(Q).map((D) => [D, 1 / 0])));
+    return new G(Object.fromEntries(Object.keys(N).map((D) => [D, 1 / 0])));
   }
-  static DEFAULT_MAX_INPUT_SIZE = Q.maxInputSize;
-  static DEFAULT_MAX_DECODED_STREAM_SIZE = Q.maxDecodedStreamSize;
-  static DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE = Q.maxTotalDecodedContentSize;
-  static DEFAULT_MAX_FORM_INVOCATIONS = Q.maxFormInvocations;
-  static DEFAULT_MAX_OBJECT_COUNT = Q.maxObjectCount;
-  static DEFAULT_MAX_REFERENCE_DEPTH = Q.maxReferenceDepth;
-  static DEFAULT_MAX_XREF_REVISIONS = Q.maxXrefRevisions;
-  static DEFAULT_MAX_TABLE_SPAN = Q.maxTableSpan;
-  static DEFAULT_MAX_TABLE_GRID_ROWS = Q.maxTableGridRows;
-  static DEFAULT_MAX_TABLE_GRID_COLUMNS = Q.maxTableGridColumns;
-  static DEFAULT_MAX_TABLE_GRID_CELLS = Q.maxTableGridCells;
-  static DEFAULT_MAX_UNICODE_CMAP_MAPPINGS = Q.maxUnicodeCmapMappings;
+  static DEFAULT_MAX_INPUT_SIZE = N.maxInputSize;
+  static DEFAULT_MAX_DECODED_STREAM_SIZE = N.maxDecodedStreamSize;
+  static DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE = N.maxTotalDecodedContentSize;
+  static DEFAULT_MAX_FORM_INVOCATIONS = N.maxFormInvocations;
+  static DEFAULT_MAX_OBJECT_COUNT = N.maxObjectCount;
+  static DEFAULT_MAX_REFERENCE_DEPTH = N.maxReferenceDepth;
+  static DEFAULT_MAX_XREF_REVISIONS = N.maxXrefRevisions;
+  static DEFAULT_MAX_TABLE_SPAN = N.maxTableSpan;
+  static DEFAULT_MAX_TABLE_GRID_ROWS = N.maxTableGridRows;
+  static DEFAULT_MAX_TABLE_GRID_COLUMNS = N.maxTableGridColumns;
+  static DEFAULT_MAX_TABLE_GRID_CELLS = N.maxTableGridCells;
+  static DEFAULT_MAX_UNICODE_CMAP_MAPPINGS = N.maxUnicodeCmapMappings;
   maxInputSize;
   maxDecodedStreamSize;
   maxTotalDecodedContentSize;
@@ -236,7 +236,7 @@ class x {
   maxTableGridCells;
   maxUnicodeCmapMappings;
   constructor(D = {}) {
-    this.maxInputSize = B(D.maxInputSize ?? Q.maxInputSize, "maxInputSize"), this.maxDecodedStreamSize = B(D.maxDecodedStreamSize ?? Q.maxDecodedStreamSize, "maxDecodedStreamSize"), this.maxTotalDecodedContentSize = B(D.maxTotalDecodedContentSize ?? Q.maxTotalDecodedContentSize, "maxTotalDecodedContentSize"), this.maxFormInvocations = B(D.maxFormInvocations ?? Q.maxFormInvocations, "maxFormInvocations"), this.maxObjectCount = B(D.maxObjectCount ?? Q.maxObjectCount, "maxObjectCount"), this.maxReferenceDepth = B(D.maxReferenceDepth ?? Q.maxReferenceDepth, "maxReferenceDepth"), this.maxXrefRevisions = B(D.maxXrefRevisions ?? Q.maxXrefRevisions, "maxXrefRevisions"), this.maxTableSpan = B(D.maxTableSpan ?? Q.maxTableSpan, "maxTableSpan"), this.maxTableGridRows = B(D.maxTableGridRows ?? Q.maxTableGridRows, "maxTableGridRows"), this.maxTableGridColumns = B(D.maxTableGridColumns ?? Q.maxTableGridColumns, "maxTableGridColumns"), this.maxTableGridCells = B(D.maxTableGridCells ?? Q.maxTableGridCells, "maxTableGridCells"), this.maxUnicodeCmapMappings = B(D.maxUnicodeCmapMappings ?? Q.maxUnicodeCmapMappings, "maxUnicodeCmapMappings");
+    this.maxInputSize = B(D.maxInputSize ?? N.maxInputSize, "maxInputSize"), this.maxDecodedStreamSize = B(D.maxDecodedStreamSize ?? N.maxDecodedStreamSize, "maxDecodedStreamSize"), this.maxTotalDecodedContentSize = B(D.maxTotalDecodedContentSize ?? N.maxTotalDecodedContentSize, "maxTotalDecodedContentSize"), this.maxFormInvocations = B(D.maxFormInvocations ?? N.maxFormInvocations, "maxFormInvocations"), this.maxObjectCount = B(D.maxObjectCount ?? N.maxObjectCount, "maxObjectCount"), this.maxReferenceDepth = B(D.maxReferenceDepth ?? N.maxReferenceDepth, "maxReferenceDepth"), this.maxXrefRevisions = B(D.maxXrefRevisions ?? N.maxXrefRevisions, "maxXrefRevisions"), this.maxTableSpan = B(D.maxTableSpan ?? N.maxTableSpan, "maxTableSpan"), this.maxTableGridRows = B(D.maxTableGridRows ?? N.maxTableGridRows, "maxTableGridRows"), this.maxTableGridColumns = B(D.maxTableGridColumns ?? N.maxTableGridColumns, "maxTableGridColumns"), this.maxTableGridCells = B(D.maxTableGridCells ?? N.maxTableGridCells, "maxTableGridCells"), this.maxUnicodeCmapMappings = B(D.maxUnicodeCmapMappings ?? N.maxUnicodeCmapMappings, "maxUnicodeCmapMappings");
   }
   toJSON() {
     const D = {
@@ -275,9 +275,6 @@ class TA {
       message: g.message
     }));
   }
-  exitCode() {
-    return this.valid ? 0 : 2;
-  }
   toJson() {
     return JSON.stringify(this.raw);
   }
@@ -285,7 +282,7 @@ class TA {
     return this.raw;
   }
 }
-class k extends Error {
+class O extends Error {
   constructor(D) {
     super(D), this.name = "ValidationError", Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -305,7 +302,7 @@ function YA(A) {
       throw l(E);
     }
   }
-  async function N(w, { profile: M, limits: C } = {}) {
+  async function Q(w, { profile: M, limits: C } = {}) {
     await g();
     const j = m(C);
     try {
@@ -316,11 +313,8 @@ function YA(A) {
   }
   return {
     initialize: g,
-    init: g,
     validatePdfBytes: I,
-    isPdfCompliantBytes: N,
-    validate_pdf_bytes: I,
-    is_pdf_compliant_bytes: N
+    isPdfCompliantBytes: Q
   };
 }
 function B(A, D) {
@@ -330,21 +324,18 @@ function B(A, D) {
 }
 function m(A) {
   if (A !== void 0)
-    return JSON.stringify(A instanceof x ? A : new x(A));
+    return JSON.stringify(A instanceof G ? A : new G(A));
 }
 function l(A) {
-  return A instanceof k ? A : A instanceof Error && A.name === "ValidationError" ? new k(A.message) : A instanceof Error ? new k(A.message) : new k(String(A));
+  return A instanceof O ? A : A instanceof Error && A.name === "ValidationError" ? new O(A.message) : A instanceof Error ? new O(A.message) : new O(String(A));
 }
-const i = YA(BA), iA = i.initialize, zA = i.init, ZA = i.validatePdfBytes, OA = i.isPdfCompliantBytes, kA = i.validate_pdf_bytes, UA = i.is_pdf_compliant_bytes;
+const y = YA(BA), iA = y.initialize, zA = y.validatePdfBytes, ZA = y.isPdfCompliantBytes;
 export {
-  x as SafetyLimits,
-  k as ValidationError,
+  G as SafetyLimits,
+  O as ValidationError,
   h as ValidationProfile,
   TA as ValidationReport,
-  zA as init,
   iA as initialize,
-  OA as isPdfCompliantBytes,
-  UA as is_pdf_compliant_bytes,
-  ZA as validatePdfBytes,
-  kA as validate_pdf_bytes
+  ZA as isPdfCompliantBytes,
+  zA as validatePdfBytes
 };

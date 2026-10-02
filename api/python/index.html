@@ -843,10 +843,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1259,10 +1259,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1514,15 +1514,15 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="n">page</span><span class="o">.</span><span class="n">SafetyLimits</span><span class="o">.</span><span class="n">unlimited</span><span class="p">())</span>
 </span></code></pre></div>
 <p>The factory returns a fresh object with every configurable bound set to its native integer maximum. You can restore individual bounds by assigning to its fields. Validation may consume unrestricted memory and CPU; see the <a href="../../guide/safety-limits/">safety limits guide</a>.</p>
-<h2 id="use-the-exit-code">Use the exit code<a class="headerlink" href="#use-the-exit-code" title="Permanent link">&para;</a></h2>
-<p>For command-line integrations or automated checks, a report can provide an appropriate process exit code:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">)</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">exit_code</span><span class="p">())</span>
+<h2 id="check-compliance">Check compliance<a class="headerlink" href="#check-compliance" title="Permanent link">&para;</a></h2>
+<p>Use <code>is_compliant</code> to check whether the document passed all implemented checks:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">)</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">report</span><span class="o">.</span><span class="n">is_compliant</span><span class="p">:</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"The document failed one or more implemented checks."</span><span class="p">)</span>
 </span></code></pre></div>
-<p>The exit code is <code>0</code> for a compliant report and <code>2</code> for a noncompliant report. Input, parser, profile, and safety-limit failures raise <code>page.ValidationError</code> before a report is returned.</p>
+<p>Input, parser, profile, and safety-limit failures raise <code>page.ValidationError</code> before a report is returned.</p>
 <h2 id="export-the-report">Export the report<a class="headerlink" href="#export-the-report" title="Permanent link">&para;</a></h2>
 <p>Validation reports can be exported as JSON:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>

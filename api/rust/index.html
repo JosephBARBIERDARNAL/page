@@ -816,10 +816,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1248,10 +1248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-the-exit-code" class="md-nav__link">
+  <a href="#check-compliance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Use the exit code
+        Check compliance
       </span>
     </span>
   </a>
@@ -1485,11 +1485,11 @@
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
 </span></code></pre></div>
 <p>The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example <code>SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024)</code>. Validation may consume unrestricted memory and CPU; see the <a href="../../guide/safety-limits/">safety limits guide</a>.</p>
-<h2 id="use-the-exit-code">Use the exit code<a class="headerlink" href="#use-the-exit-code" title="Permanent link">&para;</a></h2>
-<p>For command-line integrations or automated checks, the report returns <code>0</code> when all implemented checks pass and <code>2</code> when it contains metadata or conformance failures. Terminal errors remain <code>Err(ValidationError)</code> and have their own <code>exit_code()</code> method:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">match</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">report</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">process</span><span class="p">::</span><span class="n">exit</span><span class="p">(</span><span class="n">report</span><span class="p">.</span><span class="n">exit_code</span><span class="p">()),</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nb">Err</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">process</span><span class="p">::</span><span class="n">exit</span><span class="p">(</span><span class="n">error</span><span class="p">.</span><span class="n">exit_code</span><span class="p">()),</span>
+<h2 id="check-compliance">Check compliance<a class="headerlink" href="#check-compliance" title="Permanent link">&para;</a></h2>
+<p>Use <code>is_compliant</code> to check whether the document passed all implemented checks. Validation errors remain <code>Err(ValidationError)</code> and mean that no complete report was produced:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="n">report</span><span class="p">.</span><span class="n">is_compliant</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="fm">eprintln!</span><span class="p">(</span><span class="s">"The document failed one or more implemented checks."</span><span class="p">);</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">}</span>
 </span></code></pre></div>
 
