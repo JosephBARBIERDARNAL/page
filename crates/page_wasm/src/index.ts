@@ -13,6 +13,7 @@ export type {
   SafetyLimitsOptions,
   ValidationCheckCounts,
   ValidationCounts,
+  ValidationErrorKind,
   ValidationFailure,
   ValidationOptions,
 } from "./api.js";

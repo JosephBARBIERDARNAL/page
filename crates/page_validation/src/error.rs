@@ -189,6 +189,35 @@ pub enum ValidationError {
     UnsupportedProfile(ValidationProfile),
 }
 
+/// A classification for errors that prevent validation from completing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ValidationErrorKind {
+    /// The PDF could not be read from disk.
+    InputIo,
+    /// The PDF parser rejected the input or its object structure.
+    Parser,
+    /// A configured or internal resource bound was exceeded.
+    SafetyLimit,
+    /// A preflight PDF/A conformance limit was exceeded.
+    Conformance,
+    /// A profile was missing, invalid, or not implemented.
+    Profile,
+}
+
+impl ValidationErrorKind {
+    /// Returns the stable lowercase identifier used by language bindings.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InputIo => "input_io",
+            Self::Parser => "parser",
+            Self::SafetyLimit => "safety_limit",
+            Self::Conformance => "conformance",
+            Self::Profile => "profile",
+        }
+    }
+}
+
 pub(crate) enum ValidationErrorDisposition {
     Operational {
         rule_id: &'static str,
@@ -204,6 +233,31 @@ pub(crate) enum ValidationErrorDisposition {
 }
 
 impl ValidationError {
+    /// Returns the stable category of this error.
+    pub fn kind(&self) -> ValidationErrorKind {
+        match self {
+            Self::InputIo(_) => ValidationErrorKind::InputIo,
+            Self::Pdf(PdfError::TooManyIndirectObjects { .. }) => ValidationErrorKind::Conformance,
+            Self::Pdf(error) if error.is_safety_limit() => ValidationErrorKind::SafetyLimit,
+            Self::Pdf(_) => ValidationErrorKind::Parser,
+            Self::MissingProfileDeclaration
+            | Self::InvalidProfileDeclaration(_)
+            | Self::UnsupportedProfile(_) => ValidationErrorKind::Profile,
+        }
+    }
+
+    /// Returns the rule identifier associated with this error.
+    ///
+    /// The profile-independent indirect-object rule identifier is returned for conformance-limit
+    /// errors. Validation reports can use a profile-specific identifier when the profile is known.
+    pub fn rule_id(&self) -> &'static str {
+        match self.disposition(None) {
+            ValidationErrorDisposition::Operational { rule_id }
+            | ValidationErrorDisposition::Parser { rule_id }
+            | ValidationErrorDisposition::Conformance { rule_id, .. } => rule_id,
+        }
+    }
+
     pub(crate) fn disposition(
         &self,
         profile: Option<ValidationProfile>,
@@ -266,5 +320,53 @@ fn indirect_object_count_rule(profile: Option<ValidationProfile>) -> &'static st
             | ValidationProfile::PdfUa2,
         )
         | None => "PDF-INDIRECT-OBJECT-COUNT-001",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PdfError, ValidationError, ValidationErrorKind};
+
+    #[test]
+    fn classifies_errors_and_exposes_rule_ids() {
+        let cases = [
+            (
+                ValidationError::Pdf(PdfError::Parse(Box::new(std::io::Error::other(
+                    "invalid PDF",
+                )))),
+                ValidationErrorKind::Parser,
+                "PDF-PARSE-001",
+            ),
+            (
+                ValidationError::Pdf(PdfError::InputTooLarge {
+                    actual: 2,
+                    limit: 1,
+                }),
+                ValidationErrorKind::SafetyLimit,
+                "RESOURCE-LIMIT-001",
+            ),
+            (
+                ValidationError::MissingProfileDeclaration,
+                ValidationErrorKind::Profile,
+                "PROFILE-001",
+            ),
+            (
+                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
+                    actual: 2,
+                    limit: 1,
+                }),
+                ValidationErrorKind::Conformance,
+                "PDF-INDIRECT-OBJECT-COUNT-001",
+            ),
+        ];
+
+        for (error, expected_kind, expected_rule_id) in cases {
+            assert_eq!(error.kind(), expected_kind);
+            assert_eq!(error.rule_id(), expected_rule_id);
+        }
+
+        let input_error = ValidationError::InputIo(std::io::Error::other("read failed"));
+        assert_eq!(input_error.kind(), ValidationErrorKind::InputIo);
+        assert_eq!(input_error.rule_id(), "INPUT-IO-001");
     }
 }

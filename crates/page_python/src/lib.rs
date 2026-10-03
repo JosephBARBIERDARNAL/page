@@ -4,14 +4,42 @@ use std::path::PathBuf;
 use page_validation::{
     FailureCategory as RustFailureCategory, PdfObjectId as RustPdfObjectId,
     SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
-    ValidationCounts as RustValidationCounts, ValidationFailure as RustValidationFailure,
+    ValidationCounts as RustValidationCounts, ValidationError as RustValidationError,
+    ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyValueError};
+use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyValueError};
 use pyo3::prelude::*;
 
 create_exception!(_page, ValidationError, PyException);
+create_exception!(_page, ParseError, ValidationError);
+create_exception!(_page, SafetyLimitError, ValidationError);
+create_exception!(_page, ProfileError, ValidationError);
+
+fn python_validation_error(error: RustValidationError) -> PyErr {
+    match error {
+        RustValidationError::InputIo(error) => {
+            if error.kind() == std::io::ErrorKind::NotFound {
+                PyFileNotFoundError::new_err(error.to_string())
+            } else {
+                PyOSError::new_err(error.to_string())
+            }
+        }
+        error => {
+            let message = error.to_string();
+            match error.kind() {
+                RustValidationErrorKind::Parser => ParseError::new_err(message),
+                RustValidationErrorKind::SafetyLimit => SafetyLimitError::new_err(message),
+                RustValidationErrorKind::Profile => ProfileError::new_err(message),
+                RustValidationErrorKind::Conformance | RustValidationErrorKind::InputIo => {
+                    ValidationError::new_err(message)
+                }
+                _ => ValidationError::new_err(message),
+            }
+        }
+    }
+}
 
 #[pyclass(name = "ValidationProfile", frozen, eq, hash, from_py_object)]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -486,7 +514,7 @@ fn is_pdf_compliant(
 ) -> PyResult<bool> {
     let options = validation_options(profile, limits);
     py.detach(|| page_validation::is_pdf_compliant(&path, &options))
-        .map_err(|error| ValidationError::new_err(error.to_string()))
+        .map_err(python_validation_error)
 }
 
 #[pyfunction]
@@ -500,7 +528,7 @@ fn validate_pdf(
     let options = validation_options(profile, limits);
     py.detach(|| page_validation::validate_pdf(&path, &options))
         .map(Into::into)
-        .map_err(|error| ValidationError::new_err(error.to_string()))
+        .map_err(python_validation_error)
 }
 
 #[pyfunction]
@@ -514,7 +542,7 @@ fn is_pdf_compliant_bytes(
     let data = data.to_vec();
     let options = validation_options(profile, limits);
     py.detach(|| page_validation::is_pdf_compliant_bytes(&data, &options))
-        .map_err(|error| ValidationError::new_err(error.to_string()))
+        .map_err(python_validation_error)
 }
 
 #[pyfunction]
@@ -529,12 +557,15 @@ fn validate_pdf_bytes(
     let options = validation_options(profile, limits);
     py.detach(|| page_validation::validate_pdf_bytes(&data, &options))
         .map(Into::into)
-        .map_err(|error| ValidationError::new_err(error.to_string()))
+        .map_err(python_validation_error)
 }
 
 #[pymodule]
 fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("ValidationError", py.get_type::<ValidationError>())?;
+    module.add("ParseError", py.get_type::<ParseError>())?;
+    module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
+    module.add("ProfileError", py.get_type::<ProfileError>())?;
     module.add_class::<ValidationProfile>()?;
     let profile_class = module.getattr("ValidationProfile")?;
     for &profile in RustValidationProfile::all() {

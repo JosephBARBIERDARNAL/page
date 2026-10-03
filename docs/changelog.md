@@ -1,5 +1,6 @@
 ## Dev
 
+- **Feat**: Expose typed validation errors in the Rust, Python, and Wasm APIs [#355](https://github.com/JosephBARBIERDARNAL/page/issues/355)
 - **Fix**: Use the correct validation family in report headings [#354](https://github.com/JosephBARBIERDARNAL/page/issues/354)
 - **Refactor**: Remove duplicate snake_case and `init` aliases from the Wasm API [#373](https://github.com/JosephBARBIERDARNAL/page/issues/373)
 - **Refactor**: Keep validation report exit-code mapping in the CLI [#361](https://github.com/JosephBARBIERDARNAL/page/issues/361)

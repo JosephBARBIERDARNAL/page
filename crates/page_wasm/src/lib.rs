@@ -113,13 +113,37 @@ fn js_error(name: &str, message: impl AsRef<str>) -> JsValue {
     error.into()
 }
 
+fn js_validation_error(message: &str, kind: &str, rule_id: Option<&str>) -> JsValue {
+    let error = js_sys::Error::new(message);
+    error.set_name("ValidationError");
+    let error: JsValue = error.into();
+    let _kind_result =
+        js_sys::Reflect::set(&error, &JsValue::from_str("kind"), &JsValue::from_str(kind));
+    if let Some(rule_id) = rule_id {
+        let _rule_id_result = js_sys::Reflect::set(
+            &error,
+            &JsValue::from_str("ruleId"),
+            &JsValue::from_str(rule_id),
+        );
+    }
+    error
+}
+
+fn validation_js_error(error: &page_validation::ValidationError) -> JsValue {
+    js_validation_error(
+        &error.to_string(),
+        error.kind().as_str(),
+        Some(error.rule_id()),
+    )
+}
+
 fn parse_profile(profile: Option<String>) -> Result<Option<ValidationProfile>, JsValue> {
     profile
         .map(|profile| {
             profile
                 .parse()
                 .map_err(|error: page_validation::ParseValidationProfileError| {
-                    js_error("ValidationError", error.to_string())
+                    js_validation_error(&error.to_string(), "profile", Some("PROFILE-001"))
                 })
         })
         .transpose()
@@ -162,7 +186,7 @@ pub fn validate_pdf_bytes_wasm(
     limits_json: Option<String>,
 ) -> Result<String, JsValue> {
     validate_pdf_bytes(bytes, &validation_options(profile, limits_json)?)
-        .map_err(|error| js_error("ValidationError", error.to_string()))
+        .map_err(|error| validation_js_error(&error))
         .and_then(report_json)
 }
 
@@ -174,7 +198,7 @@ pub fn is_pdf_compliant_bytes_wasm(
     limits_json: Option<String>,
 ) -> Result<bool, JsValue> {
     is_pdf_compliant_bytes(bytes, &validation_options(profile, limits_json)?)
-        .map_err(|error| js_error("ValidationError", error.to_string()))
+        .map_err(|error| validation_js_error(&error))
 }
 
 #[cfg(test)]
