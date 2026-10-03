@@ -1,5 +1,13 @@
 ## Dev
 
+- **Doc**: Fix the duplicate logo in the mobile navigation drawer [#385](https://github.com/JosephBARBIERDARNAL/page/issues/385)
+- **Fix**: Export safety-limit defaults from Rust to the Wasm TypeScript wrapper [#362](https://github.com/JosephBARBIERDARNAL/page/issues/362)
+- **Perf**: Avoid copying Python bytes inputs during validation [#371](https://github.com/JosephBARBIERDARNAL/page/issues/371)
+- **Feat**: Expose the source path on Python validation reports [#370](https://github.com/JosephBARBIERDARNAL/page/issues/370)
+- **Refactor**: Hide CLI presentation helpers from the published API documentation [#368](https://github.com/JosephBARBIERDARNAL/page/issues/368)
+- **Feat**: Allow selecting summary output explicitly from the CLI [#364](https://github.com/JosephBARBIERDARNAL/page/issues/364)
+- **Feat**: Include failure categories and attributed object IDs in JSON reports [#358](https://github.com/JosephBARBIERDARNAL/page/issues/358)
+
 ## 0.9.0
 
 - **Feat**: Expose Python validation profiles and failure categories as standard enums and accept profile strings [#369](https://github.com/JosephBARBIERDARNAL/page/issues/369)

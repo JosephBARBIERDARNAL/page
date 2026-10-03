@@ -1,12 +1,13 @@
 //! Defines the stable serializable JSON view of a validation report for client applications.
 //!
-//! Report conversion copies the source, profile, compliance result, counts, and rule failures into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
+//! Report conversion copies the source, profile, compliance result, counts, and each rule failure's category and optional object location into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
 
 use serde::Serialize;
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    ValidationCheckCounts, ValidationCounts, ValidationError, ValidationProfile, ValidationReport,
+    FailureCategory, PdfObjectId, ValidationCheckCounts, ValidationCounts, ValidationError,
+    ValidationProfile, ValidationReport,
 };
 
 /// Stable, serializable representation of a validation report.
@@ -26,11 +27,14 @@ pub struct JsonValidationReport {
     pub error: Option<JsonError>,
 }
 
+/// A rule failure in the stable JSON report, with its category and optional indirect object location.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub struct JsonFailure {
     pub rule: String,
     pub message: String,
+    pub object_id: Option<PdfObjectId>,
+    pub category: FailureCategory,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -87,6 +91,8 @@ impl JsonValidationReport {
                     message: format!(
                         "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
                     ),
+                    object_id: None,
+                    category: FailureCategory::Conformance,
                 }],
                 None,
             ),
@@ -133,6 +139,8 @@ impl ValidationReport {
             .map(|failure| JsonFailure {
                 rule: failure.rule_id.clone(),
                 message: failure.message.clone(),
+                object_id: failure.object_id,
+                category: failure.category,
             })
             .collect();
 
@@ -155,8 +163,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, PdfError, ValidationCheckCounts, ValidationCounts, ValidationError,
-        ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
+        ValidationError, ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -175,8 +183,11 @@ mod tests {
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
-                object_id: None,
-                category: FailureCategory::Conformance,
+                object_id: Some(PdfObjectId {
+                    object_number: 42,
+                    generation: 3,
+                }),
+                category: FailureCategory::Metadata,
             }],
         };
 
@@ -190,6 +201,11 @@ mod tests {
         assert_eq!(value["rules"]["failed"], 1);
         assert_eq!(value["checks"]["failed"], 1);
         assert_eq!(value["failures"][0]["rule"], "RULE-001");
+        assert_eq!(value["failures"][0]["category"], "metadata");
+        assert_eq!(
+            value["failures"][0]["object_id"],
+            serde_json::json!({"object_number": 42, "generation": 3})
+        );
         assert!(value.get("error").is_none());
     }
 
@@ -239,6 +255,8 @@ mod tests {
             );
 
             assert_eq!(json.failures[0].rule, expected_rule);
+            assert_eq!(json.failures[0].category, FailureCategory::Conformance);
+            assert!(json.failures[0].object_id.is_none());
             assert_eq!(json.rules.expect("conformance counts").failed, 1);
             assert_eq!(json.checks.expect("conformance checks").failed, 1);
             assert!(json.error.is_none());

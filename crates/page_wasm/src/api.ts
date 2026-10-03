@@ -1,4 +1,5 @@
 export interface WasmBindings {
+  defaultSafetyLimits(): string;
   isPdfCompliantBytes(
     bytes: Uint8Array,
     profile?: string | null,
@@ -38,49 +39,61 @@ export interface SafetyLimitsOptions {
   maxUnicodeCmapMappings: number;
 }
 
-const DEFAULT_SAFETY_LIMITS: SafetyLimitsOptions = {
-  maxInputSize: 256 * 1024 * 1024,
-  maxDecodedStreamSize: 32 * 1024 * 1024,
-  maxTotalDecodedContentSize: 256 * 1024 * 1024,
-  maxFormInvocations: 10_000,
-  maxObjectCount: 1_000_000,
-  maxReferenceDepth: 256,
-  maxXrefRevisions: 1_024,
-  maxTableSpan: 1_024,
-  maxTableGridRows: 1_024,
-  maxTableGridColumns: 1_024,
-  maxTableGridCells: 1_000_000,
-  maxUnicodeCmapMappings: 1_000_000,
-};
+let defaultSafetyLimits: SafetyLimitsOptions | undefined;
+
+function getDefaultSafetyLimits(): SafetyLimitsOptions {
+  if (defaultSafetyLimits === undefined) {
+    throw new Error("The WebAssembly module has not provided safety-limit defaults");
+  }
+  return defaultSafetyLimits;
+}
 
 export class SafetyLimits implements SafetyLimitsOptions {
   /** Disables all configurable safety limits. Use only with trusted files. */
   static unlimited(): SafetyLimits {
     return new SafetyLimits(
       Object.fromEntries(
-        Object.keys(DEFAULT_SAFETY_LIMITS).map((name) => [name, Infinity]),
+        Object.keys(getDefaultSafetyLimits()).map((name) => [name, Infinity]),
       ),
     );
   }
 
-  static readonly DEFAULT_MAX_INPUT_SIZE = DEFAULT_SAFETY_LIMITS.maxInputSize;
-  static readonly DEFAULT_MAX_DECODED_STREAM_SIZE =
-    DEFAULT_SAFETY_LIMITS.maxDecodedStreamSize;
-  static readonly DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE =
-    DEFAULT_SAFETY_LIMITS.maxTotalDecodedContentSize;
-  static readonly DEFAULT_MAX_FORM_INVOCATIONS =
-    DEFAULT_SAFETY_LIMITS.maxFormInvocations;
-  static readonly DEFAULT_MAX_OBJECT_COUNT = DEFAULT_SAFETY_LIMITS.maxObjectCount;
-  static readonly DEFAULT_MAX_REFERENCE_DEPTH = DEFAULT_SAFETY_LIMITS.maxReferenceDepth;
-  static readonly DEFAULT_MAX_XREF_REVISIONS = DEFAULT_SAFETY_LIMITS.maxXrefRevisions;
-  static readonly DEFAULT_MAX_TABLE_SPAN = DEFAULT_SAFETY_LIMITS.maxTableSpan;
-  static readonly DEFAULT_MAX_TABLE_GRID_ROWS = DEFAULT_SAFETY_LIMITS.maxTableGridRows;
-  static readonly DEFAULT_MAX_TABLE_GRID_COLUMNS =
-    DEFAULT_SAFETY_LIMITS.maxTableGridColumns;
-  static readonly DEFAULT_MAX_TABLE_GRID_CELLS =
-    DEFAULT_SAFETY_LIMITS.maxTableGridCells;
-  static readonly DEFAULT_MAX_UNICODE_CMAP_MAPPINGS =
-    DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings;
+  static get DEFAULT_MAX_INPUT_SIZE(): number {
+    return getDefaultSafetyLimits().maxInputSize;
+  }
+  static get DEFAULT_MAX_DECODED_STREAM_SIZE(): number {
+    return getDefaultSafetyLimits().maxDecodedStreamSize;
+  }
+  static get DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE(): number {
+    return getDefaultSafetyLimits().maxTotalDecodedContentSize;
+  }
+  static get DEFAULT_MAX_FORM_INVOCATIONS(): number {
+    return getDefaultSafetyLimits().maxFormInvocations;
+  }
+  static get DEFAULT_MAX_OBJECT_COUNT(): number {
+    return getDefaultSafetyLimits().maxObjectCount;
+  }
+  static get DEFAULT_MAX_REFERENCE_DEPTH(): number {
+    return getDefaultSafetyLimits().maxReferenceDepth;
+  }
+  static get DEFAULT_MAX_XREF_REVISIONS(): number {
+    return getDefaultSafetyLimits().maxXrefRevisions;
+  }
+  static get DEFAULT_MAX_TABLE_SPAN(): number {
+    return getDefaultSafetyLimits().maxTableSpan;
+  }
+  static get DEFAULT_MAX_TABLE_GRID_ROWS(): number {
+    return getDefaultSafetyLimits().maxTableGridRows;
+  }
+  static get DEFAULT_MAX_TABLE_GRID_COLUMNS(): number {
+    return getDefaultSafetyLimits().maxTableGridColumns;
+  }
+  static get DEFAULT_MAX_TABLE_GRID_CELLS(): number {
+    return getDefaultSafetyLimits().maxTableGridCells;
+  }
+  static get DEFAULT_MAX_UNICODE_CMAP_MAPPINGS(): number {
+    return getDefaultSafetyLimits().maxUnicodeCmapMappings;
+  }
 
   maxInputSize: number;
   maxDecodedStreamSize: number;
@@ -96,53 +109,53 @@ export class SafetyLimits implements SafetyLimitsOptions {
   maxUnicodeCmapMappings: number;
 
   constructor(options: Partial<SafetyLimitsOptions> = {}) {
+    const defaults = getDefaultSafetyLimits();
     this.maxInputSize = validateLimit(
-      options.maxInputSize ?? DEFAULT_SAFETY_LIMITS.maxInputSize,
+      options.maxInputSize ?? defaults.maxInputSize,
       "maxInputSize",
     );
     this.maxDecodedStreamSize = validateLimit(
-      options.maxDecodedStreamSize ?? DEFAULT_SAFETY_LIMITS.maxDecodedStreamSize,
+      options.maxDecodedStreamSize ?? defaults.maxDecodedStreamSize,
       "maxDecodedStreamSize",
     );
     this.maxTotalDecodedContentSize = validateLimit(
-      options.maxTotalDecodedContentSize ??
-        DEFAULT_SAFETY_LIMITS.maxTotalDecodedContentSize,
+      options.maxTotalDecodedContentSize ?? defaults.maxTotalDecodedContentSize,
       "maxTotalDecodedContentSize",
     );
     this.maxFormInvocations = validateLimit(
-      options.maxFormInvocations ?? DEFAULT_SAFETY_LIMITS.maxFormInvocations,
+      options.maxFormInvocations ?? defaults.maxFormInvocations,
       "maxFormInvocations",
     );
     this.maxObjectCount = validateLimit(
-      options.maxObjectCount ?? DEFAULT_SAFETY_LIMITS.maxObjectCount,
+      options.maxObjectCount ?? defaults.maxObjectCount,
       "maxObjectCount",
     );
     this.maxReferenceDepth = validateLimit(
-      options.maxReferenceDepth ?? DEFAULT_SAFETY_LIMITS.maxReferenceDepth,
+      options.maxReferenceDepth ?? defaults.maxReferenceDepth,
       "maxReferenceDepth",
     );
     this.maxXrefRevisions = validateLimit(
-      options.maxXrefRevisions ?? DEFAULT_SAFETY_LIMITS.maxXrefRevisions,
+      options.maxXrefRevisions ?? defaults.maxXrefRevisions,
       "maxXrefRevisions",
     );
     this.maxTableSpan = validateLimit(
-      options.maxTableSpan ?? DEFAULT_SAFETY_LIMITS.maxTableSpan,
+      options.maxTableSpan ?? defaults.maxTableSpan,
       "maxTableSpan",
     );
     this.maxTableGridRows = validateLimit(
-      options.maxTableGridRows ?? DEFAULT_SAFETY_LIMITS.maxTableGridRows,
+      options.maxTableGridRows ?? defaults.maxTableGridRows,
       "maxTableGridRows",
     );
     this.maxTableGridColumns = validateLimit(
-      options.maxTableGridColumns ?? DEFAULT_SAFETY_LIMITS.maxTableGridColumns,
+      options.maxTableGridColumns ?? defaults.maxTableGridColumns,
       "maxTableGridColumns",
     );
     this.maxTableGridCells = validateLimit(
-      options.maxTableGridCells ?? DEFAULT_SAFETY_LIMITS.maxTableGridCells,
+      options.maxTableGridCells ?? defaults.maxTableGridCells,
       "maxTableGridCells",
     );
     this.maxUnicodeCmapMappings = validateLimit(
-      options.maxUnicodeCmapMappings ?? DEFAULT_SAFETY_LIMITS.maxUnicodeCmapMappings,
+      options.maxUnicodeCmapMappings ?? defaults.maxUnicodeCmapMappings,
       "maxUnicodeCmapMappings",
     );
   }
@@ -198,7 +211,12 @@ export interface JsonValidationReport {
   compliant: boolean;
   rules?: ValidationCounts;
   checks?: ValidationCheckCounts;
-  failures: { rule: string; message: string }[];
+  failures: {
+    rule: string;
+    message: string;
+    object_id: { object_number: number; generation: number } | null;
+    category: "metadata" | "conformance";
+  }[];
   error?: JsonValidationError;
 }
 
@@ -268,6 +286,7 @@ export class ValidationError extends Error {
 }
 
 export function createApi(wasm: WasmBindings) {
+  defaultSafetyLimits = JSON.parse(wasm.defaultSafetyLimits()) as SafetyLimitsOptions;
   let initialization: Promise<void> | undefined;
 
   /** Initializes the WebAssembly module. Validation functions initialize it automatically. */

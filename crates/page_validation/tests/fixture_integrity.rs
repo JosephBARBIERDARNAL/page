@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn pdf_fixtures_remain_byte_exact() {
-    let fixtures: [(&str, &[u8], &str); 259] = [
+    let fixtures: [(&str, &[u8], &str); 263] = [
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
@@ -1027,6 +1027,26 @@ fn pdf_fixtures_remain_byte_exact() {
             "pdfua1-rule-7-21-3-1-supplement-mismatch.pdf",
             include_bytes!("fixtures/pdfua1-rule-7-21-3-1-supplement-mismatch.pdf"),
             "bb197d36be1d8ba0574e8ef0d5179af9516bcc0eba48a797a1b6f8258b16d864",
+        ),
+        (
+            "pdfua1-rule-7-21-3-2-identity.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-2-identity.pdf"),
+            "1f2d64a2e0f3ff6027943c2ec3a5fc39eadaa7b2e208cf964373e986b1517dd2",
+        ),
+        (
+            "pdfua1-rule-7-21-3-2-invalid.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-2-invalid.pdf"),
+            "c91bb340985058ff6ce847c8e2d42086841f4969fcad2fb21a1cd9086bea3347",
+        ),
+        (
+            "pdfua1-rule-7-21-3-2-missing.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-2-missing.pdf"),
+            "58baf7867e9b33b2eafee34354cd82e0de0639f675d0f9e50e8dd8f11b4e175b",
+        ),
+        (
+            "pdfua1-rule-7-21-3-2-stream.pdf",
+            include_bytes!("fixtures/pdfua1-rule-7-21-3-2-stream.pdf"),
+            "acea1b8ddb749e616bb3c16908aacc6d748f368444f69f3417873f1f4f0366ae",
         ),
         (
             "pdfua1-rule-7-21-3-3-1-embedded.pdf",

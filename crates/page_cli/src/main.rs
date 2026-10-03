@@ -16,6 +16,14 @@ use page_validation::{
     ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+enum ColorArg {
+    #[default]
+    Auto,
+    Never,
+    Always,
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "page",
@@ -32,7 +40,7 @@ struct Cli {
     #[arg(long, value_name = "PROFILE", value_parser = profile_parser())]
     profile: Option<ValidationProfile>,
 
-    /// Select detailed text or JSON output instead of the compact summary.
+    /// Select summary, detailed text, or JSON output.
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
@@ -40,65 +48,66 @@ struct Cli {
     #[arg(long, value_name = "FILE")]
     output: Option<PathBuf>,
 
-    /// Disable colors in human-readable output.
-    #[arg(long)]
-    no_color: bool,
+    /// Colors in human-readable output.
+    #[arg(long, value_enum, default_value_t)]
+    color: ColorArg,
 
     /// Disable all configurable safety limits; use only with trusted files.
-    #[arg(long, conflicts_with = "safety_limits")]
+    #[arg(long, conflicts_with = "safety_limits", help_heading = "Safety limits")]
     disable_safety_limits: bool,
 
     /// Maximum input size in bytes.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_INPUT_SIZE, help_heading = "Safety limits")]
     max_input_size: u64,
 
     /// Maximum decoded size of any individual stream.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_DECODED_STREAM_SIZE, help_heading = "Safety limits")]
     max_decoded_stream_size: usize,
 
     /// Maximum combined decoded size of content streams and retained font streams.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE, help_heading = "Safety limits")]
     max_total_decoded_content_size: usize,
 
     /// Maximum number of Form XObject invocations across the document.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_FORM_INVOCATIONS, help_heading = "Safety limits")]
     max_form_invocations: usize,
 
     /// Maximum number of parsed indirect objects.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_OBJECT_COUNT, help_heading = "Safety limits")]
     max_object_count: usize,
 
     /// Maximum reference-chain depth used by the normalized model.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH, help_heading = "Safety limits")]
     max_reference_depth: usize,
 
     /// Maximum number of incremental-update revisions read from the cross-reference chain.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_XREF_REVISIONS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_XREF_REVISIONS, help_heading = "Safety limits")]
     max_xref_revisions: usize,
 
     /// Maximum number of rows or columns covered by one table cell.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_SPAN)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_SPAN, help_heading = "Safety limits")]
     max_table_span: usize,
 
     /// Maximum number of rows represented in an inspected table grid.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_ROWS, help_heading = "Safety limits")]
     max_table_grid_rows: usize,
 
     /// Maximum number of columns represented in an inspected table grid.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_COLUMNS, help_heading = "Safety limits")]
     max_table_grid_columns: usize,
 
     /// Maximum number of cells represented in an inspected table grid.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_TABLE_GRID_CELLS, help_heading = "Safety limits")]
     max_table_grid_cells: usize,
 
     /// Maximum number of mappings expanded from one ToUnicode CMap.
-    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS)]
+    #[arg(long, group = "safety_limits", default_value_t = SafetyLimits::DEFAULT_MAX_UNICODE_CMAP_MAPPINGS, help_heading = "Safety limits")]
     max_unicode_cmap_mappings: usize,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum FormatArg {
+    Summary,
     Details,
     Json,
 }
@@ -131,8 +140,12 @@ fn selected_style(enabled: bool, style: Style) -> Style {
     if enabled { style } else { Style::new() }
 }
 
-fn colors_enabled(no_color_flag: bool, no_color_env: bool, is_terminal: bool) -> bool {
-    !no_color_flag && !no_color_env && is_terminal
+fn colors_enabled(color: ColorArg, no_color_env: bool, is_terminal: bool) -> bool {
+    match color {
+        ColorArg::Auto => !no_color_env && is_terminal,
+        ColorArg::Always => true,
+        ColorArg::Never => false,
+    }
 }
 
 fn print_error(message: impl fmt::Display, colors: bool) {
@@ -252,6 +265,7 @@ fn select_format(
 ) -> Result<SelectedFormat, String> {
     let extension = output.and_then(extension);
     match format {
+        Some(FormatArg::Summary) => Ok(SelectedFormat::Summary),
         Some(FormatArg::Json)
             if extension.is_some_and(|value| value.eq_ignore_ascii_case("txt")) =>
         {
@@ -347,8 +361,8 @@ fn main() {
 
 fn run_validate(cli: Cli) {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
-    let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
-    let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
+    let stdout_colors = colors_enabled(cli.color, no_color_env, io::stdout().is_terminal());
+    let stderr_colors = colors_enabled(cli.color, no_color_env, io::stderr().is_terminal());
     let selected_format = match select_format(cli.format, cli.output.as_deref()) {
         Ok(format) => format,
         Err(error) => {
@@ -507,16 +521,15 @@ mod tests {
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
-        assert!(colors_enabled(false, false, true));
-        assert!(!colors_enabled(true, false, true));
-        assert!(!colors_enabled(false, true, true));
-        assert!(!colors_enabled(false, false, false));
+        assert!(colors_enabled(crate::ColorArg::Auto, false, true));
+        assert!(!colors_enabled(crate::ColorArg::Never, false, true));
+        assert!(!colors_enabled(crate::ColorArg::Auto, true, true));
+        assert!(!colors_enabled(crate::ColorArg::Auto, false, false));
     }
 
     #[test]
     fn conformant_summary_uses_bright_green() {
         let summary = render_summary(ValidationProfile::PdfA1b, true, Duration::ZERO, true);
-
         assert!(summary.contains("92mConformant"));
     }
 

@@ -5795,6 +5795,8 @@ pub fn pdfua1_rule_7_21_3_2_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 first descendant")
         .as_reference()
         .expect("indirect PDF/UA-1 Type0 descendant");
+    let stream_id =
+        (case == "stream").then(|| document.add_object(Stream::new(Dictionary::new(), vec![0, 0])));
     let descendant = document
         .get_object_mut(descendant_id)
         .expect("PDF/UA-1 Type0 descendant")
@@ -5802,7 +5804,10 @@ pub fn pdfua1_rule_7_21_3_2_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 descendant dictionary");
     match case {
         "identity" => {}
-        "stream" => descendant.set("CIDToGIDMap", Stream::new(Dictionary::new(), vec![0, 0])),
+        "stream" => descendant.set(
+            "CIDToGIDMap",
+            stream_id.expect("stream case creates an indirect CIDToGIDMap"),
+        ),
         "missing" => {
             descendant.remove(b"CIDToGIDMap");
         }
