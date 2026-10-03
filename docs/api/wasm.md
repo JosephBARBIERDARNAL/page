@@ -153,4 +153,4 @@ const report = await validatePdfBytes(bytes);
 const json = report.toJson();
 ```
 
-`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. The schema includes the file when available, profile, validity, rule and check counts, concise rule failures, and optional parser or operational error details. Wasm terminal errors reject with `ValidationError` carrying `kind` and `ruleId` before a report is returned.
+`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. Each JSON failure includes its `category` (`metadata` or `conformance`) and `object_id`, which contains `object_number` and `generation` when the finding is attributed to an indirect object and is `null` otherwise. The schema also includes the file when available, profile, validity, rule and check counts, and optional parser or operational error details. Wasm terminal errors reject with `ValidationError` carrying `kind` and `ruleId` before a report is returned.

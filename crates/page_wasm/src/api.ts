@@ -198,7 +198,12 @@ export interface JsonValidationReport {
   compliant: boolean;
   rules?: ValidationCounts;
   checks?: ValidationCheckCounts;
-  failures: { rule: string; message: string }[];
+  failures: {
+    rule: string;
+    message: string;
+    object_id: { object_number: number; generation: number } | null;
+    category: "metadata" | "conformance";
+  }[];
   error?: JsonValidationError;
 }
 

@@ -83,16 +83,20 @@ page document.pdf --format json
     "failed": 2
   },
   "checks": {
-    "failed": 2
+    "failed": 3
   },
   "failures": [
     {
-      "rule": "PDFA1B-TRAILER-ID-001",
-      "message": "the applicable document trailer does not contain an ID entry"
+      "rule": "PDFA1B-ICCBASED-001",
+      "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
+      "object_id": null,
+      "category": "conformance"
     },
     {
-      "rule": "PDFA1B-STREAM-LZW-001",
-      "message": "a parsed stream declares the forbidden LZWDecode filter"
+      "rule": "PDFA1B-ID-SCHEMA-001",
+      "message": "XMP does not contain the PDF/A Identification schema",
+      "object_id": { "object_number": 53, "generation": 0 },
+      "category": "metadata"
     }
   ]
 }

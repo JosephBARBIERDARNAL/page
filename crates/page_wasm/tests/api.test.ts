@@ -165,6 +165,8 @@ describe("page-validation", () => {
         message,
       })),
     });
+    expect(jsonReport.failures[0]).toHaveProperty("category");
+    expect(jsonReport.failures[0]).toHaveProperty("object_id");
     expect(jsonReport).not.toHaveProperty("source");
     expect(jsonReport).not.toHaveProperty("document");
     expect(jsonReport).not.toHaveProperty("is_compliant");

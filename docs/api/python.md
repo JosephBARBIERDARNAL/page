@@ -165,3 +165,5 @@ report = page.validate_pdf("document.pdf")
 with open("report.json", "w") as output:
     output.write(report.to_json())
 ```
+
+Each JSON failure includes `category` (`metadata` or `conformance`) and `object_id`. The object ID contains `object_number` and `generation` when the finding is attributed to an indirect object, and is `null` otherwise.

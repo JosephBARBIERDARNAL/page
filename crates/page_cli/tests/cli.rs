@@ -402,6 +402,8 @@ fn validation_json_uses_the_stable_public_schema() {
     );
     assert!(report["failures"][0]["rule"].is_string());
     assert!(report["failures"][0]["message"].is_string());
+    assert_eq!(report["failures"][0]["category"], "conformance");
+    assert_eq!(report["failures"][0]["object_id"], serde_json::Value::Null);
     assert!(report["rules"]["total"].is_number());
     assert!(report["rules"]["failed"].is_number());
     assert!(report["checks"]["failed"].is_number());

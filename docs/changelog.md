@@ -1,5 +1,7 @@
 ## Dev
 
+- **Feat**: Include failure categories and attributed object IDs in JSON reports [#358](https://github.com/JosephBARBIERDARNAL/page/issues/358)
+
 ## 0.9.0
 
 - **Feat**: Expose Python validation profiles and failure categories as standard enums and accept profile strings [#369](https://github.com/JosephBARBIERDARNAL/page/issues/369)
