@@ -180,6 +180,20 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert isinstance(report.failures[0].category, page.FailureCategory)
 
 
+def test_validation_report_source_is_set_for_files_and_none_for_bytes(tmp_path: Path):
+    path = tmp_path / "document.pdf"
+    data = minimal_pdf()
+    path.write_bytes(data)
+
+    file_report = page.validate_pdf(path, profile=page.ValidationProfile.PDF_A_1B)
+    bytes_report = page.validate_pdf_bytes(
+        data, profile=page.ValidationProfile.PDF_A_1B
+    )
+
+    assert file_report.source == str(path)
+    assert bytes_report.source is None
+
+
 def test_validation_functions_accept_string_profiles(tmp_path: Path):
     data = minimal_pdf()
     path = tmp_path / "string-profile.pdf"

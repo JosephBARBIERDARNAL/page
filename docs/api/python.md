@@ -43,6 +43,8 @@ import page
 
 report = page.validate_pdf("document.pdf")
 
+print(report.source)
+
 if report.is_compliant:
     print("The document passed all implemented rules.")
 else:
@@ -55,6 +57,8 @@ else:
 !!! info
 
     If you want to run it on bytes instead of a file, use `validate_pdf_bytes()`, which provides the same API but expects a `bytes` value instead of a path.
+
+`report.source` contains the validated file path as a string. Reports from `validate_pdf_bytes()` have `source` set to `None`.
 
 ## Select a profile explicitly
 

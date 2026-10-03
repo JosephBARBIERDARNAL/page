@@ -404,6 +404,14 @@ impl From<RustValidationReport> for ValidationReport {
 #[pymethods]
 impl ValidationReport {
     #[getter]
+    fn source(&self) -> Option<String> {
+        self.inner
+            .source
+            .as_ref()
+            .map(|source| source.display().to_string())
+    }
+
+    #[getter]
     fn profile(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         python_enum_value(py, "ValidationProfile", self.inner.profile.as_str())
     }
