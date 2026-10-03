@@ -42,7 +42,7 @@ By default, page enforces ressource limitations called "safety limits". See @doc
 
 ## Versionning
 
-page uses semantic versionning. All crates must share the exact same version. Current version is 0.8.0.
+page uses semantic versionning. All crates must share the exact same version. Current version is 0.9.0.
 
 ## Testing Guidelines
 

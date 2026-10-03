@@ -1,5 +1,7 @@
 ## Dev
 
+## 0.9.0
+
 - **Feat**: Expose Python validation profiles and failure categories as standard enums and accept profile strings [#369](https://github.com/JosephBARBIERDARNAL/page/issues/369)
 - **Feat**: Expose typed validation errors in the Rust, Python, and Wasm APIs [#355](https://github.com/JosephBARBIERDARNAL/page/issues/355)
 - **Fix**: Use the correct validation family in report headings [#354](https://github.com/JosephBARBIERDARNAL/page/issues/354)
