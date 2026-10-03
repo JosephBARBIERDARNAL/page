@@ -160,6 +160,27 @@ fn parse_limits(limits_json: Option<String>) -> Result<SafetyLimits, JsValue> {
         .map(Option::unwrap_or_default)
 }
 
+/// Returns the Rust-defined defaults for the TypeScript safety-limit wrapper.
+#[wasm_bindgen(js_name = defaultSafetyLimits)]
+pub fn default_safety_limits() -> String {
+    let limits = SafetyLimits::default();
+    serde_json::json!({
+        "maxInputSize": limits.max_input_size,
+        "maxDecodedStreamSize": limits.max_decoded_stream_size,
+        "maxTotalDecodedContentSize": limits.max_total_decoded_content_size,
+        "maxFormInvocations": limits.max_form_invocations,
+        "maxObjectCount": limits.max_object_count,
+        "maxReferenceDepth": limits.max_reference_depth,
+        "maxXrefRevisions": limits.max_xref_revisions,
+        "maxTableSpan": limits.max_table_span,
+        "maxTableGridRows": limits.max_table_grid_rows,
+        "maxTableGridColumns": limits.max_table_grid_columns,
+        "maxTableGridCells": limits.max_table_grid_cells,
+        "maxUnicodeCmapMappings": limits.max_unicode_cmap_mappings,
+    })
+    .to_string()
+}
+
 fn validation_options(
     profile: Option<String>,
     limits_json: Option<String>,

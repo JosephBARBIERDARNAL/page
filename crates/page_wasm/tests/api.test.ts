@@ -217,6 +217,7 @@ describe("page-validation", () => {
   it("preserves configuration errors before invoking WASM", async () => {
     let wasmCalls = 0;
     const api = createApi({
+      defaultSafetyLimits: wasm.defaultSafetyLimits,
       validatePdfBytes: () => {
         wasmCalls += 1;
         return "";
