@@ -1433,7 +1433,7 @@
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">is_compliant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">is_pdf_compliant</span><span class="p">(</span><span class="s2">"file.pdf"</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Every validation function takes a path or bytes as its only positional argument; <code>profile</code> and <code>limits</code> are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises <code>page.ValidationError</code>.</p>
+<p>Every validation function takes a path or bytes as its only positional argument; <code>profile</code> and <code>limits</code> are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise <code>page.ParseError</code>, resource-limit failures raise <code>page.SafetyLimitError</code>, and missing, malformed, or unsupported profile declarations raise <code>page.ProfileError</code>; all three inherit from <code>page.ValidationError</code>. File read failures raise <code>OSError</code>, including <code>FileNotFoundError</code> for missing paths.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>If you want to run it on bytes instead of a file, use <code>is_pdf_compliant_bytes()</code>, which provides the same API but expects a <code>bytes</code> value instead of a path.</p>
@@ -1466,6 +1466,7 @@
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use <code>is_pdf_compliant()</code> or the corresponding bytes function when you only need a boolean result.</p>
+<p><code>ValidationProfile</code> and <code>FailureCategory</code> are standard Python enums, so they can be iterated and expose <code>.name</code> and <code>.value</code>. <code>ValidationProfile.value</code> is the compact profile string, and <code>.is_implemented</code> reports whether page implements validation for that profile. Validation functions also accept a profile string directly, such as <code>profile="1b"</code>.</p>
 <h2 id="failures">Failures<a class="headerlink" href="#failures" title="Permanent link">&para;</a></h2>
 <p>Each report contains a list of failures:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
@@ -1487,7 +1488,7 @@
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="k">elif</span> <span class="n">failure</span><span class="o">.</span><span class="n">category</span> <span class="o">==</span> <span class="n">page</span><span class="o">.</span><span class="n">FailureCategory</span><span class="o">.</span><span class="n">CONFORMANCE</span><span class="p">:</span>
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">"conformance finding"</span><span class="p">,</span> <span class="n">failure</span><span class="o">.</span><span class="n">rule_id</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Input, parser, profile, and safety-limit failures raise <code>page.ValidationError</code> and do not appear in a report.</p>
+<p>Parser, profile, and safety-limit failures raise their specific <code>page.ValidationError</code> subclasses and do not appear in a report. File read failures use Python's <code>OSError</code> hierarchy.</p>
 <h2 id="safety-limits">Safety limits<a class="headerlink" href="#safety-limits" title="Permanent link">&para;</a></h2>
 <p>Safety limits protect the validator from excessively large or complex inputs. Defaults are sufficient for most cases:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
@@ -1522,7 +1523,7 @@
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">report</span><span class="o">.</span><span class="n">is_compliant</span><span class="p">:</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"The document failed one or more implemented checks."</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Input, parser, profile, and safety-limit failures raise <code>page.ValidationError</code> before a report is returned.</p>
+<p>Parser, profile, and safety-limit failures raise their specific <code>page.ValidationError</code> subclasses before a report is returned. File read failures use Python's <code>OSError</code> hierarchy.</p>
 <h2 id="export-the-report">Export the report<a class="headerlink" href="#export-the-report" title="Permanent link">&para;</a></h2>
 <p>Validation reports can be exported as JSON:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
