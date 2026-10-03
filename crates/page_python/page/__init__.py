@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
+from page._enums import FailureCategory, ValidationProfile
 from page._page import (
-    FailureCategory,
     ParseError,
     PdfDocument,
     PdfObjectId,
@@ -12,7 +12,6 @@ from page._page import (
     ValidationCounts,
     ValidationError,
     ValidationFailure,
-    ValidationProfile,
     ValidationReport,
     is_pdf_compliant,
     is_pdf_compliant_bytes,

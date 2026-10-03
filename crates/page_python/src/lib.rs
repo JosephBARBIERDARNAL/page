@@ -1,4 +1,3 @@
-use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
 use page_validation::{
@@ -9,8 +8,9 @@ use page_validation::{
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyValueError};
+use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 
 create_exception!(_page, ValidationError, PyException);
 create_exception!(_page, ParseError, ValidationError);
@@ -41,72 +41,31 @@ fn python_validation_error(error: RustValidationError) -> PyErr {
     }
 }
 
-#[pyclass(name = "ValidationProfile", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ValidationProfile(RustValidationProfile);
-
-#[pymethods]
-impl ValidationProfile {
-    fn __repr__(&self) -> String {
-        format!("ValidationProfile.{}", python_profile_name(self.0))
-    }
+fn python_enum_value(py: Python<'_>, enum_name: &str, value: &str) -> PyResult<Py<PyAny>> {
+    let enum_module = py.import("page._enums")?;
+    Ok(enum_module.getattr(enum_name)?.call1((value,))?.unbind())
 }
 
-impl From<ValidationProfile> for RustValidationProfile {
-    fn from(profile: ValidationProfile) -> Self {
-        profile.0
-    }
-}
-
-impl From<RustValidationProfile> for ValidationProfile {
-    fn from(profile: RustValidationProfile) -> Self {
-        Self(profile)
-    }
-}
-
-impl Hash for ValidationProfile {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.as_str().hash(state);
-    }
-}
-
-fn python_profile_name(profile: RustValidationProfile) -> String {
-    let name = profile.as_str();
-    if let Some(version) = name.strip_prefix("ua") {
-        format!("PDF_UA_{}", version.to_ascii_uppercase())
+fn parse_validation_profile(
+    py: Python<'_>,
+    profile: &Bound<'_, PyAny>,
+) -> PyResult<RustValidationProfile> {
+    let profile_enum = py.import("page._enums")?.getattr("ValidationProfile")?;
+    let value = if profile.is_instance_of::<PyString>() {
+        profile.extract::<String>()?
+    } else if profile.is_instance(&profile_enum)? {
+        profile.getattr("value")?.extract::<String>()?
     } else {
-        let (part, conformance) = name.split_at(1);
-        if conformance.is_empty() {
-            format!("PDF_A_{part}")
-        } else {
-            format!("PDF_A_{part}{}", conformance.to_ascii_uppercase())
-        }
-    }
-}
+        return Err(PyTypeError::new_err(
+            "profile must be a ValidationProfile, a string, or None",
+        ));
+    };
 
-#[pyclass(name = "FailureCategory", frozen, eq, hash, from_py_object)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum FailureCategory {
-    #[pyo3(name = "METADATA")]
-    Metadata,
-    #[pyo3(name = "CONFORMANCE")]
-    Conformance,
-}
-
-impl TryFrom<RustFailureCategory> for FailureCategory {
-    type Error = PyErr;
-
-    fn try_from(category: RustFailureCategory) -> PyResult<Self> {
-        Ok(match category {
-            RustFailureCategory::Metadata => Self::Metadata,
-            RustFailureCategory::Conformance => Self::Conformance,
-            _ => {
-                return Err(ValidationError::new_err(format!(
-                    "failure category {category:?} is not supported by the Python bindings"
-                )));
-            }
+    value
+        .parse()
+        .map_err(|error: page_validation::ParseValidationProfileError| {
+            PyValueError::new_err(error.to_string())
         })
-    }
 }
 
 #[pyclass(name = "SafetyLimits", from_py_object)]
@@ -333,17 +292,25 @@ impl ValidationFailure {
     }
 
     #[getter]
-    fn category(&self) -> PyResult<FailureCategory> {
-        self.inner.category.try_into()
+    fn category(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let value = match self.inner.category {
+            RustFailureCategory::Metadata => "metadata",
+            RustFailureCategory::Conformance => "conformance",
+            _ => {
+                return Err(ValidationError::new_err(format!(
+                    "failure category {:?} is not supported by the Python bindings",
+                    self.inner.category
+                )));
+            }
+        };
+        python_enum_value(py, "FailureCategory", value)
     }
 
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
+    fn __repr__(&self) -> String {
+        format!(
             "ValidationFailure(rule_id={:?}, category={:?}, message={:?})",
-            self.inner.rule_id,
-            self.category()?,
-            self.inner.message,
-        ))
+            self.inner.rule_id, self.inner.category, self.inner.message,
+        )
     }
 }
 
@@ -437,8 +404,8 @@ impl From<RustValidationReport> for ValidationReport {
 #[pymethods]
 impl ValidationReport {
     #[getter]
-    fn profile(&self) -> ValidationProfile {
-        self.inner.profile.into()
+    fn profile(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        python_enum_value(py, "ValidationProfile", self.inner.profile.as_str())
     }
 
     #[getter]
@@ -485,23 +452,27 @@ impl ValidationReport {
         self.inner.to_string()
     }
 
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
+    fn __repr__(&self) -> String {
+        format!(
             "ValidationReport(profile={:?}, is_compliant={}, failures={})",
-            self.profile(),
+            self.inner.profile.as_str(),
             self.inner.is_compliant,
             self.inner.failures.len(),
-        ))
+        )
     }
 }
 
 fn validation_options(
-    profile: Option<ValidationProfile>,
+    py: Python<'_>,
+    profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
-) -> page_validation::ValidationOptions {
-    page_validation::ValidationOptions::default()
-        .profile(profile.map(Into::into))
-        .limits(limits.map(Into::into).unwrap_or_default())
+) -> PyResult<page_validation::ValidationOptions> {
+    let profile = profile
+        .map(|profile| parse_validation_profile(py, profile))
+        .transpose()?;
+    Ok(page_validation::ValidationOptions::default()
+        .profile(profile)
+        .limits(limits.map(Into::into).unwrap_or_default()))
 }
 
 #[pyfunction]
@@ -509,10 +480,10 @@ fn validation_options(
 fn is_pdf_compliant(
     py: Python<'_>,
     path: PathBuf,
-    profile: Option<ValidationProfile>,
+    profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
-    let options = validation_options(profile, limits);
+    let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::is_pdf_compliant(&path, &options))
         .map_err(python_validation_error)
 }
@@ -522,10 +493,10 @@ fn is_pdf_compliant(
 fn validate_pdf(
     py: Python<'_>,
     path: PathBuf,
-    profile: Option<ValidationProfile>,
+    profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
-    let options = validation_options(profile, limits);
+    let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::validate_pdf(&path, &options))
         .map(Into::into)
         .map_err(python_validation_error)
@@ -536,11 +507,11 @@ fn validate_pdf(
 fn is_pdf_compliant_bytes(
     py: Python<'_>,
     data: &[u8],
-    profile: Option<ValidationProfile>,
+    profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
     let data = data.to_vec();
-    let options = validation_options(profile, limits);
+    let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::is_pdf_compliant_bytes(&data, &options))
         .map_err(python_validation_error)
 }
@@ -550,11 +521,11 @@ fn is_pdf_compliant_bytes(
 fn validate_pdf_bytes(
     py: Python<'_>,
     data: &[u8],
-    profile: Option<ValidationProfile>,
+    profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
     let data = data.to_vec();
-    let options = validation_options(profile, limits);
+    let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::validate_pdf_bytes(&data, &options))
         .map(Into::into)
         .map_err(python_validation_error)
@@ -566,15 +537,6 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("ParseError", py.get_type::<ParseError>())?;
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;
-    module.add_class::<ValidationProfile>()?;
-    let profile_class = module.getattr("ValidationProfile")?;
-    for &profile in RustValidationProfile::all() {
-        profile_class.setattr(
-            python_profile_name(profile),
-            Py::new(py, ValidationProfile(profile))?,
-        )?;
-    }
-    module.add_class::<FailureCategory>()?;
     module.add_class::<SafetyLimits>()?;
     module.add_class::<PdfObjectId>()?;
     module.add_class::<ValidationFailure>()?;
