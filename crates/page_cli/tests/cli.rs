@@ -43,7 +43,7 @@ fn page_help_exposes_direct_validation_arguments() {
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
     assert!(stdout.contains("Usage: page [OPTIONS] <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
-    assert!(stdout.contains("details, json"));
+    assert!(stdout.contains("summary, details, json"));
     assert!(stdout.contains("--output <FILE>"));
     assert!(stdout.contains("--color"));
     assert!(stdout.contains("--disable-safety-limits"));
@@ -129,6 +129,7 @@ fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
 fn disabling_safety_limits_preserves_validation_in_every_output_format() {
     for arguments in [
         vec![],
+        vec!["--format", "summary"],
         vec!["--format", "details"],
         vec!["--format", "json"],
     ] {
@@ -206,6 +207,30 @@ fn explicit_json_format_allows_an_extensionless_output() {
     let contents = fs::read(report_path).expect("read extensionless report");
     serde_json::from_slice::<serde_json::Value>(&contents)
         .expect("parse extensionless JSON report");
+}
+
+#[test]
+fn explicit_summary_format_overrides_json_extension_inference() {
+    let temporary = TempDirectory::new();
+    let report_path = temporary.join("report.json");
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(noncompliant_fixture())
+        .args([
+            "--format",
+            "summary",
+            "--output",
+            report_path.to_str().expect("UTF-8 report path"),
+        ])
+        .output()
+        .expect("write a summary report to a .json path");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    let contents = fs::read_to_string(report_path).expect("read summary report");
+    assert!(contents.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\n"));
+    assert!(contents.contains("Time    : "));
+    assert!(!contents.starts_with('{'));
 }
 
 #[test]

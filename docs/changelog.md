@@ -1,5 +1,6 @@
 ## Dev
 
+- **Feat**: Allow selecting summary output explicitly from the CLI [#364](https://github.com/JosephBARBIERDARNAL/page/issues/364)
 - **Feat**: Include failure categories and attributed object IDs in JSON reports [#358](https://github.com/JosephBARBIERDARNAL/page/issues/358)
 
 ## 0.9.0

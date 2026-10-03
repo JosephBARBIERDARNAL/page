@@ -40,7 +40,7 @@ struct Cli {
     #[arg(long, value_name = "PROFILE", value_parser = profile_parser())]
     profile: Option<ValidationProfile>,
 
-    /// Select detailed text or JSON output instead of the compact summary.
+    /// Select summary, detailed text, or JSON output.
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
@@ -107,6 +107,7 @@ struct Cli {
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum FormatArg {
+    Summary,
     Details,
     Json,
 }
@@ -264,6 +265,7 @@ fn select_format(
 ) -> Result<SelectedFormat, String> {
     let extension = output.and_then(extension);
     match format {
+        Some(FormatArg::Summary) => Ok(SelectedFormat::Summary),
         Some(FormatArg::Json)
             if extension.is_some_and(|value| value.eq_ignore_ascii_case("txt")) =>
         {

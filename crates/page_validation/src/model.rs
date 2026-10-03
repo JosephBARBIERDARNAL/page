@@ -699,10 +699,31 @@ fn load_document(
                     .or_else(|_| Document::load_mem_with_options(bytes, options))
                     .map_err(PdfError::parse)?
             }
-            Err(_) => Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?,
+            Err(_) => match Document::load_mem_with_options(bytes, options.clone()) {
+                Ok(document) => document,
+                Err(strict_error @ lopdf::Error::IndirectObject { .. }) => {
+                    // Let lopdf recover malformed objects after strict parsing, while the raw scan
+                    // continues to inspect the original bytes for conformance failures.
+                    let mut lenient_options = options.clone();
+                    lenient_options.strict = false;
+                    Document::load_mem_with_options(bytes, lenient_options.clone())
+                        .or_else(|_| Document::load_mem_with_options(&repaired, lenient_options))
+                        .map_err(|_recovery_error| PdfError::parse(strict_error))?
+                }
+                Err(error) => return Err(PdfError::parse(error)),
+            },
         }
     } else {
-        Document::load_mem_with_options(bytes, options).map_err(PdfError::parse)?
+        match Document::load_mem_with_options(bytes, options.clone()) {
+            Ok(document) => document,
+            Err(strict_error @ lopdf::Error::IndirectObject { .. }) => {
+                let mut lenient_options = options;
+                lenient_options.strict = false;
+                Document::load_mem_with_options(bytes, lenient_options)
+                    .map_err(|_recovery_error| PdfError::parse(strict_error))?
+            }
+            Err(error) => return Err(PdfError::parse(error)),
+        }
     };
     Ok(document)
 }
