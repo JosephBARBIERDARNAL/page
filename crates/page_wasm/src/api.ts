@@ -195,7 +195,7 @@ export interface JsonValidationError {
 export interface JsonValidationReport {
   file?: string;
   profile?: ValidationProfile;
-  valid: boolean;
+  compliant: boolean;
   rules?: ValidationCounts;
   checks?: ValidationCheckCounts;
   failures: { rule: string; message: string }[];
@@ -212,7 +212,7 @@ export class ValidationReport {
   readonly file: string | undefined;
   readonly source: string | null;
   readonly profile: ValidationProfile;
-  readonly valid: boolean;
+  readonly compliant: boolean;
   readonly isCompliant: boolean;
   readonly rules: ValidationCounts;
   readonly checks: ValidationCheckCounts;
@@ -224,8 +224,8 @@ export class ValidationReport {
     this.file = raw.file;
     this.source = raw.file ?? null;
     this.profile = raw.profile as ValidationProfile;
-    this.valid = raw.valid;
-    this.isCompliant = raw.valid;
+    this.compliant = raw.compliant;
+    this.isCompliant = raw.compliant;
     this.rules = raw.rules;
     this.checks = raw.checks;
     this.failures = raw.failures.map((failure) => ({

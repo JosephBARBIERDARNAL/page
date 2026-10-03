@@ -76,7 +76,7 @@ page document.pdf --format json
 {
   "file": "document.pdf",
   "profile": "1b",
-  "valid": false,
+  "compliant": false,
   "rules": {
     "total": 134,
     "passed": 132,
@@ -122,7 +122,7 @@ page document.pdf --max-table-span 256 --max-table-grid-cells 250000
 | `--max-input-size`                 |   256 MiB | Maximum input file size.                                                            |
 | `--max-decoded-stream-size`        |    32 MiB | Maximum decoded size of one stream.                                                 |
 | `--max-total-decoded-content-size` |   256 MiB | Maximum combined decoded content and retained font-stream data.                     |
-| `--max-form-invocations`          |    10,000 | Maximum Form XObject expansions across one document.                                |
+| `--max-form-invocations`           |    10,000 | Maximum Form XObject expansions across one document.                                |
 | `--max-object-count`               | 1,000,000 | Maximum number of parsed indirect objects.                                          |
 | `--max-reference-depth`            |       256 | Maximum reference-chain depth.                                                      |
 | `--max-xref-revisions`             |     1,024 | Maximum number of incremental-update revisions read from the cross-reference chain. |

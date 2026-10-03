@@ -16,7 +16,7 @@ pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
     pub profile: Option<ValidationProfile>,
-    pub valid: bool,
+    pub compliant: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rules: Option<ValidationCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -115,7 +115,7 @@ impl JsonValidationReport {
         Self {
             file,
             profile,
-            valid: false,
+            compliant: false,
             rules,
             checks,
             failures,
@@ -142,7 +142,7 @@ impl ValidationReport {
                 .as_ref()
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
-            valid: self.is_compliant,
+            compliant: self.is_compliant,
             rules: Some(self.rules),
             checks: Some(self.checks),
             failures,
@@ -185,7 +185,7 @@ mod tests {
 
         assert_eq!(value["file"], "document.pdf");
         assert_eq!(value["profile"], "1b");
-        assert_eq!(value["valid"], false);
+        assert_eq!(value["compliant"], false);
         assert_eq!(value["rules"]["total"], 1);
         assert_eq!(value["rules"]["failed"], 1);
         assert_eq!(value["checks"]["failed"], 1);

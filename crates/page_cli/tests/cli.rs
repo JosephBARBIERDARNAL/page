@@ -160,7 +160,7 @@ fn json_extension_infers_json_file_output() {
     let contents = fs::read_to_string(report_path).expect("read JSON report");
     assert!(contents.ends_with('\n'));
     let report: serde_json::Value = serde_json::from_str(&contents).expect("parse JSON report");
-    assert_eq!(report["valid"], false);
+    assert_eq!(report["compliant"], false);
 }
 
 #[test]
@@ -393,7 +393,7 @@ fn validation_json_uses_the_stable_public_schema() {
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
     assert_eq!(report["file"], fixture.display().to_string());
     assert_eq!(report["profile"], "1b");
-    assert_eq!(report["valid"], false);
+    assert_eq!(report["compliant"], false);
     assert!(report["error"].is_null());
     assert!(
         report["failures"]
@@ -418,7 +418,7 @@ fn validation_json_reports_parser_errors_separately() {
         .expect("run malformed PDF validation");
     assert_eq!(parser.status.code(), Some(2));
     let parser: serde_json::Value = serde_json::from_slice(&parser.stdout).expect("parser JSON");
-    assert_eq!(parser["valid"], false);
+    assert_eq!(parser["compliant"], false);
     assert_eq!(parser["profile"], "1b");
     assert_eq!(parser["failures"], serde_json::json!([]));
     assert!(parser["rules"].is_null());
@@ -441,7 +441,7 @@ fn validation_json_reports_inferred_profile_errors_without_a_profile() {
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
     assert!(report["profile"].is_null());
-    assert_eq!(report["valid"], false);
+    assert_eq!(report["compliant"], false);
     assert_eq!(report["failures"], serde_json::json!([]));
     assert_eq!(report["error"]["kind"], "operational");
 }
@@ -467,7 +467,7 @@ fn missing_input_uses_the_json_error_schema_when_requested() {
         serde_json::from_slice(&with_json.stdout).expect("input error JSON");
     assert_eq!(report["file"], missing.display().to_string());
     assert_eq!(report["profile"], "1b");
-    assert_eq!(report["valid"], false);
+    assert_eq!(report["compliant"], false);
     assert_eq!(report["error"]["kind"], "operational");
     assert_eq!(report["error"]["rule"], "INPUT-IO-001");
 

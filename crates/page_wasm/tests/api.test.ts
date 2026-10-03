@@ -157,7 +157,7 @@ describe("page-validation", () => {
     const jsonReport = report.toJSON();
     expect(jsonReport).toMatchObject({
       profile: "1b",
-      valid: false,
+      compliant: false,
       rules: report.rules,
       checks: report.checks,
       failures: report.failures.map(({ ruleId, message }) => ({
