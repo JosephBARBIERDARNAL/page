@@ -176,6 +176,11 @@ def test_validation_reports_missing_file_as_file_not_found(tmp_path: Path):
         page.validate_pdf(missing_file, profile=page.ValidationProfile.PDF_A_1B)
 
 
+def test_validation_reports_other_file_read_failures_as_os_error(tmp_path: Path):
+    with pytest.raises(OSError):
+        page.validate_pdf(tmp_path, profile=page.ValidationProfile.PDF_A_1B)
+
+
 def test_validation_errors_have_specific_base_classes():
     assert issubclass(page.ParseError, page.ValidationError)
     assert issubclass(page.SafetyLimitError, page.ValidationError)

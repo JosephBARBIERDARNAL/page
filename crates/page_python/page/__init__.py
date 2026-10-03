@@ -2,12 +2,12 @@ from importlib.metadata import version
 
 from page._page import (
     FailureCategory,
+    ParseError,
     PdfDocument,
     PdfObjectId,
-    ParseError,
     ProfileError,
-    SafetyLimits,
     SafetyLimitError,
+    SafetyLimits,
     ValidationCheckCounts,
     ValidationCounts,
     ValidationError,
@@ -24,12 +24,12 @@ __version__ = version("page-validation")
 
 __all__ = [
     "FailureCategory",
+    "ParseError",
     "PdfDocument",
     "PdfObjectId",
-    "ParseError",
     "ProfileError",
-    "SafetyLimits",
     "SafetyLimitError",
+    "SafetyLimits",
     "ValidationCheckCounts",
     "ValidationCounts",
     "ValidationError",
