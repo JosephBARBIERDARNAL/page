@@ -1,3 +1,4 @@
+from enum import Enum
 from importlib.metadata import version
 from pathlib import Path
 from struct import calcsize
@@ -56,6 +57,23 @@ def test_default_safety_limits():
         limits.max_unicode_cmap_mappings
         == page.SafetyLimits.DEFAULT_MAX_UNICODE_CMAP_MAPPINGS
     )
+
+
+def test_python_api_types_are_standard_enums():
+    assert issubclass(page.ValidationProfile, Enum)
+    profiles = list(page.ValidationProfile)
+    assert profiles[0].name == "PDF_A_1B"
+    assert profiles[0].value == "1b"
+    assert all(profile.is_implemented for profile in profiles)
+    assert page.ValidationProfile("1b") is page.ValidationProfile.PDF_A_1B
+
+    assert issubclass(page.FailureCategory, Enum)
+    assert list(page.FailureCategory) == [
+        page.FailureCategory.METADATA,
+        page.FailureCategory.CONFORMANCE,
+    ]
+    assert page.FailureCategory.METADATA.name == "METADATA"
+    assert page.FailureCategory.METADATA.value == "metadata"
 
 
 def test_custom_safety_limits():
@@ -131,14 +149,14 @@ def test_unlimited_limits_work_with_file_and_byte_apis(tmp_path: Path):
 
 
 def test_compliance_api_rejects_invalid_bytes():
-    with pytest.raises(page.ValidationError):
+    with pytest.raises(page.ParseError):
         page.is_pdf_compliant_bytes(
             b"not a PDF", profile=page.ValidationProfile.PDF_A_1B
         )
 
 
 def test_validation_api_raises_for_invalid_bytes():
-    with pytest.raises(page.ValidationError):
+    with pytest.raises(page.ParseError):
         page.validate_pdf_bytes(b"not a PDF", profile=page.ValidationProfile.PDF_A_1B)
 
 
@@ -158,6 +176,29 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert report.is_compliant is False
     assert not hasattr(report, "exit_code")
     assert report.failures
+    assert isinstance(report.profile, page.ValidationProfile)
+    assert isinstance(report.failures[0].category, page.FailureCategory)
+
+
+def test_validation_functions_accept_string_profiles(tmp_path: Path):
+    data = minimal_pdf()
+    path = tmp_path / "string-profile.pdf"
+    path.write_bytes(data)
+
+    assert (
+        page.validate_pdf(path, profile="1b").profile is page.ValidationProfile.PDF_A_1B
+    )
+    assert (
+        page.validate_pdf_bytes(data, profile="1b").profile
+        is page.ValidationProfile.PDF_A_1B
+    )
+    assert page.is_pdf_compliant(path, profile="1b") is False
+    assert page.is_pdf_compliant_bytes(data, profile="1b") is False
+
+
+def test_validation_functions_reject_unknown_profile_strings():
+    with pytest.raises(ValueError, match="unknown validation profile"):
+        page.validate_pdf_bytes(minimal_pdf(), profile="unknown")
 
 
 def test_compliance_file_api_returns_bool(tmp_path: Path):
@@ -170,10 +211,31 @@ def test_compliance_file_api_returns_bool(tmp_path: Path):
     )
 
 
-def test_validation_reports_missing_file_as_error(tmp_path: Path):
+def test_validation_reports_missing_file_as_file_not_found(tmp_path: Path):
     missing_file = tmp_path / "missing.pdf"
-    with pytest.raises(page.ValidationError, match="could not read input"):
+    with pytest.raises(FileNotFoundError):
         page.validate_pdf(missing_file, profile=page.ValidationProfile.PDF_A_1B)
+
+
+def test_validation_reports_other_file_read_failures_as_os_error(tmp_path: Path):
+    with pytest.raises(OSError):
+        page.validate_pdf(tmp_path, profile=page.ValidationProfile.PDF_A_1B)
+
+
+def test_validation_errors_have_specific_base_classes():
+    assert issubclass(page.ParseError, page.ValidationError)
+    assert issubclass(page.SafetyLimitError, page.ValidationError)
+    assert issubclass(page.ProfileError, page.ValidationError)
+
+    with pytest.raises(page.SafetyLimitError):
+        page.validate_pdf_bytes(
+            minimal_pdf(),
+            profile=page.ValidationProfile.PDF_A_1B,
+            limits=page.SafetyLimits(max_input_size=1),
+        )
+
+    with pytest.raises(page.ProfileError):
+        page.validate_pdf_bytes(minimal_pdf())
 
 
 def test_validation_options_are_keyword_only():

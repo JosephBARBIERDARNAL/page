@@ -251,10 +251,18 @@ export interface ValidationOptions {
   limits?: SafetyLimits | Partial<SafetyLimitsOptions>;
 }
 
+export type ValidationErrorKind =
+  "input_io" | "parser" | "safety_limit" | "conformance" | "profile" | "unknown";
+
 export class ValidationError extends Error {
-  constructor(message: string) {
+  readonly kind: ValidationErrorKind;
+  readonly ruleId: string | undefined;
+
+  constructor(message: string, kind: ValidationErrorKind = "unknown", ruleId?: string) {
     super(message);
     this.name = "ValidationError";
+    this.kind = kind;
+    this.ruleId = ruleId;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
@@ -325,9 +333,24 @@ function asValidationError(error: unknown): ValidationError {
     return error;
   }
   if (error instanceof Error && error.name === "ValidationError") {
-    return new ValidationError(error.message);
+    const typedError = error as Error & { kind?: unknown; ruleId?: unknown };
+    return new ValidationError(
+      error.message,
+      isValidationErrorKind(typedError.kind) ? typedError.kind : "unknown",
+      typeof typedError.ruleId === "string" ? typedError.ruleId : undefined,
+    );
   }
   return error instanceof Error
     ? new ValidationError(error.message)
     : new ValidationError(String(error));
+}
+
+function isValidationErrorKind(value: unknown): value is ValidationErrorKind {
+  return (
+    value === "input_io" ||
+    value === "parser" ||
+    value === "safety_limit" ||
+    value === "conformance" ||
+    value === "profile"
+  );
 }

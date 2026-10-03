@@ -1,15 +1,17 @@
 from importlib.metadata import version
 
+from page._enums import FailureCategory, ValidationProfile
 from page._page import (
-    FailureCategory,
+    ParseError,
     PdfDocument,
     PdfObjectId,
+    ProfileError,
+    SafetyLimitError,
     SafetyLimits,
     ValidationCheckCounts,
     ValidationCounts,
     ValidationError,
     ValidationFailure,
-    ValidationProfile,
     ValidationReport,
     is_pdf_compliant,
     is_pdf_compliant_bytes,
@@ -21,8 +23,11 @@ __version__ = version("page-validation")
 
 __all__ = [
     "FailureCategory",
+    "ParseError",
     "PdfDocument",
     "PdfObjectId",
+    "ProfileError",
+    "SafetyLimitError",
     "SafetyLimits",
     "ValidationCheckCounts",
     "ValidationCounts",

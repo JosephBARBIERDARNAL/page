@@ -1,22 +1,12 @@
 from os import PathLike
 from typing import ClassVar
 
+from page._enums import FailureCategory, ValidationProfile
+
 class ValidationError(Exception): ...
-
-class ValidationProfile:
-    PDF_A_1B: ClassVar[ValidationProfile]
-    PDF_A_1A: ClassVar[ValidationProfile]
-    PDF_A_2B: ClassVar[ValidationProfile]
-    PDF_A_2A: ClassVar[ValidationProfile]
-    PDF_A_2U: ClassVar[ValidationProfile]
-    PDF_A_3B: ClassVar[ValidationProfile]
-    PDF_A_3A: ClassVar[ValidationProfile]
-    PDF_A_3U: ClassVar[ValidationProfile]
-    PDF_UA_1: ClassVar[ValidationProfile]
-
-class FailureCategory:
-    METADATA: ClassVar[FailureCategory]
-    CONFORMANCE: ClassVar[FailureCategory]
+class ParseError(ValidationError): ...
+class SafetyLimitError(ValidationError): ...
+class ProfileError(ValidationError): ...
 
 class SafetyLimits:
     @staticmethod
@@ -121,24 +111,24 @@ class ValidationReport:
 def is_pdf_compliant(
     path: str | PathLike[str],
     *,
-    profile: ValidationProfile | None = None,
+    profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,
 ) -> bool: ...
 def is_pdf_compliant_bytes(
     data: bytes,
     *,
-    profile: ValidationProfile | None = None,
+    profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,
 ) -> bool: ...
 def validate_pdf(
     path: str | PathLike[str],
     *,
-    profile: ValidationProfile | None = None,
+    profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,
 ) -> ValidationReport: ...
 def validate_pdf_bytes(
     data: bytes,
     *,
-    profile: ValidationProfile | None = None,
+    profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,
 ) -> ValidationReport: ...

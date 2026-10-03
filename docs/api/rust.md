@@ -104,7 +104,7 @@ for failure in &report.failures {
 }
 ```
 
-Input, parser, profile, and safety-limit failures are returned as `Err(ValidationError)` and do not appear in a report. Handle them separately with `?`, `match`, or `map_err`.
+Input, parser, profile, and safety-limit failures are returned as `Err(ValidationError)` and do not appear in a report. Use `ValidationError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, `SafetyLimit`, or `Conformance`, and `ValidationError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
 
 ## Safety limits
 

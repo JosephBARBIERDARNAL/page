@@ -28,7 +28,7 @@ import page
 is_compliant: bool = page.is_pdf_compliant("file.pdf")
 ```
 
-Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. A missing, malformed, or unsupported profile declaration, or an input that cannot be read or parsed, raises `page.ValidationError`.
+Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.ValidationError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
 
 !!! info
 
@@ -71,6 +71,8 @@ report = page.validate_pdf(
 
 The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `is_pdf_compliant()` or the corresponding bytes function when you only need a boolean result.
 
+`ValidationProfile` and `FailureCategory` are standard Python enums, so they can be iterated and expose `.name` and `.value`. `ValidationProfile.value` is the compact profile string, and `.is_implemented` reports whether page implements validation for that profile. Validation functions also accept a profile string directly, such as `profile="1b"`.
+
 ## Failures
 
 Each report contains a list of failures:
@@ -100,7 +102,7 @@ for failure in report.failures:
         print("conformance finding", failure.rule_id)
 ```
 
-Input, parser, profile, and safety-limit failures raise `page.ValidationError` and do not appear in a report.
+Parser, profile, and safety-limit failures raise their specific `page.ValidationError` subclasses and do not appear in a report. File read failures use Python's `OSError` hierarchy.
 
 ## Safety limits
 
@@ -149,7 +151,7 @@ if not report.is_compliant:
     print("The document failed one or more implemented checks.")
 ```
 
-Input, parser, profile, and safety-limit failures raise `page.ValidationError` before a report is returned.
+Parser, profile, and safety-limit failures raise their specific `page.ValidationError` subclasses before a report is returned. File read failures use Python's `OSError` hierarchy.
 
 ## Export the report
 

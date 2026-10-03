@@ -178,11 +178,38 @@ describe("page-validation", () => {
   });
 
   it("raises ValidationError for malformed input", async () => {
+    const error = await validatePdfBytes(new TextEncoder().encode("not a PDF"), {
+      profile: ValidationProfile.PDF_A_1B,
+    }).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({
+      name: "ValidationError",
+      kind: "parser",
+      ruleId: "PDF-PARSE-001",
+    });
+  });
+
+  it("exposes resource and profile error kinds with rule IDs", async () => {
     await expect(
-      validatePdfBytes(new TextEncoder().encode("not a PDF"), {
+      validatePdfBytes(minimalPdf(), {
         profile: ValidationProfile.PDF_A_1B,
+        limits: { maxInputSize: 1 },
       }),
-    ).rejects.toBeInstanceOf(ValidationError);
+    ).rejects.toMatchObject({
+      kind: "safety_limit",
+      ruleId: "RESOURCE-LIMIT-001",
+    });
+
+    await expect(
+      validatePdfBytes(minimalPdf(), { profile: "invalid" as ValidationProfile }),
+    ).rejects.toMatchObject({
+      kind: "profile",
+      ruleId: "PROFILE-001",
+    });
   });
 
   it("preserves configuration errors before invoking WASM", async () => {

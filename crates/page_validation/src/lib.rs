@@ -53,7 +53,7 @@ mod validation;
 mod xml_safety;
 mod xobject;
 
-pub use error::{PdfError, ValidationError};
+pub use error::{PdfError, ValidationError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use metadata::{DocumentMetadata, XmpMetadata};
