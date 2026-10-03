@@ -10,7 +10,8 @@ use page_validation::{
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyString;
+use pyo3::pybacked::PyBackedBytes;
+use pyo3::types::{PyBytes, PyString};
 
 create_exception!(_page, ValidationError, PyException);
 create_exception!(_page, ParseError, ValidationError);
@@ -514,13 +515,14 @@ fn validate_pdf(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn is_pdf_compliant_bytes(
     py: Python<'_>,
-    data: &[u8],
+    data: Bound<'_, PyBytes>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
-    let data = data.to_vec();
+    // Keep the immutable Python buffer alive while validation runs without the GIL.
+    let data = PyBackedBytes::from(data);
     let options = validation_options(py, profile, limits)?;
-    py.detach(|| page_validation::is_pdf_compliant_bytes(&data, &options))
+    py.detach(|| page_validation::is_pdf_compliant_bytes(data.as_ref(), &options))
         .map_err(python_validation_error)
 }
 
@@ -528,13 +530,14 @@ fn is_pdf_compliant_bytes(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn validate_pdf_bytes(
     py: Python<'_>,
-    data: &[u8],
+    data: Bound<'_, PyBytes>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
-    let data = data.to_vec();
+    // Keep the immutable Python buffer alive while validation runs without the GIL.
+    let data = PyBackedBytes::from(data);
     let options = validation_options(py, profile, limits)?;
-    py.detach(|| page_validation::validate_pdf_bytes(&data, &options))
+    py.detach(|| page_validation::validate_pdf_bytes(data.as_ref(), &options))
         .map(Into::into)
         .map_err(python_validation_error)
 }

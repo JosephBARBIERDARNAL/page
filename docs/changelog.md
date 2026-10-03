@@ -1,5 +1,6 @@
 ## Dev
 
+- **Perf**: Avoid copying Python bytes inputs during validation [#371](https://github.com/JosephBARBIERDARNAL/page/issues/371)
 - **Feat**: Expose the source path on Python validation reports [#370](https://github.com/JosephBARBIERDARNAL/page/issues/370)
 - **Refactor**: Hide CLI presentation helpers from the published API documentation [#368](https://github.com/JosephBARBIERDARNAL/page/issues/368)
 - **Feat**: Allow selecting summary output explicitly from the CLI [#364](https://github.com/JosephBARBIERDARNAL/page/issues/364)
