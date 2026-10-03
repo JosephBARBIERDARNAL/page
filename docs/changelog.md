@@ -1,5 +1,6 @@
 ## Dev
 
+- **Doc**: Fix the duplicate logo in the mobile navigation drawer [#385](https://github.com/JosephBARBIERDARNAL/page/issues/385)
 - **Fix**: Export safety-limit defaults from Rust to the Wasm TypeScript wrapper [#362](https://github.com/JosephBARBIERDARNAL/page/issues/362)
 - **Perf**: Avoid copying Python bytes inputs during validation [#371](https://github.com/JosephBARBIERDARNAL/page/issues/371)
 - **Feat**: Expose the source path on Python validation reports [#370](https://github.com/JosephBARBIERDARNAL/page/issues/370)

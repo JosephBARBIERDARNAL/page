@@ -354,17 +354,17 @@ h4 {
 }
 
 .md-header__button.md-logo img.md-logo--dark,
-.md-nav__button.md-logo img.md-logo--dark {
+.md-nav .md-nav__title[for="__drawer"] .md-logo img.md-logo--dark {
   display: none;
 }
 
 [data-md-color-scheme="slate"] .md-header__button.md-logo img.md-logo--light,
-[data-md-color-scheme="slate"] .md-nav__button.md-logo img.md-logo--light {
+[data-md-color-scheme="slate"] .md-nav .md-nav__title[for="__drawer"] .md-logo img.md-logo--light {
   display: none;
 }
 
 [data-md-color-scheme="slate"] .md-header__button.md-logo img.md-logo--dark,
-[data-md-color-scheme="slate"] .md-nav__button.md-logo img.md-logo--dark {
+[data-md-color-scheme="slate"] .md-nav .md-nav__title[for="__drawer"] .md-logo img.md-logo--dark {
   display: block;
 }
 
