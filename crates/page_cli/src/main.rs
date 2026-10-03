@@ -16,6 +16,14 @@ use page_validation::{
     ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+enum ColorArg {
+    #[default]
+    Auto,
+    Never,
+    Always,
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "page",
@@ -40,9 +48,9 @@ struct Cli {
     #[arg(long, value_name = "FILE")]
     output: Option<PathBuf>,
 
-    /// Disable colors in human-readable output.
-    #[arg(long)]
-    no_color: bool,
+    /// Colors in human-readable output.
+    #[arg(long, value_enum, default_value_t)]
+    color: ColorArg,
 
     /// Disable all configurable safety limits; use only with trusted files.
     #[arg(long, conflicts_with = "safety_limits")]
@@ -131,8 +139,12 @@ fn selected_style(enabled: bool, style: Style) -> Style {
     if enabled { style } else { Style::new() }
 }
 
-fn colors_enabled(no_color_flag: bool, no_color_env: bool, is_terminal: bool) -> bool {
-    !no_color_flag && !no_color_env && is_terminal
+fn colors_enabled(color: ColorArg, no_color_env: bool, is_terminal: bool) -> bool {
+    match color {
+        ColorArg::Auto => !no_color_env && is_terminal,
+        ColorArg::Always => true,
+        ColorArg::Never => false,
+    }
 }
 
 fn print_error(message: impl fmt::Display, colors: bool) {
@@ -347,8 +359,8 @@ fn main() {
 
 fn run_validate(cli: Cli) {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
-    let stdout_colors = colors_enabled(cli.no_color, no_color_env, io::stdout().is_terminal());
-    let stderr_colors = colors_enabled(cli.no_color, no_color_env, io::stderr().is_terminal());
+    let stdout_colors = colors_enabled(cli.color, no_color_env, io::stdout().is_terminal());
+    let stderr_colors = colors_enabled(cli.color, no_color_env, io::stderr().is_terminal());
     let selected_format = match select_format(cli.format, cli.output.as_deref()) {
         Ok(format) => format,
         Err(error) => {
@@ -507,16 +519,15 @@ mod tests {
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
-        assert!(colors_enabled(false, false, true));
-        assert!(!colors_enabled(true, false, true));
-        assert!(!colors_enabled(false, true, true));
-        assert!(!colors_enabled(false, false, false));
+        assert!(colors_enabled(crate::ColorArg::Auto, false, true));
+        assert!(!colors_enabled(crate::ColorArg::Never, false, true));
+        assert!(!colors_enabled(crate::ColorArg::Auto, true, true));
+        assert!(!colors_enabled(crate::ColorArg::Auto, false, false));
     }
 
     #[test]
     fn conformant_summary_uses_bright_green() {
         let summary = render_summary(ValidationProfile::PdfA1b, true, Duration::ZERO, true);
-
         assert!(summary.contains("92mConformant"));
     }
 

@@ -45,7 +45,7 @@ fn page_help_exposes_direct_validation_arguments() {
     assert!(stdout.contains("--format <FORMAT>"));
     assert!(stdout.contains("details, json"));
     assert!(stdout.contains("--output <FILE>"));
-    assert!(stdout.contains("--no-color"));
+    assert!(stdout.contains("--color"));
     assert!(stdout.contains("--disable-safety-limits"));
     assert!(stdout.contains("trusted files"));
     assert!(stdout.contains("--max-input-size <MAX_INPUT_SIZE>"));
@@ -301,12 +301,12 @@ fn missing_declared_profile_is_an_explicit_error() {
 }
 
 #[test]
-fn no_color_flag_preserves_plain_human_output() {
+fn color_flag_preserves_plain_human_output() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let output = Command::new(env!("CARGO_BIN_EXE_page"))
         .arg(&fixture)
-        .args(["--profile", "1b", "--format", "details", "--no-color"])
+        .args(["--profile", "1b", "--format", "details", "--color", "never"])
         .output()
         .expect("run PDF validation without colors");
 

@@ -144,4 +144,4 @@ By default, `page` uses color in the terminal output.
 
 ![Example of terminal output, with colors on some key words.](../../images/terminal-colors.png)
 
-In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable to 1 or pass `--no-color` to disable them.
+In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable to 1 or pass `--color never` to disable them. Other options are `--color auto` (default) and `--color always`.
