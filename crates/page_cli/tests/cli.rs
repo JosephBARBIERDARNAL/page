@@ -116,7 +116,7 @@ fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
                 .args(arguments)
                 .output()
                 .expect("reject conflicting safety-limit arguments");
-            assert_eq!(output.status.code(), Some(2));
+            assert_eq!(output.status.code(), Some(1));
             assert!(output.stdout.is_empty());
             let stderr = String::from_utf8(output.stderr).expect("UTF-8 conflict");
             assert!(stderr.contains("cannot be used with"), "{stderr}");
