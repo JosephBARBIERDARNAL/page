@@ -402,7 +402,7 @@ fn unimplemented_profiles_are_not_cli_choices() {
             .output()
             .expect("reject an unimplemented profile");
 
-        assert_eq!(output.status.code(), Some(2), "profile {argument}");
+        assert_eq!(output.status.code(), Some(1), "profile {argument}");
         assert!(output.stdout.is_empty(), "profile {argument}");
         let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
         assert!(

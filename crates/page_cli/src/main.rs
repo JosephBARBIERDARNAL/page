@@ -347,7 +347,21 @@ fn print_validation_error(path: &Path, error: &ValidationError, colors: bool) {
 }
 
 fn main() {
-    run_validate(Cli::parse());
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let exit_code = match error.kind() {
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => 0,
+                _ => 1,
+            };
+            if let Err(print_error) = error.print() {
+                eprintln!("could not print CLI message: {print_error}");
+                std::process::exit(1);
+            }
+            std::process::exit(exit_code);
+        }
+    };
+    run_validate(cli);
 }
 
 fn run_validate(cli: Cli) {
