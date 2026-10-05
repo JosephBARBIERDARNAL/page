@@ -934,6 +934,13 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Fix</strong>: Give CLI usage errors exit code 1 and document stable CLI exit codes <a href="https://github.com/JosephBARBIERDARNAL/page/issues/394">#394</a></li>
+<li><strong>Fix</strong>: Report the PDF/A-1 indirect-object limit as a conformance failure across API surfaces <a href="https://github.com/JosephBARBIERDARNAL/page/issues/387">#387</a></li>
+<li><strong>Refactor</strong>: Remove unimplemented Rust validation profiles and their rejection helpers, and simplify Python profile enums to string values without <code>is_implemented</code> <a href="https://github.com/JosephBARBIERDARNAL/page/issues/388">#388</a></li>
+<li><strong>Refactor</strong>: Move validation error exit-code mapping into the CLI and keep the PDF/A-1 indirect-object conformance constant private to the validation crate <a href="https://github.com/JosephBARBIERDARNAL/page/issues/392">#392</a></li>
+<li><strong>Refactor</strong>: Hide the CLI validation exit-code helper from the published API documentation <a href="https://github.com/JosephBARBIERDARNAL/page/issues/393">#393</a></li>
+<li><strong>Fix</strong>: Use shared <code>Display</code> formatting for failure categories and failures in Rust reports and CLI details output <a href="https://github.com/JosephBARBIERDARNAL/page/issues/396">#396</a></li>
+<li><strong>Refactor</strong>: Limit the public Rust document model to summary fields, hide metadata and parsing types, and always include a document summary in Rust and Python validation reports <a href="https://github.com/JosephBARBIERDARNAL/page/issues/386">#386</a></li>
 <li><strong>Doc</strong>: Fix the duplicate logo in the mobile navigation drawer <a href="https://github.com/JosephBARBIERDARNAL/page/issues/385">#385</a></li>
 <li><strong>Fix</strong>: Export safety-limit defaults from Rust to the Wasm TypeScript wrapper <a href="https://github.com/JosephBARBIERDARNAL/page/issues/362">#362</a></li>
 <li><strong>Perf</strong>: Avoid copying Python bytes inputs during validation <a href="https://github.com/JosephBARBIERDARNAL/page/issues/371">#371</a></li>

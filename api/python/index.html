@@ -1469,7 +1469,7 @@
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use <code>is_pdf_compliant()</code> or the corresponding bytes function when you only need a boolean result.</p>
-<p><code>ValidationProfile</code> and <code>FailureCategory</code> are standard Python enums, so they can be iterated and expose <code>.name</code> and <code>.value</code>. <code>ValidationProfile.value</code> is the compact profile string, and <code>.is_implemented</code> reports whether page implements validation for that profile. Validation functions also accept a profile string directly, such as <code>profile="1b"</code>.</p>
+<p><code>ValidationProfile</code> and <code>FailureCategory</code> are standard Python enums, so they can be iterated and expose <code>.name</code> and <code>.value</code>. <code>ValidationProfile</code> contains only profiles implemented by page, and <code>.value</code> is the compact profile string. Validation functions also accept a profile string directly, such as <code>profile="1b"</code>.</p>
 <h2 id="failures">Failures<a class="headerlink" href="#failures" title="Permanent link">&para;</a></h2>
 <p>Each report contains a list of failures:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>

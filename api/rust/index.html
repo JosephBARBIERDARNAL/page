@@ -1432,6 +1432,7 @@
 <p class="admonition-title">Info</p>
 <p>If you want to run it on bytes instead of a file, use <code>validate_pdf_bytes()</code>, which provides the same API but expects a <code>&amp;[u8]</code> instead of a <code>&amp;Path</code>.</p>
 </div>
+<p>Every returned report includes <code>report.document</code>, a <code>PdfDocument</code> summary with public <code>version</code>, <code>encrypted</code>, <code>page_count</code>, and <code>object_count</code> fields. Access these fields directly without unwrapping an <code>Option</code>. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through <code>validate_pdf()</code> or <code>validate_pdf_bytes()</code>.</p>
 <h2 id="select-a-profile-explicitly">Select a profile explicitly<a class="headerlink" href="#select-a-profile-explicitly" title="Permanent link">&para;</a></h2>
 <p>Set a profile in the options when the caller, rather than the document, selects it:</p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>

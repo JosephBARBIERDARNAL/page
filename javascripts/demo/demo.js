@@ -60,7 +60,7 @@ function y(e) {
       }
       t.disabled = !0, t.classList.add("validator-button--loading"), t.setAttribute("aria-busy", "true"), n.replaceChildren(), n.className = "validator-result validator-result--pending";
       try {
-        const o = new Uint8Array(await i.arrayBuffer()), { validatePdfBytes: d } = await import("./index-Bo2dsFsh.js"), c = await d(o, {
+        const o = new Uint8Array(await i.arrayBuffer()), { validatePdfBytes: d } = await import("./index-CZiRY5TL.js"), c = await d(o, {
           profile: r.value
         });
         g(n, c);

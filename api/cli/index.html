@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#safety-limits" class="md-skip">
+        <a href="#exit-codes" class="md-skip">
           Skip to content
         </a>
       
@@ -723,6 +723,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Exit codes
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#safety-limits" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1127,6 +1138,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Exit codes
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#safety-limits" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1364,6 +1386,31 @@
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--format<span class="w"> </span>details<span class="w"> </span>--output<span class="w"> </span>report.txt
 </span></code></pre></div>
 <p>Explicit formats that conflict with <code>.json</code> or <code>.txt</code> are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.</p>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<p>The <code>page</code> exit codes are a stable CLI contract:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;"><code>0</code></td>
+<td>Validation completed with no failed checks, or <code>--help</code> / <code>--version</code> was requested.</td>
+</tr>
+<tr>
+<td style="text-align: right;"><code>1</code></td>
+<td>Operational failure, including I/O or safety-limit errors, missing or invalid profile declarations, output errors, and invalid CLI arguments.</td>
+</tr>
+<tr>
+<td style="text-align: right;"><code>2</code></td>
+<td>The PDF is non-compliant, or the PDF parser could not parse the document.</td>
+</tr>
+</tbody>
+</table>
+<p>CLI usage errors such as an invalid <code>--profile</code> value use code <code>1</code>, so they remain distinct from validation failures and PDF parser errors.</p>
 <h2 id="safety-limits">Safety limits<a class="headerlink" href="#safety-limits" title="Permanent link">&para;</a></h2>
 <p>The CLI exposes every <code>SafetyLimits</code> bound. Defaults are suitable for most documents and can be overridden per invocation:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--max-table-span<span class="w"> </span><span class="m">256</span><span class="w"> </span>--max-table-grid-cells<span class="w"> </span><span class="m">250000</span>
