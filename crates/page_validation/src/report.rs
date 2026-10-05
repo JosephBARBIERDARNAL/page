@@ -157,7 +157,7 @@ impl fmt::Display for ValidationReport {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut output = String::new();
         let standard = match self.profile {
-            ValidationProfile::PdfUa1 | ValidationProfile::PdfUa2 => "PDF/UA",
+            ValidationProfile::PdfUa1 => "PDF/UA",
             _ => "PDF/A",
         };
         writeln!(output, "{standard} validation")?;

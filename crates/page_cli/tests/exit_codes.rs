@@ -1,5 +1,5 @@
 use page_cli::validation_error_exit_code;
-use page_validation::{PdfError, ValidationError, ValidationProfile};
+use page_validation::{PdfError, ValidationError};
 
 #[test]
 fn validation_errors_preserve_cli_exit_codes() {
@@ -31,10 +31,6 @@ fn validation_errors_preserve_cli_exit_codes() {
         (ValidationError::MissingProfileDeclaration, 1),
         (
             ValidationError::InvalidProfileDeclaration("invalid profile".to_owned()),
-            1,
-        ),
-        (
-            ValidationError::UnsupportedProfile(ValidationProfile::PdfA4),
             1,
         ),
     ];

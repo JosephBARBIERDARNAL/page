@@ -64,7 +64,17 @@ def test_python_api_types_are_standard_enums():
     profiles = list(page.ValidationProfile)
     assert profiles[0].name == "PDF_A_1B"
     assert profiles[0].value == "1b"
-    assert all(profile.is_implemented for profile in profiles)
+    assert [profile.value for profile in profiles] == [
+        "1b",
+        "1a",
+        "2b",
+        "2a",
+        "2u",
+        "3b",
+        "3a",
+        "3u",
+        "ua1",
+    ]
     assert page.ValidationProfile("1b") is page.ValidationProfile.PDF_A_1B
 
     assert issubclass(page.FailureCategory, Enum)

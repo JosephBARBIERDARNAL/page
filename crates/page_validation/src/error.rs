@@ -163,8 +163,7 @@ impl PdfError {
 ///     match error {
 ///         ValidationError::InputIo(_) | ValidationError::Pdf(_)
 ///         | ValidationError::MissingProfileDeclaration
-///         | ValidationError::InvalidProfileDeclaration(_)
-///         | ValidationError::UnsupportedProfile(_) => {}
+///         | ValidationError::InvalidProfileDeclaration(_) => {}
 ///     }
 /// }
 /// ```
@@ -184,9 +183,6 @@ pub enum ValidationError {
 
     #[error("document has an invalid validation profile declaration: {0}")]
     InvalidProfileDeclaration(String),
-
-    #[error("validation profile {0} is not implemented yet")]
-    UnsupportedProfile(ValidationProfile),
 }
 
 /// A classification for errors that prevent validation from completing.
@@ -201,7 +197,7 @@ pub enum ValidationErrorKind {
     SafetyLimit,
     /// A preflight PDF/A conformance limit was exceeded.
     Conformance,
-    /// A profile was missing, invalid, or not implemented.
+    /// A profile declaration was missing, invalid, or unsupported.
     Profile,
 }
 
@@ -240,9 +236,9 @@ impl ValidationError {
             Self::Pdf(PdfError::TooManyIndirectObjects { .. }) => ValidationErrorKind::Conformance,
             Self::Pdf(error) if error.is_safety_limit() => ValidationErrorKind::SafetyLimit,
             Self::Pdf(_) => ValidationErrorKind::Parser,
-            Self::MissingProfileDeclaration
-            | Self::InvalidProfileDeclaration(_)
-            | Self::UnsupportedProfile(_) => ValidationErrorKind::Profile,
+            Self::MissingProfileDeclaration | Self::InvalidProfileDeclaration(_) => {
+                ValidationErrorKind::Profile
+            }
         }
     }
 
@@ -281,11 +277,11 @@ impl ValidationError {
             Self::Pdf(_) => ValidationErrorDisposition::Parser {
                 rule_id: "PDF-PARSE-001",
             },
-            Self::MissingProfileDeclaration
-            | Self::InvalidProfileDeclaration(_)
-            | Self::UnsupportedProfile(_) => ValidationErrorDisposition::Operational {
-                rule_id: "PROFILE-001",
-            },
+            Self::MissingProfileDeclaration | Self::InvalidProfileDeclaration(_) => {
+                ValidationErrorDisposition::Operational {
+                    rule_id: "PROFILE-001",
+                }
+            }
         }
     }
 }
@@ -301,14 +297,7 @@ fn indirect_object_count_rule(profile: Option<ValidationProfile>) -> &'static st
         Some(ValidationProfile::PdfA3a) => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
         Some(ValidationProfile::PdfA3b) => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
         Some(ValidationProfile::PdfA3u) => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
-        Some(
-            ValidationProfile::PdfA4
-            | ValidationProfile::PdfA4e
-            | ValidationProfile::PdfA4f
-            | ValidationProfile::PdfUa1
-            | ValidationProfile::PdfUa2,
-        )
-        | None => "PDF-INDIRECT-OBJECT-COUNT-001",
+        Some(ValidationProfile::PdfUa1) | None => "PDF-INDIRECT-OBJECT-COUNT-001",
     }
 }
 

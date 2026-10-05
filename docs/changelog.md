@@ -1,5 +1,6 @@
 ## Dev
 
+- **Refactor**: Remove unimplemented Rust validation profiles and their rejection helpers, and simplify Python profile enums to string values without `is_implemented` [#388](https://github.com/JosephBARBIERDARNAL/page/issues/388)
 - **Refactor**: Move validation error exit-code mapping into the CLI and keep the PDF/A-1 indirect-object conformance constant private to the validation crate [#392](https://github.com/JosephBARBIERDARNAL/page/issues/392)
 - **Refactor**: Hide the CLI validation exit-code helper from the published API documentation [#393](https://github.com/JosephBARBIERDARNAL/page/issues/393)
 - **Fix**: Use shared `Display` formatting for failure categories and failures in Rust reports and CLI details output [#396](https://github.com/JosephBARBIERDARNAL/page/issues/396)
