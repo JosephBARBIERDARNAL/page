@@ -374,6 +374,19 @@ fn details_format_prints_every_failed_rule() {
         json["failures"].as_array().expect("JSON failures").len()
     );
     assert!(detailed_failure_count > 0);
+
+    let report = page_validation::validate_pdf(
+        &fixture,
+        &page_validation::ValidationOptions::default()
+            .profile(page_validation::ValidationProfile::PdfA1b),
+    )
+    .expect("structural fixture should produce a report");
+    let expected_failures: Vec<_> = report.failures.iter().map(ToString::to_string).collect();
+    let detailed_failures: Vec<_> = details
+        .lines()
+        .filter(|line| line.starts_with('['))
+        .collect();
+    assert_eq!(detailed_failures, expected_failures);
 }
 
 #[test]

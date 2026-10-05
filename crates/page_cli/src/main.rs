@@ -240,17 +240,7 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         )) {
             continue;
         }
-        write!(
-            output,
-            "{rule}[{}]{rule:#} {:?}: {}",
-            failure.rule_id, failure.category, failure.message
-        )
-        .expect("writing to a String cannot fail");
-        if let Some(id) = failure.object_id {
-            write!(output, " (object {} {})", id.object_number, id.generation)
-                .expect("writing to a String cannot fail");
-        }
-        output.push('\n');
+        writeln!(output, "{rule}{failure}{rule:#}").expect("writing to a String cannot fail");
     }
     output
 }

@@ -1,4 +1,4 @@
-//! Defines validation reports, categorized failures, and rule and failed-check counts.
+//! Defines validation reports, categorized failures, their shared text formatting, and rule and failed-check counts.
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
@@ -23,6 +23,7 @@ use crate::validation::ValidationProfile;
 /// use page_validation::FailureCategory;
 ///
 /// assert!(FailureCategory::Metadata < FailureCategory::Conformance);
+/// assert_eq!(FailureCategory::Metadata.to_string(), "Metadata");
 /// ```
 ///
 /// Matches outside this crate must handle future categories with a wildcard arm:
@@ -44,9 +45,20 @@ pub enum FailureCategory {
     Conformance,
 }
 
+impl fmt::Display for FailureCategory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Metadata => "Metadata",
+            Self::Conformance => "Conformance",
+        })
+    }
+}
+
 /// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
 /// `rule_id` identifies the specific check (for example `PDFA1B-CATALOG-001`), `message` is a human-readable description, `object_id` is the indirect object the failure is attributed to when one applies, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+///
+/// Text formatting produces `[rule_id] Category: message`, followed by `(object number generation)` when an object is attributed to the failure.
 ///
 /// ## Examples
 ///
@@ -63,6 +75,24 @@ pub struct ValidationFailure {
     pub message: String,
     pub object_id: Option<PdfObjectId>,
     pub category: FailureCategory,
+}
+
+impl fmt::Display for ValidationFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "[{}] {}: {}",
+            self.rule_id, self.category, self.message
+        )?;
+        if let Some(id) = self.object_id {
+            write!(
+                formatter,
+                " (object {} {})",
+                id.object_number, id.generation
+            )?;
+        }
+        Ok(())
+    }
 }
 
 /// A single check's raw failure, recorded by an inspection module before
@@ -153,15 +183,7 @@ impl fmt::Display for ValidationReport {
             self.document.version, self.document.page_count, self.document.object_count
         )?;
         for failure in &self.failures {
-            write!(
-                output,
-                "[{}] {:?}: {}",
-                failure.rule_id, failure.category, failure.message
-            )?;
-            if let Some(id) = failure.object_id {
-                write!(output, " (object {} {})", id.object_number, id.generation)?;
-            }
-            writeln!(output)?;
+            writeln!(output, "{failure}")?;
         }
         formatter.write_str(&output)
     }
@@ -192,6 +214,50 @@ mod tests {
         assert_eq!(
             report(ValidationProfile::PdfUa1).to_string().lines().next(),
             Some("PDF/UA validation")
+        );
+    }
+
+    #[test]
+    fn display_categories_use_human_readable_labels() {
+        assert_eq!(FailureCategory::Metadata.to_string(), "Metadata");
+        assert_eq!(FailureCategory::Conformance.to_string(), "Conformance");
+    }
+
+    #[test]
+    fn display_failures_include_optional_object_attribution() {
+        let mut failure = ValidationFailure {
+            rule_id: "PDFA1B-ID-SCHEMA-001".to_owned(),
+            message: "XMP does not contain the PDF/A Identification schema".to_owned(),
+            object_id: None,
+            category: FailureCategory::Metadata,
+        };
+        assert_eq!(
+            failure.to_string(),
+            "[PDFA1B-ID-SCHEMA-001] Metadata: XMP does not contain the PDF/A Identification schema"
+        );
+
+        failure.object_id = Some(PdfObjectId::from((53, 2)));
+        assert_eq!(
+            failure.to_string(),
+            "[PDFA1B-ID-SCHEMA-001] Metadata: XMP does not contain the PDF/A Identification schema (object 53 2)"
+        );
+    }
+
+    #[test]
+    fn display_report_uses_shared_failure_formatting() {
+        let mut report = report(ValidationProfile::PdfA1b);
+        report.is_compliant = false;
+        report.failures.push(ValidationFailure {
+            rule_id: "PDFA1B-CATALOG-001".to_owned(),
+            message: "Catalog is invalid".to_owned(),
+            object_id: Some(PdfObjectId::from((7, 0))),
+            category: FailureCategory::Conformance,
+        });
+
+        assert!(
+            report
+                .to_string()
+                .ends_with("[PDFA1B-CATALOG-001] Conformance: Catalog is invalid (object 7 0)\n")
         );
     }
 }

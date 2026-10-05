@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Use shared `Display` formatting for failure categories and failures in Rust reports and CLI details output [#396](https://github.com/JosephBARBIERDARNAL/page/issues/396)
 - **Refactor**: Limit the public Rust document model to summary fields, hide metadata and parsing types, and always include a document summary in Rust and Python validation reports [#386](https://github.com/JosephBARBIERDARNAL/page/issues/386)
 - **Doc**: Fix the duplicate logo in the mobile navigation drawer [#385](https://github.com/JosephBARBIERDARNAL/page/issues/385)
 - **Fix**: Export safety-limit defaults from Rust to the Wasm TypeScript wrapper [#362](https://github.com/JosephBARBIERDARNAL/page/issues/362)
