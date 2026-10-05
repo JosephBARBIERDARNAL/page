@@ -178,6 +178,11 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert report.failures
     assert isinstance(report.profile, page.ValidationProfile)
     assert isinstance(report.failures[0].category, page.FailureCategory)
+    assert isinstance(report.document, page.PdfDocument)
+    assert report.document.version == "1.4"
+    assert report.document.encrypted is False
+    assert report.document.page_count == 0
+    assert report.document.object_count == 2
 
 
 def test_validation_report_source_is_set_for_files_and_none_for_bytes(tmp_path: Path):

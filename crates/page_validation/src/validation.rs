@@ -3792,7 +3792,7 @@ fn finish_report(
         checks: ValidationCheckCounts {
             failed: failed_checks,
         },
-        document: Some(document),
+        document,
         failures,
     }
 }
@@ -4559,7 +4559,7 @@ mod tests {
         .expect("explicit profile validation");
 
         assert_rule(&report, "PDFA1B-ENCRYPTION-001");
-        let document = report.document.as_ref().expect("encrypted PDF is parsed");
+        let document = &report.document;
         assert!(document.encrypted);
         assert!(!document.encrypted_content_unavailable);
         assert!(document.catalog_present);
@@ -4750,11 +4750,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert!(
-            report.document.is_some(),
-            "fixture should parse: {:#?}",
-            report.failures
-        );
+        assert_eq!(report.document.version, "1.4");
         assert!(!report.is_compliant, "fixture intentionally has no XMP");
     }
 

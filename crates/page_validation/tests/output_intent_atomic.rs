@@ -16,29 +16,29 @@ fn multiple_invalid_profiles_are_aggregated_as_one_check_failure() {
 #[test]
 fn normalization_retains_output_intent_diagnostics() {
     let report = common::validate(&common::output_intent_fixture("baseline"));
-    let document = report.document.expect("normalized document");
-    let output_intents = document.output_intents_summary;
-    assert!(output_intents.present);
-    assert!(output_intents.is_array);
-    assert_eq!(output_intents.entries.len(), 1);
-    let intent = &output_intents.entries[0];
-    assert!(intent.object_id.is_some());
-    assert!(intent.is_dictionary_based);
-    assert!(intent.subtype_present);
-    assert_eq!(intent.subtype.as_deref(), Some("GTS_PDFA1"));
-    assert!(intent.dest_output_profile_present);
-    assert!(intent.dest_output_profile_id.is_some());
-    assert!(intent.dest_output_profile_is_stream);
+    let value = serde_json::to_value(&report).expect("serialize report");
+    let output_intents = &value["document"]["output_intents_summary"];
+    assert_eq!(output_intents["present"], true);
+    assert_eq!(output_intents["is_array"], true);
+    assert_eq!(output_intents["entries"].as_array().unwrap().len(), 1);
+    let intent = &output_intents["entries"][0];
+    assert!(intent["object_id"].is_object());
+    assert_eq!(intent["is_dictionary_based"], true);
+    assert_eq!(intent["subtype_present"], true);
+    assert_eq!(intent["subtype"], "GTS_PDFA1");
+    assert_eq!(intent["dest_output_profile_present"], true);
+    assert!(intent["dest_output_profile_id"].is_object());
+    assert_eq!(intent["dest_output_profile_is_stream"], true);
     assert_eq!(
-        intent.dest_output_profile_header.as_ref().map(|header| (
-            header.device_class.as_str(),
-            header.color_space.as_str(),
-            header.version_major,
-            header.version_minor,
-        )),
-        Some(("mntr", "RGB ", 2, 1))
+        intent["dest_output_profile_header"],
+        serde_json::json!({
+            "device_class": "mntr",
+            "color_space": "RGB ",
+            "version_major": 2,
+            "version_minor": 1,
+        })
     );
-    assert!(intent.dest_output_profile_decode_error.is_none());
+    assert!(intent["dest_output_profile_decode_error"].is_null());
 }
 
 #[test]

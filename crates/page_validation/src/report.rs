@@ -111,7 +111,8 @@ pub struct ValidationReport {
     pub is_compliant: bool,
     pub rules: ValidationCounts,
     pub checks: ValidationCheckCounts,
-    pub document: Option<PdfDocument>,
+    /// The parsed document summary; terminal errors return no report.
+    pub document: PdfDocument,
     pub failures: Vec<ValidationFailure>,
 }
 
@@ -146,13 +147,11 @@ impl fmt::Display for ValidationReport {
             self.rules.passed, self.rules.failed, self.rules.total
         )?;
         writeln!(output, "Checks: {} failed", self.checks.failed)?;
-        if let Some(document) = &self.document {
-            writeln!(
-                output,
-                "Document: PDF {}, {} page(s), {} object(s)",
-                document.version, document.page_count, document.object_count
-            )?;
-        }
+        writeln!(
+            output,
+            "Document: PDF {}, {} page(s), {} object(s)",
+            self.document.version, self.document.page_count, self.document.object_count
+        )?;
         for failure in &self.failures {
             write!(
                 output,
@@ -179,7 +178,7 @@ mod tests {
             is_compliant: true,
             rules: ValidationCounts::default(),
             checks: ValidationCheckCounts::default(),
-            document: None,
+            document: PdfDocument::default(),
             failures: Vec::new(),
         }
     }

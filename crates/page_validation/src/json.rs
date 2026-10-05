@@ -179,7 +179,7 @@ mod tests {
                 failed: 1,
             },
             checks: ValidationCheckCounts { failed: 1 },
-            document: None,
+            document: crate::model::PdfDocument::default(),
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
@@ -275,7 +275,7 @@ mod tests {
                 failed: 0,
             },
             checks: ValidationCheckCounts { failed: 0 },
-            document: None,
+            document: crate::model::PdfDocument::default(),
             failures: Vec::new(),
         };
 

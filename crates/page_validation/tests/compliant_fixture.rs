@@ -18,9 +18,11 @@ fn typst_pdfa_1b_fixture_passes_all_implemented_checks() {
     assert_eq!(report.rules.passed, total);
     assert_eq!(report.rules.failed, 0);
 
-    let document = report.document.expect("parsed PDF document");
+    let document = report.document;
     assert_eq!(document.version, "1.4");
+    assert!(!document.encrypted);
     assert_eq!(document.page_count, 1);
+    assert!(document.object_count > 0);
 }
 
 #[test]

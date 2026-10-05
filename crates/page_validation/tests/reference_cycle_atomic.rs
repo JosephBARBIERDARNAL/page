@@ -6,7 +6,7 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
     validate_pdf_bytes,
 };
 
@@ -230,9 +230,12 @@ fn nested_page_tree_fixture(depth: usize) -> Vec<u8> {
 fn page_tree_one_level_inside_the_reference_depth_boundary_still_validates() {
     let bytes = nested_page_tree_fixture(SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH - 1);
 
-    let parsed = PdfDocument::from_bytes(&bytes, &SafetyLimits::default())
-        .expect("acyclic page tree one level inside the reference-depth boundary should not error");
-    assert_eq!(parsed.page_count, 1);
+    let report = validate_pdf_bytes(
+        &bytes,
+        &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+    )
+    .expect("acyclic page tree one level inside the reference-depth boundary should not error");
+    assert_eq!(report.document.page_count, 1);
 }
 
 /// One level deeper (nested to exactly `max_reference_depth`), the same
@@ -260,7 +263,7 @@ fn unlimited_reference_depth_accepts_a_tree_beyond_the_default_bound() {
             .limits(SafetyLimits::unlimited()),
     )
     .expect("unlimited reference depth");
-    assert_eq!(report.document.expect("parsed document").page_count, 1);
+    assert_eq!(report.document.page_count, 1);
     assert!(
         !page_validation::is_pdf_compliant_bytes(
             &bytes,

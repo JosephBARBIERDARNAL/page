@@ -433,13 +433,14 @@ impl ValidationReport {
     }
 
     #[getter]
-    fn document(&self) -> Option<PdfDocument> {
-        self.inner.document.as_ref().map(|document| PdfDocument {
+    fn document(&self) -> PdfDocument {
+        let document = &self.inner.document;
+        PdfDocument {
             version: document.version.clone(),
             encrypted: document.encrypted,
             page_count: document.page_count,
             object_count: document.object_count,
-        })
+        }
     }
 
     #[getter]
