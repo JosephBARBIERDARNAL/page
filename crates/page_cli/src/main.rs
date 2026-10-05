@@ -11,6 +11,7 @@ use clap::builder::{PossibleValuesParser, TypedValueParser as _};
 use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
+use page_cli::validation_error_exit_code;
 use page_validation::{
     JsonValidationReport, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
     ValidationReport, validate_pdf, validate_pdf_lazy,
@@ -305,7 +306,7 @@ fn emit_json_validation_error(
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
-    let exit_code = error.exit_code();
+    let exit_code = validation_error_exit_code(&error);
     let report = JsonValidationReport::from_validation_error(
         Some(path.display().to_string()),
         profile,
@@ -405,7 +406,7 @@ fn run_validate(cli: Cli) {
             Err(error) => {
                 spinner.finish_and_clear();
                 print_validation_error(&cli.file, &error, stderr_colors);
-                std::process::exit(error.exit_code());
+                std::process::exit(validation_error_exit_code(&error));
             }
         };
         spinner.finish_and_clear();
@@ -451,7 +452,7 @@ fn run_validate(cli: Cli) {
                 );
             }
             print_validation_error(&cli.file, &error, stderr_colors);
-            std::process::exit(error.exit_code());
+            std::process::exit(validation_error_exit_code(&error));
         }
     };
     spinner.finish_and_clear();

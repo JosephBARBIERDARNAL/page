@@ -288,17 +288,6 @@ impl ValidationError {
             },
         }
     }
-
-    /// Returns the CLI exit code associated with this error.
-    ///
-    /// Input, profile, and configured safety-limit errors return `1`; parser rejections and the PDF/A indirect-object conformance limit return `2`.
-    pub fn exit_code(&self) -> i32 {
-        match self.disposition(None) {
-            ValidationErrorDisposition::Operational { .. } => 1,
-            ValidationErrorDisposition::Parser { .. }
-            | ValidationErrorDisposition::Conformance { .. } => 2,
-        }
-    }
 }
 
 fn indirect_object_count_rule(profile: Option<ValidationProfile>) -> &'static str {

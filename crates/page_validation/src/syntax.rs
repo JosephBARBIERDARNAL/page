@@ -28,7 +28,8 @@ const MAX_PDFA_2_STRING_BYTES: usize = 32_767;
 const MAX_NAME_BYTES: usize = 127;
 const MAX_ARRAY_ENTRIES: usize = 8_191;
 const MAX_DICTIONARY_ENTRIES: usize = 4_095;
-const MAX_INDIRECT_OBJECTS: usize = SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS;
+/// ISO 19005-1:2005, 6.1.12-7 permits at most this many indirect objects.
+pub(crate) const PDF_A1_MAX_INDIRECT_OBJECTS: usize = 8_388_607;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SyntaxSummary {
@@ -841,7 +842,7 @@ pub(crate) fn inspect(
         .values()
         .filter(|entry| !matches!(entry, XrefEntry::Free | XrefEntry::UnusableFree))
         .count();
-    summary.object_limits.too_many_indirect_objects = indirect_count > MAX_INDIRECT_OBJECTS;
+    summary.object_limits.too_many_indirect_objects = indirect_count > PDF_A1_MAX_INDIRECT_OBJECTS;
 
     for revision in &raw_scan.revisions {
         summary.has_invalid_xref_subsection_spacing |= !revision.spacing_compliant;
