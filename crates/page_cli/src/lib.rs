@@ -3,6 +3,7 @@
 use page_validation::ValidationReport;
 
 /// Maps a validation report to the CLI status used for pass and fail results.
+#[doc(hidden)]
 pub fn validation_exit_code(report: &ValidationReport) -> i32 {
     if report.is_compliant { 0 } else { 2 }
 }
