@@ -23,6 +23,16 @@
 //!
 //! Parser, input, profile, and safety-limit failures are returned as `ValidationError` values;
 //! only metadata and conformance findings appear in `ValidationReport::failures`.
+//!
+//! [`PdfDocument`] exposes document summary fields. Metadata and inspection models
+//! remain internal and cannot be imported by consumers:
+//!
+//! ```compile_fail,E0432
+//! use page_validation::{
+//!     DocumentMetadata, XmpMetadata, FontSummary, IccHeader,
+//!     OutputIntentSummary, OutputIntentsSummary,
+//! };
+//! ```
 
 mod actions;
 mod annotations;
@@ -56,10 +66,7 @@ mod xobject;
 pub use error::{PdfError, ValidationError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
-pub use metadata::{DocumentMetadata, XmpMetadata};
-pub use model::{
-    FontSummary, IccHeader, OutputIntentSummary, OutputIntentsSummary, PdfDocument, PdfObjectId,
-};
+pub use model::{PdfDocument, PdfObjectId};
 pub use report::{
     FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure, ValidationReport,
 };

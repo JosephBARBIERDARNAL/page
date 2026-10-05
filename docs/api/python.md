@@ -75,7 +75,7 @@ report = page.validate_pdf(
 
 The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `is_pdf_compliant()` or the corresponding bytes function when you only need a boolean result.
 
-`ValidationProfile` and `FailureCategory` are standard Python enums, so they can be iterated and expose `.name` and `.value`. `ValidationProfile.value` is the compact profile string, and `.is_implemented` reports whether page implements validation for that profile. Validation functions also accept a profile string directly, such as `profile="1b"`.
+`ValidationProfile` and `FailureCategory` are standard Python enums, so they can be iterated and expose `.name` and `.value`. `ValidationProfile` contains only profiles implemented by page, and `.value` is the compact profile string. Validation functions also accept a profile string directly, such as `profile="1b"`.
 
 ## Failures
 

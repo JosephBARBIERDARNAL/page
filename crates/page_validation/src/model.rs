@@ -39,36 +39,36 @@ impl From<ObjectId> for PdfObjectId {
 /// intentionally distinct from the pinned `PDFA1B-FONT-EMBEDDING-001` rule.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct FontSummary {
-    pub total: usize,
-    pub embedded: usize,
+pub(crate) struct FontSummary {
+    pub(crate) total: usize,
+    pub(crate) embedded: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct CatalogMetadataStream {
-    pub present: bool,
-    pub is_stream: bool,
-    pub type_is_metadata: bool,
-    pub subtype_is_xml: bool,
-    pub has_filter: bool,
+pub(crate) struct CatalogMetadataStream {
+    pub(crate) present: bool,
+    pub(crate) is_stream: bool,
+    pub(crate) type_is_metadata: bool,
+    pub(crate) subtype_is_xml: bool,
+    pub(crate) has_filter: bool,
 }
 
 impl CatalogMetadataStream {
     /// Whether the catalog Metadata entry resolves to a stream with
     /// `/Type /Metadata` and `/Subtype /XML`, as PDF/A-1b requires.
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         self.present && self.is_stream && self.type_is_metadata && self.subtype_is_xml
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct IccHeader {
-    pub device_class: String,
-    pub color_space: String,
-    pub version_major: u8,
-    pub version_minor: u8,
+pub(crate) struct IccHeader {
+    pub(crate) device_class: String,
+    pub(crate) color_space: String,
+    pub(crate) version_major: u8,
+    pub(crate) version_minor: u8,
 }
 
 impl IccHeader {
@@ -88,13 +88,13 @@ impl IccHeader {
         })
     }
 
-    pub fn conforms_to_pdfa_1_output_intent(&self) -> bool {
+    pub(crate) fn conforms_to_pdfa_1_output_intent(&self) -> bool {
         matches!(self.device_class.as_str(), "prtr" | "mntr")
             && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY")
             && self.version_major < 3
     }
 
-    pub fn conforms_to_pdfa_2_output_intent(&self) -> bool {
+    pub(crate) fn conforms_to_pdfa_2_output_intent(&self) -> bool {
         matches!(self.device_class.as_str(), "prtr" | "mntr")
             && matches!(self.color_space.as_str(), "RGB " | "CMYK" | "GRAY")
             && self.version_major < 5
@@ -119,27 +119,44 @@ impl IccHeader {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct OutputIntentSummary {
-    pub object_id: Option<PdfObjectId>,
-    pub is_dictionary_based: bool,
-    pub subtype_present: bool,
-    pub subtype: Option<String>,
-    pub dest_output_profile_present: bool,
-    pub dest_output_profile_ref_present: bool,
-    pub dest_output_profile_id: Option<PdfObjectId>,
-    pub dest_output_profile_is_stream: bool,
-    pub dest_output_profile_header: Option<IccHeader>,
-    pub dest_output_profile_decode_error: Option<String>,
+pub(crate) struct OutputIntentSummary {
+    pub(crate) object_id: Option<PdfObjectId>,
+    pub(crate) is_dictionary_based: bool,
+    pub(crate) subtype_present: bool,
+    pub(crate) subtype: Option<String>,
+    pub(crate) dest_output_profile_present: bool,
+    pub(crate) dest_output_profile_ref_present: bool,
+    pub(crate) dest_output_profile_id: Option<PdfObjectId>,
+    pub(crate) dest_output_profile_is_stream: bool,
+    pub(crate) dest_output_profile_header: Option<IccHeader>,
+    pub(crate) dest_output_profile_decode_error: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct OutputIntentsSummary {
-    pub present: bool,
-    pub is_array: bool,
-    pub entries: Vec<OutputIntentSummary>,
+pub(crate) struct OutputIntentsSummary {
+    pub(crate) present: bool,
+    pub(crate) is_array: bool,
+    pub(crate) entries: Vec<OutputIntentSummary>,
 }
 
+/// The parsed document summary included in every [`crate::ValidationReport`].
+///
+/// Read `version`, `encrypted`, `page_count`, and `object_count` directly. Parsing
+/// and rule inspection details are internal to the validation engine.
+///
+/// ```compile_fail,E0616
+/// use page_validation::PdfDocument;
+/// let document = PdfDocument::default();
+/// let _ = document.xmp;
+/// ```
+///
+/// Obtain a parsed summary through validation rather than a separate parser API:
+///
+/// ```compile_fail,E0599
+/// use page_validation::{PdfDocument, SafetyLimits};
+/// let _ = PdfDocument::from_bytes(b"", &SafetyLimits::default());
+/// ```
 #[derive(Clone, Debug, Default, Serialize)]
 #[non_exhaustive]
 pub struct PdfDocument {
@@ -151,19 +168,19 @@ pub struct PdfDocument {
     pub(crate) encryption_dictionary_object: Option<PdfObjectId>,
     #[serde(skip)]
     pub(crate) encrypted_content_unavailable: bool,
-    pub catalog_reference: Option<PdfObjectId>,
-    pub catalog_present: bool,
+    pub(crate) catalog_reference: Option<PdfObjectId>,
+    pub(crate) catalog_present: bool,
     pub page_count: usize,
-    pub trailer_keys: Vec<String>,
-    pub trailer_id: Option<Vec<Vec<u8>>>,
-    pub info: DocumentMetadata,
-    pub info_object: Option<PdfObjectId>,
-    pub xmp: Option<XmpMetadata>,
-    pub xmp_object: Option<PdfObjectId>,
-    pub xmp_parse_error: Option<String>,
-    pub catalog_metadata: CatalogMetadataStream,
-    pub output_intents_summary: OutputIntentsSummary,
-    pub fonts: FontSummary,
+    pub(crate) trailer_keys: Vec<String>,
+    pub(crate) trailer_id: Option<Vec<Vec<u8>>>,
+    pub(crate) info: DocumentMetadata,
+    pub(crate) info_object: Option<PdfObjectId>,
+    pub(crate) xmp: Option<XmpMetadata>,
+    pub(crate) xmp_object: Option<PdfObjectId>,
+    pub(crate) xmp_parse_error: Option<String>,
+    pub(crate) catalog_metadata: CatalogMetadataStream,
+    pub(crate) output_intents_summary: OutputIntentsSummary,
+    pub(crate) fonts: FontSummary,
     pub object_count: usize,
 }
 
@@ -292,10 +309,6 @@ pub(crate) struct ValidationPreparation {
 }
 
 impl PdfDocument {
-    pub fn from_bytes(bytes: &[u8], limits: &SafetyLimits) -> Result<Self, PdfError> {
-        Ok(Self::prepare_for_validation(bytes, limits)?.normalized)
-    }
-
     pub(crate) fn prepare_for_validation(
         bytes: &[u8],
         limits: &SafetyLimits,
@@ -729,23 +742,6 @@ fn load_document(
 }
 
 fn enforce_object_limit(document: &Document, limits: &SafetyLimits) -> Result<(), PdfError> {
-    let indirect_count = document
-        .reference_table
-        .entries
-        .values()
-        .filter(|entry| {
-            !matches!(
-                entry,
-                lopdf::xref::XrefEntry::Free | lopdf::xref::XrefEntry::UnusableFree
-            )
-        })
-        .count();
-    if indirect_count > SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS {
-        return Err(PdfError::TooManyIndirectObjects {
-            actual: indirect_count,
-            limit: SafetyLimits::PDF_A1_MAX_INDIRECT_OBJECTS,
-        });
-    }
     let actual = document.objects.len();
     if actual > limits.max_object_count {
         return Err(PdfError::TooManyObjects {
@@ -1269,7 +1265,7 @@ mod tests {
             Err(PdfError::TooManyObjects { limit: 0, .. })
         ));
         assert!(matches!(
-            PdfDocument::from_bytes(&bytes, &limits),
+            PdfDocument::prepare_for_validation(&bytes, &limits),
             Err(PdfError::TooManyObjects { limit: 0, .. })
         ));
     }

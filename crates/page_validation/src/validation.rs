@@ -72,11 +72,7 @@ pub enum ValidationProfile {
     PdfA3b,
     PdfA3a,
     PdfA3u,
-    PdfA4,
-    PdfA4e,
-    PdfA4f,
     PdfUa1,
-    PdfUa2,
 }
 
 /// An input string did not identify a validation profile.
@@ -141,11 +137,7 @@ impl ValidationProfile {
             Self::PdfA3b => "3b",
             Self::PdfA3a => "3a",
             Self::PdfA3u => "3u",
-            Self::PdfA4 => "4",
-            Self::PdfA4e => "4e",
-            Self::PdfA4f => "4f",
             Self::PdfUa1 => "ua1",
-            Self::PdfUa2 => "ua2",
         }
     }
 
@@ -161,23 +153,7 @@ impl ValidationProfile {
             Self::PdfA3a => 156,
             Self::PdfA3u => 148,
             Self::PdfUa1 => 104,
-            _ => 0,
         }
-    }
-
-    pub const fn is_implemented(self) -> bool {
-        matches!(
-            self,
-            Self::PdfA1a
-                | Self::PdfA1b
-                | Self::PdfA2a
-                | Self::PdfA2b
-                | Self::PdfA2u
-                | Self::PdfA3a
-                | Self::PdfA3b
-                | Self::PdfA3u
-                | Self::PdfUa1
-        )
     }
 
     pub const fn pdfa_part(self) -> Option<u8> {
@@ -326,7 +302,6 @@ pub fn validate_pdf(
     options: &ValidationOptions,
 ) -> Result<ValidationReport, ValidationError> {
     let path = path.as_ref();
-    reject_unimplemented_profile(options.profile)?;
     let bytes = read_file(path, &options.limits)?;
     validate_bytes_with_mode(
         &bytes,
@@ -380,25 +355,14 @@ fn validate_bytes_with_mode(
     limits: &SafetyLimits,
     mode: ValidationMode,
 ) -> Result<ValidationReport, ValidationError> {
-    reject_unimplemented_profile(profile)?;
     let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
-    reject_unimplemented_profile(Some(profile))?;
     let (document, inspections) = preparation.into_inspections(
         bytes,
         limits,
         crate::model::InspectionPlan::for_profile(profile),
     )?;
     Ok(validate_document(document, inspections, profile, mode))
-}
-
-fn reject_unimplemented_profile(profile: Option<ValidationProfile>) -> Result<(), ValidationError> {
-    if let Some(profile) = profile
-        && !profile.is_implemented()
-    {
-        return Err(ValidationError::UnsupportedProfile(profile));
-    }
-    Ok(())
 }
 
 /// Performs lazy validation of a file and returns only the compliance outcome.
@@ -427,7 +391,6 @@ pub fn validate_pdf_lazy(
     path: impl AsRef<Path>,
     options: &ValidationOptions,
 ) -> Result<ComplianceResult, ValidationError> {
-    reject_unimplemented_profile(options.profile)?;
     let bytes = read_file(path.as_ref(), &options.limits)?;
     validate_bytes_lazy(&bytes, options.profile, &options.limits)
 }
@@ -437,10 +400,8 @@ pub(crate) fn validate_bytes_lazy(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
 ) -> Result<ComplianceResult, ValidationError> {
-    reject_unimplemented_profile(profile)?;
     let preparation = PdfDocument::prepare_for_validation_without_font_summary(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
-    reject_unimplemented_profile(Some(profile))?;
     let (preparation, syntax) = preparation.with_syntax(bytes, limits)?;
     let preflight_failed = has_preflight_failure(preparation.document(), &syntax.header, profile);
     if preflight_failed {
@@ -606,11 +567,7 @@ fn has_preflight_failure(
         ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => conformance != "U",
         ValidationProfile::PdfA2b | ValidationProfile::PdfA3b => conformance != "B",
         ValidationProfile::PdfA1b => !matches!(conformance.as_str(), "A" | "B"),
-        ValidationProfile::PdfA4
-        | ValidationProfile::PdfA4e
-        | ValidationProfile::PdfA4f
-        | ValidationProfile::PdfUa1
-        | ValidationProfile::PdfUa2 => true,
+        ValidationProfile::PdfUa1 => true,
     }
 }
 
@@ -671,11 +628,8 @@ fn declared_pdfa_profile(
         (3, Some("A")) => Ok(ValidationProfile::PdfA3a),
         (3, Some("B")) => Ok(ValidationProfile::PdfA3b),
         (3, Some("U")) => Ok(ValidationProfile::PdfA3u),
-        (4, None) => Ok(ValidationProfile::PdfA4),
-        (4, Some("E")) => Ok(ValidationProfile::PdfA4e),
-        (4, Some("F")) => Ok(ValidationProfile::PdfA4f),
         _ => Err(ValidationError::InvalidProfileDeclaration(format!(
-            "pdfaid:part {part} and pdfaid:conformance {conformance:?} do not identify a known PDF/A profile"
+            "pdfaid:part {part} and pdfaid:conformance {conformance:?} do not identify a supported PDF/A profile"
         ))),
     }
 }
@@ -691,9 +645,8 @@ fn declared_pdfua_profile(
     };
     match xmp_integer_value(part) {
         Some(1) => Ok(ValidationProfile::PdfUa1),
-        Some(2) => Ok(ValidationProfile::PdfUa2),
         Some(part) => Err(ValidationError::InvalidProfileDeclaration(format!(
-            "pdfuaid:part {part} does not identify a known PDF/UA profile"
+            "pdfuaid:part {part} does not identify a supported PDF/UA profile"
         ))),
         None => Err(ValidationError::InvalidProfileDeclaration(format!(
             "pdfuaid:part value {part:?} is not an integer"
@@ -3792,7 +3745,7 @@ fn finish_report(
         checks: ValidationCheckCounts {
             failed: failed_checks,
         },
-        document: Some(document),
+        document,
         failures,
     }
 }
@@ -4025,21 +3978,34 @@ mod tests {
     }
 
     #[test]
-    fn rejects_every_unimplemented_profile_before_parsing() {
-        let profiles = [
-            ValidationProfile::PdfA4,
-            ValidationProfile::PdfA4e,
-            ValidationProfile::PdfA4f,
-            ValidationProfile::PdfUa2,
+    fn inferred_validation_rejects_unimplemented_profile_declarations() {
+        let xmp = std::str::from_utf8(VALID_XMP).expect("fixture is UTF-8");
+        let pdfa4 = xmp.replace("pdfaid:part=\"1\"", "pdfaid:part=\"4\"");
+        let declarations = [
+            pdfa4.replace(" pdfaid:conformance=\"B\"", ""),
+            pdfa4.replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"E\""),
+            pdfa4.replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"F\""),
+            xmp.replace("pdfaid", "pdfuaid")
+                .replace("pdfa/ns/id/", "pdfua/ns/id/")
+                .replace("pdfuaid:part=\"1\"", "pdfuaid:part=\"2\"")
+                .replace(" pdfuaid:conformance=\"B\"", ""),
         ];
 
-        for profile in profiles {
-            let error =
-                validate_pdf_bytes(b"not a PDF", &ValidationOptions::default().profile(profile))
-                    .expect_err("unimplemented profile");
-            assert!(
-                matches!(error, ValidationError::UnsupportedProfile(actual) if actual == profile)
-            );
+        for declaration in declarations {
+            let bytes = fixture(Some(declaration.as_bytes()), true);
+            let options = ValidationOptions::default();
+            let errors = [
+                validate_pdf_bytes(&bytes, &options).expect_err("unsupported declaration"),
+                is_pdf_compliant_bytes(&bytes, &options).expect_err("unsupported declaration"),
+            ];
+            for error in errors {
+                assert!(matches!(
+                    error,
+                    ValidationError::InvalidProfileDeclaration(_)
+                ));
+                assert!(error.to_string().contains("supported"));
+                assert_eq!(error.rule_id(), "PROFILE-001");
+            }
         }
     }
 
@@ -4559,7 +4525,7 @@ mod tests {
         .expect("explicit profile validation");
 
         assert_rule(&report, "PDFA1B-ENCRYPTION-001");
-        let document = report.document.as_ref().expect("encrypted PDF is parsed");
+        let document = &report.document;
         assert!(document.encrypted);
         assert!(!document.encrypted_content_unavailable);
         assert!(document.catalog_present);
@@ -4750,11 +4716,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert!(
-            report.document.is_some(),
-            "fixture should parse: {:#?}",
-            report.failures
-        );
+        assert_eq!(report.document.version, "1.4");
         assert!(!report.is_compliant, "fixture intentionally has no XMP");
     }
 

@@ -270,7 +270,7 @@ export interface ValidationOptions {
 }
 
 export type ValidationErrorKind =
-  "input_io" | "parser" | "safety_limit" | "conformance" | "profile" | "unknown";
+  "input_io" | "parser" | "safety_limit" | "profile" | "unknown";
 
 export class ValidationError extends Error {
   readonly kind: ValidationErrorKind;
@@ -369,7 +369,6 @@ function isValidationErrorKind(value: unknown): value is ValidationErrorKind {
     value === "input_io" ||
     value === "parser" ||
     value === "safety_limit" ||
-    value === "conformance" ||
     value === "profile"
   );
 }

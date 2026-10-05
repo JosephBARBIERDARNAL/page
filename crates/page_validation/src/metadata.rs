@@ -45,63 +45,54 @@ const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#"
 /// The document information dictionary (PDF32000 §14.3.3), captured as a flat map from entry name to its decoded text value.
 ///
 /// `values` holds whichever of `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`, `CreationDate`, `ModDate`, and `Trapped` are present in the trailer's `/Info` dictionary; an entry absent from the source document is simply absent from the map, and a document without an `/Info` dictionary produces an empty `Self::default`. This is the legacy sibling of the XMP-derived `XmpMetadata`, compared against it by the `PDFA1B-INFO-*` consistency rules.
-///
-/// ## Examples
-///
-/// ```rs
-/// use page_validation::DocumentMetadata;
-///
-/// let info = DocumentMetadata::default();
-/// assert!(info.values.is_empty());
-/// ```
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct DocumentMetadata {
-    pub values: BTreeMap<String, String>,
+pub(crate) struct DocumentMetadata {
+    pub(crate) values: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
-pub struct XmpMetadata {
+pub(crate) struct XmpMetadata {
     /// Retained for API/report compatibility. Validation uses `pdfa_parts`,
     /// because selecting only the first value would hide duplicate declarations.
-    pub pdfa_part: Option<String>,
-    pub pdfa_conformance: Option<String>,
-    pub pdfa_identification_present: bool,
-    pub pdfa_parts: Vec<String>,
-    pub pdfa_conformances: Vec<String>,
-    pub pdfua_identification_present: bool,
-    pub pdfua_parts: Vec<String>,
-    pub dc_title_present: bool,
-    pub title_x_default: Vec<String>,
-    pub creators: Vec<String>,
-    pub creator_container_count: usize,
-    pub description_x_default: Vec<String>,
-    pub keywords: Vec<String>,
-    pub creator_tools: Vec<String>,
-    pub producers: Vec<String>,
-    pub create_dates: Vec<String>,
-    pub modify_dates: Vec<String>,
+    pub(crate) pdfa_part: Option<String>,
+    pub(crate) pdfa_conformance: Option<String>,
+    pub(crate) pdfa_identification_present: bool,
+    pub(crate) pdfa_parts: Vec<String>,
+    pub(crate) pdfa_conformances: Vec<String>,
+    pub(crate) pdfua_identification_present: bool,
+    pub(crate) pdfua_parts: Vec<String>,
+    pub(crate) dc_title_present: bool,
+    pub(crate) title_x_default: Vec<String>,
+    pub(crate) creators: Vec<String>,
+    pub(crate) creator_container_count: usize,
+    pub(crate) description_x_default: Vec<String>,
+    pub(crate) keywords: Vec<String>,
+    pub(crate) creator_tools: Vec<String>,
+    pub(crate) producers: Vec<String>,
+    pub(crate) create_dates: Vec<String>,
+    pub(crate) modify_dates: Vec<String>,
     #[serde(skip)]
-    pub packet_header_has_bytes: bool,
+    pub(crate) packet_header_has_bytes: bool,
     #[serde(skip)]
-    pub packet_header_has_encoding: bool,
+    pub(crate) packet_header_has_encoding: bool,
     #[serde(skip)]
-    pub actual_encoding_is_utf8: bool,
+    pub(crate) actual_encoding_is_utf8: bool,
     #[serde(skip)]
-    pub extension_schema_failed_tests: BTreeSet<u8>,
+    pub(crate) extension_schema_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
-    pub invalid_predefined_xmp_properties: BTreeSet<String>,
+    pub(crate) invalid_predefined_xmp_properties: BTreeSet<String>,
     #[serde(skip)]
-    pub invalid_predefined_xmp_value_types: BTreeSet<String>,
+    pub(crate) invalid_predefined_xmp_value_types: BTreeSet<String>,
     #[serde(skip)]
-    pub undefined_extension_xmp_properties: BTreeSet<String>,
+    pub(crate) undefined_extension_xmp_properties: BTreeSet<String>,
     #[serde(skip)]
-    pub invalid_extension_xmp_value_types: BTreeSet<String>,
+    pub(crate) invalid_extension_xmp_value_types: BTreeSet<String>,
     #[serde(skip)]
-    pub identification_prefix_failed_tests: BTreeSet<u8>,
+    pub(crate) identification_prefix_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
-    pub pdfua_identification_prefix_failed_tests: BTreeSet<u8>,
+    pub(crate) pdfua_identification_prefix_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
     pub(crate) lang_alt_without_x_default: bool,
 }

@@ -57,6 +57,8 @@ if report.is_compliant {
 
     If you want to run it on bytes instead of a file, use `validate_pdf_bytes()`, which provides the same API but expects a `&[u8]` instead of a `&Path`.
 
+Every returned report includes `report.document`, a `PdfDocument` summary with public `version`, `encrypted`, `page_count`, and `object_count` fields. Access these fields directly without unwrapping an `Option`. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through `validate_pdf()` or `validate_pdf_bytes()`.
+
 ## Select a profile explicitly
 
 Set a profile in the options when the caller, rather than the document, selects it:

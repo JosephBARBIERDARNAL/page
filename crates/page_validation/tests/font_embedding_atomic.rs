@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfDocument, PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
     is_pdf_compliant_bytes, validate_pdf_bytes,
 };
 
@@ -51,15 +51,8 @@ fn no_shown_text_skips_font_details_but_keeps_the_informational_summary() {
     let report = common::validate(&common::font_fixture("unused_resource"));
 
     assert!(font_failures(&report).is_empty());
-    assert_eq!(
-        report
-            .document
-            .as_ref()
-            .expect("normalized document")
-            .fonts
-            .total,
-        1
-    );
+    let value = serde_json::to_value(&report).expect("serialize report");
+    assert_eq!(value["document"]["fonts"]["total"], 1);
 }
 
 #[test]
@@ -97,8 +90,6 @@ fn lazy_validation_skips_unused_font_summary_resolution() {
 fn decoded_content_limit_is_an_operational_failure() {
     let limits = SafetyLimits::default().max_decoded_stream_size(2048);
     let bytes = common::font_fixture("large_content");
-    PdfDocument::from_bytes(&bytes, &limits)
-        .expect("public normalization does not run private font content traversal");
     let error = validate_pdf_bytes(
         &bytes,
         &ValidationOptions::default()

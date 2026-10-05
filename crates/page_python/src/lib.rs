@@ -33,9 +33,7 @@ fn python_validation_error(error: RustValidationError) -> PyErr {
                 RustValidationErrorKind::Parser => ParseError::new_err(message),
                 RustValidationErrorKind::SafetyLimit => SafetyLimitError::new_err(message),
                 RustValidationErrorKind::Profile => ProfileError::new_err(message),
-                RustValidationErrorKind::Conformance | RustValidationErrorKind::InputIo => {
-                    ValidationError::new_err(message)
-                }
+                RustValidationErrorKind::InputIo => ValidationError::new_err(message),
                 _ => ValidationError::new_err(message),
             }
         }
@@ -433,13 +431,14 @@ impl ValidationReport {
     }
 
     #[getter]
-    fn document(&self) -> Option<PdfDocument> {
-        self.inner.document.as_ref().map(|document| PdfDocument {
+    fn document(&self) -> PdfDocument {
+        let document = &self.inner.document;
+        PdfDocument {
             version: document.version.clone(),
             encrypted: document.encrypted,
             page_count: document.page_count,
             object_count: document.object_count,
-        })
+        }
     }
 
     #[getter]

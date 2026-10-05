@@ -64,7 +64,17 @@ def test_python_api_types_are_standard_enums():
     profiles = list(page.ValidationProfile)
     assert profiles[0].name == "PDF_A_1B"
     assert profiles[0].value == "1b"
-    assert all(profile.is_implemented for profile in profiles)
+    assert [profile.value for profile in profiles] == [
+        "1b",
+        "1a",
+        "2b",
+        "2a",
+        "2u",
+        "3b",
+        "3a",
+        "3u",
+        "ua1",
+    ]
     assert page.ValidationProfile("1b") is page.ValidationProfile.PDF_A_1B
 
     assert issubclass(page.FailureCategory, Enum)
@@ -178,6 +188,11 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert report.failures
     assert isinstance(report.profile, page.ValidationProfile)
     assert isinstance(report.failures[0].category, page.FailureCategory)
+    assert isinstance(report.document, page.PdfDocument)
+    assert report.document.version == "1.4"
+    assert report.document.encrypted is False
+    assert report.document.page_count == 0
+    assert report.document.object_count == 2
 
 
 def test_validation_report_source_is_set_for_files_and_none_for_bytes(tmp_path: Path):

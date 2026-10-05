@@ -2,8 +2,6 @@
 //!
 //! `SafetyLimits` supplies finite defaults, an unlimited preset, and chainable setters for input,
 //! decoded streams, object traversal, Form execution, table grids, and Unicode CMap expansion.
-//! A separate constant records the PDF/A-1 indirect-object conformance limit, which remains
-//! distinct from configurable operational bounds.
 
 /// Configurable bounds that keep PDF parsing and inspection resource use predictable regardless of what an untrusted input contains.
 #[derive(Clone, Debug)]
@@ -137,8 +135,6 @@ impl SafetyLimits {
         }
     }
 
-    /// ISO 19005-1:2005, 6.1.12-7 permits at most this many indirect objects.
-    pub const PDF_A1_MAX_INDIRECT_OBJECTS: usize = 8_388_607;
     pub const DEFAULT_MAX_INPUT_SIZE: u64 = 256 * 1024 * 1024;
     pub const DEFAULT_MAX_DECODED_STREAM_SIZE: usize = 32 * 1024 * 1024;
     pub const DEFAULT_MAX_TOTAL_DECODED_CONTENT_SIZE: usize = 256 * 1024 * 1024;

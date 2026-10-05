@@ -116,7 +116,7 @@ fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
                 .args(arguments)
                 .output()
                 .expect("reject conflicting safety-limit arguments");
-            assert_eq!(output.status.code(), Some(2));
+            assert_eq!(output.status.code(), Some(1));
             assert!(output.stdout.is_empty());
             let stderr = String::from_utf8(output.stderr).expect("UTF-8 conflict");
             assert!(stderr.contains("cannot be used with"), "{stderr}");
@@ -374,6 +374,19 @@ fn details_format_prints_every_failed_rule() {
         json["failures"].as_array().expect("JSON failures").len()
     );
     assert!(detailed_failure_count > 0);
+
+    let report = page_validation::validate_pdf(
+        &fixture,
+        &page_validation::ValidationOptions::default()
+            .profile(page_validation::ValidationProfile::PdfA1b),
+    )
+    .expect("structural fixture should produce a report");
+    let expected_failures: Vec<_> = report.failures.iter().map(ToString::to_string).collect();
+    let detailed_failures: Vec<_> = details
+        .lines()
+        .filter(|line| line.starts_with('['))
+        .collect();
+    assert_eq!(detailed_failures, expected_failures);
 }
 
 #[test]
@@ -389,7 +402,7 @@ fn unimplemented_profiles_are_not_cli_choices() {
             .output()
             .expect("reject an unimplemented profile");
 
-        assert_eq!(output.status.code(), Some(2), "profile {argument}");
+        assert_eq!(output.status.code(), Some(1), "profile {argument}");
         assert!(output.stdout.is_empty(), "profile {argument}");
         let stderr = String::from_utf8(output.stderr).expect("UTF-8 error");
         assert!(

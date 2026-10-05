@@ -113,6 +113,18 @@ page document.pdf --format details --output report.txt
 
 Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
 
+## Exit codes
+
+The `page` exit codes are a stable CLI contract:
+
+| Code | Meaning |
+| ---: | --- |
+| `0` | Validation completed with no failed checks, or `--help` / `--version` was requested. |
+| `1` | Operational failure, including I/O or safety-limit errors, missing or invalid profile declarations, output errors, and invalid CLI arguments. |
+| `2` | The PDF is non-compliant, or the PDF parser could not parse the document. |
+
+CLI usage errors such as an invalid `--profile` value use code `1`, so they remain distinct from validation failures and PDF parser errors.
+
 ## Safety limits
 
 The CLI exposes every `SafetyLimits` bound. Defaults are suitable for most documents and can be overridden per invocation:

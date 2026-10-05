@@ -67,35 +67,14 @@ pub enum JsonErrorKind {
 impl JsonValidationReport {
     /// Converts a terminal validation error into the shared JSON representation.
     ///
-    /// Parser and operational errors populate the `error` field. The indirect-object limit is a conformance finding, so it populates `failures` and its corresponding rule counts.
+    /// Parser and operational errors populate the `error` field.
     #[must_use]
     pub fn from_validation_error(
         file: Option<String>,
         profile: Option<ValidationProfile>,
         error: ValidationError,
     ) -> Self {
-        let (rules, checks, failures, error) = match error.disposition(profile) {
-            ValidationErrorDisposition::Conformance {
-                rule_id,
-                actual,
-                limit,
-            } => (
-                Some(ValidationCounts {
-                    total: 1,
-                    passed: 0,
-                    failed: 1,
-                }),
-                Some(ValidationCheckCounts { failed: 1 }),
-                vec![JsonFailure {
-                    rule: rule_id.to_owned(),
-                    message: format!(
-                        "the document contains {actual} indirect objects, exceeding the indirect-object limit of {limit}"
-                    ),
-                    object_id: None,
-                    category: FailureCategory::Conformance,
-                }],
-                None,
-            ),
+        let (rules, checks, failures, error) = match error.disposition() {
             ValidationErrorDisposition::Operational { rule_id } => (
                 None,
                 None,
@@ -179,7 +158,7 @@ mod tests {
                 failed: 1,
             },
             checks: ValidationCheckCounts { failed: 1 },
-            document: None,
+            document: crate::model::PdfDocument::default(),
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
@@ -227,43 +206,6 @@ mod tests {
     }
 
     #[test]
-    fn indirect_object_limit_stays_a_conformance_finding_in_json() {
-        let cases = [
-            (
-                ValidationProfile::PdfA1b,
-                "PDFA1B-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (
-                ValidationProfile::PdfA2b,
-                "PDFA2B-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (
-                ValidationProfile::PdfA3u,
-                "PDFA3U-INDIRECT-OBJECT-COUNT-001",
-            ),
-            (ValidationProfile::PdfUa1, "PDF-INDIRECT-OBJECT-COUNT-001"),
-        ];
-
-        for (profile, expected_rule) in cases {
-            let json = JsonValidationReport::from_validation_error(
-                None,
-                Some(profile),
-                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
-                    actual: 8_388_608,
-                    limit: 8_388_607,
-                }),
-            );
-
-            assert_eq!(json.failures[0].rule, expected_rule);
-            assert_eq!(json.failures[0].category, FailureCategory::Conformance);
-            assert!(json.failures[0].object_id.is_none());
-            assert_eq!(json.rules.expect("conformance counts").failed, 1);
-            assert_eq!(json.checks.expect("conformance checks").failed, 1);
-            assert!(json.error.is_none());
-        }
-    }
-
-    #[test]
     fn json_report_omits_the_file_for_byte_input() {
         let report = ValidationReport {
             source: None,
@@ -275,7 +217,7 @@ mod tests {
                 failed: 0,
             },
             checks: ValidationCheckCounts { failed: 0 },
-            document: None,
+            document: crate::model::PdfDocument::default(),
             failures: Vec::new(),
         };
 

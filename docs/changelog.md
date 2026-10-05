@@ -1,5 +1,12 @@
 ## Dev
 
+- **Fix**: Give CLI usage errors exit code 1 and document stable CLI exit codes [#394](https://github.com/JosephBARBIERDARNAL/page/issues/394)
+- **Fix**: Report the PDF/A-1 indirect-object limit as a conformance failure across API surfaces [#387](https://github.com/JosephBARBIERDARNAL/page/issues/387)
+- **Refactor**: Remove unimplemented Rust validation profiles and their rejection helpers, and simplify Python profile enums to string values without `is_implemented` [#388](https://github.com/JosephBARBIERDARNAL/page/issues/388)
+- **Refactor**: Move validation error exit-code mapping into the CLI and keep the PDF/A-1 indirect-object conformance constant private to the validation crate [#392](https://github.com/JosephBARBIERDARNAL/page/issues/392)
+- **Refactor**: Hide the CLI validation exit-code helper from the published API documentation [#393](https://github.com/JosephBARBIERDARNAL/page/issues/393)
+- **Fix**: Use shared `Display` formatting for failure categories and failures in Rust reports and CLI details output [#396](https://github.com/JosephBARBIERDARNAL/page/issues/396)
+- **Refactor**: Limit the public Rust document model to summary fields, hide metadata and parsing types, and always include a document summary in Rust and Python validation reports [#386](https://github.com/JosephBARBIERDARNAL/page/issues/386)
 - **Doc**: Fix the duplicate logo in the mobile navigation drawer [#385](https://github.com/JosephBARBIERDARNAL/page/issues/385)
 - **Fix**: Export safety-limit defaults from Rust to the Wasm TypeScript wrapper [#362](https://github.com/JosephBARBIERDARNAL/page/issues/362)
 - **Perf**: Avoid copying Python bytes inputs during validation [#371](https://github.com/JosephBARBIERDARNAL/page/issues/371)

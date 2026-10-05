@@ -11,6 +11,7 @@ use clap::builder::{PossibleValuesParser, TypedValueParser as _};
 use clap::{Parser, ValueEnum};
 use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
+use page_cli::validation_error_exit_code;
 use page_validation::{
     JsonValidationReport, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
     ValidationReport, validate_pdf, validate_pdf_lazy,
@@ -240,17 +241,7 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         )) {
             continue;
         }
-        write!(
-            output,
-            "{rule}[{}]{rule:#} {:?}: {}",
-            failure.rule_id, failure.category, failure.message
-        )
-        .expect("writing to a String cannot fail");
-        if let Some(id) = failure.object_id {
-            write!(output, " (object {} {})", id.object_number, id.generation)
-                .expect("writing to a String cannot fail");
-        }
-        output.push('\n');
+        writeln!(output, "{rule}{failure}{rule:#}").expect("writing to a String cannot fail");
     }
     output
 }
@@ -315,7 +306,7 @@ fn emit_json_validation_error(
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
-    let exit_code = error.exit_code();
+    let exit_code = validation_error_exit_code(&error);
     let report = JsonValidationReport::from_validation_error(
         Some(path.display().to_string()),
         profile,
@@ -356,7 +347,21 @@ fn print_validation_error(path: &Path, error: &ValidationError, colors: bool) {
 }
 
 fn main() {
-    run_validate(Cli::parse());
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let exit_code = match error.kind() {
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => 0,
+                _ => 1,
+            };
+            if let Err(print_error) = error.print() {
+                eprintln!("could not print CLI message: {print_error}");
+                std::process::exit(1);
+            }
+            std::process::exit(exit_code);
+        }
+    };
+    run_validate(cli);
 }
 
 fn run_validate(cli: Cli) {
@@ -415,7 +420,7 @@ fn run_validate(cli: Cli) {
             Err(error) => {
                 spinner.finish_and_clear();
                 print_validation_error(&cli.file, &error, stderr_colors);
-                std::process::exit(error.exit_code());
+                std::process::exit(validation_error_exit_code(&error));
             }
         };
         spinner.finish_and_clear();
@@ -461,7 +466,7 @@ fn run_validate(cli: Cli) {
                 );
             }
             print_validation_error(&cli.file, &error, stderr_colors);
-            std::process::exit(error.exit_code());
+            std::process::exit(validation_error_exit_code(&error));
         }
     };
     spinner.finish_and_clear();
