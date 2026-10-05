@@ -21,13 +21,6 @@ fn validation_errors_preserve_cli_exit_codes() {
             }),
             1,
         ),
-        (
-            ValidationError::Pdf(PdfError::TooManyIndirectObjects {
-                actual: 8_388_608,
-                limit: 8_388_607,
-            }),
-            2,
-        ),
         (ValidationError::MissingProfileDeclaration, 1),
         (
             ValidationError::InvalidProfileDeclaration("invalid profile".to_owned()),

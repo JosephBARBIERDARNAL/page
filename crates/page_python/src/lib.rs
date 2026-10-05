@@ -33,9 +33,7 @@ fn python_validation_error(error: RustValidationError) -> PyErr {
                 RustValidationErrorKind::Parser => ParseError::new_err(message),
                 RustValidationErrorKind::SafetyLimit => SafetyLimitError::new_err(message),
                 RustValidationErrorKind::Profile => ProfileError::new_err(message),
-                RustValidationErrorKind::Conformance | RustValidationErrorKind::InputIo => {
-                    ValidationError::new_err(message)
-                }
+                RustValidationErrorKind::InputIo => ValidationError::new_err(message),
                 _ => ValidationError::new_err(message),
             }
         }

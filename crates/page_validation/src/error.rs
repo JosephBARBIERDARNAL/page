@@ -8,11 +8,9 @@
 use std::error::Error as StdError;
 use thiserror::Error;
 
-use crate::validation::ValidationProfile;
-
 /// Errors from parsing a PDF or inspecting its object graph before the validation rules run.
 ///
-/// Variants represent strict-parser rejections, configured `SafetyLimits` bounds being exceeded, or the PDF/A indirect-object conformance limit. `ValidationError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `ValidationError` instead.
+/// Variants represent strict-parser rejections and configured `SafetyLimits` bounds being exceeded. `ValidationError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `ValidationError` instead.
 ///
 /// ## Examples
 ///
@@ -32,7 +30,7 @@ use crate::validation::ValidationProfile;
 /// fn handle(error: PdfError) {
 ///     match error {
 ///         PdfError::InputTooLarge { .. } | PdfError::Parse(_)
-///         | PdfError::TooManyObjects { .. } | PdfError::TooManyIndirectObjects { .. }
+///         | PdfError::TooManyObjects { .. }
 ///         | PdfError::ReferenceDepth(_) | PdfError::UnexpectedObject(_)
 ///         | PdfError::XmpDecodeLimit(_) | PdfError::IccDecodeLimit(_)
 ///         | PdfError::ContentDecodeLimit(_) | PdfError::TotalContentDecodeLimit(_)
@@ -54,9 +52,6 @@ pub enum PdfError {
 
     #[error("PDF contains {actual} objects, exceeding the {limit}-object limit")]
     TooManyObjects { actual: usize, limit: usize },
-
-    #[error("PDF contains {actual} indirect objects, exceeding the PDF/A-1 limit of {limit}")]
-    TooManyIndirectObjects { actual: usize, limit: usize },
 
     #[error("reference chain exceeds the configured depth of {0}")]
     ReferenceDepth(usize),
@@ -142,7 +137,7 @@ impl PdfError {
     }
 }
 
-/// The top-level error returned by the validation entry points when validation cannot complete or encounters a preflight conformance limit.
+/// The top-level error returned by the validation entry points when validation cannot complete.
 ///
 /// This is distinct from a `ValidationReport` recording rule findings: an error means validation did not produce a complete report, while `Self::Pdf` carries the lower-level `PdfError` from parsing or inspecting the object graph.
 ///
@@ -195,8 +190,6 @@ pub enum ValidationErrorKind {
     Parser,
     /// A configured or internal resource bound was exceeded.
     SafetyLimit,
-    /// A preflight PDF/A conformance limit was exceeded.
-    Conformance,
     /// A profile declaration was missing, invalid, or unsupported.
     Profile,
 }
@@ -208,24 +201,14 @@ impl ValidationErrorKind {
             Self::InputIo => "input_io",
             Self::Parser => "parser",
             Self::SafetyLimit => "safety_limit",
-            Self::Conformance => "conformance",
             Self::Profile => "profile",
         }
     }
 }
 
 pub(crate) enum ValidationErrorDisposition {
-    Operational {
-        rule_id: &'static str,
-    },
-    Parser {
-        rule_id: &'static str,
-    },
-    Conformance {
-        rule_id: &'static str,
-        actual: usize,
-        limit: usize,
-    },
+    Operational { rule_id: &'static str },
+    Parser { rule_id: &'static str },
 }
 
 impl ValidationError {
@@ -233,7 +216,6 @@ impl ValidationError {
     pub fn kind(&self) -> ValidationErrorKind {
         match self {
             Self::InputIo(_) => ValidationErrorKind::InputIo,
-            Self::Pdf(PdfError::TooManyIndirectObjects { .. }) => ValidationErrorKind::Conformance,
             Self::Pdf(error) if error.is_safety_limit() => ValidationErrorKind::SafetyLimit,
             Self::Pdf(_) => ValidationErrorKind::Parser,
             Self::MissingProfileDeclaration | Self::InvalidProfileDeclaration(_) => {
@@ -243,32 +225,18 @@ impl ValidationError {
     }
 
     /// Returns the rule identifier associated with this error.
-    ///
-    /// The profile-independent indirect-object rule identifier is returned for conformance-limit
-    /// errors. Validation reports can use a profile-specific identifier when the profile is known.
     pub fn rule_id(&self) -> &'static str {
-        match self.disposition(None) {
+        match self.disposition() {
             ValidationErrorDisposition::Operational { rule_id }
-            | ValidationErrorDisposition::Parser { rule_id }
-            | ValidationErrorDisposition::Conformance { rule_id, .. } => rule_id,
+            | ValidationErrorDisposition::Parser { rule_id } => rule_id,
         }
     }
 
-    pub(crate) fn disposition(
-        &self,
-        profile: Option<ValidationProfile>,
-    ) -> ValidationErrorDisposition {
+    pub(crate) fn disposition(&self) -> ValidationErrorDisposition {
         match self {
             Self::InputIo(_) => ValidationErrorDisposition::Operational {
                 rule_id: "INPUT-IO-001",
             },
-            Self::Pdf(PdfError::TooManyIndirectObjects { actual, limit }) => {
-                ValidationErrorDisposition::Conformance {
-                    rule_id: indirect_object_count_rule(profile),
-                    actual: *actual,
-                    limit: *limit,
-                }
-            }
             Self::Pdf(error) if error.is_safety_limit() => {
                 ValidationErrorDisposition::Operational {
                     rule_id: "RESOURCE-LIMIT-001",
@@ -283,21 +251,6 @@ impl ValidationError {
                 }
             }
         }
-    }
-}
-
-fn indirect_object_count_rule(profile: Option<ValidationProfile>) -> &'static str {
-    match profile {
-        Some(ValidationProfile::PdfA1a | ValidationProfile::PdfA1b) => {
-            "PDFA1B-INDIRECT-OBJECT-COUNT-001"
-        }
-        Some(ValidationProfile::PdfA2a) => "PDFA2A-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfA2b) => "PDFA2B-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfA2u) => "PDFA2U-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfA3a) => "PDFA3A-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfA3b) => "PDFA3B-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfA3u) => "PDFA3U-INDIRECT-OBJECT-COUNT-001",
-        Some(ValidationProfile::PdfUa1) | None => "PDF-INDIRECT-OBJECT-COUNT-001",
     }
 }
 
@@ -327,14 +280,6 @@ mod tests {
                 ValidationError::MissingProfileDeclaration,
                 ValidationErrorKind::Profile,
                 "PROFILE-001",
-            ),
-            (
-                ValidationError::Pdf(PdfError::TooManyIndirectObjects {
-                    actual: 2,
-                    limit: 1,
-                }),
-                ValidationErrorKind::Conformance,
-                "PDF-INDIRECT-OBJECT-COUNT-001",
             ),
         ];
 

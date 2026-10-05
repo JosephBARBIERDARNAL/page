@@ -17,7 +17,6 @@ use crate::limits::SafetyLimits;
 use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_optional};
 use crate::page_tree;
-use crate::syntax::PDF_A1_MAX_INDIRECT_OBJECTS;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[non_exhaustive]
@@ -743,23 +742,6 @@ fn load_document(
 }
 
 fn enforce_object_limit(document: &Document, limits: &SafetyLimits) -> Result<(), PdfError> {
-    let indirect_count = document
-        .reference_table
-        .entries
-        .values()
-        .filter(|entry| {
-            !matches!(
-                entry,
-                lopdf::xref::XrefEntry::Free | lopdf::xref::XrefEntry::UnusableFree
-            )
-        })
-        .count();
-    if indirect_count > PDF_A1_MAX_INDIRECT_OBJECTS {
-        return Err(PdfError::TooManyIndirectObjects {
-            actual: indirect_count,
-            limit: PDF_A1_MAX_INDIRECT_OBJECTS,
-        });
-    }
     let actual = document.objects.len();
     if actual > limits.max_object_count {
         return Err(PdfError::TooManyObjects {
