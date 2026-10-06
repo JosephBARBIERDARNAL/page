@@ -754,6 +754,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#0100" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.10.0
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#090" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -868,6 +879,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#0100" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.10.0
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#090" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -931,6 +953,16 @@
   <h1>Changelog</h1>
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Feat</strong>: Implement <code>Deserialize</code> for Rust JSON report types <a href="https://github.com/JosephBARBIERDARNAL/page/issues/403">#403</a></li>
+<li><strong>Refactor</strong>: Make Rust <code>SafetyLimits</code> fields private and use getters with chainable <code>with_</code> setters <a href="https://github.com/JosephBARBIERDARNAL/page/issues/400">#400</a></li>
+<li><strong>Feat</strong>: Add <code>ValidationReport.to_dict()</code> and accept bytes-like inputs in the Python byte APIs <a href="https://github.com/JosephBARBIERDARNAL/page/issues/402">#402</a></li>
+<li><strong>Refactor</strong>: Remove the no-op <code>initialize()</code> function from the Wasm API <a href="https://github.com/JosephBARBIERDARNAL/page/issues/398">#398</a></li>
+<li><strong>Fix</strong>: Expose failure object IDs and categories on the Wasm TypeScript report <a href="https://github.com/JosephBARBIERDARNAL/page/issues/390">#390</a></li>
+<li><strong>Fix</strong>: Align JSON report field names with Rust, Python, and Wasm report attributes <a href="https://github.com/JosephBARBIERDARNAL/page/issues/389">#389</a></li>
+<li><strong>Refactor</strong>: Rename the top-level validation error to <code>PageError</code> across Rust, Python, and Wasm APIs <a href="https://github.com/JosephBARBIERDARNAL/page/issues/401">#401</a></li>
+</ul>
+<h2 id="0100">0.10.0<a class="headerlink" href="#0100" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Fix</strong>: Give CLI usage errors exit code 1 and document stable CLI exit codes <a href="https://github.com/JosephBARBIERDARNAL/page/issues/394">#394</a></li>
 <li><strong>Fix</strong>: Report the PDF/A-1 indirect-object limit as a conformance failure across API surfaces <a href="https://github.com/JosephBARBIERDARNAL/page/issues/387">#387</a></li>
