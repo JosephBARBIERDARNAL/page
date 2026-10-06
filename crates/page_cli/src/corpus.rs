@@ -725,7 +725,7 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{CaseValidation, ExpectedResult, expected_result, expected_rules_are_reported};
-    use page_validation::{JsonValidationReport, PdfError, ValidationError, ValidationProfile};
+    use page_validation::{JsonValidationReport, PdfError, PageError, ValidationProfile};
     use std::path::Path;
 
     #[test]
@@ -764,7 +764,7 @@ mod tests {
 
     #[test]
     fn requires_the_expected_rule_in_the_report() {
-        let error = ValidationError::Pdf(PdfError::UnexpectedObject("catalog"));
+        let error = PageError::Pdf(PdfError::UnexpectedObject("catalog"));
         let report = JsonValidationReport::from_validation_error(
             None,
             Some(ValidationProfile::PdfA1b),

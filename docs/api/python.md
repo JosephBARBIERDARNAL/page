@@ -28,7 +28,7 @@ import page
 is_compliant: bool = page.is_pdf_compliant("file.pdf")
 ```
 
-Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.ValidationError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
+Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.PageError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
 
 !!! info
 
@@ -106,7 +106,7 @@ for failure in report.failures:
         print("conformance finding", failure.rule_id)
 ```
 
-Parser, profile, and safety-limit failures raise their specific `page.ValidationError` subclasses and do not appear in a report. File read failures use Python's `OSError` hierarchy.
+Parser, profile, and safety-limit failures raise their specific `page.PageError` subclasses and do not appear in a report. File read failures use Python's `OSError` hierarchy.
 
 ## Safety limits
 
@@ -155,7 +155,7 @@ if not report.is_compliant:
     print("The document failed one or more implemented checks.")
 ```
 
-Parser, profile, and safety-limit failures raise their specific `page.ValidationError` subclasses before a report is returned. File read failures use Python's `OSError` hierarchy.
+Parser, profile, and safety-limit failures raise their specific `page.PageError` subclasses before a report is returned. File read failures use Python's `OSError` hierarchy.
 
 ## Export the report
 

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
     is_pdf_compliant_bytes, validate_pdf_bytes,
 };
 
@@ -80,7 +80,7 @@ fn lazy_validation_skips_unused_font_summary_resolution() {
     assert!(is_pdf_compliant_bytes(&bytes, &options).unwrap());
     assert!(matches!(
         validate_pdf_bytes(&bytes, &options),
-        Err(ValidationError::Pdf(PdfError::ReferenceDepth(
+        Err(PageError::Pdf(PdfError::ReferenceDepth(
             SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
         )))
     ));
@@ -99,7 +99,7 @@ fn decoded_content_limit_is_an_operational_failure() {
     .expect_err("decoded content must exceed the configured limit");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::ContentDecodeLimit(2048))
+        PageError::Pdf(PdfError::ContentDecodeLimit(2048))
     ));
 }
 
@@ -115,7 +115,7 @@ fn graphics_state_stack_is_bounded() {
     .expect_err("graphics state must exceed the configured reference depth");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::ReferenceDepth(4))
+        PageError::Pdf(PdfError::ReferenceDepth(4))
     ));
 }
 

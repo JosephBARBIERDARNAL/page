@@ -2,7 +2,7 @@ pub mod common;
 
 use lopdf::{Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
     validate_pdf_bytes,
 };
 
@@ -42,7 +42,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     .expect_err("the object limit must stop the traversal");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::TooManyObjects { limit: 1, .. })
+        PageError::Pdf(PdfError::TooManyObjects { limit: 1, .. })
     ));
 }
 
@@ -53,7 +53,7 @@ fn cyclic_structure_tree_is_an_operational_failure() {
         &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
     )
     .expect_err("cyclic structure tree must exceed the reference-depth limit");
-    assert!(matches!(error, ValidationError::Pdf(_)));
+    assert!(matches!(error, PageError::Pdf(_)));
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn table_grid_row_limit_is_rejected_during_structure_inspection() {
     .expect_err("table inspection must reject rows before growing past the limit");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::TableGridLimit {
+        PageError::Pdf(PdfError::TableGridLimit {
             rows: 2,
             max_rows: 1,
             ..

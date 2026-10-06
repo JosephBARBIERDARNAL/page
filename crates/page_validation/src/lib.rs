@@ -21,7 +21,7 @@
 //! assert_eq!(category, FailureCategory::Conformance);
 //! ```
 //!
-//! Parser, input, profile, and safety-limit failures are returned as `ValidationError` values;
+//! Parser, input, profile, and safety-limit failures are returned as `PageError` values;
 //! only metadata and conformance findings appear in `ValidationReport::failures`.
 //!
 //! [`PdfDocument`] exposes document summary fields. Metadata and inspection models
@@ -63,7 +63,7 @@ mod validation;
 mod xml_safety;
 mod xobject;
 
-pub use error::{PdfError, ValidationError, ValidationErrorKind};
+pub use error::{PdfError, PageError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::{PdfDocument, PdfObjectId};

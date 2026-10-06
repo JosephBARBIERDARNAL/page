@@ -115,7 +115,7 @@ fn js_error(name: &str, message: impl AsRef<str>) -> JsValue {
 
 fn js_validation_error(message: &str, kind: &str, rule_id: Option<&str>) -> JsValue {
     let error = js_sys::Error::new(message);
-    error.set_name("ValidationError");
+    error.set_name("PageError");
     let error: JsValue = error.into();
     let _kind_result =
         js_sys::Reflect::set(&error, &JsValue::from_str("kind"), &JsValue::from_str(kind));
@@ -129,7 +129,7 @@ fn js_validation_error(message: &str, kind: &str, rule_id: Option<&str>) -> JsVa
     error
 }
 
-fn validation_js_error(error: &page_validation::ValidationError) -> JsValue {
+fn validation_js_error(error: &page_validation::PageError) -> JsValue {
     js_validation_error(
         &error.to_string(),
         error.kind().as_str(),
@@ -193,7 +193,7 @@ fn validation_options(
 fn report_json(report: ValidationReport) -> Result<String, JsValue> {
     serde_json::to_string(&report.json_report()).map_err(|error| {
         js_error(
-            "ValidationError",
+            "PageError",
             format!("could not serialize report: {error}"),
         )
     })

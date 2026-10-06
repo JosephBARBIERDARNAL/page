@@ -2,7 +2,7 @@
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
-//! remain `ValidationError` values returned from validation entry points.
+//! remain `PageError` values returned from validation entry points.
 
 use std::fmt;
 use std::fmt::Write;
@@ -15,7 +15,7 @@ use crate::validation::ValidationProfile;
 
 /// The kind of metadata or conformance problem a `ValidationFailure` represents.
 ///
-/// Input, profile, parser, and safety-limit errors are returned as `ValidationError` and do not appear in a `ValidationReport`.
+/// Input, profile, parser, and safety-limit errors are returned as `PageError` and do not appear in a `ValidationReport`.
 ///
 /// ## Examples
 ///

@@ -1,5 +1,5 @@
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
     validate_pdf_bytes,
 };
 
@@ -51,7 +51,7 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
     .expect_err("ICC profile must exceed the decoded-size limit");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::IccDecodeLimit(_))
+        PageError::Pdf(PdfError::IccDecodeLimit(_))
     ));
 }
 
@@ -64,7 +64,7 @@ fn cyclic_and_deep_composite_color_spaces_hit_the_reference_depth_limit() {
         let error = validate_pdf_bytes(&common::icc_based_fixture(case), &options)
             .expect_err("{case} must exceed the configured reference depth");
         assert!(
-            matches!(error, ValidationError::Pdf(PdfError::ReferenceDepth(4))),
+            matches!(error, PageError::Pdf(PdfError::ReferenceDepth(4))),
             "{case}: {error:?}"
         );
     }

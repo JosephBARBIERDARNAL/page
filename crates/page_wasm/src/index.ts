@@ -3,7 +3,7 @@ import { createApi } from "./api.js";
 
 export {
   SafetyLimits,
-  ValidationError,
+  PageError,
   ValidationProfile,
   ValidationReport,
 } from "./api.js";

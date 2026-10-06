@@ -4,7 +4,7 @@ import * as wasm from "../dist-bun/page_validation.js";
 import {
   createApi,
   SafetyLimits,
-  ValidationError,
+  PageError,
   ValidationProfile,
 } from "../src/api.js";
 
@@ -179,7 +179,7 @@ describe("page-validation", () => {
     ).resolves.toBe(false);
   });
 
-  it("raises ValidationError for malformed input", async () => {
+  it("raises PageError for malformed input", async () => {
     const error = await validatePdfBytes(new TextEncoder().encode("not a PDF"), {
       profile: ValidationProfile.PDF_A_1B,
     }).then(
@@ -187,9 +187,9 @@ describe("page-validation", () => {
       (caught: unknown) => caught,
     );
 
-    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toBeInstanceOf(PageError);
     expect(error).toMatchObject({
-      name: "ValidationError",
+      name: "PageError",
       kind: "parser",
       ruleId: "PDF-PARSE-001",
     });

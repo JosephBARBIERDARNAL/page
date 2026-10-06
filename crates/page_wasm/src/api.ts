@@ -272,13 +272,13 @@ export interface ValidationOptions {
 export type ValidationErrorKind =
   "input_io" | "parser" | "safety_limit" | "profile" | "unknown";
 
-export class ValidationError extends Error {
+export class PageError extends Error {
   readonly kind: ValidationErrorKind;
   readonly ruleId: string | undefined;
 
   constructor(message: string, kind: ValidationErrorKind = "unknown", ruleId?: string) {
     super(message);
-    this.name = "ValidationError";
+    this.name = "PageError";
     this.kind = kind;
     this.ruleId = ruleId;
     Object.setPrototypeOf(this, new.target.prototype);
@@ -305,7 +305,7 @@ export function createApi(wasm: WasmBindings) {
       const json = wasm.validatePdfBytes(bytes, profile, serializedLimits);
       return new ValidationReport(JSON.parse(json) as RawValidationReport);
     } catch (error) {
-      throw asValidationError(error);
+      throw asPageError(error);
     }
   }
 
@@ -318,7 +318,7 @@ export function createApi(wasm: WasmBindings) {
     try {
       return wasm.isPdfCompliantBytes(bytes, profile, serializedLimits);
     } catch (error) {
-      throw asValidationError(error);
+      throw asPageError(error);
     }
   }
 
@@ -347,21 +347,21 @@ function serializeLimits(
   );
 }
 
-function asValidationError(error: unknown): ValidationError {
-  if (error instanceof ValidationError) {
+function asPageError(error: unknown): PageError {
+  if (error instanceof PageError) {
     return error;
   }
-  if (error instanceof Error && error.name === "ValidationError") {
+  if (error instanceof Error && error.name === "PageError") {
     const typedError = error as Error & { kind?: unknown; ruleId?: unknown };
-    return new ValidationError(
+    return new PageError(
       error.message,
       isValidationErrorKind(typedError.kind) ? typedError.kind : "unknown",
       typeof typedError.ruleId === "string" ? typedError.ruleId : undefined,
     );
   }
   return error instanceof Error
-    ? new ValidationError(error.message)
-    : new ValidationError(String(error));
+    ? new PageError(error.message)
+    : new PageError(String(error));
 }
 
 function isValidationErrorKind(value: unknown): value is ValidationErrorKind {

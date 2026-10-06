@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use page_validation::{
     FailureCategory as RustFailureCategory, PdfObjectId as RustPdfObjectId,
     SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
-    ValidationCounts as RustValidationCounts, ValidationError as RustValidationError,
+    ValidationCounts as RustValidationCounts, PageError as RustPageError,
     ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
@@ -13,14 +13,14 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
 use pyo3::types::{PyBytes, PyString};
 
-create_exception!(_page, ValidationError, PyException);
-create_exception!(_page, ParseError, ValidationError);
-create_exception!(_page, SafetyLimitError, ValidationError);
-create_exception!(_page, ProfileError, ValidationError);
+create_exception!(_page, PageError, PyException);
+create_exception!(_page, ParseError, PageError);
+create_exception!(_page, SafetyLimitError, PageError);
+create_exception!(_page, ProfileError, PageError);
 
-fn python_validation_error(error: RustValidationError) -> PyErr {
+fn python_validation_error(error: RustPageError) -> PyErr {
     match error {
-        RustValidationError::InputIo(error) => {
+        RustPageError::InputIo(error) => {
             if error.kind() == std::io::ErrorKind::NotFound {
                 PyFileNotFoundError::new_err(error.to_string())
             } else {
@@ -33,8 +33,8 @@ fn python_validation_error(error: RustValidationError) -> PyErr {
                 RustValidationErrorKind::Parser => ParseError::new_err(message),
                 RustValidationErrorKind::SafetyLimit => SafetyLimitError::new_err(message),
                 RustValidationErrorKind::Profile => ProfileError::new_err(message),
-                RustValidationErrorKind::InputIo => ValidationError::new_err(message),
-                _ => ValidationError::new_err(message),
+                RustValidationErrorKind::InputIo => PageError::new_err(message),
+                _ => PageError::new_err(message),
             }
         }
     }
@@ -296,7 +296,7 @@ impl ValidationFailure {
             RustFailureCategory::Metadata => "metadata",
             RustFailureCategory::Conformance => "conformance",
             _ => {
-                return Err(ValidationError::new_err(format!(
+                return Err(PageError::new_err(format!(
                     "failure category {:?} is not supported by the Python bindings",
                     self.inner.category
                 )));
@@ -543,7 +543,7 @@ fn validate_pdf_bytes(
 
 #[pymodule]
 fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add("ValidationError", py.get_type::<ValidationError>())?;
+    module.add("PageError", py.get_type::<PageError>())?;
     module.add("ParseError", py.get_type::<ParseError>())?;
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;

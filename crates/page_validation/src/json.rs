@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, PdfObjectId, ValidationCheckCounts, ValidationCounts, ValidationError,
+    FailureCategory, PdfObjectId, ValidationCheckCounts, ValidationCounts, PageError,
     ValidationProfile, ValidationReport,
 };
 
@@ -72,7 +72,7 @@ impl JsonValidationReport {
     pub fn from_validation_error(
         file: Option<String>,
         profile: Option<ValidationProfile>,
-        error: ValidationError,
+        error: PageError,
     ) -> Self {
         let (rules, checks, failures, error) = match error.disposition() {
             ValidationErrorDisposition::Operational { rule_id } => (
@@ -143,7 +143,7 @@ mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
         FailureCategory, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
-        ValidationError, ValidationFailure, ValidationProfile, ValidationReport,
+        PageError, ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -193,7 +193,7 @@ mod tests {
         let json = JsonValidationReport::from_validation_error(
             None,
             Some(ValidationProfile::PdfA1b),
-            ValidationError::Pdf(PdfError::UnexpectedObject("catalog")),
+            PageError::Pdf(PdfError::UnexpectedObject("catalog")),
         );
 
         assert!(json.failures.is_empty());

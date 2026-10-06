@@ -14,7 +14,7 @@ use std::str::FromStr;
 
 use serde::{Serialize, Serializer};
 
-use crate::error::{PdfError, ValidationError};
+use crate::error::{PdfError, PageError};
 use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
@@ -300,7 +300,7 @@ enum ValidationMode {
 pub fn validate_pdf(
     path: impl AsRef<Path>,
     options: &ValidationOptions,
-) -> Result<ValidationReport, ValidationError> {
+) -> Result<ValidationReport, PageError> {
     let path = path.as_ref();
     let bytes = read_file(path, &options.limits)?;
     validate_bytes_with_mode(
@@ -312,7 +312,7 @@ pub fn validate_pdf(
     .map(|report| report.with_source(path))
 }
 
-fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationError> {
+fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, PageError> {
     let file = fs::File::open(path)?;
     let metadata = file.metadata()?;
     if metadata.len() > limits.max_input_size {
@@ -340,7 +340,7 @@ fn read_file(path: &Path, limits: &SafetyLimits) -> Result<Vec<u8>, ValidationEr
 pub fn validate_pdf_bytes(
     bytes: &[u8],
     options: &ValidationOptions,
-) -> Result<ValidationReport, ValidationError> {
+) -> Result<ValidationReport, PageError> {
     validate_bytes_with_mode(
         bytes,
         options.profile,
@@ -354,7 +354,7 @@ fn validate_bytes_with_mode(
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
     mode: ValidationMode,
-) -> Result<ValidationReport, ValidationError> {
+) -> Result<ValidationReport, PageError> {
     let preparation = PdfDocument::prepare_for_validation(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
     let (document, inspections) = preparation.into_inspections(
@@ -369,7 +369,7 @@ fn validate_bytes_with_mode(
 pub fn is_pdf_compliant(
     path: impl AsRef<Path>,
     options: &ValidationOptions,
-) -> Result<bool, ValidationError> {
+) -> Result<bool, PageError> {
     validate_pdf_lazy(path, options).map(|result| result.is_compliant)
 }
 
@@ -379,7 +379,7 @@ pub fn is_pdf_compliant(
 pub fn is_pdf_compliant_bytes(
     bytes: &[u8],
     options: &ValidationOptions,
-) -> Result<bool, ValidationError> {
+) -> Result<bool, PageError> {
     validate_bytes_lazy(bytes, options.profile, &options.limits).map(|result| result.is_compliant)
 }
 
@@ -390,7 +390,7 @@ pub fn is_pdf_compliant_bytes(
 pub fn validate_pdf_lazy(
     path: impl AsRef<Path>,
     options: &ValidationOptions,
-) -> Result<ComplianceResult, ValidationError> {
+) -> Result<ComplianceResult, PageError> {
     let bytes = read_file(path.as_ref(), &options.limits)?;
     validate_bytes_lazy(&bytes, options.profile, &options.limits)
 }
@@ -399,7 +399,7 @@ pub(crate) fn validate_bytes_lazy(
     bytes: &[u8],
     profile: Option<ValidationProfile>,
     limits: &SafetyLimits,
-) -> Result<ComplianceResult, ValidationError> {
+) -> Result<ComplianceResult, PageError> {
     let preparation = PdfDocument::prepare_for_validation_without_font_summary(bytes, limits)?;
     let profile = profile.map_or_else(|| declared_profile(preparation.document()), Ok)?;
     let (preparation, syntax) = preparation.with_syntax(bytes, limits)?;
@@ -571,22 +571,22 @@ fn has_preflight_failure(
     }
 }
 
-fn declared_profile(document: &PdfDocument) -> Result<ValidationProfile, ValidationError> {
+fn declared_profile(document: &PdfDocument) -> Result<ValidationProfile, PageError> {
     if let Some(error) = &document.xmp_parse_error {
-        return Err(ValidationError::InvalidProfileDeclaration(format!(
+        return Err(PageError::InvalidProfileDeclaration(format!(
             "XMP metadata could not be parsed: {error}"
         )));
     }
     let Some(xmp) = &document.xmp else {
-        return Err(ValidationError::MissingProfileDeclaration);
+        return Err(PageError::MissingProfileDeclaration);
     };
 
     match (
         xmp.pdfa_identification_present,
         xmp.pdfua_identification_present,
     ) {
-        (false, false) => Err(ValidationError::MissingProfileDeclaration),
-        (true, true) => Err(ValidationError::InvalidProfileDeclaration(
+        (false, false) => Err(PageError::MissingProfileDeclaration),
+        (true, true) => Err(PageError::InvalidProfileDeclaration(
             "both PDF/A and PDF/UA identification schemas are present".to_owned(),
         )),
         (true, false) => declared_pdfa_profile(xmp),
@@ -596,15 +596,15 @@ fn declared_profile(document: &PdfDocument) -> Result<ValidationProfile, Validat
 
 fn declared_pdfa_profile(
     xmp: &crate::metadata::XmpMetadata,
-) -> Result<ValidationProfile, ValidationError> {
+) -> Result<ValidationProfile, PageError> {
     let [part] = xmp.pdfa_parts.as_slice() else {
-        return Err(ValidationError::InvalidProfileDeclaration(format!(
+        return Err(PageError::InvalidProfileDeclaration(format!(
             "expected exactly one pdfaid:part value, found {:?}",
             xmp.pdfa_parts
         )));
     };
     let part = xmp_integer_value(part).ok_or_else(|| {
-        ValidationError::InvalidProfileDeclaration(format!(
+        PageError::InvalidProfileDeclaration(format!(
             "pdfaid:part value {:?} is not an integer",
             part
         ))
@@ -613,7 +613,7 @@ fn declared_pdfa_profile(
         [] => None,
         [conformance] => Some(conformance.as_str()),
         values => {
-            return Err(ValidationError::InvalidProfileDeclaration(format!(
+            return Err(PageError::InvalidProfileDeclaration(format!(
                 "expected at most one pdfaid:conformance value, found {values:?}"
             )));
         }
@@ -628,7 +628,7 @@ fn declared_pdfa_profile(
         (3, Some("A")) => Ok(ValidationProfile::PdfA3a),
         (3, Some("B")) => Ok(ValidationProfile::PdfA3b),
         (3, Some("U")) => Ok(ValidationProfile::PdfA3u),
-        _ => Err(ValidationError::InvalidProfileDeclaration(format!(
+        _ => Err(PageError::InvalidProfileDeclaration(format!(
             "pdfaid:part {part} and pdfaid:conformance {conformance:?} do not identify a supported PDF/A profile"
         ))),
     }
@@ -636,19 +636,19 @@ fn declared_pdfa_profile(
 
 fn declared_pdfua_profile(
     xmp: &crate::metadata::XmpMetadata,
-) -> Result<ValidationProfile, ValidationError> {
+) -> Result<ValidationProfile, PageError> {
     let [part] = xmp.pdfua_parts.as_slice() else {
-        return Err(ValidationError::InvalidProfileDeclaration(format!(
+        return Err(PageError::InvalidProfileDeclaration(format!(
             "expected exactly one pdfuaid:part value, found {:?}",
             xmp.pdfua_parts
         )));
     };
     match xmp_integer_value(part) {
         Some(1) => Ok(ValidationProfile::PdfUa1),
-        Some(part) => Err(ValidationError::InvalidProfileDeclaration(format!(
+        Some(part) => Err(PageError::InvalidProfileDeclaration(format!(
             "pdfuaid:part {part} does not identify a supported PDF/UA profile"
         ))),
-        None => Err(ValidationError::InvalidProfileDeclaration(format!(
+        None => Err(PageError::InvalidProfileDeclaration(format!(
             "pdfuaid:part value {part:?} is not an integer"
         ))),
     }
@@ -3920,7 +3920,7 @@ mod tests {
         let error = validate_pdf_bytes(&bytes, &ValidationOptions::default())
             .expect_err("missing profile declaration");
 
-        assert!(matches!(error, ValidationError::MissingProfileDeclaration));
+        assert!(matches!(error, PageError::MissingProfileDeclaration));
     }
 
     #[test]
@@ -3950,7 +3950,7 @@ mod tests {
 
         assert!(matches!(
             &error,
-            ValidationError::InvalidProfileDeclaration(_)
+            PageError::InvalidProfileDeclaration(_)
         ));
         assert!(error.to_string().contains("pdfaid:conformance"));
     }
@@ -4001,7 +4001,7 @@ mod tests {
             for error in errors {
                 assert!(matches!(
                     error,
-                    ValidationError::InvalidProfileDeclaration(_)
+                    PageError::InvalidProfileDeclaration(_)
                 ));
                 assert!(error.to_string().contains("supported"));
                 assert_eq!(error.rule_id(), "PROFILE-001");
@@ -4479,7 +4479,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect_err("malformed PDF");
-        assert!(matches!(error, ValidationError::Pdf(PdfError::Parse(_))));
+        assert!(matches!(error, PageError::Pdf(PdfError::Parse(_))));
     }
 
     #[test]
@@ -4551,7 +4551,7 @@ mod tests {
         .expect_err("object limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::TooManyObjects { limit: 0, .. })
+            PageError::Pdf(PdfError::TooManyObjects { limit: 0, .. })
         ));
     }
 
@@ -4570,7 +4570,7 @@ mod tests {
         .expect_err("object limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::TooManyObjects { .. })
+            PageError::Pdf(PdfError::TooManyObjects { .. })
         ));
     }
 
@@ -4582,7 +4582,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect_err("missing input");
-        assert!(matches!(error, ValidationError::InputIo(_)));
+        assert!(matches!(error, PageError::InputIo(_)));
     }
 
     #[test]
@@ -4600,7 +4600,7 @@ mod tests {
         .expect_err("input size limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::InputTooLarge { .. })
+            PageError::Pdf(PdfError::InputTooLarge { .. })
         ));
     }
 
@@ -4614,7 +4614,7 @@ mod tests {
         let error = read_file(Path::new("/dev/zero"), &limits).expect_err("input size limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::InputTooLarge {
+            PageError::Pdf(PdfError::InputTooLarge {
                 actual: 5,
                 limit: 4
             })
@@ -4636,7 +4636,7 @@ mod tests {
         .expect_err("decoded stream limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::XmpDecodeLimit(_))
+            PageError::Pdf(PdfError::XmpDecodeLimit(_))
         ));
         let report = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), true),
@@ -4668,7 +4668,7 @@ mod tests {
         .expect_err("content stream limit after preflight failure");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::ContentDecodeLimit(16))
+            PageError::Pdf(PdfError::ContentDecodeLimit(16))
         ));
         let compliant = is_pdf_compliant_bytes(
             &bytes,
@@ -4695,7 +4695,7 @@ mod tests {
         .expect_err("reference depth limit");
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::ReferenceDepth(0))
+            PageError::Pdf(PdfError::ReferenceDepth(0))
         ));
     }
 

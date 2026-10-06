@@ -13,7 +13,7 @@ use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_cli::validation_error_exit_code;
 use page_validation::{
-    JsonValidationReport, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    JsonValidationReport, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
     ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
@@ -302,7 +302,7 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
 fn emit_json_validation_error(
     path: &Path,
     profile: Option<ValidationProfile>,
-    error: ValidationError,
+    error: PageError,
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
@@ -336,9 +336,9 @@ fn emit_json_validation_error(
     });
 }
 
-fn print_validation_error(path: &Path, error: &ValidationError, colors: bool) {
+fn print_validation_error(path: &Path, error: &PageError, colors: bool) {
     match error {
-        ValidationError::InputIo(error) => print_error(
+        PageError::InputIo(error) => print_error(
             format_args!("could not read '{}': {error}", path.display()),
             colors,
         ),

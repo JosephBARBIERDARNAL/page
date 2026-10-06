@@ -136,7 +136,7 @@ def test_unlimited_limits_allow_restoring_an_independent_bound():
     limits.max_input_size = 1
     assert page.SafetyLimits.unlimited().max_input_size == 2**64 - 1
 
-    with pytest.raises(page.ValidationError, match="1-byte limit"):
+    with pytest.raises(page.PageError, match="1-byte limit"):
         page.validate_pdf_bytes(
             minimal_pdf(), profile=page.ValidationProfile.PDF_A_1B, limits=limits
         )
@@ -252,9 +252,9 @@ def test_validation_reports_other_file_read_failures_as_os_error(tmp_path: Path)
 
 
 def test_validation_errors_have_specific_base_classes():
-    assert issubclass(page.ParseError, page.ValidationError)
-    assert issubclass(page.SafetyLimitError, page.ValidationError)
-    assert issubclass(page.ProfileError, page.ValidationError)
+    assert issubclass(page.ParseError, page.PageError)
+    assert issubclass(page.SafetyLimitError, page.PageError)
+    assert issubclass(page.ProfileError, page.PageError)
 
     with pytest.raises(page.SafetyLimitError):
         page.validate_pdf_bytes(

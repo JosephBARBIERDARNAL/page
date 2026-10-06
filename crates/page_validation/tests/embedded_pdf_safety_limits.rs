@@ -1,5 +1,5 @@
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
     validate_pdf_bytes,
 };
 
@@ -20,7 +20,7 @@ fn embedded_pdf_decode_limit_is_an_operational_failure() {
 
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::ContentDecodeLimit(4096))
+        PageError::Pdf(PdfError::ContentDecodeLimit(4096))
     ));
 }
 
@@ -37,7 +37,7 @@ fn embedded_pdf_object_limit_is_an_operational_failure() {
 
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::TooManyObjects { limit: 20, .. })
+        PageError::Pdf(PdfError::TooManyObjects { limit: 20, .. })
     ));
 }
 
