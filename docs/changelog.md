@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Expose failure object IDs and categories on the Wasm TypeScript report [#390](https://github.com/JosephBARBIERDARNAL/page/issues/390)
 - **Fix**: Align JSON report field names with Rust, Python, and Wasm report attributes [#389](https://github.com/JosephBARBIERDARNAL/page/issues/389)
 - **Refactor**: Rename the top-level validation error to `PageError` across Rust, Python, and Wasm APIs [#401](https://github.com/JosephBARBIERDARNAL/page/issues/401)
 

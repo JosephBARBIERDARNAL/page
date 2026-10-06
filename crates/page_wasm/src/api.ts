@@ -187,6 +187,8 @@ export class SafetyLimits implements SafetyLimitsOptions {
 export interface ValidationFailure {
   ruleId: string;
   message: string;
+  objectId: { objectNumber: number; generation: number } | null;
+  category: "metadata" | "conformance";
 }
 
 export interface ValidationCounts {
@@ -245,6 +247,14 @@ export class ValidationReport {
     this.failures = raw.failures.map((failure) => ({
       ruleId: failure.rule_id,
       message: failure.message,
+      objectId:
+        failure.object_id === null
+          ? null
+          : {
+              objectNumber: failure.object_id.object_number,
+              generation: failure.object_id.generation,
+            },
+      category: failure.category,
     }));
   }
 
