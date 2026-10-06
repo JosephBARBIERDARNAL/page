@@ -28,11 +28,18 @@ import page
 is_compliant: bool = page.is_pdf_compliant("file.pdf")
 ```
 
-Every validation function takes a path or bytes as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.PageError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
+Every validation function takes a path or, for the byte APIs, a bytes-like object as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.PageError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
 
 !!! info
 
-    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same API but expects a `bytes` value instead of a path.
+    If you want to run it on an in-memory PDF, use `is_pdf_compliant_bytes()`. It accepts `bytes`, `bytearray`, and `memoryview` values:
+
+    ```python
+    from pathlib import Path
+
+    data = bytearray(Path("document.pdf").read_bytes())
+    is_compliant = page.is_pdf_compliant_bytes(data)
+    ```
 
 ## Validate a PDF with details
 
@@ -56,7 +63,14 @@ else:
 
 !!! info
 
-    If you want to run it on bytes instead of a file, use `validate_pdf_bytes()`, which provides the same API but expects a `bytes` value instead of a path.
+    If you want to run it on an in-memory PDF, use `validate_pdf_bytes()`. It accepts `bytes`, `bytearray`, and `memoryview` values:
+
+    ```python
+    from pathlib import Path
+
+    data = memoryview(Path("document.pdf").read_bytes())
+    report = page.validate_pdf_bytes(data)
+    ```
 
 `report.source` contains the validated file path as a string. Reports from `validate_pdf_bytes()` have `source` set to `None`.
 
@@ -168,6 +182,14 @@ report = page.validate_pdf("document.pdf")
 
 with open("report.json", "w") as output:
     output.write(report.to_json())
+```
+
+Use `report.to_dict()` to get the same report structure as a Python dictionary, without parsing the JSON string yourself:
+
+```python
+report_data = report.to_dict()
+print(report_data["is_compliant"])
+print(report_data["failures"])
 ```
 
 Each JSON failure includes `category` (`metadata` or `conformance`) and `object_id`. The object ID contains `object_number` and `generation` when the finding is attributed to an indirect object, and is `null` otherwise.

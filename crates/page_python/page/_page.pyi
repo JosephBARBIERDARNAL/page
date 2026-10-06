@@ -109,6 +109,7 @@ class ValidationReport:
     @property
     def failures(self) -> list[ValidationFailure]: ...
     def to_json(self) -> str: ...
+    def to_dict(self) -> dict[str, object]: ...
 
 def is_pdf_compliant(
     path: str | PathLike[str],
@@ -117,7 +118,7 @@ def is_pdf_compliant(
     limits: SafetyLimits | None = None,
 ) -> bool: ...
 def is_pdf_compliant_bytes(
-    data: bytes,
+    data: bytes | bytearray | memoryview,
     *,
     profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,
@@ -129,7 +130,7 @@ def validate_pdf(
     limits: SafetyLimits | None = None,
 ) -> ValidationReport: ...
 def validate_pdf_bytes(
-    data: bytes,
+    data: bytes | bytearray | memoryview,
     *,
     profile: ValidationProfile | str | None = None,
     limits: SafetyLimits | None = None,

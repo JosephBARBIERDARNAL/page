@@ -1,5 +1,6 @@
 ## Dev
 
+- **Feat**: Add `ValidationReport.to_dict()` and accept bytes-like inputs in the Python byte APIs [#402](https://github.com/JosephBARBIERDARNAL/page/issues/402)
 - **Refactor**: Remove the no-op `initialize()` function from the Wasm API [#398](https://github.com/JosephBARBIERDARNAL/page/issues/398)
 - **Fix**: Expose failure object IDs and categories on the Wasm TypeScript report [#390](https://github.com/JosephBARBIERDARNAL/page/issues/390)
 - **Fix**: Align JSON report field names with Rust, Python, and Wasm report attributes [#389](https://github.com/JosephBARBIERDARNAL/page/issues/389)

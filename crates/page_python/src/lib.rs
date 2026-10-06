@@ -7,6 +7,7 @@ use page_validation::{
     ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
+use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
@@ -456,6 +457,11 @@ impl ValidationReport {
             .map_err(|error| PyValueError::new_err(error.to_string()))
     }
 
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let json = self.to_json()?;
+        Ok(py.import("json")?.call_method1("loads", (json,))?.unbind())
+    }
+
     fn __str__(&self) -> String {
         self.inner.to_string()
     }
@@ -481,6 +487,31 @@ fn validation_options(
     Ok(page_validation::ValidationOptions::default()
         .profile(profile)
         .limits(limits.map(Into::into).unwrap_or_default()))
+}
+
+enum PythonPdfBytes {
+    Backed(PyBackedBytes),
+    Owned(Vec<u8>),
+}
+
+impl AsRef<[u8]> for PythonPdfBytes {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Backed(data) => data.as_ref(),
+            Self::Owned(data) => data,
+        }
+    }
+}
+
+fn python_pdf_bytes(data: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<PythonPdfBytes> {
+    if let Ok(bytes) = data.cast::<PyBytes>() {
+        return Ok(PythonPdfBytes::Backed(PyBackedBytes::from(
+            bytes.to_owned(),
+        )));
+    }
+
+    let buffer = PyBuffer::<u8>::get(data)?;
+    Ok(PythonPdfBytes::Owned(buffer.to_vec(py)?))
 }
 
 #[pyfunction]
@@ -514,12 +545,11 @@ fn validate_pdf(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn is_pdf_compliant_bytes(
     py: Python<'_>,
-    data: Bound<'_, PyBytes>,
+    data: Bound<'_, PyAny>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
-    // Keep the immutable Python buffer alive while validation runs without the GIL.
-    let data = PyBackedBytes::from(data);
+    let data = python_pdf_bytes(&data, py)?;
     let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::is_pdf_compliant_bytes(data.as_ref(), &options))
         .map_err(python_validation_error)
@@ -529,12 +559,11 @@ fn is_pdf_compliant_bytes(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn validate_pdf_bytes(
     py: Python<'_>,
-    data: Bound<'_, PyBytes>,
+    data: Bound<'_, PyAny>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
-    // Keep the immutable Python buffer alive while validation runs without the GIL.
-    let data = PyBackedBytes::from(data);
+    let data = python_pdf_bytes(&data, py)?;
     let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::validate_pdf_bytes(data.as_ref(), &options))
         .map(Into::into)
