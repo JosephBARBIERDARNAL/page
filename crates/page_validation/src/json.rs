@@ -1,8 +1,8 @@
-//! Defines the stable serializable JSON view of a validation report for client applications.
+//! Defines the stable serializable and deserializable JSON view of a validation report for client applications.
 //!
 //! Report conversion copies the source, profile, compliance result, counts, and each rule failure's category and optional object location into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
@@ -10,8 +10,8 @@ use crate::{
     ValidationProfile, ValidationReport,
 };
 
-/// Stable, serializable representation of a validation report.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// Stable, serializable and deserializable representation of a validation report.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,7 +28,7 @@ pub struct JsonValidationReport {
 }
 
 /// A rule failure in the stable JSON report, with its category and optional indirect object location.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonFailure {
     pub rule_id: String,
@@ -37,7 +37,7 @@ pub struct JsonFailure {
     pub category: FailureCategory,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonError {
     pub kind: JsonErrorKind,
@@ -56,7 +56,7 @@ pub struct JsonError {
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum JsonErrorKind {

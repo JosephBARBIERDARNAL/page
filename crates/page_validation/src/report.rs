@@ -8,7 +8,7 @@ use std::fmt;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
@@ -37,7 +37,7 @@ use crate::validation::ValidationProfile;
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum FailureCategory {
@@ -117,7 +117,7 @@ pub(crate) struct RuleFailure {
 /// counts.passed = 5;
 /// assert_eq!(counts.total, counts.passed + counts.failed);
 /// ```
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct ValidationCounts {
     pub total: usize,
@@ -127,7 +127,7 @@ pub struct ValidationCounts {
 
 /// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
 /// rule can contribute more than one failed check.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct ValidationCheckCounts {
     pub failed: usize,

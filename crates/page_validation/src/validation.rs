@@ -12,7 +12,7 @@ use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::error::{PageError, PdfError};
 use crate::limits::SafetyLimits;
@@ -96,6 +96,16 @@ impl Serialize for ValidationProfile {
         S: Serializer,
     {
         serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ValidationProfile {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        value.parse().map_err(serde::de::Error::custom)
     }
 }
 
