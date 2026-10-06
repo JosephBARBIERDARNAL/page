@@ -656,7 +656,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "page-validation-wasm"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "getrandom",
  "js-sys",
@@ -668,7 +668,7 @@ dependencies = [
 
 [[package]]
 name = "page_cli"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anstyle",
  "clap",
@@ -680,7 +680,7 @@ dependencies = [
 
 [[package]]
 name = "page_python"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "page_validation",
  "pyo3",
@@ -689,7 +689,7 @@ dependencies = [
 
 [[package]]
 name = "page_validation"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "lopdf",
