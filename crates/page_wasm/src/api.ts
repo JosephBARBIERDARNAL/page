@@ -201,18 +201,18 @@ export interface ValidationCheckCounts {
 
 export interface JsonValidationError {
   kind: "parser" | "operational";
-  rule: string;
+  rule_id: string;
   message: string;
 }
 
 export interface JsonValidationReport {
-  file?: string;
+  source?: string;
   profile?: ValidationProfile;
-  compliant: boolean;
+  is_compliant: boolean;
   rules?: ValidationCounts;
   checks?: ValidationCheckCounts;
   failures: {
-    rule: string;
+    rule_id: string;
     message: string;
     object_id: { object_number: number; generation: number } | null;
     category: "metadata" | "conformance";
@@ -227,10 +227,8 @@ interface RawValidationReport extends JsonValidationReport {
 }
 
 export class ValidationReport {
-  readonly file: string | undefined;
   readonly source: string | null;
   readonly profile: ValidationProfile;
-  readonly compliant: boolean;
   readonly isCompliant: boolean;
   readonly rules: ValidationCounts;
   readonly checks: ValidationCheckCounts;
@@ -239,15 +237,13 @@ export class ValidationReport {
 
   constructor(raw: RawValidationReport) {
     this.raw = raw;
-    this.file = raw.file;
-    this.source = raw.file ?? null;
+    this.source = raw.source ?? null;
     this.profile = raw.profile as ValidationProfile;
-    this.compliant = raw.compliant;
-    this.isCompliant = raw.compliant;
+    this.isCompliant = raw.is_compliant;
     this.rules = raw.rules;
     this.checks = raw.checks;
     this.failures = raw.failures.map((failure) => ({
-      ruleId: failure.rule,
+      ruleId: failure.rule_id,
       message: failure.message,
     }));
   }

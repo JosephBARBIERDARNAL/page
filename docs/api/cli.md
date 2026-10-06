@@ -74,9 +74,9 @@ page document.pdf --format json
 
 ```json
 {
-  "file": "document.pdf",
+  "source": "document.pdf",
   "profile": "1b",
-  "compliant": false,
+  "is_compliant": false,
   "rules": {
     "total": 134,
     "passed": 132,
@@ -87,13 +87,13 @@ page document.pdf --format json
   },
   "failures": [
     {
-      "rule": "PDFA1B-ICCBASED-001",
+      "rule_id": "PDFA1B-ICCBASED-001",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
       "object_id": null,
       "category": "conformance"
     },
     {
-      "rule": "PDFA1B-ID-SCHEMA-001",
+      "rule_id": "PDFA1B-ID-SCHEMA-001",
       "message": "XMP does not contain the PDF/A Identification schema",
       "object_id": { "object_number": 53, "generation": 0 },
       "category": "metadata"

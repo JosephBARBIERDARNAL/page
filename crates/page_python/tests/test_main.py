@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from importlib.metadata import version
 from pathlib import Path
@@ -207,6 +208,12 @@ def test_validation_report_source_is_set_for_files_and_none_for_bytes(tmp_path: 
 
     assert file_report.source == str(path)
     assert bytes_report.source is None
+    file_json = json.loads(file_report.to_json())
+    assert file_json["source"] == str(path)
+    assert file_json["is_compliant"] is False
+    assert file_json["failures"][0]["rule_id"] == file_report.failures[0].rule_id
+    assert "file" not in file_json
+    assert "compliant" not in file_json
 
 
 def test_validation_functions_accept_string_profiles(tmp_path: Path):

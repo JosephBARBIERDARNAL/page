@@ -1,12 +1,7 @@
 import * as wasm from "../dist/page_validation.js";
 import { createApi } from "./api.js";
 
-export {
-  SafetyLimits,
-  PageError,
-  ValidationProfile,
-  ValidationReport,
-} from "./api.js";
+export { SafetyLimits, PageError, ValidationProfile, ValidationReport } from "./api.js";
 export type {
   JsonValidationError,
   JsonValidationReport,

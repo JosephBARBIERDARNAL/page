@@ -15,9 +15,9 @@ use crate::{
 #[non_exhaustive]
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub file: Option<String>,
+    pub source: Option<String>,
     pub profile: Option<ValidationProfile>,
-    pub compliant: bool,
+    pub is_compliant: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rules: Option<ValidationCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -31,7 +31,7 @@ pub struct JsonValidationReport {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub struct JsonFailure {
-    pub rule: String,
+    pub rule_id: String,
     pub message: String,
     pub object_id: Option<PdfObjectId>,
     pub category: FailureCategory,
@@ -41,7 +41,7 @@ pub struct JsonFailure {
 #[non_exhaustive]
 pub struct JsonError {
     pub kind: JsonErrorKind,
-    pub rule: String,
+    pub rule_id: String,
     pub message: String,
 }
 
@@ -70,7 +70,7 @@ impl JsonValidationReport {
     /// Parser and operational errors populate the `error` field.
     #[must_use]
     pub fn from_validation_error(
-        file: Option<String>,
+        source: Option<String>,
         profile: Option<ValidationProfile>,
         error: PageError,
     ) -> Self {
@@ -81,7 +81,7 @@ impl JsonValidationReport {
                 Vec::new(),
                 Some(JsonError {
                     kind: JsonErrorKind::Operational,
-                    rule: rule_id.to_owned(),
+                    rule_id: rule_id.to_owned(),
                     message: error.to_string(),
                 }),
             ),
@@ -91,16 +91,16 @@ impl JsonValidationReport {
                 Vec::new(),
                 Some(JsonError {
                     kind: JsonErrorKind::Parser,
-                    rule: rule_id.to_owned(),
+                    rule_id: rule_id.to_owned(),
                     message: error.to_string(),
                 }),
             ),
         };
 
         Self {
-            file,
+            source,
             profile,
-            compliant: false,
+            is_compliant: false,
             rules,
             checks,
             failures,
@@ -116,7 +116,7 @@ impl ValidationReport {
             .failures
             .iter()
             .map(|failure| JsonFailure {
-                rule: failure.rule_id.clone(),
+                rule_id: failure.rule_id.clone(),
                 message: failure.message.clone(),
                 object_id: failure.object_id,
                 category: failure.category,
@@ -124,12 +124,12 @@ impl ValidationReport {
             .collect();
 
         JsonValidationReport {
-            file: self
+            source: self
                 .source
                 .as_ref()
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
-            compliant: self.is_compliant,
+            is_compliant: self.is_compliant,
             rules: Some(self.rules),
             checks: Some(self.checks),
             failures,
@@ -173,19 +173,22 @@ mod tests {
         let json = report.json_report();
         let value = serde_json::to_value(json).expect("serialize JSON report");
 
-        assert_eq!(value["file"], "document.pdf");
+        assert_eq!(value["source"], "document.pdf");
         assert_eq!(value["profile"], "1b");
-        assert_eq!(value["compliant"], false);
+        assert_eq!(value["is_compliant"], false);
         assert_eq!(value["rules"]["total"], 1);
         assert_eq!(value["rules"]["failed"], 1);
         assert_eq!(value["checks"]["failed"], 1);
-        assert_eq!(value["failures"][0]["rule"], "RULE-001");
+        assert_eq!(value["failures"][0]["rule_id"], "RULE-001");
         assert_eq!(value["failures"][0]["category"], "metadata");
         assert_eq!(
             value["failures"][0]["object_id"],
             serde_json::json!({"object_number": 42, "generation": 3})
         );
         assert!(value.get("error").is_none());
+        assert!(value.get("file").is_none());
+        assert!(value.get("compliant").is_none());
+        assert!(value["failures"][0].get("rule").is_none());
     }
 
     #[test]
@@ -223,6 +226,6 @@ mod tests {
 
         let value = serde_json::to_value(report.json_report()).expect("serialize JSON report");
 
-        assert!(value.get("file").is_none());
+        assert!(value.get("source").is_none());
     }
 }

@@ -601,11 +601,11 @@ fn expected_rules_are_reported(expected_rules: &[String], result: &CaseValidatio
                 report
                     .failures
                     .iter()
-                    .any(|failure| failure.rule == *expected_rule)
+                    .any(|failure| failure.rule_id == *expected_rule)
                     || report
                         .error
                         .as_ref()
-                        .is_some_and(|error| error.rule == *expected_rule)
+                        .is_some_and(|error| error.rule_id == *expected_rule)
             }
         })
 }
@@ -691,13 +691,13 @@ fn print_mismatch(case: &CorpusCase, actual: i32, result: &CaseValidation) {
         CaseValidation::Error { report, .. } => {
             if let Some(error) = &report.error {
                 eprintln!("  terminal error:");
-                eprintln!("    - rule:     {}", error.rule);
+                eprintln!("    - rule:     {}", error.rule_id);
                 eprintln!("      category: {:?}", error.kind);
                 eprintln!("      message:  {}", error.message);
             }
             for failure in &report.failures {
                 eprintln!("  conformance failure:");
-                eprintln!("    - rule:     {}", failure.rule);
+                eprintln!("    - rule:     {}", failure.rule_id);
                 eprintln!("      category: conformance");
                 eprintln!("      message:  {}", failure.message);
             }

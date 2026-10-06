@@ -1,12 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import * as wasm from "../dist-bun/page_validation.js";
-import {
-  createApi,
-  SafetyLimits,
-  PageError,
-  ValidationProfile,
-} from "../src/api.js";
+import { createApi, SafetyLimits, PageError, ValidationProfile } from "../src/api.js";
 
 const { isPdfCompliantBytes, validatePdfBytes } = createApi(wasm);
 
@@ -157,19 +152,22 @@ describe("page-validation", () => {
     const jsonReport = report.toJSON();
     expect(jsonReport).toMatchObject({
       profile: "1b",
-      compliant: false,
+      is_compliant: false,
       rules: report.rules,
       checks: report.checks,
       failures: report.failures.map(({ ruleId, message }) => ({
-        rule: ruleId,
+        rule_id: ruleId,
         message,
       })),
     });
     expect(jsonReport.failures[0]).toHaveProperty("category");
     expect(jsonReport.failures[0]).toHaveProperty("object_id");
+    expect(jsonReport).not.toHaveProperty("file");
+    expect(jsonReport).not.toHaveProperty("compliant");
     expect(jsonReport).not.toHaveProperty("source");
     expect(jsonReport).not.toHaveProperty("document");
-    expect(jsonReport).not.toHaveProperty("is_compliant");
+    expect(report).not.toHaveProperty("file");
+    expect(report).not.toHaveProperty("compliant");
     expect(JSON.parse(report.toJson())).toEqual(jsonReport);
   });
 

@@ -106,7 +106,7 @@ for failure in &report.failures {
 }
 ```
 
-Input, parser, profile, and safety-limit failures are returned as `Err(PageError)` and do not appear in a report. Use `PageError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, `SafetyLimit`, or `Conformance`, and `PageError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
+Input, parser, profile, and safety-limit failures are returned as `Err(PageError)` and do not appear in a report. Use `PageError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, or `SafetyLimit`, and `PageError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
 
 ## Safety limits
 
