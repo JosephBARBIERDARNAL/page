@@ -117,22 +117,22 @@ impl SafetyLimits {
     ) -> Self {
         let defaults = RustSafetyLimits::default();
         Self {
-            max_input_size: max_input_size.unwrap_or(defaults.max_input_size),
+            max_input_size: max_input_size.unwrap_or(defaults.max_input_size()),
             max_decoded_stream_size: max_decoded_stream_size
-                .unwrap_or(defaults.max_decoded_stream_size),
+                .unwrap_or(defaults.max_decoded_stream_size()),
             max_total_decoded_content_size: max_total_decoded_content_size
-                .unwrap_or(defaults.max_total_decoded_content_size),
-            max_form_invocations: max_form_invocations.unwrap_or(defaults.max_form_invocations),
-            max_object_count: max_object_count.unwrap_or(defaults.max_object_count),
-            max_reference_depth: max_reference_depth.unwrap_or(defaults.max_reference_depth),
-            max_xref_revisions: max_xref_revisions.unwrap_or(defaults.max_xref_revisions),
-            max_table_span: max_table_span.unwrap_or(defaults.max_table_span),
-            max_table_grid_rows: max_table_grid_rows.unwrap_or(defaults.max_table_grid_rows),
+                .unwrap_or(defaults.max_total_decoded_content_size()),
+            max_form_invocations: max_form_invocations.unwrap_or(defaults.max_form_invocations()),
+            max_object_count: max_object_count.unwrap_or(defaults.max_object_count()),
+            max_reference_depth: max_reference_depth.unwrap_or(defaults.max_reference_depth()),
+            max_xref_revisions: max_xref_revisions.unwrap_or(defaults.max_xref_revisions()),
+            max_table_span: max_table_span.unwrap_or(defaults.max_table_span()),
+            max_table_grid_rows: max_table_grid_rows.unwrap_or(defaults.max_table_grid_rows()),
             max_table_grid_columns: max_table_grid_columns
-                .unwrap_or(defaults.max_table_grid_columns),
-            max_table_grid_cells: max_table_grid_cells.unwrap_or(defaults.max_table_grid_cells),
+                .unwrap_or(defaults.max_table_grid_columns()),
+            max_table_grid_cells: max_table_grid_cells.unwrap_or(defaults.max_table_grid_cells()),
             max_unicode_cmap_mappings: max_unicode_cmap_mappings
-                .unwrap_or(defaults.max_unicode_cmap_mappings),
+                .unwrap_or(defaults.max_unicode_cmap_mappings()),
         }
     }
 
@@ -203,18 +203,18 @@ impl SafetyLimits {
 impl From<RustSafetyLimits> for SafetyLimits {
     fn from(limits: RustSafetyLimits) -> Self {
         Self {
-            max_input_size: limits.max_input_size,
-            max_decoded_stream_size: limits.max_decoded_stream_size,
-            max_total_decoded_content_size: limits.max_total_decoded_content_size,
-            max_form_invocations: limits.max_form_invocations,
-            max_object_count: limits.max_object_count,
-            max_reference_depth: limits.max_reference_depth,
-            max_xref_revisions: limits.max_xref_revisions,
-            max_table_span: limits.max_table_span,
-            max_table_grid_rows: limits.max_table_grid_rows,
-            max_table_grid_columns: limits.max_table_grid_columns,
-            max_table_grid_cells: limits.max_table_grid_cells,
-            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings,
+            max_input_size: limits.max_input_size(),
+            max_decoded_stream_size: limits.max_decoded_stream_size(),
+            max_total_decoded_content_size: limits.max_total_decoded_content_size(),
+            max_form_invocations: limits.max_form_invocations(),
+            max_object_count: limits.max_object_count(),
+            max_reference_depth: limits.max_reference_depth(),
+            max_xref_revisions: limits.max_xref_revisions(),
+            max_table_span: limits.max_table_span(),
+            max_table_grid_rows: limits.max_table_grid_rows(),
+            max_table_grid_columns: limits.max_table_grid_columns(),
+            max_table_grid_cells: limits.max_table_grid_cells(),
+            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings(),
         }
     }
 }
@@ -222,18 +222,18 @@ impl From<RustSafetyLimits> for SafetyLimits {
 impl From<&SafetyLimits> for RustSafetyLimits {
     fn from(limits: &SafetyLimits) -> Self {
         Self::default()
-            .max_input_size(limits.max_input_size)
-            .max_decoded_stream_size(limits.max_decoded_stream_size)
-            .max_total_decoded_content_size(limits.max_total_decoded_content_size)
-            .max_form_invocations(limits.max_form_invocations)
-            .max_object_count(limits.max_object_count)
-            .max_reference_depth(limits.max_reference_depth)
-            .max_xref_revisions(limits.max_xref_revisions)
-            .max_table_span(limits.max_table_span)
-            .max_table_grid_rows(limits.max_table_grid_rows)
-            .max_table_grid_columns(limits.max_table_grid_columns)
-            .max_table_grid_cells(limits.max_table_grid_cells)
-            .max_unicode_cmap_mappings(limits.max_unicode_cmap_mappings)
+            .with_max_input_size(limits.max_input_size)
+            .with_max_decoded_stream_size(limits.max_decoded_stream_size)
+            .with_max_total_decoded_content_size(limits.max_total_decoded_content_size)
+            .with_max_form_invocations(limits.max_form_invocations)
+            .with_max_object_count(limits.max_object_count)
+            .with_max_reference_depth(limits.max_reference_depth)
+            .with_max_xref_revisions(limits.max_xref_revisions)
+            .with_max_table_span(limits.max_table_span)
+            .with_max_table_grid_rows(limits.max_table_grid_rows)
+            .with_max_table_grid_columns(limits.max_table_grid_columns)
+            .with_max_table_grid_cells(limits.max_table_grid_cells)
+            .with_max_unicode_cmap_mappings(limits.max_unicode_cmap_mappings)
     }
 }
 

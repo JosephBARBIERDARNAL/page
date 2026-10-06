@@ -10,8 +10,8 @@
 //!
 //! Public structs and enums are non-exhaustive so future releases can add fields and variants.
 //! Construct values with their constructors, conversions, or `Default`; customize
-//! [`SafetyLimits`] with chainable setters or field assignment. Public report fields remain
-//! directly accessible. Destructuring structs requires `..`, and enum matches require a
+//! [`SafetyLimits`] with chainable setters and inspect bounds through getters. Public report fields
+//! remain directly accessible. Destructuring structs requires `..`, and enum matches require a
 //! wildcard arm for future variants.
 //!
 //! ```

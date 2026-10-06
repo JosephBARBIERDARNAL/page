@@ -45,65 +45,81 @@ struct SafetyLimitsInput {
 
 impl SafetyLimitsInput {
     fn into_limits(self) -> SafetyLimits {
-        let mut limits = SafetyLimits::default();
+        let defaults = SafetyLimits::default();
         let unlimited = SafetyLimits::unlimited();
-        limits.max_input_size = self.max_input_size.map_or(limits.max_input_size, |limit| {
-            limit.resolve(unlimited.max_input_size)
-        });
-        limits.max_decoded_stream_size = self
-            .max_decoded_stream_size
-            .map_or(limits.max_decoded_stream_size, |limit| {
-                limit.resolve(unlimited.max_decoded_stream_size)
-            });
-        limits.max_total_decoded_content_size = self
-            .max_total_decoded_content_size
-            .map_or(limits.max_total_decoded_content_size, |limit| {
-                limit.resolve(unlimited.max_total_decoded_content_size)
-            });
-        limits.max_form_invocations = self
-            .max_form_invocations
-            .map_or(limits.max_form_invocations, |limit| {
-                limit.resolve(unlimited.max_form_invocations)
-            });
-        limits.max_object_count = self
-            .max_object_count
-            .map_or(limits.max_object_count, |limit| {
-                limit.resolve(unlimited.max_object_count)
-            });
-        limits.max_reference_depth = self
-            .max_reference_depth
-            .map_or(limits.max_reference_depth, |limit| {
-                limit.resolve(unlimited.max_reference_depth)
-            });
-        limits.max_xref_revisions = self
-            .max_xref_revisions
-            .map_or(limits.max_xref_revisions, |limit| {
-                limit.resolve(unlimited.max_xref_revisions)
-            });
-        limits.max_table_span = self.max_table_span.map_or(limits.max_table_span, |limit| {
-            limit.resolve(unlimited.max_table_span)
-        });
-        limits.max_table_grid_rows = self
-            .max_table_grid_rows
-            .map_or(limits.max_table_grid_rows, |limit| {
-                limit.resolve(unlimited.max_table_grid_rows)
-            });
-        limits.max_table_grid_columns = self
-            .max_table_grid_columns
-            .map_or(limits.max_table_grid_columns, |limit| {
-                limit.resolve(unlimited.max_table_grid_columns)
-            });
-        limits.max_table_grid_cells = self
-            .max_table_grid_cells
-            .map_or(limits.max_table_grid_cells, |limit| {
-                limit.resolve(unlimited.max_table_grid_cells)
-            });
-        limits.max_unicode_cmap_mappings = self
-            .max_unicode_cmap_mappings
-            .map_or(limits.max_unicode_cmap_mappings, |limit| {
-                limit.resolve(unlimited.max_unicode_cmap_mappings)
-            });
-        limits
+        SafetyLimits::default()
+            .with_max_input_size(
+                self.max_input_size
+                    .map_or(defaults.max_input_size(), |limit| {
+                        limit.resolve(unlimited.max_input_size())
+                    }),
+            )
+            .with_max_decoded_stream_size(
+                self.max_decoded_stream_size
+                    .map_or(defaults.max_decoded_stream_size(), |limit| {
+                        limit.resolve(unlimited.max_decoded_stream_size())
+                    }),
+            )
+            .with_max_total_decoded_content_size(
+                self.max_total_decoded_content_size
+                    .map_or(defaults.max_total_decoded_content_size(), |limit| {
+                        limit.resolve(unlimited.max_total_decoded_content_size())
+                    }),
+            )
+            .with_max_form_invocations(
+                self.max_form_invocations
+                    .map_or(defaults.max_form_invocations(), |limit| {
+                        limit.resolve(unlimited.max_form_invocations())
+                    }),
+            )
+            .with_max_object_count(
+                self.max_object_count
+                    .map_or(defaults.max_object_count(), |limit| {
+                        limit.resolve(unlimited.max_object_count())
+                    }),
+            )
+            .with_max_reference_depth(
+                self.max_reference_depth
+                    .map_or(defaults.max_reference_depth(), |limit| {
+                        limit.resolve(unlimited.max_reference_depth())
+                    }),
+            )
+            .with_max_xref_revisions(
+                self.max_xref_revisions
+                    .map_or(defaults.max_xref_revisions(), |limit| {
+                        limit.resolve(unlimited.max_xref_revisions())
+                    }),
+            )
+            .with_max_table_span(
+                self.max_table_span
+                    .map_or(defaults.max_table_span(), |limit| {
+                        limit.resolve(unlimited.max_table_span())
+                    }),
+            )
+            .with_max_table_grid_rows(
+                self.max_table_grid_rows
+                    .map_or(defaults.max_table_grid_rows(), |limit| {
+                        limit.resolve(unlimited.max_table_grid_rows())
+                    }),
+            )
+            .with_max_table_grid_columns(
+                self.max_table_grid_columns
+                    .map_or(defaults.max_table_grid_columns(), |limit| {
+                        limit.resolve(unlimited.max_table_grid_columns())
+                    }),
+            )
+            .with_max_table_grid_cells(
+                self.max_table_grid_cells
+                    .map_or(defaults.max_table_grid_cells(), |limit| {
+                        limit.resolve(unlimited.max_table_grid_cells())
+                    }),
+            )
+            .with_max_unicode_cmap_mappings(
+                self.max_unicode_cmap_mappings
+                    .map_or(defaults.max_unicode_cmap_mappings(), |limit| {
+                        limit.resolve(unlimited.max_unicode_cmap_mappings())
+                    }),
+            )
     }
 }
 
@@ -165,18 +181,18 @@ fn parse_limits(limits_json: Option<String>) -> Result<SafetyLimits, JsValue> {
 pub fn default_safety_limits() -> String {
     let limits = SafetyLimits::default();
     serde_json::json!({
-        "maxInputSize": limits.max_input_size,
-        "maxDecodedStreamSize": limits.max_decoded_stream_size,
-        "maxTotalDecodedContentSize": limits.max_total_decoded_content_size,
-        "maxFormInvocations": limits.max_form_invocations,
-        "maxObjectCount": limits.max_object_count,
-        "maxReferenceDepth": limits.max_reference_depth,
-        "maxXrefRevisions": limits.max_xref_revisions,
-        "maxTableSpan": limits.max_table_span,
-        "maxTableGridRows": limits.max_table_grid_rows,
-        "maxTableGridColumns": limits.max_table_grid_columns,
-        "maxTableGridCells": limits.max_table_grid_cells,
-        "maxUnicodeCmapMappings": limits.max_unicode_cmap_mappings,
+        "maxInputSize": limits.max_input_size(),
+        "maxDecodedStreamSize": limits.max_decoded_stream_size(),
+        "maxTotalDecodedContentSize": limits.max_total_decoded_content_size(),
+        "maxFormInvocations": limits.max_form_invocations(),
+        "maxObjectCount": limits.max_object_count(),
+        "maxReferenceDepth": limits.max_reference_depth(),
+        "maxXrefRevisions": limits.max_xref_revisions(),
+        "maxTableSpan": limits.max_table_span(),
+        "maxTableGridRows": limits.max_table_grid_rows(),
+        "maxTableGridColumns": limits.max_table_grid_columns(),
+        "maxTableGridCells": limits.max_table_grid_cells(),
+        "maxUnicodeCmapMappings": limits.max_unicode_cmap_mappings(),
     })
     .to_string()
 }
@@ -243,16 +259,16 @@ mod tests {
         ))
         .expect("limits");
 
-        assert_eq!(limits.max_input_size, 42);
-        assert_eq!(limits.max_reference_depth, 7);
-        assert_eq!(limits.max_form_invocations, 44);
-        assert_eq!(limits.max_table_span, 9);
-        assert_eq!(limits.max_table_grid_rows, 10);
-        assert_eq!(limits.max_table_grid_columns, 11);
-        assert_eq!(limits.max_table_grid_cells, 12);
-        assert_eq!(limits.max_unicode_cmap_mappings, 13);
+        assert_eq!(limits.max_input_size(), 42);
+        assert_eq!(limits.max_reference_depth(), 7);
+        assert_eq!(limits.max_form_invocations(), 44);
+        assert_eq!(limits.max_table_span(), 9);
+        assert_eq!(limits.max_table_grid_rows(), 10);
+        assert_eq!(limits.max_table_grid_columns(), 11);
+        assert_eq!(limits.max_table_grid_cells(), 12);
+        assert_eq!(limits.max_unicode_cmap_mappings(), 13);
         assert_eq!(
-            limits.max_object_count,
+            limits.max_object_count(),
             SafetyLimits::DEFAULT_MAX_OBJECT_COUNT
         );
     }
@@ -263,11 +279,11 @@ mod tests {
             r#"{"max_input_size":"unlimited","max_decoded_stream_size":"unlimited","max_reference_depth":7}"#.to_owned(),
         ))
         .expect("unlimited and mixed limits");
-        assert_eq!(limits.max_input_size, u64::MAX);
-        assert_eq!(limits.max_decoded_stream_size, usize::MAX);
-        assert_eq!(limits.max_reference_depth, 7);
+        assert_eq!(limits.max_input_size(), u64::MAX);
+        assert_eq!(limits.max_decoded_stream_size(), usize::MAX);
+        assert_eq!(limits.max_reference_depth(), 7);
         assert_eq!(
-            limits.max_object_count,
+            limits.max_object_count(),
             SafetyLimits::DEFAULT_MAX_OBJECT_COUNT
         );
     }

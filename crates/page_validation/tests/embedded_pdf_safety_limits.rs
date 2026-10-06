@@ -8,7 +8,7 @@ const EMBEDDED_PDF_A_CONFORMANCE: &str = "PDFA2B-EMBEDDED-FILE-PDFA-001";
 
 #[test]
 fn embedded_pdf_decode_limit_is_an_operational_failure() {
-    let limits = SafetyLimits::default().max_decoded_stream_size(4096);
+    let limits = SafetyLimits::default().with_max_decoded_stream_size(4096);
     let error = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("embedded_pdf_decode_limit"),
         &ValidationOptions::default()
@@ -25,7 +25,7 @@ fn embedded_pdf_decode_limit_is_an_operational_failure() {
 
 #[test]
 fn embedded_pdf_object_limit_is_an_operational_failure() {
-    let limits = SafetyLimits::default().max_object_count(20);
+    let limits = SafetyLimits::default().with_max_object_count(20);
     let error = validate_pdf_bytes(
         &common::pdfa_2_3_fixture("embedded_pdf_object_limit"),
         &ValidationOptions::default()

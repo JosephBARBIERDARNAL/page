@@ -17,7 +17,7 @@ use thiserror::Error;
 /// ```rs
 /// use page_validation::{SafetyLimits, PageError, ValidationOptions, validate_pdf_bytes};
 ///
-/// let limits = SafetyLimits::default().max_input_size(4);
+/// let limits = SafetyLimits::default().with_max_input_size(4);
 /// let options = ValidationOptions::default().limits(limits);
 /// let error = validate_pdf_bytes(b"%PDF-1.4", &options).unwrap_err();
 /// assert!(matches!(error, PageError::Pdf(_)));

@@ -1,5 +1,6 @@
 ## Dev
 
+- **Refactor**: Make Rust `SafetyLimits` fields private and use getters with chainable `with_` setters [#400](https://github.com/JosephBARBIERDARNAL/page/issues/400)
 - **Feat**: Add `ValidationReport.to_dict()` and accept bytes-like inputs in the Python byte APIs [#402](https://github.com/JosephBARBIERDARNAL/page/issues/402)
 - **Refactor**: Remove the no-op `initialize()` function from the Wasm API [#398](https://github.com/JosephBARBIERDARNAL/page/issues/398)
 - **Fix**: Expose failure object IDs and categories on the Wasm TypeScript report [#390](https://github.com/JosephBARBIERDARNAL/page/issues/390)

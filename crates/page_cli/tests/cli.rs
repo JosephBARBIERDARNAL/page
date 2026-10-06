@@ -67,44 +67,47 @@ fn page_help_exposes_direct_validation_arguments() {
 fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
     let defaults = page_validation::SafetyLimits::default();
     for (flag, value) in [
-        ("--max-input-size", defaults.max_input_size.to_string()),
+        ("--max-input-size", defaults.max_input_size().to_string()),
         (
             "--max-decoded-stream-size",
-            defaults.max_decoded_stream_size.to_string(),
+            defaults.max_decoded_stream_size().to_string(),
         ),
         (
             "--max-total-decoded-content-size",
-            defaults.max_total_decoded_content_size.to_string(),
+            defaults.max_total_decoded_content_size().to_string(),
         ),
         (
             "--max-form-invocations",
-            defaults.max_form_invocations.to_string(),
+            defaults.max_form_invocations().to_string(),
         ),
-        ("--max-object-count", defaults.max_object_count.to_string()),
+        (
+            "--max-object-count",
+            defaults.max_object_count().to_string(),
+        ),
         (
             "--max-reference-depth",
-            defaults.max_reference_depth.to_string(),
+            defaults.max_reference_depth().to_string(),
         ),
         (
             "--max-xref-revisions",
-            defaults.max_xref_revisions.to_string(),
+            defaults.max_xref_revisions().to_string(),
         ),
-        ("--max-table-span", defaults.max_table_span.to_string()),
+        ("--max-table-span", defaults.max_table_span().to_string()),
         (
             "--max-table-grid-rows",
-            defaults.max_table_grid_rows.to_string(),
+            defaults.max_table_grid_rows().to_string(),
         ),
         (
             "--max-table-grid-columns",
-            defaults.max_table_grid_columns.to_string(),
+            defaults.max_table_grid_columns().to_string(),
         ),
         (
             "--max-table-grid-cells",
-            defaults.max_table_grid_cells.to_string(),
+            defaults.max_table_grid_cells().to_string(),
         ),
         (
             "--max-unicode-cmap-mappings",
-            defaults.max_unicode_cmap_mappings.to_string(),
+            defaults.max_unicode_cmap_mappings().to_string(),
         ),
     ] {
         for arguments in [

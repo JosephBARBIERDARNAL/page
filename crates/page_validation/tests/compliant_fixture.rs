@@ -32,7 +32,7 @@ fn unlimited_file_input_works_with_detailed_and_lazy_validation() {
     let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
     let bounded = options
         .clone()
-        .limits(SafetyLimits::unlimited().max_input_size(1));
+        .limits(SafetyLimits::unlimited().with_max_input_size(1));
     for error in [
         validate_pdf(&path, &bounded).expect_err("detailed input bound"),
         is_pdf_compliant(&path, &bounded).expect_err("lazy input bound"),

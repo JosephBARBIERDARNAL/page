@@ -119,12 +119,12 @@ let limits = SafetyLimits::default();
 let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
 ```
 
-Customize individual bounds with chainable setters or field assignment:
+Customize individual bounds with chainable setters and inspect them through getters:
 
 ```rust
 let limits = SafetyLimits::default()
-    .max_input_size(512 * 1024 * 1024)
-    .max_decoded_stream_size(64 * 1024 * 1024);
+    .with_max_input_size(512 * 1024 * 1024)
+    .with_max_decoded_stream_size(64 * 1024 * 1024);
 ```
 
 `max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
@@ -136,7 +136,7 @@ let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
+The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().with_max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
 
 ## Check compliance
 
