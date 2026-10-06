@@ -59,4 +59,4 @@ git rev-parse --verify --quiet "refs/tags/$release_tag" >/dev/null && {
 
 git tag "$release_tag"
 git push --atomic origin main "refs/tags/$release_tag"
-echo "Release $release_tag pushed; GitHub Actions will release Rust and Python."
+echo "Release $release_tag pushed; GitHub Actions will release Rust, Python and CLI."

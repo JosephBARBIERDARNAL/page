@@ -1,5 +1,7 @@
 ## Dev
 
+## 0.10.0
+
 - **Fix**: Give CLI usage errors exit code 1 and document stable CLI exit codes [#394](https://github.com/JosephBARBIERDARNAL/page/issues/394)
 - **Fix**: Report the PDF/A-1 indirect-object limit as a conformance failure across API surfaces [#387](https://github.com/JosephBARBIERDARNAL/page/issues/387)
 - **Refactor**: Remove unimplemented Rust validation profiles and their rejection helpers, and simplify Python profile enums to string values without `is_implemented` [#388](https://github.com/JosephBARBIERDARNAL/page/issues/388)
