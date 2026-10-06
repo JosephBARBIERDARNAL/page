@@ -293,19 +293,11 @@ export class PageError extends Error {
 
 export function createApi(wasm: WasmBindings) {
   defaultSafetyLimits = JSON.parse(wasm.defaultSafetyLimits()) as SafetyLimitsOptions;
-  let initialization: Promise<void> | undefined;
-
-  /** Initializes the WebAssembly module. Validation functions initialize it automatically. */
-  function initialize(): Promise<void> {
-    initialization = initialization ?? Promise.resolve();
-    return initialization;
-  }
 
   async function validatePdfBytes(
     bytes: Uint8Array,
     { profile, limits }: ValidationOptions = {},
   ): Promise<ValidationReport> {
-    await initialize();
     const serializedLimits = serializeLimits(limits);
     try {
       const json = wasm.validatePdfBytes(bytes, profile, serializedLimits);
@@ -319,7 +311,6 @@ export function createApi(wasm: WasmBindings) {
     bytes: Uint8Array,
     { profile, limits }: ValidationOptions = {},
   ): Promise<boolean> {
-    await initialize();
     const serializedLimits = serializeLimits(limits);
     try {
       return wasm.isPdfCompliantBytes(bytes, profile, serializedLimits);
@@ -329,7 +320,6 @@ export function createApi(wasm: WasmBindings) {
   }
 
   return {
-    initialize,
     validatePdfBytes,
     isPdfCompliantBytes,
   };

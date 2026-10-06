@@ -28,7 +28,6 @@ function minimalPdf(): Uint8Array {
 describe("page-validation", () => {
   it("exposes only the camelCase API methods", () => {
     expect(Object.keys(createApi(wasm)).sort()).toEqual([
-      "initialize",
       "isPdfCompliantBytes",
       "validatePdfBytes",
     ]);

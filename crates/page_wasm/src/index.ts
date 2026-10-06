@@ -15,6 +15,5 @@ export type {
 
 const api = createApi(wasm);
 
-export const initialize = api.initialize;
 export const validatePdfBytes = api.validatePdfBytes;
 export const isPdfCompliantBytes = api.isPdfCompliantBytes;
