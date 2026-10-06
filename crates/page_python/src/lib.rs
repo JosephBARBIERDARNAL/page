@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use page_validation::{
-    FailureCategory as RustFailureCategory, PdfObjectId as RustPdfObjectId,
-    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
-    ValidationCounts as RustValidationCounts, PageError as RustPageError,
+    FailureCategory as RustFailureCategory, PageError as RustPageError,
+    PdfObjectId as RustPdfObjectId, SafetyLimits as RustSafetyLimits,
+    ValidationCheckCounts as RustValidationCheckCounts, ValidationCounts as RustValidationCounts,
     ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };

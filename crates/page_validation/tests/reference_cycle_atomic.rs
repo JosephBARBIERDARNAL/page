@@ -6,8 +6,7 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
-    validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {

@@ -256,7 +256,7 @@ impl PageError {
 
 #[cfg(test)]
 mod tests {
-    use super::{PdfError, PageError, ValidationErrorKind};
+    use super::{PageError, PdfError, ValidationErrorKind};
 
     #[test]
     fn classifies_errors_and_exposes_rule_ids() {

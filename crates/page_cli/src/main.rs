@@ -13,7 +13,7 @@ use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_cli::validation_error_exit_code;
 use page_validation::{
-    JsonValidationReport, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
+    JsonValidationReport, PageError, SafetyLimits, ValidationOptions, ValidationProfile,
     ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 

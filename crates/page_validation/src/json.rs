@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, PdfObjectId, ValidationCheckCounts, ValidationCounts, PageError,
+    FailureCategory, PageError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
     ValidationProfile, ValidationReport,
 };
 
@@ -142,8 +142,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
-        PageError, ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, PageError, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
+        ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]

@@ -1,13 +1,10 @@
 use page_cli::validation_error_exit_code;
-use page_validation::{PdfError, PageError};
+use page_validation::{PageError, PdfError};
 
 #[test]
 fn validation_errors_preserve_cli_exit_codes() {
     let cases = [
-        (
-            PageError::InputIo(std::io::Error::other("read failed")),
-            1,
-        ),
+        (PageError::InputIo(std::io::Error::other("read failed")), 1),
         (
             PageError::Pdf(PdfError::Parse(Box::new(std::io::Error::other(
                 "invalid PDF",

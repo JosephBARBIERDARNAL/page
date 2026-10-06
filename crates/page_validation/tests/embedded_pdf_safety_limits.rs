@@ -1,6 +1,5 @@
 use page_validation::{
-    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
-    validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes,
 };
 
 pub mod common;

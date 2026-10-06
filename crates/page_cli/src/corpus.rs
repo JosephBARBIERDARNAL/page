@@ -725,7 +725,7 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{CaseValidation, ExpectedResult, expected_result, expected_rules_are_reported};
-    use page_validation::{JsonValidationReport, PdfError, PageError, ValidationProfile};
+    use page_validation::{JsonValidationReport, PageError, PdfError, ValidationProfile};
     use std::path::Path;
 
     #[test]

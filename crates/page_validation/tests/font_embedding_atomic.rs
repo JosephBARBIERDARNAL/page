@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile,
     is_pdf_compliant_bytes, validate_pdf_bytes,
 };
 
@@ -113,10 +113,7 @@ fn graphics_state_stack_is_bounded() {
             .limits(limits),
     )
     .expect_err("graphics state must exceed the configured reference depth");
-    assert!(matches!(
-        error,
-        PageError::Pdf(PdfError::ReferenceDepth(4))
-    ));
+    assert!(matches!(error, PageError::Pdf(PdfError::ReferenceDepth(4))));
 }
 
 fn font_failures(

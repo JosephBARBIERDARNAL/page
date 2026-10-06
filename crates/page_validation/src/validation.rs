@@ -14,7 +14,7 @@ use std::str::FromStr;
 
 use serde::{Serialize, Serializer};
 
-use crate::error::{PdfError, PageError};
+use crate::error::{PageError, PdfError};
 use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
@@ -3948,10 +3948,7 @@ mod tests {
         let error = validate_pdf_bytes(&bytes, &ValidationOptions::default())
             .expect_err("incomplete PDF/A-1 declaration");
 
-        assert!(matches!(
-            &error,
-            PageError::InvalidProfileDeclaration(_)
-        ));
+        assert!(matches!(&error, PageError::InvalidProfileDeclaration(_)));
         assert!(error.to_string().contains("pdfaid:conformance"));
     }
 
@@ -3999,10 +3996,7 @@ mod tests {
                 is_pdf_compliant_bytes(&bytes, &options).expect_err("unsupported declaration"),
             ];
             for error in errors {
-                assert!(matches!(
-                    error,
-                    PageError::InvalidProfileDeclaration(_)
-                ));
+                assert!(matches!(error, PageError::InvalidProfileDeclaration(_)));
                 assert!(error.to_string().contains("supported"));
                 assert_eq!(error.rule_id(), "PROFILE-001");
             }
@@ -4634,10 +4628,7 @@ mod tests {
                 .limits(limits),
         )
         .expect_err("decoded stream limit");
-        assert!(matches!(
-            error,
-            PageError::Pdf(PdfError::XmpDecodeLimit(_))
-        ));
+        assert!(matches!(error, PageError::Pdf(PdfError::XmpDecodeLimit(_))));
         let report = validate_pdf_bytes(
             &fixture(Some(VALID_XMP), true),
             &ValidationOptions::default()
@@ -4693,10 +4684,7 @@ mod tests {
                 .limits(limits),
         )
         .expect_err("reference depth limit");
-        assert!(matches!(
-            error,
-            PageError::Pdf(PdfError::ReferenceDepth(0))
-        ));
+        assert!(matches!(error, PageError::Pdf(PdfError::ReferenceDepth(0))));
     }
 
     #[test]

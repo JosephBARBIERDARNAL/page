@@ -1,6 +1,6 @@
 use page_validation::{
-    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
-    is_pdf_compliant, validate_pdf, validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, is_pdf_compliant,
+    validate_pdf, validate_pdf_bytes,
 };
 
 #[test]

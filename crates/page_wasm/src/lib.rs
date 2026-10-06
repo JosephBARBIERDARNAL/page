@@ -191,12 +191,8 @@ fn validation_options(
 }
 
 fn report_json(report: ValidationReport) -> Result<String, JsValue> {
-    serde_json::to_string(&report.json_report()).map_err(|error| {
-        js_error(
-            "PageError",
-            format!("could not serialize report: {error}"),
-        )
-    })
+    serde_json::to_string(&report.json_report())
+        .map_err(|error| js_error("PageError", format!("could not serialize report: {error}")))
 }
 
 /// Validates PDF bytes and returns the stable JSON report.

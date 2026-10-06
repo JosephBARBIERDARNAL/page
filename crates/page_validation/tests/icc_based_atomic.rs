@@ -1,6 +1,5 @@
 use page_validation::{
-    PdfError, SafetyLimits, PageError, ValidationOptions, ValidationProfile,
-    validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes,
 };
 
 pub mod common;
@@ -49,10 +48,7 @@ fn oversized_decoded_icc_based_profile_is_an_operational_failure() {
             .limits(limits),
     )
     .expect_err("ICC profile must exceed the decoded-size limit");
-    assert!(matches!(
-        error,
-        PageError::Pdf(PdfError::IccDecodeLimit(_))
-    ));
+    assert!(matches!(error, PageError::Pdf(PdfError::IccDecodeLimit(_))));
 }
 
 #[test]

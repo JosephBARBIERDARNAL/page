@@ -63,7 +63,7 @@ mod validation;
 mod xml_safety;
 mod xobject;
 
-pub use error::{PdfError, PageError, ValidationErrorKind};
+pub use error::{PageError, PdfError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::{PdfDocument, PdfObjectId};
