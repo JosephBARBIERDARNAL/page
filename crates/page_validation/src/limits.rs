@@ -7,101 +7,161 @@
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct SafetyLimits {
-    pub max_input_size: u64,
-    pub max_decoded_stream_size: usize,
-    pub max_total_decoded_content_size: usize,
-    pub max_form_invocations: usize,
-    pub max_object_count: usize,
-    pub max_reference_depth: usize,
-    pub max_xref_revisions: usize,
-    pub max_table_span: usize,
-    pub max_table_grid_rows: usize,
-    pub max_table_grid_columns: usize,
-    pub max_table_grid_cells: usize,
-    pub max_unicode_cmap_mappings: usize,
+    pub(crate) max_input_size: u64,
+    pub(crate) max_decoded_stream_size: usize,
+    pub(crate) max_total_decoded_content_size: usize,
+    pub(crate) max_form_invocations: usize,
+    pub(crate) max_object_count: usize,
+    pub(crate) max_reference_depth: usize,
+    pub(crate) max_xref_revisions: usize,
+    pub(crate) max_table_span: usize,
+    pub(crate) max_table_grid_rows: usize,
+    pub(crate) max_table_grid_columns: usize,
+    pub(crate) max_table_grid_cells: usize,
+    pub(crate) max_unicode_cmap_mappings: usize,
 }
 
 impl SafetyLimits {
+    /// Returns the maximum input size in bytes.
+    pub const fn max_input_size(&self) -> u64 {
+        self.max_input_size
+    }
+
+    /// Returns the maximum decoded size of a single stream in bytes.
+    pub const fn max_decoded_stream_size(&self) -> usize {
+        self.max_decoded_stream_size
+    }
+
+    /// Returns the maximum combined decoded content and retained font-stream size in bytes.
+    pub const fn max_total_decoded_content_size(&self) -> usize {
+        self.max_total_decoded_content_size
+    }
+
+    /// Returns the maximum number of Form XObject invocations across a document.
+    pub const fn max_form_invocations(&self) -> usize {
+        self.max_form_invocations
+    }
+
+    /// Returns the maximum number of parsed indirect objects.
+    pub const fn max_object_count(&self) -> usize {
+        self.max_object_count
+    }
+
+    /// Returns the maximum depth of a reference chain.
+    pub const fn max_reference_depth(&self) -> usize {
+        self.max_reference_depth
+    }
+
+    /// Returns the maximum number of cross-reference revisions.
+    pub const fn max_xref_revisions(&self) -> usize {
+        self.max_xref_revisions
+    }
+
+    /// Returns the maximum row or column span of a table cell.
+    pub const fn max_table_span(&self) -> usize {
+        self.max_table_span
+    }
+
+    /// Returns the maximum number of rows in an inspected table grid.
+    pub const fn max_table_grid_rows(&self) -> usize {
+        self.max_table_grid_rows
+    }
+
+    /// Returns the maximum number of columns in an inspected table grid.
+    pub const fn max_table_grid_columns(&self) -> usize {
+        self.max_table_grid_columns
+    }
+
+    /// Returns the maximum number of cells in an inspected table grid.
+    pub const fn max_table_grid_cells(&self) -> usize {
+        self.max_table_grid_cells
+    }
+
+    /// Returns the maximum number of mappings expanded from one ToUnicode CMap.
+    pub const fn max_unicode_cmap_mappings(&self) -> usize {
+        self.max_unicode_cmap_mappings
+    }
+
     /// Sets the maximum input size in bytes.
     #[must_use]
-    pub const fn max_input_size(mut self, limit: u64) -> Self {
+    pub const fn with_max_input_size(mut self, limit: u64) -> Self {
         self.max_input_size = limit;
         self
     }
 
     /// Sets the maximum decoded size of a single stream in bytes.
     #[must_use]
-    pub const fn max_decoded_stream_size(mut self, limit: usize) -> Self {
+    pub const fn with_max_decoded_stream_size(mut self, limit: usize) -> Self {
         self.max_decoded_stream_size = limit;
         self
     }
 
     /// Sets the maximum combined decoded content and retained font-stream size in bytes.
     #[must_use]
-    pub const fn max_total_decoded_content_size(mut self, limit: usize) -> Self {
+    pub const fn with_max_total_decoded_content_size(mut self, limit: usize) -> Self {
         self.max_total_decoded_content_size = limit;
         self
     }
 
     /// Sets the maximum number of Form XObject invocations across a document.
     #[must_use]
-    pub const fn max_form_invocations(mut self, limit: usize) -> Self {
+    pub const fn with_max_form_invocations(mut self, limit: usize) -> Self {
         self.max_form_invocations = limit;
         self
     }
 
     /// Sets the maximum number of parsed indirect objects.
     #[must_use]
-    pub const fn max_object_count(mut self, limit: usize) -> Self {
+    pub const fn with_max_object_count(mut self, limit: usize) -> Self {
         self.max_object_count = limit;
         self
     }
 
     /// Sets the maximum depth of a reference chain.
     #[must_use]
-    pub const fn max_reference_depth(mut self, limit: usize) -> Self {
+    pub const fn with_max_reference_depth(mut self, limit: usize) -> Self {
         self.max_reference_depth = limit;
         self
     }
 
     /// Sets the maximum number of cross-reference revisions.
     #[must_use]
-    pub const fn max_xref_revisions(mut self, limit: usize) -> Self {
+    pub const fn with_max_xref_revisions(mut self, limit: usize) -> Self {
         self.max_xref_revisions = limit;
         self
     }
 
     /// Sets the maximum row or column span of a table cell.
     #[must_use]
-    pub const fn max_table_span(mut self, limit: usize) -> Self {
+    pub const fn with_max_table_span(mut self, limit: usize) -> Self {
         self.max_table_span = limit;
         self
     }
 
     /// Sets the maximum number of rows in an inspected table grid.
     #[must_use]
-    pub const fn max_table_grid_rows(mut self, limit: usize) -> Self {
+    pub const fn with_max_table_grid_rows(mut self, limit: usize) -> Self {
         self.max_table_grid_rows = limit;
         self
     }
 
     /// Sets the maximum number of columns in an inspected table grid.
     #[must_use]
-    pub const fn max_table_grid_columns(mut self, limit: usize) -> Self {
+    pub const fn with_max_table_grid_columns(mut self, limit: usize) -> Self {
         self.max_table_grid_columns = limit;
         self
     }
 
     /// Sets the maximum number of cells in an inspected table grid.
     #[must_use]
-    pub const fn max_table_grid_cells(mut self, limit: usize) -> Self {
+    pub const fn with_max_table_grid_cells(mut self, limit: usize) -> Self {
         self.max_table_grid_cells = limit;
         self
     }
 
     /// Sets the maximum number of mappings expanded from one ToUnicode CMap.
     #[must_use]
-    pub const fn max_unicode_cmap_mappings(mut self, limit: usize) -> Self {
+    pub const fn with_max_unicode_cmap_mappings(mut self, limit: usize) -> Self {
         self.max_unicode_cmap_mappings = limit;
         self
     }
@@ -116,7 +176,7 @@ impl SafetyLimits {
     /// use page_validation::SafetyLimits;
     ///
     /// let limits = SafetyLimits::unlimited();
-    /// assert_eq!(limits.max_input_size, u64::MAX);
+    /// assert_eq!(limits.max_input_size(), u64::MAX);
     /// ```
     pub const fn unlimited() -> Self {
         Self {

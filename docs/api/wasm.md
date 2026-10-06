@@ -35,9 +35,9 @@ const bytes = new Uint8Array(await pdfFile.arrayBuffer());
 const isCompliant: boolean = await isPdfCompliantBytes(bytes);
 ```
 
-Both validation functions take the bytes plus an optional `{ profile, limits }` options object. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Validation failures throw `ValidationError` with a `kind` such as `parser`, `safety_limit`, or `profile`, plus a `ruleId` such as `RESOURCE-LIMIT-001`.
+Both validation functions take the bytes plus an optional `{ profile, limits }` options object. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Validation failures throw `PageError` with a `kind` such as `parser`, `safety_limit`, or `profile`, plus a `ruleId` such as `RESOURCE-LIMIT-001`.
 
-The bundler loads and starts the WebAssembly module with the package, so no initialization call is required. `initialize()` is an optional no-op Promise for callers who want an explicit startup hook; validation functions await it automatically.
+The bundler loads and starts the WebAssembly module with the package, so no initialization call is required.
 
 ## Validate a PDF with details
 
@@ -90,7 +90,7 @@ for (const failure of report.failures) {
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
-Parser, profile, and safety-limit failures throw `ValidationError` with `kind` and `ruleId` properties and do not appear in a report.
+Parser, profile, and safety-limit failures throw `PageError` with `kind` and `ruleId` properties and do not appear in a report.
 
 ## Safety limits
 
@@ -140,7 +140,7 @@ if (!report.isCompliant) {
 }
 ```
 
-Parser, profile, and safety-limit failures reject with `ValidationError` containing `kind` and `ruleId` before a report is returned.
+Parser, profile, and safety-limit failures reject with `PageError` containing `kind` and `ruleId` before a report is returned.
 
 ## Export the report
 
@@ -153,4 +153,4 @@ const report = await validatePdfBytes(bytes);
 const json = report.toJson();
 ```
 
-`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. Each JSON failure includes its `category` (`metadata` or `conformance`) and `object_id`, which contains `object_number` and `generation` when the finding is attributed to an indirect object and is `null` otherwise. The schema also includes the file when available, profile, validity, rule and check counts, and optional parser or operational error details. Wasm terminal errors reject with `ValidationError` carrying `kind` and `ruleId` before a report is returned.
+`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. Each JSON failure includes its `category` (`metadata` or `conformance`) and `object_id`, which contains `object_number` and `generation` when the finding is attributed to an indirect object and is `null` otherwise. The schema also includes the file when available, profile, validity, rule and check counts, and optional parser or operational error details. Wasm terminal errors reject with `PageError` carrying `kind` and `ruleId` before a report is returned.

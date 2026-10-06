@@ -2,8 +2,7 @@ pub mod common;
 
 use lopdf::{Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
-    validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes,
 };
 
 #[test]
@@ -32,7 +31,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
 
 #[test]
 fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
-    let limits = SafetyLimits::default().max_object_count(1);
+    let limits = SafetyLimits::default().with_max_object_count(1);
     let error = validate_pdf_bytes(
         &common::tagged_document_fixture("struct_tree_role_map_self_cycle"),
         &ValidationOptions::default()
@@ -42,7 +41,7 @@ fn role_map_traversal_limit_does_not_create_a_conformance_failure() {
     .expect_err("the object limit must stop the traversal");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::TooManyObjects { limit: 1, .. })
+        PageError::Pdf(PdfError::TooManyObjects { limit: 1, .. })
     ));
 }
 
@@ -53,7 +52,7 @@ fn cyclic_structure_tree_is_an_operational_failure() {
         &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
     )
     .expect_err("cyclic structure tree must exceed the reference-depth limit");
-    assert!(matches!(error, ValidationError::Pdf(_)));
+    assert!(matches!(error, PageError::Pdf(_)));
 }
 
 #[test]
@@ -110,7 +109,7 @@ fn table_grid_row_limit_is_rejected_during_structure_inspection() {
         .save_to(&mut bytes)
         .expect("save table row-limit fixture");
 
-    let limits = SafetyLimits::default().max_table_grid_rows(1);
+    let limits = SafetyLimits::default().with_max_table_grid_rows(1);
     let error = validate_pdf_bytes(
         &bytes,
         &ValidationOptions::default()
@@ -120,7 +119,7 @@ fn table_grid_row_limit_is_rejected_during_structure_inspection() {
     .expect_err("table inspection must reject rows before growing past the limit");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::TableGridLimit {
+        PageError::Pdf(PdfError::TableGridLimit {
             rows: 2,
             max_rows: 1,
             ..

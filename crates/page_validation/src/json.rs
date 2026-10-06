@@ -1,23 +1,23 @@
-//! Defines the stable serializable JSON view of a validation report for client applications.
+//! Defines the stable serializable and deserializable JSON view of a validation report for client applications.
 //!
 //! Report conversion copies the source, profile, compliance result, counts, and each rule failure's category and optional object location into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, PdfObjectId, ValidationCheckCounts, ValidationCounts, ValidationError,
+    FailureCategory, PageError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
     ValidationProfile, ValidationReport,
 };
 
-/// Stable, serializable representation of a validation report.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// Stable, serializable and deserializable representation of a validation report.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub file: Option<String>,
+    pub source: Option<String>,
     pub profile: Option<ValidationProfile>,
-    pub compliant: bool,
+    pub is_compliant: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rules: Option<ValidationCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,20 +28,20 @@ pub struct JsonValidationReport {
 }
 
 /// A rule failure in the stable JSON report, with its category and optional indirect object location.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonFailure {
-    pub rule: String,
+    pub rule_id: String,
     pub message: String,
     pub object_id: Option<PdfObjectId>,
     pub category: FailureCategory,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonError {
     pub kind: JsonErrorKind,
-    pub rule: String,
+    pub rule_id: String,
     pub message: String,
 }
 
@@ -56,7 +56,7 @@ pub struct JsonError {
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum JsonErrorKind {
@@ -70,9 +70,9 @@ impl JsonValidationReport {
     /// Parser and operational errors populate the `error` field.
     #[must_use]
     pub fn from_validation_error(
-        file: Option<String>,
+        source: Option<String>,
         profile: Option<ValidationProfile>,
-        error: ValidationError,
+        error: PageError,
     ) -> Self {
         let (rules, checks, failures, error) = match error.disposition() {
             ValidationErrorDisposition::Operational { rule_id } => (
@@ -81,7 +81,7 @@ impl JsonValidationReport {
                 Vec::new(),
                 Some(JsonError {
                     kind: JsonErrorKind::Operational,
-                    rule: rule_id.to_owned(),
+                    rule_id: rule_id.to_owned(),
                     message: error.to_string(),
                 }),
             ),
@@ -91,16 +91,16 @@ impl JsonValidationReport {
                 Vec::new(),
                 Some(JsonError {
                     kind: JsonErrorKind::Parser,
-                    rule: rule_id.to_owned(),
+                    rule_id: rule_id.to_owned(),
                     message: error.to_string(),
                 }),
             ),
         };
 
         Self {
-            file,
+            source,
             profile,
-            compliant: false,
+            is_compliant: false,
             rules,
             checks,
             failures,
@@ -116,7 +116,7 @@ impl ValidationReport {
             .failures
             .iter()
             .map(|failure| JsonFailure {
-                rule: failure.rule_id.clone(),
+                rule_id: failure.rule_id.clone(),
                 message: failure.message.clone(),
                 object_id: failure.object_id,
                 category: failure.category,
@@ -124,12 +124,12 @@ impl ValidationReport {
             .collect();
 
         JsonValidationReport {
-            file: self
+            source: self
                 .source
                 .as_ref()
                 .map(|source| source.display().to_string()),
             profile: Some(self.profile),
-            compliant: self.is_compliant,
+            is_compliant: self.is_compliant,
             rules: Some(self.rules),
             checks: Some(self.checks),
             failures,
@@ -142,8 +142,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
-        ValidationError, ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, PageError, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
+        ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -173,19 +173,22 @@ mod tests {
         let json = report.json_report();
         let value = serde_json::to_value(json).expect("serialize JSON report");
 
-        assert_eq!(value["file"], "document.pdf");
+        assert_eq!(value["source"], "document.pdf");
         assert_eq!(value["profile"], "1b");
-        assert_eq!(value["compliant"], false);
+        assert_eq!(value["is_compliant"], false);
         assert_eq!(value["rules"]["total"], 1);
         assert_eq!(value["rules"]["failed"], 1);
         assert_eq!(value["checks"]["failed"], 1);
-        assert_eq!(value["failures"][0]["rule"], "RULE-001");
+        assert_eq!(value["failures"][0]["rule_id"], "RULE-001");
         assert_eq!(value["failures"][0]["category"], "metadata");
         assert_eq!(
             value["failures"][0]["object_id"],
             serde_json::json!({"object_number": 42, "generation": 3})
         );
         assert!(value.get("error").is_none());
+        assert!(value.get("file").is_none());
+        assert!(value.get("compliant").is_none());
+        assert!(value["failures"][0].get("rule").is_none());
     }
 
     #[test]
@@ -193,7 +196,7 @@ mod tests {
         let json = JsonValidationReport::from_validation_error(
             None,
             Some(ValidationProfile::PdfA1b),
-            ValidationError::Pdf(PdfError::UnexpectedObject("catalog")),
+            PageError::Pdf(PdfError::UnexpectedObject("catalog")),
         );
 
         assert!(json.failures.is_empty());
@@ -223,6 +226,6 @@ mod tests {
 
         let value = serde_json::to_value(report.json_report()).expect("serialize JSON report");
 
-        assert!(value.get("file").is_none());
+        assert!(value.get("source").is_none());
     }
 }

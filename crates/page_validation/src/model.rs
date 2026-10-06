@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::catalog::{resolve_catalog, root_reference_id};
 use crate::error::PdfError;
@@ -18,7 +18,7 @@ use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_optional};
 use crate::page_tree;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct PdfObjectId {
     pub object_number: u32,

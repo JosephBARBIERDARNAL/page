@@ -6,8 +6,7 @@
 
 use lopdf::{Document, Object, dictionary};
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
-    validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes,
 };
 
 fn assert_resource_limit_failure(bytes: &[u8]) {
@@ -19,7 +18,7 @@ fn assert_resource_limit_failure(bytes: &[u8]) {
     assert!(
         matches!(
             error,
-            ValidationError::Pdf(PdfError::ReferenceDepth(
+            PageError::Pdf(PdfError::ReferenceDepth(
                 SafetyLimits::DEFAULT_MAX_REFERENCE_DEPTH
             ))
         ),
@@ -76,7 +75,7 @@ fn cyclic_metadata_reference_is_a_resource_limit_failure() {
     .expect_err("unlimited limits must still detect reference cycles");
     assert!(matches!(
         error,
-        ValidationError::Pdf(PdfError::ReferenceDepth(usize::MAX))
+        PageError::Pdf(PdfError::ReferenceDepth(usize::MAX))
     ));
 }
 

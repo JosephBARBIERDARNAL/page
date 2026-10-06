@@ -187,6 +187,8 @@ export class SafetyLimits implements SafetyLimitsOptions {
 export interface ValidationFailure {
   ruleId: string;
   message: string;
+  objectId: { objectNumber: number; generation: number } | null;
+  category: "metadata" | "conformance";
 }
 
 export interface ValidationCounts {
@@ -201,18 +203,18 @@ export interface ValidationCheckCounts {
 
 export interface JsonValidationError {
   kind: "parser" | "operational";
-  rule: string;
+  rule_id: string;
   message: string;
 }
 
 export interface JsonValidationReport {
-  file?: string;
+  source?: string;
   profile?: ValidationProfile;
-  compliant: boolean;
+  is_compliant: boolean;
   rules?: ValidationCounts;
   checks?: ValidationCheckCounts;
   failures: {
-    rule: string;
+    rule_id: string;
     message: string;
     object_id: { object_number: number; generation: number } | null;
     category: "metadata" | "conformance";
@@ -227,10 +229,8 @@ interface RawValidationReport extends JsonValidationReport {
 }
 
 export class ValidationReport {
-  readonly file: string | undefined;
   readonly source: string | null;
   readonly profile: ValidationProfile;
-  readonly compliant: boolean;
   readonly isCompliant: boolean;
   readonly rules: ValidationCounts;
   readonly checks: ValidationCheckCounts;
@@ -239,16 +239,22 @@ export class ValidationReport {
 
   constructor(raw: RawValidationReport) {
     this.raw = raw;
-    this.file = raw.file;
-    this.source = raw.file ?? null;
+    this.source = raw.source ?? null;
     this.profile = raw.profile as ValidationProfile;
-    this.compliant = raw.compliant;
-    this.isCompliant = raw.compliant;
+    this.isCompliant = raw.is_compliant;
     this.rules = raw.rules;
     this.checks = raw.checks;
     this.failures = raw.failures.map((failure) => ({
-      ruleId: failure.rule,
+      ruleId: failure.rule_id,
       message: failure.message,
+      objectId:
+        failure.object_id === null
+          ? null
+          : {
+              objectNumber: failure.object_id.object_number,
+              generation: failure.object_id.generation,
+            },
+      category: failure.category,
     }));
   }
 
@@ -272,13 +278,13 @@ export interface ValidationOptions {
 export type ValidationErrorKind =
   "input_io" | "parser" | "safety_limit" | "profile" | "unknown";
 
-export class ValidationError extends Error {
+export class PageError extends Error {
   readonly kind: ValidationErrorKind;
   readonly ruleId: string | undefined;
 
   constructor(message: string, kind: ValidationErrorKind = "unknown", ruleId?: string) {
     super(message);
-    this.name = "ValidationError";
+    this.name = "PageError";
     this.kind = kind;
     this.ruleId = ruleId;
     Object.setPrototypeOf(this, new.target.prototype);
@@ -287,25 +293,17 @@ export class ValidationError extends Error {
 
 export function createApi(wasm: WasmBindings) {
   defaultSafetyLimits = JSON.parse(wasm.defaultSafetyLimits()) as SafetyLimitsOptions;
-  let initialization: Promise<void> | undefined;
-
-  /** Initializes the WebAssembly module. Validation functions initialize it automatically. */
-  function initialize(): Promise<void> {
-    initialization = initialization ?? Promise.resolve();
-    return initialization;
-  }
 
   async function validatePdfBytes(
     bytes: Uint8Array,
     { profile, limits }: ValidationOptions = {},
   ): Promise<ValidationReport> {
-    await initialize();
     const serializedLimits = serializeLimits(limits);
     try {
       const json = wasm.validatePdfBytes(bytes, profile, serializedLimits);
       return new ValidationReport(JSON.parse(json) as RawValidationReport);
     } catch (error) {
-      throw asValidationError(error);
+      throw asPageError(error);
     }
   }
 
@@ -313,17 +311,15 @@ export function createApi(wasm: WasmBindings) {
     bytes: Uint8Array,
     { profile, limits }: ValidationOptions = {},
   ): Promise<boolean> {
-    await initialize();
     const serializedLimits = serializeLimits(limits);
     try {
       return wasm.isPdfCompliantBytes(bytes, profile, serializedLimits);
     } catch (error) {
-      throw asValidationError(error);
+      throw asPageError(error);
     }
   }
 
   return {
-    initialize,
     validatePdfBytes,
     isPdfCompliantBytes,
   };
@@ -347,21 +343,21 @@ function serializeLimits(
   );
 }
 
-function asValidationError(error: unknown): ValidationError {
-  if (error instanceof ValidationError) {
+function asPageError(error: unknown): PageError {
+  if (error instanceof PageError) {
     return error;
   }
-  if (error instanceof Error && error.name === "ValidationError") {
+  if (error instanceof Error && error.name === "PageError") {
     const typedError = error as Error & { kind?: unknown; ruleId?: unknown };
-    return new ValidationError(
+    return new PageError(
       error.message,
       isValidationErrorKind(typedError.kind) ? typedError.kind : "unknown",
       typeof typedError.ruleId === "string" ? typedError.ruleId : undefined,
     );
   }
   return error instanceof Error
-    ? new ValidationError(error.message)
-    : new ValidationError(String(error));
+    ? new PageError(error.message)
+    : new PageError(String(error));
 }
 
 function isValidationErrorKind(value: unknown): value is ValidationErrorKind {

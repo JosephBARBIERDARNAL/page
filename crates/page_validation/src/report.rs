@@ -2,20 +2,20 @@
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
-//! remain `ValidationError` values returned from validation entry points.
+//! remain `PageError` values returned from validation entry points.
 
 use std::fmt;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
 /// The kind of metadata or conformance problem a `ValidationFailure` represents.
 ///
-/// Input, profile, parser, and safety-limit errors are returned as `ValidationError` and do not appear in a `ValidationReport`.
+/// Input, profile, parser, and safety-limit errors are returned as `PageError` and do not appear in a `ValidationReport`.
 ///
 /// ## Examples
 ///
@@ -37,7 +37,7 @@ use crate::validation::ValidationProfile;
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum FailureCategory {
@@ -117,7 +117,7 @@ pub(crate) struct RuleFailure {
 /// counts.passed = 5;
 /// assert_eq!(counts.total, counts.passed + counts.failed);
 /// ```
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct ValidationCounts {
     pub total: usize,
@@ -127,7 +127,7 @@ pub struct ValidationCounts {
 
 /// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
 /// rule can contribute more than one failed check.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct ValidationCheckCounts {
     pub failed: usize,

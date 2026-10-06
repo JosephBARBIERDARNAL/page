@@ -10,8 +10,8 @@
 //!
 //! Public structs and enums are non-exhaustive so future releases can add fields and variants.
 //! Construct values with their constructors, conversions, or `Default`; customize
-//! [`SafetyLimits`] with chainable setters or field assignment. Public report fields remain
-//! directly accessible. Destructuring structs requires `..`, and enum matches require a
+//! [`SafetyLimits`] with chainable setters and inspect bounds through getters. Public report fields
+//! remain directly accessible. Destructuring structs requires `..`, and enum matches require a
 //! wildcard arm for future variants.
 //!
 //! ```
@@ -21,7 +21,7 @@
 //! assert_eq!(category, FailureCategory::Conformance);
 //! ```
 //!
-//! Parser, input, profile, and safety-limit failures are returned as `ValidationError` values;
+//! Parser, input, profile, and safety-limit failures are returned as `PageError` values;
 //! only metadata and conformance findings appear in `ValidationReport::failures`.
 //!
 //! [`PdfDocument`] exposes document summary fields. Metadata and inspection models
@@ -63,7 +63,7 @@ mod validation;
 mod xml_safety;
 mod xobject;
 
-pub use error::{PdfError, ValidationError, ValidationErrorKind};
+pub use error::{PageError, PdfError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::{PdfDocument, PdfObjectId};

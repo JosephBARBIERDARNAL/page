@@ -13,7 +13,7 @@ use page_cli::output::{emit_json, serialize_json, write_atomic};
 use page_cli::spinner::Spinner;
 use page_cli::validation_error_exit_code;
 use page_validation::{
-    JsonValidationReport, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
+    JsonValidationReport, PageError, SafetyLimits, ValidationOptions, ValidationProfile,
     ValidationReport, validate_pdf, validate_pdf_lazy,
 };
 
@@ -302,7 +302,7 @@ fn paths_refer_to_same_file(input: &Path, output: &Path) -> bool {
 fn emit_json_validation_error(
     path: &Path,
     profile: Option<ValidationProfile>,
-    error: ValidationError,
+    error: PageError,
     output: Option<&Path>,
     colors: bool,
 ) -> ! {
@@ -336,9 +336,9 @@ fn emit_json_validation_error(
     });
 }
 
-fn print_validation_error(path: &Path, error: &ValidationError, colors: bool) {
+fn print_validation_error(path: &Path, error: &PageError, colors: bool) {
     match error {
-        ValidationError::InputIo(error) => print_error(
+        PageError::InputIo(error) => print_error(
             format_args!("could not read '{}': {error}", path.display()),
             colors,
         ),
@@ -388,18 +388,18 @@ fn run_validate(cli: Cli) {
         SafetyLimits::unlimited()
     } else {
         SafetyLimits::default()
-            .max_input_size(cli.max_input_size)
-            .max_decoded_stream_size(cli.max_decoded_stream_size)
-            .max_total_decoded_content_size(cli.max_total_decoded_content_size)
-            .max_form_invocations(cli.max_form_invocations)
-            .max_object_count(cli.max_object_count)
-            .max_reference_depth(cli.max_reference_depth)
-            .max_xref_revisions(cli.max_xref_revisions)
-            .max_table_span(cli.max_table_span)
-            .max_table_grid_rows(cli.max_table_grid_rows)
-            .max_table_grid_columns(cli.max_table_grid_columns)
-            .max_table_grid_cells(cli.max_table_grid_cells)
-            .max_unicode_cmap_mappings(cli.max_unicode_cmap_mappings)
+            .with_max_input_size(cli.max_input_size)
+            .with_max_decoded_stream_size(cli.max_decoded_stream_size)
+            .with_max_total_decoded_content_size(cli.max_total_decoded_content_size)
+            .with_max_form_invocations(cli.max_form_invocations)
+            .with_max_object_count(cli.max_object_count)
+            .with_max_reference_depth(cli.max_reference_depth)
+            .with_max_xref_revisions(cli.max_xref_revisions)
+            .with_max_table_span(cli.max_table_span)
+            .with_max_table_grid_rows(cli.max_table_grid_rows)
+            .with_max_table_grid_columns(cli.max_table_grid_columns)
+            .with_max_table_grid_cells(cli.max_table_grid_cells)
+            .with_max_unicode_cmap_mappings(cli.max_unicode_cmap_mappings)
     };
     let spinner_enabled = selected_format != SelectedFormat::Json
         && io::stdout().is_terminal()

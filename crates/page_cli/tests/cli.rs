@@ -67,44 +67,47 @@ fn page_help_exposes_direct_validation_arguments() {
 fn disabling_safety_limits_conflicts_with_every_explicit_limit() {
     let defaults = page_validation::SafetyLimits::default();
     for (flag, value) in [
-        ("--max-input-size", defaults.max_input_size.to_string()),
+        ("--max-input-size", defaults.max_input_size().to_string()),
         (
             "--max-decoded-stream-size",
-            defaults.max_decoded_stream_size.to_string(),
+            defaults.max_decoded_stream_size().to_string(),
         ),
         (
             "--max-total-decoded-content-size",
-            defaults.max_total_decoded_content_size.to_string(),
+            defaults.max_total_decoded_content_size().to_string(),
         ),
         (
             "--max-form-invocations",
-            defaults.max_form_invocations.to_string(),
+            defaults.max_form_invocations().to_string(),
         ),
-        ("--max-object-count", defaults.max_object_count.to_string()),
+        (
+            "--max-object-count",
+            defaults.max_object_count().to_string(),
+        ),
         (
             "--max-reference-depth",
-            defaults.max_reference_depth.to_string(),
+            defaults.max_reference_depth().to_string(),
         ),
         (
             "--max-xref-revisions",
-            defaults.max_xref_revisions.to_string(),
+            defaults.max_xref_revisions().to_string(),
         ),
-        ("--max-table-span", defaults.max_table_span.to_string()),
+        ("--max-table-span", defaults.max_table_span().to_string()),
         (
             "--max-table-grid-rows",
-            defaults.max_table_grid_rows.to_string(),
+            defaults.max_table_grid_rows().to_string(),
         ),
         (
             "--max-table-grid-columns",
-            defaults.max_table_grid_columns.to_string(),
+            defaults.max_table_grid_columns().to_string(),
         ),
         (
             "--max-table-grid-cells",
-            defaults.max_table_grid_cells.to_string(),
+            defaults.max_table_grid_cells().to_string(),
         ),
         (
             "--max-unicode-cmap-mappings",
-            defaults.max_unicode_cmap_mappings.to_string(),
+            defaults.max_unicode_cmap_mappings().to_string(),
         ),
     ] {
         for arguments in [
@@ -161,7 +164,7 @@ fn json_extension_infers_json_file_output() {
     let contents = fs::read_to_string(report_path).expect("read JSON report");
     assert!(contents.ends_with('\n'));
     let report: serde_json::Value = serde_json::from_str(&contents).expect("parse JSON report");
-    assert_eq!(report["compliant"], false);
+    assert_eq!(report["is_compliant"], false);
 }
 
 #[test]
@@ -429,16 +432,16 @@ fn validation_json_uses_the_stable_public_schema() {
     assert_eq!(output.status.code(), Some(2));
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
-    assert_eq!(report["file"], fixture.display().to_string());
+    assert_eq!(report["source"], fixture.display().to_string());
     assert_eq!(report["profile"], "1b");
-    assert_eq!(report["compliant"], false);
+    assert_eq!(report["is_compliant"], false);
     assert!(report["error"].is_null());
     assert!(
         report["failures"]
             .as_array()
             .is_some_and(|failures| !failures.is_empty())
     );
-    assert!(report["failures"][0]["rule"].is_string());
+    assert!(report["failures"][0]["rule_id"].is_string());
     assert!(report["failures"][0]["message"].is_string());
     assert_eq!(report["failures"][0]["category"], "conformance");
     assert_eq!(report["failures"][0]["object_id"], serde_json::Value::Null);
@@ -458,7 +461,7 @@ fn validation_json_reports_parser_errors_separately() {
         .expect("run malformed PDF validation");
     assert_eq!(parser.status.code(), Some(2));
     let parser: serde_json::Value = serde_json::from_slice(&parser.stdout).expect("parser JSON");
-    assert_eq!(parser["compliant"], false);
+    assert_eq!(parser["is_compliant"], false);
     assert_eq!(parser["profile"], "1b");
     assert_eq!(parser["failures"], serde_json::json!([]));
     assert!(parser["rules"].is_null());
@@ -481,7 +484,7 @@ fn validation_json_reports_inferred_profile_errors_without_a_profile() {
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("validation JSON report");
     assert!(report["profile"].is_null());
-    assert_eq!(report["compliant"], false);
+    assert_eq!(report["is_compliant"], false);
     assert_eq!(report["failures"], serde_json::json!([]));
     assert_eq!(report["error"]["kind"], "operational");
 }
@@ -505,11 +508,11 @@ fn missing_input_uses_the_json_error_schema_when_requested() {
     assert!(with_json.stderr.is_empty());
     let report: serde_json::Value =
         serde_json::from_slice(&with_json.stdout).expect("input error JSON");
-    assert_eq!(report["file"], missing.display().to_string());
+    assert_eq!(report["source"], missing.display().to_string());
     assert_eq!(report["profile"], "1b");
-    assert_eq!(report["compliant"], false);
+    assert_eq!(report["is_compliant"], false);
     assert_eq!(report["error"]["kind"], "operational");
-    assert_eq!(report["error"]["rule"], "INPUT-IO-001");
+    assert_eq!(report["error"]["rule_id"], "INPUT-IO-001");
 
     let missing_file_error = std::io::Error::from_raw_os_error(2);
     assert_eq!(

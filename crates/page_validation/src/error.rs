@@ -1,7 +1,7 @@
 //! Defines errors raised before a validation report can be completed, including PDF parsing,
 //! resource limits, input I/O, and profile selection failures.
 //!
-//! `PdfError` describes parsing and inspection failures; `ValidationError` wraps these alongside
+//! `PdfError` describes parsing and inspection failures; `PageError` wraps these alongside
 //! entry-point errors. Validation entry points return these failures as `Err`, keeping them
 //! separate from reports that describe metadata and conformance findings.
 
@@ -10,17 +10,17 @@ use thiserror::Error;
 
 /// Errors from parsing a PDF or inspecting its object graph before the validation rules run.
 ///
-/// Variants represent strict-parser rejections and configured `SafetyLimits` bounds being exceeded. `ValidationError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `ValidationError` instead.
+/// Variants represent strict-parser rejections and configured `SafetyLimits` bounds being exceeded. `PageError::Pdf` wraps this type for the public validation entry points, so callers that only need the top-level outcome can match on `PageError` instead.
 ///
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{SafetyLimits, ValidationError, ValidationOptions, validate_pdf_bytes};
+/// use page_validation::{SafetyLimits, PageError, ValidationOptions, validate_pdf_bytes};
 ///
-/// let limits = SafetyLimits::default().max_input_size(4);
+/// let limits = SafetyLimits::default().with_max_input_size(4);
 /// let options = ValidationOptions::default().limits(limits);
 /// let error = validate_pdf_bytes(b"%PDF-1.4", &options).unwrap_err();
-/// assert!(matches!(error, ValidationError::Pdf(_)));
+/// assert!(matches!(error, PageError::Pdf(_)));
 /// ```
 ///
 /// Matches outside this crate must include a wildcard arm for future parser and limit errors:
@@ -144,27 +144,27 @@ impl PdfError {
 /// ## Examples
 ///
 /// ```rs
-/// use page_validation::{ValidationError, ValidationOptions, validate_pdf_bytes};
+/// use page_validation::{PageError, ValidationOptions, validate_pdf_bytes};
 ///
 /// let error = validate_pdf_bytes(b"not a pdf", &ValidationOptions::default()).unwrap_err();
-/// assert!(matches!(error, ValidationError::Pdf(_)));
+/// assert!(matches!(error, PageError::Pdf(_)));
 /// ```
 ///
 /// Matches outside this crate must include a wildcard arm for future validation errors:
 ///
 /// ```compile_fail,E0004
-/// use page_validation::ValidationError;
-/// fn handle(error: ValidationError) {
+/// use page_validation::PageError;
+/// fn handle(error: PageError) {
 ///     match error {
-///         ValidationError::InputIo(_) | ValidationError::Pdf(_)
-///         | ValidationError::MissingProfileDeclaration
-///         | ValidationError::InvalidProfileDeclaration(_) => {}
+///         PageError::InputIo(_) | PageError::Pdf(_)
+///         | PageError::MissingProfileDeclaration
+///         | PageError::InvalidProfileDeclaration(_) => {}
 ///     }
 /// }
 /// ```
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum ValidationError {
+pub enum PageError {
     #[error("could not read input: {0}")]
     InputIo(#[from] std::io::Error),
 
@@ -211,7 +211,7 @@ pub(crate) enum ValidationErrorDisposition {
     Parser { rule_id: &'static str },
 }
 
-impl ValidationError {
+impl PageError {
     /// Returns the stable category of this error.
     pub fn kind(&self) -> ValidationErrorKind {
         match self {
@@ -256,20 +256,20 @@ impl ValidationError {
 
 #[cfg(test)]
 mod tests {
-    use super::{PdfError, ValidationError, ValidationErrorKind};
+    use super::{PageError, PdfError, ValidationErrorKind};
 
     #[test]
     fn classifies_errors_and_exposes_rule_ids() {
         let cases = [
             (
-                ValidationError::Pdf(PdfError::Parse(Box::new(std::io::Error::other(
+                PageError::Pdf(PdfError::Parse(Box::new(std::io::Error::other(
                     "invalid PDF",
                 )))),
                 ValidationErrorKind::Parser,
                 "PDF-PARSE-001",
             ),
             (
-                ValidationError::Pdf(PdfError::InputTooLarge {
+                PageError::Pdf(PdfError::InputTooLarge {
                     actual: 2,
                     limit: 1,
                 }),
@@ -277,7 +277,7 @@ mod tests {
                 "RESOURCE-LIMIT-001",
             ),
             (
-                ValidationError::MissingProfileDeclaration,
+                PageError::MissingProfileDeclaration,
                 ValidationErrorKind::Profile,
                 "PROFILE-001",
             ),
@@ -288,7 +288,7 @@ mod tests {
             assert_eq!(error.rule_id(), expected_rule_id);
         }
 
-        let input_error = ValidationError::InputIo(std::io::Error::other("read failed"));
+        let input_error = PageError::InputIo(std::io::Error::other("read failed"));
         assert_eq!(input_error.kind(), ValidationErrorKind::InputIo);
         assert_eq!(input_error.rule_id(), "INPUT-IO-001");
     }

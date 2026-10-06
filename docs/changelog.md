@@ -1,5 +1,15 @@
 ## Dev
 
+- **Feat**: Implement `Deserialize` for Rust JSON report types [#403](https://github.com/JosephBARBIERDARNAL/page/issues/403)
+- **Refactor**: Make Rust `SafetyLimits` fields private and use getters with chainable `with_` setters [#400](https://github.com/JosephBARBIERDARNAL/page/issues/400)
+- **Feat**: Add `ValidationReport.to_dict()` and accept bytes-like inputs in the Python byte APIs [#402](https://github.com/JosephBARBIERDARNAL/page/issues/402)
+- **Refactor**: Remove the no-op `initialize()` function from the Wasm API [#398](https://github.com/JosephBARBIERDARNAL/page/issues/398)
+- **Fix**: Expose failure object IDs and categories on the Wasm TypeScript report [#390](https://github.com/JosephBARBIERDARNAL/page/issues/390)
+- **Fix**: Align JSON report field names with Rust, Python, and Wasm report attributes [#389](https://github.com/JosephBARBIERDARNAL/page/issues/389)
+- **Refactor**: Rename the top-level validation error to `PageError` across Rust, Python, and Wasm APIs [#401](https://github.com/JosephBARBIERDARNAL/page/issues/401)
+
+## 0.10.0
+
 - **Fix**: Give CLI usage errors exit code 1 and document stable CLI exit codes [#394](https://github.com/JosephBARBIERDARNAL/page/issues/394)
 - **Fix**: Report the PDF/A-1 indirect-object limit as a conformance failure across API surfaces [#387](https://github.com/JosephBARBIERDARNAL/page/issues/387)
 - **Refactor**: Remove unimplemented Rust validation profiles and their rejection helpers, and simplify Python profile enums to string values without `is_implemented` [#388](https://github.com/JosephBARBIERDARNAL/page/issues/388)

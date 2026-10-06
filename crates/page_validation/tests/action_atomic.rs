@@ -14,7 +14,7 @@ fn indirect_action_failure_attaches_the_action_object() {
 
 #[test]
 fn cyclic_field_graph_terminates_under_the_configured_reference_limit() {
-    let limits = SafetyLimits::default().max_reference_depth(4);
+    let limits = SafetyLimits::default().with_max_reference_depth(4);
     let report = validate_pdf_bytes(
         &common::action_fixture("field_cycle"),
         &ValidationOptions::default()

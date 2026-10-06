@@ -1,26 +1,27 @@
 use std::path::PathBuf;
 
 use page_validation::{
-    FailureCategory as RustFailureCategory, PdfObjectId as RustPdfObjectId,
-    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
-    ValidationCounts as RustValidationCounts, ValidationError as RustValidationError,
+    FailureCategory as RustFailureCategory, PageError as RustPageError,
+    PdfObjectId as RustPdfObjectId, SafetyLimits as RustSafetyLimits,
+    ValidationCheckCounts as RustValidationCheckCounts, ValidationCounts as RustValidationCounts,
     ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
     ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
+use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyString};
+use pyo3::types::{PyBytes, PyMemoryView, PyString};
 
-create_exception!(_page, ValidationError, PyException);
-create_exception!(_page, ParseError, ValidationError);
-create_exception!(_page, SafetyLimitError, ValidationError);
-create_exception!(_page, ProfileError, ValidationError);
+create_exception!(_page, PageError, PyException);
+create_exception!(_page, ParseError, PageError);
+create_exception!(_page, SafetyLimitError, PageError);
+create_exception!(_page, ProfileError, PageError);
 
-fn python_validation_error(error: RustValidationError) -> PyErr {
+fn python_validation_error(error: RustPageError) -> PyErr {
     match error {
-        RustValidationError::InputIo(error) => {
+        RustPageError::InputIo(error) => {
             if error.kind() == std::io::ErrorKind::NotFound {
                 PyFileNotFoundError::new_err(error.to_string())
             } else {
@@ -33,8 +34,8 @@ fn python_validation_error(error: RustValidationError) -> PyErr {
                 RustValidationErrorKind::Parser => ParseError::new_err(message),
                 RustValidationErrorKind::SafetyLimit => SafetyLimitError::new_err(message),
                 RustValidationErrorKind::Profile => ProfileError::new_err(message),
-                RustValidationErrorKind::InputIo => ValidationError::new_err(message),
-                _ => ValidationError::new_err(message),
+                RustValidationErrorKind::InputIo => PageError::new_err(message),
+                _ => PageError::new_err(message),
             }
         }
     }
@@ -116,22 +117,22 @@ impl SafetyLimits {
     ) -> Self {
         let defaults = RustSafetyLimits::default();
         Self {
-            max_input_size: max_input_size.unwrap_or(defaults.max_input_size),
+            max_input_size: max_input_size.unwrap_or(defaults.max_input_size()),
             max_decoded_stream_size: max_decoded_stream_size
-                .unwrap_or(defaults.max_decoded_stream_size),
+                .unwrap_or(defaults.max_decoded_stream_size()),
             max_total_decoded_content_size: max_total_decoded_content_size
-                .unwrap_or(defaults.max_total_decoded_content_size),
-            max_form_invocations: max_form_invocations.unwrap_or(defaults.max_form_invocations),
-            max_object_count: max_object_count.unwrap_or(defaults.max_object_count),
-            max_reference_depth: max_reference_depth.unwrap_or(defaults.max_reference_depth),
-            max_xref_revisions: max_xref_revisions.unwrap_or(defaults.max_xref_revisions),
-            max_table_span: max_table_span.unwrap_or(defaults.max_table_span),
-            max_table_grid_rows: max_table_grid_rows.unwrap_or(defaults.max_table_grid_rows),
+                .unwrap_or(defaults.max_total_decoded_content_size()),
+            max_form_invocations: max_form_invocations.unwrap_or(defaults.max_form_invocations()),
+            max_object_count: max_object_count.unwrap_or(defaults.max_object_count()),
+            max_reference_depth: max_reference_depth.unwrap_or(defaults.max_reference_depth()),
+            max_xref_revisions: max_xref_revisions.unwrap_or(defaults.max_xref_revisions()),
+            max_table_span: max_table_span.unwrap_or(defaults.max_table_span()),
+            max_table_grid_rows: max_table_grid_rows.unwrap_or(defaults.max_table_grid_rows()),
             max_table_grid_columns: max_table_grid_columns
-                .unwrap_or(defaults.max_table_grid_columns),
-            max_table_grid_cells: max_table_grid_cells.unwrap_or(defaults.max_table_grid_cells),
+                .unwrap_or(defaults.max_table_grid_columns()),
+            max_table_grid_cells: max_table_grid_cells.unwrap_or(defaults.max_table_grid_cells()),
             max_unicode_cmap_mappings: max_unicode_cmap_mappings
-                .unwrap_or(defaults.max_unicode_cmap_mappings),
+                .unwrap_or(defaults.max_unicode_cmap_mappings()),
         }
     }
 
@@ -202,18 +203,18 @@ impl SafetyLimits {
 impl From<RustSafetyLimits> for SafetyLimits {
     fn from(limits: RustSafetyLimits) -> Self {
         Self {
-            max_input_size: limits.max_input_size,
-            max_decoded_stream_size: limits.max_decoded_stream_size,
-            max_total_decoded_content_size: limits.max_total_decoded_content_size,
-            max_form_invocations: limits.max_form_invocations,
-            max_object_count: limits.max_object_count,
-            max_reference_depth: limits.max_reference_depth,
-            max_xref_revisions: limits.max_xref_revisions,
-            max_table_span: limits.max_table_span,
-            max_table_grid_rows: limits.max_table_grid_rows,
-            max_table_grid_columns: limits.max_table_grid_columns,
-            max_table_grid_cells: limits.max_table_grid_cells,
-            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings,
+            max_input_size: limits.max_input_size(),
+            max_decoded_stream_size: limits.max_decoded_stream_size(),
+            max_total_decoded_content_size: limits.max_total_decoded_content_size(),
+            max_form_invocations: limits.max_form_invocations(),
+            max_object_count: limits.max_object_count(),
+            max_reference_depth: limits.max_reference_depth(),
+            max_xref_revisions: limits.max_xref_revisions(),
+            max_table_span: limits.max_table_span(),
+            max_table_grid_rows: limits.max_table_grid_rows(),
+            max_table_grid_columns: limits.max_table_grid_columns(),
+            max_table_grid_cells: limits.max_table_grid_cells(),
+            max_unicode_cmap_mappings: limits.max_unicode_cmap_mappings(),
         }
     }
 }
@@ -221,18 +222,18 @@ impl From<RustSafetyLimits> for SafetyLimits {
 impl From<&SafetyLimits> for RustSafetyLimits {
     fn from(limits: &SafetyLimits) -> Self {
         Self::default()
-            .max_input_size(limits.max_input_size)
-            .max_decoded_stream_size(limits.max_decoded_stream_size)
-            .max_total_decoded_content_size(limits.max_total_decoded_content_size)
-            .max_form_invocations(limits.max_form_invocations)
-            .max_object_count(limits.max_object_count)
-            .max_reference_depth(limits.max_reference_depth)
-            .max_xref_revisions(limits.max_xref_revisions)
-            .max_table_span(limits.max_table_span)
-            .max_table_grid_rows(limits.max_table_grid_rows)
-            .max_table_grid_columns(limits.max_table_grid_columns)
-            .max_table_grid_cells(limits.max_table_grid_cells)
-            .max_unicode_cmap_mappings(limits.max_unicode_cmap_mappings)
+            .with_max_input_size(limits.max_input_size)
+            .with_max_decoded_stream_size(limits.max_decoded_stream_size)
+            .with_max_total_decoded_content_size(limits.max_total_decoded_content_size)
+            .with_max_form_invocations(limits.max_form_invocations)
+            .with_max_object_count(limits.max_object_count)
+            .with_max_reference_depth(limits.max_reference_depth)
+            .with_max_xref_revisions(limits.max_xref_revisions)
+            .with_max_table_span(limits.max_table_span)
+            .with_max_table_grid_rows(limits.max_table_grid_rows)
+            .with_max_table_grid_columns(limits.max_table_grid_columns)
+            .with_max_table_grid_cells(limits.max_table_grid_cells)
+            .with_max_unicode_cmap_mappings(limits.max_unicode_cmap_mappings)
     }
 }
 
@@ -296,7 +297,7 @@ impl ValidationFailure {
             RustFailureCategory::Metadata => "metadata",
             RustFailureCategory::Conformance => "conformance",
             _ => {
-                return Err(ValidationError::new_err(format!(
+                return Err(PageError::new_err(format!(
                     "failure category {:?} is not supported by the Python bindings",
                     self.inner.category
                 )));
@@ -456,6 +457,11 @@ impl ValidationReport {
             .map_err(|error| PyValueError::new_err(error.to_string()))
     }
 
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let json = self.to_json()?;
+        Ok(py.import("json")?.call_method1("loads", (json,))?.unbind())
+    }
+
     fn __str__(&self) -> String {
         self.inner.to_string()
     }
@@ -481,6 +487,38 @@ fn validation_options(
     Ok(page_validation::ValidationOptions::default()
         .profile(profile)
         .limits(limits.map(Into::into).unwrap_or_default()))
+}
+
+enum PythonPdfBytes {
+    Backed(PyBackedBytes),
+    Owned(Vec<u8>),
+}
+
+impl AsRef<[u8]> for PythonPdfBytes {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Backed(data) => data.as_ref(),
+            Self::Owned(data) => data,
+        }
+    }
+}
+
+fn python_pdf_bytes(data: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<PythonPdfBytes> {
+    if let Ok(bytes) = data.cast::<PyBytes>() {
+        return Ok(PythonPdfBytes::Backed(PyBackedBytes::from(
+            bytes.to_owned(),
+        )));
+    }
+
+    let normalized;
+    let data = if data.is_instance_of::<PyMemoryView>() {
+        normalized = data.call_method0("tobytes")?;
+        &normalized
+    } else {
+        data
+    };
+    let buffer = PyBuffer::<u8>::get(data)?;
+    Ok(PythonPdfBytes::Owned(buffer.to_vec(py)?))
 }
 
 #[pyfunction]
@@ -514,12 +552,11 @@ fn validate_pdf(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn is_pdf_compliant_bytes(
     py: Python<'_>,
-    data: Bound<'_, PyBytes>,
+    data: Bound<'_, PyAny>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<bool> {
-    // Keep the immutable Python buffer alive while validation runs without the GIL.
-    let data = PyBackedBytes::from(data);
+    let data = python_pdf_bytes(&data, py)?;
     let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::is_pdf_compliant_bytes(data.as_ref(), &options))
         .map_err(python_validation_error)
@@ -529,12 +566,11 @@ fn is_pdf_compliant_bytes(
 #[pyo3(signature = (data, *, profile=None, limits=None))]
 fn validate_pdf_bytes(
     py: Python<'_>,
-    data: Bound<'_, PyBytes>,
+    data: Bound<'_, PyAny>,
     profile: Option<&Bound<'_, PyAny>>,
     limits: Option<&SafetyLimits>,
 ) -> PyResult<ValidationReport> {
-    // Keep the immutable Python buffer alive while validation runs without the GIL.
-    let data = PyBackedBytes::from(data);
+    let data = python_pdf_bytes(&data, py)?;
     let options = validation_options(py, profile, limits)?;
     py.detach(|| page_validation::validate_pdf_bytes(data.as_ref(), &options))
         .map(Into::into)
@@ -543,7 +579,7 @@ fn validate_pdf_bytes(
 
 #[pymodule]
 fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add("ValidationError", py.get_type::<ValidationError>())?;
+    module.add("PageError", py.get_type::<PageError>())?;
     module.add("ParseError", py.get_type::<ParseError>())?;
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;

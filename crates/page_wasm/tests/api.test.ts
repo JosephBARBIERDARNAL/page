@@ -1,12 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import * as wasm from "../dist-bun/page_validation.js";
-import {
-  createApi,
-  SafetyLimits,
-  ValidationError,
-  ValidationProfile,
-} from "../src/api.js";
+import { createApi, SafetyLimits, PageError, ValidationProfile } from "../src/api.js";
 
 const { isPdfCompliantBytes, validatePdfBytes } = createApi(wasm);
 
@@ -33,7 +28,6 @@ function minimalPdf(): Uint8Array {
 describe("page-validation", () => {
   it("exposes only the camelCase API methods", () => {
     expect(Object.keys(createApi(wasm)).sort()).toEqual([
-      "initialize",
       "isPdfCompliantBytes",
       "validatePdfBytes",
     ]);
@@ -157,19 +151,36 @@ describe("page-validation", () => {
     const jsonReport = report.toJSON();
     expect(jsonReport).toMatchObject({
       profile: "1b",
-      compliant: false,
+      is_compliant: false,
       rules: report.rules,
       checks: report.checks,
       failures: report.failures.map(({ ruleId, message }) => ({
-        rule: ruleId,
+        rule_id: ruleId,
         message,
       })),
     });
     expect(jsonReport.failures[0]).toHaveProperty("category");
     expect(jsonReport.failures[0]).toHaveProperty("object_id");
+    expect(report.failures).toEqual(
+      jsonReport.failures.map((failure) => ({
+        ruleId: failure.rule_id,
+        message: failure.message,
+        objectId:
+          failure.object_id === null
+            ? null
+            : {
+                objectNumber: failure.object_id.object_number,
+                generation: failure.object_id.generation,
+              },
+        category: failure.category,
+      })),
+    );
+    expect(jsonReport).not.toHaveProperty("file");
+    expect(jsonReport).not.toHaveProperty("compliant");
     expect(jsonReport).not.toHaveProperty("source");
     expect(jsonReport).not.toHaveProperty("document");
-    expect(jsonReport).not.toHaveProperty("is_compliant");
+    expect(report).not.toHaveProperty("file");
+    expect(report).not.toHaveProperty("compliant");
     expect(JSON.parse(report.toJson())).toEqual(jsonReport);
   });
 
@@ -179,7 +190,7 @@ describe("page-validation", () => {
     ).resolves.toBe(false);
   });
 
-  it("raises ValidationError for malformed input", async () => {
+  it("raises PageError for malformed input", async () => {
     const error = await validatePdfBytes(new TextEncoder().encode("not a PDF"), {
       profile: ValidationProfile.PDF_A_1B,
     }).then(
@@ -187,9 +198,9 @@ describe("page-validation", () => {
       (caught: unknown) => caught,
     );
 
-    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toBeInstanceOf(PageError);
     expect(error).toMatchObject({
-      name: "ValidationError",
+      name: "PageError",
       kind: "parser",
       ruleId: "PDF-PARSE-001",
     });

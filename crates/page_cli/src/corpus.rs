@@ -601,11 +601,11 @@ fn expected_rules_are_reported(expected_rules: &[String], result: &CaseValidatio
                 report
                     .failures
                     .iter()
-                    .any(|failure| failure.rule == *expected_rule)
+                    .any(|failure| failure.rule_id == *expected_rule)
                     || report
                         .error
                         .as_ref()
-                        .is_some_and(|error| error.rule == *expected_rule)
+                        .is_some_and(|error| error.rule_id == *expected_rule)
             }
         })
 }
@@ -691,13 +691,13 @@ fn print_mismatch(case: &CorpusCase, actual: i32, result: &CaseValidation) {
         CaseValidation::Error { report, .. } => {
             if let Some(error) = &report.error {
                 eprintln!("  terminal error:");
-                eprintln!("    - rule:     {}", error.rule);
+                eprintln!("    - rule:     {}", error.rule_id);
                 eprintln!("      category: {:?}", error.kind);
                 eprintln!("      message:  {}", error.message);
             }
             for failure in &report.failures {
                 eprintln!("  conformance failure:");
-                eprintln!("    - rule:     {}", failure.rule);
+                eprintln!("    - rule:     {}", failure.rule_id);
                 eprintln!("      category: conformance");
                 eprintln!("      message:  {}", failure.message);
             }
@@ -725,7 +725,7 @@ fn category_label(category: page_validation::FailureCategory) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{CaseValidation, ExpectedResult, expected_result, expected_rules_are_reported};
-    use page_validation::{JsonValidationReport, PdfError, ValidationError, ValidationProfile};
+    use page_validation::{JsonValidationReport, PageError, PdfError, ValidationProfile};
     use std::path::Path;
 
     #[test]
@@ -764,7 +764,7 @@ mod tests {
 
     #[test]
     fn requires_the_expected_rule_in_the_report() {
-        let error = ValidationError::Pdf(PdfError::UnexpectedObject("catalog"));
+        let error = PageError::Pdf(PdfError::UnexpectedObject("catalog"));
         let report = JsonValidationReport::from_validation_error(
             None,
             Some(ValidationProfile::PdfA1b),

@@ -1,6 +1,6 @@
 use page_validation::{
-    PdfError, SafetyLimits, ValidationError, ValidationOptions, ValidationProfile,
-    is_pdf_compliant, validate_pdf, validate_pdf_bytes,
+    PageError, PdfError, SafetyLimits, ValidationOptions, ValidationProfile, is_pdf_compliant,
+    validate_pdf, validate_pdf_bytes,
 };
 
 #[test]
@@ -32,14 +32,14 @@ fn unlimited_file_input_works_with_detailed_and_lazy_validation() {
     let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
     let bounded = options
         .clone()
-        .limits(SafetyLimits::unlimited().max_input_size(1));
+        .limits(SafetyLimits::unlimited().with_max_input_size(1));
     for error in [
         validate_pdf(&path, &bounded).expect_err("detailed input bound"),
         is_pdf_compliant(&path, &bounded).expect_err("lazy input bound"),
     ] {
         assert!(matches!(
             error,
-            ValidationError::Pdf(PdfError::InputTooLarge { limit: 1, .. })
+            PageError::Pdf(PdfError::InputTooLarge { limit: 1, .. })
         ));
     }
     let unlimited = options.limits(SafetyLimits::unlimited());

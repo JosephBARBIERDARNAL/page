@@ -1,6 +1,6 @@
 //! Shared presentation helpers for the CLI binaries.
 
-use page_validation::{ValidationError, ValidationErrorKind, ValidationReport};
+use page_validation::{PageError, ValidationErrorKind, ValidationReport};
 
 /// Maps a validation report to the CLI status used for pass and fail results.
 #[doc(hidden)]
@@ -10,7 +10,7 @@ pub fn validation_exit_code(report: &ValidationReport) -> i32 {
 
 /// Maps parser errors to `2`, and operational errors to `1`.
 #[doc(hidden)]
-pub fn validation_error_exit_code(error: &ValidationError) -> i32 {
+pub fn validation_error_exit_code(error: &PageError) -> i32 {
     match error.kind() {
         ValidationErrorKind::Parser => 2,
         _ => 1,

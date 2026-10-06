@@ -682,7 +682,7 @@ pub(crate) fn inspect(
                                             break;
                                         }
                                         Ok(_) => {}
-                                        Err(crate::error::ValidationError::Pdf(error))
+                                        Err(crate::error::PageError::Pdf(error))
                                             if error.is_safety_limit() =>
                                         {
                                             return Err(error);

@@ -23,11 +23,11 @@ println!("{is_compliant}");
 
 Every validation function takes a path (anything implementing `AsRef<Path>`) or bytes, plus a `&ValidationOptions`. `ValidationOptions::default()` infers the profile and uses the default [safety limits](#safety-limits); chain `.profile(...)` and `.limits(...)` to change them.
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, ValidationError>`. A missing, malformed, or unsupported profile declaration produces a `ValidationError`.
+If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, PageError>`. A missing, malformed, or unsupported profile declaration produces a `PageError`.
 
 !!! info
 
-    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same `Result<bool, ValidationError>` API but expects a `&[u8]` instead of a `&Path`.
+    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same `Result<bool, PageError>` API but expects a `&[u8]` instead of a `&Path`.
 
 ## Validate a PDF with details
 
@@ -70,7 +70,7 @@ let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
 let report = validate_pdf("document.pdf", &options);
 ```
 
-The explicit-profile call returns `Result<ValidationReport, ValidationError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration.
+The explicit-profile call returns `Result<ValidationReport, PageError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration.
 
 ## Failures
 
@@ -106,7 +106,7 @@ for failure in &report.failures {
 }
 ```
 
-Input, parser, profile, and safety-limit failures are returned as `Err(ValidationError)` and do not appear in a report. Use `ValidationError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, `SafetyLimit`, or `Conformance`, and `ValidationError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
+Input, parser, profile, and safety-limit failures are returned as `Err(PageError)` and do not appear in a report. Use `PageError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, or `SafetyLimit`, and `PageError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
 
 ## Safety limits
 
@@ -119,12 +119,12 @@ let limits = SafetyLimits::default();
 let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
 ```
 
-Customize individual bounds with chainable setters or field assignment:
+Customize individual bounds with chainable setters and inspect them through getters:
 
 ```rust
 let limits = SafetyLimits::default()
-    .max_input_size(512 * 1024 * 1024)
-    .max_decoded_stream_size(64 * 1024 * 1024);
+    .with_max_input_size(512 * 1024 * 1024)
+    .with_max_decoded_stream_size(64 * 1024 * 1024);
 ```
 
 `max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
@@ -136,11 +136,11 @@ let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
+The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().with_max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
 
 ## Check compliance
 
-Use `is_compliant` to check whether the document passed all implemented checks. Validation errors remain `Err(ValidationError)` and mean that no complete report was produced:
+Use `is_compliant` to check whether the document passed all implemented checks. Validation errors remain `Err(PageError)` and mean that no complete report was produced:
 
 ```rust
 let report = validate_pdf("file.pdf", &ValidationOptions::default())?;
