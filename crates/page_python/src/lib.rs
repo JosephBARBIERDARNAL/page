@@ -12,7 +12,7 @@ use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyOSError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyString};
+use pyo3::types::{PyBytes, PyMemoryView, PyString};
 
 create_exception!(_page, PageError, PyException);
 create_exception!(_page, ParseError, PageError);
@@ -510,6 +510,13 @@ fn python_pdf_bytes(data: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<PythonP
         )));
     }
 
+    let normalized;
+    let data = if data.is_instance_of::<PyMemoryView>() {
+        normalized = data.call_method0("tobytes")?;
+        &normalized
+    } else {
+        data
+    };
     let buffer = PyBuffer::<u8>::get(data)?;
     Ok(PythonPdfBytes::Owned(buffer.to_vec(py)?))
 }
