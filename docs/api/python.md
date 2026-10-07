@@ -16,7 +16,7 @@ The [`page-validation`](https://pypi.org/project/page-validation/) package provi
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses [lazy validation](../guide/lazy-validation.md): it stops once it finds a failing rule and returns the boolean directly:
 
 === "Validate file"
 

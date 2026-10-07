@@ -32,7 +32,7 @@ The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm)
 
 ## Check compliance of a PDF
 
-`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
+`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses [lazy validation](../guide/lazy-validation.md): it stops once it finds a failing rule and returns the boolean directly:
 
 ```ts
 import { isPdfCompliantBytes, ValidationProfile } from "page-validation-wasm";

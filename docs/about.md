@@ -12,7 +12,7 @@ When you give `page` a PDF, it reads the file and parses its structure into a **
 
 Next, `page` selects the validation profile: it uses the profile passed on the command line, or infers one from the PDF's XMP identification metadata when no profile is specified. A document is compliant only when **every rule** implemented for the selected profile passes.
 
-Internally, `page` has a "lazy" mode, which lets us be around 2x to 10x faster depending on the document. Instead of checking every possible rule, it stops at the very first one that is violated, and checks all rules only when required. This feature is automatically used when possible, and is only relevant when the document isn't compliant.
+Internally, `page` has a [lazy mode](../guide/lazy-validation.md), which lets us be around 2x to 10x faster depending on the document. Instead of checking every possible rule, it stops at the very first one that is violated, and checks all rules only when required. This feature is automatically used when possible, and is only relevant when the document isn't compliant.
 
 ## What are the alternatives?
 
