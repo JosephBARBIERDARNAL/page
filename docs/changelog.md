@@ -1,4 +1,4 @@
-## Dev
+## 0.11.0
 
 - **Doc**: Add guide on lazy validation [#377](https://github.com/JosephBARBIERDARNAL/page/issues/377)
 - **Feat**: Implement `Deserialize` for Rust JSON report types [#403](https://github.com/JosephBARBIERDARNAL/page/issues/403)
