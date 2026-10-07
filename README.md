@@ -6,16 +6,16 @@ A fast PDF accessibility and conformance checker.
 - [Installation](#installation)
 - [Usage](#quick-start)
 
-`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isarthor test suite. It's between [**3x to 12x faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
+`page` is a new, independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isartor test suite. It's between [**3x to 12x faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
 
 > [!NOTE]
-> `page` hasn't reached stable stage yet, but is getting close to it.
+> `page` hasn't reached the stable stage yet, but is getting close to it.
 
 <br>
 
 ## Installation
 
-`page` distribute pre-built binaries for macOS/Linux/Windows:
+`page` distributes pre-built binaries for macOS/Linux/Windows:
 
 ### macOS/Linux
 
@@ -42,7 +42,7 @@ Profile : PDF/UA-1
 Time    : 0.052s
 ```
 
-- Find reasons on non-conformance with `--format details`
+- Find reasons for non-conformance with `--format details`
 
 ```console
 $ page document.pdf --profile ua1 --format details
@@ -69,9 +69,20 @@ Time    : 0.147s
 ```
 
 > [!NOTE]
-> `[.........]` here are just placeholders of the actual messages
+> `[.........]` here are just placeholders for the actual messages
 
-`page` can also be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [Wasm](https://josephbarbierdarnal.github.io/page/api/wasm/).
+`page` can also be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [JavaScript](https://josephbarbierdarnal.github.io/page/api/javascript/).
+
+<br>
+
+## veraPDF compatibility
+
+> [!IMPORTANT]
+> `page` validates PDF/A (from 1 to 3) and PDF/UA-1 only, while `veraPDF` also supports other profiles such as PDF/A-4 or PDF/UA-2.
+
+`veraPDF` has and uses a [test corpus](https://github.com/veraPDF/veraPDF-corpus) with ~2000 PDF files (+ an additional 200 PDF files for the [Isartor test suite](https://pdfa.org/resource/isartor-test-suite/)). For each of these files, there is an expected failed rule that must be raised. Right now, `page` **passes all of those tests**. If you look in the CI, you'll find a job called _"veraPDF test corpus / veraPDF corpus gate"_ that runs those tests against `page` on every PR/push.
+
+A less formal proof of compatibility is that I now personally use `page` as my default PDF validator on a daily basis, and `veraPDF` to verify the results; the **output is basically the same all the time**.
 
 <br>
 

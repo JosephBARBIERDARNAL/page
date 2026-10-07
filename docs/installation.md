@@ -1,4 +1,4 @@
-`page` distribute pre-built binaries for macOS/Linux/Windows. If you're a Rust hacker, you can also install the latest dev version via Cargo.
+`page` distributes pre-built binaries for macOS/Linux/Windows. If you're a Rust hacker, you can also install the latest dev version via Cargo.
 
 !!! tip "Info"
 

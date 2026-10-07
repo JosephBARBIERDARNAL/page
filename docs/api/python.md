@@ -1,7 +1,3 @@
----
-title: "Python"
----
-
 The [`page-validation`](https://pypi.org/project/page-validation/) package provides Python bindings for page.
 
 ## Installation
@@ -20,76 +16,99 @@ The [`page-validation`](https://pypi.org/project/page-validation/) package provi
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses lazy validation: it stops once it finds a failing rule and returns the boolean directly:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses [lazy validation](../guide/lazy-validation.md): it stops once it finds a failing rule and returns the boolean directly:
 
-```python
-import page
+=== "Validate file"
 
-is_compliant: bool = page.is_pdf_compliant("file.pdf")
-```
+    ```python
+    import page
 
-Every validation function takes a path or, for the byte APIs, a bytes-like object as its only positional argument; `profile` and `limits` are keyword-only. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Parsing failures raise `page.ParseError`, resource-limit failures raise `page.SafetyLimitError`, and missing, malformed, or unsupported profile declarations raise `page.ProfileError`; all three inherit from `page.PageError`. File read failures raise `OSError`, including `FileNotFoundError` for missing paths.
+    page.is_pdf_compliant("bench/health-of-canadians-2025.pdf", profile="ua1")
+    ```
 
-!!! info
+=== "Validate bytes"
 
     If you want to run it on an in-memory PDF, use `is_pdf_compliant_bytes()`. It accepts `bytes`, `bytearray`, and `memoryview` values:
 
     ```python
+    import page
     from pathlib import Path
 
     data = bytearray(Path("document.pdf").read_bytes())
-    is_compliant = page.is_pdf_compliant_bytes(data)
+
+    page.is_pdf_compliant_bytes(data, profile="ua1")
     ```
 
 ## Validate a PDF with details
 
-If you need details about which rules failed, use `validate_pdf()`:
+If you need details about **which rules failed**, use `validate_pdf()` instead:
 
-```python
-import page
+=== "Validate file"
 
-report = page.validate_pdf("document.pdf")
+    ```python
+    import page
 
-print(report.source)
+    report = page.validate_pdf("document.pdf", profile="ua1")
 
-if report.is_compliant:
-    print("The document passed all implemented rules.")
-else:
-    print(f"{report.rules.failed} rules failed")
-    print(f"{report.checks.failed} checks failed")
-    for failure in report.failures:
-        print(f"[{failure.rule_id}] {failure.message}")
-```
+    if report.is_compliant:
+        print("The document passed all implemented rules.")
+    else:
+        print(f"{report.rules.failed} rules failed")
+        print(f"{report.checks.failed} checks failed")
+        for failure in report.failures:
+            print(f"[{failure.rule_id}] {failure.message}")
+    ```
 
-!!! info
+=== "Validate bytes"
 
     If you want to run it on an in-memory PDF, use `validate_pdf_bytes()`. It accepts `bytes`, `bytearray`, and `memoryview` values:
 
     ```python
+    import page
     from pathlib import Path
 
     data = memoryview(Path("document.pdf").read_bytes())
-    report = page.validate_pdf_bytes(data)
+
+    report = page.validate_pdf_bytes(data, profile="ua1")
     ```
 
-`report.source` contains the validated file path as a string. Reports from `validate_pdf_bytes()` have `source` set to `None`.
+## Profile selection
 
-## Select a profile explicitly
-
-Pass a profile to `validate_pdf()` when the caller, rather than the document, selects it:
+If `profile` isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will raise an error.
 
 ```python
 import page
 
-report = page.validate_pdf(
-    "document.pdf",
-    profile=page.ValidationProfile.PDF_A_1B
-)
+page.validate_pdf("document.pdf")
 ```
 
-The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `is_pdf_compliant()` or the corresponding bytes function when you only need a boolean result.
+The profile can either be a string or a `ValidationProfile`:
 
-`ValidationProfile` and `FailureCategory` are standard Python enums, so they can be iterated and expose `.name` and `.value`. `ValidationProfile` contains only profiles implemented by page, and `.value` is the compact profile string. Validation functions also accept a profile string directly, such as `profile="1b"`.
+```python
+import page
+
+# Those are equivalents
+page.validate_pdf("document.pdf", profile="ua1")
+page.validate_pdf("document.pdf", profile=page.ValidationProfile.PDF_UA_1)
+```
+
+You can find all available profiles with:
+
+```python
+list(page.ValidationProfile)
+```
+
+```python
+[<ValidationProfile.PDF_A_1B: '1b'>,
+<ValidationProfile.PDF_A_1A: '1a'>,
+<ValidationProfile.PDF_A_2B: '2b'>,
+<ValidationProfile.PDF_A_2A: '2a'>,
+<ValidationProfile.PDF_A_2U: '2u'>,
+<ValidationProfile.PDF_A_3B: '3b'>,
+<ValidationProfile.PDF_A_3A: '3a'>,
+<ValidationProfile.PDF_A_3U: '3u'>,
+<ValidationProfile.PDF_UA_1: 'ua1'>]
+```
 
 ## Failures
 
@@ -120,7 +139,7 @@ for failure in report.failures:
         print("conformance finding", failure.rule_id)
 ```
 
-Parser, profile, and safety-limit failures raise their specific `page.PageError` subclasses and do not appear in a report. File read failures use Python's `OSError` hierarchy.
+Parser, profile, and safety-limit failures raise their specific `page.PageError` subclasses.
 
 ## Safety limits
 
@@ -147,29 +166,15 @@ limits = page.SafetyLimits(
 report = page.validate_pdf("document.pdf", limits=limits)
 ```
 
-`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
-
-For trusted files, pass `page.SafetyLimits.unlimited()` through the existing limits argument:
-
-```python
-report = page.validate_pdf("document.pdf", limits=page.SafetyLimits.unlimited())
-```
-
-The factory returns a fresh object with every configurable bound set to its native integer maximum. You can restore individual bounds by assigning to its fields. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
-
-## Check compliance
-
-Use `is_compliant` to check whether the document passed all implemented checks:
+For **trusted files**, pass `page.SafetyLimits.unlimited()` through the existing limits argument:
 
 ```python
 import page
 
-report = page.validate_pdf("document.pdf")
-if not report.is_compliant:
-    print("The document failed one or more implemented checks.")
+report = page.validate_pdf("document.pdf", limits=page.SafetyLimits.unlimited())
 ```
 
-Parser, profile, and safety-limit failures raise their specific `page.PageError` subclasses before a report is returned. File read failures use Python's `OSError` hierarchy.
+The factory returns a fresh object with every configurable bound set to its native integer maximum. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
 ## Export the report
 
@@ -184,7 +189,7 @@ with open("report.json", "w") as output:
     output.write(report.to_json())
 ```
 
-Use `report.to_dict()` to get the same report structure as a Python dictionary, without parsing the JSON string yourself:
+Use `report.to_dict()` to get the same report structure as a Python dictionary:
 
 ```python
 report_data = report.to_dict()

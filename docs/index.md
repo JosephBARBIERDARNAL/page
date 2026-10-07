@@ -10,11 +10,9 @@ hide:
 
 <div class="home-hero__content" markdown>
 
-<div class="home-eyebrow">PDF accessibility and validation</div>
-
 # Fast PDF accessibility & compliance validation
 
-Check PDF documents against accessibility and compliance requirements with a Rust-based engine that runs as a CLI, Rust crate, Python package, or WebAssembly module.
+Check PDF documents against accessibility and compliance requirements with a Rust-based engine available as a CLI, Rust crate, Python package, or browser JavaScript package.
 
 [Get started](installation.md){ .md-button .md-button--primary }
 [Try the demo](demo.md){ .md-button }
@@ -44,17 +42,17 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     Check PDFs against PDF/UA-1 **accessibility requirements**.
 
-- :material-file-check-outline: **PDF/A compliance**
+- :material-file-check-outline: **Archiving**
 
     ***
 
     Validate PDF/A-1, PDF/A-2, and PDF/A-3 documents.
 
-- :material-test-tube: **Corpus-tested**
+- :material-test-tube: **veraPDF compatible**
 
     ***
 
-    Compare behavior against the **veraPDF test corpus** and the **Isartor** test suite.
+    Matches **veraPDF** behavior against the **veraPDF test corpus** as well as the **Isartor** test suite.
 
 - :material-speedometer: **Fast**
 
@@ -72,7 +70,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [WebAssembly](api/wasm.md).
+    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [JavaScript](api/javascript.md).
 
 </div>
 
@@ -145,9 +143,9 @@ Check PDF documents against accessibility and compliance requirements with a Rus
             print(f"[{failure.rule_id}] {failure.message}")
     ```
 
-=== "WebAssembly"
+=== "JavaScript"
 
-    Read a PDF as a `Uint8Array` and validate it in the browser:
+    Read a PDF as a `Uint8Array` and validate it in the browser with the WebAssembly-powered JavaScript package:
 
     ```ts
     import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";

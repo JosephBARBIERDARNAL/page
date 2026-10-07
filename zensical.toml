@@ -16,10 +16,11 @@ nav = [
     { "Usage" = [
       { "CLI" = "api/cli.md" },
       { "Rust" = "api/rust.md" },
+      { "JavaScript" = "api/javascript.md" },
       { "Python" = "api/python.md" },
-      { "WebAssembly" = "api/wasm.md" },
     ] },
     { "Guide" = [
+      { "Lazy validation" = "guide/lazy-validation.md" },
       { "Safety limits" = "guide/safety-limits.md" },
     ] },
   ] },

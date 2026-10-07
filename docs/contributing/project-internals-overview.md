@@ -21,15 +21,15 @@ flowchart TD
     class E1,E2,E3,E4 error;
 ```
 
-The parts that take the more time/ressources are:
+The parts that take the most time and resources are:
 
 - parsing the PDF, which is done via [`lopdf`](https://github.com/J-F-Liu/lopdf)
 - bounded inspections + profile rule evaluation
 
-Once the profile that needs to be validated is defined (without an explicit input, it uses the one defined in the XMP metadata of the document), we figure out which rules need to be checked for the document and step by step construct the `ValidationReport` output.
+Once the profile to validate is defined (if no profile is explicitly provided, `page` uses the one defined in the document's XMP metadata), we determine which rules need to be checked for the document and construct the `ValidationReport` output step by step.
 
-But when user do **not** request _which_ rule failed (using `is_pdf_compliant_*()` functions or using the CLI without `--format`), `page` uses **lazy** validation: it stops at the very first failed rule it can find. The main point of this is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.
+But when users do **not** request _which_ rule failed (by using the `is_pdf_compliant_*()` functions or the CLI without `--format`), `page` uses **lazy** validation: it stops at the very first failed rule it finds. The main point is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.
 
 ## AI coding
 
-`page` repo contains an `AGENTS.md` file for instructions for AI agents.
+The `page` repository contains an `AGENTS.md` file with instructions for AI agents. If you contribute to `page`, you're expected to be accountable for the changes you make.

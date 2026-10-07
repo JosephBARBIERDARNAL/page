@@ -1,6 +1,6 @@
 Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of 10 measured runs with 2 warmup runs.
 
-The benchmark uses publicly available documents, you can find them [here](https://github.com/JosephBARBIERDARNAL/page-fixtures).
+The benchmark uses publicly available documents, which you can find [here](https://github.com/JosephBARBIERDARNAL/page-fixtures).
 
 | Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |
 | --- | ---: | ---: | ---: | ---: | ---: |
