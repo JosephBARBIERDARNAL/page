@@ -121,7 +121,7 @@ Failure categories describe findings from rules that ran on a parsed document:
 ```ts
 import { validatePdfBytes } from "page-validation-wasm";
 
-const report = await validatePdfBytes(bytes);
+const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 
 for (const failure of report.failures) {
   if (failure.category === "metadata") {

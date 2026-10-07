@@ -20,6 +20,7 @@ nav = [
       { "Python" = "api/python.md" },
     ] },
     { "Guide" = [
+      { "Lazy validation" = "guide/lazy-validation.md" },
       { "Safety limits" = "guide/safety-limits.md" },
     ] },
   ] },
