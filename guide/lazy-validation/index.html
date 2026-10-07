@@ -12,13 +12,13 @@
         <meta name="author" content="Joseph Barbier">
       
       
-        <link rel="canonical" href="https://josephbarbierdarnal.github.io/page/guide/safety-limits/">
+        <link rel="canonical" href="https://josephbarbierdarnal.github.io/page/guide/lazy-validation/">
       
       
-        <link rel="prev" href="../lazy-validation/">
+        <link rel="prev" href="../../api/python/">
       
       
-        <link rel="next" href="../../benchmark/">
+        <link rel="next" href="../safety-limits/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Safety limits - page</title>
+        <title>Lazy validation - page</title>
       
     
     
@@ -140,7 +140,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Safety limits
+              Lazy validation
             
           </span>
         </div>
@@ -841,10 +841,17 @@
                   
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../lazy-validation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -859,6 +866,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -868,34 +876,10 @@
                   
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Safety limits
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../safety-limits/" class="md-nav__link">
         
   
   
@@ -910,47 +894,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#disable-all-safety-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Disable all safety limits
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#restore-an-individual-limit" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Restore an individual limit
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1131,11 +1074,6 @@
                     
                     
                     
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
-                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1145,36 +1083,6 @@
   
   
   
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#disable-all-safety-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Disable all safety limits
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#restore-an-individual-limit" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Restore an individual limit
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1276,7 +1184,7 @@
     
     
       <li class="md-path__item">
-        <a href="../lazy-validation/" class="md-path__link">
+        <a href="././" class="md-path__link">
           
   
   <span class="md-ellipsis">
@@ -1302,133 +1210,52 @@
   
 
 
-  <h1>Safety limits</h1>
+  <h1>Lazy validation</h1>
 
-<p>To limit resource use when processing untrusted PDFs, <code>page</code> enforces configurable bounds on input size, decoded data, parsed objects, reference depth, and selected inspection work.</p>
-<table>
-<thead>
-<tr>
-<th>CLI option</th>
-<th style="text-align: right;">Default</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--max-input-size</code></td>
-<td style="text-align: right;">256 MiB</td>
-<td>Maximum input file size.</td>
-</tr>
-<tr>
-<td><code>--max-decoded-stream-size</code></td>
-<td style="text-align: right;">32 MiB</td>
-<td>Maximum decoded size of one stream.</td>
-</tr>
-<tr>
-<td><code>--max-total-decoded-content-size</code></td>
-<td style="text-align: right;">256 MiB</td>
-<td>Maximum combined decoded content and retained font-stream data.</td>
-</tr>
-<tr>
-<td><code>--max-form-invocations</code></td>
-<td style="text-align: right;">10,000</td>
-<td>Maximum Form XObject expansions across one document.</td>
-</tr>
-<tr>
-<td><code>--max-object-count</code></td>
-<td style="text-align: right;">1,000,000</td>
-<td>Maximum number of parsed indirect objects.</td>
-</tr>
-<tr>
-<td><code>--max-reference-depth</code></td>
-<td style="text-align: right;">256</td>
-<td>Maximum reference-chain depth.</td>
-</tr>
-<tr>
-<td><code>--max-xref-revisions</code></td>
-<td style="text-align: right;">1,024</td>
-<td>Maximum number of incremental-update revisions read from the cross-reference chain.</td>
-</tr>
-<tr>
-<td><code>--max-table-span</code></td>
-<td style="text-align: right;">1,024</td>
-<td>Maximum number of rows or columns covered by one table cell.</td>
-</tr>
-<tr>
-<td><code>--max-table-grid-rows</code></td>
-<td style="text-align: right;">1,024</td>
-<td>Maximum number of rows represented in an inspected table grid.</td>
-</tr>
-<tr>
-<td><code>--max-table-grid-columns</code></td>
-<td style="text-align: right;">1,024</td>
-<td>Maximum number of columns represented in an inspected table grid.</td>
-</tr>
-<tr>
-<td><code>--max-table-grid-cells</code></td>
-<td style="text-align: right;">1,000,000</td>
-<td>Maximum number of cells represented in an inspected table grid.</td>
-</tr>
-<tr>
-<td><code>--max-unicode-cmap-mappings</code></td>
-<td style="text-align: right;">1,000,000</td>
-<td>Maximum number of mappings expanded from one ToUnicode CMap.</td>
-</tr>
-</tbody>
-</table>
-<p>The defaults should be large enough for most files while bounding resource use. You can adjust individual limits or disable all of them for a validation call.</p>
-<h2 id="disable-all-safety-limits">Disable all safety limits<a class="headerlink" href="#disable-all-safety-limits" title="Permanent link">&para;</a></h2>
-<p><strong>Use unlimited limits only with trusted files.</strong> Disabling these bounds allows validation to consume unrestricted memory and CPU, subject to the platform's capacity. Keep the default limits when processing untrusted PDFs.</p>
-<p>In the CLI, pass <code>--disable-safety-limits</code>:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--disable-safety-limits
-</span></code></pre></div>
-<p>The flag cannot be combined with any explicit <code>--max-*</code> option, even if that option specifies its default value.</p>
-<p>In Rust, Python, and JavaScript, pass the unlimited preset through the <code>limits</code> option:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Rust</label><label for="__tabbed_1_2">Python</label><label for="__tabbed_1_3">JavaScript</label></div>
+<p>Internally, <code>page</code> has 2 validation modes: <em>exhaustive</em> and <em>lazy</em>. Whether it should use one or the other only depends on what the user asks for and is <strong>automatically handled</strong>. The <em>lazy</em> mode will return <em><em>as early as possible</em></em> and avoid spending time checking rules if the user only cares about whether the PDF is compliant or not.</p>
+<p>In practice, the <em>lazy</em> mode will stop at the very first failed rule it finds, while the <em>exhaustive</em> mode runs all individual rule checks before returning its report.</p>
+<p>For example:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Lazy</label><label for="__tabbed_1_2">Exhaustive</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">SafetyLimits</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">limits</span><span class="p">(</span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">unlimited</span><span class="p">());</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>ua1
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">Result  : Non-conformant</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">Profile : PDF/UA-1</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">Time    : 0.052s</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">page</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">validate_pdf</span><span class="p">(</span><span class="s2">"document.pdf"</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="n">page</span><span class="o">.</span><span class="n">SafetyLimits</span><span class="o">.</span><span class="n">unlimited</span><span class="p">())</span>
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-js highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">SafetyLimits</span><span class="p">,</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"page-validation-wasm"</span><span class="p">;</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">const</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">validatePdfBytes</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">limits</span><span class="o">:</span><span class="w"> </span><span class="nx">SafetyLimits</span><span class="p">.</span><span class="nx">unlimited</span><span class="p">()</span><span class="w"> </span><span class="p">});</span>
-</span></code></pre></div>
-</div>
-</div>
-</div>
-<p>The same preset works with the bytes and compliance-only functions. Existing calls continue to use the default safety limits when no preset is supplied.</p>
-<p>The preset sets all 12 configurable bounds to their native integer maxima. Rust and Python expose those integer values; JavaScript exposes <code>Infinity</code>, which the WebAssembly layer translates to native integer maxima. Platform bounds, cycle detection, arithmetic checks, parser validity checks, and PDF conformance requirements remain active.</p>
-<h2 id="restore-an-individual-limit">Restore an individual limit<a class="headerlink" href="#restore-an-individual-limit" title="Permanent link">&para;</a></h2>
-<p>Each factory returns a fresh limits object. Library callers can start with unlimited limits and restore selected bounds:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Rust</label><label for="__tabbed_2_2">Python</label><label for="__tabbed_2_3">JavaScript</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">unlimited</span><span class="p">().</span><span class="n">with_max_input_size</span><span class="p">(</span><span class="mi">512</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">);</span>
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">limits</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">SafetyLimits</span><span class="o">.</span><span class="n">unlimited</span><span class="p">()</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">limits</span><span class="o">.</span><span class="n">max_input_size</span> <span class="o">=</span> <span class="mi">512</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-js highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">SafetyLimits</span><span class="p">.</span><span class="nx">unlimited</span><span class="p">();</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nx">limits</span><span class="p">.</span><span class="nx">maxInputSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">512</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1024</span><span class="p">;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>ua1<span class="w"> </span>--format<span class="w"> </span>details
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">Result  : Non-conformant</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">Rules   : 11 failed rules / 134 total</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">Checks  : 24 failed checks</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">Profile : PDF/UA-1</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">Time    : 0.147s</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">[PDFUA1-ALT-TEXT-LANGUAGE-001] [.........]</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">[PDFUA1-CONTENT-TAGGING-001] [.........]</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="go">[PDFUA1-FIGURE-ALTERNATIVE-TEXT-001] [.........]</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">[PDFUA1-HEADING-NESTING-001] [.........]</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go">[PDFUA1-ID-PART-001] [.........]</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="go">[PDFUA1-ID-SCHEMA-001] [.........]</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="go">[PDFUA1-LINK-CONTENTS-001] [.........]</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="go">[PDFUA1-METADATA-TITLE-001] [.........]</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="go">[PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001] [.........]</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="go">[PDFUA1-TABLE-COLUMN-ROWSPAN-001] [.........]</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="go">[PDFUA1-TABLE-HEADERS-SCOPE-001] [.........]</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="go">[PDFUA1-TABLE-ROW-COLUMNSPAN-001] [.........]</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="go">[PDFUA1-TAGGED-DOCUMENT-001] [.........]</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="go">[PDFUA1-TEXT-LANGUAGE-001] [.........]</span>
 </span></code></pre></div>
 </div>
 </div>
 </div>
+<p>In the CLI, if you don't specify either <code>--format details</code> or <code>--format json</code>, the output is reduced and often <strong>much faster</strong>. Performance improvements can vary a lot depending on the document, but you can easily expect something between 2x and 10x most of the time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On a conformant document, <em>lazy</em> and <em>exhaustive</em> modes behave exactly the same.</p>
+</div>
+<p>If you use <code>page</code> from Rust, Python, or JavaScript, the <em>lazy</em> mode is used when calling <code>is_pdf_compliant</code>-like functions. <code>validate_pdf</code>-like functions will use <em>exhaustive</em> mode.</p>
 
 
 
@@ -1466,7 +1293,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../lazy-validation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lazy validation">
+          <a href="../../api/python/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Python">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1476,20 +1303,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Lazy validation
+                Python
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../benchmark/" class="md-footer__link md-footer__link--next" aria-label="Next: Benchmark">
+          <a href="../safety-limits/" class="md-footer__link md-footer__link--next" aria-label="Next: Safety limits">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Benchmark
+                Safety limits
               </div>
             </div>
             <div class="md-footer__button md-icon">

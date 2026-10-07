@@ -778,10 +778,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#how-does-it-work" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        How it works?
+        How does it work?
       </span>
     </span>
   </a>
@@ -866,10 +866,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#how-does-it-work" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        How it works?
+        How does it work?
       </span>
     </span>
   </a>
@@ -932,10 +932,10 @@
 <p><code>page</code> is, at its core, a PDF validation engine. In more practical terms, it verifies that a given PDF file complies with certain standards. For example, for a PDF to be considered accessible, it is often required to be PDF/UA-1 compliant.</p>
 <p>Since the creation of the PDF format more than 30 years ago, many different variants have appeared, each with a different purpose. For example, all PDF/A formats (around 10) focus on archival preservation, ensuring that a PDF created in the 2000s will still open decades from now, while PDF/UA formats (UA-1 and UA-2) focus on accessibility, ensuring that everyone, including people with visual disabilities, can use a PDF.</p>
 <p><code>page</code> aims to make that verification easy, fast, and free.</p>
-<h2 id="how-it-works">How it works?<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<h2 id="how-does-it-work">How does it work?<a class="headerlink" href="#how-does-it-work" title="Permanent link">&para;</a></h2>
 <p>When you give <code>page</code> a PDF, it reads the file and parses its structure into a <strong>normalized document model</strong>. This model brings together the PDF object graph and the information needed for validation, such as metadata, XMP declarations, output intents, fonts, pages, annotations, forms, and content streams. Parsing is done via <a href="https://github.com/J-F-Liu/lopdf">lopdf</a>, and is kept separate from conformance checks, so malformed input or resource-limit failures can be reported distinctly from a PDF that simply violates a standard.</p>
 <p>Next, <code>page</code> selects the validation profile: it uses the profile passed on the command line, or infers one from the PDF's XMP identification metadata when no profile is specified. A document is compliant only when <strong>every rule</strong> implemented for the selected profile passes.</p>
-<p>Internally, <code>page</code> has a "lazy" mode, which lets us be around 2x to 10x faster depending on the document. Instead of checking for every possible rule, it stops at the very first one that is violated, and only all rules checked when it's required. This feature is automatically used when possible, and only relevant when the document isn't compliant.</p>
+<p>Internally, <code>page</code> has a <a href="../../guide/lazy-validation/">lazy mode</a>, which lets us be around 2x to 10x faster depending on the document. Instead of checking every possible rule, it stops at the very first one that is violated, and checks all rules only when required. This feature is automatically used when possible, and is only relevant when the document isn't compliant.</p>
 <h2 id="what-are-the-alternatives">What are the alternatives?<a class="headerlink" href="#what-are-the-alternatives" title="Permanent link">&para;</a></h2>
 <p>There are multiple projects that attempt to provide a PDF validator, but only one is:</p>
 <ul>
@@ -946,7 +946,7 @@
 </ul>
 <p>This project is <a href="https://verapdf.org/">veraPDF</a>. It is, by far, the <strong>best option available</strong> out there. Other options such as <a href="https://pac.pdf-accessibility.org/en">PAC</a> or <a href="https://www.adobe.com/">Adobe Acrobat</a> meet only a subset of those criteria.</p>
 <p><code>veraPDF</code> supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a <span class="pretty-highlight">very complicated task</span>. You can understand why that is and how <code>veraPDF</code> does it in this great <a href="https://pdfa.org/how-verapdf-does-pdfa-validation/">blog post</a>.</p>
-<p><code>page</code> uses heavily <code>veraPDF</code> as the source of truth to validate or not if what <code>page</code> does is correct.</p>
+<p><code>page</code> relies heavily on <code>veraPDF</code> as the source of truth when determining whether its results are correct.</p>
 <h2 id="why-are-there-multiple-pdf-formats">Why are there multiple PDF formats?<a class="headerlink" href="#why-are-there-multiple-pdf-formats" title="Permanent link">&para;</a></h2>
 <p>The PDF specification is intentionally broad: it supports features ranging from interactive forms and multimedia to encryption, JavaScript, and digital signatures. This flexibility makes PDF suitable for many use cases, but it also makes it impossible to guarantee that every PDF will behave consistently across all software and over long periods of time.</p>
 <p>To address this, the ISO standard defines a number of <strong>specialized PDF profiles</strong>. Each profile restricts or requires certain features to guarantee a particular property.</p>

@@ -1043,15 +1043,15 @@ flowchart TD
 
     classDef error fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
     class E1,E2,E3,E4 error;</code></pre>
-<p>The parts that take the more time/ressources are:</p>
+<p>The parts that take the most time and resources are:</p>
 <ul>
 <li>parsing the PDF, which is done via <a href="https://github.com/J-F-Liu/lopdf"><code>lopdf</code></a></li>
 <li>bounded inspections + profile rule evaluation</li>
 </ul>
-<p>Once the profile that needs to be validated is defined (without an explicit input, it uses the one defined in the XMP metadata of the document), we figure out which rules need to be checked for the document and step by step construct the <code>ValidationReport</code> output.</p>
-<p>But when user do <strong>not</strong> request <em>which</em> rule failed (using <code>is_pdf_compliant_*()</code> functions or using the CLI without <code>--format</code>), <code>page</code> uses <strong>lazy</strong> validation: it stops at the very first failed rule it can find. The main point of this is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.</p>
+<p>Once the profile to validate is defined (if no profile is explicitly provided, <code>page</code> uses the one defined in the document's XMP metadata), we determine which rules need to be checked for the document and construct the <code>ValidationReport</code> output step by step.</p>
+<p>But when users do <strong>not</strong> request <em>which</em> rule failed (by using the <code>is_pdf_compliant_*()</code> functions or the CLI without <code>--format</code>), <code>page</code> uses <strong>lazy</strong> validation: it stops at the very first failed rule it finds. The main point is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.</p>
 <h2 id="ai-coding">AI coding<a class="headerlink" href="#ai-coding" title="Permanent link">&para;</a></h2>
-<p><code>page</code> repo contains an <code>AGENTS.md</code> file for instructions for AI agents.</p>
+<p>The <code>page</code> repository contains an <code>AGENTS.md</code> file with instructions for AI agents. If you contribute to <code>page</code>, you're expected to be accountable for the changes you make.</p>
 
 
 

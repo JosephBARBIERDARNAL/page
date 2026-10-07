@@ -10,13 +10,13 @@
         <loc>https://josephbarbierdarnal.github.io/page/api/cli/</loc>
       </url>
       <url>
+        <loc>https://josephbarbierdarnal.github.io/page/api/javascript/</loc>
+      </url>
+      <url>
         <loc>https://josephbarbierdarnal.github.io/page/api/python/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/api/rust/</loc>
-      </url>
-      <url>
-        <loc>https://josephbarbierdarnal.github.io/page/api/wasm/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/benchmark/</loc>
@@ -38,6 +38,9 @@
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/demo/</loc>
+      </url>
+      <url>
+        <loc>https://josephbarbierdarnal.github.io/page/guide/lazy-validation/</loc>
       </url>
       <url>
         <loc>https://josephbarbierdarnal.github.io/page/guide/safety-limits/</loc>

@@ -18,7 +18,7 @@
         <link rel="prev" href="../cli/">
       
       
-        <link rel="next" href="../python/">
+        <link rel="next" href="../javascript/">
       
       
         
@@ -780,10 +780,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#select-a-profile-explicitly" class="md-nav__link">
+  <a href="#profile-selection" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Select a profile explicitly
+        Profile selection
       </span>
     </span>
   </a>
@@ -813,10 +813,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#check-compliance" class="md-nav__link">
+  <a href="#export-the-report" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Check compliance
+        Export the report
       </span>
     </span>
   </a>
@@ -827,6 +827,33 @@
   
 </nav>
       
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../javascript/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  JavaScript
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -859,33 +886,6 @@
 
                 
               
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../wasm/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  WebAssembly
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
             </ul>
           </nav>
         
@@ -903,6 +903,8 @@
   
     
     
+      
+        
       
         
       
@@ -954,6 +956,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/lazy-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Lazy validation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1212,10 +1241,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#select-a-profile-explicitly" class="md-nav__link">
+  <a href="#profile-selection" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Select a profile explicitly
+        Profile selection
       </span>
     </span>
   </a>
@@ -1245,10 +1274,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#check-compliance" class="md-nav__link">
+  <a href="#export-the-report" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Check compliance
+        Export the report
       </span>
     </span>
   </a>
@@ -1389,108 +1418,162 @@
 
   <h1>Rust</h1>
 
-<p>The <a href="https://crates.io/crates/page_validation"><code>page_validation</code></a> crate validates PDF files against a supported PDF/A or PDF/UA profile. This page contains most common usages, but you can find reference documentation at <a href="https://docs.rs/page_validation/latest/page_validation/index.html">docs.rs</a>.</p>
+<p>The <a href="https://crates.io/crates/page_validation"><code>page_validation</code></a> crate validates PDF files against a supported PDF/A or PDF/UA profile. This page contains the most common uses, but you can find reference documentation at <a href="https://docs.rs/page_validation/latest/page_validation/index.html">docs.rs</a>.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo<span class="w"> </span>add<span class="w"> </span>page_validation
 </span></code></pre></div>
 <h2 id="check-compliance-of-a-pdf">Check compliance of a PDF<a class="headerlink" href="#check-compliance-of-a-pdf" title="Permanent link">&para;</a></h2>
-<p><code>is_pdf_compliant()</code> is the fastest way to get a simple true/false compliance result against a profile. It uses <strong>lazy validation</strong>: it stops once it finds a failing rule and returns the boolean directly:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">is_pdf_compliant</span><span class="p">};</span>
+<p><code>is_pdf_compliant()</code> is the fastest way to get a simple true/false compliance result for a profile. It uses <a href="../../guide/lazy-validation/">lazy validation</a>: it stops once it finds a failing rule and returns the boolean directly:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Validate file</label><label for="__tabbed_1_2">Validate bytes</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">is_pdf_compliant</span><span class="p">};</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">is_compliant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_pdf_compliant</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="fm">println!</span><span class="p">(</span><span class="s">"{is_compliant}"</span><span class="p">);</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">);</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">is_pdf_compliant</span><span class="p">(</span><span class="s">"bench/health-of-canadians-2025.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
 </span></code></pre></div>
-<p>Every validation function takes a path (anything implementing <code>AsRef&lt;Path&gt;</code>) or bytes, plus a <code>&amp;ValidationOptions</code>. <code>ValidationOptions::default()</code> infers the profile and uses the default <a href="#safety-limits">safety limits</a>; chain <code>.profile(...)</code> and <code>.limits(...)</code> to change them.</p>
-<p>If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns <code>Result&lt;bool, PageError&gt;</code>. A missing, malformed, or unsupported profile declaration produces a <code>PageError</code>.</p>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>If you want to run it on bytes instead of a file, use <code>is_pdf_compliant_bytes()</code>, which provides the same <code>Result&lt;bool, PageError&gt;</code> API but expects a <code>&amp;[u8]</code> instead of a <code>&amp;Path</code>.</p>
+</div>
+<div class="tabbed-block">
+<p>If you want to run it on bytes in memory, use <code>is_pdf_compliant_bytes()</code>. It accepts a <code>&amp;[u8]</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">is_pdf_compliant_bytes</span><span class="p">};</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">fs</span><span class="p">;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">::</span><span class="n">read</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">);</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">is_pdf_compliant_bytes</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
 </div>
 <h2 id="validate-a-pdf-with-details">Validate a PDF with details<a class="headerlink" href="#validate-a-pdf-with-details" title="Permanent link">&para;</a></h2>
-<p>If you need details about which rule failed, use <code>validate_pdf()</code>:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">if</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">is_compliant</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"The document passed all implemented rules."</span><span class="p">);</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"{} rules failed"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">rules</span><span class="p">.</span><span class="n">failed</span><span class="p">);</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"{} checks failed"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">checks</span><span class="p">.</span><span class="n">failed</span><span class="p">);</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">        </span><span class="fm">eprintln!</span><span class="p">(</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">            </span><span class="s">"[{}] {}"</span><span class="p">,</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">            </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">,</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">            </span><span class="n">failure</span><span class="p">.</span><span class="n">message</span><span class="p">,</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">        </span><span class="p">);</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="p">}</span>
-</span></code></pre></div>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>If you want to run it on bytes instead of a file, use <code>validate_pdf_bytes()</code>, which provides the same API but expects a <code>&amp;[u8]</code> instead of a <code>&amp;Path</code>.</p>
-</div>
-<p>Every returned report includes <code>report.document</code>, a <code>PdfDocument</code> summary with public <code>version</code>, <code>encrypted</code>, <code>page_count</code>, and <code>object_count</code> fields. Access these fields directly without unwrapping an <code>Option</code>. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through <code>validate_pdf()</code> or <code>validate_pdf_bytes()</code>.</p>
-<h2 id="select-a-profile-explicitly">Select a profile explicitly<a class="headerlink" href="#select-a-profile-explicitly" title="Permanent link">&para;</a></h2>
-<p>Set a profile in the options when the caller, rather than the document, selects it:</p>
+<p>If you need details about <strong>which rules failed</strong>, use <code>validate_pdf()</code> instead:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Validate file</label><label for="__tabbed_2_2">Validate bytes</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA1b</span><span class="p">);</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">);</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">);</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">if</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">is_compliant</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"The document passed all implemented rules."</span><span class="p">);</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"{} rules failed"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">rules</span><span class="p">.</span><span class="n">failed</span><span class="p">);</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"{} checks failed"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">checks</span><span class="p">.</span><span class="n">failed</span><span class="p">);</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">"[{}] {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">message</span><span class="p">);</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>The explicit-profile call returns <code>Result&lt;ValidationReport, PageError&gt;</code>. Unlike profile inference, it does not require the document to contain a usable profile declaration.</p>
+</div>
+<div class="tabbed-block">
+<p>If you want to run it on bytes in memory, use <code>validate_pdf_bytes()</code>. It accepts a <code>&amp;[u8]</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf_bytes</span><span class="p">};</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">fs</span><span class="p">;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">::</span><span class="n">read</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">);</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf_bytes</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="profile-selection">Profile selection<a class="headerlink" href="#profile-selection" title="Permanent link">&para;</a></h2>
+<p>If <code>profile</code> isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will return a <code>PageError</code>.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+<p>The profile can be a <code>ValidationProfile</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationProfile</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">profile</span><span class="p">(</span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">);</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+<p>You can find all available profiles with:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::</span><span class="n">ValidationProfile</span><span class="p">;</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">[</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA1b</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA1a</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA2b</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA2a</span><span class="p">,</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA2u</span><span class="p">,</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA3b</span><span class="p">,</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA3a</span><span class="p">,</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfA3u</span><span class="p">,</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="n">ValidationProfile</span><span class="p">::</span><span class="n">PdfUa1</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="p">];</span>
+</span></code></pre></div>
 <h2 id="failures">Failures<a class="headerlink" href="#failures" title="Permanent link">&para;</a></h2>
 <p>Each report contains a list of failures:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Rule: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">);</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Category: {:?}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">category</span><span class="p">);</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Message: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">message</span><span class="p">);</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Rule: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">);</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Category: {:?}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">category</span><span class="p">);</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Message: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">message</span><span class="p">);</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><code>report.rules</code> contains the total, passed, and failed implemented rules. <code>report.checks.failed</code> counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.</p>
 <p>Failure categories describe findings from rules that ran on a parsed document:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::</span><span class="n">FailureCategory</span><span class="p">;</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="k">match</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">category</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">        </span><span class="n">FailureCategory</span><span class="p">::</span><span class="n">Metadata</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* XMP or document-information finding. */</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="n">FailureCategory</span><span class="p">::</span><span class="n">Conformance</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* PDF/A or PDF/UA rule finding. */</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="n">_</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">            </span><span class="c1">// Handle categories added by future releases.</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">}</span>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::</span><span class="n">FailureCategory</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">for</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">failures</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="k">match</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">category</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">        </span><span class="n">FailureCategory</span><span class="p">::</span><span class="n">Metadata</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="fm">println!</span><span class="p">(</span><span class="s">"metadata finding {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">),</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="n">FailureCategory</span><span class="p">::</span><span class="n">Conformance</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="fm">println!</span><span class="p">(</span><span class="s">"conformance finding {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">),</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">        </span><span class="n">_</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="fm">println!</span><span class="p">(</span><span class="s">"finding from a future category {}"</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="n">rule_id</span><span class="p">),</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>Input, parser, profile, and safety-limit failures are returned as <code>Err(PageError)</code> and do not appear in a report. Use <code>PageError::kind()</code> to classify them as <code>InputIo</code>, <code>Parser</code>, <code>Profile</code>, or <code>SafetyLimit</code>, and <code>PageError::rule_id()</code> to get the associated rule identifier; handle them with <code>?</code>, <code>match</code>, or <code>map_err</code>.</p>
+<p>Input, parser, profile, and safety-limit failures return their specific <code>PageError</code> and do not appear in a report. Use <code>PageError::kind()</code> to classify them as <code>InputIo</code>, <code>Parser</code>, <code>Profile</code>, or <code>SafetyLimit</code>, and <code>PageError::rule_id()</code> to get the associated rule identifier.</p>
 <h2 id="safety-limits">Safety limits<a class="headerlink" href="#safety-limits" title="Permanent link">&para;</a></h2>
 <p>Safety limits protect the validator from excessively large or complex inputs. Defaults are sufficient for most cases:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">SafetyLimits</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">default</span><span class="p">();</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">limits</span><span class="p">(</span><span class="n">limits</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">SafetyLimits</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">default</span><span class="p">()</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_input_size</span><span class="p">(</span><span class="mi">256</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">)</span><span class="w"> </span><span class="c1">// 256 MiB</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_decoded_stream_size</span><span class="p">(</span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">)</span><span class="w"> </span><span class="c1">// 32 MiB</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_total_decoded_content_size</span><span class="p">(</span><span class="mi">256</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">)</span><span class="w"> </span><span class="c1">// 256 MiB</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_form_invocations</span><span class="p">(</span><span class="mi">10_000</span><span class="p">)</span><span class="w"> </span><span class="c1">// Form XObject expansions per document</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_object_count</span><span class="p">(</span><span class="mi">1_000_000</span><span class="p">)</span><span class="w"> </span><span class="c1">// 1,000,000 objects</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_reference_depth</span><span class="p">(</span><span class="mi">256</span><span class="p">)</span><span class="w"> </span><span class="c1">// 256 levels</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_xref_revisions</span><span class="p">(</span><span class="mi">1_024</span><span class="p">)</span><span class="w"> </span><span class="c1">// 1,024 revisions</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_table_span</span><span class="p">(</span><span class="mi">1_024</span><span class="p">)</span><span class="w"> </span><span class="c1">// rows or columns per cell</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_table_grid_rows</span><span class="p">(</span><span class="mi">1_024</span><span class="p">)</span><span class="w"> </span><span class="c1">// rows</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_table_grid_columns</span><span class="p">(</span><span class="mi">1_024</span><span class="p">)</span><span class="w"> </span><span class="c1">// columns</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_table_grid_cells</span><span class="p">(</span><span class="mi">1_000_000</span><span class="p">)</span><span class="w"> </span><span class="c1">// cells</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_unicode_cmap_mappings</span><span class="p">(</span><span class="mi">1_000_000</span><span class="p">);</span><span class="w"> </span><span class="c1">// mappings per ToUnicode CMap</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">limits</span><span class="p">(</span><span class="n">limits</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
 </span></code></pre></div>
-<p>Customize individual bounds with chainable setters and inspect them through getters:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">default</span><span class="p">()</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_input_size</span><span class="p">(</span><span class="mi">512</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="p">.</span><span class="n">with_max_decoded_stream_size</span><span class="p">(</span><span class="mi">64</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">);</span>
+<p>For <strong>trusted files</strong>, pass <code>SafetyLimits::unlimited()</code> through the options:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">SafetyLimits</span><span class="p">,</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">limits</span><span class="p">(</span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">unlimited</span><span class="p">());</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
 </span></code></pre></div>
-<p><code>max_decoded_stream_size</code> bounds one decoded stream and <code>max_total_decoded_content_size</code> bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. <code>max_form_invocations</code> bounds Form XObject expansions across all pages and nested content in one document. <code>max_xref_revisions</code> bounds the number of incremental-update revisions read from the cross-reference chain. <code>max_table_span</code> bounds the row or column span of an individual tagged-table cell. <code>max_table_grid_rows</code>, <code>max_table_grid_columns</code>, and <code>max_table_grid_cells</code> bound the derived table-grid dimensions and total cells. <code>max_unicode_cmap_mappings</code> bounds the total mappings expanded from one ToUnicode CMap.</p>
-<p>For trusted files, pass <code>SafetyLimits::unlimited()</code> through the options:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">().</span><span class="n">limits</span><span class="p">(</span><span class="n">SafetyLimits</span><span class="p">::</span><span class="n">unlimited</span><span class="p">());</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<p>The factory sets every configurable bound to its native integer maximum. Validation may consume unrestricted memory and CPU; see the <a href="../../guide/safety-limits/">safety limits guide</a> for details about each limit.</p>
+<h2 id="export-the-report">Export the report<a class="headerlink" href="#export-the-report" title="Permanent link">&para;</a></h2>
+<p>Validation reports can be exported as JSON. Add <code>serde_json</code> to your project to serialize the stable report structure:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>cargo<span class="w"> </span>add<span class="w"> </span>serde_json
 </span></code></pre></div>
-<p>The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example <code>SafetyLimits::unlimited().with_max_input_size(512 * 1024 * 1024)</code>. Validation may consume unrestricted memory and CPU; see the <a href="../../guide/safety-limits/">safety limits guide</a>.</p>
-<h2 id="check-compliance">Check compliance<a class="headerlink" href="#check-compliance" title="Permanent link">&para;</a></h2>
-<p>Use <code>is_compliant</code> to check whether the document passed all implemented checks. Validation errors remain <code>Err(PageError)</code> and mean that no complete report was produced:</p>
-<div class="language-rust highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"file.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="n">report</span><span class="p">.</span><span class="n">is_compliant</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="fm">eprintln!</span><span class="p">(</span><span class="s">"The document failed one or more implemented checks."</span><span class="p">);</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">}</span>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">use</span><span class="w"> </span><span class="n">page_validation</span><span class="p">::{</span><span class="n">ValidationOptions</span><span class="p">,</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">};</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">validate_pdf</span><span class="p">(</span><span class="s">"document.pdf"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ValidationOptions</span><span class="p">::</span><span class="n">default</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">serde_json</span><span class="p">::</span><span class="n">to_string</span><span class="p">(</span><span class="o">&amp;</span><span class="n">report</span><span class="p">.</span><span class="n">json_report</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
 </span></code></pre></div>
+<p>Use <code>report.json_report()</code> to get the same report structure as a Rust value:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">let</span><span class="w"> </span><span class="n">report_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">json_report</span><span class="p">();</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="fm">println!</span><span class="p">(</span><span class="s">"{}"</span><span class="p">,</span><span class="w"> </span><span class="n">report_data</span><span class="p">.</span><span class="n">is_compliant</span><span class="p">);</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="fm">println!</span><span class="p">(</span><span class="s">"{}"</span><span class="p">,</span><span class="w"> </span><span class="n">report_data</span><span class="p">.</span><span class="n">failures</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span></code></pre></div>
+<p>Each JSON failure includes <code>category</code> (<code>metadata</code> or <code>conformance</code>) and <code>object_id</code>. The object ID contains <code>object_number</code> and <code>generation</code> when the finding is attributed to an indirect object, and is <code>null</code> otherwise.</p>
 
 
 
@@ -1499,9 +1582,6 @@
 
 
 
-
-  
-  
 
 
 
@@ -1548,13 +1628,13 @@
         
         
           
-          <a href="../python/" class="md-footer__link md-footer__link--next" aria-label="Next: Python">
+          <a href="../javascript/" class="md-footer__link md-footer__link--next" aria-label="Next: JavaScript">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Python
+                JavaScript
               </div>
             </div>
             <div class="md-footer__button md-icon">
