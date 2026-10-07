@@ -1,13 +1,14 @@
-# page
+<img src="docs/images/logo-on-light.svg" alt="page logo" align="right" width="50px"/>
+
+<center><h1>page</h1></center>
 
 A fast PDF accessibility and conformance checker.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
 - [Usage](#quick-start)
-- [License](#license)
 
-`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isarthor test suite. It's between **3x to 12x faster** than veraPDF with **zero runtime requirements**.
+`page` is a new and an independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isarthor test suite. It's between [**3x to 12x faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
 
 > [!NOTE]
 > `page` hasn't reached stable stage yet, but is getting close to it.
@@ -16,7 +17,7 @@ A fast PDF accessibility and conformance checker.
 
 ## Installation
 
-`page` distribute pre-built binaries for macOS/Linux/Windows. If you're a Rust hacker, you can also install the latest dev version via Cargo.
+`page` distribute pre-built binaries for macOS/Linux/Windows:
 
 ### macOS/Linux
 
@@ -28,12 +29,6 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/pag
 
 ```powershell
 powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.10.0/page_cli-installer.ps1 | iex"
-```
-
-### Cargo
-
-```sh
-cargo install --git https://github.com/josephbarbierdarnal/page.git page_cli --bin page
 ```
 
 <br>
