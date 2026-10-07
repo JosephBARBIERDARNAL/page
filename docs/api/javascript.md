@@ -2,7 +2,7 @@
 title: "JavaScript"
 ---
 
-The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm) npm package provides a JavaScript API for page, powered by WebAssembly and designed to run in the browser.
+The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm) npm package provides a JavaScript API for page, powered by WebAssembly and designed to run in the browser (see [this issue](https://github.com/JosephBARBIERDARNAL/page/issues/284) for Node.js support).
 
 ## Installation
 
@@ -10,6 +10,12 @@ The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm)
 
       ```sh
       npm install page-validation-wasm
+      ```
+
+=== "bun"
+
+      ```sh
+      bun add page-validation-wasm
       ```
 
 === "pnpm"
@@ -26,21 +32,24 @@ The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm)
 
 ## Check compliance of a PDF
 
-`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly. It accepts the PDF as a `Uint8Array`:
+`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
 
 ```ts
 import { isPdfCompliantBytes, ValidationProfile } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const isCompliant = await isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
+
+await isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 ```
+
+Both validation functions take the PDF bytes plus an optional `{ profile, limits }` options object. The WebAssembly module loads and starts with the package, so no initialization call is required.
 
 ## Validate a PDF with details
 
 If you need details about **which rules failed**, use `validatePdfBytes()` instead:
 
 ```ts
-import { validatePdfBytes, ValidationProfile } from "page-validation-wasm";
+import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
 const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
@@ -67,7 +76,7 @@ const bytes = new Uint8Array(await pdfFile.arrayBuffer());
 const report = await validatePdfBytes(bytes);
 ```
 
-Pass a `ValidationProfile` when the caller, rather than the document, selects it:
+The profile is a `ValidationProfile`:
 
 ```ts
 import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
@@ -86,19 +95,17 @@ Object.values(ValidationProfile);
 ```
 
 ```ts
-["1a", "1b", "2a", "2b", "2u", "3a", "3b", "3u", "ua1"]
+["1a", "1b", "2a", "2b", "2u", "3a", "3b", "3u", "ua1"];
 ```
-
-The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Failures
 
 Each report contains a list of failures:
 
 ```ts
-import { validatePdfBytes } from "page-validation-wasm";
+import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
 
-const report = await validatePdfBytes(bytes, { profile: "ua1" });
+const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 
 for (const failure of report.failures) {
   console.log(`Rule: ${failure.ruleId}`);

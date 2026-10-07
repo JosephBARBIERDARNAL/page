@@ -16,7 +16,7 @@ cargo add page_validation
     use page_validation::{ValidationOptions, ValidationProfile, is_pdf_compliant};
 
     let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
-    let is_compliant = is_pdf_compliant("bench/health-of-canadians-2025.pdf", &options)?;
+    is_pdf_compliant("bench/health-of-canadians-2025.pdf", &options)?;
     ```
 
 === "Validate bytes"
@@ -30,10 +30,8 @@ cargo add page_validation
     let bytes = fs::read("document.pdf")?;
     let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
 
-    let is_compliant = is_pdf_compliant_bytes(&bytes, &options)?;
+    is_pdf_compliant_bytes(&bytes, &options)?;
     ```
-
-If `profile` isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will return a `PageError`.
 
 ## Validate a PDF with details
 
@@ -72,11 +70,9 @@ If you need details about **which rules failed**, use `validate_pdf()` instead:
     let report = validate_pdf_bytes(&bytes, &options)?;
     ```
 
-Every returned report includes `report.document`, a `PdfDocument` summary with public `version`, `encrypted`, `page_count`, and `object_count` fields. Access these fields directly without unwrapping an `Option`. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through `validate_pdf()` or `validate_pdf_bytes()`.
-
 ## Profile selection
 
-If `profile` isn't specified, `ValidationOptions::default()` reads the PDF/A or PDF/UA profile declared in the document's XMP metadata:
+If `profile` isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will return a `PageError`.
 
 ```rust
 use page_validation::{ValidationOptions, validate_pdf};
@@ -84,7 +80,7 @@ use page_validation::{ValidationOptions, validate_pdf};
 let report = validate_pdf("document.pdf", &ValidationOptions::default())?;
 ```
 
-Set a profile in the options when the caller, rather than the document, selects it:
+The profile can be a `ValidationProfile`:
 
 ```rust
 use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
@@ -93,7 +89,7 @@ let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-You can select any available profile with `ValidationProfile`:
+You can find all available profiles with:
 
 ```rust
 use page_validation::ValidationProfile;
@@ -110,8 +106,6 @@ use page_validation::ValidationProfile;
     ValidationProfile::PdfUa1,
 ];
 ```
-
-The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Failures
 
@@ -154,15 +148,6 @@ Safety limits protect the validator from excessively large or complex inputs. De
 ```rust
 use page_validation::{SafetyLimits, ValidationOptions, validate_pdf};
 
-let limits = SafetyLimits::default();
-let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
-```
-
-Customize individual bounds with chainable setters:
-
-```rust
-use page_validation::SafetyLimits;
-
 let limits = SafetyLimits::default()
     .with_max_input_size(256 * 1024 * 1024) // 256 MiB
     .with_max_decoded_stream_size(32 * 1024 * 1024) // 32 MiB
@@ -176,9 +161,9 @@ let limits = SafetyLimits::default()
     .with_max_table_grid_columns(1_024) // columns
     .with_max_table_grid_cells(1_000_000) // cells
     .with_max_unicode_cmap_mappings(1_000_000); // mappings per ToUnicode CMap
-```
 
-`max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
+let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
+```
 
 For **trusted files**, pass `SafetyLimits::unlimited()` through the options:
 
@@ -189,7 +174,7 @@ let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().with_max_input_size(256 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
+The factory sets every configurable bound to its native integer maximum. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
 ## Export the report
 

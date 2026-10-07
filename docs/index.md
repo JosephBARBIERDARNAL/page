@@ -70,7 +70,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [JavaScript](api/wasm.md).
+    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [JavaScript](api/javascript.md).
 
 </div>
 
