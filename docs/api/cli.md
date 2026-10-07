@@ -62,7 +62,7 @@ Time    : 0.007s
 
 !!! note
 
-      [ . . . . . . . . . ] are just placeholders of the actual messages
+      [ . . . . . . . . . ] are just placeholders for the actual messages
 
 <br>
 

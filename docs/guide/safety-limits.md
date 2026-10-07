@@ -1,6 +1,6 @@
 To limit resource use when processing untrusted PDFs, `page` enforces configurable bounds on input size, decoded data, parsed objects, reference depth, and selected inspection work.
 
-| Option CLI                         |   Default | Purpose                                                                             |
+| CLI option                         |   Default | Purpose                                                                             |
 | ---------------------------------- | --------: | ----------------------------------------------------------------------------------- |
 | `--max-input-size`                 |   256 MiB | Maximum input file size.                                                            |
 | `--max-decoded-stream-size`        |    32 MiB | Maximum decoded size of one stream.                                                 |

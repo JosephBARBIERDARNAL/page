@@ -6,13 +6,13 @@ Since the creation of the PDF format more than 30 years ago, many different vari
 
 `page` aims to make that verification easy, fast, and free.
 
-## How it works?
+## How does it work?
 
 When you give `page` a PDF, it reads the file and parses its structure into a **normalized document model**. This model brings together the PDF object graph and the information needed for validation, such as metadata, XMP declarations, output intents, fonts, pages, annotations, forms, and content streams. Parsing is done via [lopdf](https://github.com/J-F-Liu/lopdf), and is kept separate from conformance checks, so malformed input or resource-limit failures can be reported distinctly from a PDF that simply violates a standard.
 
 Next, `page` selects the validation profile: it uses the profile passed on the command line, or infers one from the PDF's XMP identification metadata when no profile is specified. A document is compliant only when **every rule** implemented for the selected profile passes.
 
-Internally, `page` has a "lazy" mode, which lets us be around 2x to 10x faster depending on the document. Instead of checking for every possible rule, it stops at the very first one that is violated, and only all rules checked when it's required. This feature is automatically used when possible, and only relevant when the document isn't compliant.
+Internally, `page` has a "lazy" mode, which lets us be around 2x to 10x faster depending on the document. Instead of checking every possible rule, it stops at the very first one that is violated, and checks all rules only when required. This feature is automatically used when possible, and is only relevant when the document isn't compliant.
 
 ## What are the alternatives?
 
@@ -27,7 +27,7 @@ This project is [veraPDF](https://verapdf.org/). It is, by far, the **best optio
 
 `veraPDF` supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a <span class="pretty-highlight">very complicated task</span>. You can understand why that is and how `veraPDF` does it in this great [blog post](https://pdfa.org/how-verapdf-does-pdfa-validation/).
 
-`page` uses heavily `veraPDF` as the source of truth to validate or not if what `page` does is correct.
+`page` relies heavily on `veraPDF` as the source of truth when determining whether its results are correct.
 
 ## Why are there multiple PDF formats?
 

@@ -86,7 +86,7 @@ import page
 page.validate_pdf("document.pdf")
 ```
 
-Profile can either be a string or a `ValidationProfile`:
+The profile can either be a string or a `ValidationProfile`:
 
 ```python
 import page
@@ -178,7 +178,7 @@ import page
 report = page.validate_pdf("document.pdf", limits=page.SafetyLimits.unlimited())
 ```
 
-The factory returns a fresh object with every configurable bound set to its native integer maximum. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limits.
+The factory returns a fresh object with every configurable bound set to its native integer maximum. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
 ## Export the report
 
