@@ -6,19 +6,19 @@ verapdf_corpus_profiles := `awk '{ printf "%s ", $1 }' crates/page_cli/src/corpu
 default:
     @just --list
 
-# Format Rust and Python sources.
-fmt: rust-fmt py-fmt
+# Format Rust, Python, and Wasm sources.
+fmt: rust-fmt py-fmt wasm-fmt
 
-# Check Rust and Python formatting without changing files.
-fmt-check: rust-fmt-check py-fmt-check
+# Check Rust, Python, and Wasm formatting without changing files.
+fmt-check: rust-fmt-check py-fmt-check wasm-fmt-check
 
-# Run Rust and Python linters and Python type checks.
-lint: rust-lint py-lint py-type
+# Run Rust, Python, and Wasm linters and type checks.
+lint: rust-lint py-lint py-type wasm-lint wasm-type
 
-# Run Rust and Python tests, building the local Python extension first.
-test: rust-test py-test
+# Run Rust, Python, and Wasm tests.
+test: rust-test py-test wasm-test
 
-# Run the same formatting, lint, type, and unit-test checks as CI.
+# Run formatting, lint, type, and unit-test checks for Rust and both bindings.
 check: fmt-check lint test
 
 # Format Rust sources.

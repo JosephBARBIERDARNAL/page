@@ -4,20 +4,19 @@
 
 page is a new, modern, fast and lightweight PDF accessibility and compliance checker. It provides an alternative to veraPDF written in Rust.
 
-## Miscellanous rules
+## Miscellaneous rules
 
-- when you found a very unexpected result in veraPDF, figure out whether it's a real upstream bug or not. In order to prove that it is one, you need to create a reprex (as minimalist as possible).
-- always write markdown paragraph / bullet point on a single line. Only use linebreaks for new paragraph, an heading, new bullet point, etc.
+- When veraPDF produces a very unexpected result, determine whether it is an upstream bug. To establish that, create a minimal reproducible example.
+- Keep each Markdown paragraph and bullet item on a single line; use line breaks only between paragraphs, headings, and list items.
 - Every Rust source file under `crates/page_validation/src/`, including newly added files, must start with a `//!` overview explaining its purpose, overall responsibility, and how it works, in at most two paragraphs. Keep the overview accurate when changing the file's responsibilities.
-- every time you implement a new rule or a new feature, think of the impact it will have on performance and look for low hanging fruit that would improve performance.
-- make sure, when possible, to reuse code from different profiles
+- When implementing a rule or feature, consider its performance impact and address low-cost improvements.
+- Reuse logic across profiles when it fits the rule semantics.
 - Treat every git change you did not explicitly make as belonging to someone else working on the project simultaneously; preserve it exactly and do not revert, restore, overwrite, format, or otherwise “clean up” that file.
 - If a test, formatter, generator, or other command unexpectedly changes a tracked file, do not assume the command owns the change and do not restore it from `HEAD`; preserve the change and report it or ask before touching it.
-- never add things like #[allow(dead_code)], allow less strict clippy rules, etc. Always explicitely ask before doing so with precise reasons of why that would be relevant, but this behavior should be banned by default.
-- always check for ways to reuse code
-- minimize useless abstraction
-- when making a fix or adding a new feature, add a new entry in `docs/changelog.md` in the Dev section, matching the same format as other entries. Most changelog entries must have a github issue referenced, if you don't have one, ask for it.
-- after making code changes, make sure the code is well formatted, linted and that unit tests pass. See @justfile for key commands to run.
+- Do not add `#[allow(...)]` attributes or weaken lint settings without first explaining the specific need and getting approval.
+- Prefer direct implementations over unnecessary abstractions.
+- For a fix or feature, add an entry under the Dev section of `docs/changelog.md` in the existing format. Most entries reference a GitHub issue; ask the user for the issue number when one is not provided.
+- After code changes, run the relevant format, lint, type-check, and unit-test commands from `justfile`. `just check` runs checks for Rust and both bindings, but does not reproduce every CI workflow.
 
 ## Project Structure & Module Organization
 
@@ -30,25 +29,27 @@ This Rust 2024 project is a virtual Cargo workspace with 4 packages:
 
 Keep reusable PDF parsing, normalization, validation rules, reports, and safety limits in `crates/page_validation`. Keep CLI argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
 
-Bindings must only be use to integrate the core crate (`page_validation`) and share the same API.
+Bindings should adapt the core crate (`page_validation`) to each language while keeping validation behavior and report semantics consistent. Keep client-specific API and presentation details in the binding crate.
 
-Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
+Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Python binding tests live in `crates/page_python/tests/`, and Wasm tests live in `crates/page_wasm/tests/`. Build artifacts under `target/` are not source files.
 
 ## Performance and benchmark
 
-Performances are measured against verapdf in bench/benchmark.py, with 5 different documents and 3 different PDF profiles. Running the benchmark takes a lot of time (between 5 to 10 minutes) and shouldn't be run regularly.
+Performance is measured against veraPDF in `bench/benchmark.py`, using five documents and three PDF profiles. The benchmark takes several minutes; run it when a change is likely to affect performance, rather than for routine edits.
 
 ## Security
 
-By default, page enforces ressource limitations called "safety limits". See @docs/guide/safety-limits.md.
+By default, page enforces resource limits called safety limits. See `docs/guide/safety-limits.md`.
 
-## Versionning
+## Versioning
 
-page uses semantic versionning. All crates must share the exact same version. Current version is 0.10.0.
+page uses semantic versioning. All crates must share the exact same version; check `[workspace.package].version` in `Cargo.toml` rather than relying on a version copied into this file.
 
 ## Testing Guidelines
 
-Place focused unit tests beside their owning validation modules in `#[cfg(test)]` blocks and validation integration behavior in `crates/page_validation/tests/*.rs`. Test argument parsing, output formats, and exit-status behavior in `crates/page_cli/tests/*.rs`. Name tests for observable behavior, for example `rejects_encrypted_pdf`. Add regression coverage to the package that owns the behavior. There is no stated numeric coverage target. PDF fixtures are binary and hash-pinned by `crates/page_validation/tests/fixture_integrity.rs`; update fixtures and their expected hashes intentionally.
+Place focused unit tests beside their owning validation modules in `#[cfg(test)]` blocks and validation integration behavior in `crates/page_validation/tests/*.rs`. Test CLI argument parsing, output formats, and exit status in `crates/page_cli/tests/*.rs`; test Python behavior in `crates/page_python/tests/` and Wasm behavior in `crates/page_wasm/tests/`. Name tests for observable behavior, for example `rejects_encrypted_pdf`, and add regression coverage to the package that owns the behavior. There is no numeric coverage target. PDF fixtures are binary and hash-pinned by `crates/page_validation/tests/fixture_integrity.rs`; update fixtures and their expected hashes intentionally.
+
+Use `just check` for formatting, lint, type, and test checks across Rust and both bindings. For faster binding-specific iteration, use `just py-check` or `just wasm-check`; for changes to supported corpus profiles or rule behavior, run `just verapdf-corpus` when practical. CI also checks dependency licenses and runs platform-specific jobs, so `just check` is not a complete local reproduction of CI. Run `just typst` when regenerating Typst PDF fixtures; preserve unrelated fixture changes and update pinned hashes intentionally.
 
 ## Architecture
 
@@ -75,4 +76,4 @@ The current selected profiles are PDF/A-1a, PDF/A-1b, PDF/A-2a, PDF/A-2b, PDF/A-
 
 The gate requires a `pass` file to make `page` return exit code `0` and a `fail` file to make it return exit code `2`. Exit code `1`, an invalid corpus filename, a missing selected profile directory, or any other operational problem fails the gate with exit code `1`; mismatched validation results fail it with exit code `2`.
 
-In order to ensure no breaking changes when making changes, run the same gate locally with `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When another validation format is added, update the selected profile list in `crates/page_cli/src/corpus.rs`, the sparse-checkout lists in `justfile` and `.github/workflows/ci.yml`, and this section's documented revision and profile list.
+To check for corpus regressions, run `just verapdf-corpus`; it automatically creates a sparse checkout at `.cache/verapdf-corpus`. Pass an existing checkout as `just verapdf-corpus /path/to/veraPDF-corpus` when preferred. When adding a supported corpus profile, update `crates/page_cli/src/corpus_profiles.txt`, the profile list used by this section, and the matching sparse-checkout inputs in `justfile`. The workflow in `.github/workflows/corpus.yml` invokes that just target, so it has no separate profile list. Update the documented corpus revision when the pinned revision changes.
