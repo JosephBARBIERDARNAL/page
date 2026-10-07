@@ -1,5 +1,3 @@
-<img src="docs/images/logo-on-light.svg" alt="page logo" align="right" width="50px"/>
-
 <center><h1>page</h1></center>
 
 A fast PDF accessibility and conformance checker.
