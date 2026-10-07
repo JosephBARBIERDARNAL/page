@@ -32,4 +32,4 @@ But when user do **not** request _which_ rule failed (using `is_pdf_compliant_*(
 
 ## AI coding
 
-`page` repo contains an `AGENTS.md` file for instructions for AI agents.
+`page` repo contains an `AGENTS.md` file for instructions for AI agents. If you contribute to `page`, you're expected to be accountable for the changes you make.

@@ -42,17 +42,17 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     Check PDFs against PDF/UA-1 **accessibility requirements**.
 
-- :material-file-check-outline: **PDF/A compliance**
+- :material-file-check-outline: **Archiving**
 
     ***
 
     Validate PDF/A-1, PDF/A-2, and PDF/A-3 documents.
 
-- :material-test-tube: **Corpus-tested**
+- :material-test-tube: **veraPDF compatible**
 
     ***
 
-    Compare behavior against the **veraPDF test corpus** and the **Isartor** test suite.
+    Matches **veraPDF** behavior against the **veraPDF test corpus** as well as the **Isartor** test suite.
 
 - :material-speedometer: **Fast**
 

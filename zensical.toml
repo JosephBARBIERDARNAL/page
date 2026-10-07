@@ -16,8 +16,8 @@ nav = [
     { "Usage" = [
       { "CLI" = "api/cli.md" },
       { "Rust" = "api/rust.md" },
-      { "Python" = "api/python.md" },
       { "WebAssembly" = "api/wasm.md" },
+      { "Python" = "api/python.md" },
     ] },
     { "Guide" = [
       { "Safety limits" = "guide/safety-limits.md" },
