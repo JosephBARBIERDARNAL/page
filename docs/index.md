@@ -10,8 +10,6 @@ hide:
 
 <div class="home-hero__content" markdown>
 
-<div class="home-eyebrow">PDF accessibility and validation</div>
-
 # Fast PDF accessibility & compliance validation
 
 Check PDF documents against accessibility and compliance requirements with a Rust-based engine that runs as a CLI, Rust crate, Python package, or WebAssembly module.
