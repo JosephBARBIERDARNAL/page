@@ -30,6 +30,8 @@ This Rust 2024 project is a virtual Cargo workspace with 4 packages:
 
 Keep reusable PDF parsing, normalization, validation rules, reports, and safety limits in `crates/page_validation`. Keep CLI argument parsing, presentation, exit behavior, and executable entry points in `crates/page_cli`. Keep internal validation logic separate from the CLI. The CLI may depend on the validation crate; the validation crate must never depend on the CLI crate or on client-only dependencies such as Clap.
 
+Bindings must only be use to integrate the core crate (`page_validation`) and share the same API.
+
 Validation unit and integration tests live with `page_validation`; keep its shared helpers in `crates/page_validation/tests/common/` and PDF inputs in `crates/page_validation/tests/fixtures/`. CLI contract tests live in `crates/page_cli/tests/`. Build artifacts under `target/` are not source files.
 
 ## Performance and benchmark
@@ -60,6 +62,10 @@ Place focused unit tests beside their owning validation modules in `#[cfg(test)]
 ```
 
 Operational and parser failures are kept separate from metadata and conformance failures. Limits are configurable for input bytes, decoded stream bytes, object count, and reference-chain depth. Operational failures use `INPUT-IO-001` or `RESOURCE-LIMIT-001` and do not describe PDF conformance. Library tests and fixtures live under `crates/page_validation/tests`; CLI contract tests live under `crates/page_cli/tests`. Each package declares only the dependencies it uses.
+
+## Implementing a new rule
+
+When asked to implement a new rule for a PDF profile, verify whether it has already been implemented for another profile in order to reuse it. Add a unit test to verify its behavior, and check whether the veraPDF corpus conformance gate has a test for it.
 
 ## veraPDF corpus conformance gate
 
