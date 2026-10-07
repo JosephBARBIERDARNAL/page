@@ -23,7 +23,7 @@ The [`page-validation`](https://pypi.org/project/page-validation/) package provi
     ```python
     import page
 
-    page.is_pdf_compliant("bench/health-of-canadians-2025.pdf", profile="ua1")
+    page.is_pdf_compliant("document.pdf", profile="ua1")
     ```
 
 === "Validate bytes"
