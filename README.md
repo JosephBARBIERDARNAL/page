@@ -1,4 +1,4 @@
-<center><h1>page</h1></center>
+# page
 
 A fast PDF accessibility and conformance checker.
 
