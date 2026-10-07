@@ -1,7 +1,3 @@
----
-title: "Python"
----
-
 The [`page-validation`](https://pypi.org/project/page-validation/) package provides Python bindings for page.
 
 ## Installation

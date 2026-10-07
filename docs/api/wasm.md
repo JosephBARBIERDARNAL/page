@@ -1,8 +1,8 @@
 ---
-title: "WebAssembly"
+title: "JavaScript"
 ---
 
-The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm) npm package provides Wasm bindings for page.
+The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm) npm package provides a JavaScript API for page, powered by WebAssembly and designed to run in the browser.
 
 ## Installation
 
@@ -160,7 +160,7 @@ import { SafetyLimits, validatePdfBytes } from "page-validation-wasm";
 const report = await validatePdfBytes(bytes, { limits: SafetyLimits.unlimited() });
 ```
 
-The factory returns a fresh object with `Infinity` in every limit field. Wasm translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive `Infinity`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
+The factory returns a fresh object with `Infinity` in every limit field. The WebAssembly layer translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive `Infinity`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
 ## Export the report
 

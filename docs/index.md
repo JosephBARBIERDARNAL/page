@@ -12,7 +12,7 @@ hide:
 
 # Fast PDF accessibility & compliance validation
 
-Check PDF documents against accessibility and compliance requirements with a Rust-based engine that runs as a CLI, Rust crate, Python package, or WebAssembly module.
+Check PDF documents against accessibility and compliance requirements with a Rust-based engine available as a CLI, Rust crate, Python package, or browser JavaScript package.
 
 [Get started](installation.md){ .md-button .md-button--primary }
 [Try the demo](demo.md){ .md-button }
@@ -70,7 +70,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [WebAssembly](api/wasm.md).
+    Use it from the [CLI](api/cli.md), [Rust](api/rust.md), [Python](api/python.md), or [JavaScript](api/wasm.md).
 
 </div>
 
@@ -143,9 +143,9 @@ Check PDF documents against accessibility and compliance requirements with a Rus
             print(f"[{failure.rule_id}] {failure.message}")
     ```
 
-=== "WebAssembly"
+=== "JavaScript"
 
-    Read a PDF as a `Uint8Array` and validate it in the browser:
+    Read a PDF as a `Uint8Array` and validate it in the browser with the WebAssembly-powered JavaScript package:
 
     ```ts
     import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";

@@ -1,7 +1,3 @@
----
-title: "Rust"
----
-
 The [`page_validation`](https://crates.io/crates/page_validation) crate validates PDF files against a supported PDF/A or PDF/UA profile. This page contains the most common uses, but you can find reference documentation at [docs.rs](https://docs.rs/page_validation/latest/page_validation/index.html).
 
 ## Installation

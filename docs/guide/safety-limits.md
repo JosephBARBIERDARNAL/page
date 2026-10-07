@@ -58,7 +58,7 @@ In Rust, Python, and JavaScript, pass the unlimited preset through the `limits` 
 
 The same preset works with the bytes and compliance-only functions. Existing calls continue to use the default safety limits when no preset is supplied.
 
-The preset sets all 12 configurable bounds to their native integer maxima. Rust and Python expose those integer values; JavaScript exposes `Infinity` and translates it to the target's native maxima in Wasm. Platform bounds, cycle detection, arithmetic checks, parser validity checks, and PDF conformance requirements remain active.
+The preset sets all 12 configurable bounds to their native integer maxima. Rust and Python expose those integer values; JavaScript exposes `Infinity`, which the WebAssembly layer translates to native integer maxima. Platform bounds, cycle detection, arithmetic checks, parser validity checks, and PDF conformance requirements remain active.
 
 ## Restore an individual limit
 

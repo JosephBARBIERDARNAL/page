@@ -26,7 +26,7 @@ Install these tools before setting up the project:
 - `Git`
 - `Cargo` and Rust >= 1.88.0
 - [`uv`](https://docs.astral.sh/uv/) for Python bindings and to preview the documentation website
-- [`bun`](https://bun.com/) for Wasm bindings
+- [`bun`](https://bun.com/) for the JavaScript bindings, which use WebAssembly
 - (optional but recommended) [`just`](https://github.com/casey/just) for running project tasks; see the `justfile`
 
 ## Install dependencies
