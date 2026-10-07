@@ -12,65 +12,110 @@ cargo add page_validation
 
 ## Check compliance of a PDF
 
-`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result against a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
+`is_pdf_compliant()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly:
 
-```rust
-use page_validation::{ValidationOptions, is_pdf_compliant};
+=== "Validate file"
 
-let is_compliant = is_pdf_compliant("file.pdf", &ValidationOptions::default())?;
-println!("{is_compliant}");
-```
+    ```rust
+    use page_validation::{ValidationOptions, ValidationProfile, is_pdf_compliant};
 
-Every validation function takes a path (anything implementing `AsRef<Path>`) or bytes, plus a `&ValidationOptions`. `ValidationOptions::default()` infers the profile and uses the default [safety limits](#safety-limits); chain `.profile(...)` and `.limits(...)` to change them.
+    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+    let is_compliant = is_pdf_compliant("bench/health-of-canadians-2025.pdf", &options)?;
+    ```
 
-If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata and returns `Result<bool, PageError>`. A missing, malformed, or unsupported profile declaration produces a `PageError`.
+=== "Validate bytes"
 
-!!! info
+    If you want to run it on bytes in memory, use `is_pdf_compliant_bytes()`. It accepts a `&[u8]`:
 
-    If you want to run it on bytes instead of a file, use `is_pdf_compliant_bytes()`, which provides the same `Result<bool, PageError>` API but expects a `&[u8]` instead of a `&Path`.
+    ```rust
+    use page_validation::{ValidationOptions, ValidationProfile, is_pdf_compliant_bytes};
+    use std::fs;
+
+    let bytes = fs::read("document.pdf")?;
+    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+
+    let is_compliant = is_pdf_compliant_bytes(&bytes, &options)?;
+    ```
+
+If `profile` isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will return a `PageError`.
 
 ## Validate a PDF with details
 
-If you need details about which rule failed, use `validate_pdf()`:
+If you need details about **which rules failed**, use `validate_pdf()` instead:
+
+=== "Validate file"
+
+    ```rust
+    use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
+
+    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+    let report = validate_pdf("document.pdf", &options)?;
+
+    if report.is_compliant {
+        println!("The document passed all implemented rules.");
+    } else {
+        println!("{} rules failed", report.rules.failed);
+        println!("{} checks failed", report.checks.failed);
+        for failure in &report.failures {
+            println!("[{}] {}", failure.rule_id, failure.message);
+        }
+    }
+    ```
+
+=== "Validate bytes"
+
+    If you want to run it on bytes in memory, use `validate_pdf_bytes()`. It accepts a `&[u8]`:
+
+    ```rust
+    use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
+    use std::fs;
+
+    let bytes = fs::read("document.pdf")?;
+    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+
+    let report = validate_pdf_bytes(&bytes, &options)?;
+    ```
+
+Every returned report includes `report.document`, a `PdfDocument` summary with public `version`, `encrypted`, `page_count`, and `object_count` fields. Access these fields directly without unwrapping an `Option`. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through `validate_pdf()` or `validate_pdf_bytes()`.
+
+## Profile selection
+
+If `profile` isn't specified, `ValidationOptions::default()` reads the PDF/A or PDF/UA profile declared in the document's XMP metadata:
 
 ```rust
 use page_validation::{ValidationOptions, validate_pdf};
 
 let report = validate_pdf("document.pdf", &ValidationOptions::default())?;
-
-if report.is_compliant {
-    println!("The document passed all implemented rules.");
-} else {
-    println!("{} rules failed", report.rules.failed);
-    println!("{} checks failed", report.checks.failed);
-    for failure in &report.failures {
-        eprintln!(
-            "[{}] {}",
-            failure.rule_id,
-            failure.message,
-        );
-    }
-}
 ```
-
-!!! info
-
-    If you want to run it on bytes instead of a file, use `validate_pdf_bytes()`, which provides the same API but expects a `&[u8]` instead of a `&Path`.
-
-Every returned report includes `report.document`, a `PdfDocument` summary with public `version`, `encrypted`, `page_count`, and `object_count` fields. Access these fields directly without unwrapping an `Option`. Parsing, XMP metadata, output-intent, and font inspection details are internal to the validation engine; obtain document summaries through `validate_pdf()` or `validate_pdf_bytes()`.
-
-## Select a profile explicitly
 
 Set a profile in the options when the caller, rather than the document, selects it:
 
 ```rust
 use page_validation::{ValidationOptions, ValidationProfile, validate_pdf};
 
-let options = ValidationOptions::default().profile(ValidationProfile::PdfA1b);
-let report = validate_pdf("document.pdf", &options);
+let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The explicit-profile call returns `Result<ValidationReport, PageError>`. Unlike profile inference, it does not require the document to contain a usable profile declaration.
+You can select any available profile with `ValidationProfile`:
+
+```rust
+use page_validation::ValidationProfile;
+
+[
+    ValidationProfile::PdfA1b,
+    ValidationProfile::PdfA1a,
+    ValidationProfile::PdfA2b,
+    ValidationProfile::PdfA2a,
+    ValidationProfile::PdfA2u,
+    ValidationProfile::PdfA3b,
+    ValidationProfile::PdfA3a,
+    ValidationProfile::PdfA3u,
+    ValidationProfile::PdfUa1,
+];
+```
+
+The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Failures
 
@@ -97,16 +142,14 @@ use page_validation::FailureCategory;
 
 for failure in &report.failures {
     match failure.category {
-        FailureCategory::Metadata => { /* XMP or document-information finding. */ }
-        FailureCategory::Conformance => { /* PDF/A or PDF/UA rule finding. */ }
-        _ => {
-            // Handle categories added by future releases.
-        }
+        FailureCategory::Metadata => println!("metadata finding {}", failure.rule_id),
+        FailureCategory::Conformance => println!("conformance finding {}", failure.rule_id),
+        _ => println!("finding from a future category {}", failure.rule_id),
     }
 }
 ```
 
-Input, parser, profile, and safety-limit failures are returned as `Err(PageError)` and do not appear in a report. Use `PageError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, or `SafetyLimit`, and `PageError::rule_id()` to get the associated rule identifier; handle them with `?`, `match`, or `map_err`.
+Input, parser, profile, and safety-limit failures return their specific `PageError` and do not appear in a report. Use `PageError::kind()` to classify them as `InputIo`, `Parser`, `Profile`, or `SafetyLimit`, and `PageError::rule_id()` to get the associated rule identifier.
 
 ## Safety limits
 
@@ -119,32 +162,60 @@ let limits = SafetyLimits::default();
 let report = validate_pdf("document.pdf", &ValidationOptions::default().limits(limits))?;
 ```
 
-Customize individual bounds with chainable setters and inspect them through getters:
+Customize individual bounds with chainable setters:
 
 ```rust
+use page_validation::SafetyLimits;
+
 let limits = SafetyLimits::default()
-    .with_max_input_size(512 * 1024 * 1024)
-    .with_max_decoded_stream_size(64 * 1024 * 1024);
+    .with_max_input_size(256 * 1024 * 1024) // 256 MiB
+    .with_max_decoded_stream_size(32 * 1024 * 1024) // 32 MiB
+    .with_max_total_decoded_content_size(256 * 1024 * 1024) // 256 MiB
+    .with_max_form_invocations(10_000) // Form XObject expansions per document
+    .with_max_object_count(1_000_000) // 1,000,000 objects
+    .with_max_reference_depth(256) // 256 levels
+    .with_max_xref_revisions(1_024) // 1,024 revisions
+    .with_max_table_span(1_024) // rows or columns per cell
+    .with_max_table_grid_rows(1_024) // rows
+    .with_max_table_grid_columns(1_024) // columns
+    .with_max_table_grid_cells(1_000_000) // cells
+    .with_max_unicode_cmap_mappings(1_000_000); // mappings per ToUnicode CMap
 ```
 
 `max_decoded_stream_size` bounds one decoded stream and `max_total_decoded_content_size` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `max_form_invocations` bounds Form XObject expansions across all pages and nested content in one document. `max_xref_revisions` bounds the number of incremental-update revisions read from the cross-reference chain. `max_table_span` bounds the row or column span of an individual tagged-table cell. `max_table_grid_rows`, `max_table_grid_columns`, and `max_table_grid_cells` bound the derived table-grid dimensions and total cells. `max_unicode_cmap_mappings` bounds the total mappings expanded from one ToUnicode CMap.
 
-For trusted files, pass `SafetyLimits::unlimited()` through the options:
+For **trusted files**, pass `SafetyLimits::unlimited()` through the options:
 
 ```rust
+use page_validation::{SafetyLimits, ValidationOptions, validate_pdf};
+
 let options = ValidationOptions::default().limits(SafetyLimits::unlimited());
 let report = validate_pdf("document.pdf", &options)?;
 ```
 
-The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().with_max_input_size(512 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
+The factory sets every configurable bound to its native integer maximum. You can restore individual bounds with setters, for example `SafetyLimits::unlimited().with_max_input_size(256 * 1024 * 1024)`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
-## Check compliance
+## Export the report
 
-Use `is_compliant` to check whether the document passed all implemented checks. Validation errors remain `Err(PageError)` and mean that no complete report was produced:
+Validation reports can be exported as JSON. Add `serde_json` to your project to serialize the stable report structure:
+
+```sh
+cargo add serde_json
+```
 
 ```rust
-let report = validate_pdf("file.pdf", &ValidationOptions::default())?;
-if !report.is_compliant {
-    eprintln!("The document failed one or more implemented checks.");
-}
+use page_validation::{ValidationOptions, validate_pdf};
+
+let report = validate_pdf("document.pdf", &ValidationOptions::default())?;
+let json = serde_json::to_string(&report.json_report())?;
 ```
+
+Use `report.json_report()` to get the same report structure as a Rust value:
+
+```rust
+let report_data = report.json_report();
+println!("{}", report_data.is_compliant);
+println!("{}", report_data.failures.len());
+```
+
+Each JSON failure includes `category` (`metadata` or `conformance`) and `object_id`. The object ID contains `object_number` and `generation` when the finding is attributed to an indirect object, and is `null` otherwise.

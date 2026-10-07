@@ -26,28 +26,24 @@ The [`page-validation-wasm`](https://www.npmjs.com/package/page-validation-wasm)
 
 ## Check compliance of a PDF
 
-`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses lazy validation: it stops once it finds a failing rule and returns the boolean directly. It expects the PDF as a `Uint8Array`:
+`isPdfCompliantBytes()` is the fastest way to get a simple true/false compliance result for a profile. It uses **lazy validation**: it stops once it finds a failing rule and returns the boolean directly. It accepts the PDF as a `Uint8Array`:
 
 ```ts
-import { isPdfCompliantBytes } from "page-validation-wasm";
+import { isPdfCompliantBytes, ValidationProfile } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const isCompliant: boolean = await isPdfCompliantBytes(bytes);
+const isCompliant = await isPdfCompliantBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 ```
-
-Both validation functions take the bytes plus an optional `{ profile, limits }` options object. If the profile isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Validation failures throw `PageError` with a `kind` such as `parser`, `safety_limit`, or `profile`, plus a `ruleId` such as `RESOURCE-LIMIT-001`.
-
-The bundler loads and starts the WebAssembly module with the package, so no initialization call is required.
 
 ## Validate a PDF with details
 
-If you need details about which rules failed, use `validatePdfBytes()`:
+If you need details about **which rules failed**, use `validatePdfBytes()` instead:
 
 ```ts
-import { validatePdfBytes } from "page-validation-wasm";
+import { validatePdfBytes, ValidationProfile } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const report = await validatePdfBytes(bytes);
+const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 
 if (report.isCompliant) {
   console.log("The document passed all implemented rules.");
@@ -60,18 +56,40 @@ if (report.isCompliant) {
 }
 ```
 
-## Select a profile explicitly
+## Profile selection
 
-Pass a profile to `validatePdfBytes()` when the caller, rather than the document, selects it:
+If `profile` isn't specified, it reads the PDF/A or PDF/UA profile declared in the document's XMP metadata. Since this isn't the case for all PDFs, a document that doesn't declare it will reject with `PageError`:
+
+```ts
+import { validatePdfBytes } from "page-validation-wasm";
+
+const bytes = new Uint8Array(await pdfFile.arrayBuffer());
+const report = await validatePdfBytes(bytes);
+```
+
+Pass a `ValidationProfile` when the caller, rather than the document, selects it:
 
 ```ts
 import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
 
 const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B });
+
+const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 ```
 
-The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules. Use `isPdfCompliantBytes()` when you only need a boolean result.
+You can find all available profiles with:
+
+```ts
+import { ValidationProfile } from "page-validation-wasm";
+
+Object.values(ValidationProfile);
+```
+
+```ts
+["1a", "1b", "2a", "2b", "2u", "3a", "3b", "3u", "ua1"]
+```
+
+The explicit-profile call does not require the document to contain a usable profile declaration. The declaration can still fail the selected profile's metadata rules.
 
 ## Failures
 
@@ -80,17 +98,34 @@ Each report contains a list of failures:
 ```ts
 import { validatePdfBytes } from "page-validation-wasm";
 
-const report = await validatePdfBytes(bytes);
+const report = await validatePdfBytes(bytes, { profile: "ua1" });
 
 for (const failure of report.failures) {
   console.log(`Rule: ${failure.ruleId}`);
+  console.log(`Category: ${failure.category}`);
   console.log(`Message: ${failure.message}`);
 }
 ```
 
 `report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
 
-Parser, profile, and safety-limit failures throw `PageError` with `kind` and `ruleId` properties and do not appear in a report.
+Failure categories describe findings from rules that ran on a parsed document:
+
+```ts
+import { validatePdfBytes } from "page-validation-wasm";
+
+const report = await validatePdfBytes(bytes);
+
+for (const failure of report.failures) {
+  if (failure.category === "metadata") {
+    console.log("metadata finding", failure.ruleId);
+  } else if (failure.category === "conformance") {
+    console.log("conformance finding", failure.ruleId);
+  }
+}
+```
+
+Parser, profile, and safety-limit failures reject with `PageError` and do not appear in a report. `PageError.kind` identifies the error as `input_io`, `parser`, `profile`, `safety_limit`, or `unknown`; `PageError.ruleId` contains the associated rule identifier when available.
 
 ## Safety limits
 
@@ -117,30 +152,15 @@ const limits = new SafetyLimits({
 const report = await validatePdfBytes(bytes, { limits });
 ```
 
-You can also pass a partial options object instead of constructing `SafetyLimits`. `maxDecodedStreamSize` bounds one decoded stream and `maxTotalDecodedContentSize` bounds the combined decoded page, Form, appearance, Pattern, and Type3 content plus font streams retained by font inspection for one document. `maxFormInvocations` bounds Form XObject expansions across all pages and nested content in one document. `maxXrefRevisions` bounds the number of incremental-update revisions read from the cross-reference chain. `maxTableSpan` bounds the row or column span of an individual tagged-table cell. `maxTableGridRows`, `maxTableGridColumns`, and `maxTableGridCells` bound the derived table-grid dimensions and total cells. `maxUnicodeCmapMappings` bounds the total mappings expanded from one ToUnicode CMap.
-
-For trusted files, pass `SafetyLimits.unlimited()` through the `limits` option:
+For **trusted files**, pass `SafetyLimits.unlimited()` through the `limits` option:
 
 ```ts
+import { SafetyLimits, validatePdfBytes } from "page-validation-wasm";
+
 const report = await validatePdfBytes(bytes, { limits: SafetyLimits.unlimited() });
 ```
 
-The factory returns a fresh object with `Infinity` in every limit field. Wasm translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive `Infinity`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md).
-
-## Check compliance
-
-Use `isCompliant` to check whether the document passed all implemented checks:
-
-```ts
-import { validatePdfBytes } from "page-validation-wasm";
-
-const report = await validatePdfBytes(bytes);
-if (!report.isCompliant) {
-  console.log("The document failed one or more implemented checks.");
-}
-```
-
-Parser, profile, and safety-limit failures reject with `PageError` containing `kind` and `ruleId` before a report is returned.
+The factory returns a fresh object with `Infinity` in every limit field. Wasm translates these values to native integer maxima. You can restore individual bounds by assigning finite values to its fields; partial options objects also accept positive `Infinity`. Validation may consume unrestricted memory and CPU; see the [safety limits guide](../guide/safety-limits.md) for details about each limit.
 
 ## Export the report
 
@@ -153,4 +173,12 @@ const report = await validatePdfBytes(bytes);
 const json = report.toJson();
 ```
 
-`toJson()`, `toJSON()`, and `JSON.stringify(report)` use the same stable report schema as the CLI and Python bindings. Each JSON failure includes its `category` (`metadata` or `conformance`) and `object_id`, which contains `object_number` and `generation` when the finding is attributed to an indirect object and is `null` otherwise. The schema also includes the file when available, profile, validity, rule and check counts, and optional parser or operational error details. Wasm terminal errors reject with `PageError` carrying `kind` and `ruleId` before a report is returned.
+Use `report.toJSON()` or `JSON.stringify(report)` to get the same report structure as a JavaScript object:
+
+```ts
+const reportData = report.toJSON();
+console.log(reportData.is_compliant);
+console.log(reportData.failures);
+```
+
+Each JSON failure includes `category` (`metadata` or `conformance`) and `object_id`. The object ID contains `object_number` and `generation` when the finding is attributed to an indirect object, and is `null` otherwise.
