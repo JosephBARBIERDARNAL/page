@@ -794,8 +794,11 @@
 
   <h1>Benchmark</h1>
 
-<p>Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); <strong>higher is faster</strong>. Values use the median of 10 measured runs with 2 warmup runs.</p>
-<p>The benchmark uses publicly available documents, which you can find <a href="https://github.com/JosephBARBIERDARNAL/page-fixtures">here</a>.</p>
+<p>Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); <strong>higher is faster</strong>. Values use the median of 10 measured runs with 2 warmup runs. The benchmark uses publicly available documents, you can find them <a href="https://github.com/JosephBARBIERDARNAL/page-fixtures">here</a>.</p>
+<p>This benchmark compares <em>exhaustive</em> and <em>lazy</em> validation modes of <code>page</code> against veraPDF. Learn more about the difference between those modes <a href="../guide/lazy-validation/">here</a>.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Exhaustive</label><label for="__tabbed_1_2">Lazy</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <table>
 <thead>
 <tr>
@@ -812,48 +815,104 @@
 <td>gao-2024</td>
 <td style="text-align: right;">10.5</td>
 <td style="text-align: right;">153</td>
-<td style="text-align: right;">5.6×</td>
-<td style="text-align: right;">6.2×</td>
-<td style="text-align: right;">5.7×</td>
+<td style="text-align: right;">5.2×</td>
+<td style="text-align: right;">5.5×</td>
+<td style="text-align: right;">5.0×</td>
 </tr>
 <tr>
 <td>health-of-canadians-2025</td>
 <td style="text-align: right;">1.4</td>
 <td style="text-align: right;">84</td>
-<td style="text-align: right;">12.4×</td>
-<td style="text-align: right;">12.0×</td>
-<td style="text-align: right;">9.6×</td>
+<td style="text-align: right;">10.0×</td>
+<td style="text-align: right;">10.5×</td>
+<td style="text-align: right;">8.8×</td>
 </tr>
 <tr>
 <td>standards-for-development-world-bank</td>
 <td style="text-align: right;">10.7</td>
 <td style="text-align: right;">408</td>
-<td style="text-align: right;">6.0×</td>
+<td style="text-align: right;">5.6×</td>
 <td style="text-align: right;">6.1×</td>
-<td style="text-align: right;">5.9×</td>
+<td style="text-align: right;">5.7×</td>
 </tr>
 <tr>
 <td>surveillance-drug-risk-2017</td>
 <td style="text-align: right;">1.3</td>
 <td style="text-align: right;">83</td>
-<td style="text-align: right;">9.6×</td>
-<td style="text-align: right;">10.3×</td>
-<td style="text-align: right;">8.6×</td>
+<td style="text-align: right;">8.7×</td>
+<td style="text-align: right;">9.0×</td>
+<td style="text-align: right;">8.0×</td>
 </tr>
 <tr>
 <td>world-health-statistics-2025</td>
 <td style="text-align: right;">5.7</td>
 <td style="text-align: right;">88</td>
+<td style="text-align: right;">2.4×</td>
 <td style="text-align: right;">2.5×</td>
-<td style="text-align: right;">2.7×</td>
-<td style="text-align: right;">2.5×</td>
+<td style="text-align: right;">2.3×</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>When details of which rule failed are not required, validation is expected to be much, much faster. Internally, this mode is called <strong>lazy mode</strong> and brings an <strong>additional 2× to 10× speed improvement</strong>. This is not represented in this benchmark to keep it simpler.</p>
 </div>
+<div class="tabbed-block">
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th style="text-align: right;">Size (MiB)</th>
+<th style="text-align: right;">Pages</th>
+<th style="text-align: right;">PDF/A-1b</th>
+<th style="text-align: right;">PDF/A-2b</th>
+<th style="text-align: right;">PDF/UA-1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gao-2024</td>
+<td style="text-align: right;">10.5</td>
+<td style="text-align: right;">153</td>
+<td style="text-align: right;">22.3×</td>
+<td style="text-align: right;">23.9×</td>
+<td style="text-align: right;">22.0×</td>
+</tr>
+<tr>
+<td>health-of-canadians-2025</td>
+<td style="text-align: right;">1.4</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">44.3×</td>
+<td style="text-align: right;">46.4×</td>
+<td style="text-align: right;">38.9×</td>
+</tr>
+<tr>
+<td>standards-for-development-world-bank</td>
+<td style="text-align: right;">10.7</td>
+<td style="text-align: right;">408</td>
+<td style="text-align: right;">25.3×</td>
+<td style="text-align: right;">27.4×</td>
+<td style="text-align: right;">26.1×</td>
+</tr>
+<tr>
+<td>surveillance-drug-risk-2017</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">83</td>
+<td style="text-align: right;">55.0×</td>
+<td style="text-align: right;">56.6×</td>
+<td style="text-align: right;">49.6×</td>
+</tr>
+<tr>
+<td>world-health-statistics-2025</td>
+<td style="text-align: right;">5.7</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">20.4×</td>
+<td style="text-align: right;">21.4×</td>
+<td style="text-align: right;">19.8×</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Machine used for the benchmark: macOS (26.6.2) with 10 (8 Performance and 2 Efficiency) CPU cores and 32 GiB of RAM.</p>
 
 
 
