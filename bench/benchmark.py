@@ -1,3 +1,5 @@
+import os
+import platform
 import statistics
 import subprocess
 import sys
@@ -40,7 +42,8 @@ class Summary:
 class ProfileBenchmark:
     profile: str
     verapdf: Summary
-    page: Summary
+    page_exhaustive: Summary
+    page_lazy: Summary
 
 
 @dataclass(frozen=True)
@@ -60,6 +63,8 @@ def run_validator(
     executable: Path | str,
     file: Path,
     profile: str,
+    *,
+    exhaustive: bool = True,
 ) -> RunSample:
     if validator == "page":
         command = [
@@ -69,9 +74,9 @@ def run_validator(
             profile,
             "--max-reference-depth",
             "512",
-            "--format",
-            "details",
         ]
+        if exhaustive:
+            command.extend(["--format", "details"])
     else:
         command = [
             str(executable),
@@ -106,33 +111,45 @@ def run_validator(
 def benchmark_profile(file: Path, profile: str) -> ProfileBenchmark:
     for warmup in range(WARMUP_RUNS):
         progress(f"      warmup {warmup + 1}/{WARMUP_RUNS}")
-        run_validator("page", PAGE_EXECUTABLE, file, profile)
         run_validator("veraPDF", VERAPDF_EXECUTABLE, file, profile)
+        run_validator("page", PAGE_EXECUTABLE, file, profile, exhaustive=True)
+        run_validator("page", PAGE_EXECUTABLE, file, profile, exhaustive=False)
 
     verapdf_samples = []
-    page_samples = []
+    page_exhaustive_samples = []
+    page_lazy_samples = []
     for run_number in range(RUNS):
         progress(f"      measured run {run_number + 1}/{RUNS}")
-        order = (
-            (("veraPDF", VERAPDF_EXECUTABLE), ("page", PAGE_EXECUTABLE))
-            if run_number % 2 == 0
-            else (("page", PAGE_EXECUTABLE), ("veraPDF", VERAPDF_EXECUTABLE))
+        samples = (
+            ("verapdf", True),
+            ("page_exhaustive", True),
+            ("page_lazy", False),
         )
-        for validator, executable in order:
-            sample = run_validator(validator, executable, file, profile)
-            if validator == "page":
-                page_samples.append(sample)
-            else:
+        order_index = run_number % len(samples)
+        order = samples[order_index:] + samples[:order_index]
+        for mode, exhaustive in order:
+            if mode == "verapdf":
+                sample = run_validator("veraPDF", VERAPDF_EXECUTABLE, file, profile)
                 verapdf_samples.append(sample)
+            else:
+                sample = run_validator(
+                    "page", PAGE_EXECUTABLE, file, profile, exhaustive=exhaustive
+                )
+                if mode == "page_exhaustive":
+                    page_exhaustive_samples.append(sample)
+                else:
+                    page_lazy_samples.append(sample)
 
     result = ProfileBenchmark(
         profile=profile,
         verapdf=Summary.from_samples(verapdf_samples),
-        page=Summary.from_samples(page_samples),
+        page_exhaustive=Summary.from_samples(page_exhaustive_samples),
+        page_lazy=Summary.from_samples(page_lazy_samples),
     )
     progress(
-        "      complete: page "
-        f"{format_speedup(result.verapdf, result.page)} versus veraPDF"
+        "      complete: page exhaustive "
+        f"{format_speedup(result.verapdf, result.page_exhaustive)}, lazy "
+        f"{format_speedup(result.verapdf, result.page_lazy)} versus veraPDF"
     )
     return result
 
@@ -152,28 +169,63 @@ def profile_result(benchmark: DocumentBenchmark, profile_name: str) -> ProfileBe
     raise ValueError(f"missing {profile_name} benchmark result")
 
 
+def machine_specs() -> list[str]:
+    memory_gib = round(
+        os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / (1024**3)
+    )
+    hardware_details = ""
+    if platform.system() == "Darwin":
+        try:
+            hardware_details = subprocess.run(
+                ["system_profiler", "SPHardwareDataType"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout
+        except OSError:
+            pass
+    hardware = {}
+    for line in hardware_details.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", maxsplit=1)
+        if key.strip() in {"Model Name", "Chip", "Total Number of Cores"}:
+            hardware[key.strip()] = value.strip()
+    cores = hardware.get("Total Number of Cores") or str(os.cpu_count())
+    operating_system = "macOS" if platform.system() == "Darwin" else platform.system()
+    machine = f"Machine used for the benchmark: {operating_system} ({platform.mac_ver()[0]}) with {cores} CPU cores and {memory_gib} GiB of RAM.\n"
+
+    return machine
+
+
 def markdown(results: list[DocumentBenchmark]) -> str:
     output = [
-        f"Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of {RUNS} measured runs with {WARMUP_RUNS} warmup runs.\n",
-        "The benchmark uses publicly available documents, you can find them [here](https://github.com/JosephBARBIERDARNAL/page-fixtures).\n",
-        "| Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        f"Each profile cell is the relative speedup of page over veraPDF for that profile (veraPDF runtime divided by page runtime); **higher is faster**. Values use the median of {RUNS} measured runs with {WARMUP_RUNS} warmup runs. The benchmark uses publicly available documents, you can find them [here](https://github.com/JosephBARBIERDARNAL/page-fixtures).\n",
+        "This benchmark compares _exhaustive_ and _lazy_ validation modes of `page` against veraPDF. Learn more about the difference between those modes [here](guide/lazy-validation.md).\n",
     ]
-    for document in results:
-        row = [
-            f"| {document.document} | {format_mib(document.size_bytes)} | {document.page_count}"
-        ]
-        for profile_name in PROFILES:
-            result = profile_result(document, profile_name)
-            row.append(format_speedup(result.verapdf, result.page))
-        output.append(" | ".join(row) + " |")
-
-    output.extend(
-        [
-            "!!! info\n",
-            "       When details of which rule failed are not required, validation is expected to be much, much faster. Internally, this mode is called **lazy mode** and brings an **additional 2× to 10× speed improvement**. This is not represented in this benchmark to keep it simpler.\n",
-        ]
-    )
+    for mode, title, result_attribute in (
+        ("exhaustive", "Exhaustive", "page_exhaustive"),
+        ("lazy", "Lazy", "page_lazy"),
+    ):
+        output.extend(
+            [
+                f'=== "{title}"\n',
+                "    | Document | Size (MiB) | Pages | PDF/A-1b | PDF/A-2b | PDF/UA-1 |",
+                "    | --- | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for document in results:
+            row = [
+                f"| {document.document} | {format_mib(document.size_bytes)} | {document.page_count}"
+            ]
+            for profile_name in PROFILES:
+                result = profile_result(document, profile_name)
+                row.append(
+                    format_speedup(result.verapdf, getattr(result, result_attribute))
+                )
+            output.append("    " + " | ".join(row) + " |")
+        output.append("")
+    output.append(machine_specs())
     return "\n".join(output)
 
 
