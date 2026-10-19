@@ -8,7 +8,7 @@ const FILE_SPEC: &str = "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001";
 const STREAM_EXTERNAL: &str = "PDFA1B-STREAM-EXTERNAL-DATA-001";
 
 #[test]
-fn document_feature_failures_attach_the_catalog_object() {
+fn document_feature_failures_are_reported_and_counted() {
     for (case, rule_id) in [
         ("names_embedded_files_dictionary", EMBEDDED_FILES),
         ("ocproperties_dictionary", OPTIONAL_CONTENT),
@@ -16,15 +16,11 @@ fn document_feature_failures_attach_the_catalog_object() {
         ("stream_f", STREAM_EXTERNAL),
     ] {
         let report = common::validate(&common::document_feature_fixture(case));
-        let failure = report
+        report
             .failures
             .iter()
             .find(|failure| failure.rule_id == rule_id)
             .expect("targeted document-feature failure");
-        assert!(
-            failure.object_id.is_some(),
-            "{case}: missing catalog object ID"
-        );
         let total = ValidationProfile::PdfA1b.implemented_check_count();
         assert_eq!(report.rules.total, total);
         let expected_failed = if rule_id == FILE_SPEC { 2 } else { 1 };

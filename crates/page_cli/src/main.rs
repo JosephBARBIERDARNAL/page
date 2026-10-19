@@ -231,14 +231,7 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
-        if !seen.insert((
-            &failure.rule_id,
-            failure.category as u8,
-            &failure.message,
-            failure
-                .object_id
-                .map(|object_id| (object_id.object_number, object_id.generation)),
-        )) {
+        if !seen.insert((&failure.rule_id, failure.category as u8, &failure.message)) {
             continue;
         }
         write!(
@@ -247,14 +240,6 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             failure.rule_id, failure.category, failure.message,
         )
         .expect("writing to a String cannot fail");
-        if let Some(object_id) = failure.object_id {
-            write!(
-                output,
-                " (object {} {})",
-                object_id.object_number, object_id.generation
-            )
-            .expect("writing to a String cannot fail");
-        }
         output.push('\n');
     }
     output
@@ -586,20 +571,10 @@ mod tests {
 
         let details = render_details(&report, Duration::ZERO, true);
         let rule = selected_style(true, FAILURE);
-        let mut expected = format!(
+        let expected = format!(
             "[{rule}{}{rule:#}] {}: {}",
             failure.rule_id, failure.category, failure.message,
         );
-        if let Some(object_id) = failure.object_id {
-            use std::fmt::Write;
-
-            write!(
-                expected,
-                " (object {} {})",
-                object_id.object_number, object_id.generation
-            )
-            .expect("writing to a String cannot fail");
-        }
 
         assert!(details.contains(&expected));
     }

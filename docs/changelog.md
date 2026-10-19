@@ -2,6 +2,10 @@
 
 - **Fix**: Color only rule IDs red in CLI details output
 
+## Dev
+
+- **Fix**: Remove object IDs from validation failure reports and output
+
 ## 0.11.0
 
 - **Doc**: Add guide on lazy validation [#377](https://github.com/JosephBARBIERDARNAL/page/issues/377)

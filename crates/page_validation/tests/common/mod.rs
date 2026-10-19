@@ -62,7 +62,7 @@ pub fn failure_ids(bytes: &[u8]) -> BTreeSet<String> {
 
 /// Asserts that `report` has exactly one failure, that it is `rule_id`, and
 /// that the remaining implemented checks passed. Returns the
-/// matching failure so callers can assert further on it (e.g. `object_id`).
+/// matching failure so callers can assert further on its message and category.
 pub fn assert_single_failure<'a>(
     report: &'a ValidationReport,
     rule_id: &str,

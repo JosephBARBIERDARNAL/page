@@ -11,15 +11,14 @@ pub mod common;
 const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
 
 #[test]
-fn repeated_aliases_are_one_failure_attached_to_the_font_object() {
+fn repeated_aliases_are_reported_as_one_failure() {
     let report = common::validate(&common::font_fixture("repeated_aliases"));
     let failures = font_failures(&report);
     assert_eq!(failures.len(), 1);
-    assert!(failures[0].object_id.is_some());
 }
 
 #[test]
-fn multiple_fonts_are_one_deterministic_unattached_failure() {
+fn multiple_fonts_are_one_deterministic_failure() {
     let bytes = common::font_fixture("two_unembedded_fonts");
     let first = common::validate(&bytes);
     let second = common::validate(&bytes);
@@ -27,7 +26,6 @@ fn multiple_fonts_are_one_deterministic_unattached_failure() {
     let second = font_failures(&second);
     assert_eq!(first.len(), 1);
     assert_eq!(first[0], second[0]);
-    assert!(first[0].object_id.is_none());
     assert!(first[0].message.contains("font object"));
 }
 

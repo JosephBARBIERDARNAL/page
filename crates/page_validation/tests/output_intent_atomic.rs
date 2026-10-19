@@ -15,18 +15,23 @@ fn multiple_invalid_profiles_are_aggregated_as_one_check_failure() {
 #[test]
 fn normalization_retains_output_intent_diagnostics() {
     let report = common::validate(&common::output_intent_fixture("baseline"));
+    assert!(!format!("{report:?}").contains("PdfObjectId"));
     let value = serde_json::to_value(&report).expect("serialize report");
+    let document = &value["document"];
+    assert!(document.get("catalog_reference").is_none());
+    assert!(document.get("info_object").is_none());
+    assert!(document.get("xmp_object").is_none());
     let output_intents = &value["document"]["output_intents_summary"];
     assert_eq!(output_intents["present"], true);
     assert_eq!(output_intents["is_array"], true);
     assert_eq!(output_intents["entries"].as_array().unwrap().len(), 1);
     let intent = &output_intents["entries"][0];
-    assert!(intent["object_id"].is_object());
+    assert!(intent.get("object_id").is_none());
     assert_eq!(intent["is_dictionary_based"], true);
     assert_eq!(intent["subtype_present"], true);
     assert_eq!(intent["subtype"], "GTS_PDFA1");
     assert_eq!(intent["dest_output_profile_present"], true);
-    assert!(intent["dest_output_profile_id"].is_object());
+    assert!(intent.get("dest_output_profile_id").is_none());
     assert_eq!(intent["dest_output_profile_is_stream"], true);
     assert_eq!(
         intent["dest_output_profile_header"],

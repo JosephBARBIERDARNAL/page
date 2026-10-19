@@ -511,7 +511,7 @@ fn inspect_all_embedded_cmap_cids(
         if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
             failures.push(font_failure(
                 Some((*object_id).into()),
-                &format!("embedded CMap stream {} {}", object_id.0, object_id.1),
+                "embedded CMap stream",
                 "contains a CID greater than 65,535",
             ));
         }
@@ -5428,9 +5428,7 @@ fn object_key(object: &Object, context: &str, name: Option<&Object>) -> Resource
 
 fn describe_descendant(object: &Object, parent: &str) -> String {
     match object {
-        Object::Reference((number, generation)) => {
-            format!("descendant font object {number} {generation}")
-        }
+        Object::Reference(_) => "descendant font object".to_owned(),
         _ => format!("direct descendant font of {parent}"),
     }
 }

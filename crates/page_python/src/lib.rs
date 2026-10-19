@@ -2,10 +2,10 @@ use std::path::PathBuf;
 
 use page_validation::{
     FailureCategory as RustFailureCategory, PageError as RustPageError,
-    PdfObjectId as RustPdfObjectId, SafetyLimits as RustSafetyLimits,
-    ValidationCheckCounts as RustValidationCheckCounts, ValidationCounts as RustValidationCounts,
-    ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
-    ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
+    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
+    ValidationCounts as RustValidationCounts, ValidationErrorKind as RustValidationErrorKind,
+    ValidationFailure as RustValidationFailure, ValidationProfile as RustValidationProfile,
+    ValidationReport as RustValidationReport,
 };
 use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
@@ -237,31 +237,6 @@ impl From<&SafetyLimits> for RustSafetyLimits {
     }
 }
 
-#[pyclass(name = "PdfObjectId", frozen, from_py_object)]
-#[derive(Clone)]
-struct PdfObjectId {
-    #[pyo3(get)]
-    object_number: u32,
-    #[pyo3(get)]
-    generation: u16,
-}
-
-impl From<RustPdfObjectId> for PdfObjectId {
-    fn from(id: RustPdfObjectId) -> Self {
-        Self {
-            object_number: id.object_number,
-            generation: id.generation,
-        }
-    }
-}
-
-#[pymethods]
-impl PdfObjectId {
-    fn __repr__(&self) -> String {
-        format!("PdfObjectId({}, {})", self.object_number, self.generation)
-    }
-}
-
 #[pyclass(name = "ValidationFailure", frozen, from_py_object)]
 #[derive(Clone)]
 struct ValidationFailure {
@@ -284,11 +259,6 @@ impl ValidationFailure {
     #[getter]
     fn message(&self) -> &str {
         &self.inner.message
-    }
-
-    #[getter]
-    fn object_id(&self) -> Option<PdfObjectId> {
-        self.inner.object_id.map(Into::into)
     }
 
     #[getter]
@@ -584,7 +554,6 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;
     module.add_class::<SafetyLimits>()?;
-    module.add_class::<PdfObjectId>()?;
     module.add_class::<ValidationFailure>()?;
     module.add_class::<ValidationCounts>()?;
     module.add_class::<ValidationCheckCounts>()?;

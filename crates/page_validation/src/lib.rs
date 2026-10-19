@@ -66,7 +66,8 @@ mod xobject;
 pub use error::{PageError, PdfError, ValidationErrorKind};
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
-pub use model::{PdfDocument, PdfObjectId};
+pub use model::PdfDocument;
+pub(crate) use model::PdfObjectId;
 pub use report::{
     FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure, ValidationReport,
 };

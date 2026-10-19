@@ -160,18 +160,11 @@ describe("page-validation", () => {
       })),
     });
     expect(jsonReport.failures[0]).toHaveProperty("category");
-    expect(jsonReport.failures[0]).toHaveProperty("object_id");
+    expect(jsonReport.failures[0]).not.toHaveProperty("object_id");
     expect(report.failures).toEqual(
       jsonReport.failures.map((failure) => ({
         ruleId: failure.rule_id,
         message: failure.message,
-        objectId:
-          failure.object_id === null
-            ? null
-            : {
-                objectNumber: failure.object_id.object_number,
-                generation: failure.object_id.generation,
-              },
         category: failure.category,
       })),
     );
