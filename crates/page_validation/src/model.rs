@@ -6,9 +6,10 @@
 //! incrementally and stop early when only a compliance result is needed.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::catalog::{resolve_catalog, root_reference_id};
 use crate::error::PdfError;
@@ -18,11 +19,11 @@ use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
 use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_optional};
 use crate::page_tree;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
-pub struct PdfObjectId {
-    pub object_number: u32,
-    pub generation: u16,
+pub(crate) struct PdfObjectId {
+    pub(crate) object_number: u32,
+    pub(crate) generation: u16,
 }
 
 impl From<ObjectId> for PdfObjectId {
@@ -120,12 +121,14 @@ impl IccHeader {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub(crate) struct OutputIntentSummary {
+    #[serde(skip)]
     pub(crate) object_id: Option<PdfObjectId>,
     pub(crate) is_dictionary_based: bool,
     pub(crate) subtype_present: bool,
     pub(crate) subtype: Option<String>,
     pub(crate) dest_output_profile_present: bool,
     pub(crate) dest_output_profile_ref_present: bool,
+    #[serde(skip)]
     pub(crate) dest_output_profile_id: Option<PdfObjectId>,
     pub(crate) dest_output_profile_is_stream: bool,
     pub(crate) dest_output_profile_header: Option<IccHeader>,
@@ -157,7 +160,7 @@ pub(crate) struct OutputIntentsSummary {
 /// use page_validation::{PdfDocument, SafetyLimits};
 /// let _ = PdfDocument::from_bytes(b"", &SafetyLimits::default());
 /// ```
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Default, Serialize)]
 #[non_exhaustive]
 pub struct PdfDocument {
     pub version: String,
@@ -168,20 +171,35 @@ pub struct PdfDocument {
     pub(crate) encryption_dictionary_object: Option<PdfObjectId>,
     #[serde(skip)]
     pub(crate) encrypted_content_unavailable: bool,
+    #[serde(skip)]
     pub(crate) catalog_reference: Option<PdfObjectId>,
     pub(crate) catalog_present: bool,
     pub page_count: usize,
     pub(crate) trailer_keys: Vec<String>,
     pub(crate) trailer_id: Option<Vec<Vec<u8>>>,
     pub(crate) info: DocumentMetadata,
+    #[serde(skip)]
     pub(crate) info_object: Option<PdfObjectId>,
     pub(crate) xmp: Option<XmpMetadata>,
+    #[serde(skip)]
     pub(crate) xmp_object: Option<PdfObjectId>,
     pub(crate) xmp_parse_error: Option<String>,
     pub(crate) catalog_metadata: CatalogMetadataStream,
     pub(crate) output_intents_summary: OutputIntentsSummary,
     pub(crate) fonts: FontSummary,
     pub object_count: usize,
+}
+
+impl fmt::Debug for PdfDocument {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PdfDocument")
+            .field("version", &self.version)
+            .field("encrypted", &self.encrypted)
+            .field("page_count", &self.page_count)
+            .field("object_count", &self.object_count)
+            .finish()
+    }
 }
 
 #[derive(Default)]

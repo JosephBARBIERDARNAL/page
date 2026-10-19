@@ -89,13 +89,11 @@ page document.pdf --format json
     {
       "rule_id": "PDFA1B-ICCBASED-001",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
-      "object_id": null,
       "category": "conformance"
     },
     {
       "rule_id": "PDFA1B-ID-SCHEMA-001",
       "message": "XMP does not contain the PDF/A Identification schema",
-      "object_id": { "object_number": 53, "generation": 0 },
       "category": "metadata"
     }
   ]

@@ -5,14 +5,13 @@ use page_validation::{
 pub mod common;
 
 #[test]
-fn shared_invalid_profile_is_reported_once_with_its_object_id() {
+fn shared_invalid_profile_is_reported_once() {
     let report = common::validate(&common::icc_based_fixture("repeated_shared_invalid"));
-    let failure = common::assert_single_failure(&report, "PDFA1B-ICCBASED-001");
-    assert!(failure.object_id.is_some());
+    common::assert_single_failure(&report, "PDFA1B-ICCBASED-001");
 }
 
 #[test]
-fn component_mismatch_is_reported_with_its_profile_object_id() {
+fn component_mismatch_is_reported_with_profile_details() {
     let report = common::validate(&common::icc_based_fixture("wrong_n"));
     let failures = report
         .failures
@@ -20,13 +19,12 @@ fn component_mismatch_is_reported_with_its_profile_object_id() {
         .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-COMPONENTS-001")
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
-    assert!(failures[0].object_id.is_some());
     assert!(failures[0].message.contains("/N Some(4)"));
     assert!(failures[0].message.contains("\"RGB \""));
 }
 
 #[test]
-fn multiple_invalid_profiles_are_aggregated_without_an_object_id() {
+fn multiple_invalid_profiles_are_aggregated() {
     let report = common::validate(&common::icc_based_fixture("two_invalid_profiles"));
     let failures = report
         .failures
@@ -34,7 +32,6 @@ fn multiple_invalid_profiles_are_aggregated_without_an_object_id() {
         .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-001")
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
-    assert!(failures[0].object_id.is_none());
     assert!(failures[0].message.contains("ICCBased profile"));
 }
 

@@ -199,4 +199,4 @@ println!("{}", report_data.is_compliant);
 println!("{}", report_data.failures.len());
 ```
 
-Each JSON failure includes `category` (`metadata` or `conformance`) and `object_id`. The object ID contains `object_number` and `generation` when the finding is attributed to an indirect object, and is `null` otherwise.
+Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`).

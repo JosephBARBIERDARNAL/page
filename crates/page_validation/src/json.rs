@@ -1,13 +1,13 @@
 //! Defines the stable serializable and deserializable JSON view of a validation report for client applications.
 //!
-//! Report conversion copies the source, profile, compliance result, counts, and each rule failure's category and optional object location into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
+//! Report conversion copies the source, profile, compliance result, counts, and each rule failure's category into shared output types. Parser and operational failures use a separate error field and omit conformance findings and counts, keeping the wire representation consistent across consumers.
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, PageError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
-    ValidationProfile, ValidationReport,
+    FailureCategory, PageError, ValidationCheckCounts, ValidationCounts, ValidationProfile,
+    ValidationReport,
 };
 
 /// Stable, serializable and deserializable representation of a validation report.
@@ -27,13 +27,12 @@ pub struct JsonValidationReport {
     pub error: Option<JsonError>,
 }
 
-/// A rule failure in the stable JSON report, with its category and optional indirect object location.
+/// A rule failure in the stable JSON report, with its category.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct JsonFailure {
     pub rule_id: String,
     pub message: String,
-    pub object_id: Option<PdfObjectId>,
     pub category: FailureCategory,
 }
 
@@ -118,7 +117,6 @@ impl ValidationReport {
             .map(|failure| JsonFailure {
                 rule_id: failure.rule_id.clone(),
                 message: failure.message.clone(),
-                object_id: failure.object_id,
                 category: failure.category,
             })
             .collect();
@@ -142,7 +140,7 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, PageError, PdfError, PdfObjectId, ValidationCheckCounts, ValidationCounts,
+        FailureCategory, PageError, PdfError, ValidationCheckCounts, ValidationCounts,
         ValidationFailure, ValidationProfile, ValidationReport,
     };
 
@@ -162,10 +160,6 @@ mod tests {
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
-                object_id: Some(PdfObjectId {
-                    object_number: 42,
-                    generation: 3,
-                }),
                 category: FailureCategory::Metadata,
             }],
         };
@@ -181,10 +175,7 @@ mod tests {
         assert_eq!(value["checks"]["failed"], 1);
         assert_eq!(value["failures"][0]["rule_id"], "RULE-001");
         assert_eq!(value["failures"][0]["category"], "metadata");
-        assert_eq!(
-            value["failures"][0]["object_id"],
-            serde_json::json!({"object_number": 42, "generation": 3})
-        );
+        assert!(value["failures"][0].get("object_id").is_none());
         assert!(value.get("error").is_none());
         assert!(value.get("file").is_none());
         assert!(value.get("compliant").is_none());

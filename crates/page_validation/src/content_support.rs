@@ -2537,7 +2537,7 @@ fn resource_key(object: &Object, context: &str) -> ResourceKey {
 
 fn describe_font(object: &Object, context: &str, name: &[u8]) -> String {
     match object {
-        Object::Reference((number, generation)) => format!("font object {number} {generation}"),
+        Object::Reference(_) => "font object".to_owned(),
         _ => format!(
             "direct font /{} in {context}",
             String::from_utf8_lossy(name)

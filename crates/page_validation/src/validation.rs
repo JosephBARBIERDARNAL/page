@@ -1239,7 +1239,7 @@ fn collect_validation_failures(
                 failures.push(failure(
                     "PDFUA1-FORM-STRUCTURE-001",
                     format!(
-                        "Form XObject {object_id:?} contains marked content with MCIDs and is referenced {} times; its semantic parent is not unique",
+                        "Form XObject contains marked content with MCIDs and is referenced {} times; its semantic parent is not unique",
                         form.references
                     ),
                     Some((*object_id).into()),
@@ -2661,14 +2661,7 @@ fn validate_stream_safety(
         let description = streams
             .external_stream_entries
             .iter()
-            .map(|stream| {
-                format!(
-                    "stream object {} {} contains {}",
-                    stream.object_id.object_number,
-                    stream.object_id.generation,
-                    stream.keys.join(", ")
-                )
-            })
+            .map(|stream| format!("stream contains {}", stream.keys.join(", ")))
             .collect::<Vec<_>>()
             .join("; ");
         failures.push_with_check_count(
@@ -3548,13 +3541,7 @@ fn validate_output_intent_profiles(
         let object_id = only(&invalid_profiles).and_then(|(object_id, _)| *object_id);
         let detail = invalid_profiles
             .iter()
-            .map(|(object_id, detail)| match object_id {
-                Some(object_id) => format!(
-                    "{} {}: {detail}",
-                    object_id.object_number, object_id.generation
-                ),
-                None => format!("direct profile: {detail}"),
-            })
+            .map(|(_, detail)| detail.clone())
             .collect::<Vec<_>>()
             .join("; ");
         failures.push(failure(
@@ -3575,17 +3562,11 @@ fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Valida
 
     let mut indirect_profiles = entries.filter_map(|entry| entry.dest_output_profile_id);
     if let Some(expected) = indirect_profiles.next()
-        && let Some(actual) = indirect_profiles.find(|object_id| *object_id != expected)
+        && indirect_profiles.any(|object_id| object_id != expected)
     {
         failures.push(failure(
             "PDFA1B-OUTPUTINTENT-IDENTITY-001",
-            format!(
-                "output intents reference different indirect destination profiles: {} {} and {} {}",
-                expected.object_number,
-                expected.generation,
-                actual.object_number,
-                actual.generation
-            ),
+            "output intents reference different indirect destination profiles",
             document.catalog_reference,
             FailureCategory::Conformance,
         ));
@@ -3763,13 +3744,12 @@ fn finish_report(
 fn failure(
     rule_id: &'static str,
     message: impl Into<String>,
-    object_id: Option<PdfObjectId>,
+    _object_id: Option<PdfObjectId>,
     category: FailureCategory,
 ) -> ValidationFailure {
     ValidationFailure {
         rule_id: rule_id.to_owned(),
         message: message.into(),
-        object_id,
         category,
     }
 }

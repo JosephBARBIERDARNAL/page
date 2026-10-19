@@ -231,17 +231,16 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
-        if !seen.insert((
-            &failure.rule_id,
-            failure.category as u8,
-            &failure.message,
-            failure
-                .object_id
-                .map(|object_id| (object_id.object_number, object_id.generation)),
-        )) {
+        if !seen.insert((&failure.rule_id, failure.category as u8, &failure.message)) {
             continue;
         }
-        writeln!(output, "{rule}{failure}{rule:#}").expect("writing to a String cannot fail");
+        write!(
+            output,
+            "[{rule}{}{rule:#}] {}: {}",
+            failure.rule_id, failure.category, failure.message,
+        )
+        .expect("writing to a String cannot fail");
+        output.push('\n');
     }
     output
 }
@@ -522,7 +521,7 @@ mod tests {
 
     use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
-    use super::{colors_enabled, render_details, render_summary};
+    use super::{FAILURE, colors_enabled, render_details, render_summary, selected_style};
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
@@ -555,5 +554,28 @@ mod tests {
 
         assert!(details.contains("Rules   : 1 failed rule / 10 total"));
         assert!(details.contains("Checks  : 1 failed check"));
+    }
+
+    #[test]
+    fn detailed_failures_color_only_the_rule_id() {
+        let bytes = include_bytes!("../../page_validation/tests/fixtures/structural.pdf");
+        let report = validate_pdf_bytes(
+            bytes,
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+        )
+        .expect("structural fixture should produce a report");
+        let failure = report
+            .failures
+            .first()
+            .expect("structural fixture should have a validation failure");
+
+        let details = render_details(&report, Duration::ZERO, true);
+        let rule = selected_style(true, FAILURE);
+        let expected = format!(
+            "[{rule}{}{rule:#}] {}: {}",
+            failure.rule_id, failure.category, failure.message,
+        );
+
+        assert!(details.contains(&expected));
     }
 }
