@@ -5003,6 +5003,26 @@ pub fn pdfua1_rule_7_18_1_2_fixture(case: &str) -> Vec<u8> {
                 .expect("PDF/UA-1 fixture annotation dictionary")
                 .set("Contents", Object::string_literal(""));
         }
+        "link_missing_contents_and_alt" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .set("Subtype", "Link");
+            document
+                .get_object_mut(structure_annotation_id)
+                .expect("PDF/UA-1 fixture annotation structure element")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation structure element dictionary")
+                .set("S", "Link");
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .remove(b"Contents");
+        }
         _ => panic!("unknown PDF/UA-1 rule 7.18.1-2 fixture case {case}"),
     }
     let mut bytes = Vec::new();

@@ -29,5 +29,14 @@ crate::pdfua1_rule_tests! {
             || common::pdfua1_rule_7_18_1_2_fixture("missing"),
             &["PDFUA1-ANNOTATION-CONTENTS-ALT-001"],
         ),
+        (
+            "pdfua1-rule-7-18-1-2-link-missing-contents-and-alt.pdf",
+            || common::pdfua1_rule_7_18_1_2_fixture("link_missing_contents_and_alt"),
+            || common::pdfua1_rule_7_18_1_2_fixture("link_missing_contents_and_alt"),
+            &[
+                "PDFUA1-LINK-CONTENTS-001",
+                "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            ],
+        ),
     ],
 }
