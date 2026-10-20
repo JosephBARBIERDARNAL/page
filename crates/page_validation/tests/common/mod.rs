@@ -5475,6 +5475,7 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
         "matching" => ("Identity", 1),
         "registry_mismatch" => ("Identity", 1),
         "supplement_mismatch" => ("Identity", 0),
+        "unembedded_non_table_cmap" => ("Korea1", 2),
         _ => panic!("unknown PDF/UA-1 rule 7.21.3.1-1 fixture case {case}"),
     };
     if case == "registry_mismatch" {
@@ -5505,6 +5506,20 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
                     "Supplement" => 2,
                 },
             );
+    } else if case == "unembedded_non_table_cmap" {
+        document
+            .get_object_mut(descendant_id)
+            .expect("Type0 descendant")
+            .as_dict_mut()
+            .expect("Type0 descendant dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Korea1"),
+                    "Supplement" => 2,
+                },
+            );
     }
     let cmap_content =
         b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 1 >> def\n\
@@ -5523,10 +5538,10 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
         },
         cmap_content.to_vec(),
     ));
-    let encoding = if case == "identity" {
-        Object::Name(b"Identity-H".to_vec())
-    } else {
-        cmap_id.into()
+    let encoding = match case {
+        "identity" => Object::Name(b"Identity-H".to_vec()),
+        "unembedded_non_table_cmap" => Object::Name(b"Adobe-Korea1-2".to_vec()),
+        _ => cmap_id.into(),
     };
     let font_id = document.add_object(dictionary! {
         "Type" => "Font",

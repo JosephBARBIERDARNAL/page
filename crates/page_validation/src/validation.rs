@@ -817,11 +817,11 @@ fn collect_validation_failures(
             && document
                 .xmp
                 .as_ref()
-                .is_some_and(|xmp| xmp.lang_alt_with_x_default)
+                .is_some_and(|xmp| xmp.lang_alt_requires_catalog_language)
         {
             failures.push(failure(
                 "PDFUA1-METADATA-LANGUAGE-001",
-                "a catalog /Lang entry is required to determine the natural language of an x-default metadata alternative",
+                "a catalog /Lang entry is required when XMP language alternatives provide no natural language",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));

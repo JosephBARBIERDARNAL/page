@@ -1,6 +1,7 @@
 ## Dev
 
-- **Fix**: Require catalog language for XMP `x-default` alternatives [#610](https://github.com/JosephBARBIERDARNAL/page/issues/610)
+- **Fix**: Require catalog language when XMP alternatives provide no natural language [#610](https://github.com/JosephBARBIERDARNAL/page/issues/610)
+- **Fix**: Report missing CIDSystemInfo checks for unembedded non-predefined CMaps [#611](https://github.com/JosephBARBIERDARNAL/page/issues/611)
 - **Fix**: Report missing alternate text for Link annotations [#609](https://github.com/JosephBARBIERDARNAL/page/issues/609)
 - **Fix**: Color only rule IDs red in CLI details output
 - **Fix**: Remove object IDs from validation failure reports and output

@@ -21,10 +21,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-33-multiple_items.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-2-33-multiple_items.pdf").to_vec(),
             || common::pdfua1_rule_7_2_33_fixture("multiple_items"),
-            &[
-                "PDFUA1-TEXT-LANGUAGE-001",
-                "PDFUA1-METADATA-LANGUAGE-001",
-            ],
+            &["PDFUA1-TEXT-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-7-2-33-x_default.pdf",

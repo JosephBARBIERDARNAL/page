@@ -2254,13 +2254,20 @@ impl Scanner<'_> {
             }
             if let Some(descendant) = descendant
                 && let Some(name) = resolved.and_then(|object| object.as_name().ok())
-                && let Some(bytes) = predefined_cmaps::get(name)
             {
+                // Only Table 118 names establish the Encoding CMap's
+                // CIDSystemInfo as a predefined mapping. Other bundled Adobe
+                // resources can decode glyphs, but are not valid substitutes
+                // for a missing PDF CMap dictionary.
+                let cmap_system_info = is_pdfa_2_3_predefined_cmap(name)
+                    .then(|| predefined_cmaps::get(name))
+                    .flatten()
+                    .and_then(cmap_bytes_system_info);
                 self.record_type0_system_info(
                     object_id,
                     description,
                     cid_system_info(self.document, descendant, self.limits)?,
-                    cmap_bytes_system_info(bytes),
+                    cmap_system_info,
                 );
             }
             return Ok(());
