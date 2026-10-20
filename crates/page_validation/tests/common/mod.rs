@@ -6062,6 +6062,10 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
                 dictionary_unknown_reference.expect("unknown CMap"),
             );
         }
+        "dictionary_name_unknown" => {
+            cmap.dict
+                .set("UseCMap", Object::Name(b"Adobe-Korea1-2".to_vec()));
+        }
         _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-3 fixture case {case}"),
     }
     let to_unicode_content = if case == "allowed" {

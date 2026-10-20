@@ -1547,7 +1547,7 @@ fn collect_validation_failures(
             &mut failures,
         );
         // Reuse the font scanner's PDCMap applicability: it records used
-        // Type 0 encoding CMaps that are neither embedded nor in Table 118.
+        // Type 0 encoding CMaps and non-predefined CMaps referenced by them.
         aggregate_failures_with_location(
             &inspections.font_embedding.unembedded_cmaps,
             "PDFUA1-CMAP-EMBEDDING-001",

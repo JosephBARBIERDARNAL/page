@@ -28,3 +28,12 @@ crate::pdfua1_rule_tests! {
         ),
     ],
 }
+
+#[test]
+fn reports_unembedded_cmaps_referenced_through_use_cmap() {
+    common::assert_pdfua1_rule_behavior(
+        RULE,
+        &common::pdfua1_rule_7_21_3_3_3_fixture("dictionary_name_unknown"),
+        &["PDFUA1-CMAP-EMBEDDING-001", "PDFUA1-CMAP-REFERENCE-001"],
+    );
+}
