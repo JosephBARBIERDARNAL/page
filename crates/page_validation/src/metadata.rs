@@ -94,7 +94,7 @@ pub(crate) struct XmpMetadata {
     #[serde(skip)]
     pub(crate) pdfua_identification_prefix_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
-    pub(crate) lang_alt_without_x_default: bool,
+    pub(crate) lang_alt_with_x_default: bool,
 }
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
@@ -132,9 +132,9 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         inspect_extension_xmp_value_types(rdf, &xml, &extension_schema_definitions, pdfa_2_or_3);
     let identification_prefix_failed_tests = inspect_identification_prefixes(rdf, &xml);
     let pdfua_identification_prefix_failed_tests = inspect_pdfua_identification_prefixes(rdf, &xml);
-    let lang_alt_without_x_default = xmp_properties(rdf, &xml)
+    let lang_alt_with_x_default = xmp_properties(rdf, &xml)
         .into_iter()
-        .any(lang_alt_without_x_default);
+        .any(lang_alt_with_x_default);
 
     let pdfa_identification_present = contains_namespace_property(rdf, &xml, PDFA_ID_NAMESPACE);
     let pdfa_conformances = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "conformance");
@@ -183,7 +183,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         invalid_extension_xmp_value_types,
         identification_prefix_failed_tests,
         pdfua_identification_prefix_failed_tests,
-        lang_alt_without_x_default,
+        lang_alt_with_x_default,
     })
 }
 
@@ -2162,17 +2162,9 @@ fn localized_text_value(property: Node<'_, '_>) -> Option<String> {
         .map(str::to_owned)
 }
 
-fn lang_alt_without_x_default(property: XmpProperty<'_>) -> bool {
-    let items = property.array_items();
-    if items.is_empty()
-        || !items
-            .iter()
-            .all(|item| item.attribute((XML_NAMESPACE, "lang")).is_some())
-    {
-        return false;
-    }
-    items.len() > 1
-        && !items.iter().any(|item| {
+fn lang_alt_with_x_default(property: XmpProperty<'_>) -> bool {
+    property.array_kind() == Some(ArrayKind::Alt)
+        && property.array_items().iter().any(|item| {
             item.attribute((XML_NAMESPACE, "lang"))
                 .is_some_and(|language| normalize_xmp_language(language) == "x-default")
         })

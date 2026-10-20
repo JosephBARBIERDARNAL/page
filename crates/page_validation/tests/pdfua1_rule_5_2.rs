@@ -9,13 +9,13 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-5-2-present.pdf",
             || include_bytes!("fixtures/pdfua1-rule-5-2-present.pdf").to_vec(),
             || common::pdfua1_rule_5_2_fixture("present"),
-            &[],
+            &["PDFUA1-METADATA-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-5-2-wrong-part.pdf",
             || include_bytes!("fixtures/pdfua1-rule-5-2-wrong-part.pdf").to_vec(),
             || common::pdfua1_rule_5_2_fixture("wrong_part"),
-            &["PDFUA1-ID-PART-001"],
+            &["PDFUA1-ID-PART-001", "PDFUA1-METADATA-LANGUAGE-001"],
         ),
     ],
 }

@@ -9,7 +9,11 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-2-language-missing.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-2-2-language-missing.pdf").to_vec(),
             || common::pdfua1_rule_7_2_2_fixture("language_missing"),
-            &["PDFUA1-OUTLINE-LANGUAGE-001", "PDFUA1-TEXT-LANGUAGE-001"],
+            &[
+                "PDFUA1-OUTLINE-LANGUAGE-001",
+                "PDFUA1-TEXT-LANGUAGE-001",
+                "PDFUA1-METADATA-LANGUAGE-001",
+            ],
         ),
         (
             "pdfua1-rule-7-2-2-language-present.pdf",

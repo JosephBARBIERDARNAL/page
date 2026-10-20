@@ -9,7 +9,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-25-tu-absent.pdf",
             || common::pdfua1_rule_7_2_25_fixture("tu_absent"),
             || common::pdfua1_rule_7_2_25_fixture("tu_absent"),
-            &["PDFUA1-TEXT-LANGUAGE-001"],
+            &["PDFUA1-TEXT-LANGUAGE-001", "PDFUA1-METADATA-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-7-2-25-tu-catalog-language.pdf",
@@ -21,7 +21,11 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-25-tu-language-missing.pdf",
             || common::pdfua1_rule_7_2_25_fixture("tu_present_language_missing"),
             || common::pdfua1_rule_7_2_25_fixture("tu_present_language_missing"),
-            &[RULE, "PDFUA1-TEXT-LANGUAGE-001"],
+            &[
+                RULE,
+                "PDFUA1-TEXT-LANGUAGE-001",
+                "PDFUA1-METADATA-LANGUAGE-001",
+            ],
         ),
     ],
 }

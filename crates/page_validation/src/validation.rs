@@ -817,11 +817,11 @@ fn collect_validation_failures(
             && document
                 .xmp
                 .as_ref()
-                .is_some_and(|xmp| xmp.lang_alt_without_x_default)
+                .is_some_and(|xmp| xmp.lang_alt_with_x_default)
         {
             failures.push(failure(
                 "PDFUA1-METADATA-LANGUAGE-001",
-                "natural language for document metadata must be determinable from an x-default language alternative or the catalog /Lang",
+                "a catalog /Lang entry is required to determine the natural language of an x-default metadata alternative",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
@@ -3957,7 +3957,14 @@ mod tests {
         let report = validate_pdf_bytes(&bytes, &ValidationOptions::default())
             .expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
-        assert!(report.is_compliant, "{report:#?}");
+        assert_eq!(
+            report
+                .failures
+                .iter()
+                .map(|failure| failure.rule_id.as_str())
+                .collect::<Vec<_>>(),
+            ["PDFUA1-METADATA-LANGUAGE-001"]
+        );
         assert_eq!(
             report.rules.total,
             ValidationProfile::PdfUa1.implemented_check_count()

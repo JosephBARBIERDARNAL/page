@@ -9,7 +9,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-16-1-bit-10-false.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-16-1-bit-10-false.pdf").to_vec(),
             || common::pdfua1_rule_7_16_1_fixture("bit_10_false"),
-            &["PDFUA1-ENCRYPTION-P-001"],
+            &["PDFUA1-ENCRYPTION-P-001", "PDFUA1-METADATA-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-7-16-1-missing-p.pdf",
@@ -21,7 +21,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-16-1-valid.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-16-1-valid.pdf").to_vec(),
             || common::pdfua1_rule_7_16_1_fixture("valid"),
-            &[],
+            &["PDFUA1-METADATA-LANGUAGE-001"],
         ),
     ],
 }
