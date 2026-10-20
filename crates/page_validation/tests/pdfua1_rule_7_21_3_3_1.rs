@@ -21,7 +21,10 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-21-3-3-1-unembedded.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-unembedded.pdf").to_vec(),
             || common::pdfua1_rule_7_21_3_3_1_fixture("unembedded"),
-            &["PDFUA1-CMAP-EMBEDDING-001"],
+            &[
+                "PDFUA1-CMAP-EMBEDDING-001",
+                "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+            ],
         ),
     ],
 }
