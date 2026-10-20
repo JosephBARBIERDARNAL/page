@@ -2171,14 +2171,7 @@ fn lang_alt_requires_catalog_language(property: XmpProperty<'_>) -> bool {
         item.attribute((XML_NAMESPACE, "lang"))
             .is_some_and(|language| normalize_xmp_language(language) == "x-default")
     });
-    let has_natural_language = items.iter().any(|item| {
-        item.attribute((XML_NAMESPACE, "lang"))
-            .is_some_and(|language| {
-                let language = normalize_xmp_language(language);
-                language != "x-default" && !language.starts_with('x')
-            })
-    });
-    has_x_default && !has_natural_language
+    items.len() == 1 && has_x_default
 }
 
 fn normalize_xmp_language(value: &str) -> String {
