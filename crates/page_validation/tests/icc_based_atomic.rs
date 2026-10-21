@@ -7,7 +7,7 @@ pub mod common;
 #[test]
 fn shared_invalid_profile_is_reported_once() {
     let report = common::validate(&common::icc_based_fixture("repeated_shared_invalid"));
-    common::assert_single_failure(&report, "PDFA1B-ICCBASED-001");
+    common::assert_single_failure(&report, "ISO 19005-1:2005:6.2.3.2:1");
 }
 
 #[test]
@@ -16,7 +16,7 @@ fn component_mismatch_is_reported_with_profile_details() {
     let failures = report
         .failures
         .iter()
-        .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-COMPONENTS-001")
+        .filter(|failure| failure.rule_id == "ISO 19005-1:2005:6.2.3.2:2")
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].message.contains("/N Some(4)"));
@@ -29,7 +29,7 @@ fn multiple_invalid_profiles_are_aggregated() {
     let failures = report
         .failures
         .iter()
-        .filter(|failure| failure.rule_id == "PDFA1B-ICCBASED-001")
+        .filter(|failure| failure.rule_id == "ISO 19005-1:2005:6.2.3.2:1")
         .collect::<Vec<_>>();
     assert_eq!(failures.len(), 1);
     assert!(failures[0].message.contains("ICCBased profile"));

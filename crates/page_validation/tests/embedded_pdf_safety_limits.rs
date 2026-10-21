@@ -4,7 +4,7 @@ use page_validation::{
 
 pub mod common;
 
-const EMBEDDED_PDF_A_CONFORMANCE: &str = "PDFA2B-EMBEDDED-FILE-PDFA-001";
+const EMBEDDED_PDF_A_CONFORMANCE: &str = "ISO 19005-2:2011:6.8:5";
 
 #[test]
 fn embedded_pdf_decode_limit_is_an_operational_failure() {

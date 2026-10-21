@@ -2,13 +2,20 @@ pub mod common;
 
 use page_validation::{SafetyLimits, ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
-const ACTION_TYPE: &str = "PDFA1B-ACTION-TYPE-001";
-const FIELD_AA: &str = "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001";
+const ACTION_TYPE: &str = "ISO 19005-1:2005:6.6.1:1";
+const NAMED_ACTION: &str = "ISO 19005-1:2005:6.6.1:2";
+const FIELD_AA: &str = "ISO 19005-1:2005:6.6.2:2";
 
 #[test]
 fn indirect_action_failure_is_reported() {
     let report = common::validate(&common::action_fixture("open_javascript_indirect"));
     common::assert_single_failure(&report, ACTION_TYPE);
+}
+
+#[test]
+fn forbidden_named_action_is_reported() {
+    let report = common::validate(&common::action_fixture("named_forbidden"));
+    common::assert_single_failure(&report, NAMED_ACTION);
 }
 
 #[test]

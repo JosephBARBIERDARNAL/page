@@ -29,11 +29,10 @@ pub(crate) struct Catalog<'a> {
 /// direct dictionary embedded in the trailer is rejected even when it would
 /// otherwise resolve to a well-formed `/Type /Catalog` dictionary. A resolved
 /// dictionary is otherwise accepted as the catalog only when its `/Type` is
-/// present and equal to `Catalog`, matching veraPDF's own catalog object
-/// creation and this crate's `PDFA1B-CATALOG-001` gate: a `/Root` that is
-/// missing, direct, unresolvable, or points at a non-`Catalog` (or untyped)
-/// dictionary is reported as `catalog_present == false` rather than
-/// silently treated as a usable catalog by some consumers and not others.
+/// present and equal to `Catalog`. A `/Root` that is missing, direct,
+/// unresolvable, or points at a non-`Catalog` (or untyped) dictionary is not
+/// a usable catalog; validation reports that condition as a parser error
+/// before applying conformance rules.
 pub(crate) fn resolve_catalog<'a>(
     document: &'a Document,
     limits: &SafetyLimits,
@@ -55,10 +54,9 @@ pub(crate) fn resolve_catalog<'a>(
 
 /// The trailer `/Root` entry's own indirect object id, whether or not it
 /// resolves to a valid `/Type /Catalog` dictionary. `resolve_catalog` only
-/// exposes an id once the catalog is fully valid; callers that need to
-/// attribute a failure to "whatever `/Root` pointed at" even when the
-/// catalog itself doesn't validate (`PDFA1B-CATALOG-001` and similar) use
-/// this instead of independently re-deriving it from `document.trailer`.
+/// exposes an id once the catalog is fully valid; normalization and lazy
+/// preflight use this to inspect the root reference without independently
+/// re-deriving it from `document.trailer`.
 pub(crate) fn root_reference_id(document: &Document) -> Option<PdfObjectId> {
     document
         .trailer

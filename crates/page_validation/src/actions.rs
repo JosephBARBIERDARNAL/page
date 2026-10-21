@@ -379,12 +379,8 @@ impl Inspector<'_> {
                 description: format!("{context} has a missing or forbidden named action /N"),
             });
         }
-        // GoToR and SubmitForm are the only allowed action types that carry
-        // a file specification (/F); veraPDF creates the same
-        // CosFileSpecification object, and applies the same containsEF
-        // check, for a file spec reached this way as for one reached
-        // through the catalog Names/EmbeddedFiles tree (confirmed against
-        // veraPDF 1.30.2).
+        // Only GoToR and SubmitForm actions may carry a file specification
+        // in `/F`.
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
             && let Some(file_spec_dictionary) = resolve_optional(
@@ -472,7 +468,6 @@ impl Inspector<'_> {
         action: &lopdf::Dictionary,
         context: &str,
     ) -> Result<(), PdfError> {
-        // veraPDF exposes PDMediaClip through an MR rendition's /C link.
         // Keep the inspection on the same bounded, reachable action graph
         // instead of scanning arbitrary unreferenced dictionaries.
         let Some(rendition) = action
@@ -534,10 +529,9 @@ impl Inspector<'_> {
         Ok(())
     }
 
-    // Match veraPDF 1.30.2's hasCorrectAlt predicate: /Alt is an array with
+    // /Alt is an array with
     // paired entries, and every description (the odd entry) is a non-empty
-    // string. The language entries are intentionally left unconstrained
-    // because veraPDF does the same.
+    // string. The language entries are intentionally left unconstrained.
     fn has_correct_media_clip_alt(&self, media_clip: &lopdf::Dictionary) -> Result<bool, PdfError> {
         let Some(alt) = media_clip
             .get(b"Alt")

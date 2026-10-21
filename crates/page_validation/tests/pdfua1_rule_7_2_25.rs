@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-FORM-FIELD-TU-LANGUAGE-001";
+const RULE: &str = "ISO 14289-1:2014:7.2:25";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -9,7 +9,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-25-tu-absent.pdf",
             || common::pdfua1_rule_7_2_25_fixture("tu_absent"),
             || common::pdfua1_rule_7_2_25_fixture("tu_absent"),
-            &["PDFUA1-TEXT-LANGUAGE-001", "PDFUA1-METADATA-LANGUAGE-001"],
+            &["ISO 14289-1:2014:7.2:34", "ISO 14289-1:2014:7.2:33"],
         ),
         (
             "pdfua1-rule-7-2-25-tu-catalog-language.pdf",
@@ -23,8 +23,8 @@ crate::pdfua1_rule_tests! {
             || common::pdfua1_rule_7_2_25_fixture("tu_present_language_missing"),
             &[
                 RULE,
-                "PDFUA1-TEXT-LANGUAGE-001",
-                "PDFUA1-METADATA-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:34",
+                "ISO 14289-1:2014:7.2:33",
             ],
         ),
     ],

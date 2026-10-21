@@ -8847,7 +8847,7 @@ pub fn device_color_fixture(case: &str) -> Vec<u8> {
 
 /// Focused fixtures for colour-source applicability probes that are shared by
 /// ICCBased, device-colour, and rendering-intent validation. These deliberately
-/// keep the source shape atomic so the pinned veraPDF rule-ID delta identifies
+/// keep the source shape atomic so the added finding IDs identify
 /// whether that source enters the corresponding model population.
 pub fn color_path_fixture(case: &str) -> Vec<u8> {
     let mut document = pdf_document();
@@ -15004,7 +15004,7 @@ pub fn font_fixture_with_type1_program(
 }
 
 /// A minimal, always-non-embedded `Type1`/Helvetica font: using it anywhere
-/// visible must trigger `PDFA1B-FONT-EMBEDDING-001` on its own.
+/// visible must produce an embedding finding on its own.
 pub fn non_embedded_helper_font(document: &mut Document) -> ObjectId {
     document.add_object(dictionary! {
         "Type" => "Font",
@@ -15036,10 +15036,10 @@ pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
     match case {
         // A trivial fill with no font anywhere: every other case below also
         // paints something (a glyph or a filled rectangle), which uses the
-        // default DeviceGray colour space and fails PDFA1B-DEVICE-GRAY-001
+        // default DeviceGray colour space and fails its colour-space check
         // on its own (this fixture's output intent carries no ICC profile).
         // Painting here too keeps that failure common to every case so the
-        // rule-ID delta isolates PDFA1B-FONT-EMBEDDING-001 alone.
+        // finding delta isolates the font-embedding check.
         "baseline" => {
             page_content = content(vec![
                 operation("re", vec![0.into(), 0.into(), 1.into(), 1.into()]),
@@ -15100,10 +15100,9 @@ pub fn font_content_source_fixture(case: &str) -> Vec<u8> {
                 },
                 down_content,
             ));
-            // /D's mere presence already fails PDFA1B-ANNOTATION-AP-ENTRIES-001
-            // on its own (confirmed live: a compliant /AP has only /N), but
-            // veraPDF 1.30.2 still walks /D for font use regardless, so the
-            // unembedded font used only there is independently flagged too.
+            // /D's mere presence already fails the annotation appearance
+            // check, but /D is still walked for font use, so the unembedded
+            // font used only there is independently flagged too.
             annotations.push(document.add_object(dictionary! {
                 "Type" => "Annot",
                 "Subtype" => "FreeText",
@@ -15483,12 +15482,9 @@ pub fn type0_descendant_fixture(case: &str) -> Vec<u8> {
 /// A symbolic TrueType font whose embedded program's `cmap` table is fully
 /// valid (declaring 2 subtables) but whose `maxp` table is truncated to 2
 /// bytes (too short to read `numGlyphs`), so parsing the `maxp` table fails
-/// even though the `cmap` table itself is perfectly readable. Confirmed live
-/// against veraPDF 1.30.2: it reads the `cmap`
-/// table's subtable count directly (matching its own mapping note, "read
-/// from the bounded SFNT cmap table header"), so `PDFA1B-TRUETYPE-SYMBOLIC-
-/// CMAP-001` must not gate on a full-font parse either -- see
-/// `truetype_cmap_count` in `font_embedding.rs`, which reads the SFNT
+/// even though the `cmap` table itself is perfectly readable. The check reads
+/// the table's subtable count directly, so it does not gate on a full-font
+/// parse -- see `truetype_cmap_count` in `font_embedding.rs`, which reads the SFNT
 /// directory and `cmap` table independently through Fontations.
 pub fn symbolic_cmap_with_malformed_maxp_fixture() -> Vec<u8> {
     let mut document = pdf_document();

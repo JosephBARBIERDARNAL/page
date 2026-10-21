@@ -1,12 +1,12 @@
 pub mod common;
 
 const VIOLATIONS: &[(&str, &str)] = &[
-    ("undefined", "PDFA1B-CONTENT-OPERATOR-001"),
-    ("extgstate_tr", "PDFA1B-EXTGSTATE-TR-001"),
-    ("image_bpc_16", "PDFA1B-IMAGE-BPC-001"),
-    ("nesting_29", "PDFA1B-GRAPHICS-STATE-NESTING-001"),
-    ("inline_lzw", "PDFA1B-INLINE-IMAGE-LZW-001"),
-    ("invalid_intent", "PDFA1B-RENDERING-INTENT-001"),
+    ("undefined", "ISO 19005-1:2005:6.2.10:1"),
+    ("extgstate_tr", "ISO 19005-1:2005:6.2.8:1"),
+    ("image_bpc_16", "ISO 19005-1:2005:6.2.4:4"),
+    ("nesting_29", "ISO 19005-1:2005:6.1.12:8"),
+    ("inline_lzw", "ISO 19005-1:2005:6.1.10:2"),
+    ("invalid_intent", "ISO 19005-1:2005:6.2.9:1"),
 ];
 
 #[test]
@@ -33,7 +33,7 @@ fn source_resource_fallback_matches_the_shared_executor_contract() {
             let case = format!("path_{source}_{variant}");
             let actual = common::failure_ids(&common::graphics_fixture(&case));
             let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-            assert_eq!(added, ["PDFA1B-EXTGSTATE-TR-001"], "{case}");
+            assert_eq!(added, ["ISO 19005-1:2005:6.2.8:1"], "{case}");
         }
     }
 }
@@ -58,13 +58,13 @@ fn appearance_stream_role_does_not_require_an_explicit_form_subtype() {
         "path_appearance_missing_subtype_undefined",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-CONTENT-OPERATOR-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.10:1"]);
 
     let actual = common::failure_ids(&common::graphics_fixture(
         "path_appearance_missing_subtype_form_ref",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-FORM-REFERENCE-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.6:1"]);
 
     let actual = common::failure_ids(&common::graphics_fixture(
         "path_appearance_image_subtype_bpc_16",
@@ -76,7 +76,7 @@ fn appearance_stream_role_does_not_require_an_explicit_form_subtype() {
         "path_appearance_appearance_and_painted_image_bpc_16",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-IMAGE-BPC-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.4:4"]);
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn malformed_nested_appearance_states_follow_the_pinned_recovery_model() {
         "path_appearance_nested_state_undefined",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.5.3:6"]);
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn invisible_type3_glyph_content_is_still_executed() {
     let baseline = common::failure_ids(&common::graphics_fixture("baseline"));
     let actual = common::failure_ids(&common::graphics_fixture("path_type3_invisible_undefined"));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-CONTENT-OPERATOR-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.10:1"]);
 }
 
 #[test]
@@ -130,7 +130,7 @@ fn malformed_text_show_still_reaches_the_type3_charproc() {
         "path_type3_malformed_text_show_undefined",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-CONTENT-OPERATOR-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.10:1"]);
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn type3_charproc_inherits_the_callers_pattern_selection() {
         "path_type3_inherited_pattern_undefined",
     ));
     let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-    assert_eq!(added, ["PDFA1B-CONTENT-OPERATOR-001"]);
+    assert_eq!(added, ["ISO 19005-1:2005:6.2.10:1"]);
 }
 
 #[test]
@@ -150,6 +150,6 @@ fn soft_mask_group_contents_use_the_smasks_restriction() {
         let case = format!("path_soft_mask_{violation}");
         let actual = common::failure_ids(&common::graphics_fixture(&case));
         let added = actual.difference(&baseline).cloned().collect::<Vec<_>>();
-        assert_eq!(added, ["PDFA1B-EXTGSTATE-SMASK-001"], "{case}");
+        assert_eq!(added, ["ISO 19005-1:2005:6.4:1"], "{case}");
     }
 }

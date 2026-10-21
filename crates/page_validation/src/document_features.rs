@@ -144,7 +144,8 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
     pub(crate) table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     pub(crate) table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
-    pub(crate) table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    pub(crate) table_elements_with_row_column_span_overflows: Vec<RuleFailure>,
+    pub(crate) table_elements_with_missing_columns: Vec<RuleFailure>,
     pub(crate) table_cells_with_intersections: Vec<RuleFailure>,
     pub(crate) table_cells_with_undetermined_headers: Vec<RuleFailure>,
     pub(crate) table_cells_with_undefined_headers: Vec<RuleFailure>,
@@ -771,8 +772,9 @@ pub(crate) fn inspect(
             .table_elements_with_thead_without_tbody,
         table_elements_with_unequal_column_row_spans: structure_tree
             .table_elements_with_unequal_column_row_spans,
-        table_elements_with_unequal_row_column_spans: structure_tree
-            .table_elements_with_unequal_row_column_spans,
+        table_elements_with_row_column_span_overflows: structure_tree
+            .table_elements_with_row_column_span_overflows,
+        table_elements_with_missing_columns: structure_tree.table_elements_with_missing_columns,
         table_cells_with_intersections: structure_tree.table_cells_with_intersections,
         table_cells_with_undetermined_headers: structure_tree.table_cells_with_undetermined_headers,
         table_cells_with_undefined_headers: structure_tree.table_cells_with_undefined_headers,
@@ -1105,7 +1107,8 @@ struct StructureTreeSummary {
     table_elements_with_tfoot_without_tbody: Vec<RuleFailure>,
     table_elements_with_thead_without_tbody: Vec<RuleFailure>,
     table_elements_with_unequal_column_row_spans: Vec<RuleFailure>,
-    table_elements_with_unequal_row_column_spans: Vec<RuleFailure>,
+    table_elements_with_row_column_span_overflows: Vec<RuleFailure>,
+    table_elements_with_missing_columns: Vec<RuleFailure>,
     table_cells_with_intersections: Vec<RuleFailure>,
     table_cells_with_undetermined_headers: Vec<RuleFailure>,
     table_cells_with_undefined_headers: Vec<RuleFailure>,
@@ -1195,7 +1198,8 @@ fn inspect_structure_tree(
         table_elements_with_tfoot_without_tbody: Vec::new(),
         table_elements_with_thead_without_tbody: Vec::new(),
         table_elements_with_unequal_column_row_spans: Vec::new(),
-        table_elements_with_unequal_row_column_spans: Vec::new(),
+        table_elements_with_row_column_span_overflows: Vec::new(),
+        table_elements_with_missing_columns: Vec::new(),
         table_cells_with_intersections: Vec::new(),
         table_cells_with_undetermined_headers: Vec::new(),
         table_cells_with_undefined_headers: Vec::new(),
@@ -2052,27 +2056,33 @@ fn inspect_structure_element(
                         .to_owned(),
             });
     }
-    if resolved_type == Some(b"Table".as_slice())
-        && table_has_unequal_row_column_spans(document, dictionary, context.role_map, limits)?
-    {
-        summary
-            .table_elements_with_unequal_row_column_spans
-            .push(RuleFailure {
-                object_id,
-                description:
-                    "a Table structure element has rows spanning different numbers of columns"
-                        .to_owned(),
-            });
-    }
     if resolved_type == Some(b"Table".as_slice()) {
-        summary
-            .table_cells_with_intersections
-            .extend(table_cell_intersection_failures(
-                document,
-                dictionary,
-                context.role_map,
-                limits,
-            )?);
+        let intersections =
+            table_cell_intersection_failures(document, dictionary, context.role_map, limits)?;
+        if intersections.is_empty() {
+            let (overflow, missing_columns) =
+                table_row_column_span_mismatches(document, dictionary, context.role_map, limits)?;
+            if overflow {
+                summary
+                    .table_elements_with_row_column_span_overflows
+                    .push(RuleFailure {
+                        object_id,
+                        description: "a row extends past the table's first-row column count"
+                            .to_owned(),
+                    });
+            }
+            if missing_columns {
+                summary
+                    .table_elements_with_missing_columns
+                    .push(RuleFailure {
+                        object_id,
+                        description:
+                            "a row leaves columns unoccupied within the first-row column count"
+                                .to_owned(),
+                    });
+            }
+        }
+        summary.table_cells_with_intersections.extend(intersections);
     }
     if resolved_type == Some(b"Table".as_slice()) {
         let (undetermined, undefined) =
@@ -2440,7 +2450,7 @@ fn contains_caption_not_first(
     max_reference_depth: usize,
     max_object_count: usize,
 ) -> Result<bool, PdfError> {
-    // Match veraPDF's `kidsStandardTypes`: only structure-element standard
+    // Only structure-element standard
     // types participate in the order, so marked-content and integer kids are
     // intentionally ignored.
     let mut structure_kids = 0;
@@ -2619,23 +2629,31 @@ fn table_has_unequal_column_row_spans(
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    let (_, column_ends) = table_grid_spans(document, dictionary, role_map, limits)?;
+    let (column_ends, _) = table_grid_spans(document, dictionary, role_map, limits)?;
 
     Ok(column_ends
         .first()
         .is_some_and(|first| column_ends.iter().any(|end| end != first)))
 }
 
-fn table_has_unequal_row_column_spans(
+fn table_row_column_span_mismatches(
     document: &Document,
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<bool, PdfError> {
-    let (row_widths, _) = table_grid_spans(document, dictionary, role_map, limits)?;
-    Ok(row_widths
-        .first()
-        .is_some_and(|first| row_widths.iter().any(|width| width != first)))
+) -> Result<(bool, bool), PdfError> {
+    let (_, mismatch) = table_grid_spans(document, dictionary, role_map, limits)?;
+    Ok(match mismatch {
+        Some(TableRowColumnSpanMismatch::Overflow) => (true, false),
+        Some(TableRowColumnSpanMismatch::MissingColumns) => (false, true),
+        None => (false, false),
+    })
+}
+
+#[derive(Clone, Copy)]
+enum TableRowColumnSpanMismatch {
+    Overflow,
+    MissingColumns,
 }
 
 fn table_grid_spans(
@@ -2643,7 +2661,7 @@ fn table_grid_spans(
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<(Vec<usize>, Vec<usize>), PdfError> {
+) -> Result<(Vec<usize>, Option<TableRowColumnSpanMismatch>), PdfError> {
     let mut rows = Vec::new();
     for (child, structure_type) in direct_structure_kids(document, dictionary, role_map, limits)? {
         match structure_type {
@@ -2660,8 +2678,9 @@ fn table_grid_spans(
     }
 
     ensure_table_grid_dimensions(limits, rows.len(), 1)?;
-    let mut row_widths = Vec::with_capacity(rows.len());
     let mut column_ends = Vec::new();
+    let mut expected_columns = None;
+    let mut mismatch = None;
     for (row_index, row) in rows.iter().enumerate() {
         let mut row_width = column_ends
             .iter()
@@ -2687,6 +2706,12 @@ fn table_grid_spans(
                 if (column..column_after_cell)
                     .all(|index| column_ends.get(index).is_some_and(|end| *end <= row_index))
                 {
+                    if row_index > 0
+                        && expected_columns.is_some_and(|expected| column_after_cell > expected)
+                        && mismatch.is_none()
+                    {
+                        mismatch = Some(TableRowColumnSpanMismatch::Overflow);
+                    }
                     row_width = row_width.max(column_after_cell);
                     break;
                 }
@@ -2698,10 +2723,19 @@ fn table_grid_spans(
                 *end = (*end).max(row_end);
             }
         }
-        row_widths.push(row_width);
+        if row_index == 0 {
+            expected_columns = Some(row_width);
+        } else if mismatch.is_none()
+            && expected_columns.is_some_and(|expected| {
+                (0..expected)
+                    .any(|column| !column_ends.get(column).is_some_and(|end| *end > row_index))
+            })
+        {
+            mismatch = Some(TableRowColumnSpanMismatch::MissingColumns);
+        }
     }
 
-    Ok((row_widths, column_ends))
+    Ok((column_ends, mismatch))
 }
 
 #[derive(Clone)]
@@ -3529,10 +3563,8 @@ fn non_empty_text_attribute_bytes(
 /// revisited while still an ancestor) raises `PdfError::ReferenceDepth`,
 /// while the same file specification or intermediate node legitimately
 /// reachable from two different `Kids` branches (a DAG, not a cycle) is not
-/// mistaken for one — confirmed against veraPDF 1.30.2, which processes
-/// such a shared reference without a parse or resource-limit failure, the
-/// same way it does for a page shared by two `Pages` branches. `steps`
-/// bounds the walk's total work (independent of ancestor depth) against a
+/// mistaken for one. The `steps` counter bounds the walk's total work
+/// independently of ancestor depth against a
 /// DAG that fans out shared subtrees without any node being its own
 /// ancestor, the same DAG-blowup safety `page_tree.rs` uses.
 fn inspect_name_tree(
@@ -3913,11 +3945,9 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.30.2: the same name-tree leaf reachable
-    /// from two different `Kids` branches (a DAG, not a cycle — neither
-    /// branch is the other's ancestor) is processed without error, the same
-    /// way a Page object shared by two `Pages` branches is (see
-    /// `page_tree.rs`'s identical fix this session).
+    /// A name-tree leaf reachable from two separate `Kids` branches is a
+    /// shared node rather than an ancestor cycle, so this walk must not
+    /// reject it as cyclic.
     #[test]
     fn shared_name_tree_leaf_reached_from_two_branches_is_not_a_cycle() {
         let mut document = Document::with_version("1.4");

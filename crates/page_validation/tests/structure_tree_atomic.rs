@@ -22,7 +22,7 @@ fn role_map_cycles_are_rejected_but_acyclic_chains_are_accepted() {
             report
                 .failures
                 .iter()
-                .any(|failure| failure.rule_id == "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001"),
+                .any(|failure| failure.rule_id == "ISO 19005-1:2005:6.8.3.4:2"),
             should_fail,
             "{case}: {report:#?}"
         );

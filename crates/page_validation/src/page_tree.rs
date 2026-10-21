@@ -17,12 +17,11 @@ use crate::object_resolution::resolve_optional;
 /// or, when the page dictionary is embedded directly in a `Kids` array
 /// instead of referenced indirectly, by a clone of the dictionary itself.
 ///
-/// PDF32000 requires page-tree `Kids` entries to be indirect references, but
-/// veraPDF 1.30.2 does not enforce this: confirmed by embedding a
-/// compliant document's sole page directly and observing the same
-/// annotation-subtype and flag violations reported as when it is indirect.
-/// Every page-tree consumer resolves a page through [`PageEntry::resolve`]
-/// instead of assuming `document.objects.get(&page_id)`.
+/// PDF 32000 requires page-tree `Kids` entries to be indirect references.
+/// The walker also retains direct page dictionaries so page inspections can
+/// examine their contents instead of dropping them. Every page-tree consumer
+/// resolves a page through [`PageEntry::resolve`] instead of assuming
+/// `document.objects.get(&page_id)`.
 #[derive(Clone, Debug)]
 pub(crate) enum PageEntry {
     Indirect(ObjectId),
@@ -70,16 +69,11 @@ impl PageEntry {
 /// id revisited while still an ancestor on the current path) raises
 /// `PdfError::ReferenceDepth` rather than silently truncating the page
 /// list. Cycle detection is ancestor-path-scoped, not "ever visited
-/// anywhere": confirmed against veraPDF 1.30.2 that the *same* Page object
-/// legitimately reachable through two different `Pages` branches (a DAG,
-/// not a cycle — neither branch is the other's ancestor) is processed
-/// without error, so an earlier global "ever visited" set was a false
-/// positive relative to veraPDF and has been replaced. A separate step
-/// counter, bounded by `limits.max_object_count`, still caps the total
-/// walk — without it, a pathological DAG that doesn't repeat any single
-/// object as its own ancestor (so ancestor-scoped tracking alone would
-/// never reject it) could still make the walk's total work exponential in
-/// its depth by fanning out shared subtrees.
+/// anywhere": the same Page object may be shared by different `Pages`
+/// branches without forming a cycle. A separate step counter, bounded by
+/// `limits.max_object_count`, caps the total walk. Without it, a DAG that
+/// fans out shared subtrees could make the total work grow exponentially
+/// with its depth even though no object is its own ancestor.
 ///
 /// A `Kids` entry is followed whether it is an indirect reference or a
 /// direct dictionary (see [`PageEntry`]); an unresolvable reference or a
@@ -87,11 +81,9 @@ impl PageEntry {
 ///
 /// A *resolved* page-tree node (root or `Kids` entry) whose `/Type` is
 /// missing or is neither `Page` nor `Pages` is a parse-level failure
-/// (`PdfError::UnexpectedObject`, surfacing as `PDF-PARSE-001`), not a
-/// silently skipped node: confirmed against veraPDF 1.30.2, which throws a
-/// fatal `unknown type of page tree node` parse exception — rejecting the
-/// whole file before any conformance rule runs — for both a missing and a
-/// present-but-wrong page-tree node `/Type`.
+/// (`PdfError::UnexpectedObject`, surfacing as `PDF-PARSE-001`), rather than
+/// a silently skipped node. This rejects the file before conformance checks
+/// run.
 pub(crate) fn collect_pages(
     document: &Document,
     catalog: &Dictionary,
@@ -259,10 +251,8 @@ mod tests {
         assert!(matches!(result, Err(crate::PdfError::ReferenceDepth(_))));
     }
 
-    /// Confirmed against veraPDF 1.30.2: a page-tree node reached via `Kids`
-    /// with a missing or unrecognized `/Type` throws a fatal
-    /// `unknown type of page tree node` parse exception, rather than being
-    /// silently skipped.
+    /// A page-tree node reached via `Kids` with a missing or unrecognized
+    /// `/Type` is a parser error rather than being silently skipped.
     #[test]
     fn rejects_kids_entries_with_a_missing_or_wrong_type() {
         for untyped in [dictionary! {}, dictionary! { "Type" => "Foo" }] {
@@ -288,9 +278,9 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.30.2: the *same* Page object reachable
-    /// through two different `Pages` branches (a DAG, not a cycle — neither
-    /// branch is the other's ancestor) is processed without error.
+    /// The same Page object reachable through two different `Pages` branches
+    /// is shared structure rather than an ancestor cycle and is processed
+    /// without error.
     #[test]
     fn shared_page_reached_from_two_branches_is_not_a_cycle() {
         let mut document = Document::with_version("1.4");
@@ -324,9 +314,8 @@ mod tests {
         assert_eq!(pages[1].object_id(), Some(page_id));
     }
 
-    /// Confirmed against veraPDF 1.30.2: a Page dictionary embedded directly
-    /// (not as an indirect reference) in a `Kids` array is still walked and
-    /// validated, not silently ignored.
+    /// A Page dictionary embedded directly in a `Kids` array is still walked
+    /// and validated rather than silently ignored.
     #[test]
     fn collects_a_directly_embedded_page() {
         let mut document = Document::with_version("1.4");

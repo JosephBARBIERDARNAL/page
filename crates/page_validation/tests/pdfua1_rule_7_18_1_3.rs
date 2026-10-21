@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-FORM-FIELD-TU-ALT-001";
+const RULE: &str = "ISO 14289-1:2014:7.18.1:3";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,13 +15,13 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-18-1-3-empty-tu.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-18-1-3-empty-tu.pdf").to_vec(),
             || common::pdfua1_rule_7_18_1_3_fixture("empty_tu"),
-            &["PDFUA1-FORM-FIELD-TU-ALT-001"],
+            &["ISO 14289-1:2014:7.18.1:3"],
         ),
         (
             "pdfua1-rule-7-18-1-3-missing.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-18-1-3-missing.pdf").to_vec(),
             || common::pdfua1_rule_7_18_1_3_fixture("missing"),
-            &["PDFUA1-FORM-FIELD-TU-ALT-001"],
+            &["ISO 14289-1:2014:7.18.1:3"],
         ),
         (
             "pdfua1-rule-7-18-1-3-tu.pdf",

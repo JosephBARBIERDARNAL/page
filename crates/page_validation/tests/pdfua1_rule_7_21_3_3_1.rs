@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-CMAP-EMBEDDING-001";
+const RULE: &str = "ISO 14289-1:2014:7.21.3.3:1";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,15 +15,15 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-21-3-3-1-predefined.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-predefined.pdf").to_vec(),
             || common::pdfua1_rule_7_21_3_3_1_fixture("predefined"),
-            &["PDFUA1-FONT-GLYPH-PRESENCE-001"],
+            &["ISO 14289-1:2014:7.21.4.1:2"],
         ),
         (
             "pdfua1-rule-7-21-3-3-1-unembedded.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-21-3-3-1-unembedded.pdf").to_vec(),
             || common::pdfua1_rule_7_21_3_3_1_fixture("unembedded"),
             &[
-                "PDFUA1-CMAP-EMBEDDING-001",
-                "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+                "ISO 14289-1:2014:7.21.3.3:1",
+                "ISO 14289-1:2014:7.21.3.1:1",
             ],
         ),
     ],
@@ -34,7 +34,7 @@ fn reports_unembedded_cmaps_referenced_through_use_cmap() {
     common::assert_pdfua1_rule_behavior(
         RULE,
         &common::pdfua1_rule_7_21_3_3_3_fixture("dictionary_name_unknown"),
-        &["PDFUA1-CMAP-EMBEDDING-001", "PDFUA1-CMAP-REFERENCE-001"],
+        &["ISO 14289-1:2014:7.21.3.3:1", "ISO 14289-1:2014:7.21.3.3:3"],
     );
 }
 
@@ -43,7 +43,7 @@ fn accepts_embedded_cmap_stream_as_usecmap_base() {
     common::assert_pdfua1_rule_behavior(
         RULE,
         &common::pdfua1_rule_7_21_3_3_3_fixture("dictionary_embedded_unknown"),
-        &["PDFUA1-CMAP-REFERENCE-001"],
+        &["ISO 14289-1:2014:7.21.3.3:3"],
     );
 }
 
@@ -52,6 +52,6 @@ fn reports_unembedded_usecmap_when_dictionary_stream_name_does_not_match() {
     common::assert_pdfua1_rule_behavior(
         RULE,
         &common::pdfua1_rule_7_21_3_3_3_fixture("dictionary_embedded_mismatch"),
-        &["PDFUA1-CMAP-EMBEDDING-001", "PDFUA1-CMAP-REFERENCE-001"],
+        &["ISO 14289-1:2014:7.21.3.3:1", "ISO 14289-1:2014:7.21.3.3:3"],
     );
 }

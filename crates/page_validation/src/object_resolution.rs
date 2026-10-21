@@ -151,16 +151,15 @@ pub(crate) fn has_non_null_entry(
 }
 
 /// Whether `dictionary` has `key` as a *meaningfully present* entry for a
-/// veraPDF `containsX` boolean predicate: a direct `Object::Null` value is
-/// treated as absent, matching veraPDF's own convention confirmed against
-/// 1.30.2 for every `containsX`/`isXPresent` predicate this crate checks
-/// (`containsEmbeddedFiles`, `isOptionalContentPresent`, `containsEF`,
-/// `containsAA`, `containsA`, `containsTR2`, `containsOPI`, ...).
+/// boolean presence check. A direct `Object::Null` value is treated as
+/// absent. This is used for checks such as `containsEmbeddedFiles`,
+/// `isOptionalContentPresent`, `containsEF`, `containsAA`, `containsA`,
+/// `containsTR2`, and `containsOPI`.
 ///
 /// `Dictionary::has` alone does not make this distinction — it is pure key
 /// presence — so it is the wrong primitive for any `containsX` predicate:
 /// use this instead. (Several call sites used bare `.has(` for this purpose
-/// and were confirmed, then fixed, to wrongly fail a direct-null value.)
+/// and incorrectly treated a direct-null value as present.)
 pub(crate) fn contains_key(dictionary: &Dictionary, key: &[u8]) -> bool {
     dictionary
         .get(key)

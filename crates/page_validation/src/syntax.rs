@@ -1727,10 +1727,9 @@ pub(crate) fn header_is_offset(bytes: &[u8]) -> bool {
 }
 
 /// Keeps the original bytes available to the syntax inspector while making
-/// recoverable header defects acceptable to lopdf's strict loader. veraPDF
-/// validates these defects as conformance findings and continues inspecting
-/// the rest of the document, so rejecting the document before validation
-/// would hide the more useful rule failure.
+/// recoverable header defects acceptable to lopdf's strict loader. This lets
+/// later checks report the defects as conformance findings while continuing
+/// to inspect the rest of the document.
 fn repair_header_syntax(bytes: &mut Vec<u8>) -> bool {
     let Some(marker) = bytes
         .windows(b"%PDF-".len())

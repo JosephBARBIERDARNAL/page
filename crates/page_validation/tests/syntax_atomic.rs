@@ -1,6 +1,6 @@
 pub mod common;
 
-const HEX_CHARACTERS: &str = "PDFA1B-HEX-STRING-CHARACTERS-001";
+const HEX_CHARACTERS: &str = "ISO 19005-1:2005:6.1.6:2";
 
 #[test]
 fn recoverable_hex_syntax_is_a_conformance_failure_not_a_parser_failure() {

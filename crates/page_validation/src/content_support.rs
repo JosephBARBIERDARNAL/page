@@ -1801,10 +1801,8 @@ impl ContentExecutor<'_> {
             }
             return Ok(());
         };
-        // A tiling Pattern may fall back to page resources for ordinary
-        // resource categories, but veraPDF does not inherit the page's
-        // DefaultGray/DefaultRGB/DefaultCMYK mappings into the Pattern's
-        // own color-space scope.
+        // A tiling Pattern can inherit ordinary resource categories from the
+        // page, while its color-space resources remain scoped to the Pattern.
         let pattern_page_resources = page_resources.map(|resources| {
             let mut resources = resources.clone();
             resources.remove(b"ColorSpace");
@@ -2234,8 +2232,6 @@ impl ContentExecutor<'_> {
         let nested_index = match kind {
             Some(b"Indexed") => Some(1),
             Some(b"Separation" | b"DeviceN") => Some(2),
-            // Pinned veraPDF 1.30.2 deliberately does not model the
-            // underlying space of an uncoloured Pattern.
             Some(b"Pattern") => None,
             _ => None,
         };

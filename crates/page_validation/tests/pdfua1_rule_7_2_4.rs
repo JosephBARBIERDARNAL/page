@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-TR-PARENT-001";
+const RULE: &str = "ISO 14289-1:2014:7.2:4";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-4-not-contained.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-2-4-not-contained.pdf").to_vec(),
             || common::pdfua1_rule_7_2_4_fixture("not_contained"),
-            &["PDFUA1-TR-PARENT-001"],
+            &["ISO 14289-1:2014:7.2:4"],
         ),
     ],
 }

@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-CID-SUBSET-CIDSET-001";
+const RULE: &str = "ISO 14289-1:2014:7.21.4.2:2";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-21-4-2-2-incomplete.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-21-4-2-2-incomplete.pdf").to_vec(),
             || common::pdfua1_rule_7_21_4_2_2_fixture("incomplete"),
-            &["PDFUA1-CID-SUBSET-CIDSET-001"],
+            &["ISO 14289-1:2014:7.21.4.2:2"],
         ),
     ],
 }

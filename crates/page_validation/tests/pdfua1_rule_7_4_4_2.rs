@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-HEADING-STRUCTURE-001";
+const RULE: &str = "ISO 14289-1:2014:7.4.4:2";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-4-4-2-h-then-hn.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-4-4-2-h-then-hn.pdf").to_vec(),
             || common::pdfua1_rule_7_4_4_2_fixture("h_then_hn"),
-            &["PDFUA1-HEADING-STRUCTURE-001"],
+            &["ISO 14289-1:2014:7.4.4:2"],
         ),
         (
             "pdfua1-rule-7-4-4-2-hn-only.pdf",
@@ -27,7 +27,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-4-4-2-hn-then-h.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-4-4-2-hn-then-h.pdf").to_vec(),
             || common::pdfua1_rule_7_4_4_2_fixture("hn_then_h"),
-            &["PDFUA1-HEADING-STRUCTURE-001"],
+            &["ISO 14289-1:2014:7.4.4:2"],
         ),
     ],
 }

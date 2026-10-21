@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-ID-SCHEMA-001";
+const RULE: &str = "ISO 14289-1:2014:5:1";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -10,16 +10,16 @@ crate::pdfua1_rule_tests! {
             || include_bytes!("fixtures/pdfua1-rule-5-1-missing.pdf").to_vec(),
             || common::pdfua1_rule_5_1_fixture("missing"),
             &[
-                "PDFUA1-ID-PART-001",
-                "PDFUA1-ID-SCHEMA-001",
-                "PDFUA1-METADATA-LANGUAGE-001",
+                "ISO 14289-1:2014:5:2",
+                "ISO 14289-1:2014:5:1",
+                "ISO 14289-1:2014:7.2:33",
             ],
         ),
         (
             "pdfua1-rule-5-1-present.pdf",
             || include_bytes!("fixtures/pdfua1-rule-5-1-present.pdf").to_vec(),
             || common::pdfua1_rule_5_1_fixture("present"),
-            &["PDFUA1-METADATA-LANGUAGE-001"],
+            &["ISO 14289-1:2014:7.2:33"],
         ),
     ],
 }

@@ -8,7 +8,7 @@ use page_validation::{
 
 pub mod common;
 
-const RULE: &str = "PDFA1B-FONT-EMBEDDING-001";
+const RULE: &str = "ISO 19005-1:2005:6.3.4:1";
 
 #[test]
 fn repeated_aliases_are_reported_as_one_failure() {

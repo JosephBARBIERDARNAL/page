@@ -556,9 +556,6 @@ impl Scanner<'_> {
         };
         let subtype = resolved_name(self.document, font, b"Subtype", self.limits)?
             .map(|value| String::from_utf8_lossy(value).into_owned());
-        // veraPDF 1.30.2 does not create a PDFont model object for a missing
-        // or unsupported subtype, so none of the PDFont predicates are
-        // instantiated for such a resource.
         if !matches!(
             subtype.as_deref(),
             Some(
@@ -593,13 +590,10 @@ impl Scanner<'_> {
             description: selected.description.clone(),
             subtype: subtype.clone(),
             embedded,
-            // veraPDF 1.30.2 associates the first observed rendering mode
-            // with a font model object and does not revise it on later uses.
             visible: rendering_mode != 3,
             // `shown_bytes` is already aggregated across all visible runs in
             // the content executor. Keep it even when the first observed use
-            // was rendering mode 3; veraPDF retains that first mode for
-            // visibility while later visible runs still feed glyph checks.
+            // was rendering mode 3.
             shown_bytes: shown_bytes.to_vec(),
             unique_shown_bytes: BTreeSet::new(),
             shown_text_actual_text: text_runs
@@ -620,13 +614,8 @@ impl Scanner<'_> {
         if subtype.as_deref() == Some("Type0")
             && self.active_descendant_fonts.insert(selected.key.clone())
         {
-            // PDF32000 9.7.3 requires exactly one entry, and veraPDF 1.30.2
-            // confirms this in its object model: it creates a PDCIDFont (and
-            // evaluates every per-font predicate, including embedding) only
-            // for DescendantFonts[0]. A second or later entry is invisible
-            // to it entirely, so recording it here too would make a local
-            // check fail (e.g. embedding) for an object veraPDF never
-            // examines -- a confirmed false positive, not extra coverage.
+            // The descendant CIDFont is selected from the first entry in
+            // `/DescendantFonts`.
             if let Ok(descendants) = font.get(b"DescendantFonts")
                 && let Some(descendants) =
                     resolve_optional(self.document, descendants, self.limits.max_reference_depth)?
@@ -2023,11 +2012,6 @@ impl Scanner<'_> {
 
     /// Checks PDF/UA-1 7.21.4.2-2 against every CID represented by an
     /// embedded subset program, not only CIDs reached by shown text.
-    ///
-    /// The scanner's font population is still the content-reached Type 0
-    /// population, matching veraPDF's `PDCIDFont` model. The rule's CID
-    /// coverage itself is deliberately independent of rendering mode and
-    /// shown bytes.
     fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
         for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") {
@@ -2227,10 +2211,8 @@ impl Scanner<'_> {
         let Ok(encoding) = font.get(b"Encoding") else {
             return Ok(());
         };
-        // Confirmed live against veraPDF 1.30.2: an *indirect* reference to
-        // the name /Identity-H or /Identity-V is accepted exactly like a
-        // direct one, so resolution must happen before checking either
-        // shape, not only before the stream fallback.
+        // Resolve the entry before checking for an Identity name or a CMap
+        // stream, since either value may be indirect.
         let resolved = resolve_optional(self.document, encoding, self.limits.max_reference_depth)?;
         if resolved
             .and_then(|object| object.as_name().ok())
@@ -2437,11 +2419,9 @@ impl Scanner<'_> {
             ));
         }
 
-        // Confirmed live against veraPDF 1.30.2: the "standard 14 fonts"
-        // /FirstChar//LastChar//Widths exemption applies only to Type1/
-        // MMType1 -- a TrueType (or Type3) font whose /BaseFont happens to
-        // match a standard-14 name (e.g. "Helvetica") is still required to
-        // supply all three, since standard-14 metrics are a Type1 concept.
+        // Only Type1/MMType1 fonts using a standard-14 font name may omit
+        // /FirstChar, /LastChar, and /Widths. A TrueType or Type3 font must
+        // provide these entries even if its /BaseFont matches such a name.
         let requires_simple_font_metrics = match subtype {
             Some("Type1" | "MMType1") => !base_font.is_some_and(is_standard_14_font),
             Some("TrueType" | "Type3") => true,
@@ -2617,9 +2597,8 @@ fn resolve_cid_to_gid_map(
     map: &Object,
     limits: &SafetyLimits,
 ) -> Result<CidToGidMap, PdfError> {
-    // Confirmed live against veraPDF 1.30.2 (matching `valid_cid_to_gid_map`):
-    // an indirect reference to the name /Identity is accepted exactly like
-    // a direct one, so resolution must happen before checking either shape.
+    // Resolve the value before checking whether it is the /Identity name or
+    // a mapping stream, since either form may be indirect.
     let resolved = resolve_optional(document, map, limits.max_reference_depth)?;
     if resolved.and_then(|value| value.as_name().ok()) == Some(b"Identity".as_slice()) {
         return Ok(CidToGidMap::Identity);
@@ -2816,10 +2795,8 @@ fn valid_cid_to_gid_map(
     value: &Object,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    // Confirmed live against veraPDF 1.30.2: an *indirect* reference to the
-    // name /Identity is accepted exactly like a direct one, so resolution
-    // must happen before checking either shape, not only before the stream
-    // fallback.
+    // Resolve the value before checking whether it is the /Identity name or
+    // a mapping stream, since either form may be indirect.
     let Some(resolved) = resolve_optional(document, value, limits.max_reference_depth)? else {
         return Ok(false);
     };
@@ -2839,8 +2816,8 @@ fn cid_system_info(
     else {
         return Ok(None);
     };
-    // Confirmed live against veraPDF 1.30.2: an indirect reference to the
-    // /Registry or /Ordering string is resolved exactly like a direct one.
+    // Resolve /Registry and /Ordering values before requiring strings; both
+    // entries may be indirect.
     let Some(registry) = resolved_string(document, info, b"Registry", limits)? else {
         return Ok(None);
     };
@@ -3188,8 +3165,8 @@ fn resolve_cmap_decoder(
     limits: &SafetyLimits,
 ) -> Result<CmapDecoder, PdfError> {
     let resolved = resolve_optional(document, encoding, limits.max_reference_depth)?;
-    // Confirmed live against veraPDF 1.30.2: an indirect reference to the
-    // name /Identity-H or /Identity-V is accepted exactly like a direct one.
+    // Resolve the entry before checking for an Identity CMap name or stream,
+    // since either value may be indirect.
     if let Some(name) = resolved.and_then(|object| object.as_name().ok()) {
         if matches!(name, b"Identity-H" | b"Identity-V") {
             return Ok(CmapDecoder::IdentityBytes);
@@ -3249,8 +3226,8 @@ fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
         .any(|name| matches!(name, b"Identity-H" | b"Identity-V"))
 }
 
-/// The complete predefined CMap set in ISO 32000-1:2008 Table 118, copied
-/// from the pinned veraPDF 1.30.2 PDF/A-2 and PDF/A-3 profiles.
+/// The predefined CMap names listed in ISO 32000-1:2008 Table 118 for
+/// PDF/A-2 and PDF/A-3.
 fn is_pdfa_2_3_predefined_cmap(name: &[u8]) -> bool {
     matches!(
         name,
@@ -4456,8 +4433,7 @@ impl Type1ProgramEncoding {
 /// Parses the clear-text Type 1 `/Encoding` definition before `eexec`.
 /// Custom array encodings are expressed as bounded `dup code /name put`
 /// assignments; a copied `StandardEncoding` supplies the base before those
-/// overrides. A missing/unreadable declaration remains unmapped, matching
-/// veraPDF's zero-filled 256-entry program encoding array.
+/// overrides. A missing or unreadable declaration supplies no custom names.
 fn type1_program_encoding(bytes: &[u8]) -> Type1ProgramEncoding {
     let bytes = type1_pfb_payload(bytes);
     let clear = bytes
@@ -5047,10 +5023,10 @@ fn is_adobe_glyph_name(name: &[u8]) -> bool {
         || name == b".notdef"
 }
 
-/// The subset of an SFNT needed by veraPDF's glyph-presence and width model.
-/// It deliberately does not parse `glyf`: the pinned malformed-`maxp` fixture
-/// proves unrelated tables do not make these model properties inapplicable.
-/// The `hmtx` byte extent itself supplies a bounded glyph-count upper bound.
+/// Reads the SFNT tables used by glyph-presence and width checks without
+/// parsing outlines. The `hmtx` byte extent supplies a bounded upper limit
+/// for glyph indexes, so unrelated table contents do not determine whether
+/// these checks can run.
 struct RawTrueType<'a> {
     cmap: Option<Cmap<'a>>,
     hmtx: Option<&'a [u8]>,
@@ -5301,13 +5277,10 @@ fn truetype_cmap_summary(
         return Ok(None);
     };
     let bytes = decode_font_stream(stream, limits)?;
-    // Confirmed live against veraPDF 1.30.2: it reads the `cmap` table's
-    // subtable count directly from the SFNT table directory, independent
-    // of whether the rest of the font (`maxp`, `hhea`, ...) otherwise
-    // parses -- a font whose `cmap` table is valid but whose `maxp` table
-    // is malformed still gets this predicate evaluated. `RawFace` reads
-    // only the table directory, unlike a full font parser, which can require
-    // several unrelated mandatory tables to succeed.
+    // Read the `cmap` subtable count from the SFNT table directory so this
+    // check can run even when unrelated tables such as `maxp` or `hhea` are
+    // malformed. `RawFace` reads the directory without requiring those
+    // tables to parse.
     let Some(face) = FontRef::new(&bytes).ok() else {
         return Ok(None);
     };
@@ -5343,9 +5316,8 @@ fn font_is_embedded(
     let Some(descriptor) = font_descriptor_dictionary(document, font, limits)? else {
         return Ok(false);
     };
-    // `containsFontFile` is a veraPDF model property, not mere key presence:
-    // the pinned malformed-program case proves that the stream must be
-    // recognized as an embedded font program.
+    // A `/FontFile` entry counts as embedded only when its stream has a
+    // recognizable font-program structure; key presence alone is not enough.
     for key in [b"FontFile".as_slice(), b"FontFile2", b"FontFile3"] {
         if let Ok(file) = descriptor.get(key)
             && let Some(stream) = resolve_optional(document, file, limits.max_reference_depth)?
@@ -5403,25 +5375,19 @@ fn valid_font_program(
         Err(_) => return Ok(false),
     };
     Ok(match key {
-        // Confirmed live against veraPDF 1.30.2: a stream whose bytes start
-        // with the Type1 magic header but never contain an `eexec` marker
-        // (no encrypted/binary section at all, just header text) still
-        // fails `PDFA1B-FONT-EMBEDDING-001` on veraPDF -- the header alone
-        // is not sufficient, matching the PFB/Type1 format's own
-        // requirement that a real program always has an encrypted segment.
+        // ASCII Type 1 programs use either the %!PS-AdobeFont or %!FontType1
+        // header and require an eexec marker. PFB programs use the binary
+        // segment markers checked below.
         b"FontFile" => {
-            (bytes.starts_with(b"%!PS-AdobeFont")
-                && bytes.windows(5).any(|window| window == b"eexec"))
+            (bytes.starts_with(b"%!PS-AdobeFont") || bytes.starts_with(b"%!FontType1"))
+                && bytes.windows(5).any(|window| window == b"eexec")
                 || (bytes.starts_with(&[0x80, 0x01])
                     && bytes.windows(2).any(|window| window == [0x80, 0x02]))
         }
         b"FontFile2" => valid_sfnt(&bytes),
-        // Confirmed live against veraPDF 1.30.2: a stream whose bytes
-        // satisfy only the CFF header-byte shape (major/minor version,
-        // hdrSize) but contain no parseable CFF structure beyond that still
-        // fails `PDFA1B-FONT-EMBEDDING-001` -- the header alone is not
-        // sufficient. Uses the same CFF parser already relied on for glyph
-        // lookups (`inspect_rendered_cff_type1_glyphs`), for consistency.
+        // A valid CFF header is not sufficient: the stream must also contain
+        // parseable CFF structures. Use the parser already used for glyph
+        // lookups (`inspect_rendered_cff_type1_glyphs`).
         b"FontFile3" => {
             matches!(
                 resolved_name(document, &stream.dict, b"Subtype", limits)?,
@@ -5435,14 +5401,10 @@ fn valid_font_program(
     })
 }
 
-// Confirmed live against veraPDF 1.30.2 (the same fixture that confirmed
-// `truetype_cmap_count`'s fix): it still considers a `/FontFile2` stream
-// "embedded" (no `PDFA1B-FONT-EMBEDDING-001` failure) even when the font's
-// `maxp` table is malformed enough that parsing the specific maxp table fails,
-// as long as the SFNT signature and table directory are themselves readable.
-// `FontRef::new` reads only the table directory, matching that narrower bar,
-// instead of requiring every mandatory table
-// (`head`/`hhea`/`maxp`/`hmtx`/glyph outlines) to individually succeed.
+// Embedding status requires a readable SFNT signature and table directory,
+// but does not depend on unrelated table contents such as `maxp` or glyph
+// outlines. `FontRef::new` validates the outer SFNT structure without
+// requiring those tables to parse.
 fn valid_sfnt(bytes: &[u8]) -> bool {
     FontRef::new(bytes).is_ok()
 }
@@ -5499,10 +5461,8 @@ fn collect_shown_text_bytes(operands: &[Object], bytes: &mut Vec<u8>) {
 }
 
 /// Resolves `object` through indirection before checking whether it is an
-/// integer. Confirmed live against veraPDF 1.30.2 that an *indirect*
-/// numeric value (e.g. a CMap's `/WMode`) is resolved rather than treated
-/// as absent -- the several integer-valued keys this file reads (`/WMode`,
-/// `/Flags`, `/FirstChar`, `/LastChar`) are not guaranteed to be direct.
+/// integer. Integer-valued entries such as a CMap's `/WMode`, `/Flags`,
+/// `/FirstChar`, and `/LastChar` may be indirect.
 fn resolved_integer(
     document: &Document,
     limits: &SafetyLimits,
@@ -5551,8 +5511,35 @@ mod tests {
         decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
         parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
         type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
+        valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn recognizes_valid_type1_program_headers() {
+        let document = Document::with_version("1.4");
+        for bytes in [
+            b"%!PS-AdobeFont-1.0\neexec\n".as_slice(),
+            b"%!FontType1-1.0\neexec\n".as_slice(),
+        ] {
+            let stream = Stream::new(Dictionary::new(), bytes.to_vec());
+            assert!(
+                valid_font_program(&document, b"FontFile", &stream, &SafetyLimits::default())
+                    .expect("decode Type 1 font program")
+            );
+        }
+
+        let header_only = Stream::new(Dictionary::new(), b"%!FontType1-1.0\n".to_vec());
+        assert!(
+            !valid_font_program(
+                &document,
+                b"FontFile",
+                &header_only,
+                &SafetyLimits::default()
+            )
+            .expect("decode Type 1 font program")
+        );
+    }
 
     #[test]
     fn format_2_cmap_maps_single_byte_codes_including_ff() {

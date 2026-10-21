@@ -2,10 +2,10 @@ use page_validation::ValidationProfile;
 
 pub mod common;
 
-const EMBEDDED_FILES: &str = "PDFA1B-NAMES-EMBEDDED-FILES-001";
-const OPTIONAL_CONTENT: &str = "PDFA1B-OPTIONAL-CONTENT-001";
-const FILE_SPEC: &str = "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001";
-const STREAM_EXTERNAL: &str = "PDFA1B-STREAM-EXTERNAL-DATA-001";
+const EMBEDDED_FILES: &str = "ISO 19005-1:2005:6.1.11:2";
+const OPTIONAL_CONTENT: &str = "ISO 19005-1:2005:6.1.13:1";
+const FILE_SPEC: &str = "ISO 19005-1:2005:6.1.11:1";
+const STREAM_EXTERNAL: &str = "ISO 19005-1:2005:6.1.7:3";
 
 #[test]
 fn document_feature_failures_are_reported_and_counted() {

@@ -308,10 +308,9 @@ fn signature_byte_range_covers_document(
     let document_length = i64::try_from(document_length).unwrap_or(i64::MAX);
     Ok(*start == 0
         && *end >= start.saturating_add(*length)
-        // veraPDF 1.30.2 accepts the signed range when its declared end is
-        // beyond the physical EOF of a malformed incremental/signature file.
-        // Keep the structural checks while matching that observable model
-        // behavior for the corpus.
+        // A signed range can declare an end beyond the current physical EOF,
+        // as in some incremental or signature files. Keep validating the
+        // declared extent while requiring it to cover the available file.
         && end.saturating_add(*stream_length) >= document_length)
 }
 

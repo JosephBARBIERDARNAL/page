@@ -139,15 +139,11 @@ fn inspect_annotation(
         ));
     }
 
-    // The official veraPDF predicate also treats hidden and crop-box-outside
-    // annotations as artifacts for this rule.
     let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
         .is_some_and(|flags| flags & 2 == 2);
     let outside_crop_box = annotation_is_outside_crop_box(document, page, annotation, limits)?;
     // PDF/UA-1 7.18.8-1 requires PrinterMark annotations to be incidental
-    // artifacts. As in veraPDF, hidden or outside-crop-box annotations are
-    // already treated as artifacts, while a visible in-crop-box annotation
-    // fails when it resolves through the structure tree.
+    // artifacts.
     if subtype == Some(b"PrinterMark".as_slice())
         && !hidden
         && !outside_crop_box
@@ -159,9 +155,8 @@ fn inspect_annotation(
             "is a visible, in-crop-box PrinterMark annotation included in logical structure",
         ));
     }
-    // PDF/UA-1 7.18.5-1 follows veraPDF's PDLinkAnnot predicate: the
-    // shared page-annotation traversal is the intentional scope, and hidden
-    // or crop-box-outside links are exempt from this check.
+    // PDF/UA-1 7.18.5-1 checks page-reached Link annotations. Hidden or
+    // crop-box-outside links are exempt.
     if subtype == Some(b"Link".as_slice())
         && !hidden
         && !outside_crop_box
@@ -177,9 +172,8 @@ fn inspect_annotation(
             "is not nested within a Link structure element",
         ));
     }
-    // PDF/UA-1 7.18.5-2 applies the same hidden and crop-box exemptions as
-    // veraPDF's PDLinkAnnot predicate and requires a non-empty string /Contents
-    // entry on every remaining Link annotation.
+    // PDF/UA-1 7.18.5-2 applies the same exemptions and requires a non-empty
+    // `/Contents` string on every remaining Link annotation.
     if subtype == Some(b"Link".as_slice())
         && !hidden
         && !outside_crop_box
@@ -668,8 +662,6 @@ fn annotation_has_language(
     annotation: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    // veraPDF's PDAnnot.containsLang comes from the annotation's tagged
-    // structure association, not from an arbitrary /Lang key on the annotation.
     let Some(structure_element) = annotation_structure_element(document, annotation, limits)?
     else {
         return Ok(false);

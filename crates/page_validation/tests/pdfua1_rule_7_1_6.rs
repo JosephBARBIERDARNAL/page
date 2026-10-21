@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001";
+const RULE: &str = "ISO 14289-1:2014:7.1:6";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-1-6-circular-mapping.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-6-circular-mapping.pdf").to_vec(),
             || common::pdfua1_rule_7_1_6_fixture("circular_mapping"),
-            &["PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001"],
+            &["ISO 14289-1:2014:7.1:6"],
         ),
     ],
 }

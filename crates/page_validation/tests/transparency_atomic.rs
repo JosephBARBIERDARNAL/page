@@ -1,6 +1,6 @@
 pub mod common;
 
-const BLEND_MODE: &str = "PDFA1B-EXTGSTATE-BLEND-MODE-001";
+const BLEND_MODE: &str = "ISO 19005-1:2005:6.4:4";
 
 #[test]
 fn a_single_transparency_failure_is_reported() {

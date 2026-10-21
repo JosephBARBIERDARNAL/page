@@ -44,7 +44,7 @@ const XMP_VERSION_NAMESPACE: &str = "http://ns.adobe.com/xap/1.0/sType/Version#"
 
 /// The document information dictionary (PDF32000 §14.3.3), captured as a flat map from entry name to its decoded text value.
 ///
-/// `values` holds whichever of `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`, `CreationDate`, `ModDate`, and `Trapped` are present in the trailer's `/Info` dictionary; an entry absent from the source document is simply absent from the map, and a document without an `/Info` dictionary produces an empty `Self::default`. This is the legacy sibling of the XMP-derived `XmpMetadata`, compared against it by the `PDFA1B-INFO-*` consistency rules.
+/// `values` holds whichever of `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`, `CreationDate`, `ModDate`, and `Trapped` are present in the trailer's `/Info` dictionary; an entry absent from the source document is simply absent from the map, and a document without an `/Info` dictionary produces an empty `Self::default`. This is the legacy sibling of the XMP-derived `XmpMetadata`, compared against it by PDF/A-1 metadata checks.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub(crate) struct DocumentMetadata {
@@ -286,8 +286,8 @@ enum RdfTerm {
     Old,
 }
 
-/// Validate the complete RDF/XML serialization subset accepted by the Adobe
-/// XMP 2004 parser embedded in veraPDF 1.30.2.
+/// Validates the RDF/XML serialization subset used by the XMP 2004 property
+/// parser.
 fn validate_rdf_package(rdf: Node<'_, '_>, xml: &str) -> Result<(), String> {
     validate_cdata_usage(rdf, xml)?;
     let mut package = RdfNodeState::new(RdfCompoundKind::Schema);
@@ -2219,12 +2219,12 @@ fn ordered_array_values(property: Node<'_, '_>) -> Option<Vec<String>> {
         .collect()
 }
 
-/// Mirrors veraPDF 1.30.2's `ByteBuffer.getEncoding()` only as far as the
-/// PDF/A predicate needs: whether its detected encoding is exactly `UTF-8`.
+/// Classifies the initial bytes only as far as the PDF/A predicate needs:
+/// whether the detected encoding is exactly `UTF-8`.
 ///
 /// This intentionally examines the raw stream rather than an XML declaration
-/// or the decoder selected below. veraPDF records its detected input encoding
-/// before applying its Latin-1 and control-character recovery paths.
+/// or the decoder selected below. The initial encoding is recorded before
+/// applying Latin-1 and control-character recovery paths.
 fn verapdf_actual_encoding_is_utf8(bytes: &[u8]) -> bool {
     match bytes {
         [] | [_] => true,
