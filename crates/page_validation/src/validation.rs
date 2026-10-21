@@ -817,11 +817,11 @@ fn collect_validation_failures(
             && document
                 .xmp
                 .as_ref()
-                .is_some_and(|xmp| xmp.lang_alt_without_x_default)
+                .is_some_and(|xmp| xmp.lang_alt_requires_catalog_language)
         {
             failures.push(failure(
                 "PDFUA1-METADATA-LANGUAGE-001",
-                "natural language for document metadata must be determinable from an x-default language alternative or the catalog /Lang",
+                "a catalog /Lang entry is required when XMP language alternatives provide no natural language",
                 document.xmp_object,
                 FailureCategory::Metadata,
             ));
@@ -1547,7 +1547,7 @@ fn collect_validation_failures(
             &mut failures,
         );
         // Reuse the font scanner's PDCMap applicability: it records used
-        // Type 0 encoding CMaps that are neither embedded nor in Table 118.
+        // Type 0 encoding CMaps and non-predefined CMaps referenced by them.
         aggregate_failures_with_location(
             &inspections.font_embedding.unembedded_cmaps,
             "PDFUA1-CMAP-EMBEDDING-001",
@@ -3957,7 +3957,14 @@ mod tests {
         let report = validate_pdf_bytes(&bytes, &ValidationOptions::default())
             .expect("PDF/UA-1 profile declaration");
         assert_eq!(report.profile, ValidationProfile::PdfUa1);
-        assert!(report.is_compliant, "{report:#?}");
+        assert_eq!(
+            report
+                .failures
+                .iter()
+                .map(|failure| failure.rule_id.as_str())
+                .collect::<Vec<_>>(),
+            ["PDFUA1-METADATA-LANGUAGE-001"]
+        );
         assert_eq!(
             report.rules.total,
             ValidationProfile::PdfUa1.implemented_check_count()

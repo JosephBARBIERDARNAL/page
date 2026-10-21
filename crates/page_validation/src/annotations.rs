@@ -139,7 +139,6 @@ fn inspect_annotation(
         ));
     }
 
-    let annotation_is_exempt = matches!(subtype, Some(b"Widget" | b"PrinterMark" | b"Link"));
     // The official veraPDF predicate also treats hidden and crop-box-outside
     // annotations as artifacts for this rule.
     let hidden = resolved_integer(document, annotation, b"F", limits.max_reference_depth)?
@@ -197,7 +196,7 @@ fn inspect_annotation(
             "does not include a non-empty /Contents alternate description",
         ));
     }
-    if !annotation_is_exempt && !hidden && !outside_crop_box {
+    if !hidden && !outside_crop_box && !matches!(subtype, Some(b"Widget" | b"PrinterMark")) {
         if subtype == Some(b"TrapNet".as_slice()) {
             summary.trapnet_annotations.push(annotation_failure(
                 object_id,
@@ -206,8 +205,11 @@ fn inspect_annotation(
             ));
         }
         let structure_element = annotation_structure_element(document, annotation, limits)?;
-        if annotation_struct_parent_standard_type(document, structure_element, limits)?
-            != Some(b"Annot".as_slice())
+        // Link annotations use their own 7.18.5 Link-tag requirement, but
+        // still need a description under 7.18.1-2.
+        if subtype != Some(b"Link".as_slice())
+            && annotation_struct_parent_standard_type(document, structure_element, limits)?
+                != Some(b"Annot".as_slice())
         {
             summary
                 .annotations_not_nested_in_annot

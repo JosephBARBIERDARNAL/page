@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-1-9-present.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-9-present.pdf").to_vec(),
             || common::pdfua1_rule_7_1_9_fixture("present"),
-            &[],
+            &["PDFUA1-METADATA-LANGUAGE-001"],
         ),
     ],
 }

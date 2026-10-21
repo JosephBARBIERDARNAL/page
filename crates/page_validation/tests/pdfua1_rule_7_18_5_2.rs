@@ -15,7 +15,10 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-18-5-2-empty-contents.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-18-5-2-empty-contents.pdf").to_vec(),
             || common::pdfua1_rule_7_18_5_2_fixture("empty_contents"),
-            &["PDFUA1-LINK-CONTENTS-001"],
+            &[
+                "PDFUA1-LINK-CONTENTS-001",
+                "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            ],
         ),
         (
             "pdfua1-rule-7-18-5-2-hidden.pdf",
@@ -27,7 +30,10 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-18-5-2-missing.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-18-5-2-missing.pdf").to_vec(),
             || common::pdfua1_rule_7_18_5_2_fixture("missing"),
-            &["PDFUA1-LINK-CONTENTS-001"],
+            &[
+                "PDFUA1-LINK-CONTENTS-001",
+                "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            ],
         ),
         (
             "pdfua1-rule-7-18-5-2-outside-crop-box.pdf",

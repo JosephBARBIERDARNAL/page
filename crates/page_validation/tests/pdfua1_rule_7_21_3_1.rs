@@ -31,3 +31,15 @@ crate::pdfua1_rule_tests! {
         ),
     ],
 }
+
+#[test]
+fn reports_missing_system_info_for_unembedded_non_table_cmap() {
+    common::assert_pdfua1_rule_behavior(
+        RULE,
+        &common::pdfua1_rule_7_21_3_1_fixture("unembedded_non_table_cmap"),
+        &[
+            "PDFUA1-CMAP-EMBEDDING-001",
+            "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+        ],
+    );
+}

@@ -15,19 +15,19 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-1-8-valid.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-8-valid.pdf").to_vec(),
             || common::pdfua1_rule_7_1_8_fixture("valid"),
-            &[],
+            &["PDFUA1-METADATA-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-7-1-8-wrong-subtype.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-subtype.pdf").to_vec(),
             || common::pdfua1_rule_7_1_8_fixture("wrong_subtype"),
-            &["PDFUA1-METADATA-STRUCTURE-001"],
+            &["PDFUA1-METADATA-STRUCTURE-001", "PDFUA1-METADATA-LANGUAGE-001"],
         ),
         (
             "pdfua1-rule-7-1-8-wrong-type.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-8-wrong-type.pdf").to_vec(),
             || common::pdfua1_rule_7_1_8_fixture("wrong_type"),
-            &["PDFUA1-METADATA-STRUCTURE-001"],
+            &["PDFUA1-METADATA-STRUCTURE-001", "PDFUA1-METADATA-LANGUAGE-001"],
         ),
     ],
 }

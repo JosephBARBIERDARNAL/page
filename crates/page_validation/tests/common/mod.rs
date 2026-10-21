@@ -5003,6 +5003,26 @@ pub fn pdfua1_rule_7_18_1_2_fixture(case: &str) -> Vec<u8> {
                 .expect("PDF/UA-1 fixture annotation dictionary")
                 .set("Contents", Object::string_literal(""));
         }
+        "link_missing_contents_and_alt" => {
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .set("Subtype", "Link");
+            document
+                .get_object_mut(structure_annotation_id)
+                .expect("PDF/UA-1 fixture annotation structure element")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation structure element dictionary")
+                .set("S", "Link");
+            document
+                .get_object_mut(annotation_id)
+                .expect("PDF/UA-1 fixture annotation")
+                .as_dict_mut()
+                .expect("PDF/UA-1 fixture annotation dictionary")
+                .remove(b"Contents");
+        }
         _ => panic!("unknown PDF/UA-1 rule 7.18.1-2 fixture case {case}"),
     }
     let mut bytes = Vec::new();
@@ -5455,6 +5475,7 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
         "matching" => ("Identity", 1),
         "registry_mismatch" => ("Identity", 1),
         "supplement_mismatch" => ("Identity", 0),
+        "unembedded_non_table_cmap" => ("Korea1", 2),
         _ => panic!("unknown PDF/UA-1 rule 7.21.3.1-1 fixture case {case}"),
     };
     if case == "registry_mismatch" {
@@ -5485,6 +5506,20 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
                     "Supplement" => 2,
                 },
             );
+    } else if case == "unembedded_non_table_cmap" {
+        document
+            .get_object_mut(descendant_id)
+            .expect("Type0 descendant")
+            .as_dict_mut()
+            .expect("Type0 descendant dictionary")
+            .set(
+                "CIDSystemInfo",
+                dictionary! {
+                    "Registry" => Object::string_literal("Adobe"),
+                    "Ordering" => Object::string_literal("Korea1"),
+                    "Supplement" => 2,
+                },
+            );
     }
     let cmap_content =
         b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 1 >> def\n\
@@ -5503,10 +5538,10 @@ pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
         },
         cmap_content.to_vec(),
     ));
-    let encoding = if case == "identity" {
-        Object::Name(b"Identity-H".to_vec())
-    } else {
-        cmap_id.into()
+    let encoding = match case {
+        "identity" => Object::Name(b"Identity-H".to_vec()),
+        "unembedded_non_table_cmap" => Object::Name(b"Adobe-Korea1-2".to_vec()),
+        _ => cmap_id.into(),
     };
     let font_id = document.add_object(dictionary! {
         "Type" => "Font",
@@ -6004,11 +6039,20 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 encoding")
         .as_reference()
         .expect("indirect PDF/UA-1 CMap");
-    let dictionary_unknown_reference = (case == "dictionary_unknown").then(|| {
+    let dictionary_reference = matches!(
+        case,
+        "dictionary_unknown" | "dictionary_embedded_unknown" | "dictionary_embedded_mismatch"
+    )
+    .then(|| {
+        let name = if case == "dictionary_embedded_mismatch" {
+            "AnotherCustomCMap"
+        } else {
+            "NotAStandardCMap"
+        };
         document.add_object(Stream::new(
             dictionary! {
                 "Type" => "CMap",
-                "CMapName" => "NotAStandardCMap",
+                "CMapName" => name,
             },
             embedded_cmap("Identity", 0, 0),
         ))
@@ -6022,10 +6066,21 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
         "allowed" => cmap.set_content(embedded_identity_usecmap("Identity", 0)),
         "embedded_unknown" => cmap.set_content(embedded_unknown_usecmap("Identity", 0)),
         "dictionary_unknown" => {
-            cmap.dict.set(
-                "UseCMap",
-                dictionary_unknown_reference.expect("unknown CMap"),
-            );
+            cmap.dict
+                .set("UseCMap", dictionary_reference.expect("unknown CMap"));
+        }
+        "dictionary_embedded_unknown" | "dictionary_embedded_mismatch" => {
+            cmap.dict
+                .set("UseCMap", dictionary_reference.expect("embedded CMap"));
+            cmap.set_content(embedded_usecmap_reference(
+                "NotAStandardCMap",
+                "Identity",
+                0,
+            ));
+        }
+        "dictionary_name_unknown" => {
+            cmap.dict
+                .set("UseCMap", Object::Name(b"Adobe-Korea1-2".to_vec()));
         }
         _ => panic!("unknown PDF/UA-1 rule 7.21.3.3-3 fixture case {case}"),
     }
@@ -15967,6 +16022,10 @@ pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
 }
 
 pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+    embedded_usecmap_reference("Adobe-Japan1-UCS2", ordering, wmode)
+}
+
+pub fn embedded_usecmap_reference(base_cmap: &str, ordering: &str, wmode: i64) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
          /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
@@ -15977,7 +16036,7 @@ pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
          1 begincidrange\n\
          <20> <20> 32\n\
          endcidrange\n\
-         /Adobe-Japan1-UCS2 usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
+         /{base_cmap} usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
          end\nend\n"
     )
     .into_bytes()

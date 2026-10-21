@@ -27,7 +27,10 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-33-x_default.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-2-33-x_default.pdf").to_vec(),
             || common::pdfua1_rule_7_2_33_fixture("x_default"),
-            &["PDFUA1-TEXT-LANGUAGE-001"],
+            &[
+                "PDFUA1-TEXT-LANGUAGE-001",
+                "PDFUA1-METADATA-LANGUAGE-001",
+            ],
         ),
     ],
 }

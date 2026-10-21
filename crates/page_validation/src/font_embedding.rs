@@ -2254,13 +2254,20 @@ impl Scanner<'_> {
             }
             if let Some(descendant) = descendant
                 && let Some(name) = resolved.and_then(|object| object.as_name().ok())
-                && let Some(bytes) = predefined_cmaps::get(name)
             {
+                // Only Table 118 names establish the Encoding CMap's
+                // CIDSystemInfo as a predefined mapping. Other bundled Adobe
+                // resources can decode glyphs, but are not valid substitutes
+                // for a missing PDF CMap dictionary.
+                let cmap_system_info = is_pdfa_2_3_predefined_cmap(name)
+                    .then(|| predefined_cmaps::get(name))
+                    .flatten()
+                    .and_then(cmap_bytes_system_info);
                 self.record_type0_system_info(
                     object_id,
                     description,
                     cid_system_info(self.document, descendant, self.limits)?,
-                    cmap_bytes_system_info(bytes),
+                    cmap_system_info,
                 );
             }
             return Ok(());
@@ -2289,16 +2296,34 @@ impl Scanner<'_> {
             .flatten()
             .unwrap_or(0);
         let bytes = decode_font_stream(cmap, self.limits)?;
-        let dictionary_reference_invalid =
-            resolved_cmap_reference_name(self.document, &cmap.dict, self.limits)?
-                .is_some_and(|name| !is_pdfa_2_3_predefined_cmap(&name));
-        let embedded_reference_invalid = cmap_usecmap_name(&bytes)
+        let (
+            dictionary_reference_name,
+            dictionary_reference_unembedded,
+            dictionary_reference_is_stream,
+        ) = resolved_cmap_reference_info(self.document, &cmap.dict, self.limits)?;
+        let embedded_reference_name = cmap_usecmap_name(&bytes);
+        let dictionary_reference_invalid = dictionary_reference_name
+            .as_deref()
+            .is_some_and(|name| !is_pdfa_2_3_predefined_cmap(name));
+        let embedded_reference_invalid = embedded_reference_name
             .is_some_and(|base_name| !is_pdfa_2_3_predefined_cmap(base_name));
+        let embedded_reference_is_embedded = dictionary_reference_is_stream
+            && embedded_reference_name
+                .is_some_and(|name| dictionary_reference_name.as_deref() == Some(name));
         if dictionary_reference_invalid || embedded_reference_invalid {
             self.invalid_cmap_references.push(font_failure(
                 object_id,
                 description,
                 "references a CMap outside the ISO 32000-1:2008 Table 118 predefined CMap set",
+            ));
+        }
+        if dictionary_reference_unembedded
+            || (embedded_reference_invalid && !embedded_reference_is_embedded)
+        {
+            self.unembedded_cmaps.push(font_failure(
+                object_id,
+                description,
+                "references a non-predefined CMap that is not embedded",
             ));
         }
         if cmap_maximal_cid(&bytes).is_some_and(|cid| cid > 65_535) {
@@ -3293,28 +3318,36 @@ fn is_pdfa_2_3_predefined_cmap(name: &[u8]) -> bool {
     )
 }
 
-fn resolved_cmap_reference_name(
+fn resolved_cmap_reference_info(
     document: &Document,
     dictionary: &Dictionary,
     limits: &SafetyLimits,
-) -> Result<Option<Vec<u8>>, PdfError> {
+) -> Result<(Option<Vec<u8>>, bool, bool), PdfError> {
     let Ok(reference) = dictionary.get(b"UseCMap") else {
-        return Ok(None);
+        return Ok((None, false, false));
     };
     let Some(value) = resolve_optional(document, reference, limits.max_reference_depth)? else {
-        return Ok(None);
+        return Ok((None, false, false));
     };
     if let Ok(name) = value.as_name() {
-        return Ok(Some(name.to_vec()));
+        return Ok((
+            Some(name.to_vec()),
+            !is_pdfa_2_3_predefined_cmap(name),
+            false,
+        ));
     }
-    let dictionary = if let Ok(dictionary) = value.as_dict() {
-        dictionary
+    let (dictionary, is_stream) = if let Ok(dictionary) = value.as_dict() {
+        (dictionary, false)
     } else if let Ok(stream) = value.as_stream() {
-        &stream.dict
+        (&stream.dict, true)
     } else {
-        return Ok(None);
+        return Ok((None, false, false));
     };
-    Ok(resolved_name(document, dictionary, b"CMapName", limits)?.map(ToOwned::to_owned))
+    Ok((
+        resolved_name(document, dictionary, b"CMapName", limits)?.map(ToOwned::to_owned),
+        false,
+        is_stream,
+    ))
 }
 
 fn cmap_has_explicit_mappings(bytes: &[u8]) -> bool {
