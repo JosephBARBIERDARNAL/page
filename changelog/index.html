@@ -977,6 +977,14 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Refactor</strong>: Emit ISO rule identifiers directly from validation checks and remove the local rule-ID mapping table</li>
+<li><strong>Doc</strong>: Attribute ISO clause identifiers sourced from the veraPDF validation profiles</li>
+<li><strong>Fix</strong>: Assign ISO clause identifiers to previously uncovered PDF/A checks</li>
+<li><strong>Fix</strong>: Limit the standard structure-tag remapping finding to PDF/A-2 and PDF/A-3, which define that check</li>
+<li><strong>Fix</strong>: Recognize both supported Type 1 font program headers</li>
+<li><strong>Fix</strong>: Return an unusable PDF trailer <code>/Root</code> as a parser error</li>
+<li><strong>Feat</strong>: Use ISO specification rule IDs in validation reports</li>
+<li><strong>Fix</strong>: Allow filtered metadata streams in PDF/A-2 and PDF/A-3</li>
 <li><strong>Fix</strong>: Require catalog language when XMP alternatives provide no natural language <a href="https://github.com/JosephBARBIERDARNAL/page/issues/610">#610</a></li>
 <li><strong>Fix</strong>: Recognize matching embedded <code>/UseCMap</code> streams <a href="https://github.com/JosephBARBIERDARNAL/page/issues/612">#612</a></li>
 <li><strong>Fix</strong>: Report unembedded non-predefined CMaps referenced through <code>/UseCMap</code> <a href="https://github.com/JosephBARBIERDARNAL/page/issues/612">#612</a></li>
