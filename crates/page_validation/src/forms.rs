@@ -316,8 +316,7 @@ fn inspect_page_widgets(
             let outside_crop_box =
                 annotation_is_outside_crop_box(document, page, annotation, limits)?;
             let structure_element = annotation_structure_element(document, annotation, limits)?;
-            // This population is page-reached Widgets, matching veraPDF's
-            // PDWidgetAnnot scope for the rule.
+            // This rule applies to Widgets reached through page annotations.
             if !hidden
                 && !outside_crop_box
                 && annotation_struct_parent_standard_type(document, structure_element, limits)?

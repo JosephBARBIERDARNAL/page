@@ -78,9 +78,8 @@ fn inspect_dictionary_with(
         Some(Object::String(bytes, _)) => {
             predicate(&crate::model::decode_verapdf_pdf_string(bytes))
         }
-        // veraPDF creates a CosLang rule object only for string-valued Lang
-        // entries; nulls and other COS types are not evaluated by the
-        // language-tag profiles.
+        // Language-tag checks apply only to string-valued `/Lang` entries;
+        // null and other COS values are not evaluated.
         _ => true,
     };
     (!valid).then(|| RuleFailure {

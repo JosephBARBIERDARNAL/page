@@ -379,8 +379,8 @@ impl Inspector<'_> {
                 description: format!("{context} has a missing or forbidden named action /N"),
             });
         }
-        // GoToR and SubmitForm are the only allowed action types that carry
-        // a file specification (/F)
+        // Only GoToR and SubmitForm actions may carry a file specification
+        // in `/F`.
         if matches!(subtype, Some(b"GoToR" | b"SubmitForm"))
             && let Ok(file_spec_value) = action.get(b"F")
             && let Some(file_spec_dictionary) = resolve_optional(

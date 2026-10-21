@@ -29,9 +29,10 @@ pub(crate) struct Catalog<'a> {
 /// direct dictionary embedded in the trailer is rejected even when it would
 /// otherwise resolve to a well-formed `/Type /Catalog` dictionary. A resolved
 /// dictionary is otherwise accepted as the catalog only when its `/Type` is
-/// present and equal to `Catalog`. A `/Root` that is missing, direct, unresolvable, or points at a
-/// non-`Catalog` (or untyped) dictionary is not a usable catalog; validation
-/// reports that condition as a parser error before applying conformance rules.
+/// present and equal to `Catalog`. A `/Root` that is missing, direct,
+/// unresolvable, or points at a non-`Catalog` (or untyped) dictionary is not
+/// a usable catalog; validation reports that condition as a parser error
+/// before applying conformance rules.
 pub(crate) fn resolve_catalog<'a>(
     document: &'a Document,
     limits: &SafetyLimits,

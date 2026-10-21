@@ -1801,8 +1801,8 @@ impl ContentExecutor<'_> {
             }
             return Ok(());
         };
-        // A tiling Pattern may fall back to page resources for ordinary
-        // resource categories.
+        // A tiling Pattern can inherit ordinary resource categories from the
+        // page, while its color-space resources remain scoped to the Pattern.
         let pattern_page_resources = page_resources.map(|resources| {
             let mut resources = resources.clone();
             resources.remove(b"ColorSpace");

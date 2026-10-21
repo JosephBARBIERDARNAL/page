@@ -79,9 +79,8 @@ pub(crate) fn inspect(
         inspector.inspect_selected_color_space(selected)?;
     }
 
-    // veraPDF exposes PDDeviceN objects independently from colour-space
-    // selection, so retain its whole parsed-object population in addition to
-    // the executed colour spaces above.
+    // Some parsed DeviceN spaces are not selected during content execution,
+    // so inspect the document's parsed color spaces separately as well.
     let (all_pdfa1, all_pdfa2, all_colorants) = inspect_all_devicen_components(document, limits)?;
     let inconsistent_separations = inspect_separation_consistency(document, execution, limits)?;
     inspector.invalid_devicen_components.extend(all_pdfa1);

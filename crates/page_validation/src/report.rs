@@ -56,7 +56,7 @@ impl fmt::Display for FailureCategory {
 
 /// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
-/// `rule_id` identifies the corresponding veraPDF specification check (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+/// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
 /// Text formatting produces `[rule_id] Category: message`.
 ///

@@ -866,8 +866,8 @@ fn object_text(object: &Object, stringify_non_string: bool) -> Option<String> {
 fn verapdf_object_string(object: &Object) -> String {
     match object {
         Object::Null => "null".to_owned(),
-        // COSBoolean inherits Object.toString(), so its value is an unstable
-        // identity string and can never be a portable XMP text equivalent.
+        // Boolean values use an identity-based representation here, so they
+        // cannot provide a stable XMP text equivalent.
         Object::Boolean(_) => "org.verapdf.cos.COSBoolean@<identity>".to_owned(),
         Object::Integer(value) => value.to_string(),
         Object::Real(value) => {
@@ -1226,14 +1226,14 @@ mod tests {
 
     use super::*;
 
-    /// Confirmed against veraPDF 1.30.2: a trailer with a direct `/Encrypt
-    /// null` is compliant (not encrypted), matching the same direct-null
-    /// convention as every other `containsX` predicate. Built directly on
+    /// A trailer with a direct `/Encrypt null` entry is treated as not
+    /// encrypted, following the direct-null convention used by other
+    /// meaningful-presence checks. Built directly on
     /// an in-memory `Document` rather than round-tripped through bytes:
     /// `lopdf` itself special-cases *any* trailer `/Encrypt` key (even a
     /// literal null) at load time and does not populate `document.objects`
-    /// for such a file — a separate, upstream parsing quirk unrelated to
-    /// this flag-computation fix, and out of scope to work around here (a
+    /// for such a file — a separate parsing behavior unrelated to this
+    /// flag-computation fix, and out of scope to work around here (a
     /// literal-null `/Encrypt` trailer entry is not a realistic PDF
     /// producer's output).
     #[test]

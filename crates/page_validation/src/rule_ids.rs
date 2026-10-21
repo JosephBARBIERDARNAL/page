@@ -1,7 +1,7 @@
-//! Maps internal validation checks to the rule identifiers used by veraPDF.
+//! Maps internal validation checks to external specification rule identifiers.
 //!
 //! The mapping is keyed by profile and internal check ID. Reports expose only the corresponding
-//! veraPDF identifier; parser and operational errors remain classified separately as `PageError`.
+//! mapped identifier; parser and operational errors remain classified separately as `PageError`.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

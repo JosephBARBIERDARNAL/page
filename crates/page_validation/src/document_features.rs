@@ -2450,7 +2450,7 @@ fn contains_caption_not_first(
     max_reference_depth: usize,
     max_object_count: usize,
 ) -> Result<bool, PdfError> {
-    // only structure-element standard
+    // Only structure-element standard
     // types participate in the order, so marked-content and integer kids are
     // intentionally ignored.
     let mut structure_kids = 0;
@@ -3563,8 +3563,8 @@ fn non_empty_text_attribute_bytes(
 /// revisited while still an ancestor) raises `PdfError::ReferenceDepth`,
 /// while the same file specification or intermediate node legitimately
 /// reachable from two different `Kids` branches (a DAG, not a cycle) is not
-/// mistaken for one. `steps`
-/// bounds the walk's total work (independent of ancestor depth) against a
+/// mistaken for one. The `steps` counter bounds the walk's total work
+/// independently of ancestor depth against a
 /// DAG that fans out shared subtrees without any node being its own
 /// ancestor, the same DAG-blowup safety `page_tree.rs` uses.
 fn inspect_name_tree(
@@ -3945,11 +3945,9 @@ mod tests {
         }
     }
 
-    /// The same name-tree leaf reachable
-    /// from two different `Kids` branches (a DAG, not a cycle — neither
-    /// branch is the other's ancestor) is processed without error, the same
-    /// way a Page object shared by two `Pages` branches is (see
-    /// `page_tree.rs`'s identical fix this session).
+    /// A name-tree leaf reachable from two separate `Kids` branches is a
+    /// shared node rather than an ancestor cycle, so this walk must not
+    /// reject it as cyclic.
     #[test]
     fn shared_name_tree_leaf_reached_from_two_branches_is_not_a_cycle() {
         let mut document = Document::with_version("1.4");

@@ -155,8 +155,8 @@ fn inspect_annotation(
             "is a visible, in-crop-box PrinterMark annotation included in logical structure",
         ));
     }
-    // shared page-annotation traversal is the intentional scope, and hidden
-    // or crop-box-outside links are exempt from this check.
+    // PDF/UA-1 7.18.5-1 checks page-reached Link annotations. Hidden or
+    // crop-box-outside links are exempt.
     if subtype == Some(b"Link".as_slice())
         && !hidden
         && !outside_crop_box
@@ -172,7 +172,8 @@ fn inspect_annotation(
             "is not nested within a Link structure element",
         ));
     }
-    // PDF/UA-1 7.18.5-2 applies the same hidden and crop-box exemptions
+    // PDF/UA-1 7.18.5-2 applies the same exemptions and requires a non-empty
+    // `/Contents` string on every remaining Link annotation.
     if subtype == Some(b"Link".as_slice())
         && !hidden
         && !outside_crop_box

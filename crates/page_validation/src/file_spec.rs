@@ -15,9 +15,9 @@ use crate::report::RuleFailure;
 /// Checks a resolved file-specification dictionary for the forbidden `/EF`
 /// key (`PDFA1B-FILE-SPEC-EMBEDDED-FILE-001`, `ISO 19005-1:2005:6.1.11:1`).
 ///
-/// The catalog `Names/EmbeddedFiles` name tree, or a `GoToR`/`SubmitForm`
-/// action's `/F` entry. Every
-/// reachability path shares this one check instead of re-deriving it.
+/// File specifications may be reached through the catalog's
+/// `Names/EmbeddedFiles` name tree or through a `GoToR`/`SubmitForm` action's
+/// `/F` entry. Every path shares this check instead of re-deriving it.
 ///
 /// A direct `Object::Null` `/EF` value is empty and passes; an *indirect*
 /// null remains a present key and fails, matching the same convention

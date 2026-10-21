@@ -1443,9 +1443,9 @@ fn collect_validation_failures(
             None,
             &mut failures,
         );
-        // Reuse the shared rendered-glyph scanners: mode-3-only text has no
-        // shown bytes, while unresolved mappings remain inapplicable like
-        // veraPDF's `isGlyphPresent == null` predicate.
+        // Reuse the shared rendered-glyph scanners. Mode-3-only text has no
+        // shown bytes, and unresolved mappings cannot establish a glyph
+        // identity to check.
         let mut glyph_presence_failures = inspections
             .font_embedding
             .missing_truetype_glyphs
@@ -1465,9 +1465,8 @@ fn collect_validation_failures(
             &mut failures,
         );
         // PDF/UA-1 7.21.5-1 shares the rendered embedded-font width scanner
-        // with PDF/A. It already applies the veraPDF tolerance of one font
-        // unit and covers simple, composite, Type 1, Type 1C, and Type 3
-        // font programs.
+        // with PDF/A. It allows a tolerance of one font unit and covers
+        // simple, composite, Type 1, Type 1C, and Type 3 font programs.
         aggregate_failures_with_location(
             &inspections.font_embedding.inconsistent_truetype_widths,
             "PDFUA1-FONT-GLYPH-WIDTH-001",
@@ -1475,8 +1474,7 @@ fn collect_validation_failures(
             &mut failures,
         );
         // PDF/UA-1 7.21.6-1 shares the bounded embedded TrueType cmap
-        // summary with the PDF/A-2/3 implementation. It applies the
-        // veraPDF predicate exactly: non-symbolic fonts need at least one
+        // summary with PDF/A-2/3. Non-symbolic fonts need at least one
         // non-symbol cmap, and need more than one when a Microsoft Symbol
         // cmap is present.
         aggregate_failures_with_location(
@@ -1512,7 +1510,7 @@ fn collect_validation_failures(
         );
         // PDF/UA-1 7.21.6-4 reuses the bounded embedded TrueType cmap
         // summary. Multiple subtables are permitted when a Microsoft Symbol
-        // cmap is present, matching veraPDF's predicate.
+        // cmap is present.
         aggregate_failures_with_location(
             &inspections
                 .font_embedding
@@ -1521,10 +1519,9 @@ fn collect_validation_failures(
             None,
             &mut failures,
         );
-        // PDF/UA-1 7.21.7-1 reuses the shared rendered-glyph Unicode mapper.
-        // It applies the same effective Unicode mapping exceptions used by
-        // veraPDF for standard simple-font encodings, Type 1 character names,
-        // and Adobe character collections.
+        // PDF/UA-1 7.21.7-1 reuses the shared rendered-glyph Unicode mapper,
+        // including mappings from standard simple-font encodings, Type 1
+        // character names, and Adobe character collections.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_unicode_mappings,
             "PDFUA1-FONT-UNICODE-MAPPING-001",
@@ -1557,8 +1554,8 @@ fn collect_validation_failures(
             None,
             &mut failures,
         );
-        // Reuse the font scanner's PDCMap applicability: it records used
-        // Type 0 encoding CMaps and non-predefined CMaps referenced by them.
+        // Reuse the font scanner's used Type 0 encoding CMaps, including
+        // non-predefined CMaps referenced by them.
         aggregate_failures_with_location(
             &inspections.font_embedding.unembedded_cmaps,
             "PDFUA1-CMAP-EMBEDDING-001",
@@ -1567,16 +1564,16 @@ fn collect_validation_failures(
         );
         // Reuse the shared embedded-CMap WMode comparison. Its applicability
         // is already limited to the embedded Type 0 CMaps inspected by the
-        // font scanner, matching veraPDF's PDF/UA CMapFile population.
+        // font scanner.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cmap_wmodes,
             "PDFUA1-CMAP-WMODE-001",
             None,
             &mut failures,
         );
-        // The shared CMap reference inspection follows the existing PDCMap
-        // applicability for used Type 0 encoding CMaps and accepts only the
-        // Table 118 predefined CMaps, which is also PDF/UA-1 rule 7.21.3.3-3.
+        // Inspect CMap references used by Type 0 fonts and accept only the
+        // predefined names listed in Table 118. This also implements
+        // PDF/UA-1 rule 7.21.3.3-3.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cmap_references,
             "PDFUA1-CMAP-REFERENCE-001",
@@ -2626,9 +2623,8 @@ fn validate_document_features(
 }
 
 /// Aggregates `PDFA1B-FILE-SPEC-EMBEDDED-FILE-001` failures across every
-/// reachability path veraPDF's `CosFileSpecification` object covers: the
-/// catalog `Names/EmbeddedFiles` name tree, and `GoToR`/`SubmitForm` action
-/// `/F` entries.
+/// reachable file specification: the catalog `Names/EmbeddedFiles` name
+/// tree and `GoToR`/`SubmitForm` action `/F` entries.
 fn validate_pdf_specifications(
     profile: ValidationProfile,
     document_features: &crate::document_features::DocumentFeatureSummary,
@@ -4281,9 +4277,9 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.30.2: a catalog Metadata stream with a
-    /// direct null `/Filter` is compliant, matching the same direct-null
-    /// convention as every other `containsX` predicate this crate checks.
+    /// A catalog Metadata stream with a direct null `/Filter` does not have
+    /// a meaningful filter entry, following the direct-null convention used
+    /// by other presence checks.
     #[test]
     fn catalog_metadata_direct_null_filter_is_not_a_filter_violation() {
         let report = validate_pdf_bytes(
