@@ -6039,11 +6039,20 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 encoding")
         .as_reference()
         .expect("indirect PDF/UA-1 CMap");
-    let dictionary_unknown_reference = (case == "dictionary_unknown").then(|| {
+    let dictionary_reference = matches!(
+        case,
+        "dictionary_unknown" | "dictionary_embedded_unknown" | "dictionary_embedded_mismatch"
+    )
+    .then(|| {
+        let name = if case == "dictionary_embedded_mismatch" {
+            "AnotherCustomCMap"
+        } else {
+            "NotAStandardCMap"
+        };
         document.add_object(Stream::new(
             dictionary! {
                 "Type" => "CMap",
-                "CMapName" => "NotAStandardCMap",
+                "CMapName" => name,
             },
             embedded_cmap("Identity", 0, 0),
         ))
@@ -6057,10 +6066,17 @@ pub fn pdfua1_rule_7_21_3_3_3_fixture(case: &str) -> Vec<u8> {
         "allowed" => cmap.set_content(embedded_identity_usecmap("Identity", 0)),
         "embedded_unknown" => cmap.set_content(embedded_unknown_usecmap("Identity", 0)),
         "dictionary_unknown" => {
-            cmap.dict.set(
-                "UseCMap",
-                dictionary_unknown_reference.expect("unknown CMap"),
-            );
+            cmap.dict
+                .set("UseCMap", dictionary_reference.expect("unknown CMap"));
+        }
+        "dictionary_embedded_unknown" | "dictionary_embedded_mismatch" => {
+            cmap.dict
+                .set("UseCMap", dictionary_reference.expect("embedded CMap"));
+            cmap.set_content(embedded_usecmap_reference(
+                "NotAStandardCMap",
+                "Identity",
+                0,
+            ));
         }
         "dictionary_name_unknown" => {
             cmap.dict
@@ -16006,6 +16022,10 @@ pub fn embedded_identity_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
 }
 
 pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
+    embedded_usecmap_reference("Adobe-Japan1-UCS2", ordering, wmode)
+}
+
+pub fn embedded_usecmap_reference(base_cmap: &str, ordering: &str, wmode: i64) -> Vec<u8> {
     format!(
         "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
          /CIDSystemInfo << /Registry (Adobe) /Ordering ({ordering}) /Supplement 0 >> def\n\
@@ -16016,7 +16036,7 @@ pub fn embedded_unknown_usecmap(ordering: &str, wmode: i64) -> Vec<u8> {
          1 begincidrange\n\
          <20> <20> 32\n\
          endcidrange\n\
-         /Adobe-Japan1-UCS2 usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
+         /{base_cmap} usecmap\nendcmap\nCMapName currentdict /CMap defineresource pop\n\
          end\nend\n"
     )
     .into_bytes()
