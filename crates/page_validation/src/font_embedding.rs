@@ -5403,15 +5403,13 @@ fn valid_font_program(
         Err(_) => return Ok(false),
     };
     Ok(match key {
-        // Confirmed live against veraPDF 1.30.2: a stream whose bytes start
-        // with the Type1 magic header but never contain an `eexec` marker
-        // (no encrypted/binary section at all, just header text) still
-        // fails `PDFA1B-FONT-EMBEDDING-001` on veraPDF -- the header alone
-        // is not sufficient, matching the PFB/Type1 format's own
-        // requirement that a real program always has an encrypted segment.
+        // Type 1 programs use both the %!PS-AdobeFont and %!FontType1
+        // headers. veraPDF 1.30.2 accepts the latter; either header still
+        // needs an eexec marker to identify an embedded program rather
+        // than a header-only stream.
         b"FontFile" => {
-            (bytes.starts_with(b"%!PS-AdobeFont")
-                && bytes.windows(5).any(|window| window == b"eexec"))
+            (bytes.starts_with(b"%!PS-AdobeFont") || bytes.starts_with(b"%!FontType1"))
+                && bytes.windows(5).any(|window| window == b"eexec")
                 || (bytes.starts_with(&[0x80, 0x01])
                     && bytes.windows(2).any(|window| window == [0x80, 0x02]))
         }
@@ -5551,8 +5549,35 @@ mod tests {
         decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
         parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
         type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
+        valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn recognizes_valid_type1_program_headers() {
+        let document = Document::with_version("1.4");
+        for bytes in [
+            b"%!PS-AdobeFont-1.0\neexec\n".as_slice(),
+            b"%!FontType1-1.0\neexec\n".as_slice(),
+        ] {
+            let stream = Stream::new(Dictionary::new(), bytes.to_vec());
+            assert!(
+                valid_font_program(&document, b"FontFile", &stream, &SafetyLimits::default())
+                    .expect("decode Type 1 font program")
+            );
+        }
+
+        let header_only = Stream::new(Dictionary::new(), b"%!FontType1-1.0\n".to_vec());
+        assert!(
+            !valid_font_program(
+                &document,
+                b"FontFile",
+                &header_only,
+                &SafetyLimits::default()
+            )
+            .expect("decode Type 1 font program")
+        );
+    }
 
     #[test]
     fn format_2_cmap_maps_single_byte_codes_including_ff() {

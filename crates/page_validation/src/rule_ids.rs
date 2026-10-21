@@ -72,3 +72,115 @@ pub(crate) fn verapdf_rule_id(
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::verapdf_rule_id;
+    use crate::validation::ValidationProfile;
+
+    #[test]
+    fn maps_pdfa2b_corpus_findings_and_pdfa3_fallbacks() {
+        for (local_rule_id, vera_rule_id) in [
+            (
+                "PDFA2B-CATALOG-ADDITIONAL-ACTIONS-001",
+                "ISO 19005-2:2011:6.5.2:1",
+            ),
+            (
+                "PDFA2B-CATALOG-NEEDS-RENDERING-001",
+                "ISO 19005-2:2011:6.4.2:2",
+            ),
+            ("PDFA2B-CMAP-CID-RANGE-001", "ISO 19005-2:2011:6.1.13:10"),
+            ("PDFA2B-CMAP-EMBEDDING-001", "ISO 19005-2:2011:6.2.11.3.3:1"),
+            (
+                "PDFA2B-FIELD-ADDITIONAL-ACTIONS-001",
+                "ISO 19005-2:2011:6.4.1:2",
+            ),
+            (
+                "PDFA2B-ID-CONFORMANCE-PREFIX-001",
+                "ISO 19005-2:2011:6.6.4:5",
+            ),
+            ("PDFA2B-ID-PART-PREFIX-001", "ISO 19005-2:2011:6.6.4:4"),
+            ("PDFA2B-ID-SCHEMA-001", "ISO 19005-2:2011:6.6.4:1"),
+            (
+                "PDFA2B-JPEG2000-COLOR-SPECS-001",
+                "ISO 19005-2:2011:6.2.8.3:2",
+            ),
+            ("PDFA2B-REAL-MINIMUM-001", "ISO 19005-2:2011:6.1.13:5"),
+            (
+                "PDFA2B-TRUETYPE-GLYPH-PRESENCE-001",
+                "ISO 19005-2:2011:6.2.11.4.1:2",
+            ),
+            (
+                "PDFA2B-TYPE1-GLYPH-PRESENCE-001",
+                "ISO 19005-2:2011:6.2.11.4.1:2",
+            ),
+            ("PDFA2B-WIDGET-APPEARANCE-001", "ISO 19005-2:2011:6.3.3:1"),
+            (
+                "PDFA2B-XMP-EXTENSION-FIELD-NAME-001",
+                "ISO 19005-2:2011:6.6.2.3.3:16",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-FIELD-VALUE-TYPE-001",
+                "ISO 19005-2:2011:6.6.2.3.3:17",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+                "ISO 19005-2:2011:6.6.2.3.1:1",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-PROPERTY-NAME-001",
+                "ISO 19005-2:2011:6.6.2.3.3:7",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+                "ISO 19005-2:2011:6.6.2.3.1:2",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
+                "ISO 19005-2:2011:6.6.2.3.3:8",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-SCHEMA-NAMESPACE-001",
+                "ISO 19005-2:2011:6.6.2.3.3:3",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-SCHEMA-PROPERTIES-001",
+                "ISO 19005-2:2011:6.6.2.3.3:5",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001",
+                "ISO 19005-2:2011:6.6.2.3.3:6",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001",
+                "ISO 19005-2:2011:6.6.2.3.3:15",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-VALUE-TYPE-NAME-001",
+                "ISO 19005-2:2011:6.6.2.3.3:11",
+            ),
+            (
+                "PDFA2B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001",
+                "ISO 19005-2:2011:6.6.2.3.3:12",
+            ),
+            (
+                "PDFA2B-XMP-PREDEFINED-VALUE-TYPE-001",
+                "ISO 19005-2:2011:6.6.2.3.1:2",
+            ),
+            (
+                "PDFA2B-XMP-PROPERTY-DEFINITION-001",
+                "ISO 19005-2:2011:6.6.2.3.1:1",
+            ),
+        ] {
+            assert_eq!(
+                verapdf_rule_id(ValidationProfile::PdfA2b, local_rule_id).as_deref(),
+                Some(vera_rule_id),
+                "{local_rule_id}"
+            );
+        }
+        assert_eq!(
+            verapdf_rule_id(ValidationProfile::PdfA3b, "PDFA3B-CMAP-CID-RANGE-001").as_deref(),
+            Some("ISO 19005-3:2012:6.1.13:10")
+        );
+    }
+}

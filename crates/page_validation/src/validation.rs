@@ -4193,6 +4193,22 @@ mod tests {
     }
 
     #[test]
+    fn pdfa_2_inline_image_lzw_maps_to_the_inline_filter_rule() {
+        let bytes = fixture_with_page_content(
+            Some(VALID_XMP),
+            true,
+            b"BI /W 1 /H 1 /BPC 8 /F /LZW ID x EI\n",
+        );
+        let report = validate_pdf_bytes(
+            &bytes,
+            &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
+        )
+        .expect("explicit profile validation");
+
+        assert_rule(&report, "PDFA2B-INLINE-IMAGE-LZW-001");
+    }
+
+    #[test]
     fn pdfa_2_and_3_report_widget_a_and_aa_through_one_rule() {
         let bytes = include_bytes!(
             "../tests/fixtures/mutations/PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001/shared-action-widget_additional_actions.pdf"
