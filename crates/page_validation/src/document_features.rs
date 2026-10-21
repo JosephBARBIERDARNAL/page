@@ -2450,7 +2450,7 @@ fn contains_caption_not_first(
     max_reference_depth: usize,
     max_object_count: usize,
 ) -> Result<bool, PdfError> {
-    // Match veraPDF's `kidsStandardTypes`: only structure-element standard
+    // only structure-element standard
     // types participate in the order, so marked-content and integer kids are
     // intentionally ignored.
     let mut structure_kids = 0;
@@ -3563,9 +3563,7 @@ fn non_empty_text_attribute_bytes(
 /// revisited while still an ancestor) raises `PdfError::ReferenceDepth`,
 /// while the same file specification or intermediate node legitimately
 /// reachable from two different `Kids` branches (a DAG, not a cycle) is not
-/// mistaken for one — confirmed against veraPDF 1.30.2, which processes
-/// such a shared reference without a parse or resource-limit failure, the
-/// same way it does for a page shared by two `Pages` branches. `steps`
+/// mistaken for one. `steps`
 /// bounds the walk's total work (independent of ancestor depth) against a
 /// DAG that fans out shared subtrees without any node being its own
 /// ancestor, the same DAG-blowup safety `page_tree.rs` uses.
@@ -3947,7 +3945,7 @@ mod tests {
         }
     }
 
-    /// Confirmed against veraPDF 1.30.2: the same name-tree leaf reachable
+    /// The same name-tree leaf reachable
     /// from two different `Kids` branches (a DAG, not a cycle — neither
     /// branch is the other's ancestor) is processed without error, the same
     /// way a Page object shared by two `Pages` branches is (see

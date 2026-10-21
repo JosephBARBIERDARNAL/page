@@ -556,9 +556,6 @@ impl Scanner<'_> {
         };
         let subtype = resolved_name(self.document, font, b"Subtype", self.limits)?
             .map(|value| String::from_utf8_lossy(value).into_owned());
-        // veraPDF 1.30.2 does not create a PDFont model object for a missing
-        // or unsupported subtype, so none of the PDFont predicates are
-        // instantiated for such a resource.
         if !matches!(
             subtype.as_deref(),
             Some(
@@ -593,13 +590,10 @@ impl Scanner<'_> {
             description: selected.description.clone(),
             subtype: subtype.clone(),
             embedded,
-            // veraPDF 1.30.2 associates the first observed rendering mode
-            // with a font model object and does not revise it on later uses.
             visible: rendering_mode != 3,
             // `shown_bytes` is already aggregated across all visible runs in
             // the content executor. Keep it even when the first observed use
-            // was rendering mode 3; veraPDF retains that first mode for
-            // visibility while later visible runs still feed glyph checks.
+            // was rendering mode 3.
             shown_bytes: shown_bytes.to_vec(),
             unique_shown_bytes: BTreeSet::new(),
             shown_text_actual_text: text_runs
@@ -620,13 +614,6 @@ impl Scanner<'_> {
         if subtype.as_deref() == Some("Type0")
             && self.active_descendant_fonts.insert(selected.key.clone())
         {
-            // PDF32000 9.7.3 requires exactly one entry, and veraPDF 1.30.2
-            // confirms this in its object model: it creates a PDCIDFont (and
-            // evaluates every per-font predicate, including embedding) only
-            // for DescendantFonts[0]. A second or later entry is invisible
-            // to it entirely, so recording it here too would make a local
-            // check fail (e.g. embedding) for an object veraPDF never
-            // examines -- a confirmed false positive, not extra coverage.
             if let Ok(descendants) = font.get(b"DescendantFonts")
                 && let Some(descendants) =
                     resolve_optional(self.document, descendants, self.limits.max_reference_depth)?
@@ -2023,11 +2010,6 @@ impl Scanner<'_> {
 
     /// Checks PDF/UA-1 7.21.4.2-2 against every CID represented by an
     /// embedded subset program, not only CIDs reached by shown text.
-    ///
-    /// The scanner's font population is still the content-reached Type 0
-    /// population, matching veraPDF's `PDCIDFont` model. The rule's CID
-    /// coverage itself is deliberately independent of rendering mode and
-    /// shown bytes.
     fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
         for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") {

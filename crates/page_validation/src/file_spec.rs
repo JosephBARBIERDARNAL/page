@@ -15,12 +15,8 @@ use crate::report::RuleFailure;
 /// Checks a resolved file-specification dictionary for the forbidden `/EF`
 /// key (`PDFA1B-FILE-SPEC-EMBEDDED-FILE-001`, `ISO 19005-1:2005:6.1.11:1`).
 ///
-/// veraPDF creates the same `CosFileSpecification` object, and applies this
-/// same predicate, regardless of how the file specification is reached: the
-/// catalog `Names/EmbeddedFiles` name tree, or a `GoToR`/`SubmitForm`
-/// action's `/F` entry (confirmed against veraPDF 1.30.2: a `GoToR` and a
-/// `SubmitForm` action each targeting a file specification with an `/EF`
-/// entry, and no `Names` tree at all, both report exactly this rule). Every
+/// The catalog `Names/EmbeddedFiles` name tree, or a `GoToR`/`SubmitForm`
+/// action's `/F` entry. Every
 /// reachability path shares this one check instead of re-deriving it.
 ///
 /// A direct `Object::Null` `/EF` value is empty and passes; an *indirect*

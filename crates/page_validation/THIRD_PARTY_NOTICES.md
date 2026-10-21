@@ -5,8 +5,8 @@ Except for the third-party and reference materials expressly identified below, a
 ## Adobe CMap Resources
 
 `page_validation` includes 118 Adobe CMap resources under
-`src/predefined_cmaps/`. They are the byte-exact collection bundled by
-veraPDF 1.30.2. Their upstream source is Adobe's CMap Resources project:
+`src/predefined_cmaps/`. Their upstream source is Adobe's
+CMap Resources project:
 
 https://github.com/adobe-type-tools/cmap-resources
 
@@ -51,15 +51,11 @@ The adapted material is licensed under the Apache License, Version 2.0; the comp
 
 Upstream source: https://github.com/mozilla/pdf.js/blob/master/src/core/encodings.js
 
-## veraPDF validation profiles and reference material
+## veraPDF rule identifiers
 
-The XML validation-profile snapshots under `tests/fixtures/` and the generated rule-mapping material under `docs/rules/` are repository-only reference/test material derived from veraPDF validation profiles.
+`src/rule_ids.tsv` maps page's internal validation checks to veraPDF specification rule identifiers. This project-specific crosswalk is included in the published `page_validation` crate.
 
-The veraPDF validation-profile repository identifies this material as licensed under CC BY 4.0. Attribution: veraPDF Consortium, https://github.com/veraPDF/veraPDF-validation-profiles, with local snapshots pinned to the versions named by their filenames and local generated mappings modified for this project.
-
-License: https://creativecommons.org/licenses/by/4.0/
-
-These files are excluded from the published `page_validation` crate.
+The veraPDF rule identifiers are drawn from the veraPDF validation profiles. Attribution: veraPDF Consortium, https://github.com/veraPDF/veraPDF-validation-profiles. The profile material is licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/. The internal check identifiers and their mappings to page checks are project-specific modifications.
 
 ## XMP schema property tables
 

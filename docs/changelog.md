@@ -1,5 +1,6 @@
 ## Dev
 
+- **Doc**: Update third-party notices for the published veraPDF rule-ID crosswalk
 - **Fix**: Map previously uncovered PDF/A checks to ISO rule IDs
 - **Fix**: Recognize both supported Type 1 font program headers
 - **Fix**: Return an unusable PDF trailer `/Root` as a parser error
