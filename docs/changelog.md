@@ -1,7 +1,9 @@
 ## Dev
 
-- **Doc**: Update third-party notices for the published veraPDF rule-ID crosswalk
-- **Fix**: Map previously uncovered PDF/A checks to ISO rule IDs
+- **Refactor**: Emit ISO rule identifiers directly from validation checks and remove the local rule-ID mapping table
+- **Doc**: Attribute ISO clause identifiers sourced from the veraPDF validation profiles
+- **Fix**: Assign ISO clause identifiers to previously uncovered PDF/A checks
+- **Fix**: Limit the standard structure-tag remapping finding to PDF/A-2 and PDF/A-3, which define that check
 - **Fix**: Recognize both supported Type 1 font program headers
 - **Fix**: Return an unusable PDF trailer `/Root` as a parser error
 - **Feat**: Use ISO specification rule IDs in validation reports

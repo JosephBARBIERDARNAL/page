@@ -88,20 +88,20 @@ Check PDF documents against accessibility and compliance requirements with a Rus
     Profile : PDF/UA-1
     Time    : 0.147s
 
-    [PDFUA1-ALT-TEXT-LANGUAGE-001] [.........]
-    [PDFUA1-CONTENT-TAGGING-001] [.........]
-    [PDFUA1-FIGURE-ALTERNATIVE-TEXT-001] [.........]
-    [PDFUA1-HEADING-NESTING-001] [.........]
-    [PDFUA1-ID-PART-001] [.........]
-    [PDFUA1-ID-SCHEMA-001] [.........]
-    [PDFUA1-LINK-CONTENTS-001] [.........]
-    [PDFUA1-METADATA-TITLE-001] [.........]
-    [PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001] [.........]
-    [PDFUA1-TABLE-COLUMN-ROWSPAN-001] [.........]
-    [PDFUA1-TABLE-HEADERS-SCOPE-001] [.........]
-    [PDFUA1-TABLE-ROW-COLUMNSPAN-001] [.........]
-    [PDFUA1-TAGGED-DOCUMENT-001] [.........]
-    [PDFUA1-TEXT-LANGUAGE-001] [.........]
+    [ISO 14289-1:2014:7.2:22] [.........]
+    [ISO 14289-1:2014:7.1:3] [.........]
+    [ISO 14289-1:2014:7.3:1] [.........]
+    [ISO 14289-1:2014:7.4.2:1] [.........]
+    [ISO 14289-1:2014:5:2] [.........]
+    [ISO 14289-1:2014:5:1] [.........]
+    [ISO 14289-1:2014:7.18.5:2] [.........]
+    [ISO 14289-1:2014:7.1:9] [.........]
+    [ISO 14289-1:2014:7.2:30] [.........]
+    [ISO 14289-1:2014:7.2:41] [.........]
+    [ISO 14289-1:2014:7.5:1] [.........]
+    [ISO 14289-1:2014:7.2:42] [.........]
+    [ISO 14289-1:2014:6.2:1] [.........]
+    [ISO 14289-1:2014:7.2:34] [.........]
     ```
 
 === "Rust"

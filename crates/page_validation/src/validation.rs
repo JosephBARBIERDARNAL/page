@@ -22,7 +22,17 @@ use crate::report::{
     FailureCategory, RuleFailure, ValidationCheckCounts, ValidationCounts, ValidationFailure,
     ValidationReport,
 };
-use crate::rule_ids::verapdf_rule_id;
+
+macro_rules! iso_pdfa_rule_id {
+    ($profile:expr, $part1:literal, $part2:literal, $part3:literal) => {{
+        match ($profile).pdfa_part() {
+            Some(1) if !$part1.is_empty() => Some(concat!("ISO 19005-1:2005:", $part1)),
+            Some(2) if !$part2.is_empty() => Some(concat!("ISO 19005-2:2011:", $part2)),
+            Some(3) if !$part3.is_empty() => Some(concat!("ISO 19005-3:2012:", $part3)),
+            _ => None,
+        }
+    }};
+}
 
 #[derive(Default)]
 struct ValidationFailures {
@@ -42,10 +52,6 @@ impl ValidationFailures {
 
     fn is_empty(&self) -> bool {
         self.entries.is_empty()
-    }
-
-    fn iter_mut(&mut self) -> std::slice::IterMut<'_, ValidationFailure> {
-        self.entries.iter_mut()
     }
 
     fn sort_by_key<F, K>(&mut self, f: F)
@@ -211,23 +217,6 @@ impl ValidationProfile {
 
     const fn permits_embedded_files(self) -> bool {
         matches!(self.pdfa_part(), Some(2 | 3))
-    }
-
-    const fn local_rule_prefix(self, level: char) -> Option<&'static str> {
-        match self.pdfa_part() {
-            Some(1) => None,
-            Some(2) => Some(match level {
-                'A' => "PDFA2A",
-                'U' => "PDFA2U",
-                _ => "PDFA2B",
-            }),
-            Some(3) => Some(match level {
-                'A' => "PDFA3A",
-                'U' => "PDFA3U",
-                _ => "PDFA3B",
-            }),
-            _ => None,
-        }
     }
 }
 
@@ -714,7 +703,7 @@ fn collect_validation_failures(
             .is_some_and(|xmp| xmp.pdfua_identification_present)
         {
             failures.push(failure(
-                "PDFUA1-ID-SCHEMA-001",
+                "ISO 14289-1:2014:5:1",
                 "XMP does not contain the PDF/UA Identification schema",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -724,7 +713,7 @@ fn collect_validation_failures(
         if let Some(failure) = require_single_declared_value(
             document.xmp.as_ref().map(|xmp| xmp.pdfua_parts.as_slice()),
             |value| xmp_integer_value(value) == Some(1),
-            "PDFUA1-ID-PART-001",
+            "ISO 14289-1:2014:5:2",
             "PDF/UA part",
             "pdfuaid:part",
             "one value 1",
@@ -739,7 +728,7 @@ fn collect_validation_failures(
             .is_some_and(|xmp| xmp.pdfua_identification_prefix_failed_tests.contains(&3))
         {
             failures.push(failure(
-                "PDFUA1-ID-PART-PREFIX-001",
+                "ISO 14289-1:2014:5:3",
                 "the PDF/UA identification part property uses a lexical prefix other than pdfuaid",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -752,7 +741,7 @@ fn collect_validation_failures(
             .is_some_and(|xmp| xmp.pdfua_identification_prefix_failed_tests.contains(&4))
         {
             failures.push(failure(
-                "PDFUA1-ID-AMD-PREFIX-001",
+                "ISO 14289-1:2014:5:4",
                 "the PDF/UA identification amd property uses a lexical prefix other than pdfuaid",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -765,7 +754,7 @@ fn collect_validation_failures(
             .is_some_and(|xmp| xmp.pdfua_identification_prefix_failed_tests.contains(&5))
         {
             failures.push(failure(
-                "PDFUA1-ID-CORR-PREFIX-001",
+                "ISO 14289-1:2014:5:5",
                 "the PDF/UA identification corr property uses a lexical prefix other than pdfuaid",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -774,7 +763,7 @@ fn collect_validation_failures(
         finish_if_lazy!();
         if !inspections.header.has_valid_pdfa23_header {
             failures.push(failure(
-                "PDFUA1-HEADER-001",
+                "ISO 14289-1:2014:6.1:1",
                 "the file header must match %PDF-1.n with n between 0 and 7",
                 None,
                 FailureCategory::Conformance,
@@ -787,7 +776,7 @@ fn collect_validation_failures(
                 .is_some_and(|permissions| permissions & 512 == 512)
         {
             failures.push(failure(
-                "PDFUA1-ENCRYPTION-P-001",
+                "ISO 14289-1:2014:7.16:1",
                 "an encrypted document must contain an encryption-dictionary /P entry with bit 10 set",
                 document.encryption_dictionary_object,
                 FailureCategory::Conformance,
@@ -796,7 +785,7 @@ fn collect_validation_failures(
         finish_if_lazy!();
         if !document.catalog_metadata.is_valid() {
             failures.push(failure(
-                "PDFUA1-METADATA-STRUCTURE-001",
+                "ISO 14289-1:2014:7.1:8",
                 "the document catalog Metadata entry must resolve to a stream with /Type /Metadata and /Subtype /XML",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -809,7 +798,7 @@ fn collect_validation_failures(
             .is_some_and(|xmp| xmp.dc_title_present)
         {
             failures.push(failure(
-                "PDFUA1-METADATA-TITLE-001",
+                "ISO 14289-1:2014:7.1:9",
                 "the catalog Metadata stream must contain a dc:title entry",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -823,7 +812,7 @@ fn collect_validation_failures(
                 .is_some_and(|xmp| xmp.lang_alt_requires_catalog_language)
         {
             failures.push(failure(
-                "PDFUA1-METADATA-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:33",
                 "a catalog /Lang entry is required when XMP language alternatives provide no natural language",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -835,7 +824,7 @@ fn collect_validation_failures(
         validate_mark_info(
             &inspections.document_features,
             &mut failures,
-            "PDFUA1-TAGGED-DOCUMENT-001",
+            "ISO 14289-1:2014:6.2:1",
             "the document catalog MarkInfo dictionary must contain boolean /Marked true",
         );
         finish_if_lazy!();
@@ -844,13 +833,13 @@ fn collect_validation_failures(
         validate_struct_tree_root_presence(
             &inspections.document_features,
             &mut failures,
-            "PDFUA1-STRUCT-TREE-ROOT-001",
+            "ISO 14289-1:2014:7.1:11",
             "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
         );
         finish_if_lazy!();
         if inspections.document_features.struct_tree_role_map_has_cycle {
             failures.push(failure(
-                "PDFUA1-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+                "ISO 14289-1:2014:7.1:6",
                 "the StructTreeRoot RoleMap must not contain a circular mapping",
                 inspections
                     .document_features
@@ -861,7 +850,7 @@ fn collect_validation_failures(
         }
         if inspections.document_features.struct_tree_has_unmapped_type {
             failures.push(failure(
-                "PDFUA1-STRUCT-TREE-ROLE-MAP-001",
+                "ISO 14289-1:2014:7.1:5",
                 "every non-standard structure type must resolve through RoleMap to a standard structure type",
                 inspections
                     .document_features
@@ -875,7 +864,7 @@ fn collect_validation_failures(
             .struct_tree_role_map_has_standard_remap
         {
             failures.push(failure(
-                "PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+                "ISO 14289-1:2014:7.1:7",
                 "a standard structure type must not be remapped",
                 inspections
                     .document_features
@@ -888,7 +877,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .structure_elements_missing_parent,
-            "PDFUA1-STRUCT-ELEMENT-PARENT-001",
+            "ISO 14289-1:2014:7.1:12",
             None,
             &mut failures,
         );
@@ -896,7 +885,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .form_elements_without_role_with_invalid_children,
-            "PDFUA1-FORM-CHILDREN-001",
+            "ISO 14289-1:2014:7.18.4:2",
             None,
             &mut failures,
         );
@@ -904,7 +893,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .toci_elements_not_contained_in_toc,
-            "PDFUA1-TOCI-PARENT-001",
+            "ISO 14289-1:2014:7.2:26",
             None,
             &mut failures,
         );
@@ -912,7 +901,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tr_elements_not_contained_in_table_section,
-            "PDFUA1-TR-PARENT-001",
+            "ISO 14289-1:2014:7.2:4",
             None,
             &mut failures,
         );
@@ -920,7 +909,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .li_elements_not_contained_in_list,
-            "PDFUA1-LI-PARENT-001",
+            "ISO 14289-1:2014:7.2:17",
             None,
             &mut failures,
         );
@@ -928,7 +917,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .lbody_elements_not_contained_in_li,
-            "PDFUA1-LBODY-PARENT-001",
+            "ISO 14289-1:2014:7.2:18",
             None,
             &mut failures,
         );
@@ -936,7 +925,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .thead_elements_not_contained_in_table,
-            "PDFUA1-THEAD-PARENT-001",
+            "ISO 14289-1:2014:7.2:5",
             None,
             &mut failures,
         );
@@ -944,7 +933,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tbody_elements_not_contained_in_table,
-            "PDFUA1-TBODY-PARENT-001",
+            "ISO 14289-1:2014:7.2:6",
             None,
             &mut failures,
         );
@@ -952,7 +941,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tfoot_elements_not_contained_in_table,
-            "PDFUA1-TFOOT-PARENT-001",
+            "ISO 14289-1:2014:7.2:7",
             None,
             &mut failures,
         );
@@ -960,7 +949,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .th_elements_not_contained_in_tr,
-            "PDFUA1-TH-PARENT-001",
+            "ISO 14289-1:2014:7.2:8",
             None,
             &mut failures,
         );
@@ -968,7 +957,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .td_elements_not_contained_in_tr,
-            "PDFUA1-TD-PARENT-001",
+            "ISO 14289-1:2014:7.2:9",
             None,
             &mut failures,
         );
@@ -976,7 +965,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tr_elements_with_invalid_children,
-            "PDFUA1-TR-KIDS-001",
+            "ISO 14289-1:2014:7.2:10",
             None,
             &mut failures,
         );
@@ -984,7 +973,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .toc_elements_with_invalid_children,
-            "PDFUA1-TOC-KIDS-001",
+            "ISO 14289-1:2014:7.2:27",
             None,
             &mut failures,
         );
@@ -992,7 +981,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .toc_elements_with_caption_not_first,
-            "PDFUA1-TOC-CAPTION-001",
+            "ISO 14289-1:2014:7.2:28",
             None,
             &mut failures,
         );
@@ -1000,7 +989,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .list_elements_with_caption_not_first,
-            "PDFUA1-L-CAPTION-001",
+            "ISO 14289-1:2014:7.2:40",
             None,
             &mut failures,
         );
@@ -1008,7 +997,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .list_elements_with_invalid_children,
-            "PDFUA1-L-KIDS-001",
+            "ISO 14289-1:2014:7.2:19",
             None,
             &mut failures,
         );
@@ -1016,7 +1005,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .list_items_with_invalid_children,
-            "PDFUA1-LI-KIDS-001",
+            "ISO 14289-1:2014:7.2:20",
             None,
             &mut failures,
         );
@@ -1024,7 +1013,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_invalid_children,
-            "PDFUA1-TABLE-KIDS-001",
+            "ISO 14289-1:2014:7.2:3",
             None,
             &mut failures,
         );
@@ -1032,7 +1021,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .thead_elements_with_invalid_children,
-            "PDFUA1-THEAD-KIDS-001",
+            "ISO 14289-1:2014:7.2:36",
             None,
             &mut failures,
         );
@@ -1040,7 +1029,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tbody_elements_with_invalid_children,
-            "PDFUA1-TBODY-KIDS-001",
+            "ISO 14289-1:2014:7.2:37",
             None,
             &mut failures,
         );
@@ -1048,7 +1037,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .tfoot_elements_with_invalid_children,
-            "PDFUA1-TFOOT-KIDS-001",
+            "ISO 14289-1:2014:7.2:38",
             None,
             &mut failures,
         );
@@ -1056,7 +1045,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_multiple_captions,
-            "PDFUA1-TABLE-CAPTION-COUNT-001",
+            "ISO 14289-1:2014:7.2:39",
             None,
             &mut failures,
         );
@@ -1064,7 +1053,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_caption_not_first_or_last,
-            "PDFUA1-TABLE-CAPTION-POSITION-001",
+            "ISO 14289-1:2014:7.2:16",
             None,
             &mut failures,
         );
@@ -1072,7 +1061,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_multiple_theads,
-            "PDFUA1-TABLE-THEAD-COUNT-001",
+            "ISO 14289-1:2014:7.2:11",
             None,
             &mut failures,
         );
@@ -1080,7 +1069,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_multiple_tfoots,
-            "PDFUA1-TABLE-TFOOT-COUNT-001",
+            "ISO 14289-1:2014:7.2:12",
             None,
             &mut failures,
         );
@@ -1088,7 +1077,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_tfoot_without_tbody,
-            "PDFUA1-TABLE-TFOOT-TBODY-001",
+            "ISO 14289-1:2014:7.2:13",
             None,
             &mut failures,
         );
@@ -1096,7 +1085,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_thead_without_tbody,
-            "PDFUA1-TABLE-THEAD-TBODY-001",
+            "ISO 14289-1:2014:7.2:14",
             None,
             &mut failures,
         );
@@ -1104,7 +1093,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_unequal_column_row_spans,
-            "PDFUA1-TABLE-COLUMN-ROWSPAN-001",
+            "ISO 14289-1:2014:7.2:41",
             None,
             &mut failures,
         );
@@ -1112,7 +1101,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_row_column_span_overflows,
-            "PDFUA1-TABLE-ROW-COLUMNSPAN-001",
+            "ISO 14289-1:2014:7.2:42",
             None,
             &mut failures,
         );
@@ -1120,13 +1109,13 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_elements_with_missing_columns,
-            "PDFUA1-TABLE-ROW-COLUMNSPAN-MISSING-001",
+            "ISO 14289-1:2014:7.2:43",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.document_features.table_cells_with_intersections,
-            "PDFUA1-TABLE-CELL-INTERSECTION-001",
+            "ISO 14289-1:2014:7.2:15",
             None,
             &mut failures,
         );
@@ -1134,7 +1123,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_cells_with_undetermined_headers,
-            "PDFUA1-TABLE-HEADERS-SCOPE-001",
+            "ISO 14289-1:2014:7.5:1",
             None,
             &mut failures,
         );
@@ -1142,7 +1131,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .table_cells_with_undefined_headers,
-            "PDFUA1-TABLE-HEADERS-UNDEFINED-001",
+            "ISO 14289-1:2014:7.5:2",
             None,
             &mut failures,
         );
@@ -1150,7 +1139,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .figure_elements_missing_alternative_text,
-            "PDFUA1-FIGURE-ALTERNATIVE-TEXT-001",
+            "ISO 14289-1:2014:7.3:1",
             None,
             &mut failures,
         );
@@ -1158,13 +1147,13 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .formula_elements_missing_alternative_text,
-            "PDFUA1-FORMULA-ALTERNATIVE-TEXT-001",
+            "ISO 14289-1:2014:7.7:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.document_features.note_elements_missing_id,
-            "PDFUA1-NOTE-ID-001",
+            "ISO 14289-1:2014:7.9:1",
             None,
             &mut failures,
         );
@@ -1172,19 +1161,19 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .note_elements_with_duplicate_id,
-            "PDFUA1-NOTE-ID-UNIQUE-001",
+            "ISO 14289-1:2014:7.9:2",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.document_features.optional_content_missing_names,
-            "PDFUA1-OPTIONAL-CONTENT-NAME-001",
+            "ISO 14289-1:2014:7.10:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.document_features.optional_content_as_entries,
-            "PDFUA1-OPTIONAL-CONTENT-AS-001",
+            "ISO 14289-1:2014:7.10:2",
             None,
             &mut failures,
         );
@@ -1192,13 +1181,13 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .file_specs_missing_or_empty_f_or_uf,
-            "PDFUA1-FILE-SPEC-F-AND-UF-001",
+            "ISO 14289-1:2014:7.11:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.actions.file_specs_missing_or_empty_f_or_uf,
-            "PDFUA1-FILE-SPEC-F-AND-UF-001",
+            "ISO 14289-1:2014:7.11:1",
             None,
             &mut failures,
         );
@@ -1206,7 +1195,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .heading_elements_with_invalid_nesting,
-            "PDFUA1-HEADING-NESTING-001",
+            "ISO 14289-1:2014:7.4.2:1",
             None,
             &mut failures,
         );
@@ -1214,7 +1203,7 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .structure_elements_with_multiple_h_children,
-            "PDFUA1-HEADING-CHILD-COUNT-001",
+            "ISO 14289-1:2014:7.4.4:1",
             None,
             &mut failures,
         );
@@ -1222,33 +1211,33 @@ fn collect_validation_failures(
             &inspections
                 .document_features
                 .heading_elements_with_h_in_presence_of_hn,
-            "PDFUA1-HEADING-STRUCTURE-001",
+            "ISO 14289-1:2014:7.4.4:2",
             None,
             &mut failures,
         );
         stop_at_stage!(InspectionStage::DocumentFeatures);
         aggregate_failures_with_location(
             &inspections.content.artifacts_inside_tagged_content,
-            "PDFUA1-ARTIFACT-NESTED-001",
+            "ISO 14289-1:2014:7.1:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.content.tagged_content_inside_artifacts,
-            "PDFUA1-TAGGED-CONTENT-INSIDE-ARTIFACT-001",
+            "ISO 14289-1:2014:7.1:2",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.content.untagged_content,
-            "PDFUA1-CONTENT-TAGGING-001",
+            "ISO 14289-1:2014:7.1:3",
             None,
             &mut failures,
         );
         for (object_id, form) in &inspections.content.form_xobjects {
             if form.contains_mcid && form.references > 1 {
                 failures.push(failure(
-                    "PDFUA1-FORM-STRUCTURE-001",
+                    "ISO 14289-1:2014:7.20:2",
                     format!(
                         "Form XObject contains marked content with MCIDs and is referenced {} times; its semantic parent is not unique",
                         form.references
@@ -1267,26 +1256,26 @@ fn collect_validation_failures(
             .extend(inspections.content.language_failures_pdfua1.iter().cloned());
         aggregate_failures_with_location(
             &pdfua_language_failures,
-            "PDFUA1-LANGUAGE-TAG-001",
+            "ISO 14289-1:2014:7.2:29",
             None,
             &mut failures,
         );
         if !inspections.document_features.catalog_contains_lang {
             aggregate_failures_with_location(
                 &inspections.actions.outline_entries,
-                "PDFUA1-OUTLINE-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:2",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.document_features.actual_text_language_failures,
-                "PDFUA1-ACTUAL-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:21",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.document_features.alt_text_language_failures,
-                "PDFUA1-ALT-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:22",
                 None,
                 &mut failures,
             );
@@ -1294,121 +1283,121 @@ fn collect_validation_failures(
                 &inspections
                     .document_features
                     .expansion_text_language_failures,
-                "PDFUA1-E-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:23",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.content.span_actual_text_language_failures,
-                "PDFUA1-SPAN-ACTUAL-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:30",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.content.span_alt_text_language_failures,
-                "PDFUA1-SPAN-ALT-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:31",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.content.span_expansion_text_language_failures,
-                "PDFUA1-SPAN-E-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:32",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.content.text_language_failures,
-                "PDFUA1-TEXT-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:34",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.annotations.contents_language_failures,
-                "PDFUA1-ANNOTATION-CONTENTS-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:24",
                 None,
                 &mut failures,
             );
             aggregate_failures_with_location(
                 &inspections.forms.tu_language_failures,
-                "PDFUA1-FORM-FIELD-TU-LANGUAGE-001",
+                "ISO 14289-1:2014:7.2:25",
                 None,
                 &mut failures,
             );
         }
         aggregate_failures(
             &inspections.forms.dynamic_xfa_forms,
-            "PDFUA1-DYNAMIC-XFA-001",
+            "ISO 14289-1:2014:7.15:1",
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.annotations_not_nested_in_annot,
-            "PDFUA1-ANNOTATION-ANNOT-TAG-001",
+            "ISO 14289-1:2014:7.18.1:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.links_not_nested_in_link,
-            "PDFUA1-LINK-LINK-TAG-001",
+            "ISO 14289-1:2014:7.18.5:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.links_missing_contents,
-            "PDFUA1-LINK-CONTENTS-001",
+            "ISO 14289-1:2014:7.18.5:2",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.annotations_missing_contents_or_alt,
-            "PDFUA1-ANNOTATION-CONTENTS-ALT-001",
+            "ISO 14289-1:2014:7.18.1:2",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.trapnet_annotations,
-            "PDFUA1-TRAPNET-ANNOTATION-001",
+            "ISO 14289-1:2014:7.18.2:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.printer_mark_annotations,
-            "PDFUA1-PRINTER-MARK-ARTIFACT-001",
+            "ISO 14289-1:2014:7.18.8:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.annotations.pages_missing_tabs,
-            "PDFUA1-PAGE-TABS-001",
+            "ISO 14289-1:2014:7.18.3:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.forms.widgets_missing_tu_or_alt,
-            "PDFUA1-FORM-FIELD-TU-ALT-001",
+            "ISO 14289-1:2014:7.18.1:3",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.forms.widgets_not_nested_in_form,
-            "PDFUA1-WIDGET-FORM-TAG-001",
+            "ISO 14289-1:2014:7.18.4:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.xobjects.form_reference,
-            "PDFUA1-FORM-REFERENCE-001",
+            "ISO 14289-1:2014:7.20:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.actions.media_clips_missing_ct,
-            "PDFUA1-MEDIA-CLIP-CT-001",
+            "ISO 14289-1:2014:7.18.6.2:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.actions.media_clips_missing_alt,
-            "PDFUA1-MEDIA-CLIP-ALT-001",
+            "ISO 14289-1:2014:7.18.6.2:2",
             None,
             &mut failures,
         );
@@ -1419,7 +1408,7 @@ fn collect_validation_failures(
             &inspections
                 .font_embedding
                 .incompatible_type0_system_info_pdfua1,
-            "PDFUA1-TYPE0-CID-SYSTEM-INFO-001",
+            "ISO 14289-1:2014:7.21.3.1:1",
             None,
             &mut failures,
         );
@@ -1427,19 +1416,19 @@ fn collect_validation_failures(
         // validated font-program recognition used by PDF/A font embedding.
         aggregate_failures_with_location(
             &inspections.font_embedding.failures,
-            "PDFUA1-FONT-EMBEDDING-001",
+            "ISO 14289-1:2014:7.21.4.1:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_type1_charsets_pdfua1,
-            "PDFUA1-FONT-TYPE1-CHARSET-001",
+            "ISO 14289-1:2014:7.21.4.2:1",
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cid_subset_cidsets_pdfua1,
-            "PDFUA1-CID-SUBSET-CIDSET-001",
+            "ISO 14289-1:2014:7.21.4.2:2",
             None,
             &mut failures,
         );
@@ -1460,7 +1449,7 @@ fn collect_validation_failures(
         });
         aggregate_failures_with_location(
             &glyph_presence_failures,
-            "PDFUA1-FONT-GLYPH-PRESENCE-001",
+            "ISO 14289-1:2014:7.21.4.1:2",
             None,
             &mut failures,
         );
@@ -1469,7 +1458,7 @@ fn collect_validation_failures(
         // simple, composite, Type 1, Type 1C, and Type 3 font programs.
         aggregate_failures_with_location(
             &inspections.font_embedding.inconsistent_truetype_widths,
-            "PDFUA1-FONT-GLYPH-WIDTH-001",
+            "ISO 14289-1:2014:7.21.5:1",
             None,
             &mut failures,
         );
@@ -1481,7 +1470,7 @@ fn collect_validation_failures(
             &inspections
                 .font_embedding
                 .invalid_nonsymbolic_truetype_cmaps,
-            "PDFUA1-TRUETYPE-NONSYMBOLIC-CMAP-001",
+            "ISO 14289-1:2014:7.21.6:1",
             None,
             &mut failures,
         );
@@ -1493,7 +1482,7 @@ fn collect_validation_failures(
             &inspections
                 .font_embedding
                 .invalid_nonsymbolic_truetype_encodings_pdfua1,
-            "PDFUA1-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            "ISO 14289-1:2014:7.21.6:2",
             None,
             &mut failures,
         );
@@ -1504,7 +1493,7 @@ fn collect_validation_failures(
             &inspections
                 .font_embedding
                 .invalid_symbolic_truetype_encodings,
-            "PDFUA1-TRUETYPE-SYMBOLIC-ENCODING-001",
+            "ISO 14289-1:2014:7.21.6:3",
             None,
             &mut failures,
         );
@@ -1515,7 +1504,7 @@ fn collect_validation_failures(
             &inspections
                 .font_embedding
                 .invalid_symbolic_truetype_cmaps_pdfa2,
-            "PDFUA1-TRUETYPE-SYMBOLIC-CMAP-001",
+            "ISO 14289-1:2014:7.21.6:4",
             None,
             &mut failures,
         );
@@ -1524,7 +1513,7 @@ fn collect_validation_failures(
         // character names, and Adobe character collections.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_unicode_mappings,
-            "PDFUA1-FONT-UNICODE-MAPPING-001",
+            "ISO 14289-1:2014:7.21.7:1",
             None,
             &mut failures,
         );
@@ -1533,7 +1522,7 @@ fn collect_validation_failures(
         // U+FFFE for every font usage, including invisible text.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_unicode_values_pdfua1,
-            "PDFUA1-FONT-UNICODE-VALUE-001",
+            "ISO 14289-1:2014:7.21.7:2",
             None,
             &mut failures,
         );
@@ -1541,7 +1530,7 @@ fn collect_validation_failures(
         // retains text-showing operators made invisible by rendering mode 3.
         aggregate_failures_with_location(
             &inspections.font_embedding.notdef_glyphs_pdfua1,
-            "PDFUA1-NOTDEF-GLYPH-001",
+            "ISO 14289-1:2014:7.21.8:1",
             None,
             &mut failures,
         );
@@ -1550,7 +1539,7 @@ fn collect_validation_failures(
         // mode exemption. Reuse the already broader applicability vector.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cid_to_gid_maps_pdfa2,
-            "PDFUA1-CIDTOGIDMAP-001",
+            "ISO 14289-1:2014:7.21.3.2:1",
             None,
             &mut failures,
         );
@@ -1558,7 +1547,7 @@ fn collect_validation_failures(
         // non-predefined CMaps referenced by them.
         aggregate_failures_with_location(
             &inspections.font_embedding.unembedded_cmaps,
-            "PDFUA1-CMAP-EMBEDDING-001",
+            "ISO 14289-1:2014:7.21.3.3:1",
             None,
             &mut failures,
         );
@@ -1567,7 +1556,7 @@ fn collect_validation_failures(
         // font scanner.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cmap_wmodes,
-            "PDFUA1-CMAP-WMODE-001",
+            "ISO 14289-1:2014:7.21.3.3:2",
             None,
             &mut failures,
         );
@@ -1576,7 +1565,7 @@ fn collect_validation_failures(
         // PDF/UA-1 rule 7.21.3.3-3.
         aggregate_failures_with_location(
             &inspections.font_embedding.invalid_cmap_references,
-            "PDFUA1-CMAP-REFERENCE-001",
+            "ISO 14289-1:2014:7.21.3.3:3",
             None,
             &mut failures,
         );
@@ -1585,7 +1574,7 @@ fn collect_validation_failures(
 
     if document.encrypted {
         failures.push(failure(
-            "PDFA1B-ENCRYPTION-001",
+            iso_pdfa_rule_id!(profile, "6.1.3:2", "6.1.3:2", "6.1.3:2"),
             "PDF/A-1b does not permit encryption",
             None,
             FailureCategory::Conformance,
@@ -1618,7 +1607,7 @@ fn collect_validation_failures(
     };
     if !has_trailer_id {
         failures.push(failure(
-            "PDFA1B-TRAILER-ID-001",
+            iso_pdfa_rule_id!(profile, "6.1.3:1", "6.1.3:1", "6.1.3:1"),
             "the applicable document trailer does not contain an ID entry",
             None,
             FailureCategory::Conformance,
@@ -1631,7 +1620,7 @@ fn collect_validation_failures(
         && inspections.header.first_linearized_trailer_id != inspections.header.last_trailer_id
     {
         failures.push(failure(
-            "PDFA1B-LINEARIZED-TRAILER-ID-001",
+            iso_pdfa_rule_id!(profile, "6.1.3:4", "", ""),
             "the first-page and last trailer ID values differ in a linearized PDF",
             None,
             FailureCategory::Conformance,
@@ -1641,7 +1630,7 @@ fn collect_validation_failures(
     let metadata = &document.catalog_metadata;
     if !metadata.is_valid() {
         failures.push(failure(
-            "PDFA1B-METADATA-STRUCTURE-001",
+            iso_pdfa_rule_id!(profile, "6.7.2:1", "6.6.2.1:1", "6.6.2.1:1"),
             "catalog Metadata must resolve to a stream with /Type /Metadata and /Subtype /XML",
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1650,7 +1639,7 @@ fn collect_validation_failures(
     finish_if_lazy!();
     if !profile.is_pdfa_2_or_3() && metadata.is_stream && metadata.has_filter {
         failures.push(failure(
-            "PDFA1B-METADATA-FILTER-001",
+            iso_pdfa_rule_id!(profile, "6.7.2:2", "", ""),
             "the catalog metadata stream dictionary contains a Filter key",
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1660,7 +1649,7 @@ fn collect_validation_failures(
 
     if let Some(error) = &document.xmp_parse_error {
         failures.push(failure(
-            "PDFA1B-XMP-001",
+            iso_pdfa_rule_id!(profile, "6.7.9:1", "6.6.2.1:4", "6.6.2.1:4"),
             format!("XMP metadata cannot be parsed: {error}"),
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1671,7 +1660,7 @@ fn collect_validation_failures(
     let xmp = document.xmp.as_ref();
     if xmp.is_some_and(|xmp| xmp.packet_header_has_bytes) {
         failures.push(failure(
-            "PDFA1B-XMP-PACKET-BYTES-001",
+            iso_pdfa_rule_id!(profile, "6.7.5:1", "6.6.2.1:2", "6.6.2.1:2"),
             "the XMP packet header contains the forbidden bytes attribute",
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1679,7 +1668,7 @@ fn collect_validation_failures(
     }
     if xmp.is_some_and(|xmp| xmp.packet_header_has_encoding) {
         failures.push(failure(
-            "PDFA1B-XMP-PACKET-ENCODING-001",
+            iso_pdfa_rule_id!(profile, "6.7.5:2", "6.6.2.1:3", "6.6.2.1:3"),
             "the XMP packet header contains the forbidden encoding attribute",
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1687,16 +1676,16 @@ fn collect_validation_failures(
     }
     if profile.is_pdfa_2_or_3() && xmp.is_some_and(|xmp| !xmp.actual_encoding_is_utf8) {
         failures.push(failure(
-            "PDFA1B-XMP-ENCODING-001",
+            iso_pdfa_rule_id!(profile, "", "6.6.2.1:5", "6.6.2.1:5"),
             "the XMP package must be encoded as UTF-8",
             document.xmp_object,
             FailureCategory::Metadata,
         ));
     }
     if let Some(xmp) = xmp {
-        if !xmp.invalid_predefined_xmp_properties.is_empty() {
+        if !profile.is_pdfa_2_or_3() && !xmp.invalid_predefined_xmp_properties.is_empty() {
             failures.push(failure(
-                "PDFA1B-XMP-PREDEFINED-PROPERTY-001",
+                iso_pdfa_rule_id!(profile, "6.7.9:2", "", ""),
                 format!(
                     "XMP uses undefined predefined-schema properties: {}",
                     xmp.invalid_predefined_xmp_properties
@@ -1711,7 +1700,7 @@ fn collect_validation_failures(
         }
         if !xmp.invalid_predefined_xmp_value_types.is_empty() {
             failures.push(failure(
-                "PDFA1B-XMP-PREDEFINED-VALUE-TYPE-001",
+                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
                 format!(
                     "XMP predefined-schema properties use incompatible value shapes: {}",
                     xmp.invalid_predefined_xmp_value_types
@@ -1724,9 +1713,9 @@ fn collect_validation_failures(
                 FailureCategory::Metadata,
             ));
         }
-        if !xmp.undefined_extension_xmp_properties.is_empty() {
+        if !profile.is_pdfa_2_or_3() && !xmp.undefined_extension_xmp_properties.is_empty() {
             failures.push(failure(
-                "PDFA1B-XMP-EXTENSION-PROPERTY-DEFINITION-001",
+                iso_pdfa_rule_id!(profile, "6.7.9:2", "6.6.2.3.1:1", "6.6.2.3.1:1"),
                 format!(
                     "XMP extension properties are absent from the current extension schemas: {}",
                     xmp.undefined_extension_xmp_properties
@@ -1744,7 +1733,7 @@ fn collect_validation_failures(
                 || !xmp.undefined_extension_xmp_properties.is_empty())
         {
             failures.push(failure(
-                "PDFA1B-XMP-PROPERTY-DEFINITION-001",
+                iso_pdfa_rule_id!(profile, "", "6.6.2.3.1:1", "6.6.2.3.1:1"),
                 "XMP contains a property not defined by a predefined or declared extension schema",
                 document.xmp_object,
                 FailureCategory::Metadata,
@@ -1752,7 +1741,7 @@ fn collect_validation_failures(
         }
         if !xmp.invalid_extension_xmp_value_types.is_empty() {
             failures.push(failure(
-                "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-SHAPE-001",
+                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
                 format!(
                     "XMP extension properties use incompatible declared value shapes: {}",
                     xmp.invalid_extension_xmp_value_types
@@ -1766,7 +1755,7 @@ fn collect_validation_failures(
             ));
         }
         for test in &xmp.extension_schema_failed_tests {
-            let Some((rule_id, message)) = extension_schema_rule(*test) else {
+            let Some((rule_id, message)) = extension_schema_rule(profile, *test) else {
                 continue;
             };
             failures.push(failure(
@@ -1780,7 +1769,7 @@ fn collect_validation_failures(
             if *test == 7 && !profile.is_pdfa_2_or_3() {
                 continue;
             }
-            let Some((rule_id, property)) = identification_prefix_rule(*test) else {
+            let Some((rule_id, property)) = identification_prefix_rule(profile, *test) else {
                 continue;
             };
             failures.push(failure(
@@ -1796,7 +1785,7 @@ fn collect_validation_failures(
     finish_if_lazy!();
     if !xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
         failures.push(failure(
-            "PDFA1B-ID-SCHEMA-001",
+            iso_pdfa_rule_id!(profile, "6.7.11:1", "6.6.4:1", "6.6.4:1"),
             "XMP does not contain the PDF/A Identification schema",
             document.xmp_object,
             FailureCategory::Metadata,
@@ -1814,7 +1803,7 @@ fn collect_validation_failures(
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_parts.as_slice()),
             |value| xmp_integer_value(value) == profile.pdfa_part().map(i32::from),
-            "PDFA1B-ID-PART-001",
+            iso_pdfa_rule_id!(profile, "6.7.11:2", "6.6.4:2", "6.6.4:2"),
             "PDF/A part",
             "pdfaid:part",
             expected_part,
@@ -1824,14 +1813,22 @@ fn collect_validation_failures(
         }
 
         let (conformance_rule, expected_conformance) = match profile {
-            ValidationProfile::PdfA1a => ("PDFA1A-ID-CONFORMANCE-001", "one A"),
-            ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => {
-                ("PDFA1A-ID-CONFORMANCE-001", "one A")
-            }
-            ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => {
-                ("PDFA1B-ID-CONFORMANCE-001", "one U")
-            }
-            _ => ("PDFA1B-ID-CONFORMANCE-001", "one B"),
+            ValidationProfile::PdfA1a => (
+                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
+                "one A",
+            ),
+            ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => (
+                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
+                "one A",
+            ),
+            ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => (
+                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
+                "one U",
+            ),
+            _ => (
+                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
+                "one B",
+            ),
         };
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
@@ -1854,13 +1851,13 @@ fn collect_validation_failures(
     finish_if_lazy!();
 
     if !profile.is_pdfa_2_or_3() {
-        validate_info_consistency(document, &mut failures);
+        validate_info_consistency(profile, document, &mut failures);
     }
     finish_if_lazy!();
 
     if profile.requires_tagged_structure() {
-        validate_tagged_document(&inspections.document_features, &mut failures);
-        validate_structure_tree(&inspections.document_features, &mut failures);
+        validate_tagged_document(profile, &inspections.document_features, &mut failures);
+        validate_structure_tree(profile, &inspections.document_features, &mut failures);
         let document_language_failures = if profile.is_pdfa_2_or_3() {
             &inspections.document_features.language_failures_pdfa23
         } else {
@@ -1873,13 +1870,13 @@ fn collect_validation_failures(
         };
         aggregate_failures_with_location(
             document_language_failures,
-            "PDFA1A-LANG-001",
+            iso_pdfa_rule_id!(profile, "6.8.4:1", "6.7.4:1", "6.7.4:1"),
             None,
             &mut failures,
         );
         aggregate_failures_with_location(
             content_language_failures,
-            "PDFA1A-LANG-001",
+            iso_pdfa_rule_id!(profile, "6.8.4:1", "6.7.4:1", "6.7.4:1"),
             None,
             &mut failures,
         );
@@ -1896,13 +1893,13 @@ fn collect_validation_failures(
         } else {
             &inspections.icc_based.failures
         },
-        "PDFA1B-ICCBASED-001",
+        iso_pdfa_rule_id!(profile, "6.2.3.2:1", "6.2.4.2:1", "6.2.4.2:1"),
         Some("direct profile"),
         &mut failures,
     );
     aggregate_failures_with_location(
         &inspections.icc_based.component_failures,
-        "PDFA1B-ICCBASED-COMPONENTS-001",
+        iso_pdfa_rule_id!(profile, "6.2.3.2:2", "6.2.4.2:1", "6.2.4.2:1"),
         Some("direct profile"),
         &mut failures,
     );
@@ -1912,27 +1909,32 @@ fn collect_validation_failures(
         } else {
             &inspections.icc_based.invalid_devicen_components
         },
-        "PDFA1B-DEVICEN-COMPONENTS-001",
+        iso_pdfa_rule_id!(profile, "6.1.12:9", "6.1.13:9", "6.1.13:9"),
         Some("direct DeviceN space"),
         &mut failures,
     );
     if profile.is_pdfa_2_or_3() {
         aggregate_failures_with_location(
             &inspections.icc_based.invalid_devicen_colorants,
-            "PDFA1B-DEVICEN-COLORANTS-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.4.4:1", "6.2.4.4:1"),
             Some("direct DeviceN space"),
             &mut failures,
         );
         aggregate_failures_with_location(
             &inspections.icc_based.inconsistent_separations,
-            "PDFA1B-SEPARATION-CONSISTENCY-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.4.4:2", "6.2.4.4:2"),
             None,
             &mut failures,
         );
     }
     finish_if_lazy!();
     let output_color_space = pdfa_output_color_space(document);
-    validate_device_color_spaces(output_color_space, &inspections.icc_based, &mut failures);
+    validate_device_color_spaces(
+        profile,
+        output_color_space,
+        &inspections.icc_based,
+        &mut failures,
+    );
     finish_if_lazy!();
     stop_at_stage!(InspectionStage::IccBased);
     validate_xobjects(profile, &inspections.xobjects, &mut failures);
@@ -1958,7 +1960,7 @@ fn collect_validation_failures(
     validate_actions(profile, &inspections.actions, &mut failures);
     finish_if_lazy!();
     stop_at_stage!(InspectionStage::Actions);
-    validate_forms(&inspections.forms, &mut failures);
+    validate_forms(profile, &inspections.forms, &mut failures);
     finish_if_lazy!();
     stop_at_stage!(InspectionStage::Forms);
     validate_document_features(
@@ -1980,7 +1982,7 @@ fn collect_validation_failures(
         );
         aggregate_failures(
             &invalid_unicode_names,
-            "PDFA1B-UNICODE-NAME-001",
+            iso_pdfa_rule_id!(profile, "", "6.1.8:1", "6.1.8:1"),
             &mut failures,
         );
     }
@@ -2030,14 +2032,14 @@ fn collect_validation_failures(
         };
         aggregate_failures(
             &invalid_unicode_mappings,
-            "PDFA1A-UNICODE-MAPPING-001",
+            iso_pdfa_rule_id!(profile, "6.3.8:1", "6.2.11.7.2:1", "6.2.11.7.2:1"),
             &mut failures,
         );
     }
     if profile.is_pdfa_2_or_3() && profile.requires_unicode_mapping() {
         aggregate_failures(
             &inspections.font_embedding.invalid_unicode_values,
-            "PDFA1B-UNICODE-VALUE-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.11.7.2:2", "6.2.11.7.2:2"),
             &mut failures,
         );
     }
@@ -2048,30 +2050,31 @@ fn collect_validation_failures(
     ) {
         aggregate_failures(
             &inspections.font_embedding.unicode_pua_without_actual_text,
-            "PDFA1A-UNICODE-PUA-ACTUALTEXT-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.11.7.3:1", "6.2.11.7.3:1"),
             &mut failures,
         );
     }
     if profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &inspections.font_embedding.notdef_glyphs,
-            "PDFA1B-NOTDEF-GLYPH-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.11.8:1", "6.2.11.8:1"),
             &mut failures,
         );
     }
-    validate_font_embedding(&inspections.font_embedding, &mut failures);
+    validate_font_embedding(profile, &inspections.font_embedding, &mut failures);
 
     failures
 }
 
 fn validate_tagged_document(
+    profile: ValidationProfile,
     features: &crate::document_features::DocumentFeatureSummary,
     failures: &mut ValidationFailures,
 ) {
     validate_mark_info(
         features,
         failures,
-        "PDFA1A-TAGGED-DOCUMENT-001",
+        iso_pdfa_rule_id!(profile, "6.8.2.2:1", "6.7.2.2:1", "6.7.2.2:1"),
         "the document catalog MarkInfo dictionary must contain boolean /Marked true",
     );
 }
@@ -2079,7 +2082,7 @@ fn validate_tagged_document(
 fn validate_mark_info(
     features: &crate::document_features::DocumentFeatureSummary,
     failures: &mut ValidationFailures,
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     message: &'static str,
 ) {
     if !features.mark_info_is_dictionary || features.marked != Some(true) {
@@ -2098,7 +2101,7 @@ fn validate_suspects(
 ) {
     if features.suspects == Some(true) {
         failures.push(failure(
-            "PDFUA1-SUSPECTS-001",
+            "ISO 14289-1:2014:7.1:4",
             "the document catalog MarkInfo dictionary must not contain boolean /Suspects true",
             features.mark_info_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
@@ -2112,7 +2115,7 @@ fn validate_viewer_preferences(
 ) {
     if !features.viewer_preferences_is_dictionary || features.display_doc_title != Some(true) {
         failures.push(failure(
-            "PDFUA1-VIEWER-PREFERENCES-001",
+            "ISO 14289-1:2014:7.1:10",
             "the document catalog ViewerPreferences dictionary must contain boolean /DisplayDocTitle true",
             features
                 .viewer_preferences_object_id
@@ -2123,12 +2126,13 @@ fn validate_viewer_preferences(
 }
 
 fn validate_structure_tree(
+    profile: ValidationProfile,
     features: &crate::document_features::DocumentFeatureSummary,
     failures: &mut ValidationFailures,
 ) {
     if !features.struct_tree_root_present || !features.struct_tree_root_valid {
         failures.push(failure(
-            "PDFA1A-STRUCT-TREE-ROOT-001",
+            iso_pdfa_rule_id!(profile, "6.8.3.3:1", "6.7.3.3:1", "6.7.3.3:1"),
             "the document catalog must contain a StructTreeRoot entry describing the logical structure hierarchy",
             features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
@@ -2136,7 +2140,7 @@ fn validate_structure_tree(
     }
     if features.struct_tree_role_map_has_cycle {
         failures.push(failure(
-            "PDFA1A-STRUCT-TREE-ROLE-MAP-CYCLE-001",
+            iso_pdfa_rule_id!(profile, "6.8.3.4:2", "6.7.3.4:2", "6.7.3.4:2"),
             "the StructTreeRoot RoleMap must not contain a circular mapping",
             features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
@@ -2144,15 +2148,15 @@ fn validate_structure_tree(
     }
     if features.struct_tree_has_unmapped_type {
         failures.push(failure(
-            "PDFA1A-STRUCT-TREE-ROLE-MAP-001",
+            iso_pdfa_rule_id!(profile, "6.8.3.4:1", "6.7.3.4:1", "6.7.3.4:1"),
             "every non-standard structure type must resolve through RoleMap to a standard structure type",
             features.struct_tree_root_object_id.or(features.catalog_id),
             FailureCategory::Conformance,
         ));
     }
-    if features.struct_tree_role_map_has_standard_remap {
+    if profile.is_pdfa_2_or_3() && features.struct_tree_role_map_has_standard_remap {
         failures.push(failure(
-            "PDFA1A-STRUCT-TREE-ROLE-MAP-STANDARD-001",
+            iso_pdfa_rule_id!(profile, "", "6.7.3.4:3", "6.7.3.4:3"),
             "a standard structure type must not be remapped",
             features.struct_tree_root_object_id,
             FailureCategory::Conformance,
@@ -2188,7 +2192,7 @@ fn validate_header(
     };
     if !valid {
         failures.push(failure(
-            "PDFA1B-HEADER-001",
+            iso_pdfa_rule_id!(profile, "6.1.2:1", "6.1.2:1", "6.1.2:1"),
             "the file must start with a PDF header in the form %PDF-n.m",
             None,
             FailureCategory::Conformance,
@@ -2196,7 +2200,7 @@ fn validate_header(
     }
     if !header.has_binary_comment {
         failures.push(failure(
-            "PDFA1B-HEADER-BINARY-COMMENT-001",
+            iso_pdfa_rule_id!(profile, "6.1.2:2", "6.1.2:2", "6.1.2:2"),
             "the PDF header must be immediately followed by a comment with four bytes above 127",
             None,
             FailureCategory::Conformance,
@@ -2204,7 +2208,7 @@ fn validate_header(
     }
     if header.has_post_eof_data {
         failures.push(failure(
-            "PDFA1B-POST-EOF-DATA-001",
+            iso_pdfa_rule_id!(profile, "6.1.3:3", "6.1.3:3", "6.1.3:3"),
             "data follows the last %%EOF marker",
             None,
             FailureCategory::Conformance,
@@ -2213,53 +2217,53 @@ fn validate_header(
 }
 
 fn validate_object_limits(
-    _profile: ValidationProfile,
+    profile: ValidationProfile,
     limits: &crate::object_limits::ObjectLimitsSummary,
     content: &crate::content_support::ContentExecutionSummary,
     failures: &mut ValidationFailures,
 ) {
     let checks = [
         (
-            "PDFA1B-INTEGER-RANGE-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:1", "6.1.13:1", "6.1.13:1"),
             "an integer is outside the inclusive PDF/A-1 range",
             limits.out_of_range_integers.as_slice(),
         ),
         (
-            "PDFA1B-REAL-RANGE-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:2", "6.1.13:2", "6.1.13:2"),
             "a real number is outside the inclusive PDF/A range",
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 limits.out_of_range_reals_pdfa_2.as_slice()
             } else {
                 limits.out_of_range_reals.as_slice()
             },
         ),
         (
-            "PDFA1B-STRING-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:3", "6.1.13:3", "6.1.13:3"),
             "a string exceeds the PDF/A string-length limit",
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 limits.overlong_strings_pdfa_2.as_slice()
             } else {
                 limits.overlong_strings.as_slice()
             },
         ),
         (
-            "PDFA1B-NAME-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:4", "6.1.13:4", "6.1.13:4"),
             "a name exceeds the 127-byte PDF/A-1 limit",
             limits.overlong_names.as_slice(),
         ),
         (
-            "PDFA1B-ARRAY-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:5", "", ""),
             "an array exceeds the 8,191-entry PDF/A-1 limit",
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 &[][..]
             } else {
                 limits.oversized_arrays.as_slice()
             },
         ),
         (
-            "PDFA1B-DICTIONARY-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:6", "", ""),
             "a dictionary exceeds the 4,095-entry PDF/A-1 limit",
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 &[][..]
             } else {
                 limits.oversized_dictionaries.as_slice()
@@ -2281,43 +2285,43 @@ fn validate_object_limits(
     }
     aggregate_failures_with_location(
         &content.out_of_range_integers,
-        "PDFA1B-INTEGER-RANGE-001",
+        iso_pdfa_rule_id!(profile, "6.1.12:1", "6.1.13:1", "6.1.13:1"),
         None,
         failures,
     );
-    if !_profile.is_pdfa_2_or_3() {
+    if !profile.is_pdfa_2_or_3() {
         aggregate_failures_with_location(
             &content.out_of_range_reals,
-            "PDFA1B-REAL-RANGE-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:2", "", ""),
             None,
             failures,
         );
         aggregate_failures_with_location(
             &content.overlong_strings,
-            "PDFA1B-STRING-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:3", "6.1.13:3", "6.1.13:3"),
             None,
             failures,
         );
     } else {
         aggregate_failures_with_location(
             &content.overlong_strings_pdfa_2,
-            "PDFA1B-STRING-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:3", "6.1.13:3", "6.1.13:3"),
             None,
             failures,
         );
     }
     aggregate_failures_with_location(
         &content.overlong_names,
-        "PDFA1B-NAME-LENGTH-001",
+        iso_pdfa_rule_id!(profile, "6.1.12:4", "6.1.13:4", "6.1.13:4"),
         None,
         failures,
     );
-    if _profile.is_pdfa_2_or_3()
+    if profile.is_pdfa_2_or_3()
         && (!limits.underflow_reals_pdfa_2.is_empty() || !content.underflow_reals_pdfa_2.is_empty())
     {
         failures.push_with_check_count(
             failure(
-                "PDFA1B-REAL-MINIMUM-001",
+                iso_pdfa_rule_id!(profile, "", "6.1.13:5", "6.1.13:5"),
                 "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
                 limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
                     content
@@ -2332,7 +2336,7 @@ fn validate_object_limits(
     }
     if limits.too_many_indirect_objects {
         failures.push(failure(
-            "PDFA1B-INDIRECT-OBJECT-COUNT-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:7", "6.1.13:7", "6.1.13:7"),
             "the document exceeds the 8,388,607 indirect-object PDF/A-1 limit",
             None,
             FailureCategory::Conformance,
@@ -2340,104 +2344,119 @@ fn validate_object_limits(
     }
 }
 
-fn extension_schema_rule(test: u8) -> Option<(&'static str, &'static str)> {
+fn extension_schema_rule(
+    profile: ValidationProfile,
+    test: u8,
+) -> Option<(Option<&'static str>, &'static str)> {
     Some(match test {
         1 => (
-            "PDFA1B-XMP-EXTENSION-FIELDS-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:1", "6.6.2.3.2:1", "6.6.2.3.2:1"),
             "an XMP extension-schema object contains a field not defined by PDF/A-1",
         ),
         2 => (
-            "PDFA1B-XMP-EXTENSION-CONTAINER-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:2", "6.6.2.3.3:1", "6.6.2.3.3:1"),
             "pdfaExtension:schemas must use the pdfaExtension prefix and an rdf:Bag",
         ),
         3 => (
-            "PDFA1B-XMP-EXTENSION-SCHEMA-NAME-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:3", "6.6.2.3.3:2", "6.6.2.3.3:2"),
             "an extension schema definition has an invalid pdfaSchema:schema field",
         ),
         4 => (
-            "PDFA1B-XMP-EXTENSION-SCHEMA-NAMESPACE-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:4", "6.6.2.3.3:3", "6.6.2.3.3:3"),
             "an extension schema definition has an invalid pdfaSchema:namespaceURI field",
         ),
         5 => (
-            "PDFA1B-XMP-EXTENSION-SCHEMA-PREFIX-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:5", "6.6.2.3.3:4", "6.6.2.3.3:4"),
             "an extension schema definition has an invalid pdfaSchema:prefix field",
         ),
         6 => (
-            "PDFA1B-XMP-EXTENSION-SCHEMA-PROPERTIES-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:6", "6.6.2.3.3:5", "6.6.2.3.3:5"),
             "an extension schema definition has an invalid property sequence",
         ),
         7 => (
-            "PDFA1B-XMP-EXTENSION-SCHEMA-VALUE-TYPES-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:7", "6.6.2.3.3:6", "6.6.2.3.3:6"),
             "an extension schema definition has an invalid value-type sequence",
         ),
         8 => (
-            "PDFA1B-XMP-EXTENSION-PROPERTY-NAME-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:8", "6.6.2.3.3:7", "6.6.2.3.3:7"),
             "an extension-schema property has an invalid pdfaProperty:name field",
         ),
         9 => (
-            "PDFA1B-XMP-EXTENSION-PROPERTY-VALUE-TYPE-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:9", "6.6.2.3.3:8", "6.6.2.3.3:8"),
             "an extension-schema property has an invalid or undefined value type",
         ),
         10 => (
-            "PDFA1B-XMP-EXTENSION-PROPERTY-CATEGORY-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:10", "6.6.2.3.3:9", "6.6.2.3.3:9"),
             "an extension-schema property has an invalid category",
         ),
         11 => (
-            "PDFA1B-XMP-EXTENSION-PROPERTY-DESCRIPTION-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:11", "6.6.2.3.3:10", "6.6.2.3.3:10"),
             "an extension-schema property has an invalid description",
         ),
         12 => (
-            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAME-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:12", "6.6.2.3.3:11", "6.6.2.3.3:11"),
             "an extension-schema value type has an invalid pdfaType:type field",
         ),
         13 => (
-            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-NAMESPACE-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:13", "6.6.2.3.3:12", "6.6.2.3.3:12"),
             "an extension-schema value type has an invalid namespace URI",
         ),
         14 => (
-            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-PREFIX-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:14", "6.6.2.3.3:13", "6.6.2.3.3:13"),
             "an extension-schema value type has an invalid prefix field",
         ),
         15 => (
-            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-DESCRIPTION-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:15", "6.6.2.3.3:14", "6.6.2.3.3:14"),
             "an extension-schema value type has an invalid description",
         ),
         16 => (
-            "PDFA1B-XMP-EXTENSION-VALUE-TYPE-FIELDS-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:16", "6.6.2.3.3:15", "6.6.2.3.3:15"),
             "an extension-schema value type has an invalid field sequence",
         ),
         17 => (
-            "PDFA1B-XMP-EXTENSION-FIELD-NAME-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:17", "6.6.2.3.3:16", "6.6.2.3.3:16"),
             "an extension-schema field has an invalid name",
         ),
         18 => (
-            "PDFA1B-XMP-EXTENSION-FIELD-VALUE-TYPE-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:18", "6.6.2.3.3:17", "6.6.2.3.3:17"),
             "an extension-schema field has an invalid or undefined value type",
         ),
         19 => (
-            "PDFA1B-XMP-EXTENSION-FIELD-DESCRIPTION-001",
+            iso_pdfa_rule_id!(profile, "6.7.8:19", "6.6.2.3.3:18", "6.6.2.3.3:18"),
             "an extension-schema field has an invalid description",
         ),
         _ => return None,
     })
 }
 
-fn identification_prefix_rule(test: u8) -> Option<(&'static str, &'static str)> {
+fn identification_prefix_rule(
+    profile: ValidationProfile,
+    test: u8,
+) -> Option<(Option<&'static str>, &'static str)> {
     Some(match test {
-        4 => ("PDFA1B-ID-PART-PREFIX-001", "part"),
-        5 => ("PDFA1B-ID-CONFORMANCE-PREFIX-001", "conformance"),
-        6 => ("PDFA1B-ID-AMD-PREFIX-001", "amd"),
-        7 => ("PDFA1B-ID-CORR-PREFIX-001", "corr"),
+        4 => (
+            iso_pdfa_rule_id!(profile, "6.7.11:4", "6.6.4:4", "6.6.4:4"),
+            "part",
+        ),
+        5 => (
+            iso_pdfa_rule_id!(profile, "6.7.11:5", "6.6.4:5", "6.6.4:5"),
+            "conformance",
+        ),
+        6 => (
+            iso_pdfa_rule_id!(profile, "6.7.11:6", "6.6.4:6", "6.6.4:6"),
+            "amd",
+        ),
+        7 => (iso_pdfa_rule_id!(profile, "", "6.6.4:7", "6.6.4:7"), "corr"),
         _ => return None,
     })
 }
 
 fn validate_actions(
-    _profile: ValidationProfile,
+    profile: ValidationProfile,
     actions: &crate::actions::ActionSummary,
     failures: &mut ValidationFailures,
 ) {
-    if _profile.is_pdfa_2_or_3() {
+    if profile.is_pdfa_2_or_3() {
         let widget_action_failures = actions
             .widgets_with_actions
             .iter()
@@ -2446,64 +2465,68 @@ fn validate_actions(
             .collect::<Vec<_>>();
         aggregate_failures(
             &widget_action_failures,
-            "PDFA1B-WIDGET-ACTION-001",
+            iso_pdfa_rule_id!(profile, "6.6.1:3", "6.4.1:1", "6.4.1:1"),
             failures,
         );
     } else {
         aggregate_failures(
             &actions.widgets_with_actions,
-            "PDFA1B-WIDGET-ACTION-001",
+            iso_pdfa_rule_id!(profile, "6.6.1:3", "6.4.1:1", "6.4.1:1"),
             failures,
         );
         aggregate_failures(
             &actions.widgets_with_additional_actions,
-            "PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001",
+            iso_pdfa_rule_id!(profile, "6.6.2:1", "", ""),
             failures,
         );
     }
     for (invalid, rule_id) in [
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 actions.invalid_action_types_pdfa2.as_slice()
             } else {
                 actions.invalid_action_types.as_slice()
             },
-            "PDFA1B-ACTION-TYPE-001",
+            iso_pdfa_rule_id!(profile, "6.6.1:1", "6.5.1:1", "6.5.1:1"),
         ),
         (
             actions.invalid_named_actions.as_slice(),
-            "PDFA1B-NAMED-ACTION-001",
+            iso_pdfa_rule_id!(profile, "6.6.1:2", "6.5.1:2", "6.5.1:2"),
         ),
         (
             actions.fields_with_additional_actions.as_slice(),
-            "PDFA1B-FIELD-ADDITIONAL-ACTIONS-001",
+            iso_pdfa_rule_id!(profile, "6.6.2:2", "6.4.1:2", "6.4.1:2"),
         ),
         (
             actions.catalog_with_additional_actions.as_slice(),
-            "PDFA1B-CATALOG-ADDITIONAL-ACTIONS-001",
+            iso_pdfa_rule_id!(profile, "6.6.2:3", "6.5.2:1", "6.5.2:1"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 actions.pages_with_additional_actions.as_slice()
             } else {
                 &[][..]
             },
-            "PDFA1B-PAGE-ADDITIONAL-ACTIONS-001",
+            iso_pdfa_rule_id!(profile, "", "6.5.2:2", "6.5.2:2"),
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
 }
 
-fn validate_forms(forms: &crate::forms::FormSummary, failures: &mut ValidationFailures) {
+fn validate_forms(
+    profile: ValidationProfile,
+    forms: &crate::forms::FormSummary,
+    failures: &mut ValidationFailures,
+) {
     for (invalid, rule_id) in [
         (
             forms.invalid_need_appearances.as_slice(),
-            "PDFA1B-ACROFORM-NEED-APPEARANCES-001",
+            iso_pdfa_rule_id!(profile, "6.9:1", "6.4.1:3", "6.4.1:3"),
         ),
         (
             forms.widgets_without_appearances.as_slice(),
-            "PDFA1B-WIDGET-APPEARANCE-001",
+            iso_pdfa_rule_id!(profile, "6.9:2", "6.3.3:1", "6.3.3:1"),
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
@@ -2519,12 +2542,12 @@ fn validate_document_features(
     for (invalid, rule_id, description) in [
         (
             features.contains_embedded_files_name && !profile.permits_embedded_files(),
-            "PDFA1B-NAMES-EMBEDDED-FILES-001",
+            iso_pdfa_rule_id!(profile, "6.1.11:2", "", ""),
             "the catalog Names dictionary contains an EmbeddedFiles entry",
         ),
         (
             features.contains_optional_content && !profile.permits_optional_content(),
-            "PDFA1B-OPTIONAL-CONTENT-001",
+            iso_pdfa_rule_id!(profile, "6.1.13:1", "", ""),
             "the document catalog contains an OCProperties entry",
         ),
     ] {
@@ -2541,63 +2564,69 @@ fn validate_document_features(
         for (invalid, rule_id) in [
             (
                 &features.invalid_page_boundaries,
-                "PDFA1B-PAGE-BOUNDARY-001",
+                iso_pdfa_rule_id!(profile, "", "6.1.13:11", "6.1.13:11"),
             ),
-            (&features.pages_with_pres_steps, "PDFA1B-PRES-STEPS-001"),
+            (
+                &features.pages_with_pres_steps,
+                iso_pdfa_rule_id!(profile, "", "6.10:2", "6.10:2"),
+            ),
             (
                 &features.catalog_with_requirements,
-                "PDFA1B-CATALOG-REQUIREMENTS-001",
+                iso_pdfa_rule_id!(profile, "", "6.11:1", "6.11:1"),
             ),
             (
                 &features.catalog_with_alternate_presentations,
-                "PDFA1B-ALTERNATE-PRESENTATIONS-001",
+                iso_pdfa_rule_id!(profile, "", "6.10:1", "6.10:1"),
             ),
             (
                 &features.catalog_with_needs_rendering,
-                "PDFA1B-CATALOG-NEEDS-RENDERING-001",
+                iso_pdfa_rule_id!(profile, "", "6.4.2:2", "6.4.2:2"),
             ),
             (
                 &features.permissions_with_invalid_keys,
-                "PDFA1B-PERMS-ENTRIES-001",
+                iso_pdfa_rule_id!(profile, "", "6.1.12:1", "6.1.12:1"),
             ),
-            (&features.acro_forms_with_xfa, "PDFA1B-ACROFORM-XFA-001"),
+            (
+                &features.acro_forms_with_xfa,
+                iso_pdfa_rule_id!(profile, "", "6.4.2:1", "6.4.2:1"),
+            ),
             (
                 &features.optional_content_missing_names,
-                "PDFA1B-OPTIONAL-CONTENT-NAME-001",
+                iso_pdfa_rule_id!(profile, "", "6.9:1", "6.9:1"),
             ),
             (
                 &features.optional_content_duplicate_names,
-                "PDFA1B-OPTIONAL-CONTENT-DUPLICATE-NAME-001",
+                iso_pdfa_rule_id!(profile, "", "6.9:2", "6.9:2"),
             ),
             (
                 &features.optional_content_invalid_orders,
-                "PDFA1B-OPTIONAL-CONTENT-ORDER-001",
+                iso_pdfa_rule_id!(profile, "", "6.9:3", "6.9:3"),
             ),
             (
                 &features.optional_content_as_entries,
-                "PDFA1B-OPTIONAL-CONTENT-AS-001",
+                iso_pdfa_rule_id!(profile, "", "6.9:4", "6.9:4"),
             ),
             (
                 &features.signature_refs_with_digest_keys,
-                "PDFA1B-SIGNATURE-REFERENCE-001",
+                iso_pdfa_rule_id!(profile, "", "6.1.12:2", "6.1.12:2"),
             ),
         ] {
             aggregate_failures(invalid, rule_id, failures);
         }
         aggregate_failures(
             &features.file_specs_missing_f_or_uf,
-            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+            iso_pdfa_rule_id!(profile, "", "6.8:2", "6.8:2"),
             failures,
         );
         aggregate_failures(
             &actions.file_specs_missing_f_or_uf,
-            "PDFA1B-FILE-SPEC-F-AND-UF-001",
+            iso_pdfa_rule_id!(profile, "", "6.8:2", "6.8:2"),
             failures,
         );
         if matches!(profile.pdfa_part(), Some(2)) {
             aggregate_failures(
                 &features.embedded_files_not_pdfa,
-                "PDFA1B-EMBEDDED-FILE-PDFA-001",
+                iso_pdfa_rule_id!(profile, "", "6.8:5", ""),
                 failures,
             );
         }
@@ -2605,15 +2634,15 @@ fn validate_document_features(
             for (invalid, rule_id) in [
                 (
                     &features.embedded_files_with_invalid_mime,
-                    "PDFA1B-EMBEDDED-FILE-MIME-001",
+                    iso_pdfa_rule_id!(profile, "", "", "6.8:1"),
                 ),
                 (
                     &features.file_specs_missing_af_relationship,
-                    "PDFA1B-FILE-SPEC-AF-RELATIONSHIP-001",
+                    iso_pdfa_rule_id!(profile, "", "", "6.8:3"),
                 ),
                 (
                     &features.file_specs_not_associated,
-                    "PDFA1B-FILE-SPEC-ASSOCIATION-001",
+                    iso_pdfa_rule_id!(profile, "", "", "6.8:4"),
                 ),
             ] {
                 aggregate_failures(invalid, rule_id, failures);
@@ -2622,9 +2651,8 @@ fn validate_document_features(
     }
 }
 
-/// Aggregates `PDFA1B-FILE-SPEC-EMBEDDED-FILE-001` failures across every
-/// reachable file specification: the catalog `Names/EmbeddedFiles` name
-/// tree and `GoToR`/`SubmitForm` action `/F` entries.
+/// Aggregates failures across file specifications in the catalog name tree
+/// and the `/F` entries of `GoToR` and `SubmitForm` actions.
 fn validate_pdf_specifications(
     profile: ValidationProfile,
     document_features: &crate::document_features::DocumentFeatureSummary,
@@ -2642,7 +2670,7 @@ fn validate_pdf_specifications(
         .collect::<Vec<_>>();
     aggregate_failures(
         &file_spec_failures,
-        "PDFA1B-FILE-SPEC-EMBEDDED-FILE-001",
+        iso_pdfa_rule_id!(profile, "6.1.11:1", "", ""),
         failures,
     );
 }
@@ -2663,7 +2691,7 @@ fn validate_stream_safety(
             .join("; ");
         failures.push_with_check_count(
             failure(
-                "PDFA1B-STREAM-EXTERNAL-DATA-001",
+                iso_pdfa_rule_id!(profile, "6.1.7:3", "6.1.7.1:3", "6.1.7.1:3"),
                 description,
                 object_id,
                 FailureCategory::Conformance,
@@ -2675,7 +2703,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.lzw_filters).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-STREAM-LZW-001",
+                iso_pdfa_rule_id!(profile, "6.1.10:1", "", ""),
                 "a parsed stream declares the forbidden LZWDecode filter",
                 object_id,
                 FailureCategory::Conformance,
@@ -2687,7 +2715,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.invalid_filters_pdfa2).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-STREAM-FILTER-001",
+                iso_pdfa_rule_id!(profile, "", "6.1.7.2:1", "6.1.7.2:1"),
                 "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
                 object_id,
                 FailureCategory::Conformance,
@@ -2699,7 +2727,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.invalid_signature_byte_ranges).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-SIGNATURE-BYTERANGE-001",
+                iso_pdfa_rule_id!(profile, "", "6.4.3:1", "6.4.3:1"),
                 "a signature /ByteRange does not cover the complete PDF except for its signature contents",
                 object_id,
                 FailureCategory::Conformance,
@@ -2711,7 +2739,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.invalid_signature_certificates).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-SIGNATURE-CERTIFICATE-001",
+                iso_pdfa_rule_id!(profile, "", "6.4.3:2", "6.4.3:2"),
                 "a parsed PKCS#7 signature does not contain a signing certificate",
                 object_id,
                 FailureCategory::Conformance,
@@ -2723,7 +2751,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.invalid_signature_signer_counts).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-SIGNATURE-SIGNER-COUNT-001",
+                iso_pdfa_rule_id!(profile, "", "6.4.3:3", "6.4.3:3"),
                 "a parsed PKCS#7 signature does not contain exactly one signer",
                 object_id,
                 FailureCategory::Conformance,
@@ -2735,7 +2763,7 @@ fn validate_stream_safety(
         && let Some(context) = &content.inline_image_invalid_filter_context
     {
         failures.push(failure(
-            "PDFA1B-INLINE-IMAGE-FILTER-001",
+            iso_pdfa_rule_id!(profile, "6.1.10:2", "6.1.10:1", "6.1.10:1"),
             format!("{context} declares a filter that PDF/A-2 and PDF/A-3 do not permit"),
             None,
             FailureCategory::Conformance,
@@ -2747,7 +2775,7 @@ fn validate_stream_safety(
         let object_id = only(&streams.xref_streams).copied();
         failures.push_with_check_count(
             failure(
-                "PDFA1B-XREF-STREAM-001",
+                iso_pdfa_rule_id!(profile, "6.1.4:3", "", ""),
                 "the document contains an xref stream",
                 object_id,
                 FailureCategory::Conformance,
@@ -2761,27 +2789,27 @@ fn validate_stream_safety(
     for (invalid, rule_id, message) in [
         (
             streams.has_odd_hex_string || content.has_odd_hex_string,
-            "PDFA1B-HEX-STRING-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.6:1", "6.1.6:1", "6.1.6:1"),
             "a hexadecimal string contains an odd number of non-whitespace characters",
         ),
         (
             streams.has_non_hex_character || content.has_non_hex_character,
-            "PDFA1B-HEX-STRING-CHARACTERS-001",
+            iso_pdfa_rule_id!(profile, "6.1.6:2", "6.1.6:2", "6.1.6:2"),
             "a hexadecimal string contains a non-hexadecimal character",
         ),
         (
             streams.has_invalid_xref_subsection_spacing && !profile.is_pdfa_2_or_3(),
-            "PDFA1B-XREF-SUBSECTION-SPACING-001",
+            iso_pdfa_rule_id!(profile, "6.1.4:1", "", ""),
             "an xref subsection header does not separate its numbers with one SPACE character",
         ),
         (
             streams.has_invalid_xref_eol,
-            "PDFA1B-XREF-EOL-001",
+            iso_pdfa_rule_id!(profile, "6.1.4:2", "6.1.4:2", "6.1.4:2"),
             "the xref keyword is not followed by exactly one EOL marker",
         ),
         (
             streams.has_invalid_indirect_object_syntax,
-            "PDFA1B-INDIRECT-OBJECT-SYNTAX-001",
+            iso_pdfa_rule_id!(profile, "6.1.8:1", "6.1.9:1", "6.1.9:1"),
             "an indirect object header or endobj keyword has invalid PDF/A-1 spacing",
         ),
     ] {
@@ -2797,12 +2825,12 @@ fn validate_stream_safety(
     for (invalid, rule_id, message) in [
         (
             streams.invalid_lengths.as_slice(),
-            "PDFA1B-STREAM-LENGTH-001",
+            iso_pdfa_rule_id!(profile, "6.1.7:1", "6.1.7.1:1", "6.1.7.1:1"),
             "a stream /Length does not match its raw content length",
         ),
         (
             streams.invalid_eol_markers.as_slice(),
-            "PDFA1B-STREAM-EOL-001",
+            iso_pdfa_rule_id!(profile, "6.1.7:2", "6.1.7.1:2", "6.1.7.1:2"),
             "a stream has invalid EOL markers around stream data",
         ),
     ] {
@@ -2844,12 +2872,15 @@ fn joined_failure(invalid: &[RuleFailure]) -> (Option<PdfObjectId>, String) {
 /// the single object id only when exactly one entry is present.
 fn aggregate_failures(
     invalid: &[RuleFailure],
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     failures: &mut ValidationFailures,
 ) {
     if invalid.is_empty() {
         return;
     }
+    let rule_id = rule_id
+        .into()
+        .expect("a reported conformance finding has an ISO rule reference");
     let (object_id, description) = joined_failure(invalid);
     failures.push_with_check_count(
         failure(
@@ -2867,13 +2898,16 @@ fn aggregate_failures(
 /// when given.
 fn aggregate_failures_with_location(
     invalid: &[RuleFailure],
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     no_id_label: Option<&str>,
     failures: &mut ValidationFailures,
 ) {
     if invalid.is_empty() {
         return;
     }
+    let rule_id = rule_id
+        .into()
+        .expect("a reported conformance finding has an ISO rule reference");
     let mut seen = HashSet::new();
     let first = invalid
         .iter()
@@ -2904,6 +2938,7 @@ fn aggregate_failures_with_location(
 }
 
 fn validate_device_color_spaces(
+    profile: ValidationProfile,
     output_color_space: Option<&str>,
     color_spaces: &crate::icc_based::IccBasedSummary,
     failures: &mut ValidationFailures,
@@ -2912,7 +2947,7 @@ fn validate_device_color_spaces(
         && output_color_space != Some("RGB ")
     {
         failures.push(failure(
-            "PDFA1B-DEVICE-RGB-001",
+            iso_pdfa_rule_id!(profile, "6.2.3.3:1", "6.2.4.3:2", "6.2.4.3:2"),
             format!(
                 "DeviceRGB is selected in {context}, but the PDF/A-1 output colour space is {output_color_space:?}"
             ),
@@ -2924,7 +2959,7 @@ fn validate_device_color_spaces(
         && output_color_space != Some("CMYK")
     {
         failures.push(failure(
-            "PDFA1B-DEVICE-CMYK-001",
+            iso_pdfa_rule_id!(profile, "6.2.3.3:2", "6.2.4.3:3", "6.2.4.3:3"),
             format!(
                 "DeviceCMYK is selected in {context}, but the PDF/A-1 output colour space is {output_color_space:?}"
             ),
@@ -2936,7 +2971,7 @@ fn validate_device_color_spaces(
         && output_color_space.is_none()
     {
         failures.push(failure(
-            "PDFA1B-DEVICE-GRAY-001",
+            iso_pdfa_rule_id!(profile, "6.2.3.3:3", "6.2.4.3:4", "6.2.4.3:4"),
             format!(
                 "DeviceGray is selected in {context}, but no PDF/A-1 output colour space is defined"
             ),
@@ -2981,26 +3016,33 @@ fn validate_xobjects(
             .collect::<Vec<_>>();
         aggregate_failures(
             &form_forbidden_entries,
-            "PDFA1B-FORM-POSTSCRIPT-001",
+            iso_pdfa_rule_id!(profile, "6.2.5:1", "6.2.9:1", "6.2.9:1"),
             failures,
         );
     } else {
-        aggregate_failures(&xobjects.form_opi, "PDFA1B-XOBJECT-OPI-001", failures);
+        aggregate_failures(
+            &xobjects.form_opi,
+            iso_pdfa_rule_id!(profile, "6.2.4:2", "6.2.8:2", "6.2.8:2"),
+            failures,
+        );
         aggregate_failures(
             &xobjects.form_postscript,
-            "PDFA1B-FORM-POSTSCRIPT-001",
+            iso_pdfa_rule_id!(profile, "6.2.5:1", "6.2.9:1", "6.2.9:1"),
             failures,
         );
     }
     for (invalid, rule_id) in [
         (
             xobjects.image_alternates.as_slice(),
-            "PDFA1B-IMAGE-ALTERNATES-001",
+            iso_pdfa_rule_id!(profile, "6.2.4:1", "6.2.8:1", "6.2.8:1"),
         ),
-        (xobjects.image_opi.as_slice(), "PDFA1B-XOBJECT-OPI-001"),
+        (
+            xobjects.image_opi.as_slice(),
+            iso_pdfa_rule_id!(profile, "6.2.4:2", "6.2.8:2", "6.2.8:2"),
+        ),
         (
             xobjects.image_interpolate.as_slice(),
-            "PDFA1B-IMAGE-INTERPOLATE-001",
+            iso_pdfa_rule_id!(profile, "6.2.4:3", "6.2.8:3", "6.2.8:3"),
         ),
         (
             if profile.is_pdfa_2_or_3() {
@@ -3008,19 +3050,19 @@ fn validate_xobjects(
             } else {
                 xobjects.image_bits_per_component.as_slice()
             },
-            "PDFA1B-IMAGE-BPC-001",
+            iso_pdfa_rule_id!(profile, "6.2.4:4", "6.2.8:4", "6.2.8:4"),
         ),
         (
             xobjects.mask_bits_per_component.as_slice(),
-            "PDFA1B-IMAGE-MASK-BPC-001",
+            iso_pdfa_rule_id!(profile, "6.2.4:5", "6.2.8:5", "6.2.8:5"),
         ),
         (
             xobjects.form_reference.as_slice(),
-            "PDFA1B-FORM-REFERENCE-001",
+            iso_pdfa_rule_id!(profile, "6.2.6:1", "6.2.9:2", "6.2.9:2"),
         ),
         (
             xobjects.postscript_xobject.as_slice(),
-            "PDFA1B-XOBJECT-POSTSCRIPT-001",
+            iso_pdfa_rule_id!(profile, "6.2.7:1", "6.2.9:3", "6.2.9:3"),
         ),
     ] {
         aggregate_failures_with_location(invalid, rule_id, None, failures);
@@ -3030,15 +3072,20 @@ fn validate_xobjects(
             aggregate_failures(
                 failures_for_rule,
                 [
-                    "PDFA1B-JPEG2000-CHANNELS-001",
-                    "PDFA1B-JPEG2000-COLOR-SPECS-001",
-                    "PDFA1B-JPEG2000-COLOR-METHOD-001",
-                    "PDFA1B-JPEG2000-COLOR-SPACE-001",
-                    "PDFA1B-JPEG2000-BIT-DEPTH-001",
+                    iso_pdfa_rule_id!(profile, "", "6.2.8.3:1", "6.2.8.3:1"),
+                    iso_pdfa_rule_id!(profile, "", "6.2.8.3:2", "6.2.8.3:2"),
+                    iso_pdfa_rule_id!(profile, "", "6.2.8.3:3", "6.2.8.3:3"),
+                    iso_pdfa_rule_id!(profile, "", "6.2.8.3:4", "6.2.8.3:4"),
+                    iso_pdfa_rule_id!(profile, "", "6.2.8.3:5", "6.2.8.3:5"),
                 ]
                 .get(index)
                 .copied()
-                .unwrap_or("PDFA1B-JPEG2000-BIT-DEPTH-001"),
+                .unwrap_or(iso_pdfa_rule_id!(
+                    profile,
+                    "",
+                    "6.2.8.3:5",
+                    "6.2.8.3:5"
+                )),
                 failures,
             );
         }
@@ -3055,15 +3102,15 @@ fn validate_graphics(
     for (invalid, rule_id) in [
         (
             graphics.transfer_functions.as_slice(),
-            "PDFA1B-EXTGSTATE-TR-001",
+            iso_pdfa_rule_id!(profile, "6.2.8:1", "6.2.5:1", "6.2.5:1"),
         ),
         (
             graphics.transfer_functions_2.as_slice(),
-            "PDFA1B-EXTGSTATE-TR2-001",
+            iso_pdfa_rule_id!(profile, "6.2.8:2", "6.2.5:2", "6.2.5:2"),
         ),
         (
             graphics.rendering_intents.as_slice(),
-            "PDFA1B-RENDERING-INTENT-001",
+            iso_pdfa_rule_id!(profile, "6.2.9:1", "6.2.6:1", "6.2.6:1"),
         ),
         (
             if profile.permits_transparency() {
@@ -3071,7 +3118,7 @@ fn validate_graphics(
             } else {
                 graphics.extgstate_soft_masks.as_slice()
             },
-            "PDFA1B-EXTGSTATE-SMASK-001",
+            iso_pdfa_rule_id!(profile, "6.4:1", "", ""),
         ),
         (
             if profile.permits_transparency() {
@@ -3079,7 +3126,7 @@ fn validate_graphics(
             } else {
                 graphics.xobject_soft_masks.as_slice()
             },
-            "PDFA1B-XOBJECT-SMASK-001",
+            iso_pdfa_rule_id!(profile, "6.4:2", "", ""),
         ),
         (
             if profile.permits_transparency() {
@@ -3087,7 +3134,7 @@ fn validate_graphics(
             } else {
                 graphics.transparency_groups.as_slice()
             },
-            "PDFA1B-TRANSPARENCY-GROUP-001",
+            iso_pdfa_rule_id!(profile, "6.4:3", "", ""),
         ),
         (
             if profile.permits_transparency() {
@@ -3095,7 +3142,7 @@ fn validate_graphics(
             } else {
                 graphics.blend_modes.as_slice()
             },
-            "PDFA1B-EXTGSTATE-BLEND-MODE-001",
+            iso_pdfa_rule_id!(profile, "6.4:4", "6.2.10:1", "6.2.10:1"),
         ),
         (
             if profile.permits_transparency() {
@@ -3103,7 +3150,7 @@ fn validate_graphics(
             } else {
                 graphics.stroke_alpha.as_slice()
             },
-            "PDFA1B-EXTGSTATE-STROKE-ALPHA-001",
+            iso_pdfa_rule_id!(profile, "6.4:5", "", ""),
         ),
         (
             if profile.permits_transparency() {
@@ -3111,7 +3158,7 @@ fn validate_graphics(
             } else {
                 graphics.fill_alpha.as_slice()
             },
-            "PDFA1B-EXTGSTATE-FILL-ALPHA-001",
+            iso_pdfa_rule_id!(profile, "6.4:6", "", ""),
         ),
     ] {
         aggregate_failures_with_location(invalid, rule_id, None, failures);
@@ -3120,21 +3167,30 @@ fn validate_graphics(
         if output_color_space.is_none() {
             aggregate_failures_with_location(
                 &graphics.transparency_groups_missing_cs,
-                "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+                iso_pdfa_rule_id!(profile, "", "6.2.10:2", "6.2.10:2"),
                 None,
                 failures,
             );
             aggregate_failures_with_location(
                 &graphics.pages_with_transparency_missing_cs,
-                "PDFA1B-TRANSPARENCY-GROUP-CS-001",
+                iso_pdfa_rule_id!(profile, "", "6.2.10:2", "6.2.10:2"),
                 None,
                 failures,
             );
         }
         for (invalid, rule_id) in [
-            (&graphics.extgstate_htp, "PDFA1B-EXTGSTATE-HTP-001"),
-            (&graphics.halftone_types, "PDFA1B-HALFTONE-TYPE-001"),
-            (&graphics.halftone_names, "PDFA1B-HALFTONE-NAME-001"),
+            (
+                &graphics.extgstate_htp,
+                iso_pdfa_rule_id!(profile, "", "6.2.5:3", "6.2.5:3"),
+            ),
+            (
+                &graphics.halftone_types,
+                iso_pdfa_rule_id!(profile, "", "6.2.5:4", "6.2.5:4"),
+            ),
+            (
+                &graphics.halftone_names,
+                iso_pdfa_rule_id!(profile, "", "6.2.5:5", "6.2.5:5"),
+            ),
         ] {
             aggregate_failures_with_location(invalid, rule_id, None, failures);
         }
@@ -3142,19 +3198,19 @@ fn validate_graphics(
     if profile.is_pdfa_2_or_3() {
         aggregate_failures_with_location(
             &content.icc_cmyk_overprint,
-            "PDFA1B-ICCBased-CMYK-OVERPRINT-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.4.2:2", "6.2.4.2:2"),
             None,
             failures,
         );
         aggregate_failures_with_location(
             &content.inherited_resources,
-            "PDFA1B-CONTENT-RESOURCES-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.2:2", "6.2.2:2"),
             None,
             failures,
         );
         aggregate_failures_with_location(
             &graphics.halftone_transfer_functions,
-            "PDFA1B-HALFTONE-TRANSFER-FUNCTION-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.5:6", "6.2.5:6"),
             None,
             failures,
         );
@@ -3167,7 +3223,7 @@ fn validate_graphics(
             .collect::<Vec<_>>()
             .join("; ");
         failures.push(failure(
-            "PDFA1B-CONTENT-OPERATOR-001",
+            iso_pdfa_rule_id!(profile, "6.2.10:1", "6.2.2:1", "6.2.2:1"),
             format!("content uses operators not defined by PDF 1.4: {detail}"),
             None,
             FailureCategory::Conformance,
@@ -3175,7 +3231,7 @@ fn validate_graphics(
     }
     if let Some(context) = &content.inline_image_lzw_context {
         failures.push(failure(
-            "PDFA1B-INLINE-IMAGE-LZW-001",
+            iso_pdfa_rule_id!(profile, "6.1.10:2", "6.1.10:1", "6.1.10:1"),
             format!("{context} declares the forbidden LZW inline-image filter"),
             None,
             FailureCategory::Conformance,
@@ -3183,7 +3239,7 @@ fn validate_graphics(
     }
     if let Some(context) = &content.inline_image_interpolate_context {
         failures.push(failure(
-            "PDFA1B-IMAGE-INTERPOLATE-001",
+            iso_pdfa_rule_id!(profile, "6.2.4:3", "6.2.8:3", "6.2.8:3"),
             format!("{context} sets the forbidden true inline-image interpolation flag"),
             None,
             FailureCategory::Conformance,
@@ -3193,76 +3249,77 @@ fn validate_graphics(
 
 fn validate_annotations(
     output_color_space: Option<&str>,
-    _profile: ValidationProfile,
+    profile: ValidationProfile,
     annotations: &crate::annotations::AnnotationSummary,
     failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id) in [
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 annotations.invalid_subtypes_pdfa2.as_slice()
             } else {
                 annotations.invalid_subtypes.as_slice()
             },
-            "PDFA1B-ANNOTATION-SUBTYPE-001",
+            iso_pdfa_rule_id!(profile, "6.5.2:1", "6.3.1:1", "6.3.1:1"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 &[][..]
             } else {
                 annotations.invalid_opacities.as_slice()
             },
-            "PDFA1B-ANNOTATION-OPACITY-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:1", "", ""),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 annotations.invalid_flags_pdfa2.as_slice()
             } else {
                 annotations.invalid_flags.as_slice()
             },
-            "PDFA1B-ANNOTATION-FLAGS-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:2", "6.3.2:2", "6.3.2:2"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 annotations.missing_flags_pdfa2.as_slice()
             } else {
                 &[][..]
             },
-            "PDFA1B-ANNOTATION-FLAGS-PRESENT-001",
+            iso_pdfa_rule_id!(profile, "", "6.3.2:1", "6.3.2:1"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 annotations.missing_appearances_pdfa2.as_slice()
             } else {
                 &[][..]
             },
-            "PDFA1B-ANNOTATION-AP-REQUIRED-001",
+            iso_pdfa_rule_id!(profile, "", "6.3.3:1", "6.3.3:1"),
         ),
         (
             annotations.invalid_appearance_entries.as_slice(),
-            "PDFA1B-ANNOTATION-AP-ENTRIES-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:4", "6.3.3:2", "6.3.3:2"),
         ),
         (
             annotations.invalid_button_appearances.as_slice(),
-            "PDFA1B-WIDGET-BUTTON-APPEARANCE-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:5", "6.3.3:3", "6.3.3:3"),
         ),
         (
             annotations.invalid_other_appearances.as_slice(),
-            "PDFA1B-ANNOTATION-NORMAL-APPEARANCE-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:6", "6.3.3:4", "6.3.3:4"),
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
-    if output_color_space != Some("RGB ") && !_profile.is_pdfa_2_or_3() {
+    if output_color_space != Some("RGB ") && !profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &annotations.color_uses,
-            "PDFA1B-ANNOTATION-COLOR-001",
+            iso_pdfa_rule_id!(profile, "6.5.3:3", "", ""),
             failures,
         );
     }
 }
 
 fn validate_font_embedding(
+    profile: ValidationProfile,
     font_embedding: &crate::font_embedding::FontEmbeddingSummary,
     failures: &mut ValidationFailures,
 ) {
@@ -3273,7 +3330,7 @@ fn validate_font_embedding(
     let (object_id, message) = joined_failure(invalid);
     failures.push_with_check_count(
         failure(
-            "PDFA1B-FONT-EMBEDDING-001",
+            iso_pdfa_rule_id!(profile, "6.3.4:1", "6.2.11.4.1:1", "6.2.11.4.1:1"),
             format!("font program is not embedded for {message}"),
             object_id,
             FailureCategory::Conformance,
@@ -3283,153 +3340,154 @@ fn validate_font_embedding(
 }
 
 fn validate_font_dictionaries(
-    _profile: ValidationProfile,
+    profile: ValidationProfile,
     fonts: &crate::font_embedding::FontEmbeddingSummary,
     failures: &mut ValidationFailures,
 ) {
     for (invalid, rule_id) in [
-        (fonts.invalid_types.as_slice(), "PDFA1B-FONT-TYPE-001"),
-        (fonts.invalid_subtypes.as_slice(), "PDFA1B-FONT-SUBTYPE-001"),
+        (
+            fonts.invalid_types.as_slice(),
+            iso_pdfa_rule_id!(profile, "6.3.2:1", "6.2.11.2:1", "6.2.11.2:1"),
+        ),
+        (
+            fonts.invalid_subtypes.as_slice(),
+            iso_pdfa_rule_id!(profile, "6.3.2:2", "6.2.11.2:2", "6.2.11.2:2"),
+        ),
         (
             fonts.invalid_base_fonts.as_slice(),
-            "PDFA1B-FONT-BASEFONT-001",
+            iso_pdfa_rule_id!(profile, "6.3.2:3", "6.2.11.2:3", "6.2.11.2:3"),
         ),
         (
             fonts.invalid_first_chars.as_slice(),
-            "PDFA1B-FONT-FIRSTCHAR-001",
+            iso_pdfa_rule_id!(profile, "6.3.2:4", "6.2.11.2:4", "6.2.11.2:4"),
         ),
         (
             fonts.invalid_last_chars.as_slice(),
-            "PDFA1B-FONT-LASTCHAR-001",
+            iso_pdfa_rule_id!(profile, "6.3.2:5", "6.2.11.2:5", "6.2.11.2:5"),
         ),
-        (fonts.invalid_widths.as_slice(), "PDFA1B-FONT-WIDTHS-001"),
         (
-            if _profile.is_pdfa_2_or_3() {
+            fonts.invalid_widths.as_slice(),
+            iso_pdfa_rule_id!(profile, "6.3.2:6", "6.2.11.2:6", "6.2.11.2:6"),
+        ),
+        (
+            if profile.is_pdfa_2_or_3() {
                 fonts.invalid_font_file_subtypes_pdfa2.as_slice()
             } else {
                 fonts.invalid_font_file_subtypes.as_slice()
             },
-            "PDFA1B-FONT-FILE-SUBTYPE-001",
+            iso_pdfa_rule_id!(profile, "6.3.2:7", "6.2.11.2:7", "6.2.11.2:7"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts.incompatible_type0_system_info_pdfa2.as_slice()
             } else {
                 fonts.incompatible_type0_system_info.as_slice()
             },
-            "PDFA1B-TYPE0-CID-SYSTEM-INFO-001",
+            iso_pdfa_rule_id!(profile, "6.3.3.1:1", "6.2.11.3.1:1", "6.2.11.3.1:1"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts.invalid_cid_to_gid_maps_pdfa2.as_slice()
             } else {
                 fonts.invalid_cid_to_gid_maps.as_slice()
             },
-            "PDFA1B-CIDTOGIDMAP-001",
+            iso_pdfa_rule_id!(profile, "6.3.3.2:1", "6.2.11.3.2:1", "6.2.11.3.2:1"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts.unembedded_cmaps.as_slice()
             } else {
                 // PDF/A-1 permits only the two Identity CMaps unembedded;
                 // PDF/A-2/3 additionally permit the complete Table 118 set.
                 &[]
             },
-            "PDFA1B-CMAP-EMBEDDING-001",
+            iso_pdfa_rule_id!(profile, "6.3.3.3:1", "6.2.11.3.3:1", "6.2.11.3.3:1"),
         ),
         (
             fonts.invalid_cmap_wmodes.as_slice(),
-            "PDFA1B-CMAP-WMODE-001",
+            iso_pdfa_rule_id!(profile, "6.3.3.3:2", "6.2.11.3.3:2", "6.2.11.3.3:2"),
         ),
         (
             fonts.invalid_cmap_cids.as_slice(),
-            "PDFA1B-CMAP-CID-RANGE-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:10", "6.1.13:10", "6.1.13:10"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts.invalid_cmap_references.as_slice()
             } else {
                 &[]
             },
-            "PDFA1B-CMAP-REFERENCE-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.11.3.3:3", "6.2.11.3.3:3"),
         ),
         (
             fonts.oversized_cmap_cids.as_slice(),
-            "PDFA1B-CMAP-MAX-CID-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:10", "6.1.13:10", "6.1.13:10"),
         ),
         (
             fonts.invalid_type1_subset_charsets.as_slice(),
-            "PDFA1B-TYPE1-SUBSET-CHARSET-001",
+            iso_pdfa_rule_id!(profile, "6.3.5:2", "6.2.11.4.2:1", "6.2.11.4.2:1"),
         ),
         (
             fonts.invalid_cid_subset_cidsets.as_slice(),
-            "PDFA1B-CID-SUBSET-CIDSET-001",
+            iso_pdfa_rule_id!(profile, "6.3.5:3", "6.2.11.4.2:2", "6.2.11.4.2:2"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts
                     .invalid_nonsymbolic_truetype_encodings_pdfa2
                     .as_slice()
             } else {
                 fonts.invalid_nonsymbolic_truetype_encodings.as_slice()
             },
-            "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
+            iso_pdfa_rule_id!(profile, "6.3.7:1", "6.2.11.6:2", "6.2.11.6:2"),
         ),
         (
             fonts.invalid_symbolic_truetype_encodings.as_slice(),
-            "PDFA1B-TRUETYPE-SYMBOLIC-ENCODING-001",
+            iso_pdfa_rule_id!(profile, "6.3.7:2", "6.2.11.6:3", "6.2.11.6:3"),
         ),
         (
-            if _profile.is_pdfa_2_or_3() {
+            if profile.is_pdfa_2_or_3() {
                 fonts.invalid_symbolic_truetype_cmaps_pdfa2.as_slice()
             } else {
                 fonts.invalid_symbolic_truetype_cmaps.as_slice()
             },
-            "PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001",
+            iso_pdfa_rule_id!(profile, "6.3.7:3", "6.2.11.6:4", "6.2.11.6:4"),
         ),
         (
             fonts.missing_truetype_glyphs.as_slice(),
-            "PDFA1B-TRUETYPE-GLYPH-PRESENCE-001",
+            iso_pdfa_rule_id!(profile, "6.3.5:1", "6.2.11.4.1:2", "6.2.11.4.1:2"),
         ),
         (
             fonts.missing_type1_glyphs.as_slice(),
-            "PDFA1B-TYPE1-GLYPH-PRESENCE-001",
+            iso_pdfa_rule_id!(profile, "6.3.5:1", "6.2.11.4.1:2", "6.2.11.4.1:2"),
         ),
         (
             fonts.inconsistent_truetype_widths.as_slice(),
-            "PDFA1B-TRUETYPE-GLYPH-WIDTH-001",
+            iso_pdfa_rule_id!(profile, "6.3.6:1", "6.2.11.5:1", "6.2.11.5:1"),
         ),
         (
             fonts.excessive_graphics_state_nesting.as_slice(),
-            "PDFA1B-GRAPHICS-STATE-NESTING-001",
+            iso_pdfa_rule_id!(profile, "6.1.12:8", "6.1.13:8", "6.1.13:8"),
         ),
     ] {
         aggregate_failures(invalid, rule_id, failures);
     }
-    if !_profile.is_pdfa_2_or_3() {
+    if !profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &fonts.missing_cid_subset_cidsets,
-            "PDFA1B-CID-SUBSET-CIDSET-001",
+            iso_pdfa_rule_id!(profile, "6.3.5:3", "6.2.11.4.2:2", "6.2.11.4.2:2"),
             failures,
         );
     }
-    if _profile.is_pdfa_2_or_3() {
-        aggregate_failures(
-            &fonts.invalid_nonsymbolic_truetype_cmaps,
-            "PDFA1B-TRUETYPE-NONSYMBOLIC-CMAP-001",
-            failures,
-        );
-    } else {
-        aggregate_failures(
-            &fonts.invalid_nonsymbolic_truetype_cmaps,
-            "PDFA1B-TRUETYPE-NONSYMBOLIC-ENCODING-001",
-            failures,
-        );
-    }
-    if !_profile.is_pdfa_2_or_3() {
+    aggregate_failures(
+        &fonts.invalid_nonsymbolic_truetype_cmaps,
+        iso_pdfa_rule_id!(profile, "6.3.7:1", "6.2.11.6:1", "6.2.11.6:1"),
+        failures,
+    );
+    if !profile.is_pdfa_2_or_3() {
         aggregate_failures(
             &fonts.unembedded_predefined_cmaps,
-            "PDFA1B-CMAP-EMBEDDING-001",
+            iso_pdfa_rule_id!(profile, "6.3.3.3:1", "6.2.11.3.3:1", "6.2.11.3.3:1"),
             failures,
         );
     }
@@ -3441,12 +3499,13 @@ fn validate_font_dictionaries(
 fn require_single_declared_value(
     values: Option<&[String]>,
     accept: impl Fn(&str) -> bool,
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     noun: &str,
     declaration_name: &str,
     expected_description: &str,
     object_id: Option<PdfObjectId>,
 ) -> Option<ValidationFailure> {
+    let rule_id = rule_id.into();
     match values {
         Some([value]) if accept(value) => None,
         Some(values) => Some(failure(
@@ -3472,14 +3531,14 @@ fn validate_output_intents(
     failures: &mut ValidationFailures,
 ) {
     validate_output_intent_profiles(profile, document, failures);
-    validate_output_intent_identity(document, failures);
+    validate_output_intent_identity(profile, document, failures);
     if profile.is_pdfa_2_or_3()
         && document.output_intents_summary.entries.iter().any(|entry| {
             entry.subtype.as_deref() == Some("GTS_PDFX") && entry.dest_output_profile_ref_present
         })
     {
         failures.push(failure(
-            "PDFA1B-OUTPUTINTENT-PROFILE-REF-001",
+            iso_pdfa_rule_id!(profile, "", "6.2.3:3", "6.2.3:3"),
             "a PDF/X OutputIntent contains the forbidden /DestOutputProfileRef entry",
             document.catalog_reference,
             FailureCategory::Conformance,
@@ -3542,7 +3601,7 @@ fn validate_output_intent_profiles(
             .collect::<Vec<_>>()
             .join("; ");
         failures.push(failure(
-            "PDFA1B-OUTPUTINTENT-001",
+            iso_pdfa_rule_id!(profile, "6.2.2:1", "6.2.3:1", "6.2.3:1"),
             detail,
             object_id,
             FailureCategory::Conformance,
@@ -3550,7 +3609,11 @@ fn validate_output_intent_profiles(
     }
 }
 
-fn validate_output_intent_identity(document: &PdfDocument, failures: &mut ValidationFailures) {
+fn validate_output_intent_identity(
+    profile: ValidationProfile,
+    document: &PdfDocument,
+    failures: &mut ValidationFailures,
+) {
     let entries = document
         .output_intents_summary
         .entries
@@ -3562,7 +3625,7 @@ fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Valida
         && indirect_profiles.any(|object_id| object_id != expected)
     {
         failures.push(failure(
-            "PDFA1B-OUTPUTINTENT-IDENTITY-001",
+            iso_pdfa_rule_id!(profile, "6.2.2:2", "6.2.3:2", "6.2.3:2"),
             "output intents reference different indirect destination profiles",
             document.catalog_reference,
             FailureCategory::Conformance,
@@ -3570,7 +3633,11 @@ fn validate_output_intent_identity(document: &PdfDocument, failures: &mut Valida
     }
 }
 
-fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFailures) {
+fn validate_info_consistency(
+    profile: ValidationProfile,
+    document: &PdfDocument,
+    failures: &mut ValidationFailures,
+) {
     let xmp = document.xmp.as_ref();
     let empty = &[];
     let object_id = document.info_object;
@@ -3578,7 +3645,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
         document,
         "Title",
         xmp.map_or(empty, |xmp| &xmp.title_x_default),
-        "PDFA1B-INFO-TITLE-001",
+        iso_pdfa_rule_id!(profile, "6.7.3:2", "", ""),
         "dc:title['x-default']",
         object_id,
         failures,
@@ -3590,7 +3657,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
             || xmp.and_then(|xmp| xmp.creators.first()) != Some(author))
     {
         failures.push(failure(
-            "PDFA1B-INFO-AUTHOR-001",
+            iso_pdfa_rule_id!(profile, "6.7.3:3", "", ""),
             format!(
                 "Info Author {author:?} does not equal the sole dc:creator entry {:?}",
                 xmp.map(|xmp| &xmp.creators)
@@ -3603,7 +3670,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
         document,
         "Subject",
         xmp.map_or(empty, |xmp| &xmp.description_x_default),
-        "PDFA1B-INFO-SUBJECT-001",
+        iso_pdfa_rule_id!(profile, "6.7.3:4", "", ""),
         "dc:description['x-default']",
         object_id,
         failures,
@@ -3613,7 +3680,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
         document,
         "Keywords",
         xmp.map_or(empty, |xmp| &xmp.keywords),
-        "PDFA1B-INFO-KEYWORDS-001",
+        iso_pdfa_rule_id!(profile, "6.7.3:5", "", ""),
         "pdf:Keywords",
         object_id,
         failures,
@@ -3623,7 +3690,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
         document,
         "Creator",
         xmp.map_or(empty, |xmp| &xmp.creator_tools),
-        "PDFA1B-INFO-CREATOR-001",
+        iso_pdfa_rule_id!(profile, "6.7.3:6", "", ""),
         "xmp:CreatorTool",
         object_id,
         failures,
@@ -3633,7 +3700,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
         document,
         "Producer",
         xmp.map_or(empty, |xmp| &xmp.producers),
-        "PDFA1B-INFO-PRODUCER-001",
+        iso_pdfa_rule_id!(profile, "6.7.3:7", "", ""),
         "pdf:Producer",
         object_id,
         failures,
@@ -3649,7 +3716,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
                 document,
                 "CreationDate",
                 &xmp.create_dates,
-                "PDFA1B-INFO-CREATIONDATE-001",
+                iso_pdfa_rule_id!(profile, "6.7.3:1", "", ""),
                 "xmp:CreateDate",
                 object_id,
                 failures,
@@ -3665,7 +3732,7 @@ fn validate_info_consistency(document: &PdfDocument, failures: &mut ValidationFa
                 document,
                 "ModDate",
                 &xmp.modify_dates,
-                "PDFA1B-INFO-MODDATE-001",
+                iso_pdfa_rule_id!(profile, "6.7.3:8", "", ""),
                 "xmp:ModifyDate",
                 object_id,
                 failures,
@@ -3679,7 +3746,7 @@ fn compare_field(
     document: &PdfDocument,
     info_key: &str,
     xmp_values: &[String],
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     xmp_name: &str,
     object_id: Option<PdfObjectId>,
     failures: &mut ValidationFailures,
@@ -3708,11 +3775,6 @@ fn finish_report(
     mut failures: ValidationFailures,
     total_rules: usize,
 ) -> ValidationReport {
-    for failure in failures.iter_mut() {
-        let local_rule_id = remap_local_rule_id(profile, &failure.rule_id);
-        failure.rule_id = verapdf_rule_id(profile, &local_rule_id)
-            .expect("every conformance finding has a veraPDF rule mapping");
-    }
     failures.sort_by_key(|failure| failure.rule_id.clone());
     let (failures, failed_checks) = failures.into_parts();
     let mut failed_rules = 0;
@@ -3741,33 +3803,19 @@ fn finish_report(
 }
 
 fn failure(
-    rule_id: &'static str,
+    rule_id: impl Into<Option<&'static str>>,
     message: impl Into<String>,
     _object_id: Option<PdfObjectId>,
     category: FailureCategory,
 ) -> ValidationFailure {
     ValidationFailure {
-        rule_id: rule_id.to_owned(),
+        rule_id: rule_id
+            .into()
+            .expect("every reported conformance finding has an ISO rule reference")
+            .to_owned(),
         message: message.into(),
         category,
     }
-}
-
-fn remap_local_rule_id(profile: ValidationProfile, rule_id: &str) -> String {
-    let level = profile.pdfa_conformance().unwrap_or_else(|| {
-        if rule_id.starts_with("PDFA1A-") {
-            'A'
-        } else {
-            'B'
-        }
-    });
-    let Some(prefix) = profile.local_rule_prefix(level) else {
-        return rule_id.to_owned();
-    };
-    rule_id
-        .strip_prefix("PDFA1A-")
-        .or_else(|| rule_id.strip_prefix("PDFA1B-"))
-        .map_or_else(|| rule_id.to_owned(), |suffix| format!("{prefix}-{suffix}"))
 }
 
 #[cfg(test)]
@@ -4018,8 +4066,8 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-HEADER-BINARY-COMMENT-001");
-        assert_no_rule(&report, "PDFA1B-HEADER-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.2:2");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.1.2:1");
     }
 
     #[test]
@@ -4044,7 +4092,7 @@ mod tests {
             ValidationProfile::PdfA1b,
             ValidationMode::Exhaustive,
         );
-        assert_rule(&report, "PDFA1B-LINEARIZED-TRAILER-ID-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.3:4");
     }
 
     #[test]
@@ -4057,7 +4105,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-POST-EOF-DATA-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.3:3");
     }
 
     #[test]
@@ -4075,7 +4123,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-XREF-STREAM-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.4:3");
     }
 
     #[test]
@@ -4093,7 +4141,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-TRAILER-ID-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.3:1");
     }
 
     #[test]
@@ -4120,8 +4168,8 @@ mod tests {
             inspections.header.last_trailer_id = Some(Vec::new());
             let report =
                 validate_document(document, inspections, profile, ValidationMode::Exhaustive);
-            let expected = expected_report_rule_id(profile, "PDFA1B-TRAILER-ID-001")
-                .expect("trailer-ID rule has a veraPDF mapping");
+            let expected = iso_pdfa_rule_id!(profile, "6.1.3:1", "6.1.3:1", "6.1.3:1")
+                .expect("trailer-ID check has an ISO reference");
             assert!(
                 report
                     .failures
@@ -4148,14 +4196,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA2B-ID-CORR-PREFIX-001");
-
-        let report = validate_pdf_bytes(
-            &bytes,
-            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
-        )
-        .expect("explicit profile validation");
-        assert_no_rule(&report, "PDFA1B-ID-CORR-PREFIX-001");
+        assert_rule(&report, "ISO 19005-2:2011:6.6.4:7");
     }
 
     #[test]
@@ -4170,13 +4211,13 @@ mod tests {
         )
         .expect("explicit profile validation");
 
-        assert_rule(&report, "PDFA2B-XMP-ENCODING-001");
+        assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:5");
     }
 
     #[test]
     fn pdfa_2_and_3_report_lzw_through_the_combined_stream_filter_rule() {
         let bytes = include_bytes!(
-            "../tests/fixtures/mutations/PDFA1B-STREAM-LZW-001/shared-document_feature-stream_lzwdecode.pdf"
+            "../tests/fixtures/mutations/stream-lzw/shared-document_feature-stream_lzwdecode.pdf"
         );
         let report = validate_pdf_bytes(
             bytes,
@@ -4184,8 +4225,7 @@ mod tests {
         )
         .expect("explicit profile validation");
 
-        assert_rule(&report, "PDFA2B-STREAM-FILTER-001");
-        assert_no_rule(&report, "PDFA2B-STREAM-LZW-001");
+        assert_rule(&report, "ISO 19005-2:2011:6.1.7.2:1");
     }
 
     #[test]
@@ -4201,13 +4241,13 @@ mod tests {
         )
         .expect("explicit profile validation");
 
-        assert_rule(&report, "PDFA2B-INLINE-IMAGE-LZW-001");
+        assert_rule(&report, "ISO 19005-2:2011:6.1.10:1");
     }
 
     #[test]
     fn pdfa_2_and_3_report_widget_a_and_aa_through_one_rule() {
         let bytes = include_bytes!(
-            "../tests/fixtures/mutations/PDFA1B-WIDGET-ADDITIONAL-ACTIONS-001/shared-action-widget_additional_actions.pdf"
+            "../tests/fixtures/mutations/widget-additional-actions/shared-action-widget_additional_actions.pdf"
         );
         let report = validate_pdf_bytes(
             bytes,
@@ -4215,8 +4255,7 @@ mod tests {
         )
         .expect("explicit profile validation");
 
-        assert_rule(&report, "PDFA2B-WIDGET-ACTION-001");
-        assert_no_rule(&report, "PDFA2B-WIDGET-ADDITIONAL-ACTIONS-001");
+        assert_rule(&report, "ISO 19005-2:2011:6.4.1:1");
     }
 
     #[test]
@@ -4226,8 +4265,8 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-METADATA-STRUCTURE-001");
-        assert_rule(&report, "PDFA1B-ID-SCHEMA-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.2:1");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:1");
     }
 
     #[test]
@@ -4237,27 +4276,24 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-XMP-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.9:1");
     }
 
     #[test]
     fn enforces_catalog_metadata_stream_type_subtype_and_filter() {
         for (dictionary, expected) in [
-            (
-                dictionary! {"Subtype" => "XML"},
-                "PDFA1B-METADATA-STRUCTURE-001",
-            ),
+            (dictionary! {"Subtype" => "XML"}, "ISO 19005-1:2005:6.7.2:1"),
             (
                 dictionary! {"Type" => "Metadata"},
-                "PDFA1B-METADATA-STRUCTURE-001",
+                "ISO 19005-1:2005:6.7.2:1",
             ),
             (
                 dictionary! {"Type" => "Other", "Subtype" => "XML"},
-                "PDFA1B-METADATA-STRUCTURE-001",
+                "ISO 19005-1:2005:6.7.2:1",
             ),
             (
                 dictionary! {"Type" => "Metadata", "Subtype" => "Other"},
-                "PDFA1B-METADATA-STRUCTURE-001",
+                "ISO 19005-1:2005:6.7.2:1",
             ),
             (
                 dictionary! {
@@ -4265,7 +4301,7 @@ mod tests {
                     "Subtype" => "XML",
                     "Filter" => "ASCIIHexDecode",
                 },
-                "PDFA1B-METADATA-FILTER-001",
+                "ISO 19005-1:2005:6.7.2:2",
             ),
         ] {
             let report = validate_pdf_bytes(
@@ -4295,7 +4331,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_no_rule(&report, "PDFA1B-METADATA-FILTER-001");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.7.2:2");
     }
 
     #[test]
@@ -4344,7 +4380,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-ID-SCHEMA-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:1");
 
         let duplicate = br#"<rdf:RDF
           xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -4357,8 +4393,8 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-XMP-001");
-        assert_rule(&report, "PDFA1B-ID-SCHEMA-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.9:1");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:1");
     }
 
     #[test]
@@ -4373,14 +4409,14 @@ mod tests {
         )
         .expect("explicit profile validation");
         for rule in [
-            "PDFA1B-INFO-CREATIONDATE-001",
-            "PDFA1B-INFO-TITLE-001",
-            "PDFA1B-INFO-AUTHOR-001",
-            "PDFA1B-INFO-SUBJECT-001",
-            "PDFA1B-INFO-KEYWORDS-001",
-            "PDFA1B-INFO-CREATOR-001",
-            "PDFA1B-INFO-PRODUCER-001",
-            "PDFA1B-INFO-MODDATE-001",
+            "ISO 19005-1:2005:6.7.3:1",
+            "ISO 19005-1:2005:6.7.3:2",
+            "ISO 19005-1:2005:6.7.3:3",
+            "ISO 19005-1:2005:6.7.3:4",
+            "ISO 19005-1:2005:6.7.3:5",
+            "ISO 19005-1:2005:6.7.3:6",
+            "ISO 19005-1:2005:6.7.3:7",
+            "ISO 19005-1:2005:6.7.3:8",
         ] {
             assert_no_rule(&report, rule);
         }
@@ -4389,14 +4425,14 @@ mod tests {
     #[test]
     fn reports_every_info_xmp_mismatch_independently() {
         let cases = [
-            ("Title", "PDFA1B-INFO-TITLE-001"),
-            ("Author", "PDFA1B-INFO-AUTHOR-001"),
-            ("Subject", "PDFA1B-INFO-SUBJECT-001"),
-            ("Keywords", "PDFA1B-INFO-KEYWORDS-001"),
-            ("Creator", "PDFA1B-INFO-CREATOR-001"),
-            ("Producer", "PDFA1B-INFO-PRODUCER-001"),
-            ("CreationDate", "PDFA1B-INFO-CREATIONDATE-001"),
-            ("ModDate", "PDFA1B-INFO-MODDATE-001"),
+            ("Title", "ISO 19005-1:2005:6.7.3:2"),
+            ("Author", "ISO 19005-1:2005:6.7.3:3"),
+            ("Subject", "ISO 19005-1:2005:6.7.3:4"),
+            ("Keywords", "ISO 19005-1:2005:6.7.3:5"),
+            ("Creator", "ISO 19005-1:2005:6.7.3:6"),
+            ("Producer", "ISO 19005-1:2005:6.7.3:7"),
+            ("CreationDate", "ISO 19005-1:2005:6.7.3:1"),
+            ("ModDate", "ISO 19005-1:2005:6.7.3:8"),
         ];
         for (key, rule) in cases {
             let mut info = complete_info();
@@ -4434,7 +4470,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-INFO-AUTHOR-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.3:3");
     }
 
     #[test]
@@ -4444,8 +4480,8 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_no_rule(&report, "PDFA1B-OUTPUTINTENT-001");
-        assert_no_rule(&report, "PDFA1B-OUTPUTINTENT-IDENTITY-001");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.2.2:1");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.2.2:2");
     }
 
     #[test]
@@ -4459,8 +4495,8 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-ID-PART-001");
-        assert_rule(&report, "PDFA1B-ID-CONFORMANCE-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:2");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:3");
     }
 
     #[test]
@@ -4473,11 +4509,12 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert!(report.failures.iter().all(|failure| {
-            failure.rule_id
-                != expected_report_rule_id(ValidationProfile::PdfA1b, "PDFA1B-ID-CONFORMANCE-001")
-                    .unwrap_or_else(|| "PDFA1B-ID-CONFORMANCE-001".to_owned())
-        }));
+        assert!(
+            report
+                .failures
+                .iter()
+                .all(|failure| failure.rule_id != "ISO 19005-1:2005:6.7.11:3")
+        );
     }
 
     #[test]
@@ -4487,7 +4524,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
         )
         .expect("explicit profile validation");
-        assert_rule(&b, "PDFA1A-ID-CONFORMANCE-001");
+        assert_rule(&b, "ISO 19005-1:2005:6.7.11:3");
 
         let a_xmp = String::from_utf8(VALID_XMP.to_vec())
             .expect("fixture is UTF-8")
@@ -4497,7 +4534,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1a),
         )
         .expect("explicit profile validation");
-        assert_no_rule(&a, "PDFA1A-ID-CONFORMANCE-001");
+        assert_no_rule(&a, "ISO 19005-1:2005:6.7.11:3");
         assert_eq!(
             a.rules.total,
             ValidationProfile::PdfA1a.implemented_check_count()
@@ -4514,7 +4551,7 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-ID-CONFORMANCE-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:3");
     }
 
     #[test]
@@ -4563,7 +4600,7 @@ mod tests {
         )
         .expect("explicit profile validation");
 
-        assert_rule(&report, "PDFA1B-ENCRYPTION-001");
+        assert_rule(&report, "ISO 19005-1:2005:6.1.3:2");
         let document = &report.document;
         assert!(document.encrypted);
         assert!(!document.encrypted_content_unavailable);
@@ -4852,9 +4889,7 @@ mod tests {
         assert_eq!(failures.failed_checks, 2);
     }
 
-    fn assert_rule(report: &ValidationReport, rule: &str) {
-        let expected = expected_report_rule_id(report.profile, rule)
-            .unwrap_or_else(|| panic!("missing veraPDF mapping for {rule} in {}", report.profile));
+    fn assert_rule(report: &ValidationReport, expected: &str) {
         assert!(
             report
                 .failures
@@ -4865,9 +4900,7 @@ mod tests {
         );
     }
 
-    fn assert_no_rule(report: &ValidationReport, rule: &str) {
-        let expected =
-            expected_report_rule_id(report.profile, rule).unwrap_or_else(|| rule.to_owned());
+    fn assert_no_rule(report: &ValidationReport, expected: &str) {
         assert!(
             report
                 .failures
@@ -4876,11 +4909,6 @@ mod tests {
             "unexpected {expected}: {:#?}",
             report.failures
         );
-    }
-
-    fn expected_report_rule_id(profile: ValidationProfile, local_rule_id: &str) -> Option<String> {
-        let local_rule_id = remap_local_rule_id(profile, local_rule_id);
-        verapdf_rule_id(profile, &local_rule_id)
     }
 
     fn fixture(xmp: Option<&[u8]>, output_intent: bool) -> Vec<u8> {

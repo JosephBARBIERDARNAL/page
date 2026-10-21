@@ -770,7 +770,7 @@ mod tests {
             &result
         ));
         assert!(!expected_rules_are_reported(
-            &["PDFA1B-HEADER-001".to_owned()],
+            &["ISO 19005-1:2005:6.1.2:1".to_owned()],
             &result
         ));
         assert!(expected_rules_are_reported(&[], &result));

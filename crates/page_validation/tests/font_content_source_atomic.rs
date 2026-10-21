@@ -57,8 +57,7 @@ fn undeclared_pattern_use_does_not_flag_its_font() {
 
 /// veraPDF 1.30.2 walks a `/D` (down) appearance stream for font use just
 /// like `/N`, even though `/D`'s mere presence already fails
-/// `PDFA1B-ANNOTATION-AP-ENTRIES-001` on its own -- both failures are
-/// independently real, not one masking the other.
+/// an invalid appearance entry on its own; both findings are independent.
 #[test]
 fn down_appearance_stream_is_also_scanned_for_font_use() {
     let failures = common::failure_ids(&common::font_content_source_fixture(

@@ -13,16 +13,15 @@ use crate::object_resolution::{dictionary_based, resolve_optional};
 use crate::report::RuleFailure;
 
 /// Checks a resolved file-specification dictionary for the forbidden `/EF`
-/// key (`PDFA1B-FILE-SPEC-EMBEDDED-FILE-001`, `ISO 19005-1:2005:6.1.11:1`).
+/// key (ISO 19005-1:2005, 6.1.11, clause 1).
 ///
 /// File specifications may be reached through the catalog's
 /// `Names/EmbeddedFiles` name tree or through a `GoToR`/`SubmitForm` action's
 /// `/F` entry. Every path shares this check instead of re-deriving it.
 ///
 /// A direct `Object::Null` `/EF` value is empty and passes; an *indirect*
-/// null remains a present key and fails, matching the same convention
-/// `PDFA1B-NAMES-EMBEDDED-FILES-001` uses for the enclosing `EmbeddedFiles`
-/// entry.
+/// null remains a present key and fails, matching the same convention used
+/// for the enclosing `EmbeddedFiles` entry.
 ///
 /// PDF32000 has exactly two other file-specification sites, and both are
 /// deliberately *not* wired to this check because the object carrying the
@@ -30,11 +29,11 @@ use crate::report::RuleFailure;
 /// a different rule, making a second (redundant) report of the same
 /// underlying object pointless:
 /// - a `FileAttachment` annotation's `/FS` entry: `FileAttachment` is not in
-///   `PDFA1B-ANNOTATION-SUBTYPE-001`'s allowed subtype list, so the
+///   the allowed subtype list, so the
 ///   annotation itself already fails before its file specification would
 ///   matter;
 /// - a `Launch`/`GoToE` action's file specification: neither action type is
-///   in `PDFA1B-ACTION-TYPE-001`'s allowed list, so the action itself
+///   in the allowed list, so the action itself
 ///   already fails the same way.
 ///
 /// That leaves the `Names/EmbeddedFiles` tree and a `GoToR`/`SubmitForm`

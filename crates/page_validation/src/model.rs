@@ -36,8 +36,8 @@ impl From<ObjectId> for PdfObjectId {
 }
 
 /// A coarse, whole-document informational font count — not a conformance
-/// predicate. See `font_is_embedded` in this module for why this is
-/// intentionally distinct from the pinned `PDFA1B-FONT-EMBEDDING-001` rule.
+/// predicate. See `font_is_embedded` in this module for why this differs from
+/// the used-font embedding check.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub(crate) struct FontSummary {
@@ -1196,8 +1196,7 @@ fn summarize_fonts(document: &Document, limits: &SafetyLimits) -> Result<FontSum
 /// A coarse, whole-document proxy: counts every `/Type /Font` object
 /// regardless of use, and treats a present `/FontFile*` key as "embedded"
 /// without validating the program bytes. This intentionally differs from
-/// the pinned `PDFA1B-FONT-EMBEDDING-001` predicate in `font_embedding.rs`,
-/// which is bounded to fonts reached via text-show content paths and
+/// the predicate in `font_embedding.rs`, which is bounded to fonts reached via text-show content paths and
 /// requires a recognized font program (`valid_font_program`). The two must
 /// not be unified: they cover different populations (every font object vs.
 /// only used/reached ones).

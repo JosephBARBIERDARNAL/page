@@ -51,11 +51,9 @@ The adapted material is licensed under the Apache License, Version 2.0; the comp
 
 Upstream source: https://github.com/mozilla/pdf.js/blob/master/src/core/encodings.js
 
-## veraPDF rule identifiers
+## Validation profile references
 
-`src/rule_ids.tsv` maps page's internal validation checks to veraPDF specification rule identifiers. This project-specific crosswalk is included in the published `page_validation` crate.
-
-The veraPDF rule identifiers are drawn from the veraPDF validation profiles. Attribution: veraPDF Consortium, https://github.com/veraPDF/veraPDF-validation-profiles. The profile material is licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/. The internal check identifiers and their mappings to page checks are project-specific modifications.
+The ISO clause identifiers used by validation checks are drawn from the veraPDF validation profiles. Attribution: veraPDF Consortium, https://github.com/veraPDF/veraPDF-validation-profiles. The profile material is licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/.
 
 ## XMP schema property tables
 
