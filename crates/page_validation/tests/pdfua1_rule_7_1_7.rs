@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001";
+const RULE: &str = "ISO 14289-1:2014:7.1:7";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -9,7 +9,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-1-7-standard-remapped.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-7-standard-remapped.pdf").to_vec(),
             || common::pdfua1_rule_7_1_7_fixture("standard_remapped"),
-            &["PDFUA1-STRUCT-TREE-ROLE-MAP-STANDARD-001"],
+            &["ISO 14289-1:2014:7.1:7"],
         ),
         (
             "pdfua1-rule-7-1-7-standard-unmapped.pdf",

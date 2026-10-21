@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-TR-KIDS-001";
+const RULE: &str = "ISO 14289-1:2014:7.2:10";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-2-10-invalid.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-2-10-invalid.pdf").to_vec(),
             || common::pdfua1_rule_7_2_10_fixture("invalid"),
-            &["PDFUA1-TR-KIDS-001"],
+            &["ISO 14289-1:2014:7.2:10"],
         ),
     ],
 }

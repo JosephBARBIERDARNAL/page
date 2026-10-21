@@ -56,7 +56,7 @@ impl fmt::Display for FailureCategory {
 
 /// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
-/// `rule_id` identifies the specific check (for example `PDFA1B-CATALOG-001`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+/// `rule_id` identifies the corresponding veraPDF specification check (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
 /// Text formatting produces `[rule_id] Category: message`.
 ///
@@ -217,13 +217,13 @@ mod tests {
     #[test]
     fn display_failures_omit_object_attribution() {
         let failure = ValidationFailure {
-            rule_id: "PDFA1B-ID-SCHEMA-001".to_owned(),
+            rule_id: "ISO 19005-1:2005:6.7.11:1".to_owned(),
             message: "XMP does not contain the PDF/A Identification schema".to_owned(),
             category: FailureCategory::Metadata,
         };
         assert_eq!(
             failure.to_string(),
-            "[PDFA1B-ID-SCHEMA-001] Metadata: XMP does not contain the PDF/A Identification schema"
+            "[ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema"
         );
     }
 
@@ -232,15 +232,15 @@ mod tests {
         let mut report = report(ValidationProfile::PdfA1b);
         report.is_compliant = false;
         report.failures.push(ValidationFailure {
-            rule_id: "PDFA1B-CATALOG-001".to_owned(),
-            message: "Catalog is invalid".to_owned(),
+            rule_id: "ISO 19005-1:2005:6.7.2:1".to_owned(),
+            message: "Catalog metadata is invalid".to_owned(),
             category: FailureCategory::Conformance,
         });
 
         assert!(
             report
                 .to_string()
-                .ends_with("[PDFA1B-CATALOG-001] Conformance: Catalog is invalid\n")
+                .ends_with("[ISO 19005-1:2005:6.7.2:1] Conformance: Catalog metadata is invalid\n")
         );
     }
 }

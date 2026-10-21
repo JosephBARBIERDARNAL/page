@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 pub mod common;
 
-const EMBEDDING: &str = "PDFA1B-FONT-EMBEDDING-001";
+const EMBEDDING: &str = "ISO 19005-1:2005:6.3.4:1";
 
 const CASES: &[(&str, bool)] = &[
     ("annotation_appearance_unembedded", true),
@@ -65,5 +65,5 @@ fn down_appearance_stream_is_also_scanned_for_font_use() {
         "down_appearance_unembedded",
     ));
     assert!(failures.contains(EMBEDDING));
-    assert!(failures.contains("PDFA1B-ANNOTATION-AP-ENTRIES-001"));
+    assert!(failures.contains("ISO 19005-1:2005:6.5.3:4"));
 }

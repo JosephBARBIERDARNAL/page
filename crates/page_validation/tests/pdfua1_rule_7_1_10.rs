@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-VIEWER-PREFERENCES-001";
+const RULE: &str = "ISO 14289-1:2014:7.1:10";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -10,8 +10,8 @@ crate::pdfua1_rule_tests! {
             || include_bytes!("fixtures/pdfua1-rule-7-1-10-false.pdf").to_vec(),
             || common::pdfua1_rule_7_1_10_fixture("false"),
             &[
-                "PDFUA1-VIEWER-PREFERENCES-001",
-                "PDFUA1-METADATA-LANGUAGE-001",
+                "ISO 14289-1:2014:7.1:10",
+                "ISO 14289-1:2014:7.2:33",
             ],
         ),
         (
@@ -19,15 +19,15 @@ crate::pdfua1_rule_tests! {
             || include_bytes!("fixtures/pdfua1-rule-7-1-10-missing.pdf").to_vec(),
             || common::pdfua1_rule_7_1_10_fixture("missing"),
             &[
-                "PDFUA1-VIEWER-PREFERENCES-001",
-                "PDFUA1-METADATA-LANGUAGE-001",
+                "ISO 14289-1:2014:7.1:10",
+                "ISO 14289-1:2014:7.2:33",
             ],
         ),
         (
             "pdfua1-rule-7-1-10-present.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-1-10-present.pdf").to_vec(),
             || common::pdfua1_rule_7_1_10_fixture("present"),
-            &["PDFUA1-METADATA-LANGUAGE-001"],
+            &["ISO 14289-1:2014:7.2:33"],
         ),
     ],
 }

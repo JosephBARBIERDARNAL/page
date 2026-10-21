@@ -55,7 +55,7 @@ fn extra_sources() -> [(&'static str, &'static str); 4] {
 fn corpus_with_parse_failures() -> TempDirectory {
     let temporary = TempDirectory::new();
     let mut rule_manifest = String::from(
-        "# test rule expectations\n# profile directory<TAB>relative PDF path<TAB>reference rule<TAB>local rule\n",
+        "# test rule expectations\n# profile directory<TAB>relative PDF path<TAB>veraPDF failed rule IDs\n",
     );
     for profile in profiles() {
         let directory = temporary.join(profile);
@@ -66,7 +66,7 @@ fn corpus_with_parse_failures() -> TempDirectory {
         )
         .expect("write corpus failure case");
         rule_manifest.push_str(&format!(
-            "{profile}\tveraPDF test suite 6-1-t01-fail-a.pdf\tPDF-PARSE-001\tPDF-PARSE-001\n"
+            "{profile}\tveraPDF test suite 6-1-t01-fail-a.pdf\tPDF-PARSE-001\n"
         ));
     }
     for (directory, file_name) in extra_sources() {
@@ -80,7 +80,7 @@ fn corpus_with_parse_failures() -> TempDirectory {
             .replace(std::path::MAIN_SEPARATOR, "/")
             .replace("/PDFA-1b", "");
         rule_manifest.push_str(&format!(
-            "{manifest_directory}\t{file_name}\tPDF-PARSE-001\tPDF-PARSE-001\n"
+            "{manifest_directory}\t{file_name}\tPDF-PARSE-001\n"
         ));
     }
     fs::write(temporary.join("rule-expectations.tsv"), rule_manifest)

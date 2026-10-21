@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-FIGURE-ALTERNATIVE-TEXT-001";
+const RULE: &str = "ISO 14289-1:2014:7.3:1";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-3-1-alt-empty.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-3-1-alt-empty.pdf").to_vec(),
             || common::pdfua1_rule_7_3_1_fixture("alt_empty"),
-            &["PDFUA1-FIGURE-ALTERNATIVE-TEXT-001"],
+            &["ISO 14289-1:2014:7.3:1"],
         ),
         (
             "pdfua1-rule-7-3-1-alt-present.pdf",
@@ -27,7 +27,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-3-1-missing.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-3-1-missing.pdf").to_vec(),
             || common::pdfua1_rule_7_3_1_fixture("missing"),
-            &["PDFUA1-FIGURE-ALTERNATIVE-TEXT-001"],
+            &["ISO 14289-1:2014:7.3:1"],
         ),
     ],
 }

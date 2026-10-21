@@ -18,13 +18,13 @@ pub mod common;
 #[test]
 fn malformed_font_is_still_checked_and_still_counted_as_embedded() {
     let failures = common::failure_ids(&common::symbolic_cmap_with_malformed_maxp_fixture());
-    assert!(failures.contains("PDFA1B-TRUETYPE-SYMBOLIC-CMAP-001"));
+    assert!(failures.contains("ISO 19005-1:2005:6.3.7:3"));
     assert!(
-        failures.contains("PDFA1B-TRUETYPE-GLYPH-PRESENCE-001"),
+        failures.contains("ISO 19005-1:2005:6.3.5:1"),
         "the malformed maxp table must not suppress the independently readable glyph-presence check: {failures:?}"
     );
     assert!(
-        !failures.contains("PDFA1B-FONT-EMBEDDING-001"),
+        !failures.contains("ISO 19005-1:2005:6.3.4:1"),
         "a malformed /maxp table must not make the font count as unembedded: {failures:?}"
     );
 }

@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-FORM-REFERENCE-001";
+const RULE: &str = "ISO 14289-1:2014:7.20:1";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-20-1-forbidden.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-20-1-forbidden.pdf").to_vec(),
             || common::pdfua1_rule_7_20_1_fixture("forbidden"),
-            &["PDFUA1-FORM-REFERENCE-001"],
+            &["ISO 14289-1:2014:7.20:1"],
         ),
     ],
 }

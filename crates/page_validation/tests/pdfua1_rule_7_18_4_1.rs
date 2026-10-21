@@ -1,6 +1,6 @@
 pub mod common;
 
-const RULE: &str = "PDFUA1-WIDGET-FORM-TAG-001";
+const RULE: &str = "ISO 14289-1:2014:7.18.4:1";
 
 crate::pdfua1_rule_tests! {
     rule: RULE,
@@ -15,7 +15,7 @@ crate::pdfua1_rule_tests! {
             "pdfua1-rule-7-18-4-1-not-nested.pdf",
             || include_bytes!("fixtures/pdfua1-rule-7-18-4-1-not-nested.pdf").to_vec(),
             || common::pdfua1_rule_7_18_4_1_fixture("not_nested"),
-            &["PDFUA1-WIDGET-FORM-TAG-001"],
+            &["ISO 14289-1:2014:7.18.4:1"],
         ),
         (
             "pdfua1-rule-7-18-4-1-role-mapped.pdf",

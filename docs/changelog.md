@@ -1,5 +1,9 @@
 ## Dev
 
+- **Fix**: Return an unusable PDF trailer `/Root` as a parser error
+- **Feat**: Use veraPDF specification rule IDs in validation reports
+- **Fix**: Allow filtered metadata streams in PDF/A-2 and PDF/A-3
+- **Fix**: Distinguish PDF/UA table column-span failures by veraPDF rule
 - **Fix**: Require catalog language when XMP alternatives provide no natural language [#610](https://github.com/JosephBARBIERDARNAL/page/issues/610)
 - **Fix**: Recognize matching embedded `/UseCMap` streams [#612](https://github.com/JosephBARBIERDARNAL/page/issues/612)
 - **Fix**: Report unembedded non-predefined CMaps referenced through `/UseCMap` [#612](https://github.com/JosephBARBIERDARNAL/page/issues/612)

@@ -56,6 +56,7 @@ mod object_resolution;
 mod page_tree;
 mod predefined_cmaps;
 mod report;
+mod rule_ids;
 mod stream_safety;
 mod syntax;
 mod unicode_names;

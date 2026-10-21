@@ -145,7 +145,6 @@ struct CorpusCase {
     path: PathBuf,
     profile: ValidationProfile,
     expected: ExpectedResult,
-    expected_reference_rule: Option<String>,
     expected_rules: Vec<String>,
 }
 
@@ -170,8 +169,7 @@ impl CaseValidation {
 }
 
 struct CorpusRuleExpectation {
-    reference_rule: String,
-    local_rules: Vec<String>,
+    rules: Vec<String>,
 }
 
 const MAX_MISMATCH_DETAILS: usize = 50;
@@ -424,7 +422,7 @@ fn discover_cases(
                 CorpusSourceProfile::Iso32000 => iso_profile(&path)?,
                 CorpusSourceProfile::Twg => twg_profile(&path)?,
             };
-            let (expected_reference_rule, expected_rules) = match expected {
+            let expected_rules = match expected {
                 ExpectedResult::Pass => {
                     if rule_expectations.contains_key(&expectation_key) {
                         return Err(format!(
@@ -432,7 +430,7 @@ fn discover_cases(
                             path.display()
                         ));
                     }
-                    (None, Vec::new())
+                    Vec::new()
                 }
                 ExpectedResult::Fail => {
                     let expectation = rule_expectations.get(&expectation_key).ok_or_else(|| {
@@ -441,17 +439,13 @@ fn discover_cases(
                             path.display()
                         )
                     })?;
-                    (
-                        Some(expectation.reference_rule.clone()),
-                        expectation.local_rules.clone(),
-                    )
+                    expectation.rules.clone()
                 }
             };
             cases.push(CorpusCase {
                 path,
                 profile,
                 expected,
-                expected_reference_rule,
                 expected_rules,
             });
         }
@@ -516,14 +510,14 @@ fn load_rule_expectations(
             continue;
         }
         let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 4 || fields.iter().any(|field| field.is_empty()) {
+        if fields.len() != 3 || fields.iter().any(|field| field.is_empty()) {
             return Err(format!(
                 "invalid rule expectation manifest entry on line {}",
                 line_number + 1
             ));
         }
-        let (Some(profile), Some(relative_path), Some(reference_rule), Some(local_rules)) =
-            (fields.first(), fields.get(1), fields.get(2), fields.get(3))
+        let (Some(profile), Some(relative_path), Some(rules)) =
+            (fields.first(), fields.get(1), fields.get(2))
         else {
             return Err(format!(
                 "invalid rule expectation manifest entry on line {}",
@@ -535,8 +529,7 @@ fn load_rule_expectations(
             .insert(
                 key,
                 CorpusRuleExpectation {
-                    reference_rule: (*reference_rule).to_owned(),
-                    local_rules: local_rules.split(',').map(str::to_owned).collect(),
+                    rules: rules.split(',').map(str::to_owned).collect(),
                 },
             )
             .is_some()
@@ -671,9 +664,6 @@ fn print_mismatch(case: &CorpusCase, actual: i32, result: &CaseValidation) {
     );
     if !case.expected_rules.is_empty() {
         eprintln!("  expected rules: {}", case.expected_rules.join(", "));
-    }
-    if let Some(reference_rule) = &case.expected_reference_rule {
-        eprintln!("  veraPDF rule:  {reference_rule}");
     }
     eprintln!("  actual:   {} (exit {actual})", exit_label(actual));
     match result {

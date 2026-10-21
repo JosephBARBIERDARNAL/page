@@ -1,11 +1,11 @@
 pub mod common;
 
-const INTEGER: &str = "PDFA1B-INTEGER-RANGE-001";
-const REAL: &str = "PDFA1B-REAL-RANGE-001";
-const STRING: &str = "PDFA1B-STRING-LENGTH-001";
-const NAME: &str = "PDFA1B-NAME-LENGTH-001";
-const ARRAY: &str = "PDFA1B-ARRAY-LENGTH-001";
-const DICTIONARY: &str = "PDFA1B-DICTIONARY-LENGTH-001";
+const INTEGER: &str = "ISO 19005-1:2005:6.1.12:1";
+const REAL: &str = "ISO 19005-1:2005:6.1.12:2";
+const STRING: &str = "ISO 19005-1:2005:6.1.12:3";
+const NAME: &str = "ISO 19005-1:2005:6.1.12:4";
+const ARRAY: &str = "ISO 19005-1:2005:6.1.12:5";
+const DICTIONARY: &str = "ISO 19005-1:2005:6.1.12:6";
 
 #[test]
 fn object_limit_failures_are_reported_for_each_rule() {

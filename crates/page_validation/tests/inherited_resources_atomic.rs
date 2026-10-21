@@ -38,11 +38,16 @@ fn inherited_resource_names_are_checked_in_pdfa_2_and_3() {
         for profile in [ValidationProfile::PdfA2b, ValidationProfile::PdfA3b] {
             let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
                 .expect("explicit profile validation");
+            let expected_rule_id = if profile == ValidationProfile::PdfA2b {
+                "ISO 19005-2:2011:6.2.2:2"
+            } else {
+                "ISO 19005-3:2012:6.2.2:2"
+            };
             assert_eq!(
                 report
                     .failures
                     .iter()
-                    .any(|failure| failure.rule_id.ends_with("CONTENT-RESOURCES-001")),
+                    .any(|failure| failure.rule_id == expected_rule_id),
                 *expected_failure,
                 "{case}: unexpected local {profile} Resources result"
             );

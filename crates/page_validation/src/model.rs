@@ -355,14 +355,16 @@ impl PdfDocument {
         let raw_scan = crate::syntax::scan_raw_index(bytes, limits)?;
         let document = load_document(bytes, limits, &raw_scan)?;
         enforce_object_limit(&document, limits)?;
+        let catalog = resolve_catalog(&document, limits)?.ok_or(PdfError::InvalidCatalog)?;
         let (_, encrypted_content_unavailable) = encryption_status(&document);
         let pages = if encrypted_content_unavailable {
             None
         } else {
-            Some(match resolve_catalog(&document, limits)? {
-                Some(catalog) => page_tree::collect_pages(&document, catalog.dictionary, limits)?,
-                None => Vec::new(),
-            })
+            Some(page_tree::collect_pages(
+                &document,
+                catalog.dictionary,
+                limits,
+            )?)
         };
         let normalized = Self::normalize(
             &document,

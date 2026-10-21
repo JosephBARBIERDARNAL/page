@@ -19,7 +19,7 @@ fn indirect_identity_cidtogidmap_resolves_the_same_glyphs_as_a_direct_one() {
         "baseline",
         &[(
             "indirect_identity_cidtogidmap",
-            &["PDFA1B-TRUETYPE-GLYPH-WIDTH-001"],
+            &["ISO 19005-1:2005:6.3.6:1"],
         )],
     );
 }

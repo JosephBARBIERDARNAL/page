@@ -47,17 +47,17 @@ Checks  : 24 failed checks
 Profile : PDF/A-1b
 Time    : 0.007s
 
-[PDFA1B-HEADER-BINARY-COMMENT-001] Conformance: [.........]
-[PDFA1B-HEX-STRING-CHARACTERS-001] Conformance: [.........]
-[PDFA1B-ID-SCHEMA-001] Metadata: [.........]
-[PDFA1B-INFO-AUTHOR-001] Metadata: [.........]
-[PDFA1B-INFO-CREATOR-001] Metadata: [.........]
-[PDFA1B-INFO-KEYWORDS-001] Metadata: [.........]
-[PDFA1B-INFO-PRODUCER-001] Metadata: [.........]
-[PDFA1B-INFO-SUBJECT-001] Metadata: [.........]
-[PDFA1B-INFO-TITLE-001] Metadata: [.........]
-[PDFA1B-METADATA-STRUCTURE-001] Metadata: [.........]
-[PDFA1B-TRAILER-ID-001] Conformance: [.........]
+[ISO 19005-1:2005:6.1.2:2] Conformance: [.........]
+[ISO 19005-1:2005:6.1.6:2] Conformance: [.........]
+[ISO 19005-1:2005:6.7.11:1] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:3] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:6] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:5] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:7] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:4] Metadata: [.........]
+[ISO 19005-1:2005:6.7.3:2] Metadata: [.........]
+[ISO 19005-1:2005:6.7.2:1] Metadata: [.........]
+[ISO 19005-1:2005:6.1.3:1] Conformance: [.........]
 ```
 
 !!! note
@@ -87,12 +87,12 @@ page document.pdf --format json
   },
   "failures": [
     {
-      "rule_id": "PDFA1B-ICCBASED-001",
+      "rule_id": "ISO 19005-1:2005:6.2.3.2:1",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
       "category": "conformance"
     },
     {
-      "rule_id": "PDFA1B-ID-SCHEMA-001",
+      "rule_id": "ISO 19005-1:2005:6.7.11:1",
       "message": "XMP does not contain the PDF/A Identification schema",
       "category": "metadata"
     }
@@ -115,11 +115,11 @@ Explicit formats that conflict with `.json` or `.txt` are rejected. Other extens
 
 The `page` exit codes are a stable CLI contract:
 
-| Code | Meaning |
-| ---: | --- |
-| `0` | Validation completed with no failed checks, or `--help` / `--version` was requested. |
-| `1` | Operational failure, including I/O or safety-limit errors, missing or invalid profile declarations, output errors, and invalid CLI arguments. |
-| `2` | The PDF is non-compliant, or the PDF parser could not parse the document. |
+| Code | Meaning                                                                                                                                       |
+| ---: | --------------------------------------------------------------------------------------------------------------------------------------------- |
+|  `0` | Validation completed with no failed checks, or `--help` / `--version` was requested.                                                          |
+|  `1` | Operational failure, including I/O or safety-limit errors, missing or invalid profile declarations, output errors, and invalid CLI arguments. |
+|  `2` | The PDF is non-compliant, or the PDF parser could not parse the document.                                                                     |
 
 CLI usage errors such as an invalid `--profile` value use code `1`, so they remain distinct from validation failures and PDF parser errors.
 

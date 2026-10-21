@@ -30,6 +30,7 @@ use thiserror::Error;
 /// fn handle(error: PdfError) {
 ///     match error {
 ///         PdfError::InputTooLarge { .. } | PdfError::Parse(_)
+///         | PdfError::InvalidCatalog
 ///         | PdfError::TooManyObjects { .. }
 ///         | PdfError::ReferenceDepth(_) | PdfError::UnexpectedObject(_)
 ///         | PdfError::XmpDecodeLimit(_) | PdfError::IccDecodeLimit(_)
@@ -49,6 +50,9 @@ pub enum PdfError {
 
     #[error("PDF parser rejected the input: {0}")]
     Parse(#[source] Box<dyn StdError + Send + Sync>),
+
+    #[error("PDF trailer /Root is missing or does not resolve to an indirect /Catalog dictionary")]
+    InvalidCatalog,
 
     #[error("PDF contains {actual} objects, exceeding the {limit}-object limit")]
     TooManyObjects { actual: usize, limit: usize },
@@ -265,6 +269,11 @@ mod tests {
                 PageError::Pdf(PdfError::Parse(Box::new(std::io::Error::other(
                     "invalid PDF",
                 )))),
+                ValidationErrorKind::Parser,
+                "PDF-PARSE-001",
+            ),
+            (
+                PageError::Pdf(PdfError::InvalidCatalog),
                 ValidationErrorKind::Parser,
                 "PDF-PARSE-001",
             ),

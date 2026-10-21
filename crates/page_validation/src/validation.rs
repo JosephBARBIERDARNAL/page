@@ -22,6 +22,7 @@ use crate::report::{
     FailureCategory, RuleFailure, ValidationCheckCounts, ValidationCounts, ValidationFailure,
     ValidationReport,
 };
+use crate::rule_ids::verapdf_rule_id;
 
 #[derive(Default)]
 struct ValidationFailures {
@@ -533,7 +534,9 @@ fn has_preflight_failure(
     if document.encrypted
         || !document.catalog_present
         || !document.catalog_metadata.is_valid()
-        || (document.catalog_metadata.is_stream && document.catalog_metadata.has_filter)
+        || (!profile.is_pdfa_2_or_3()
+            && document.catalog_metadata.is_stream
+            && document.catalog_metadata.has_filter)
         || document.xmp_parse_error.is_some()
     {
         return true;
@@ -1108,8 +1111,16 @@ fn collect_validation_failures(
         aggregate_failures_with_location(
             &inspections
                 .document_features
-                .table_elements_with_unequal_row_column_spans,
+                .table_elements_with_row_column_span_overflows,
             "PDFUA1-TABLE-ROW-COLUMNSPAN-001",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .table_elements_with_missing_columns,
+            "PDFUA1-TABLE-ROW-COLUMNSPAN-MISSING-001",
             None,
             &mut failures,
         );
@@ -1630,16 +1641,6 @@ fn collect_validation_failures(
         ));
     }
     finish_if_lazy!();
-    if !document.catalog_present {
-        failures.push(failure(
-            "PDFA1B-CATALOG-001",
-            "document trailer does not resolve to a Catalog dictionary",
-            document.catalog_reference,
-            FailureCategory::Conformance,
-        ));
-    }
-    finish_if_lazy!();
-
     let metadata = &document.catalog_metadata;
     if !metadata.is_valid() {
         failures.push(failure(
@@ -1650,7 +1651,7 @@ fn collect_validation_failures(
         ));
     }
     finish_if_lazy!();
-    if metadata.is_stream && metadata.has_filter {
+    if !profile.is_pdfa_2_or_3() && metadata.is_stream && metadata.has_filter {
         failures.push(failure(
             "PDFA1B-METADATA-FILTER-001",
             "the catalog metadata stream dictionary contains a Filter key",
@@ -3712,7 +3713,9 @@ fn finish_report(
     total_rules: usize,
 ) -> ValidationReport {
     for failure in failures.iter_mut() {
-        failure.rule_id = remap_local_rule_id(profile, &failure.rule_id);
+        let local_rule_id = remap_local_rule_id(profile, &failure.rule_id);
+        failure.rule_id = verapdf_rule_id(profile, &local_rule_id)
+            .expect("every conformance finding has a veraPDF rule mapping");
     }
     failures.sort_by_key(|failure| failure.rule_id.clone());
     let (failures, failed_checks) = failures.into_parts();
@@ -3963,7 +3966,7 @@ mod tests {
                 .iter()
                 .map(|failure| failure.rule_id.as_str())
                 .collect::<Vec<_>>(),
-            ["PDFUA1-METADATA-LANGUAGE-001"]
+            ["ISO 14289-1:2014:7.2:33"]
         );
         assert_eq!(
             report.rules.total,
@@ -4121,11 +4124,13 @@ mod tests {
             inspections.header.last_trailer_id = Some(Vec::new());
             let report =
                 validate_document(document, inspections, profile, ValidationMode::Exhaustive);
+            let expected = expected_report_rule_id(profile, "PDFA1B-TRAILER-ID-001")
+                .expect("trailer-ID rule has a veraPDF mapping");
             assert!(
                 report
                     .failures
                     .iter()
-                    .any(|failure| failure.rule_id.ends_with("-TRAILER-ID-001")),
+                    .any(|failure| failure.rule_id == expected),
                 "missing profile-specific trailer-ID failure: {report}"
             );
         }
@@ -4282,6 +4287,44 @@ mod tests {
     }
 
     #[test]
+    fn filtered_metadata_streams_are_allowed_by_pdfa_2_and_pdfa_3() {
+        for (part, profile) in [
+            ("2", ValidationProfile::PdfA2b),
+            ("3", ValidationProfile::PdfA3b),
+        ] {
+            let xmp = String::from_utf8(VALID_XMP.to_vec())
+                .expect("fixture is UTF-8")
+                .replace("pdfaid:part=\"1\"", &format!("pdfaid:part=\"{part}\""));
+            let encoded_xmp = xmp
+                .as_bytes()
+                .iter()
+                .map(|byte| format!("{byte:02X}"))
+                .collect::<String>()
+                + ">";
+            let report = validate_pdf_bytes(
+                &fixture_with_metadata_dictionary(
+                    encoded_xmp.as_bytes(),
+                    dictionary! {
+                        "Type" => "Metadata",
+                        "Subtype" => "XML",
+                        "Filter" => "ASCIIHexDecode",
+                    },
+                    None,
+                ),
+                &ValidationOptions::default().profile(profile),
+            )
+            .expect("explicit profile validation");
+            assert!(
+                report.failures.iter().all(|failure| !failure
+                    .message
+                    .contains("metadata stream dictionary contains a Filter")),
+                "filtered metadata stream was reported for PDF/A-{part}: {:#?}",
+                report.failures
+            );
+        }
+    }
+
+    #[test]
     fn rejects_missing_and_duplicate_identification_declarations() {
         let missing = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>"#;
         let report = validate_pdf_bytes(
@@ -4418,12 +4461,11 @@ mod tests {
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
         .expect("explicit profile validation");
-        assert!(
-            report
-                .failures
-                .iter()
-                .all(|failure| failure.rule_id != "PDFA1B-ID-CONFORMANCE-001")
-        );
+        assert!(report.failures.iter().all(|failure| {
+            failure.rule_id
+                != expected_report_rule_id(ValidationProfile::PdfA1b, "PDFA1B-ID-CONFORMANCE-001")
+                    .unwrap_or_else(|| "PDFA1B-ID-CONFORMANCE-001".to_owned())
+        }));
     }
 
     #[test]
@@ -4474,20 +4516,14 @@ mod tests {
     }
 
     #[test]
-    fn reports_real_encrypted_input_as_conformance_failure() {
-        let report = validate_pdf_bytes(
+    fn encrypted_input_with_unresolvable_root_returns_parser_error() {
+        let error = validate_pdf_bytes(
             include_bytes!("../tests/fixtures/encrypted.pdf"),
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
-        .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-ENCRYPTION-001");
-        assert!(
-            report
-                .failures
-                .iter()
-                .all(|failure| failure.rule_id != "PDF-PARSE-001")
-        );
-        assert!(!report.is_compliant);
+        .expect_err("the encrypted fixture has no resolvable catalog object");
+        assert!(matches!(error, PageError::Pdf(PdfError::InvalidCatalog)));
+        assert_eq!(error.rule_id(), "PDF-PARSE-001");
     }
 
     #[test]
@@ -4685,13 +4721,14 @@ mod tests {
     }
 
     #[test]
-    fn direct_root_dictionary_fails_catalog_check() {
-        let report = validate_pdf_bytes(
+    fn direct_root_dictionary_returns_parser_error() {
+        let error = validate_pdf_bytes(
             &fixture_with_root(Some(VALID_XMP), true, false),
             &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
         )
-        .expect("explicit profile validation");
-        assert_rule(&report, "PDFA1B-CATALOG-001");
+        .expect_err("a direct trailer /Root cannot be validated");
+        assert!(matches!(error, PageError::Pdf(PdfError::InvalidCatalog)));
+        assert_eq!(error.rule_id(), "PDF-PARSE-001");
     }
 
     #[test]
@@ -4804,25 +4841,34 @@ mod tests {
     }
 
     fn assert_rule(report: &ValidationReport, rule: &str) {
+        let expected = expected_report_rule_id(report.profile, rule)
+            .unwrap_or_else(|| panic!("missing veraPDF mapping for {rule} in {}", report.profile));
         assert!(
             report
                 .failures
                 .iter()
-                .any(|failure| failure.rule_id == rule),
-            "missing {rule}: {:#?}",
+                .any(|failure| failure.rule_id == expected),
+            "missing {expected}: {:#?}",
             report.failures
         );
     }
 
     fn assert_no_rule(report: &ValidationReport, rule: &str) {
+        let expected =
+            expected_report_rule_id(report.profile, rule).unwrap_or_else(|| rule.to_owned());
         assert!(
             report
                 .failures
                 .iter()
-                .all(|failure| failure.rule_id != rule),
-            "unexpected {rule}: {:#?}",
+                .all(|failure| failure.rule_id != expected),
+            "unexpected {expected}: {:#?}",
             report.failures
         );
+    }
+
+    fn expected_report_rule_id(profile: ValidationProfile, local_rule_id: &str) -> Option<String> {
+        let local_rule_id = remap_local_rule_id(profile, local_rule_id);
+        verapdf_rule_id(profile, &local_rule_id)
     }
 
     fn fixture(xmp: Option<&[u8]>, output_intent: bool) -> Vec<u8> {

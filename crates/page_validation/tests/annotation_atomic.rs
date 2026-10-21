@@ -1,6 +1,6 @@
 pub mod common;
 
-const FLAGS: &str = "PDFA1B-ANNOTATION-FLAGS-001";
+const FLAGS: &str = "ISO 19005-1:2005:6.5.3:2";
 
 #[test]
 fn indirect_annotation_failure_is_reported() {
