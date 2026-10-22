@@ -344,7 +344,7 @@ fn color_flag_preserves_plain_human_output() {
 }
 
 #[test]
-fn details_format_prints_every_failed_rule() {
+fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let details = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -384,38 +384,37 @@ fn details_format_prints_every_failed_rule() {
             .profile(page_validation::ValidationProfile::PdfA1b),
     )
     .expect("structural fixture should produce a report");
-    let expected_failures: Vec<_> = report.failures.iter().map(ToString::to_string).collect();
+    let expected_rule_headers: Vec<_> = report
+        .failures
+        .iter()
+        .map(|failure| format!("[{}]", failure.rule_id))
+        .collect();
     let detailed_failures: Vec<_> = details
         .lines()
         .filter(|line| line.starts_with('['))
         .collect();
-    assert_eq!(detailed_failures, expected_failures);
-}
-
-#[test]
-fn hints_are_shown_only_when_requested_and_imply_details() {
-    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../page_validation/tests/fixtures/structural.pdf");
-    let default_output = Command::new(env!("CARGO_BIN_EXE_page"))
-        .arg(&fixture)
-        .args(["--profile", "1b"])
-        .output()
-        .expect("run summarized PDF validation");
-    let hinted_output = Command::new(env!("CARGO_BIN_EXE_page"))
-        .arg(&fixture)
-        .args(["--profile", "1b", "--hints"])
-        .output()
-        .expect("run hinted PDF validation");
-
-    assert_eq!(default_output.status.code(), Some(2));
-    assert_eq!(hinted_output.status.code(), Some(2));
-    let default_output = String::from_utf8(default_output.stdout).expect("UTF-8 summary");
-    let hinted_output = String::from_utf8(hinted_output.stdout).expect("UTF-8 details");
-    assert!(default_output.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\n"));
-    assert!(!default_output.contains("Possible cause:"));
-    assert!(hinted_output.contains("Possible cause:"));
-    assert!(hinted_output.contains("Suggested fix:"));
-    assert!(hinted_output.starts_with("Result  : Non-conformant\nRules   : "));
+    assert_eq!(
+        detailed_failures,
+        expected_rule_headers
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+    );
+    let failure_blocks: Vec<_> = details
+        .split("\n\n")
+        .filter(|block| block.starts_with("[ISO "))
+        .collect();
+    assert_eq!(failure_blocks.len(), report.failures.len());
+    for failure in &report.failures {
+        let block = format!(
+            "[{}]\n  {}: {}",
+            failure.rule_id, failure.category, failure.message,
+        );
+        assert!(details.contains(&block));
+        let guidance = failure.guidance.as_ref().expect("rule guidance");
+        assert!(details.contains(&format!("  Possible cause: {}", guidance.possible_cause)));
+        assert!(details.contains(&format!("  Suggested fix: {}", guidance.suggested_fix)));
+    }
 }
 
 #[test]
