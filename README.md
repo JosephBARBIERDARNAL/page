@@ -1,6 +1,6 @@
 # page
 
-A modern PDF checker for accessibility and archival conformance that is <u>accurate</u>, *user-friendly*, and `fast`, written in Rust.
+A modern PDF checker for accessibility and archival conformance that is <ins>accurate</ins>, *user-friendly*, and `fast`, written in Rust.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
