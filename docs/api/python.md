@@ -54,7 +54,6 @@ If you need details about **which rules failed**, use `validate_pdf()` instead:
         print("The document passed all implemented rules.")
     else:
         print(f"{report.rules.failed} rules failed")
-        print(f"{report.checks.failed} checks failed")
         for failure in report.failures:
             print(f"[{failure.rule_id}] {failure.message}")
     ```
@@ -130,7 +129,7 @@ for failure in report.failures:
 
 `failure.guidance` is `None` when the rule has no built-in guidance; otherwise, it provides a possible cause and suggested fix.
 
-`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
+`report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
 Failure categories describe findings from rules that ran on a parsed document:
 

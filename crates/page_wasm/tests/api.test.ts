@@ -145,20 +145,20 @@ describe("page-validation", () => {
     expect(report.failures[0]?.ruleId).toBeTruthy();
     expect(report.rules.total).toBeGreaterThan(0);
     expect(report.rules.failed).toBeGreaterThan(0);
-    expect(report.checks.failed).toBeGreaterThan(0);
     expect(report).not.toHaveProperty("exitCode");
+    expect(report).not.toHaveProperty("checks");
 
     const jsonReport = report.toJSON();
     expect(jsonReport).toMatchObject({
       profile: "1b",
       is_compliant: false,
       rules: report.rules,
-      checks: report.checks,
       failures: report.failures.map(({ ruleId, message }) => ({
         rule_id: ruleId,
         message,
       })),
     });
+    expect(jsonReport).not.toHaveProperty("checks");
     expect(jsonReport.failures[0]).toHaveProperty("category");
     expect(jsonReport.failures[0]?.guidance?.possible_cause).toBeTruthy();
     expect(jsonReport.failures[0]?.guidance?.suggested_fix).toBeTruthy();

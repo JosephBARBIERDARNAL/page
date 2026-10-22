@@ -203,14 +203,6 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             FAILURE
         },
     );
-    let failed_checks_style = selected_style(
-        colors,
-        if report.checks.failed == 0 {
-            SUMMARY_SUCCESS
-        } else {
-            FAILURE
-        },
-    );
     writeln!(
         output,
         "{label}Rules{label:#}   : {failed_rules_style}{}{failed_rules_style:#} failed {} / {} total",
@@ -221,17 +213,6 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             "rules"
         },
         report.rules.total,
-    )
-    .expect("writing to a String cannot fail");
-    writeln!(
-        output,
-        "{label}Checks{label:#}  : {failed_checks_style}{}{failed_checks_style:#} failed {}",
-        report.checks.failed,
-        if report.checks.failed == 1 {
-            "check"
-        } else {
-            "checks"
-        },
     )
     .expect("writing to a String cannot fail");
     writeln!(output, "{label}Profile{label:#} : {}", report.profile)
@@ -573,7 +554,7 @@ mod tests {
     }
 
     #[test]
-    fn detailed_counts_use_actual_plural_and_total_rules() {
+    fn detailed_summary_reports_rule_counts_without_raw_check_counts() {
         let bytes = include_bytes!("../../page_validation/tests/fixtures/structural.pdf");
         let mut report = validate_pdf_bytes(
             bytes,
@@ -583,12 +564,11 @@ mod tests {
         report.rules.total = 10;
         report.rules.passed = 9;
         report.rules.failed = 1;
-        report.checks.failed = 1;
 
         let details = render_details(&report, Duration::ZERO, false);
 
         assert!(details.contains("Rules   : 1 failed rule / 10 total"));
-        assert!(details.contains("Checks  : 1 failed check"));
+        assert!(!details.contains("Checks"));
     }
 
     #[test]

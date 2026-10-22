@@ -9,7 +9,6 @@ export type {
   JsonValidationError,
   JsonValidationReport,
   SafetyLimitsOptions,
-  ValidationCheckCounts,
   ValidationCounts,
   ValidationErrorKind,
   ValidationFailure,

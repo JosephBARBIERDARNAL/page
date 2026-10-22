@@ -1,4 +1,4 @@
-//! Defines validation reports, categorized failures, their shared text formatting, and rule and failed-check counts.
+//! Defines validation reports, categorized failures, and their shared text formatting and rule counts.
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
@@ -119,14 +119,6 @@ pub struct ValidationCounts {
     pub failed: usize,
 }
 
-/// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
-/// rule can contribute more than one failed check.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-#[non_exhaustive]
-pub struct ValidationCheckCounts {
-    pub failed: usize,
-}
-
 #[derive(Clone, Debug, Serialize)]
 #[non_exhaustive]
 pub struct ValidationReport {
@@ -134,7 +126,6 @@ pub struct ValidationReport {
     pub profile: ValidationProfile,
     pub is_compliant: bool,
     pub rules: ValidationCounts,
-    pub checks: ValidationCheckCounts,
     /// The parsed document summary; terminal errors return no report.
     pub document: PdfDocument,
     pub failures: Vec<ValidationFailure>,
@@ -170,7 +161,6 @@ impl fmt::Display for ValidationReport {
             "Rules: {} passed, {} failed, {} total",
             self.rules.passed, self.rules.failed, self.rules.total
         )?;
-        writeln!(output, "Checks: {} failed", self.checks.failed)?;
         writeln!(
             output,
             "Document: PDF {}, {} page(s), {} object(s)",
@@ -193,7 +183,6 @@ mod tests {
             profile,
             is_compliant: true,
             rules: ValidationCounts::default(),
-            checks: ValidationCheckCounts::default(),
             document: PdfDocument::default(),
             failures: Vec::new(),
         }

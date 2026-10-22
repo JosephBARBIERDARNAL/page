@@ -19,7 +19,6 @@ For example:
     $ page document.pdf --profile ua1 --format details
     Result  : Non-conformant
     Rules   : 3 failed rules / 104 total
-    Checks  : 3 failed checks
     Profile : PDF/UA-1
     Time    : 0.017s
 

@@ -58,7 +58,6 @@ if (report.isCompliant) {
   console.log("The document passed all implemented rules.");
 } else {
   console.log(`${report.rules.failed} rules failed`);
-  console.log(`${report.checks.failed} checks failed`);
   for (const failure of report.failures) {
     console.log(`[${failure.ruleId}] ${failure.message}`);
   }
@@ -120,7 +119,7 @@ for (const failure of report.failures) {
 
 `failure.guidance` is `null` when no built-in guidance is available; otherwise, it provides a possible cause and suggested fix.
 
-`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
+`report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
 Failure categories describe findings from rules that ran on a parsed document:
 

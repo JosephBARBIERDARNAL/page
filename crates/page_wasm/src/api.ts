@@ -214,10 +214,6 @@ export interface ValidationCounts {
   failed: number;
 }
 
-export interface ValidationCheckCounts {
-  failed: number;
-}
-
 export interface JsonValidationError {
   kind: "parser" | "operational";
   rule_id: string;
@@ -229,7 +225,6 @@ export interface JsonValidationReport {
   profile?: ValidationProfile;
   is_compliant: boolean;
   rules?: ValidationCounts;
-  checks?: ValidationCheckCounts;
   failures: JsonFailure[];
   error?: JsonValidationError;
 }
@@ -237,7 +232,6 @@ export interface JsonValidationReport {
 interface RawValidationReport extends JsonValidationReport {
   profile: ValidationProfile;
   rules: ValidationCounts;
-  checks: ValidationCheckCounts;
 }
 
 export class ValidationReport {
@@ -245,7 +239,6 @@ export class ValidationReport {
   readonly profile: ValidationProfile;
   readonly isCompliant: boolean;
   readonly rules: ValidationCounts;
-  readonly checks: ValidationCheckCounts;
   readonly failures: ValidationFailure[];
   private readonly raw: RawValidationReport;
 
@@ -255,7 +248,6 @@ export class ValidationReport {
     this.profile = raw.profile as ValidationProfile;
     this.isCompliant = raw.is_compliant;
     this.rules = raw.rules;
-    this.checks = raw.checks;
     this.failures = raw.failures.map((failure) => ({
       ruleId: failure.rule_id,
       message: failure.message,

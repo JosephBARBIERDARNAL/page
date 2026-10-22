@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, FailureGuidance, PageError, ValidationCheckCounts, ValidationCounts,
-    ValidationProfile, ValidationReport,
+    FailureCategory, FailureGuidance, PageError, ValidationCounts, ValidationProfile,
+    ValidationReport,
 };
 
 /// Stable, serializable and deserializable representation of a validation report.
@@ -20,8 +20,6 @@ pub struct JsonValidationReport {
     pub is_compliant: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rules: Option<ValidationCounts>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub checks: Option<ValidationCheckCounts>,
     pub failures: Vec<JsonFailure>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<JsonError>,
@@ -75,9 +73,8 @@ impl JsonValidationReport {
         profile: Option<ValidationProfile>,
         error: PageError,
     ) -> Self {
-        let (rules, checks, failures, error) = match error.disposition() {
+        let (rules, failures, error) = match error.disposition() {
             ValidationErrorDisposition::Operational { rule_id } => (
-                None,
                 None,
                 Vec::new(),
                 Some(JsonError {
@@ -87,7 +84,6 @@ impl JsonValidationReport {
                 }),
             ),
             ValidationErrorDisposition::Parser { rule_id } => (
-                None,
                 None,
                 Vec::new(),
                 Some(JsonError {
@@ -103,7 +99,6 @@ impl JsonValidationReport {
             profile,
             is_compliant: false,
             rules,
-            checks,
             failures,
             error,
         }
@@ -132,7 +127,6 @@ impl ValidationReport {
             profile: Some(self.profile),
             is_compliant: self.is_compliant,
             rules: Some(self.rules),
-            checks: Some(self.checks),
             failures,
             error: None,
         }
@@ -143,8 +137,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, FailureGuidance, PageError, PdfError, ValidationCheckCounts,
-        ValidationCounts, ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, FailureGuidance, PageError, PdfError, ValidationCounts, ValidationFailure,
+        ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -158,7 +152,6 @@ mod tests {
                 passed: 0,
                 failed: 1,
             },
-            checks: ValidationCheckCounts { failed: 1 },
             document: crate::model::PdfDocument::default(),
             failures: vec![ValidationFailure {
                 rule_id: "RULE-001".to_owned(),
@@ -179,7 +172,7 @@ mod tests {
         assert_eq!(value["is_compliant"], false);
         assert_eq!(value["rules"]["total"], 1);
         assert_eq!(value["rules"]["failed"], 1);
-        assert_eq!(value["checks"]["failed"], 1);
+        assert!(value.get("checks").is_none());
         assert_eq!(value["failures"][0]["rule_id"], "RULE-001");
         assert_eq!(value["failures"][0]["category"], "metadata");
         assert_eq!(value["failures"][0]["guidance"]["possible_cause"], "cause");
@@ -201,7 +194,6 @@ mod tests {
 
         assert!(json.failures.is_empty());
         assert!(json.rules.is_none());
-        assert!(json.checks.is_none());
         assert_eq!(
             json.error.expect("parser error").kind,
             JsonErrorKind::Parser
@@ -219,7 +211,6 @@ mod tests {
                 passed: 1,
                 failed: 0,
             },
-            checks: ValidationCheckCounts { failed: 0 },
             document: crate::model::PdfDocument::default(),
             failures: Vec::new(),
         };
