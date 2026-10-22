@@ -344,7 +344,7 @@ fn color_flag_preserves_plain_human_output() {
 }
 
 #[test]
-fn details_format_prints_every_failed_rule() {
+fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let details = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -364,10 +364,9 @@ fn details_format_prints_every_failed_rule() {
     assert!(details.starts_with("Result  : Non-conformant\nRules   : "));
     assert!(details.contains(" failed rule"));
     assert!(details.contains(" / "));
-    assert!(details.contains(" failed check"));
     assert!(details.contains("\nProfile : PDF/A-1b\nTime    : "));
     assert!(details.contains("\n\n["));
-    assert!(!details.contains("Checks: "));
+    assert!(!details.contains("Checks"));
     assert!(!details.contains("Document:"));
     assert!(details.contains("Time    :"));
     let detailed_failure_count = details.lines().filter(|line| line.starts_with('[')).count();
@@ -384,12 +383,37 @@ fn details_format_prints_every_failed_rule() {
             .profile(page_validation::ValidationProfile::PdfA1b),
     )
     .expect("structural fixture should produce a report");
-    let expected_failures: Vec<_> = report.failures.iter().map(ToString::to_string).collect();
+    let expected_rule_headers: Vec<_> = report
+        .failures
+        .iter()
+        .map(|failure| format!("[{}]", failure.rule_id))
+        .collect();
     let detailed_failures: Vec<_> = details
         .lines()
         .filter(|line| line.starts_with('['))
         .collect();
-    assert_eq!(detailed_failures, expected_failures);
+    assert_eq!(
+        detailed_failures,
+        expected_rule_headers
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+    );
+    let failure_blocks: Vec<_> = details
+        .split("\n\n")
+        .filter(|block| block.starts_with("[ISO "))
+        .collect();
+    assert_eq!(failure_blocks.len(), report.failures.len());
+    for failure in &report.failures {
+        let block = format!(
+            "[{}]\n  {}: {}",
+            failure.rule_id, failure.category, failure.message,
+        );
+        assert!(details.contains(&block));
+        let guidance = failure.guidance.as_ref().expect("rule guidance");
+        assert!(details.contains(&format!("  Possible cause: {}", guidance.possible_cause)));
+        assert!(details.contains(&format!("  Suggested fix: {}", guidance.suggested_fix)));
+    }
 }
 
 #[test]
@@ -447,7 +471,7 @@ fn validation_json_uses_the_stable_public_schema() {
     assert!(report["failures"][0].get("object_id").is_none());
     assert!(report["rules"]["total"].is_number());
     assert!(report["rules"]["failed"].is_number());
-    assert!(report["checks"]["failed"].is_number());
+    assert!(report.get("checks").is_none());
 }
 
 #[test]
@@ -465,7 +489,7 @@ fn validation_json_reports_parser_errors_separately() {
     assert_eq!(parser["profile"], "1b");
     assert_eq!(parser["failures"], serde_json::json!([]));
     assert!(parser["rules"].is_null());
-    assert!(parser["checks"].is_null());
+    assert!(parser.get("checks").is_none());
     assert_eq!(parser["error"]["kind"], "parser");
 }
 

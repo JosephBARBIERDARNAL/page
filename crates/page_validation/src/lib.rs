@@ -45,6 +45,7 @@ mod font_embedding;
 mod font_encodings;
 mod forms;
 mod graphics;
+mod guidance;
 mod icc_based;
 mod json;
 mod language;
@@ -64,13 +65,12 @@ mod xml_safety;
 mod xobject;
 
 pub use error::{PageError, PdfError, ValidationErrorKind};
+pub use guidance::FailureGuidance;
 pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::PdfDocument;
 pub(crate) use model::PdfObjectId;
-pub use report::{
-    FailureCategory, ValidationCheckCounts, ValidationCounts, ValidationFailure, ValidationReport,
-};
+pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
 #[doc(hidden)]
 pub use validation::{ComplianceResult, validate_pdf_lazy};
 pub use validation::{

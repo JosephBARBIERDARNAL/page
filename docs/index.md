@@ -83,25 +83,19 @@ Check PDF documents against accessibility and compliance requirements with a Rus
     ```console
     $ page document.pdf --profile ua1 --format details
     Result  : Non-conformant
-    Rules   : 11 failed rules / 134 total
-    Checks  : 24 failed checks
+    Rules   : 2 failed rules / 104 total
     Profile : PDF/UA-1
-    Time    : 0.147s
+    Time    : 0.017s
 
-    [ISO 14289-1:2014:7.2:22] [.........]
-    [ISO 14289-1:2014:7.1:3] [.........]
-    [ISO 14289-1:2014:7.3:1] [.........]
-    [ISO 14289-1:2014:7.4.2:1] [.........]
-    [ISO 14289-1:2014:5:2] [.........]
-    [ISO 14289-1:2014:5:1] [.........]
-    [ISO 14289-1:2014:7.18.5:2] [.........]
-    [ISO 14289-1:2014:7.1:9] [.........]
-    [ISO 14289-1:2014:7.2:30] [.........]
-    [ISO 14289-1:2014:7.2:41] [.........]
-    [ISO 14289-1:2014:7.5:1] [.........]
-    [ISO 14289-1:2014:7.2:42] [.........]
-    [ISO 14289-1:2014:6.2:1] [.........]
-    [ISO 14289-1:2014:7.2:34] [.........]
+    [ISO 14289-1:2014:5:1]
+      Metadata: XMP does not contain the PDF/UA Identification schema
+      Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
+      Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
+
+    [ISO 14289-1:2014:5:2]
+      Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
+      Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
+      Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
     ```
 
 === "Rust"
@@ -123,6 +117,10 @@ Check PDF documents against accessibility and compliance requirements with a Rus
                 failure.rule_id,
                 failure.message,
             );
+            if let Some(guidance) = &failure.guidance {
+                eprintln!("Possible cause: {}", guidance.possible_cause);
+                eprintln!("Suggested fix: {}", guidance.suggested_fix);
+            }
         }
     }
     ```
@@ -134,13 +132,16 @@ Check PDF documents against accessibility and compliance requirements with a Rus
     ```py
     import page
 
-    report = page.validate_pdf("document.pdf")
+    report = page.validate_pdf("document.pdf", profile="ua1")
 
     if report.is_compliant:
         print("The document passed all implemented checks.")
     else:
         for failure in report.failures:
             print(f"[{failure.rule_id}] {failure.message}")
+            if failure.guidance is not None:
+                print(f"Possible cause: {failure.guidance.possible_cause}")
+                print(f"Suggested fix: {failure.guidance.suggested_fix}")
     ```
 
 === "JavaScript"
@@ -151,13 +152,17 @@ Check PDF documents against accessibility and compliance requirements with a Rus
     import { ValidationProfile, validatePdfBytes } from "page-validation-wasm";
 
     const bytes = new Uint8Array(await pdfFile.arrayBuffer());
-    const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_A_1B });
+    const report = await validatePdfBytes(bytes, { profile: ValidationProfile.PDF_UA_1 });
 
     if (report.isCompliant) {
         console.log("The document passed all implemented checks.");
     } else {
         for (const failure of report.failures) {
             console.log(`[${failure.ruleId}] ${failure.message}`);
+            if (failure.guidance !== null) {
+                console.log(`Possible cause: ${failure.guidance.possibleCause}`);
+                console.log(`Suggested fix: ${failure.guidance.suggestedFix}`);
+            }
         }
     }
     ```

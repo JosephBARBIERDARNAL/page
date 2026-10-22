@@ -1,4 +1,4 @@
-//! Defines validation reports, categorized failures, their shared text formatting, and rule and failed-check counts.
+//! Defines validation reports, categorized failures, and their shared text formatting and rule counts.
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::guidance::FailureGuidance;
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
@@ -56,7 +57,7 @@ impl fmt::Display for FailureCategory {
 
 /// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
-/// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+/// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. `guidance` provides a possible cause and suggested fix when the rule is recognized. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
 /// Text formatting produces `[rule_id] Category: message`.
 ///
@@ -74,6 +75,8 @@ pub struct ValidationFailure {
     pub rule_id: String,
     pub message: String,
     pub category: FailureCategory,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guidance: Option<FailureGuidance>,
 }
 
 impl fmt::Display for ValidationFailure {
@@ -116,14 +119,6 @@ pub struct ValidationCounts {
     pub failed: usize,
 }
 
-/// A tally of failed checks. A check is one raw finding produced while evaluating a rule, so a
-/// rule can contribute more than one failed check.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-#[non_exhaustive]
-pub struct ValidationCheckCounts {
-    pub failed: usize,
-}
-
 #[derive(Clone, Debug, Serialize)]
 #[non_exhaustive]
 pub struct ValidationReport {
@@ -131,7 +126,6 @@ pub struct ValidationReport {
     pub profile: ValidationProfile,
     pub is_compliant: bool,
     pub rules: ValidationCounts,
-    pub checks: ValidationCheckCounts,
     /// The parsed document summary; terminal errors return no report.
     pub document: PdfDocument,
     pub failures: Vec<ValidationFailure>,
@@ -167,7 +161,6 @@ impl fmt::Display for ValidationReport {
             "Rules: {} passed, {} failed, {} total",
             self.rules.passed, self.rules.failed, self.rules.total
         )?;
-        writeln!(output, "Checks: {} failed", self.checks.failed)?;
         writeln!(
             output,
             "Document: PDF {}, {} page(s), {} object(s)",
@@ -190,7 +183,6 @@ mod tests {
             profile,
             is_compliant: true,
             rules: ValidationCounts::default(),
-            checks: ValidationCheckCounts::default(),
             document: PdfDocument::default(),
             failures: Vec::new(),
         }
@@ -220,6 +212,7 @@ mod tests {
             rule_id: "ISO 19005-1:2005:6.7.11:1".to_owned(),
             message: "XMP does not contain the PDF/A Identification schema".to_owned(),
             category: FailureCategory::Metadata,
+            guidance: None,
         };
         assert_eq!(
             failure.to_string(),
@@ -235,6 +228,7 @@ mod tests {
             rule_id: "ISO 19005-1:2005:6.7.2:1".to_owned(),
             message: "Catalog metadata is invalid".to_owned(),
             category: FailureCategory::Conformance,
+            guidance: None,
         });
 
         assert!(

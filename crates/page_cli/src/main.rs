@@ -41,7 +41,7 @@ struct Cli {
     #[arg(long, value_name = "PROFILE", value_parser = profile_parser())]
     profile: Option<ValidationProfile>,
 
-    /// Select summary, detailed text, or JSON output.
+    /// Select summary, detailed findings with guidance, or JSON output.
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
@@ -136,6 +136,7 @@ enum SelectedFormat {
 const FAILURE: Style = AnsiColor::Red.on_default().bold();
 const SUMMARY_SUCCESS: Style = AnsiColor::BrightGreen.on_default().bold();
 const SUMMARY_FAILURE: Style = AnsiColor::BrightRed.on_default().bold();
+const LABEL: Style = Style::new().bold();
 
 fn selected_style(enabled: bool, style: Style) -> Style {
     if enabled { style } else { Style::new() }
@@ -162,9 +163,13 @@ fn render_result_line(is_compliant: bool, colors: bool) -> String {
         ("Non-conformant", SUMMARY_FAILURE)
     };
     let result = selected_style(colors, result_style);
+    let label = selected_style(colors, LABEL);
 
-    writeln!(output, "Result  : {result}{result_text}{result:#}")
-        .expect("writing to a String cannot fail");
+    writeln!(
+        output,
+        "{label}Result{label:#}  : {result}{result_text}{result:#}"
+    )
+    .expect("writing to a String cannot fail");
     output
 }
 
@@ -175,14 +180,21 @@ fn render_summary(
     colors: bool,
 ) -> String {
     let mut output = render_result_line(is_compliant, colors);
-    writeln!(output, "Profile : {profile}").expect("writing to a String cannot fail");
-    writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
+    let label = selected_style(colors, LABEL);
+    writeln!(output, "{label}Profile{label:#} : {profile}")
         .expect("writing to a String cannot fail");
+    writeln!(
+        output,
+        "{label}Time{label:#}    : {:.3}s",
+        elapsed.as_secs_f64()
+    )
+    .expect("writing to a String cannot fail");
     output
 }
 
 fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
     let mut output = render_result_line(report.is_compliant, colors);
+    let label = selected_style(colors, LABEL);
     let failed_rules_style = selected_style(
         colors,
         if report.rules.failed == 0 {
@@ -191,17 +203,9 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             FAILURE
         },
     );
-    let failed_checks_style = selected_style(
-        colors,
-        if report.checks.failed == 0 {
-            SUMMARY_SUCCESS
-        } else {
-            FAILURE
-        },
-    );
     writeln!(
         output,
-        "Rules   : {failed_rules_style}{}{failed_rules_style:#} failed {} / {} total",
+        "{label}Rules{label:#}   : {failed_rules_style}{}{failed_rules_style:#} failed {} / {} total",
         report.rules.failed,
         if report.rules.failed == 1 {
             "rule"
@@ -211,36 +215,48 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         report.rules.total,
     )
     .expect("writing to a String cannot fail");
+    writeln!(output, "{label}Profile{label:#} : {}", report.profile)
+        .expect("writing to a String cannot fail");
     writeln!(
         output,
-        "Checks  : {failed_checks_style}{}{failed_checks_style:#} failed {}",
-        report.checks.failed,
-        if report.checks.failed == 1 {
-            "check"
-        } else {
-            "checks"
-        },
+        "{label}Time{label:#}    : {:.3}s",
+        elapsed.as_secs_f64()
     )
     .expect("writing to a String cannot fail");
-    writeln!(output, "Profile : {}", report.profile).expect("writing to a String cannot fail");
-    writeln!(output, "Time    : {:.3}s", elapsed.as_secs_f64())
-        .expect("writing to a String cannot fail");
     if !report.failures.is_empty() {
         output.push('\n');
     }
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
-    for failure in &report.failures {
+    for (index, failure) in report.failures.iter().enumerate() {
         if !seen.insert((&failure.rule_id, failure.category as u8, &failure.message)) {
             continue;
         }
-        write!(
+        if index > 0 {
+            output.push('\n');
+        }
+        writeln!(output, "[{rule}{}{rule:#}]", failure.rule_id)
+            .expect("writing to a String cannot fail");
+        writeln!(
             output,
-            "[{rule}{}{rule:#}] {}: {}",
-            failure.rule_id, failure.category, failure.message,
+            "  {label}{}{label:#}: {}",
+            failure.category, failure.message
         )
         .expect("writing to a String cannot fail");
-        output.push('\n');
+        if let Some(guidance) = &failure.guidance {
+            writeln!(
+                output,
+                "  {label}Possible cause{label:#}: {}",
+                guidance.possible_cause
+            )
+            .expect("writing to a String cannot fail");
+            writeln!(
+                output,
+                "  {label}Suggested fix{label:#}: {}",
+                guidance.suggested_fix
+            )
+            .expect("writing to a String cannot fail");
+        }
     }
     output
 }
@@ -521,7 +537,7 @@ mod tests {
 
     use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
 
-    use super::{FAILURE, colors_enabled, render_details, render_summary, selected_style};
+    use super::{FAILURE, LABEL, colors_enabled, render_details, render_summary, selected_style};
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
@@ -538,7 +554,7 @@ mod tests {
     }
 
     #[test]
-    fn detailed_counts_use_actual_plural_and_total_rules() {
+    fn detailed_summary_reports_rule_counts_without_raw_check_counts() {
         let bytes = include_bytes!("../../page_validation/tests/fixtures/structural.pdf");
         let mut report = validate_pdf_bytes(
             bytes,
@@ -548,16 +564,15 @@ mod tests {
         report.rules.total = 10;
         report.rules.passed = 9;
         report.rules.failed = 1;
-        report.checks.failed = 1;
 
         let details = render_details(&report, Duration::ZERO, false);
 
         assert!(details.contains("Rules   : 1 failed rule / 10 total"));
-        assert!(details.contains("Checks  : 1 failed check"));
+        assert!(!details.contains("Checks"));
     }
 
     #[test]
-    fn detailed_failures_color_only_the_rule_id() {
+    fn detailed_failures_color_rule_ids_and_bold_labels() {
         let bytes = include_bytes!("../../page_validation/tests/fixtures/structural.pdf");
         let report = validate_pdf_bytes(
             bytes,
@@ -571,11 +586,21 @@ mod tests {
 
         let details = render_details(&report, Duration::ZERO, true);
         let rule = selected_style(true, FAILURE);
-        let expected = format!(
-            "[{rule}{}{rule:#}] {}: {}",
-            failure.rule_id, failure.category, failure.message,
-        );
+        let label = selected_style(true, LABEL);
 
-        assert!(details.contains(&expected));
+        assert!(details.contains(&format!("[{rule}{}{rule:#}]", failure.rule_id)));
+        assert!(details.contains(&format!(
+            "  {label}{}{label:#}: {}",
+            failure.category, failure.message,
+        )));
+        let guidance = failure.guidance.as_ref().expect("mapped rule guidance");
+        assert!(details.contains(&format!(
+            "  {label}Possible cause{label:#}: {}",
+            guidance.possible_cause,
+        )));
+        assert!(details.contains(&format!(
+            "  {label}Suggested fix{label:#}: {}",
+            guidance.suggested_fix,
+        )));
     }
 }

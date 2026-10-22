@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use page_validation::{
-    FailureCategory as RustFailureCategory, PageError as RustPageError,
-    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
+    FailureCategory as RustFailureCategory, FailureGuidance as RustFailureGuidance,
+    PageError as RustPageError, SafetyLimits as RustSafetyLimits,
     ValidationCounts as RustValidationCounts, ValidationErrorKind as RustValidationErrorKind,
     ValidationFailure as RustValidationFailure, ValidationProfile as RustValidationProfile,
     ValidationReport as RustValidationReport,
@@ -243,6 +243,31 @@ struct ValidationFailure {
     inner: RustValidationFailure,
 }
 
+#[pyclass(name = "FailureGuidance", frozen, from_py_object)]
+#[derive(Clone)]
+struct FailureGuidance {
+    inner: RustFailureGuidance,
+}
+
+impl From<RustFailureGuidance> for FailureGuidance {
+    fn from(inner: RustFailureGuidance) -> Self {
+        Self { inner }
+    }
+}
+
+#[pymethods]
+impl FailureGuidance {
+    #[getter]
+    fn possible_cause(&self) -> &str {
+        &self.inner.possible_cause
+    }
+
+    #[getter]
+    fn suggested_fix(&self) -> &str {
+        &self.inner.suggested_fix
+    }
+}
+
 impl From<RustValidationFailure> for ValidationFailure {
     fn from(inner: RustValidationFailure) -> Self {
         Self { inner }
@@ -274,6 +299,11 @@ impl ValidationFailure {
             }
         };
         python_enum_value(py, "FailureCategory", value)
+    }
+
+    #[getter]
+    fn guidance(&self) -> Option<FailureGuidance> {
+        self.inner.guidance.clone().map(Into::into)
     }
 
     fn __repr__(&self) -> String {
@@ -312,28 +342,6 @@ impl ValidationCounts {
             "ValidationCounts(total={}, passed={}, failed={})",
             self.total, self.passed, self.failed
         )
-    }
-}
-
-#[pyclass(name = "ValidationCheckCounts", frozen, from_py_object)]
-#[derive(Clone)]
-struct ValidationCheckCounts {
-    #[pyo3(get)]
-    failed: usize,
-}
-
-impl From<RustValidationCheckCounts> for ValidationCheckCounts {
-    fn from(counts: RustValidationCheckCounts) -> Self {
-        Self {
-            failed: counts.failed,
-        }
-    }
-}
-
-#[pymethods]
-impl ValidationCheckCounts {
-    fn __repr__(&self) -> String {
-        format!("ValidationCheckCounts(failed={})", self.failed)
     }
 }
 
@@ -394,11 +402,6 @@ impl ValidationReport {
     #[getter]
     fn rules(&self) -> ValidationCounts {
         self.inner.rules.into()
-    }
-
-    #[getter]
-    fn checks(&self) -> ValidationCheckCounts {
-        self.inner.checks.into()
     }
 
     #[getter]
@@ -554,9 +557,9 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;
     module.add_class::<SafetyLimits>()?;
+    module.add_class::<FailureGuidance>()?;
     module.add_class::<ValidationFailure>()?;
     module.add_class::<ValidationCounts>()?;
-    module.add_class::<ValidationCheckCounts>()?;
     module.add_class::<PdfDocument>()?;
     module.add_class::<ValidationReport>()?;
     module.add_function(wrap_pyfunction!(is_pdf_compliant, module)?)?;

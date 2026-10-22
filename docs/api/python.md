@@ -54,7 +54,6 @@ If you need details about **which rules failed**, use `validate_pdf()` instead:
         print("The document passed all implemented rules.")
     else:
         print(f"{report.rules.failed} rules failed")
-        print(f"{report.checks.failed} checks failed")
         for failure in report.failures:
             print(f"[{failure.rule_id}] {failure.message}")
     ```
@@ -123,9 +122,14 @@ for failure in report.failures:
     print(f"Rule: {failure.rule_id}")
     print(f"Category: {failure.category}")
     print(f"Message: {failure.message}")
+    if failure.guidance is not None:
+        print(f"Possible cause: {failure.guidance.possible_cause}")
+        print(f"Suggested fix: {failure.guidance.suggested_fix}")
 ```
 
-`report.rules` contains the total, passed, and failed implemented rules. `report.checks.failed` counts every raw finding, so several objects failing the same rule contribute one failed rule and multiple failed checks.
+`failure.guidance` is `None` when the rule has no built-in guidance; otherwise, it provides a possible cause and suggested fix.
+
+`report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
 Failure categories describe findings from rules that ran on a parsed document:
 
@@ -197,4 +201,4 @@ print(report_data["is_compliant"])
 print(report_data["failures"])
 ```
 
-Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`).
+Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`). When guidance is available, it also includes a `guidance` object with `possible_cause` and `suggested_fix` strings.

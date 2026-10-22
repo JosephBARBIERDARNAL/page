@@ -15,12 +15,12 @@ use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::error::{PageError, PdfError};
+use crate::guidance::guidance_for_rule_id;
 use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
 use crate::report::{
-    FailureCategory, RuleFailure, ValidationCheckCounts, ValidationCounts, ValidationFailure,
-    ValidationReport,
+    FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
 };
 
 macro_rules! iso_pdfa_rule_id {
@@ -37,16 +37,10 @@ macro_rules! iso_pdfa_rule_id {
 #[derive(Default)]
 struct ValidationFailures {
     entries: Vec<ValidationFailure>,
-    failed_checks: usize,
 }
 
 impl ValidationFailures {
     fn push(&mut self, failure: ValidationFailure) {
-        self.push_with_check_count(failure, 1);
-    }
-
-    fn push_with_check_count(&mut self, failure: ValidationFailure, check_count: usize) {
-        self.failed_checks = self.failed_checks.saturating_add(check_count);
         self.entries.push(failure);
     }
 
@@ -60,10 +54,6 @@ impl ValidationFailures {
         K: Ord,
     {
         self.entries.sort_by_key(f);
-    }
-
-    fn into_parts(self) -> (Vec<ValidationFailure>, usize) {
-        (self.entries, self.failed_checks)
     }
 }
 
@@ -2272,15 +2262,12 @@ fn validate_object_limits(
     ];
     for (rule_id, description, objects) in checks {
         if !objects.is_empty() {
-            failures.push_with_check_count(
-                failure(
-                    rule_id,
-                    description,
-                    only(objects).copied(),
-                    FailureCategory::Conformance,
-                ),
-                objects.len(),
-            );
+            failures.push(failure(
+                rule_id,
+                description,
+                only(objects).copied(),
+                FailureCategory::Conformance,
+            ));
         }
     }
     aggregate_failures_with_location(
@@ -2319,20 +2306,17 @@ fn validate_object_limits(
     if profile.is_pdfa_2_or_3()
         && (!limits.underflow_reals_pdfa_2.is_empty() || !content.underflow_reals_pdfa_2.is_empty())
     {
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "", "6.1.13:5", "6.1.13:5"),
-                "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
-                limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
-                    content
-                        .underflow_reals_pdfa_2
-                        .first()
-                        .and_then(|failure| failure.object_id)
-                }),
-                FailureCategory::Conformance,
-            ),
-            limits.underflow_reals_pdfa_2.len() + content.underflow_reals_pdfa_2.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.1.13:5", "6.1.13:5"),
+            "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
+            limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
+                content
+                    .underflow_reals_pdfa_2
+                    .first()
+                    .and_then(|failure| failure.object_id)
+            }),
+            FailureCategory::Conformance,
+        ));
     }
     if limits.too_many_indirect_objects {
         failures.push(failure(
@@ -2689,75 +2673,57 @@ fn validate_stream_safety(
             .map(|stream| format!("stream contains {}", stream.keys.join(", ")))
             .collect::<Vec<_>>()
             .join("; ");
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "6.1.7:3", "6.1.7.1:3", "6.1.7.1:3"),
-                description,
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.external_stream_entries.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.1.7:3", "6.1.7.1:3", "6.1.7.1:3"),
+            description,
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if !profile.is_pdfa_2_or_3() && !streams.lzw_filters.is_empty() {
         let object_id = only(&streams.lzw_filters).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "6.1.10:1", "", ""),
-                "a parsed stream declares the forbidden LZWDecode filter",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.lzw_filters.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.1.10:1", "", ""),
+            "a parsed stream declares the forbidden LZWDecode filter",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_filters_pdfa2.is_empty() {
         let object_id = only(&streams.invalid_filters_pdfa2).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "", "6.1.7.2:1", "6.1.7.2:1"),
-                "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.invalid_filters_pdfa2.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.1.7.2:1", "6.1.7.2:1"),
+            "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_byte_ranges.is_empty() {
         let object_id = only(&streams.invalid_signature_byte_ranges).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "", "6.4.3:1", "6.4.3:1"),
-                "a signature /ByteRange does not cover the complete PDF except for its signature contents",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.invalid_signature_byte_ranges.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.4.3:1", "6.4.3:1"),
+            "a signature /ByteRange does not cover the complete PDF except for its signature contents",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
         let object_id = only(&streams.invalid_signature_certificates).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "", "6.4.3:2", "6.4.3:2"),
-                "a parsed PKCS#7 signature does not contain a signing certificate",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.invalid_signature_certificates.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.4.3:2", "6.4.3:2"),
+            "a parsed PKCS#7 signature does not contain a signing certificate",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
         let object_id = only(&streams.invalid_signature_signer_counts).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "", "6.4.3:3", "6.4.3:3"),
-                "a parsed PKCS#7 signature does not contain exactly one signer",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams.invalid_signature_signer_counts.len(),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.4.3:3", "6.4.3:3"),
+            "a parsed PKCS#7 signature does not contain exactly one signer",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     if profile.is_pdfa_2_or_3()
         && let Some(context) = &content.inline_image_invalid_filter_context
@@ -2773,18 +2739,12 @@ fn validate_stream_safety(
         && !profile.permits_xref_streams()
     {
         let object_id = only(&streams.xref_streams).copied();
-        failures.push_with_check_count(
-            failure(
-                iso_pdfa_rule_id!(profile, "6.1.4:3", "", ""),
-                "the document contains an xref stream",
-                object_id,
-                FailureCategory::Conformance,
-            ),
-            streams
-                .xref_streams
-                .len()
-                .max(usize::from(streams.has_xref_stream)),
-        );
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.1.4:3", "", ""),
+            "the document contains an xref stream",
+            object_id,
+            FailureCategory::Conformance,
+        ));
     }
     for (invalid, rule_id, message) in [
         (
@@ -2835,15 +2795,12 @@ fn validate_stream_safety(
         ),
     ] {
         if !invalid.is_empty() {
-            failures.push_with_check_count(
-                failure(
-                    rule_id,
-                    message,
-                    only(invalid).copied(),
-                    FailureCategory::Conformance,
-                ),
-                invalid.len(),
-            );
+            failures.push(failure(
+                rule_id,
+                message,
+                only(invalid).copied(),
+                FailureCategory::Conformance,
+            ));
         }
     }
 }
@@ -2882,15 +2839,12 @@ fn aggregate_failures(
         .into()
         .expect("a reported conformance finding has an ISO rule reference");
     let (object_id, description) = joined_failure(invalid);
-    failures.push_with_check_count(
-        failure(
-            rule_id,
-            description,
-            object_id,
-            FailureCategory::Conformance,
-        ),
-        invalid.len(),
-    );
+    failures.push(failure(
+        rule_id,
+        description,
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 /// Like [`aggregate_failures`], but keeps the first distinct failure
@@ -2931,10 +2885,12 @@ fn aggregate_failures_with_location(
         && only_failure)
         .then_some(first.object_id)
         .flatten();
-    failures.push_with_check_count(
-        failure(rule_id, detail, object_id, FailureCategory::Conformance),
-        invalid.len(),
-    );
+    failures.push(failure(
+        rule_id,
+        detail,
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 fn validate_device_color_spaces(
@@ -3328,15 +3284,12 @@ fn validate_font_embedding(
         return;
     }
     let (object_id, message) = joined_failure(invalid);
-    failures.push_with_check_count(
-        failure(
-            iso_pdfa_rule_id!(profile, "6.3.4:1", "6.2.11.4.1:1", "6.2.11.4.1:1"),
-            format!("font program is not embedded for {message}"),
-            object_id,
-            FailureCategory::Conformance,
-        ),
-        invalid.len(),
-    );
+    failures.push(failure(
+        iso_pdfa_rule_id!(profile, "6.3.4:1", "6.2.11.4.1:1", "6.2.11.4.1:1"),
+        format!("font program is not embedded for {message}"),
+        object_id,
+        FailureCategory::Conformance,
+    ));
 }
 
 fn validate_font_dictionaries(
@@ -3776,7 +3729,7 @@ fn finish_report(
     total_rules: usize,
 ) -> ValidationReport {
     failures.sort_by_key(|failure| failure.rule_id.clone());
-    let (failures, failed_checks) = failures.into_parts();
+    let failures = failures.entries;
     let mut failed_rules = 0;
     let mut previous_rule = None;
     for failure in &failures {
@@ -3794,9 +3747,6 @@ fn finish_report(
             passed: total_rules.saturating_sub(failed_rules),
             failed: failed_rules,
         },
-        checks: ValidationCheckCounts {
-            failed: failed_checks,
-        },
         document,
         failures,
     }
@@ -3808,11 +3758,13 @@ fn failure(
     _object_id: Option<PdfObjectId>,
     category: FailureCategory,
 ) -> ValidationFailure {
+    let rule_id = rule_id
+        .into()
+        .expect("every reported conformance finding has an ISO rule reference")
+        .to_owned();
     ValidationFailure {
-        rule_id: rule_id
-            .into()
-            .expect("every reported conformance finding has an ISO rule reference")
-            .to_owned(),
+        guidance: guidance_for_rule_id(&rule_id),
+        rule_id,
         message: message.into(),
         category,
     }
@@ -4820,17 +4772,15 @@ mod tests {
         aggregate_failures_with_location(&invalid, "TEST-001", None, &mut failures);
         assert_eq!(failures.entries[0].message, "the same problem");
         assert_eq!(failures.entries.len(), 1);
-        assert_eq!(failures.failed_checks, 4);
 
         let mut failures = ValidationFailures::default();
         aggregate_failures(&invalid, "TEST-001", &mut failures);
         assert_eq!(failures.entries[0].message, "the same problem");
         assert_eq!(failures.entries.len(), 1);
-        assert_eq!(failures.failed_checks, 4);
     }
 
     #[test]
-    fn object_limit_failures_count_each_failed_object() {
+    fn object_limit_failures_are_aggregated_by_rule() {
         let limits = crate::object_limits::ObjectLimitsSummary {
             out_of_range_integers: vec![
                 PdfObjectId {
@@ -4858,11 +4808,11 @@ mod tests {
         );
 
         assert_eq!(failures.entries.len(), 1);
-        assert_eq!(failures.failed_checks, 3);
+        assert_eq!(failures.entries[0].rule_id, "ISO 19005-1:2005:6.1.12:1");
     }
 
     #[test]
-    fn stream_safety_failures_count_each_failed_stream() {
+    fn stream_safety_failures_are_aggregated_by_rule() {
         let streams = crate::stream_safety::StreamSafetySummary {
             invalid_lengths: vec![
                 PdfObjectId {
@@ -4886,7 +4836,7 @@ mod tests {
         );
 
         assert_eq!(failures.entries.len(), 1);
-        assert_eq!(failures.failed_checks, 2);
+        assert_eq!(failures.entries[0].rule_id, "ISO 19005-1:2005:6.1.7:1");
     }
 
     fn assert_rule(report: &ValidationReport, expected: &str) {
