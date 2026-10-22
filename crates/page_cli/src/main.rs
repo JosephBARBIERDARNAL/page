@@ -45,6 +45,10 @@ struct Cli {
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
+    /// Show possible causes and suggested fixes; implies details unless JSON is selected.
+    #[arg(long)]
+    hints: bool,
+
     /// Write the report to a file; .json infers JSON when --format is omitted.
     #[arg(long, value_name = "FILE")]
     output: Option<PathBuf>,
@@ -181,7 +185,12 @@ fn render_summary(
     output
 }
 
-fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
+fn render_details(
+    report: &ValidationReport,
+    elapsed: Duration,
+    colors: bool,
+    hints: bool,
+) -> String {
     let mut output = render_result_line(report.is_compliant, colors);
     let failed_rules_style = selected_style(
         colors,
@@ -229,6 +238,7 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         output.push('\n');
     }
     let mut seen = HashSet::new();
+    let mut seen_guidance = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for failure in &report.failures {
         if !seen.insert((&failure.rule_id, failure.category as u8, &failure.message)) {
@@ -241,6 +251,15 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         )
         .expect("writing to a String cannot fail");
         output.push('\n');
+        if hints
+            && let Some(guidance) = &failure.guidance
+            && seen_guidance.insert(&failure.rule_id)
+        {
+            writeln!(output, "    Possible cause: {}", guidance.possible_cause)
+                .expect("writing to a String cannot fail");
+            writeln!(output, "    Suggested fix: {}", guidance.suggested_fix)
+                .expect("writing to a String cannot fail");
+        }
     }
     output
 }
@@ -252,9 +271,13 @@ fn extension(path: &Path) -> Option<&str> {
 fn select_format(
     format: Option<FormatArg>,
     output: Option<&Path>,
+    hints: bool,
 ) -> Result<SelectedFormat, String> {
     let extension = output.and_then(extension);
     match format {
+        Some(FormatArg::Summary) if hints => {
+            Err("--hints cannot be used with --format summary".to_owned())
+        }
         Some(FormatArg::Summary) => Ok(SelectedFormat::Summary),
         Some(FormatArg::Json)
             if extension.is_some_and(|value| value.eq_ignore_ascii_case("txt")) =>
@@ -271,6 +294,7 @@ fn select_format(
         None if extension.is_some_and(|value| value.eq_ignore_ascii_case("json")) => {
             Ok(SelectedFormat::Json)
         }
+        None if hints => Ok(SelectedFormat::Details),
         None => Ok(SelectedFormat::Summary),
     }
 }
@@ -367,7 +391,7 @@ fn run_validate(cli: Cli) {
     let no_color_env = std::env::var_os("NO_COLOR").is_some();
     let stdout_colors = colors_enabled(cli.color, no_color_env, io::stdout().is_terminal());
     let stderr_colors = colors_enabled(cli.color, no_color_env, io::stderr().is_terminal());
-    let selected_format = match select_format(cli.format, cli.output.as_deref()) {
+    let selected_format = match select_format(cli.format, cli.output.as_deref(), cli.hints) {
         Ok(format) => format,
         Err(error) => {
             print_error(error, stderr_colors);
@@ -474,7 +498,7 @@ fn run_validate(cli: Cli) {
         (Some(output), format) => {
             let rendered = match format {
                 SelectedFormat::Summary => Ok(String::new()),
-                SelectedFormat::Details => Ok(render_details(&report, elapsed, false)),
+                SelectedFormat::Details => Ok(render_details(&report, elapsed, false, cli.hints)),
                 SelectedFormat::Json => {
                     let json = report.json_report();
                     serialize_json(&json)
@@ -506,7 +530,10 @@ fn run_validate(cli: Cli) {
             }
         }
         (None, SelectedFormat::Details) => {
-            print!("{}", render_details(&report, elapsed, stdout_colors));
+            print!(
+                "{}",
+                render_details(&report, elapsed, stdout_colors, cli.hints)
+            );
             page_cli::validation_exit_code(&report)
         }
         (None, SelectedFormat::Summary) => page_cli::validation_exit_code(&report),
@@ -550,7 +577,7 @@ mod tests {
         report.rules.failed = 1;
         report.checks.failed = 1;
 
-        let details = render_details(&report, Duration::ZERO, false);
+        let details = render_details(&report, Duration::ZERO, false, false);
 
         assert!(details.contains("Rules   : 1 failed rule / 10 total"));
         assert!(details.contains("Checks  : 1 failed check"));
@@ -569,7 +596,7 @@ mod tests {
             .first()
             .expect("structural fixture should have a validation failure");
 
-        let details = render_details(&report, Duration::ZERO, true);
+        let details = render_details(&report, Duration::ZERO, true, false);
         let rule = selected_style(true, FAILURE);
         let expected = format!(
             "[{rule}{}{rule:#}] {}: {}",

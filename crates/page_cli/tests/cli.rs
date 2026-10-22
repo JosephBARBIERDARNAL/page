@@ -393,6 +393,32 @@ fn details_format_prints_every_failed_rule() {
 }
 
 #[test]
+fn hints_are_shown_only_when_requested_and_imply_details() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../page_validation/tests/fixtures/structural.pdf");
+    let default_output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "1b"])
+        .output()
+        .expect("run summarized PDF validation");
+    let hinted_output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(&fixture)
+        .args(["--profile", "1b", "--hints"])
+        .output()
+        .expect("run hinted PDF validation");
+
+    assert_eq!(default_output.status.code(), Some(2));
+    assert_eq!(hinted_output.status.code(), Some(2));
+    let default_output = String::from_utf8(default_output.stdout).expect("UTF-8 summary");
+    let hinted_output = String::from_utf8(hinted_output.stdout).expect("UTF-8 details");
+    assert!(default_output.starts_with("Result  : Non-conformant\nProfile : PDF/A-1b\n"));
+    assert!(!default_output.contains("Possible cause:"));
+    assert!(hinted_output.contains("Possible cause:"));
+    assert!(hinted_output.contains("Suggested fix:"));
+    assert!(hinted_output.starts_with("Result  : Non-conformant\nRules   : "));
+}
+
+#[test]
 fn unimplemented_profiles_are_not_cli_choices() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");

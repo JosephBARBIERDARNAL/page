@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
 use page_validation::{
-    FailureCategory as RustFailureCategory, PageError as RustPageError,
-    SafetyLimits as RustSafetyLimits, ValidationCheckCounts as RustValidationCheckCounts,
-    ValidationCounts as RustValidationCounts, ValidationErrorKind as RustValidationErrorKind,
-    ValidationFailure as RustValidationFailure, ValidationProfile as RustValidationProfile,
-    ValidationReport as RustValidationReport,
+    FailureCategory as RustFailureCategory, FailureGuidance as RustFailureGuidance,
+    PageError as RustPageError, SafetyLimits as RustSafetyLimits,
+    ValidationCheckCounts as RustValidationCheckCounts, ValidationCounts as RustValidationCounts,
+    ValidationErrorKind as RustValidationErrorKind, ValidationFailure as RustValidationFailure,
+    ValidationProfile as RustValidationProfile, ValidationReport as RustValidationReport,
 };
 use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
@@ -243,6 +243,31 @@ struct ValidationFailure {
     inner: RustValidationFailure,
 }
 
+#[pyclass(name = "FailureGuidance", frozen, from_py_object)]
+#[derive(Clone)]
+struct FailureGuidance {
+    inner: RustFailureGuidance,
+}
+
+impl From<RustFailureGuidance> for FailureGuidance {
+    fn from(inner: RustFailureGuidance) -> Self {
+        Self { inner }
+    }
+}
+
+#[pymethods]
+impl FailureGuidance {
+    #[getter]
+    fn possible_cause(&self) -> &str {
+        &self.inner.possible_cause
+    }
+
+    #[getter]
+    fn suggested_fix(&self) -> &str {
+        &self.inner.suggested_fix
+    }
+}
+
 impl From<RustValidationFailure> for ValidationFailure {
     fn from(inner: RustValidationFailure) -> Self {
         Self { inner }
@@ -274,6 +299,11 @@ impl ValidationFailure {
             }
         };
         python_enum_value(py, "FailureCategory", value)
+    }
+
+    #[getter]
+    fn guidance(&self) -> Option<FailureGuidance> {
+        self.inner.guidance.clone().map(Into::into)
     }
 
     fn __repr__(&self) -> String {
@@ -554,6 +584,7 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("SafetyLimitError", py.get_type::<SafetyLimitError>())?;
     module.add("ProfileError", py.get_type::<ProfileError>())?;
     module.add_class::<SafetyLimits>()?;
+    module.add_class::<FailureGuidance>()?;
     module.add_class::<ValidationFailure>()?;
     module.add_class::<ValidationCounts>()?;
     module.add_class::<ValidationCheckCounts>()?;

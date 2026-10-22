@@ -1,5 +1,6 @@
 ## Dev
 
+- **Feat**: Add possible causes and suggested fixes to validation failures and expose them in JSON, language bindings, and detailed CLI output [#33](https://github.com/JosephBARBIERDARNAL/page/issues/33)
 - **Refactor**: Emit ISO rule identifiers directly from validation checks and remove the local rule-ID mapping table
 - **Doc**: Attribute ISO clause identifiers sourced from the veraPDF validation profiles
 - **Fix**: Assign ISO clause identifiers to previously uncovered PDF/A checks

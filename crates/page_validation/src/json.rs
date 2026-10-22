@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
 use crate::{
-    FailureCategory, PageError, ValidationCheckCounts, ValidationCounts, ValidationProfile,
-    ValidationReport,
+    FailureCategory, FailureGuidance, PageError, ValidationCheckCounts, ValidationCounts,
+    ValidationProfile, ValidationReport,
 };
 
 /// Stable, serializable and deserializable representation of a validation report.
@@ -34,6 +34,8 @@ pub struct JsonFailure {
     pub rule_id: String,
     pub message: String,
     pub category: FailureCategory,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guidance: Option<FailureGuidance>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -118,6 +120,7 @@ impl ValidationReport {
                 rule_id: failure.rule_id.clone(),
                 message: failure.message.clone(),
                 category: failure.category,
+                guidance: failure.guidance.clone(),
             })
             .collect();
 
@@ -140,8 +143,8 @@ impl ValidationReport {
 mod tests {
     use super::{JsonErrorKind, JsonValidationReport};
     use crate::{
-        FailureCategory, PageError, PdfError, ValidationCheckCounts, ValidationCounts,
-        ValidationFailure, ValidationProfile, ValidationReport,
+        FailureCategory, FailureGuidance, PageError, PdfError, ValidationCheckCounts,
+        ValidationCounts, ValidationFailure, ValidationProfile, ValidationReport,
     };
 
     #[test]
@@ -161,6 +164,10 @@ mod tests {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
                 category: FailureCategory::Metadata,
+                guidance: Some(FailureGuidance {
+                    possible_cause: "cause".to_owned(),
+                    suggested_fix: "fix".to_owned(),
+                }),
             }],
         };
 
@@ -175,6 +182,8 @@ mod tests {
         assert_eq!(value["checks"]["failed"], 1);
         assert_eq!(value["failures"][0]["rule_id"], "RULE-001");
         assert_eq!(value["failures"][0]["category"], "metadata");
+        assert_eq!(value["failures"][0]["guidance"]["possible_cause"], "cause");
+        assert_eq!(value["failures"][0]["guidance"]["suggested_fix"], "fix");
         assert!(value["failures"][0].get("object_id").is_none());
         assert!(value.get("error").is_none());
         assert!(value.get("file").is_none());

@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::guidance::FailureGuidance;
 use crate::model::{PdfDocument, PdfObjectId};
 use crate::validation::ValidationProfile;
 
@@ -56,7 +57,7 @@ impl fmt::Display for FailureCategory {
 
 /// One recorded metadata or conformance problem in a `ValidationReport`.
 ///
-/// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
+/// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. `guidance` provides a possible cause and suggested fix when the rule is recognized. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
 /// Text formatting produces `[rule_id] Category: message`.
 ///
@@ -74,6 +75,8 @@ pub struct ValidationFailure {
     pub rule_id: String,
     pub message: String,
     pub category: FailureCategory,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guidance: Option<FailureGuidance>,
 }
 
 impl fmt::Display for ValidationFailure {
@@ -220,6 +223,7 @@ mod tests {
             rule_id: "ISO 19005-1:2005:6.7.11:1".to_owned(),
             message: "XMP does not contain the PDF/A Identification schema".to_owned(),
             category: FailureCategory::Metadata,
+            guidance: None,
         };
         assert_eq!(
             failure.to_string(),
@@ -235,6 +239,7 @@ mod tests {
             rule_id: "ISO 19005-1:2005:6.7.2:1".to_owned(),
             message: "Catalog metadata is invalid".to_owned(),
             category: FailureCategory::Conformance,
+            guidance: None,
         });
 
         assert!(
