@@ -4,7 +4,6 @@ A modern PDF checker for accessibility and archival conformance that is <ins>acc
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
-- [Usage](#quick-start)
 
 `page` is a new, independent **validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isartor test suite. It's an [**order of magnitude faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
 
