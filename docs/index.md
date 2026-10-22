@@ -58,7 +58,7 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 
     ***
 
-    `page` is an [order of magnitude faster than veraPDF](benchmark.md).
+    `page` is an [order of magnitude faster](benchmark.md) than veraPDF.
 
 - :material-package-variant-closed: **Lightweight**
 
