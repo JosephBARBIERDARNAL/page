@@ -1351,34 +1351,27 @@
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Time    : 0.005s
 </span></code></pre></div>
 <p><br></p>
-<p>Add <code>--format details</code> to emit details about the failure:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--format<span class="w"> </span>details
+<p>Add <code>--format details</code> to emit each failure's message, possible cause, and suggested fix when guidance is available. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>1b<span class="w"> </span>--format<span class="w"> </span>details
 </span></code></pre></div>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Result  : Non-conformant
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Rules   : 11 failed rules / 134 total
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Checks  : 24 failed checks
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Profile : PDF/A-1b
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Time    : 0.007s
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>[ISO 19005-1:2005:6.1.2:2] Conformance: [.........]
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>[ISO 19005-1:2005:6.1.6:2] Conformance: [.........]
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>[ISO 19005-1:2005:6.7.11:1] Metadata: [.........]
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>[ISO 19005-1:2005:6.7.3:3] Metadata: [.........]
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>[ISO 19005-1:2005:6.7.3:6] Metadata: [.........]
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>[ISO 19005-1:2005:6.7.3:5] Metadata: [.........]
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>[ISO 19005-1:2005:6.7.3:7] Metadata: [.........]
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>[ISO 19005-1:2005:6.7.3:4] Metadata: [.........]
-</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>[ISO 19005-1:2005:6.7.3:2] Metadata: [.........]
-</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>[ISO 19005-1:2005:6.7.2:1] Metadata: [.........]
-</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>[ISO 19005-1:2005:6.1.3:1] Conformance: [.........]
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Rules   : 2 failed rules / 134 total
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Profile : PDF/A-1b
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Time    : 0.017s
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>[ISO 19005-1:2005:6.2.3.2:1]
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  Possible cause: A page graphic uses a color space, image feature, or output intent that PDF/A-1 does not permit.
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  Suggested fix: Convert graphics to permitted color spaces and add a valid output intent.
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>[ISO 19005-1:2005:6.7.11:1]
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  Metadata: XMP does not contain the PDF/A Identification schema
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  Possible cause: XMP is missing, malformed, or inconsistent with the Info dictionary.
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>  Suggested fix: Correct required XMP properties and synchronize matching Info values.
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>[ . . . . . . . . . ] are just placeholders for the actual messages</p>
-</div>
 <p><br></p>
 <p>Or use <code>--format json</code> to emit the details as JSON:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--format<span class="w"> </span>json
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--profile<span class="w"> </span>1b<span class="w"> </span>--format<span class="w"> </span>json
 </span></code></pre></div>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"document.pdf"</span><span class="p">,</span>
@@ -1389,22 +1382,27 @@
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">"passed"</span><span class="p">:</span><span class="w"> </span><span class="mi">132</span><span class="p">,</span>
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">"failed"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span><span class="nt">"checks"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">"failed"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">  </span><span class="nt">"failures"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">      </span><span class="nt">"rule_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO 19005-1:2005:6.2.3.2:1"</span><span class="p">,</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">      </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2"</span><span class="p">,</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="nt">"category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"conformance"</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="p">},</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">      </span><span class="nt">"rule_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO 19005-1:2005:6.7.11:1"</span><span class="p">,</span>
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">      </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XMP does not contain the PDF/A Identification schema"</span><span class="p">,</span>
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">      </span><span class="nt">"category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"metadata"</span>
-</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="w">  </span><span class="p">]</span>
-</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="p">}</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span><span class="nt">"failures"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">      </span><span class="nt">"rule_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO 19005-1:2005:6.2.3.2:1"</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">      </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2"</span><span class="p">,</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">      </span><span class="nt">"category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"conformance"</span><span class="p">,</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">      </span><span class="nt">"guidance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">        </span><span class="nt">"possible_cause"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A page graphic uses a color space, image feature, or output intent that PDF/A-1 does not permit."</span><span class="p">,</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">        </span><span class="nt">"suggested_fix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Convert graphics to permitted color spaces and add a valid output intent."</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">      </span><span class="p">}</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">      </span><span class="nt">"rule_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO 19005-1:2005:6.7.11:1"</span><span class="p">,</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">      </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XMP does not contain the PDF/A Identification schema"</span><span class="p">,</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">      </span><span class="nt">"category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"metadata"</span><span class="p">,</span>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="w">      </span><span class="nt">"guidance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="w">        </span><span class="nt">"possible_cause"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XMP is missing, malformed, or inconsistent with the Info dictionary."</span><span class="p">,</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="w">        </span><span class="nt">"suggested_fix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Correct required XMP properties and synchronize matching Info values."</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="w">      </span><span class="p">}</span>
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><br></p>
 <p>Write the report to a file with <code>--output</code>. A <code>.json</code> extension selects JSON automatically; use <code>--format details</code> for a detailed text report:</p>
@@ -1413,7 +1411,6 @@
 </span></code></pre></div>
 <p>Explicit formats that conflict with <code>.json</code> or <code>.txt</code> are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.</p>
 <h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
-<p>The <code>page</code> exit codes are a stable CLI contract:</p>
 <table>
 <thead>
 <tr>
@@ -1436,7 +1433,6 @@
 </tr>
 </tbody>
 </table>
-<p>CLI usage errors such as an invalid <code>--profile</code> value use code <code>1</code>, so they remain distinct from validation failures and PDF parser errors.</p>
 <h2 id="safety-limits">Safety limits<a class="headerlink" href="#safety-limits" title="Permanent link">&para;</a></h2>
 <p>The CLI exposes every <code>SafetyLimits</code> bound. Defaults are suitable for most documents and can be overridden per invocation:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>page<span class="w"> </span>document.pdf<span class="w"> </span>--max-table-span<span class="w"> </span><span class="m">256</span><span class="w"> </span>--max-table-grid-cells<span class="w"> </span><span class="m">250000</span>
