@@ -39,34 +39,29 @@ Profile : PDF/UA-1
 Time    : 0.052s
 ```
 
-- Find reasons for non-conformance with `--format details`
+- Find reasons for non-conformance with `--format details`, which includes a possible cause and suggested fix for recognized rules.
 
 ```console
 $ page document.pdf --profile ua1 --format details
 Result  : Non-conformant
-Rules   : 11 failed rules / 134 total
-Checks  : 24 failed checks
+Rules   : 3 failed rules / 104 total
+Checks  : 3 failed checks
 Profile : PDF/UA-1
-Time    : 0.147s
+Time    : 0.017s
 
-[ISO 14289-1:2014:7.2:22] [.........]
-[ISO 14289-1:2014:7.1:3] [.........]
-[ISO 14289-1:2014:7.3:1] [.........]
-[ISO 14289-1:2014:7.4.2:1] [.........]
-[ISO 14289-1:2014:5:2] [.........]
-[ISO 14289-1:2014:5:1] [.........]
-[ISO 14289-1:2014:7.18.5:2] [.........]
-[ISO 14289-1:2014:7.1:9] [.........]
-[ISO 14289-1:2014:7.2:30] [.........]
-[ISO 14289-1:2014:7.2:41] [.........]
-[ISO 14289-1:2014:7.5:1] [.........]
-[ISO 14289-1:2014:7.2:42] [.........]
-[ISO 14289-1:2014:6.2:1] [.........]
-[ISO 14289-1:2014:7.2:34] [.........]
+[ISO 14289-1:2014:5:1]
+  Metadata: XMP does not contain the PDF/UA Identification schema
+  Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
+  Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
+
+[ISO 14289-1:2014:5:2]
+  Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
+  Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
+  Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
 ```
 
 > [!NOTE]
-> `[.........]` here are just placeholders for the actual messages
+> This example shows two of the three failures. In an interactive terminal, the labels before the colons are bold.
 
 `page` can also be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [JavaScript](https://josephbarbierdarnal.github.io/page/api/javascript/).
 

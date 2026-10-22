@@ -34,42 +34,35 @@ Time    : 0.005s
 
 <br>
 
-Add `--format details` to emit details about the failure:
+Add `--format details` to emit each failure's message, possible cause, and suggested fix when guidance is available. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
 
 ```sh
-page document.pdf --format details
+page document.pdf --profile 1b --format details
 ```
 
 ```
 Result  : Non-conformant
-Rules   : 11 failed rules / 134 total
-Checks  : 24 failed checks
+Rules   : 2 failed rules / 134 total
 Profile : PDF/A-1b
-Time    : 0.007s
+Time    : 0.017s
 
-[ISO 19005-1:2005:6.1.2:2] Conformance: [.........]
-[ISO 19005-1:2005:6.1.6:2] Conformance: [.........]
-[ISO 19005-1:2005:6.7.11:1] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:3] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:6] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:5] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:7] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:4] Metadata: [.........]
-[ISO 19005-1:2005:6.7.3:2] Metadata: [.........]
-[ISO 19005-1:2005:6.7.2:1] Metadata: [.........]
-[ISO 19005-1:2005:6.1.3:1] Conformance: [.........]
+[ISO 19005-1:2005:6.2.3.2:1]
+  Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+  Possible cause: A page graphic uses a color space, image feature, or output intent that PDF/A-1 does not permit.
+  Suggested fix: Convert graphics to permitted color spaces and add a valid output intent.
+
+[ISO 19005-1:2005:6.7.11:1]
+  Metadata: XMP does not contain the PDF/A Identification schema
+  Possible cause: XMP is missing, malformed, or inconsistent with the Info dictionary.
+  Suggested fix: Correct required XMP properties and synchronize matching Info values.
 ```
-
-!!! note
-
-      [ . . . . . . . . . ] are just placeholders for the actual messages
 
 <br>
 
 Or use `--format json` to emit the details as JSON:
 
 ```sh
-page document.pdf --format json
+page document.pdf --profile 1b --format json
 ```
 
 ```json
@@ -82,19 +75,24 @@ page document.pdf --format json
     "passed": 132,
     "failed": 2
   },
-  "checks": {
-    "failed": 3
-  },
   "failures": [
     {
       "rule_id": "ISO 19005-1:2005:6.2.3.2:1",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
-      "category": "conformance"
+      "category": "conformance",
+      "guidance": {
+        "possible_cause": "A page graphic uses a color space, image feature, or output intent that PDF/A-1 does not permit.",
+        "suggested_fix": "Convert graphics to permitted color spaces and add a valid output intent."
+      }
     },
     {
       "rule_id": "ISO 19005-1:2005:6.7.11:1",
       "message": "XMP does not contain the PDF/A Identification schema",
-      "category": "metadata"
+      "category": "metadata",
+      "guidance": {
+        "possible_cause": "XMP is missing, malformed, or inconsistent with the Info dictionary.",
+        "suggested_fix": "Correct required XMP properties and synchronize matching Info values."
+      }
     }
   ]
 }
