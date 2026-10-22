@@ -26,3 +26,7 @@ index.html
 
 *.tgz
 vera_explanations.csv
+
+# https://pdfa.org/new-large-scale-pdf-corpus-now-publicly-available/
+*.zip
+digitalcorpora_safedocs_zip_urls.csv
