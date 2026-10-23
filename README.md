@@ -1,12 +1,32 @@
 # page
 
-A fast PDF accessibility and conformance checker.
+A modern PDF checker for accessibility and archival conformance that is <ins>accurate</ins>, *user-friendly*, and `fast`, written in Rust.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
-- [Usage](#quick-start)
 
-`page` is a new, independent **Rust-based validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isartor test suite. It's between [**3x to 12x faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
+`page` is a new, independent **validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isartor test suite. It's an [**order of magnitude faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
+
+```console
+$ page document.pdf --profile ua1 --format details
+Result  : Non-conformant
+Rules   : 2 failed rules / 104 total
+Profile : PDF/UA-1
+Time    : 0.017s
+
+[ISO 14289-1:2014:5:1]
+  Metadata: XMP does not contain the PDF/UA Identification schema
+  Possible cause: The PDF/UA identification metadata is absent/malformed/inconsistent
+  Suggested fix: Correct the PDF/UA identification properties in the XMP metadata
+
+[ISO 14289-1:2014:6.2:1]
+  Conformance: the document catalog MarkInfo dictionary must contain boolean /Marked true
+  Possible cause: The catalog does not clearly mark the file as a tagged PDF.
+  Suggested fix: Enable tagged PDF output and set MarkInfo/Marked to true.
+```
+
+> [!TIP]
+> `page` can be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [JavaScript](https://josephbarbierdarnal.github.io/page/api/javascript/).
 
 <br>
 
@@ -25,44 +45,6 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/pag
 ```powershell
 powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.11.0/page_cli-installer.ps1 | iex"
 ```
-
-<br>
-
-## Quick start
-
-- Check accessibility (PDF/UA-1) compliance:
-
-```console
-$ page document.pdf --profile ua1
-Result  : Non-conformant
-Profile : PDF/UA-1
-Time    : 0.052s
-```
-
-- Find reasons for non-conformance with `--format details`, which includes a possible cause and suggested fix for recognized rules.
-
-```console
-$ page document.pdf --profile ua1 --format details
-Result  : Non-conformant
-Rules   : 3 failed rules / 104 total
-Profile : PDF/UA-1
-Time    : 0.017s
-
-[ISO 14289-1:2014:5:1]
-  Metadata: XMP does not contain the PDF/UA Identification schema
-  Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
-  Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
-
-[ISO 14289-1:2014:5:2]
-  Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
-  Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
-  Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
-```
-
-> [!NOTE]
-> This example shows two of the three failures. In an interactive terminal, the labels before the colons are bold.
-
-`page` can also be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [JavaScript](https://josephbarbierdarnal.github.io/page/api/javascript/).
 
 <br>
 

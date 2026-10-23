@@ -19,13 +19,12 @@ Internally, `page` has a [lazy mode](../guide/lazy-validation.md), which lets us
 There are multiple projects that attempt to provide a PDF validator, but only one is:
 
 - open source
-- based on ISO standards
 - cross-platform
 - non-commercial
 
 This project is [veraPDF](https://verapdf.org/). It is, by far, the **best option available** out there. Other options such as [PAC](https://pac.pdf-accessibility.org/en) or [Adobe Acrobat](https://www.adobe.com/) meet only a subset of those criteria.
 
-`veraPDF` supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a <span class="pretty-highlight">very complicated task</span>. You can understand why that is and how `veraPDF` does it in this great [blog post](https://pdfa.org/how-verapdf-does-pdfa-validation/).
+`veraPDF` supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a very complicated task. You can understand why that is and how `veraPDF` does it in this great [blog post](https://pdfa.org/how-verapdf-does-pdfa-validation/).
 
 `page` relies heavily on `veraPDF` as the source of truth when determining whether its results are correct.
 
