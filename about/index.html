@@ -941,12 +941,11 @@
 <p>There are multiple projects that attempt to provide a PDF validator, but only one is:</p>
 <ul>
 <li>open source</li>
-<li>based on ISO standards</li>
 <li>cross-platform</li>
 <li>non-commercial</li>
 </ul>
 <p>This project is <a href="https://verapdf.org/">veraPDF</a>. It is, by far, the <strong>best option available</strong> out there. Other options such as <a href="https://pac.pdf-accessibility.org/en">PAC</a> or <a href="https://www.adobe.com/">Adobe Acrobat</a> meet only a subset of those criteria.</p>
-<p><code>veraPDF</code> supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a <span class="pretty-highlight">very complicated task</span>. You can understand why that is and how <code>veraPDF</code> does it in this great <a href="https://pdfa.org/how-verapdf-does-pdfa-validation/">blog post</a>.</p>
+<p><code>veraPDF</code> supports validation of all PDF/A (long-term archiving) and PDF/UA (universal accessibility) formats. It might not seem so, but this is a very complicated task. You can understand why that is and how <code>veraPDF</code> does it in this great <a href="https://pdfa.org/how-verapdf-does-pdfa-validation/">blog post</a>.</p>
 <p><code>page</code> relies heavily on <code>veraPDF</code> as the source of truth when determining whether its results are correct.</p>
 <h2 id="why-are-there-multiple-pdf-formats">Why are there multiple PDF formats?<a class="headerlink" href="#why-are-there-multiple-pdf-formats" title="Permanent link">&para;</a></h2>
 <p>The PDF specification is intentionally broad: it supports features ranging from interactive forms and multimedia to encryption, JavaScript, and digital signatures. This flexibility makes PDF suitable for many use cases, but it also makes it impossible to guarantee that every PDF will behave consistently across all software and over long periods of time.</p>
