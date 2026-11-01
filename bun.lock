@@ -7,7 +7,7 @@
     },
     "crates/page_wasm": {
       "name": "page-validation-wasm",
-      "version": "0.12.0",
+      "version": "0.12.1",
       "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@types/node": "24.10.1",

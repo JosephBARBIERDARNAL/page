@@ -1,3 +1,7 @@
+## 0.12.1
+
+- **Fix**: Release issue
+
 ## 0.12.0
 
 - **Fix**: Match validation guidance to exact ISO test identifiers
