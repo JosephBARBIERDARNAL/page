@@ -1,4 +1,4 @@
-## Dev
+## 0.12.0
 
 - **Fix**: Match validation guidance to exact ISO test identifiers
 - **Feat**: Add possible causes and suggested fixes to validation failures and expose them in JSON, language bindings, and detailed CLI output [#33](https://github.com/JosephBARBIERDARNAL/page/issues/33)
