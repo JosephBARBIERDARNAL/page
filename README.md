@@ -1,9 +1,10 @@
 # page
 
-A modern PDF checker for accessibility and archival conformance that is <ins>accurate</ins>, *user-friendly*, and `fast`, written in Rust.
+A modern PDF accessibility and archival conformance checker that is <ins>accurate</ins>, *user-friendly*, and `fast`.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
+- [veraPDF compatibility](#verapdf-compatibility)
 
 `page` is a new, independent **validator for PDF documents**, including PDF/UA (accessibility) and PDF/A (archiving). It passes the veraPDF corpus test suite, as well as the Isartor test suite. It's an [**order of magnitude faster**](https://josephbarbierdarnal.github.io/page/benchmark/) than veraPDF with **zero runtime requirements**.
 
