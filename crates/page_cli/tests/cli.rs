@@ -383,10 +383,15 @@ fn details_format_prints_every_failed_rule_with_spacing() {
             .profile(page_validation::ValidationProfile::PdfA1b),
     )
     .expect("structural fixture should produce a report");
-    let expected_rule_headers: Vec<_> = report
+    let expected_failure_lines: Vec<_> = report
         .failures
         .iter()
-        .map(|failure| format!("[{}]", failure.rule_id))
+        .map(|failure| {
+            format!(
+                "[{}] {}: {}",
+                failure.rule_id, failure.category, failure.message,
+            )
+        })
         .collect();
     let detailed_failures: Vec<_> = details
         .lines()
@@ -394,7 +399,7 @@ fn details_format_prints_every_failed_rule_with_spacing() {
         .collect();
     assert_eq!(
         detailed_failures,
-        expected_rule_headers
+        expected_failure_lines
             .iter()
             .map(String::as_str)
             .collect::<Vec<_>>()
@@ -404,13 +409,6 @@ fn details_format_prints_every_failed_rule_with_spacing() {
         .filter(|block| block.starts_with("[ISO "))
         .collect();
     assert_eq!(failure_blocks.len(), report.failures.len());
-    for (failure, block) in report.failures.iter().zip(failure_blocks) {
-        let expected = format!(
-            "[{}]\n  {}: {}",
-            failure.rule_id, failure.category, failure.message,
-        );
-        assert_eq!(block.trim_end(), expected);
-    }
 }
 
 #[test]

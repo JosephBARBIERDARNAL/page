@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Keep detailed CLI failure descriptions on the ISO rule ID line
 - **Refactor**: Remove possible causes and suggested fixes from core Rust reports, CLI output, JSON, and Python and JavaScript bindings
 
 ## 0.12.2

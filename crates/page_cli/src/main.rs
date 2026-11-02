@@ -235,12 +235,10 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         if index > 0 {
             output.push('\n');
         }
-        writeln!(output, "[{rule}{}{rule:#}]", failure.rule_id)
-            .expect("writing to a String cannot fail");
         writeln!(
             output,
-            "  {label}{}{label:#}: {}",
-            failure.category, failure.message
+            "[{rule}{}{rule:#}] {label}{}{label:#}: {}",
+            failure.rule_id, failure.category, failure.message
         )
         .expect("writing to a String cannot fail");
     }
@@ -574,10 +572,9 @@ mod tests {
         let rule = selected_style(true, FAILURE);
         let label = selected_style(true, LABEL);
 
-        assert!(details.contains(&format!("[{rule}{}{rule:#}]", failure.rule_id)));
         assert!(details.contains(&format!(
-            "  {label}{}{label:#}: {}",
-            failure.category, failure.message,
+            "[{rule}{}{rule:#}] {label}{}{label:#}: {}",
+            failure.rule_id, failure.category, failure.message,
         )));
     }
 }
