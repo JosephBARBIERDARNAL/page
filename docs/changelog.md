@@ -1,3 +1,7 @@
+## Dev
+
+- **Chore**: Preflight CLI and package artifacts before tagging a release [#620](https://github.com/JosephBARBIERDARNAL/page/issues/620)
+
 ## 0.12.1
 
 - **Fix**: Release issue
