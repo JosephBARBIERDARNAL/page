@@ -1,4 +1,4 @@
-name: Python | Release to PyPI
+name: Python release
 
 on:
   push:

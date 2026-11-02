@@ -1,0 +1,37 @@
+name: Publish WASM
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npmjs
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+
+      - uses: extractions/setup-just@v3
+
+      - name: Build WASM package
+        run: just wasm-build
+
+      - name: Publish to npm
+        working-directory: crates/page_wasm
+        run: npm publish --provenance --access public
