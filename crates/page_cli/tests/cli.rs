@@ -344,7 +344,7 @@ fn color_flag_preserves_plain_human_output() {
 }
 
 #[test]
-fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
+fn details_format_prints_every_failed_rule_with_spacing() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let details = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -404,15 +404,12 @@ fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
         .filter(|block| block.starts_with("[ISO "))
         .collect();
     assert_eq!(failure_blocks.len(), report.failures.len());
-    for failure in &report.failures {
-        let block = format!(
+    for (failure, block) in report.failures.iter().zip(failure_blocks) {
+        let expected = format!(
             "[{}]\n  {}: {}",
             failure.rule_id, failure.category, failure.message,
         );
-        assert!(details.contains(&block));
-        let guidance = failure.guidance.as_ref().expect("rule guidance");
-        assert!(details.contains(&format!("  Possible cause: {}", guidance.possible_cause)));
-        assert!(details.contains(&format!("  Suggested fix: {}", guidance.suggested_fix)));
+        assert_eq!(block.trim_end(), expected);
     }
 }
 

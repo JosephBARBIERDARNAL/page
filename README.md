@@ -17,13 +17,9 @@ Time    : 0.017s
 
 [ISO 14289-1:2014:5:1]
   Metadata: XMP does not contain the PDF/UA Identification schema
-  Possible cause: The PDF/UA identification metadata is absent/malformed/inconsistent
-  Suggested fix: Correct the PDF/UA identification properties in the XMP metadata
 
 [ISO 14289-1:2014:6.2:1]
   Conformance: the document catalog MarkInfo dictionary must contain boolean /Marked true
-  Possible cause: The catalog does not clearly mark the file as a tagged PDF.
-  Suggested fix: Enable tagged PDF output and set MarkInfo/Marked to true.
 ```
 
 > [!TIP]

@@ -41,7 +41,7 @@ struct Cli {
     #[arg(long, value_name = "PROFILE", value_parser = profile_parser())]
     profile: Option<ValidationProfile>,
 
-    /// Select summary, detailed findings with guidance, or JSON output.
+    /// Select summary, detailed findings, or JSON output.
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
@@ -243,20 +243,6 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             failure.category, failure.message
         )
         .expect("writing to a String cannot fail");
-        if let Some(guidance) = &failure.guidance {
-            writeln!(
-                output,
-                "  {label}Possible cause{label:#}: {}",
-                guidance.possible_cause
-            )
-            .expect("writing to a String cannot fail");
-            writeln!(
-                output,
-                "  {label}Suggested fix{label:#}: {}",
-                guidance.suggested_fix
-            )
-            .expect("writing to a String cannot fail");
-        }
     }
     output
 }
@@ -592,15 +578,6 @@ mod tests {
         assert!(details.contains(&format!(
             "  {label}{}{label:#}: {}",
             failure.category, failure.message,
-        )));
-        let guidance = failure.guidance.as_ref().expect("mapped rule guidance");
-        assert!(details.contains(&format!(
-            "  {label}Possible cause{label:#}: {}",
-            guidance.possible_cause,
-        )));
-        assert!(details.contains(&format!(
-            "  {label}Suggested fix{label:#}: {}",
-            guidance.suggested_fix,
         )));
     }
 }

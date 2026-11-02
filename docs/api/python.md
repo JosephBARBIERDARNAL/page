@@ -122,12 +122,7 @@ for failure in report.failures:
     print(f"Rule: {failure.rule_id}")
     print(f"Category: {failure.category}")
     print(f"Message: {failure.message}")
-    if failure.guidance is not None:
-        print(f"Possible cause: {failure.guidance.possible_cause}")
-        print(f"Suggested fix: {failure.guidance.suggested_fix}")
 ```
-
-`failure.guidance` is `None` when the rule has no built-in guidance; otherwise, it provides a possible cause and suggested fix.
 
 `report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
@@ -201,4 +196,4 @@ print(report_data["is_compliant"])
 print(report_data["failures"])
 ```
 
-Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`). When guidance is available, it also includes a `guidance` object with `possible_cause` and `suggested_fix` strings.
+Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`).

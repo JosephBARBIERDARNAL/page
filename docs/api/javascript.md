@@ -110,14 +110,8 @@ for (const failure of report.failures) {
   console.log(`Rule: ${failure.ruleId}`);
   console.log(`Category: ${failure.category}`);
   console.log(`Message: ${failure.message}`);
-  if (failure.guidance !== null) {
-    console.log(`Possible cause: ${failure.guidance.possibleCause}`);
-    console.log(`Suggested fix: ${failure.guidance.suggestedFix}`);
-  }
 }
 ```
-
-`failure.guidance` is `null` when no built-in guidance is available; otherwise, it provides a possible cause and suggested fix.
 
 `report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
@@ -193,4 +187,4 @@ console.log(reportData.is_compliant);
 console.log(reportData.failures);
 ```
 
-Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`). When guidance is available, it also includes a `guidance` object with `possible_cause` and `suggested_fix` strings. The JavaScript report object uses `possibleCause` and `suggestedFix` instead.
+Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`).
