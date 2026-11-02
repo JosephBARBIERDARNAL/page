@@ -1,6 +1,6 @@
 # page
 
-A modern PDF accessibility and archival conformance checker that is <ins>accurate</ins>, *user-friendly*, and `fast`.
+A modern PDF accessibility and archival conformance checker that is <ins>accurate</ins>, _user-friendly_, and `fast`.
 
 - [Documentation](https://josephbarbierdarnal.github.io/page/)
 - [Installation](#installation)
@@ -38,13 +38,13 @@ Time    : 0.017s
 ### macOS/Linux
 
 ```sh
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.12.1/page_cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.12.2/page_cli-installer.sh | sh
 ```
 
 ### PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.12.1/page_cli-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.12.2/page_cli-installer.ps1 | iex"
 ```
 
 <br>
