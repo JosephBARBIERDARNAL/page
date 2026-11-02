@@ -189,17 +189,13 @@ def test_validation_and_compliance_apis_return_expected_values():
     assert report.failures
     assert isinstance(report.profile, page.ValidationProfile)
     assert isinstance(report.failures[0].category, page.FailureCategory)
-    assert isinstance(report.failures[0].guidance, page.FailureGuidance)
-    assert report.failures[0].guidance.possible_cause
-    assert report.failures[0].guidance.suggested_fix
-    assert isinstance(report.failures[0].guidance.possible_cause, str)
+    assert not hasattr(report.failures[0], "guidance")
+    assert not hasattr(page, "FailureGuidance")
     assert not hasattr(report.failures[0], "object_id")
     json_report = json.loads(report.to_json())
     assert "object_id" not in json_report["failures"][0]
     assert "checks" not in json_report
-    json_guidance = json_report["failures"][0]["guidance"]
-    assert json_guidance["possible_cause"] == report.failures[0].guidance.possible_cause
-    assert json_guidance["suggested_fix"] == report.failures[0].guidance.suggested_fix
+    assert "guidance" not in json_report["failures"][0]
     assert isinstance(report.document, page.PdfDocument)
     assert report.document.version == "1.4"
     assert report.document.encrypted is False

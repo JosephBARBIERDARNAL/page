@@ -188,24 +188,12 @@ export interface ValidationFailure {
   ruleId: string;
   message: string;
   category: "metadata" | "conformance";
-  guidance: FailureGuidance | null;
-}
-
-export interface FailureGuidance {
-  possibleCause: string;
-  suggestedFix: string;
-}
-
-export interface JsonFailureGuidance {
-  possible_cause: string;
-  suggested_fix: string;
 }
 
 export interface JsonFailure {
   rule_id: string;
   message: string;
   category: "metadata" | "conformance";
-  guidance?: JsonFailureGuidance;
 }
 
 export interface ValidationCounts {
@@ -252,12 +240,6 @@ export class ValidationReport {
       ruleId: failure.rule_id,
       message: failure.message,
       category: failure.category,
-      guidance: failure.guidance
-        ? {
-            possibleCause: failure.guidance.possible_cause,
-            suggestedFix: failure.guidance.suggested_fix,
-          }
-        : null,
     }));
   }
 

@@ -160,20 +160,14 @@ describe("page-validation", () => {
     });
     expect(jsonReport).not.toHaveProperty("checks");
     expect(jsonReport.failures[0]).toHaveProperty("category");
-    expect(jsonReport.failures[0]?.guidance?.possible_cause).toBeTruthy();
-    expect(jsonReport.failures[0]?.guidance?.suggested_fix).toBeTruthy();
+    expect(jsonReport.failures[0]).not.toHaveProperty("guidance");
+    expect(report.failures[0]).not.toHaveProperty("guidance");
     expect(jsonReport.failures[0]).not.toHaveProperty("object_id");
     expect(report.failures).toEqual(
       jsonReport.failures.map((failure) => ({
         ruleId: failure.rule_id,
         message: failure.message,
         category: failure.category,
-        guidance: failure.guidance
-          ? {
-              possibleCause: failure.guidance.possible_cause,
-              suggestedFix: failure.guidance.suggested_fix,
-            }
-          : null,
       })),
     );
     expect(jsonReport).not.toHaveProperty("file");

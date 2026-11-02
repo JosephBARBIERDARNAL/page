@@ -15,7 +15,6 @@ use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::error::{PageError, PdfError};
-use crate::guidance::guidance_for_rule_id;
 use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
@@ -3763,7 +3762,6 @@ fn failure(
         .expect("every reported conformance finding has an ISO rule reference")
         .to_owned();
     ValidationFailure {
-        guidance: guidance_for_rule_id(&rule_id),
         rule_id,
         message: message.into(),
         category,

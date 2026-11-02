@@ -119,14 +119,8 @@ for failure in &report.failures {
     println!("Rule: {}", failure.rule_id);
     println!("Category: {:?}", failure.category);
     println!("Message: {}", failure.message);
-    if let Some(guidance) = &failure.guidance {
-        println!("Possible cause: {}", guidance.possible_cause);
-        println!("Suggested fix: {}", guidance.suggested_fix);
-    }
 }
 ```
-
-`failure.guidance` is optional and contains a possible cause and suggested fix when the rule is covered by the built-in guidance map.
 
 `report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
@@ -204,4 +198,4 @@ println!("{}", report_data.is_compliant);
 println!("{}", report_data.failures.len());
 ```
 
-Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`). When guidance is available, it also includes a `guidance` object with `possible_cause` and `suggested_fix` strings.
+Each JSON failure includes its rule ID, message, and `category` (`metadata` or `conformance`).

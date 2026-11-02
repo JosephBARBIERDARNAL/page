@@ -3,9 +3,7 @@ import { createApi } from "./api.js";
 
 export { SafetyLimits, PageError, ValidationProfile, ValidationReport } from "./api.js";
 export type {
-  FailureGuidance,
   JsonFailure,
-  JsonFailureGuidance,
   JsonValidationError,
   JsonValidationReport,
   SafetyLimitsOptions,

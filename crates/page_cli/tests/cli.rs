@@ -344,7 +344,7 @@ fn color_flag_preserves_plain_human_output() {
 }
 
 #[test]
-fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
+fn details_format_prints_every_failed_rule_with_spacing() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../page_validation/tests/fixtures/structural.pdf");
     let details = Command::new(env!("CARGO_BIN_EXE_page"))
@@ -383,10 +383,15 @@ fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
             .profile(page_validation::ValidationProfile::PdfA1b),
     )
     .expect("structural fixture should produce a report");
-    let expected_rule_headers: Vec<_> = report
+    let expected_failure_lines: Vec<_> = report
         .failures
         .iter()
-        .map(|failure| format!("[{}]", failure.rule_id))
+        .map(|failure| {
+            format!(
+                "[{}] {}: {}",
+                failure.rule_id, failure.category, failure.message,
+            )
+        })
         .collect();
     let detailed_failures: Vec<_> = details
         .lines()
@@ -394,7 +399,7 @@ fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
         .collect();
     assert_eq!(
         detailed_failures,
-        expected_rule_headers
+        expected_failure_lines
             .iter()
             .map(String::as_str)
             .collect::<Vec<_>>()
@@ -404,16 +409,6 @@ fn details_format_prints_every_failed_rule_with_guidance_and_spacing() {
         .filter(|block| block.starts_with("[ISO "))
         .collect();
     assert_eq!(failure_blocks.len(), report.failures.len());
-    for failure in &report.failures {
-        let block = format!(
-            "[{}]\n  {}: {}",
-            failure.rule_id, failure.category, failure.message,
-        );
-        assert!(details.contains(&block));
-        let guidance = failure.guidance.as_ref().expect("rule guidance");
-        assert!(details.contains(&format!("  Possible cause: {}", guidance.possible_cause)));
-        assert!(details.contains(&format!("  Suggested fix: {}", guidance.suggested_fix)));
-    }
 }
 
 #[test]

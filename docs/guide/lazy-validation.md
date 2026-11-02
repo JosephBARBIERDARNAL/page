@@ -24,13 +24,9 @@ For example:
 
     [ISO 14289-1:2014:5:1]
       Metadata: XMP does not contain the PDF/UA Identification schema
-      Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
-      Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
 
     [ISO 14289-1:2014:5:2]
       Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
-      Possible cause: The PDF/UA identification metadata is absent, malformed, or inconsistent with PDF/UA-1.
-      Suggested fix: Correct the PDF/UA identification properties in the exported XMP metadata.
     ```
 
     This example shows two of the three failures. In an interactive terminal, the labels before the colons are bold.
