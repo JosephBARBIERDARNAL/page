@@ -1,4 +1,4 @@
-## Dev
+## 0.12.2
 
 - **Chore**: Preflight CLI and package artifacts before tagging a release [#620](https://github.com/JosephBARBIERDARNAL/page/issues/620)
 
