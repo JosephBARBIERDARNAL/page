@@ -68,7 +68,9 @@ pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::PdfDocument;
 pub(crate) use model::PdfObjectId;
-pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
+pub use report::{
+    FailureCategory, FailureLocation, ValidationCounts, ValidationFailure, ValidationReport,
+};
 #[doc(hidden)]
 pub use validation::{ComplianceResult, validate_pdf_lazy};
 pub use validation::{

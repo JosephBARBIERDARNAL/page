@@ -2,6 +2,7 @@ from importlib.metadata import version
 
 from page._enums import FailureCategory, ValidationProfile
 from page._page import (
+    FailureLocation,
     PageError,
     ParseError,
     PdfDocument,
@@ -21,6 +22,7 @@ __version__ = version("page-validation")
 
 __all__ = [
     "FailureCategory",
+    "FailureLocation",
     "PageError",
     "ParseError",
     "PdfDocument",

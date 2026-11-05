@@ -5,11 +5,17 @@ import { createApi, SafetyLimits, PageError, ValidationProfile } from "../src/ap
 
 const { isPdfCompliantBytes, validatePdfBytes } = createApi(wasm);
 
-function minimalPdf(): Uint8Array {
+function minimalPdf(withPage = false): Uint8Array {
   const objects = [
     "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
     "2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n",
   ];
+  if (withPage) {
+    objects[1] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+    objects.push(
+      "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] /PresSteps <<>> >>\nendobj\n",
+    );
+  }
   let data = "%PDF-1.4\n";
   const offsets: number[] = [];
   for (const pdfObject of objects) {
@@ -17,15 +23,32 @@ function minimalPdf(): Uint8Array {
     data += pdfObject;
   }
   const xrefOffset = data.length;
-  data += "xref\n0 3\n0000000000 65535 f \n";
+  data += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   data += offsets
     .map((offset) => `${offset.toString().padStart(10, "0")} 00000 n \n`)
     .join("");
-  data += `trailer\n<< /Size 3 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  data += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   return new TextEncoder().encode(data);
 }
 
 describe("page-validation", () => {
+  it("reports page locations in the typed and JSON APIs", async () => {
+    const report = await validatePdfBytes(minimalPdf(true), {
+      profile: ValidationProfile.PDF_A_2B,
+    });
+    const failure = report.failures.find(
+      (failure) => failure.ruleId === "ISO 19005-2:2011:6.10:2",
+    );
+    expect(failure?.locations).toEqual([
+      { objectNumber: 3, generation: 0, pageNumbers: [1] },
+    ]);
+    const raw = report
+      .toJSON()
+      .failures.find((failure) => failure.rule_id === "ISO 19005-2:2011:6.10:2");
+    expect(raw?.locations).toEqual([
+      { object_number: 3, generation: 0, page_numbers: [1] },
+    ]);
+  });
   it("exposes only the camelCase API methods", () => {
     expect(Object.keys(createApi(wasm)).sort()).toEqual([
       "isPdfCompliantBytes",
@@ -168,6 +191,11 @@ describe("page-validation", () => {
         ruleId: failure.rule_id,
         message: failure.message,
         category: failure.category,
+        locations: failure.locations.map((location) => ({
+          objectNumber: location.object_number,
+          generation: location.generation,
+          pageNumbers: location.page_numbers,
+        })),
       })),
     );
     expect(jsonReport).not.toHaveProperty("file");

@@ -115,6 +115,8 @@ for (const failure of report.failures) {
 
 `report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
+Each failure's `locations` contains `FailureLocation` values with `objectNumber`, `generation`, and `pageNumbers`. Page numbers are one-based and are provided when the failing object is itself a page; other objects have an empty `pageNumbers` list. A failure with no known object has an empty `locations` list. Locations refer to all findings for the rule, while the message retains the first description. JSON uses `object_number`, `generation`, and `page_numbers`.
+
 Failure categories describe findings from rules that ran on a parsed document:
 
 ```ts

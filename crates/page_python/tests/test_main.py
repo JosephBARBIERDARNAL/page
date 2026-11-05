@@ -8,11 +8,16 @@ import page
 import pytest
 
 
-def minimal_pdf() -> bytes:
+def minimal_pdf(*, with_page: bool = False) -> bytes:
     objects = [
         b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
         b"2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n",
     ]
+    if with_page:
+        objects[1] = b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+        objects.append(
+            b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] /PresSteps <<>> >>\nendobj\n"
+        )
     data = b"%PDF-1.4\n"
     offsets = []
     for pdf_object in objects:
@@ -20,14 +25,37 @@ def minimal_pdf() -> bytes:
         data += pdf_object
 
     xref_offset = len(data)
-    data += b"xref\n0 3\n0000000000 65535 f \n"
+    data += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode()
     data += b"".join(f"{offset:010d} 00000 n \n".encode() for offset in offsets)
     data += (
-        b"trailer\n<< /Size 3 /Root 1 0 R >>\nstartxref\n"
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n".encode()
         + str(xref_offset).encode()
         + b"\n%%EOF\n"
     )
     return data
+
+
+def test_failure_locations_match_json_and_include_page_numbers():
+    report = page.validate_pdf_bytes(minimal_pdf(with_page=True), profile="2b")
+    failure = next(f for f in report.failures if f.rule_id == "ISO 19005-2:2011:6.10:2")
+    location = failure.locations[0]
+    assert isinstance(location, page.FailureLocation)
+    assert (location.object_number, location.generation, location.page_numbers) == (
+        3,
+        0,
+        [1],
+    )
+    for failure, raw in zip(
+        report.failures, json.loads(report.to_json())["failures"], strict=True
+    ):
+        assert [
+            {
+                "object_number": location.object_number,
+                "generation": location.generation,
+                "page_numbers": location.page_numbers,
+            }
+            for location in failure.locations
+        ] == raw["locations"]
 
 
 def test_version():

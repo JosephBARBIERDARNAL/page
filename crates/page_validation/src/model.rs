@@ -175,6 +175,8 @@ pub struct PdfDocument {
     pub(crate) catalog_reference: Option<PdfObjectId>,
     pub(crate) catalog_present: bool,
     pub page_count: usize,
+    #[serde(skip)]
+    pub(crate) page_numbers: BTreeMap<PdfObjectId, Vec<usize>>,
     pub(crate) trailer_keys: Vec<String>,
     pub(crate) trailer_id: Option<Vec<Vec<u8>>>,
     pub(crate) info: DocumentMetadata,
@@ -366,12 +368,23 @@ impl PdfDocument {
                 limits,
             )?)
         };
-        let normalized = Self::normalize(
+        let mut normalized = Self::normalize(
             &document,
             limits,
             pages.as_ref().map(Vec::len),
             include_font_summary,
         )?;
+        if let Some(pages) = &pages {
+            for (index, page) in pages.iter().enumerate() {
+                if let Some(id) = page.object_id() {
+                    normalized
+                        .page_numbers
+                        .entry(id.into())
+                        .or_default()
+                        .push(index + 1);
+                }
+            }
+        }
         Ok(ValidationPreparation {
             document,
             pages,
@@ -445,6 +458,7 @@ impl PdfDocument {
             catalog_reference,
             catalog_present: catalog.is_some(),
             page_count,
+            page_numbers: BTreeMap::new(),
             trailer_keys,
             trailer_id,
             info,

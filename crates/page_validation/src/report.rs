@@ -1,4 +1,4 @@
-//! Defines validation reports, categorized failures, and their shared text formatting and rule counts.
+//! Defines validation reports, categorized failures, object and page locations, and their shared text formatting and rule counts.
 //!
 //! Inspectors supply raw findings that validation aggregates into report failures. Reports
 //! contain metadata and conformance findings; parser, input, profile, and safety-limit errors
@@ -58,7 +58,7 @@ impl fmt::Display for FailureCategory {
 ///
 /// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
-/// Text formatting produces `[rule_id] Category: message`.
+/// `locations` lists the distinct indirect objects that failed the rule, with one-based page numbers when the object is a page. An empty list means no object location is available. Text formatting produces `[rule_id] Category: message` followed by any locations.
 ///
 /// ## Examples
 ///
@@ -74,6 +74,49 @@ pub struct ValidationFailure {
     pub rule_id: String,
     pub message: String,
     pub category: FailureCategory,
+    pub locations: Vec<FailureLocation>,
+}
+
+/// An indirect PDF object associated with a failed rule.
+///
+/// `object_number` and `generation` identify the PDF reference (`12 0 R`, for example). `page_numbers` contains one-based page positions when this object is a page; other objects have an empty list. A shared page object can occur at several positions in the page tree.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
+#[non_exhaustive]
+pub struct FailureLocation {
+    pub object_number: u32,
+    pub generation: u16,
+    pub page_numbers: Vec<usize>,
+}
+
+impl From<PdfObjectId> for FailureLocation {
+    fn from(id: PdfObjectId) -> Self {
+        Self {
+            object_number: id.object_number,
+            generation: id.generation,
+            page_numbers: Vec::new(),
+        }
+    }
+}
+
+impl fmt::Display for FailureLocation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "object {} {} R",
+            self.object_number, self.generation
+        )?;
+        if !self.page_numbers.is_empty() {
+            formatter.write_str(" (page ")?;
+            for (index, page) in self.page_numbers.iter().enumerate() {
+                if index > 0 {
+                    formatter.write_str(", ")?;
+                }
+                write!(formatter, "{page}")?;
+            }
+            formatter.write_str(")")?;
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for ValidationFailure {
@@ -82,7 +125,11 @@ impl fmt::Display for ValidationFailure {
             formatter,
             "[{}] {}: {}",
             self.rule_id, self.category, self.message
-        )
+        )?;
+        for location in &self.locations {
+            write!(formatter, "\n  Location: {location}")?;
+        }
+        Ok(())
     }
 }
 
@@ -204,15 +251,36 @@ mod tests {
     }
 
     #[test]
-    fn display_failures_omit_object_attribution() {
+    fn display_failures_without_locations() {
         let failure = ValidationFailure {
             rule_id: "ISO 19005-1:2005:6.7.11:1".to_owned(),
             message: "XMP does not contain the PDF/A Identification schema".to_owned(),
             category: FailureCategory::Metadata,
+            locations: Vec::new(),
         };
         assert_eq!(
             failure.to_string(),
             "[ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema"
+        );
+    }
+
+    #[test]
+    fn display_locations_preserves_object_generation_and_page_positions() {
+        let location = FailureLocation {
+            object_number: 12,
+            generation: 3,
+            page_numbers: vec![1, 4],
+        };
+        assert_eq!(location.to_string(), "object 12 3 R (page 1, 4)");
+        let failure = ValidationFailure {
+            rule_id: "RULE-001".to_owned(),
+            message: "failed".to_owned(),
+            category: FailureCategory::Conformance,
+            locations: vec![location],
+        };
+        assert_eq!(
+            failure.to_string(),
+            "[RULE-001] Conformance: failed\n  Location: object 12 3 R (page 1, 4)"
         );
     }
 
@@ -224,6 +292,7 @@ mod tests {
             rule_id: "ISO 19005-1:2005:6.7.2:1".to_owned(),
             message: "Catalog metadata is invalid".to_owned(),
             category: FailureCategory::Conformance,
+            locations: Vec::new(),
         });
 
         assert!(

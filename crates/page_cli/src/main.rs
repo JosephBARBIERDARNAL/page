@@ -229,7 +229,12 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
     let mut seen = HashSet::new();
     let rule = selected_style(colors, FAILURE);
     for (index, failure) in report.failures.iter().enumerate() {
-        if !seen.insert((&failure.rule_id, failure.category as u8, &failure.message)) {
+        if !seen.insert((
+            &failure.rule_id,
+            failure.category as u8,
+            &failure.message,
+            &failure.locations,
+        )) {
             continue;
         }
         if index > 0 {
@@ -241,6 +246,10 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
             failure.rule_id, failure.category, failure.message
         )
         .expect("writing to a String cannot fail");
+        for location in &failure.locations {
+            writeln!(output, "  {label}Location{label:#}: {location}")
+                .expect("writing to a String cannot fail");
+        }
     }
     output
 }

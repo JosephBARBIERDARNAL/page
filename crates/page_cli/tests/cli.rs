@@ -409,6 +409,19 @@ fn details_format_prints_every_failed_rule_with_spacing() {
         .filter(|block| block.starts_with("[ISO "))
         .collect();
     assert_eq!(failure_blocks.len(), report.failures.len());
+    let locations: Vec<_> = report
+        .failures
+        .iter()
+        .flat_map(|failure| &failure.locations)
+        .collect();
+    assert!(!locations.is_empty(), "fixture has attributed failures");
+    for location in locations {
+        assert!(details.contains(&format!("  Location: {location}\n")));
+    }
+    assert_eq!(
+        json["failures"],
+        serde_json::to_value(report.json_report().failures).expect("JSON failures")
+    );
 }
 
 #[test]

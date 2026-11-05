@@ -251,6 +251,19 @@ impl From<RustValidationFailure> for ValidationFailure {
 #[pymethods]
 impl ValidationFailure {
     #[getter]
+    fn locations(&self) -> Vec<FailureLocation> {
+        self.inner
+            .locations
+            .iter()
+            .map(|location| FailureLocation {
+                object_number: location.object_number,
+                generation: location.generation,
+                page_numbers: location.page_numbers.clone(),
+            })
+            .collect()
+    }
+
+    #[getter]
     fn rule_id(&self) -> &str {
         &self.inner.rule_id
     }
@@ -281,6 +294,17 @@ impl ValidationFailure {
             self.inner.rule_id, self.inner.category, self.inner.message,
         )
     }
+}
+
+#[pyclass(name = "FailureLocation", frozen, from_py_object)]
+#[derive(Clone)]
+struct FailureLocation {
+    #[pyo3(get)]
+    object_number: u32,
+    #[pyo3(get)]
+    generation: u16,
+    #[pyo3(get)]
+    page_numbers: Vec<usize>,
 }
 
 #[pyclass(name = "ValidationCounts", frozen, from_py_object)]
@@ -527,6 +551,7 @@ fn _page(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("ProfileError", py.get_type::<ProfileError>())?;
     module.add_class::<SafetyLimits>()?;
     module.add_class::<ValidationFailure>()?;
+    module.add_class::<FailureLocation>()?;
     module.add_class::<ValidationCounts>()?;
     module.add_class::<PdfDocument>()?;
     module.add_class::<ValidationReport>()?;

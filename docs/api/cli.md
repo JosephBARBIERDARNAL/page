@@ -34,7 +34,7 @@ Time    : 0.005s
 
 <br>
 
-Add `--format details` to emit each failure's rule ID, message, and category. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
+Add `--format details` to emit each failure's rule ID, message, category, and known object locations. Page numbers are one-based and appear when the failing object is a page. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
 
 ```sh
 page document.pdf --profile 1b --format details
@@ -46,16 +46,15 @@ Rules   : 2 failed rules / 134 total
 Profile : PDF/A-1b
 Time    : 0.017s
 
-[ISO 19005-1:2005:6.2.3.2:1]
-  Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+[ISO 19005-1:2005:6.2.3.2:1] Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+  Location: object 12 0 R
 
-[ISO 19005-1:2005:6.7.11:1]
-  Metadata: XMP does not contain the PDF/A Identification schema
+[ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema
 ```
 
 <br>
 
-Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, and category:
+Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, category, and `locations`. Each location contains `object_number`, `generation`, and `page_numbers`; empty lists indicate that the corresponding location is unavailable. Locations refer to all findings for the rule, while the message retains the first description:
 
 ```sh
 page document.pdf --profile 1b --format json
@@ -75,12 +74,14 @@ page document.pdf --profile 1b --format json
     {
       "rule_id": "ISO 19005-1:2005:6.2.3.2:1",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
-      "category": "conformance"
+      "category": "conformance",
+      "locations": [{"object_number": 12, "generation": 0, "page_numbers": []}]
     },
     {
       "rule_id": "ISO 19005-1:2005:6.7.11:1",
       "message": "XMP does not contain the PDF/A Identification schema",
-      "category": "metadata"
+      "category": "metadata",
+      "locations": []
     }
   ]
 }

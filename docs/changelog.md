@@ -1,5 +1,6 @@
 ## Dev
 
+- **Feat**: Include object locations and page numbers for page objects in detailed reports, JSON, and language bindings [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Keep detailed CLI failure descriptions on the ISO rule ID line
 - **Refactor**: Remove possible causes and suggested fixes from core Rust reports, CLI output, JSON, and Python and JavaScript bindings
 
