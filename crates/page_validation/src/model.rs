@@ -1,7 +1,7 @@
 //! Builds the normalized PDF document model and coordinates the private inspection pipeline.
 //!
 //! Preparation indexes raw syntax, loads the object graph with parser bounds, and extracts
-//! metadata, page identities, output intents, and font summaries. Staged inspections share
+//! metadata, page identities, output intents, and font summaries. Report locations associate page-owned objects and executed resources with their pages. Staged inspections share
 //! content discovery and profile-specific demand, allowing validation to evaluate findings
 //! incrementally and stop early when only a compliance result is needed.
 
@@ -175,6 +175,8 @@ pub struct PdfDocument {
     pub(crate) catalog_reference: Option<PdfObjectId>,
     pub(crate) catalog_present: bool,
     pub page_count: usize,
+    #[serde(skip)]
+    pub(crate) page_numbers: BTreeMap<PdfObjectId, Vec<usize>>,
     pub(crate) trailer_keys: Vec<String>,
     pub(crate) trailer_id: Option<Vec<Vec<u8>>>,
     pub(crate) info: DocumentMetadata,
@@ -250,6 +252,7 @@ impl InspectionNeed {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct InspectionPlan {
+    pub(crate) locations: bool,
     pub(crate) document_features: crate::document_features::FeatureDemand,
     pub(crate) font_details: InspectionNeed,
     pub(crate) xobjects: InspectionNeed,
@@ -262,6 +265,7 @@ pub(crate) struct InspectionPlan {
 impl InspectionPlan {
     pub(crate) const fn all() -> Self {
         Self {
+            locations: true,
             document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Unknown,
             xobjects: InspectionNeed::Unknown,
@@ -296,6 +300,7 @@ impl InspectionPlan {
         action_candidate_present: Option<bool>,
     ) -> Self {
         Self {
+            locations: self.locations,
             document_features: self.document_features,
             font_details: Self::after_fact(self.font_details, font_usage_present),
             xobjects: Self::after_fact(self.xobjects, xobject_usage_present),
@@ -445,6 +450,7 @@ impl PdfDocument {
             catalog_reference,
             catalog_present: catalog.is_some(),
             page_count,
+            page_numbers: BTreeMap::new(),
             trailer_keys,
             trailer_id,
             info,
@@ -518,7 +524,7 @@ impl ValidationPreparation {
         let Self {
             document,
             pages,
-            normalized,
+            mut normalized,
             raw_scan,
         } = self;
         let header = syntax.header.clone();
@@ -562,7 +568,16 @@ impl ValidationPreparation {
                 &mut content_cache,
                 &inspections.document_features.tagged_text_language,
                 limits,
+                plan.locations,
             )?;
+            if plan.locations {
+                normalized.page_numbers = crate::page_locations::collect(
+                    &document,
+                    &pages,
+                    &content.page_objects,
+                    limits,
+                );
+            }
             let plan = plan.after_content_discovery(
                 Some(!content.fonts.is_empty()),
                 Some(!content.xobjects.is_empty()),
@@ -1445,6 +1460,7 @@ mod tests {
     #[test]
     fn required_inspection_needs_are_not_overridden_by_absence() {
         let plan = InspectionPlan {
+            locations: true,
             document_features: crate::document_features::FeatureDemand::all(),
             font_details: InspectionNeed::Required,
             xobjects: InspectionNeed::Required,

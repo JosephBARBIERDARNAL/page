@@ -184,16 +184,30 @@ export class SafetyLimits implements SafetyLimitsOptions {
   }
 }
 
+export interface FailureLocation {
+  objectNumber: number;
+  generation: number;
+  pageNumbers: number[];
+}
+
+export interface JsonFailureLocation {
+  object_number: number;
+  generation: number;
+  page_numbers: number[];
+}
+
 export interface ValidationFailure {
   ruleId: string;
   message: string;
   category: "metadata" | "conformance";
+  locations: FailureLocation[];
 }
 
 export interface JsonFailure {
   rule_id: string;
   message: string;
   category: "metadata" | "conformance";
+  locations: JsonFailureLocation[];
 }
 
 export interface ValidationCounts {
@@ -240,6 +254,11 @@ export class ValidationReport {
       ruleId: failure.rule_id,
       message: failure.message,
       category: failure.category,
+      locations: failure.locations.map((location) => ({
+        objectNumber: location.object_number,
+        generation: location.generation,
+        pageNumbers: [...location.page_numbers],
+      })),
     }));
   }
 

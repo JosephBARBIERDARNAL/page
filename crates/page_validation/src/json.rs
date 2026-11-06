@@ -5,7 +5,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationErrorDisposition;
-use crate::{FailureCategory, PageError, ValidationCounts, ValidationProfile, ValidationReport};
+use crate::{
+    FailureCategory, FailureLocation, PageError, ValidationCounts, ValidationProfile,
+    ValidationReport,
+};
 
 /// Stable, serializable and deserializable representation of a validation report.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -29,6 +32,8 @@ pub struct JsonFailure {
     pub rule_id: String,
     pub message: String,
     pub category: FailureCategory,
+    #[serde(default)]
+    pub locations: Vec<FailureLocation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -110,6 +115,7 @@ impl ValidationReport {
                 rule_id: failure.rule_id.clone(),
                 message: failure.message.clone(),
                 category: failure.category,
+                locations: failure.locations.clone(),
             })
             .collect();
 
@@ -151,11 +157,21 @@ mod tests {
                 rule_id: "RULE-001".to_owned(),
                 message: "failed".to_owned(),
                 category: FailureCategory::Metadata,
+                locations: vec![crate::FailureLocation {
+                    object_number: 12,
+                    generation: 2,
+                    page_numbers: vec![1, 3],
+                }],
             }],
         };
 
         let json = report.json_report();
-        let value = serde_json::to_value(json).expect("serialize JSON report");
+        let value = serde_json::to_value(&json).expect("serialize JSON report");
+        assert_eq!(
+            serde_json::from_value::<JsonValidationReport>(value.clone())
+                .expect("deserialize report"),
+            json
+        );
 
         assert_eq!(value["source"], "document.pdf");
         assert_eq!(value["profile"], "1b");
@@ -169,6 +185,7 @@ mod tests {
                 "rule_id": "RULE-001",
                 "message": "failed",
                 "category": "metadata",
+                "locations": [{"object_number": 12, "generation": 2, "page_numbers": [1, 3]}],
             })
         );
         assert!(value["failures"][0].get("object_id").is_none());

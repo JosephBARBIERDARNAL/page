@@ -5,7 +5,6 @@
 //! into deterministic reports and counts; staged lazy paths stop at the first failed check
 //! while propagating parsing and resource-limit errors encountered along the way.
 
-use std::collections::HashSet;
 use std::fmt;
 use std::fs;
 use std::io::Read;
@@ -19,7 +18,8 @@ use crate::limits::SafetyLimits;
 use crate::metadata::{dates_equivalent, xmp_integer_value};
 use crate::model::{InspectionStage, InspectionSummary, PdfDocument, PdfObjectId};
 use crate::report::{
-    FailureCategory, RuleFailure, ValidationCounts, ValidationFailure, ValidationReport,
+    FailureCategory, FailureLocation, RuleFailure, ValidationCounts, ValidationFailure,
+    ValidationReport,
 };
 
 macro_rules! iso_pdfa_rule_id {
@@ -234,12 +234,6 @@ impl FromStr for ValidationProfile {
     }
 }
 
-/// Returns the sole element of a slice known to hold at most one entry, or
-/// `None` for zero or multiple entries.
-fn only<T>(items: &[T]) -> Option<&T> {
-    items.first().filter(|_| items.len() == 1)
-}
-
 /// Options shared by every validation entry point.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
@@ -406,7 +400,10 @@ pub(crate) fn validate_bytes_lazy(
         bytes,
         limits,
         syntax,
-        crate::model::InspectionPlan::for_profile(profile),
+        crate::model::InspectionPlan {
+            locations: false,
+            ..crate::model::InspectionPlan::for_profile(profile)
+        },
         |stage, document, inspections| {
             let should_validate = if profile == ValidationProfile::PdfUa1 {
                 matches!(
@@ -2261,10 +2258,10 @@ fn validate_object_limits(
     ];
     for (rule_id, description, objects) in checks {
         if !objects.is_empty() {
-            failures.push(failure(
+            failures.push(failure_at_objects(
                 rule_id,
                 description,
-                only(objects).copied(),
+                objects.iter().copied(),
                 FailureCategory::Conformance,
             ));
         }
@@ -2305,15 +2302,15 @@ fn validate_object_limits(
     if profile.is_pdfa_2_or_3()
         && (!limits.underflow_reals_pdfa_2.is_empty() || !content.underflow_reals_pdfa_2.is_empty())
     {
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "", "6.1.13:5", "6.1.13:5"),
             "a real number is nonzero but closer to zero than the PDF/A-2/3 minimum",
-            limits.underflow_reals_pdfa_2.first().copied().or_else(|| {
+            limits.underflow_reals_pdfa_2.iter().copied().chain(
                 content
                     .underflow_reals_pdfa_2
-                    .first()
-                    .and_then(|failure| failure.object_id)
-            }),
+                    .iter()
+                    .filter_map(|failure| failure.object_id),
+            ),
             FailureCategory::Conformance,
         ));
     }
@@ -2665,62 +2662,59 @@ fn validate_stream_safety(
     failures: &mut ValidationFailures,
 ) {
     if !streams.external_stream_entries.is_empty() {
-        let object_id = only(&streams.external_stream_entries).map(|entry| entry.object_id);
         let description = streams
             .external_stream_entries
             .iter()
             .map(|stream| format!("stream contains {}", stream.keys.join(", ")))
             .collect::<Vec<_>>()
             .join("; ");
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "6.1.7:3", "6.1.7.1:3", "6.1.7.1:3"),
             description,
-            object_id,
+            streams
+                .external_stream_entries
+                .iter()
+                .map(|entry| entry.object_id),
             FailureCategory::Conformance,
         ));
     }
     if !profile.is_pdfa_2_or_3() && !streams.lzw_filters.is_empty() {
-        let object_id = only(&streams.lzw_filters).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "6.1.10:1", "", ""),
             "a parsed stream declares the forbidden LZWDecode filter",
-            object_id,
+            streams.lzw_filters.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_filters_pdfa2.is_empty() {
-        let object_id = only(&streams.invalid_filters_pdfa2).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "", "6.1.7.2:1", "6.1.7.2:1"),
             "a parsed stream declares a filter that PDF/A-2 and PDF/A-3 do not permit, including LZWDecode",
-            object_id,
+            streams.invalid_filters_pdfa2.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_byte_ranges.is_empty() {
-        let object_id = only(&streams.invalid_signature_byte_ranges).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "", "6.4.3:1", "6.4.3:1"),
             "a signature /ByteRange does not cover the complete PDF except for its signature contents",
-            object_id,
+            streams.invalid_signature_byte_ranges.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_certificates.is_empty() {
-        let object_id = only(&streams.invalid_signature_certificates).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "", "6.4.3:2", "6.4.3:2"),
             "a parsed PKCS#7 signature does not contain a signing certificate",
-            object_id,
+            streams.invalid_signature_certificates.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
     if profile.is_pdfa_2_or_3() && !streams.invalid_signature_signer_counts.is_empty() {
-        let object_id = only(&streams.invalid_signature_signer_counts).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "", "6.4.3:3", "6.4.3:3"),
             "a parsed PKCS#7 signature does not contain exactly one signer",
-            object_id,
+            streams.invalid_signature_signer_counts.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
@@ -2737,11 +2731,10 @@ fn validate_stream_safety(
     if (streams.has_xref_stream || !streams.xref_streams.is_empty())
         && !profile.permits_xref_streams()
     {
-        let object_id = only(&streams.xref_streams).copied();
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "6.1.4:3", "", ""),
             "the document contains an xref stream",
-            object_id,
+            streams.xref_streams.iter().copied(),
             FailureCategory::Conformance,
         ));
     }
@@ -2794,54 +2787,32 @@ fn validate_stream_safety(
         ),
     ] {
         if !invalid.is_empty() {
-            failures.push(failure(
+            failures.push(failure_at_objects(
                 rule_id,
                 message,
-                only(invalid).copied(),
+                invalid.iter().copied(),
                 FailureCategory::Conformance,
             ));
         }
     }
 }
 
-/// Computes the object id and first distinct description used by every
-/// same-rule failure aggregator.
-fn joined_failure(invalid: &[RuleFailure]) -> (Option<PdfObjectId>, String) {
-    let mut seen = HashSet::new();
-    let first = invalid
-        .iter()
-        .find(|entry| seen.insert(entry.description.as_str()))
-        .expect("failure aggregation requires at least one entry");
-    let only_failure = invalid
-        .iter()
-        .all(|entry| entry.description == first.description);
-    let object_id = (invalid
-        .iter()
-        .all(|entry| entry.object_id == first.object_id)
-        && only_failure)
-        .then_some(first.object_id)
-        .flatten();
-    (object_id, first.description.clone())
-}
-
-/// Aggregates same-rule failures into one [`ValidationFailure`], attaching
-/// the single object id only when exactly one entry is present.
+/// Aggregates same-rule failures, retaining the first description and every known object location.
 fn aggregate_failures(
     invalid: &[RuleFailure],
     rule_id: impl Into<Option<&'static str>>,
     failures: &mut ValidationFailures,
 ) {
-    if invalid.is_empty() {
+    let Some(first) = invalid.first() else {
         return;
-    }
+    };
     let rule_id = rule_id
         .into()
         .expect("a reported conformance finding has an ISO rule reference");
-    let (object_id, description) = joined_failure(invalid);
-    failures.push(failure(
+    failures.push(failure_at_objects(
         rule_id,
-        description,
-        object_id,
+        first.description.clone(),
+        invalid.iter().filter_map(|entry| entry.object_id),
         FailureCategory::Conformance,
     ));
 }
@@ -2855,39 +2826,21 @@ fn aggregate_failures_with_location(
     no_id_label: Option<&str>,
     failures: &mut ValidationFailures,
 ) {
-    if invalid.is_empty() {
+    let Some(first) = invalid.first() else {
         return;
-    }
+    };
     let rule_id = rule_id
         .into()
         .expect("a reported conformance finding has an ISO rule reference");
-    let mut seen = HashSet::new();
-    let first = invalid
-        .iter()
-        .find(|entry| {
-            let no_id_label = entry.object_id.is_none().then_some(no_id_label).flatten();
-            seen.insert((no_id_label, entry.description.as_str()))
-        })
-        .expect("failure aggregation requires at least one entry");
     let no_id_label = first.object_id.is_none().then_some(no_id_label).flatten();
     let detail = match no_id_label {
         Some(label) => format!("{label}: {}", first.description),
         None => first.description.clone(),
     };
-    let only_failure = invalid.iter().all(|entry| {
-        let entry_no_id_label = entry.object_id.is_none().then_some(no_id_label).flatten();
-        entry_no_id_label == no_id_label && entry.description == first.description
-    });
-    let object_id = (invalid
-        .iter()
-        .all(|entry| entry.object_id == first.object_id)
-        && only_failure)
-        .then_some(first.object_id)
-        .flatten();
-    failures.push(failure(
+    failures.push(failure_at_objects(
         rule_id,
         detail,
-        object_id,
+        invalid.iter().filter_map(|entry| entry.object_id),
         FailureCategory::Conformance,
     ));
 }
@@ -3279,14 +3232,13 @@ fn validate_font_embedding(
     failures: &mut ValidationFailures,
 ) {
     let invalid = &font_embedding.failures;
-    if invalid.is_empty() {
+    let Some(first) = invalid.first() else {
         return;
-    }
-    let (object_id, message) = joined_failure(invalid);
-    failures.push(failure(
+    };
+    failures.push(failure_at_objects(
         iso_pdfa_rule_id!(profile, "6.3.4:1", "6.2.11.4.1:1", "6.2.11.4.1:1"),
-        format!("font program is not embedded for {message}"),
-        object_id,
+        format!("font program is not embedded for {}", first.description),
+        invalid.iter().filter_map(|entry| entry.object_id),
         FailureCategory::Conformance,
     ));
 }
@@ -3546,16 +3498,17 @@ fn validate_output_intent_profiles(
         }
     }
     if !invalid_profiles.is_empty() {
-        let object_id = only(&invalid_profiles).and_then(|(object_id, _)| *object_id);
         let detail = invalid_profiles
             .iter()
             .map(|(_, detail)| detail.clone())
             .collect::<Vec<_>>()
             .join("; ");
-        failures.push(failure(
+        failures.push(failure_at_objects(
             iso_pdfa_rule_id!(profile, "6.2.2:1", "6.2.3:1", "6.2.3:1"),
             detail,
-            object_id,
+            invalid_profiles
+                .iter()
+                .filter_map(|(object_id, _)| *object_id),
             FailureCategory::Conformance,
         ));
     }
@@ -3722,13 +3675,24 @@ fn compare_field(
 }
 
 fn finish_report(
-    document: PdfDocument,
+    mut document: PdfDocument,
     profile: ValidationProfile,
     mut failures: ValidationFailures,
     total_rules: usize,
 ) -> ValidationReport {
     failures.sort_by_key(|failure| failure.rule_id.clone());
-    let failures = failures.entries;
+    let mut failures = failures.entries;
+    let page_numbers = std::mem::take(&mut document.page_numbers);
+    for failure in &mut failures {
+        for location in &mut failure.locations {
+            if let Some(pages) = page_numbers.get(&PdfObjectId {
+                object_number: location.object_number,
+                generation: location.generation,
+            }) {
+                location.page_numbers.clone_from(pages);
+            }
+        }
+    }
     let mut failed_rules = 0;
     let mut previous_rule = None;
     for failure in &failures {
@@ -3754,17 +3718,30 @@ fn finish_report(
 fn failure(
     rule_id: impl Into<Option<&'static str>>,
     message: impl Into<String>,
-    _object_id: Option<PdfObjectId>,
+    object_id: Option<PdfObjectId>,
+    category: FailureCategory,
+) -> ValidationFailure {
+    failure_at_objects(rule_id, message, object_id, category)
+}
+
+fn failure_at_objects(
+    rule_id: impl Into<Option<&'static str>>,
+    message: impl Into<String>,
+    object_ids: impl IntoIterator<Item = PdfObjectId>,
     category: FailureCategory,
 ) -> ValidationFailure {
     let rule_id = rule_id
         .into()
         .expect("every reported conformance finding has an ISO rule reference")
         .to_owned();
+    let mut locations: Vec<FailureLocation> = object_ids.into_iter().map(Into::into).collect();
+    locations.sort_unstable();
+    locations.dedup();
     ValidationFailure {
         rule_id,
         message: message.into(),
         category,
+        locations,
     }
 }
 
@@ -4770,11 +4747,27 @@ mod tests {
         aggregate_failures_with_location(&invalid, "TEST-001", None, &mut failures);
         assert_eq!(failures.entries[0].message, "the same problem");
         assert_eq!(failures.entries.len(), 1);
+        assert_eq!(
+            failures.entries[0]
+                .locations
+                .iter()
+                .map(|location| location.object_number)
+                .collect::<Vec<_>>(),
+            [10, 11, 12]
+        );
 
         let mut failures = ValidationFailures::default();
         aggregate_failures(&invalid, "TEST-001", &mut failures);
         assert_eq!(failures.entries[0].message, "the same problem");
         assert_eq!(failures.entries.len(), 1);
+        assert_eq!(
+            failures.entries[0]
+                .locations
+                .iter()
+                .map(|location| location.object_number)
+                .collect::<Vec<_>>(),
+            [10, 11, 12]
+        );
     }
 
     #[test]
@@ -4807,6 +4800,14 @@ mod tests {
 
         assert_eq!(failures.entries.len(), 1);
         assert_eq!(failures.entries[0].rule_id, "ISO 19005-1:2005:6.1.12:1");
+        assert_eq!(
+            failures.entries[0]
+                .locations
+                .iter()
+                .map(|location| location.object_number)
+                .collect::<Vec<_>>(),
+            [10, 11, 12]
+        );
     }
 
     #[test]
@@ -4835,6 +4836,164 @@ mod tests {
 
         assert_eq!(failures.entries.len(), 1);
         assert_eq!(failures.entries[0].rule_id, "ISO 19005-1:2005:6.1.7:1");
+        assert_eq!(
+            failures.entries[0]
+                .locations
+                .iter()
+                .map(|location| location.object_number)
+                .collect::<Vec<_>>(),
+            [20, 21]
+        );
+    }
+
+    #[test]
+    fn reports_page_locations_in_page_tree_order() {
+        let mut document = pdf_document();
+        let pages_id = document.new_object_id();
+        let later_id = (20, 2);
+        let earlier_id = (10, 0);
+        for id in [later_id, earlier_id] {
+            document.set_object(
+                id,
+                dictionary! {
+                    "Type" => "Page", "Parent" => pages_id,
+                    "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                    "PresSteps" => Dictionary::new(),
+                },
+            );
+        }
+        document.set_object(pages_id, dictionary! {
+            "Type" => "Pages", "Count" => 3,
+            "Kids" => vec![Object::Reference(later_id), Object::Reference(earlier_id), Object::Reference(later_id)],
+        });
+        let catalog_id =
+            document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        document.trailer.set("Root", catalog_id);
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("save fixture");
+        let report = validate_pdf_bytes(
+            &bytes,
+            &ValidationOptions::default().profile(ValidationProfile::PdfA2b),
+        )
+        .expect("validate fixture");
+        let failure = report
+            .failures
+            .iter()
+            .find(|failure| failure.rule_id == "ISO 19005-2:2011:6.10:2")
+            .expect("PresSteps finding");
+        assert_eq!(
+            failure.locations,
+            vec![
+                FailureLocation {
+                    object_number: 10,
+                    generation: 0,
+                    page_numbers: vec![2]
+                },
+                FailureLocation {
+                    object_number: 20,
+                    generation: 2,
+                    page_numbers: vec![1, 3]
+                },
+            ]
+        );
+        assert_eq!(
+            report.rules.failed,
+            report
+                .failures
+                .iter()
+                .map(|failure| &failure.rule_id)
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+        );
+    }
+
+    #[test]
+    fn reports_shared_font_annotation_and_content_pages_in_json() {
+        let mut document = pdf_document();
+        let pages_id = document.new_object_id();
+        let font = document.add_object(
+            dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" },
+        );
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"BT /F1 10 Tf (A) Tj ET 0 0 1 1 re f".to_vec(),
+        ));
+        let annotation = document.add_object(dictionary! { "Type" => "Annot", "Subtype" => "Link", "Rect" => vec![0.into(), 0.into(), 1.into(), 1.into()] });
+        let mut page_ids = Vec::new();
+        for _ in 0..2 {
+            page_ids.push(document.add_object(dictionary! {
+                "Type" => "Page", "Parent" => pages_id, "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "Contents" => contents, "Annots" => vec![Object::Reference(annotation)],
+            }));
+        }
+        page_ids.push(document.add_object(dictionary! { "Type" => "Page", "Parent" => pages_id, "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()] }));
+        document.set_object(
+            pages_id,
+            dictionary! {
+                "Type" => "Pages", "Count" => 3,
+                "Kids" => page_ids.into_iter().map(Object::Reference).collect::<Vec<_>>(),
+                "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+            },
+        );
+        let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        document.trailer.set("Root", catalog);
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("save fixture");
+        for profile in [
+            ValidationProfile::PdfA1b,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfUa1,
+        ] {
+            let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
+                .expect("validate fixture");
+            let json = report.json_report();
+            for object in [font, annotation] {
+                let locations: Vec<_> = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .filter(|location| {
+                        location.object_number == object.0 && location.generation == object.1
+                    })
+                    .collect();
+                assert!(
+                    !locations.is_empty(),
+                    "expected finding for {object:?} in {profile}"
+                );
+                assert!(
+                    locations
+                        .iter()
+                        .all(|location| location.page_numbers == [1, 2])
+                );
+            }
+            if profile == ValidationProfile::PdfUa1 {
+                let content_location = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .find(|location| location.object_number == contents.0)
+                    .expect("untagged content finding");
+                assert_eq!(content_location.page_numbers, [1, 2]);
+                let catalog_location = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .find(|location| location.object_number == catalog.0)
+                    .expect("document-wide finding");
+                assert!(catalog_location.page_numbers.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn locations_are_empty_when_no_object_is_known() {
+        let failure = failure(
+            "TEST-001",
+            "document-wide finding",
+            None,
+            FailureCategory::Conformance,
+        );
+        assert!(failure.locations.is_empty());
     }
 
     fn assert_rule(report: &ValidationReport, expected: &str) {

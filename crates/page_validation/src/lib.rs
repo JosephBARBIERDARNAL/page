@@ -53,6 +53,7 @@ mod metadata;
 mod model;
 mod object_limits;
 mod object_resolution;
+mod page_locations;
 mod page_tree;
 mod predefined_cmaps;
 mod report;
@@ -68,7 +69,9 @@ pub use json::{JsonError, JsonErrorKind, JsonFailure, JsonValidationReport};
 pub use limits::SafetyLimits;
 pub use model::PdfDocument;
 pub(crate) use model::PdfObjectId;
-pub use report::{FailureCategory, ValidationCounts, ValidationFailure, ValidationReport};
+pub use report::{
+    FailureCategory, FailureLocation, ValidationCounts, ValidationFailure, ValidationReport,
+};
 #[doc(hidden)]
 pub use validation::{ComplianceResult, validate_pdf_lazy};
 pub use validation::{

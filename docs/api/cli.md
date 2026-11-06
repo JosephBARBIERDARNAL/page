@@ -34,7 +34,7 @@ Time    : 0.005s
 
 <br>
 
-Add `--format details` to emit each failure's rule ID, message, and category. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
+Add `--format details` to emit each failure's rule ID, message, category, and known object locations. Page numbers are one-based and identify pages, page-owned annotations and content streams, and used resources and their dependencies. Shared objects can list several pages; document-wide objects and objects without an established page association have no page numbers. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
 
 ```sh
 page document.pdf --profile 1b --format details
@@ -46,16 +46,33 @@ Rules   : 2 failed rules / 134 total
 Profile : PDF/A-1b
 Time    : 0.017s
 
-[ISO 19005-1:2005:6.2.3.2:1]
-  Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+[ISO 19005-1:2005:6.2.3.2:1] Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
+  Location: object 12 0 R
 
-[ISO 19005-1:2005:6.7.11:1]
-  Metadata: XMP does not contain the PDF/A Identification schema
+[ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema
+```
+
+Findings with multiple locations show the total number of distinct objects and up to three locations. Their description comes from the first finding for that rule:
+
+```text
+[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 4 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
+  Locations: 488 objects
+  Location: object 11 0 R
+  Location: object 12 0 R
+  Location: object 13 0 R
+  … 485 more locations (use --locations all)
+```
+
+Add `--locations all` to include every location in detailed terminal or file output. JSON always includes every known location:
+
+```sh
+page document.pdf --profile ua1 --format details --locations all
+page document.pdf --profile ua1 --format details --locations all --output report.txt
 ```
 
 <br>
 
-Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, and category:
+Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, category, and `locations`. Each location contains `object_number`, `generation`, and `page_numbers`; empty lists indicate that the corresponding location is unavailable. Locations refer to all findings for the rule, while the message retains the first description:
 
 ```sh
 page document.pdf --profile 1b --format json
@@ -75,12 +92,14 @@ page document.pdf --profile 1b --format json
     {
       "rule_id": "ISO 19005-1:2005:6.2.3.2:1",
       "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
-      "category": "conformance"
+      "category": "conformance",
+      "locations": [{"object_number": 12, "generation": 0, "page_numbers": []}]
     },
     {
       "rule_id": "ISO 19005-1:2005:6.7.11:1",
       "message": "XMP does not contain the PDF/A Identification schema",
-      "category": "metadata"
+      "category": "metadata",
+      "locations": []
     }
   ]
 }
