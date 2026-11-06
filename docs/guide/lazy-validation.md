@@ -10,7 +10,7 @@ For example:
     $ page document.pdf --profile ua1
     Result  : Non-conformant
     Profile : PDF/UA-1
-    Time    : 0.052s
+    Time    : 0.005s
     ```
 
 === "Exhaustive"
@@ -18,23 +18,20 @@ For example:
     ```console
     $ page document.pdf --profile ua1 --format details
     Result  : Non-conformant
-    Rules   : 3 failed rules / 104 total
+    Rules   : 1 failed rule / 104 total
     Profile : PDF/UA-1
     Time    : 0.017s
 
-    [ISO 14289-1:2014:5:1]
-      Metadata: XMP does not contain the PDF/UA Identification schema
-
-    [ISO 14289-1:2014:5:2]
-      Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
+    [ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 1 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
+      Location: object 41 0 R (page 1)
     ```
 
-    This example shows two of the three failures. In an interactive terminal, the labels before the colons are bold.
+    In an interactive terminal, the labels before the colons are bold. Detailed output previews up to three locations per finding; `--locations all` shows every known location.
 
-In the CLI, if you don't specify either `--format details` or `--format json`, the output is reduced and often **much faster**. Performance improvements can vary a lot depending on the document, but you can easily expect something between 2x and 10x most of the time.
+In the CLI, summary output uses lazy validation. This is the default, and you can also select it explicitly with `--format summary`. Detailed and JSON output use exhaustive validation, including JSON selected automatically by `--output report.json`. Performance improvements from lazy validation vary by document; see the [benchmark](../benchmark.md).
 
 !!! note
 
-    On a conformant document, _lazy_ and _exhaustive_ modes behave exactly the same.
+    On a conformant document, both modes must check every applicable implemented rule to establish compliance. Exhaustive validation additionally returns the full report.
 
 If you use `page` from Rust, Python, or JavaScript, the _lazy_ mode is used when calling `is_pdf_compliant`-like functions. `validate_pdf`-like functions will use _exhaustive_ mode.

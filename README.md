@@ -11,16 +11,15 @@ A modern PDF accessibility and archival conformance checker that is <ins>accurat
 ```console
 $ page document.pdf --profile ua1 --format details
 Result  : Non-conformant
-Rules   : 2 failed rules / 104 total
+Rules   : 1 failed rule / 104 total
 Profile : PDF/UA-1
 Time    : 0.017s
 
-[ISO 14289-1:2014:5:1]
-  Metadata: XMP does not contain the PDF/UA Identification schema
-
-[ISO 14289-1:2014:6.2:1]
-  Conformance: the document catalog MarkInfo dictionary must contain boolean /Marked true
+[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 1 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
+  Location: object 41 0 R (page 1)
 ```
+
+Omit `--format details` for a summary, use `--format json` for a complete JSON report, or add `--locations all` to detailed output to show every location instead of the first three. See the [CLI documentation](https://josephbarbierdarnal.github.io/page/api/cli/) for all options.
 
 > [!TIP]
 > `page` can be used from [Rust](https://josephbarbierdarnal.github.io/page/api/rust/), [Python](https://josephbarbierdarnal.github.io/page/api/python/) and [JavaScript](https://josephbarbierdarnal.github.io/page/api/javascript/).

@@ -20,6 +20,8 @@ Profile : PDF/A-1b
 Time    : 0.005s
 ```
 
+Summary output is the default. Use `page document.pdf --format summary` to select it explicitly. Run `page --help` for all options or `page --version` for the installed version.
+
 If the document does not declare a profile, `page` exits with an explicit error. Use `--profile` to select a profile instead:
 
 ```sh
@@ -32,24 +34,24 @@ Profile : PDF/UA-1
 Time    : 0.005s
 ```
 
+Supported profile values are `1b`, `1a`, `2b`, `2a`, `2u`, `3b`, `3a`, `3u`, and `ua1`.
+
 <br>
 
 Add `--format details` to emit each failure's rule ID, message, category, and known object locations. Page numbers are one-based and identify pages, page-owned annotations and content streams, and used resources and their dependencies. Shared objects can list several pages; document-wide objects and objects without an established page association have no page numbers. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
 
 ```sh
-page document.pdf --profile 1b --format details
+page document.pdf --profile ua1 --format details
 ```
 
 ```
 Result  : Non-conformant
-Rules   : 2 failed rules / 134 total
-Profile : PDF/A-1b
+Rules   : 1 failed rule / 104 total
+Profile : PDF/UA-1
 Time    : 0.017s
 
-[ISO 19005-1:2005:6.2.3.2:1] Conformance: ICCBased profile has class "mntr", colour space "GRAY", and version 4.2
-  Location: object 12 0 R
-
-[ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema
+[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 1 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
+  Location: object 41 0 R (page 1)
 ```
 
 Findings with multiple locations show the total number of distinct objects and up to three locations. Their description comes from the first finding for that rule:
@@ -57,9 +59,9 @@ Findings with multiple locations show the total number of distinct objects and u
 ```text
 [ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 4 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
   Locations: 488 objects
-  Location: object 11 0 R
-  Location: object 12 0 R
-  Location: object 13 0 R
+  Location: object 11 0 R (page 4)
+  Location: object 12 0 R (page 4)
+  Location: object 13 0 R (page 4)
   … 485 more locations (use --locations all)
 ```
 
@@ -75,31 +77,25 @@ page document.pdf --profile ua1 --format details --locations all --output report
 Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, category, and `locations`. Each location contains `object_number`, `generation`, and `page_numbers`; empty lists indicate that the corresponding location is unavailable. Locations refer to all findings for the rule, while the message retains the first description:
 
 ```sh
-page document.pdf --profile 1b --format json
+page document.pdf --profile ua1 --format json
 ```
 
 ```json
 {
   "source": "document.pdf",
-  "profile": "1b",
+  "profile": "ua1",
   "is_compliant": false,
   "rules": {
-    "total": 134,
-    "passed": 132,
-    "failed": 2
+    "total": 104,
+    "passed": 103,
+    "failed": 1
   },
   "failures": [
     {
-      "rule_id": "ISO 19005-1:2005:6.2.3.2:1",
-      "message": "ICCBased profile has class \"mntr\", colour space \"GRAY\", and version 4.2",
+      "rule_id": "ISO 14289-1:2014:7.18.1:2",
+      "message": "annotation 0 on page 1 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element",
       "category": "conformance",
-      "locations": [{"object_number": 12, "generation": 0, "page_numbers": []}]
-    },
-    {
-      "rule_id": "ISO 19005-1:2005:6.7.11:1",
-      "message": "XMP does not contain the PDF/A Identification schema",
-      "category": "metadata",
-      "locations": []
+      "locations": [{"object_number": 41, "generation": 0, "page_numbers": [1]}]
     }
   ]
 }
@@ -112,9 +108,10 @@ Write the report to a file with `--output`. A `.json` extension selects JSON aut
 ```sh
 page document.pdf --output report.json
 page document.pdf --format details --output report.txt
+page document.pdf --format summary --output summary.txt
 ```
 
-Explicit formats that conflict with `.json` or `.txt` are rejected. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
+Explicit `--format details` rejects a `.json` output path, and explicit `--format json` rejects a `.txt` output path. `--format summary` overrides `.json` inference. Other extensions, including no extension, are allowed. File output is uncolored and leaves stdout empty.
 
 ## Exit codes
 
@@ -151,8 +148,11 @@ For trusted files, disable all configurable limits with `page document.pdf --dis
 
 ## Colors
 
-By default, `page` uses color in the terminal output.
+With `--color auto` (the default), `page` colors human-readable output only when writing to a terminal and `NO_COLOR` is unset. JSON and saved reports are uncolored.
 
-![Example of terminal output, with colors on some key words.](../../images/terminal-colors.png)
+```sh
+page document.pdf --color never
+page document.pdf --color always
+```
 
-In order to follow the [NO_COLOR standard](https://no-color.org/), you can either set the `NO_COLOR` environment variable to 1 or pass `--color never` to disable them. Other options are `--color auto` (default) and `--color always`.
+Set `NO_COLOR` or pass `--color never` to disable automatic colors. `--color always` forces colors in terminal and redirected human-readable output, even when `NO_COLOR` is set.

@@ -23,8 +23,9 @@ Check PDF documents against accessibility and compliance requirements with a Rus
 <div class="home-preview__bar"><span class="home-preview__dots"><i></i><i></i><i></i></span></div>
 <div class="home-preview__body">
 <div class="home-preview__command">$ page document.pdf --profile ua1</div>
-<div class="home-preview__result"><span class="home-preview__status">PASS</span><span>PDF/UA-1</span></div>
-<div class="home-preview__rule"><span>implemented checks</span><strong>all passed</strong></div>
+<div class="home-preview__result"><span>Result :</span><span class="home-preview__status">Conformant</span></div>
+<div class="home-preview__rule"><span>Profile :</span><strong>PDF/UA-1</strong></div>
+<div class="home-preview__rule"><span>Time :</span><strong>0.005s</strong></div>
 </div>
 </div>
 
@@ -83,16 +84,15 @@ Check PDF documents against accessibility and compliance requirements with a Rus
     ```console
     $ page document.pdf --profile ua1 --format details
     Result  : Non-conformant
-    Rules   : 2 failed rules / 104 total
+    Rules   : 1 failed rule / 104 total
     Profile : PDF/UA-1
     Time    : 0.017s
 
-    [ISO 14289-1:2014:5:1]
-      Metadata: XMP does not contain the PDF/UA Identification schema
-
-    [ISO 14289-1:2014:5:2]
-      Metadata: XMP declares PDF/UA part values ["2"], expected exactly one value 1
+    [ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 1 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
+      Location: object 41 0 R (page 1)
     ```
+
+    Detailed reports show up to three locations per finding. Add `--locations all` to show every location, use `--format json` for a complete JSON report, or omit `--format details` for a summary. See the [CLI reference](api/cli.md).
 
 === "Rust"
 

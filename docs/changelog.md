@@ -1,5 +1,6 @@
 ## Dev
 
+- **Doc**: Refresh CLI examples, output, and command references across the README and documentation [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Align detailed CLI output tests and documentation with the removal of the `(example finding)` label [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Include page numbers for annotations, content streams, and used resources, including shared objects and resource dependencies [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Limit detailed CLI reports to three example locations per finding, with counts and `--locations all` for exhaustive output [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)

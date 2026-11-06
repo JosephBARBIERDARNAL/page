@@ -28,7 +28,7 @@ The parts that take the most time and resources are:
 
 Once the profile to validate is defined (if no profile is explicitly provided, `page` uses the one defined in the document's XMP metadata), we determine which rules need to be checked for the document and construct the `ValidationReport` output step by step.
 
-But when users do **not** request _which_ rule failed (by using the `is_pdf_compliant_*()` functions or the CLI without `--format`), `page` uses **lazy** validation: it stops at the very first failed rule it finds. The main point is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.
+When users request only whether the document complies (through the `is_pdf_compliant_*()` functions or CLI summary output), `page` uses **lazy** validation: it stops at the first failed rule it finds. CLI summary output is the default and can also be selected with `--format summary`. `--format details`, `--format json`, and JSON inferred from `--output report.json` use exhaustive validation.
 
 ## AI coding
 
