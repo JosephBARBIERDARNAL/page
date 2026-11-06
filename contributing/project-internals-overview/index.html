@@ -1052,7 +1052,7 @@ flowchart TD
 <li>bounded inspections + profile rule evaluation</li>
 </ul>
 <p>Once the profile to validate is defined (if no profile is explicitly provided, <code>page</code> uses the one defined in the document's XMP metadata), we determine which rules need to be checked for the document and construct the <code>ValidationReport</code> output step by step.</p>
-<p>But when users do <strong>not</strong> request <em>which</em> rule failed (by using the <code>is_pdf_compliant_*()</code> functions or the CLI without <code>--format</code>), <code>page</code> uses <strong>lazy</strong> validation: it stops at the very first failed rule it finds. The main point is to avoid spending time checking each rule for non-conformant documents when we're only interested in whether the document complies with the profile.</p>
+<p>When users request only whether the document complies (through the <code>is_pdf_compliant_*()</code> functions or CLI summary output), <code>page</code> uses <strong>lazy</strong> validation: it stops at the first failed rule it finds. CLI summary output is the default and can also be selected with <code>--format summary</code>. <code>--format details</code>, <code>--format json</code>, and JSON inferred from <code>--output report.json</code> use exhaustive validation.</p>
 <h2 id="ai-coding">AI coding<a class="headerlink" href="#ai-coding" title="Permanent link">&para;</a></h2>
 <p>The <code>page</code> repository contains an <code>AGENTS.md</code> file with instructions for AI agents. If you contribute to <code>page</code>, you're expected to be accountable for the changes you make.</p>
 
