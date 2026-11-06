@@ -619,7 +619,11 @@ mod tests {
                     .count(),
                 usize::try_from(count.min(3)).expect("small count")
             );
-            assert_eq!(details.contains("(example finding)"), count > 1);
+            let failure = report.failures.first().expect("fixture finding");
+            assert!(details.contains(&format!(
+                "[{}] {}: {}\n",
+                failure.rule_id, failure.category, failure.message,
+            )));
             assert_eq!(details.contains("  Locations:"), count > 1);
             assert_eq!(details.contains("use --locations all"), count > 3);
             if count > 0 {

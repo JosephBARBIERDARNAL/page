@@ -52,10 +52,10 @@ Time    : 0.017s
 [ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema
 ```
 
-Findings with multiple locations show the total number of distinct objects and up to three locations. Their description is labeled as an example finding because it comes from the first finding for that rule:
+Findings with multiple locations show the total number of distinct objects and up to three locations. Their description comes from the first finding for that rule:
 
 ```text
-[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 4 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element (example finding)
+[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 4 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element
   Locations: 488 objects
   Location: object 11 0 R
   Location: object 12 0 R
