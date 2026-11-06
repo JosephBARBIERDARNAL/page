@@ -58,7 +58,7 @@ impl fmt::Display for FailureCategory {
 ///
 /// `rule_id` identifies the corresponding specification rule (for example `ISO 19005-1:2005:6.7.11:3`), `message` is a human-readable description, and `category` classifies the failure via `FailureCategory`. Multiple raw findings for the same rule are aggregated into as few `ValidationFailure` values as the rule allows before being placed in `ValidationReport::failures`.
 ///
-/// `locations` lists the distinct indirect objects that failed the rule, with one-based page numbers when the object is a page. An empty list means no object location is available. Text formatting produces `[rule_id] Category: message` followed by any locations.
+/// `locations` lists the distinct indirect objects that failed the rule, with one-based page numbers for page-owned objects and used resources. An empty list means no object location is available. Text formatting produces `[rule_id] Category: message` followed by any locations.
 ///
 /// ## Examples
 ///
@@ -79,7 +79,7 @@ pub struct ValidationFailure {
 
 /// An indirect PDF object associated with a failed rule.
 ///
-/// `object_number` and `generation` identify the PDF reference (`12 0 R`, for example). `page_numbers` contains one-based page positions when this object is a page; other objects have an empty list. A shared page object can occur at several positions in the page tree.
+/// `object_number` and `generation` identify the PDF reference (`12 0 R`, for example). `page_numbers` contains sorted, unique one-based page positions for the page itself, page-owned objects such as annotations and content streams, and used resources and their dependencies. Shared objects can be associated with several pages. Document-wide objects and objects without an established page association have an empty list.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct FailureLocation {

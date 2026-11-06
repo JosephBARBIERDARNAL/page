@@ -53,6 +53,7 @@ mod metadata;
 mod model;
 mod object_limits;
 mod object_resolution;
+mod page_locations;
 mod page_tree;
 mod predefined_cmaps;
 mod report;

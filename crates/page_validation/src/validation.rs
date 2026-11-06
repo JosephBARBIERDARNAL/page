@@ -400,7 +400,10 @@ pub(crate) fn validate_bytes_lazy(
         bytes,
         limits,
         syntax,
-        crate::model::InspectionPlan::for_profile(profile),
+        crate::model::InspectionPlan {
+            locations: false,
+            ..crate::model::InspectionPlan::for_profile(profile)
+        },
         |stage, document, inspections| {
             let should_validate = if profile == ValidationProfile::PdfUa1 {
                 matches!(
@@ -3672,16 +3675,17 @@ fn compare_field(
 }
 
 fn finish_report(
-    document: PdfDocument,
+    mut document: PdfDocument,
     profile: ValidationProfile,
     mut failures: ValidationFailures,
     total_rules: usize,
 ) -> ValidationReport {
     failures.sort_by_key(|failure| failure.rule_id.clone());
     let mut failures = failures.entries;
+    let page_numbers = std::mem::take(&mut document.page_numbers);
     for failure in &mut failures {
         for location in &mut failure.locations {
-            if let Some(pages) = document.page_numbers.get(&PdfObjectId {
+            if let Some(pages) = page_numbers.get(&PdfObjectId {
                 object_number: location.object_number,
                 generation: location.generation,
             }) {
@@ -4901,6 +4905,84 @@ mod tests {
                 .collect::<std::collections::BTreeSet<_>>()
                 .len()
         );
+    }
+
+    #[test]
+    fn reports_shared_font_annotation_and_content_pages_in_json() {
+        let mut document = pdf_document();
+        let pages_id = document.new_object_id();
+        let font = document.add_object(
+            dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" },
+        );
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"BT /F1 10 Tf (A) Tj ET 0 0 1 1 re f".to_vec(),
+        ));
+        let annotation = document.add_object(dictionary! { "Type" => "Annot", "Subtype" => "Link", "Rect" => vec![0.into(), 0.into(), 1.into(), 1.into()] });
+        let mut page_ids = Vec::new();
+        for _ in 0..2 {
+            page_ids.push(document.add_object(dictionary! {
+                "Type" => "Page", "Parent" => pages_id, "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+                "Contents" => contents, "Annots" => vec![Object::Reference(annotation)],
+            }));
+        }
+        page_ids.push(document.add_object(dictionary! { "Type" => "Page", "Parent" => pages_id, "MediaBox" => vec![0.into(), 0.into(), 10.into(), 10.into()] }));
+        document.set_object(
+            pages_id,
+            dictionary! {
+                "Type" => "Pages", "Count" => 3,
+                "Kids" => page_ids.into_iter().map(Object::Reference).collect::<Vec<_>>(),
+                "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+            },
+        );
+        let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        document.trailer.set("Root", catalog);
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("save fixture");
+        for profile in [
+            ValidationProfile::PdfA1b,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfUa1,
+        ] {
+            let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
+                .expect("validate fixture");
+            let json = report.json_report();
+            for object in [font, annotation] {
+                let locations: Vec<_> = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .filter(|location| {
+                        location.object_number == object.0 && location.generation == object.1
+                    })
+                    .collect();
+                assert!(
+                    !locations.is_empty(),
+                    "expected finding for {object:?} in {profile}"
+                );
+                assert!(
+                    locations
+                        .iter()
+                        .all(|location| location.page_numbers == [1, 2])
+                );
+            }
+            if profile == ValidationProfile::PdfUa1 {
+                let content_location = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .find(|location| location.object_number == contents.0)
+                    .expect("untagged content finding");
+                assert_eq!(content_location.page_numbers, [1, 2]);
+                let catalog_location = json
+                    .failures
+                    .iter()
+                    .flat_map(|failure| &failure.locations)
+                    .find(|location| location.object_number == catalog.0)
+                    .expect("document-wide finding");
+                assert!(catalog_location.page_numbers.is_empty());
+            }
+        }
     }
 
     #[test]

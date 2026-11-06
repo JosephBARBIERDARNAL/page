@@ -3,7 +3,7 @@
 //!
 //! The executor follows page content, Form XObjects, and annotation appearances while tracking
 //! graphics state, text runs, and marked content. Shared resource lookups and decoded-stream
-//! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations.
+//! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations. Exhaustive reporting also records the page using each resource so shared objects can be located across pages.
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -106,6 +106,7 @@ pub(crate) struct FontTextRun {
 /// instead of maintaining subtly different reachability walkers.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ContentExecutionSummary {
+    pub(crate) page_objects: BTreeMap<u32, BTreeSet<ObjectId>>,
     /// Decoded content bytes already charged to the document-wide stream budget.
     pub(crate) decoded_content_bytes: usize,
     pub(crate) selected_color_spaces: Vec<SelectedColorSpace>,
@@ -313,6 +314,7 @@ pub(crate) fn execute_content(
     cache: &mut ContentCache,
     tagged_text_language: &BTreeSet<(ObjectId, i64)>,
     limits: &SafetyLimits,
+    collect_locations: bool,
 ) -> Result<ContentExecutionSummary, PdfError> {
     let mut executor = ContentExecutor {
         document,
@@ -325,6 +327,7 @@ pub(crate) fn execute_content(
         form_invocations: 0,
         current_page: 0,
         current_page_object_id: None,
+        collect_locations,
     };
     let mut total_decoded_bytes = 0usize;
     for (index, page_entry) in pages.iter().enumerate() {
@@ -406,6 +409,7 @@ fn check_content_streams(
 }
 
 struct ContentExecutor<'a> {
+    collect_locations: bool,
     document: &'a Document,
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
@@ -465,6 +469,19 @@ struct MarkedContent {
 }
 
 impl ContentExecutor<'_> {
+    fn record_page_use(&mut self, object: &Object) {
+        if self.collect_locations {
+            crate::page_locations::references(
+                object,
+                self.summary
+                    .page_objects
+                    .entry(self.current_page)
+                    .or_default(),
+                self.limits.max_reference_depth,
+            );
+        }
+    }
+
     fn execute_page(
         &mut self,
         page_number: u32,
@@ -1107,6 +1124,7 @@ impl ContentExecutor<'_> {
                         continue;
                     };
                     let key = resource_key(value, &format!("{context}/ExtGState"));
+                    self.record_page_use(value);
                     let Some(dictionary) =
                         resolve_optional(self.document, value, self.limits.max_reference_depth)?
                             .and_then(|object| object.as_dict().ok())
@@ -1279,6 +1297,7 @@ impl ContentExecutor<'_> {
                     else {
                         continue;
                     };
+                    self.record_page_use(shading);
                     let Some(shading) =
                         resolve_optional(self.document, shading, self.limits.max_reference_depth)?
                             .and_then(|object| object.as_dict().ok())
@@ -1420,6 +1439,7 @@ impl ContentExecutor<'_> {
         shown_bytes: &[u8],
         marked_content: &[MarkedContent],
     ) {
+        self.record_page_use(&font.object);
         let index = match self.font_indices.entry(font.key.clone()) {
             std::collections::btree_map::Entry::Occupied(entry) => *entry.get(),
             std::collections::btree_map::Entry::Vacant(entry) => {
@@ -1544,6 +1564,7 @@ impl ContentExecutor<'_> {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
         let key = resource_key(object, context);
+        self.record_page_use(object);
         let object_id = object.as_reference().ok();
         let Some(resolved) =
             resolve_optional(self.document, object, self.limits.max_reference_depth)?
@@ -1773,6 +1794,7 @@ impl ContentExecutor<'_> {
         context: &str,
         depth: usize,
     ) -> Result<(), PdfError> {
+        self.record_page_use(object);
         let ResourceContext {
             resources,
             page_resources,
@@ -2146,7 +2168,7 @@ impl ContentExecutor<'_> {
     }
 
     fn resolve_color_space(
-        &self,
+        &mut self,
         value: Object,
         resources: Option<&Dictionary>,
         page_resources: Option<&Dictionary>,
@@ -2157,6 +2179,7 @@ impl ContentExecutor<'_> {
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
+        self.record_page_use(&value);
         let resolved = resolve_optional(self.document, &value, self.limits.max_reference_depth)?
             .cloned()
             .unwrap_or(value);
@@ -3333,6 +3356,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &SafetyLimits::default(),
+            true,
         )
         .expect("cyclic nested appearance states stop after one state layer");
         assert!(summary.undefined_operators.is_empty());
@@ -3379,6 +3403,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect_err("cyclic linked images must be bounded");
         assert!(matches!(error, crate::PdfError::ReferenceDepth(3)));
@@ -3557,6 +3582,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect_err("content graph depth limit");
         assert!(matches!(error, crate::PdfError::ReferenceDepth(3)));
@@ -3606,6 +3632,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect_err("repeated shared-form expansion exceeds the document budget");
 
@@ -3632,6 +3659,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect_err("decode limit");
         assert!(matches!(error, crate::PdfError::ContentDecodeLimit(16)));
@@ -3669,6 +3697,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect_err("total decoded content limit");
         assert!(matches!(
@@ -3708,6 +3737,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &limits,
+            true,
         )
         .expect("cached content fits the total decode budget once");
     }
@@ -3732,6 +3762,7 @@ mod tests {
             &mut ContentCache::new(),
             &BTreeSet::new(),
             &SafetyLimits::default(),
+            true,
         )
     }
 }

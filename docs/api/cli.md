@@ -34,7 +34,7 @@ Time    : 0.005s
 
 <br>
 
-Add `--format details` to emit each failure's rule ID, message, category, and known object locations. Page numbers are one-based and appear when the failing object is a page. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
+Add `--format details` to emit each failure's rule ID, message, category, and known object locations. Page numbers are one-based and identify pages, page-owned annotations and content streams, and used resources and their dependencies. Shared objects can list several pages; document-wide objects and objects without an established page association have no page numbers. The labels before the colons are bold in an interactive terminal, and a blank line separates each rule:
 
 ```sh
 page document.pdf --profile 1b --format details

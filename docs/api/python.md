@@ -126,7 +126,7 @@ for failure in report.failures:
 
 `report.rules` contains the total, passed, and failed implemented rules. Multiple raw findings for the same rule are aggregated into the report's rule failure.
 
-Each failure's `locations` contains `page.FailureLocation` values with `object_number`, `generation`, and `page_numbers`. Page numbers are one-based and are provided when the failing object is itself a page; other objects have an empty `page_numbers` list. A failure with no known object has an empty `locations` list. Locations refer to all findings for the rule, while the message retains the first description. JSON uses the same field names.
+Each failure's `locations` contains `page.FailureLocation` values with `object_number`, `generation`, and `page_numbers`. Page numbers are sorted, unique, and one-based. They identify pages, page-owned objects such as annotations and content streams, and resources used by page content or annotation appearances, including their dependencies. Shared objects can list several pages. Unused resource entries do not gain page numbers merely by being listed in a resource dictionary. Document-wide objects and objects without an established page association have an empty `page_numbers` list. A failure with no known object has an empty `locations` list. Locations refer to all findings for the rule, while the message retains the first description. JSON uses the same field names.
 
 Failure categories describe findings from rules that ran on a parsed document:
 
