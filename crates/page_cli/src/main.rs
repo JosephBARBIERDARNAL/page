@@ -45,6 +45,10 @@ struct Cli {
     #[arg(long, value_enum)]
     format: Option<FormatArg>,
 
+    /// Show every location in detailed output instead of a three-location preview.
+    #[arg(long, value_enum)]
+    locations: Option<LocationsArg>,
+
     /// Write the report to a file; .json infers JSON when --format is omitted.
     #[arg(long, value_name = "FILE")]
     output: Option<PathBuf>,
@@ -111,6 +115,11 @@ enum FormatArg {
     Summary,
     Details,
     Json,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum LocationsArg {
+    All,
 }
 
 fn profile_parser() -> impl clap::builder::TypedValueParser<Value = ValidationProfile> {
@@ -192,7 +201,12 @@ fn render_summary(
     output
 }
 
-fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) -> String {
+fn render_details(
+    report: &ValidationReport,
+    elapsed: Duration,
+    colors: bool,
+    locations: Option<LocationsArg>,
+) -> String {
     let mut output = render_result_line(report.is_compliant, colors);
     let label = selected_style(colors, LABEL);
     let failed_rules_style = selected_style(
@@ -243,12 +257,37 @@ fn render_details(report: &ValidationReport, elapsed: Duration, colors: bool) ->
         writeln!(
             output,
             "[{rule}{}{rule:#}] {label}{}{label:#}: {}",
-            failure.rule_id, failure.category, failure.message
+            failure.rule_id, failure.category, failure.message,
         )
         .expect("writing to a String cannot fail");
-        for location in &failure.locations {
+        if failure.locations.len() > 1 {
+            writeln!(
+                output,
+                "  {label}Locations{label:#}: {} objects",
+                failure.locations.len()
+            )
+            .expect("writing to a String cannot fail");
+        }
+        let shown = match locations {
+            Some(LocationsArg::All) => failure.locations.len(),
+            None => failure.locations.len().min(3),
+        };
+        for location in failure.locations.iter().take(shown) {
             writeln!(output, "  {label}Location{label:#}: {location}")
                 .expect("writing to a String cannot fail");
+        }
+        let omitted = failure.locations.len() - shown;
+        if omitted > 0 {
+            writeln!(
+                output,
+                "  … {omitted} more {} (use --locations all)",
+                if omitted == 1 {
+                    "location"
+                } else {
+                    "locations"
+                }
+            )
+            .expect("writing to a String cannot fail");
         }
     }
     output
@@ -483,7 +522,9 @@ fn run_validate(cli: Cli) {
         (Some(output), format) => {
             let rendered = match format {
                 SelectedFormat::Summary => Ok(String::new()),
-                SelectedFormat::Details => Ok(render_details(&report, elapsed, false)),
+                SelectedFormat::Details => {
+                    Ok(render_details(&report, elapsed, false, cli.locations))
+                }
                 SelectedFormat::Json => {
                     let json = report.json_report();
                     serialize_json(&json)
@@ -515,7 +556,10 @@ fn run_validate(cli: Cli) {
             }
         }
         (None, SelectedFormat::Details) => {
-            print!("{}", render_details(&report, elapsed, stdout_colors));
+            print!(
+                "{}",
+                render_details(&report, elapsed, stdout_colors, cli.locations)
+            );
             page_cli::validation_exit_code(&report)
         }
         (None, SelectedFormat::Summary) => page_cli::validation_exit_code(&report),
@@ -528,9 +572,85 @@ fn run_validate(cli: Cli) {
 mod tests {
     use std::time::Duration;
 
-    use page_validation::{ValidationOptions, ValidationProfile, validate_pdf_bytes};
+    use page_validation::{
+        ValidationOptions, ValidationProfile, ValidationReport, validate_pdf_bytes,
+    };
 
-    use super::{FAILURE, LABEL, colors_enabled, render_details, render_summary, selected_style};
+    use super::{
+        FAILURE, LABEL, LocationsArg, colors_enabled, render_details, render_summary,
+        selected_style,
+    };
+
+    fn report_with_locations(count: u32) -> ValidationReport {
+        let mut report = validate_pdf_bytes(
+            include_bytes!("../../page_validation/tests/fixtures/structural.pdf"),
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+        )
+        .expect("structural fixture report");
+        let mut failure = report
+            .failures
+            .iter()
+            .find(|failure| !failure.locations.is_empty())
+            .expect("an attributed finding")
+            .clone();
+        let location = failure.locations.first().expect("object location").clone();
+        failure.locations = (1..=count)
+            .map(|number| {
+                let mut location = location.clone();
+                location.object_number = number;
+                location.generation = 2;
+                location.page_numbers = vec![number as usize];
+                location
+            })
+            .collect();
+        report.failures = vec![failure];
+        report
+    }
+
+    #[test]
+    fn detailed_location_preview_handles_empty_small_and_large_lists() {
+        for count in [0, 1, 2, 3, 4, 10] {
+            let report = report_with_locations(count);
+            let details = render_details(&report, Duration::ZERO, false, None);
+            assert_eq!(
+                details
+                    .lines()
+                    .filter(|line| line.starts_with("  Location:"))
+                    .count(),
+                usize::try_from(count.min(3)).expect("small count")
+            );
+            assert_eq!(details.contains("(example finding)"), count > 1);
+            assert_eq!(details.contains("  Locations:"), count > 1);
+            assert_eq!(details.contains("use --locations all"), count > 3);
+            if count > 0 {
+                assert!(details.contains("  Location: object 1 2 R (page 1)\n"));
+            }
+            if count > 1 {
+                assert!(details.contains(&format!("  Locations: {count} objects\n")));
+            }
+            if count == 4 {
+                assert!(details.contains("… 1 more location (use --locations all)"));
+            }
+            if count == 10 {
+                assert!(details.contains("… 7 more locations (use --locations all)"));
+            }
+        }
+    }
+
+    #[test]
+    fn all_locations_are_available_in_detailed_output() {
+        let report = report_with_locations(10);
+        let details = render_details(&report, Duration::ZERO, false, Some(LocationsArg::All));
+        assert_eq!(
+            details
+                .lines()
+                .filter(|line| line.starts_with("  Location:"))
+                .count(),
+            10
+        );
+        assert!(details.contains("  Location: object 10 2 R (page 10)\n"));
+        assert!(!details.contains("more locations"));
+    }
 
     #[test]
     fn colors_require_a_terminal_and_no_opt_out() {
@@ -558,7 +678,7 @@ mod tests {
         report.rules.passed = 9;
         report.rules.failed = 1;
 
-        let details = render_details(&report, Duration::ZERO, false);
+        let details = render_details(&report, Duration::ZERO, false, None);
 
         assert!(details.contains("Rules   : 1 failed rule / 10 total"));
         assert!(!details.contains("Checks"));
@@ -577,7 +697,7 @@ mod tests {
             .first()
             .expect("structural fixture should have a validation failure");
 
-        let details = render_details(&report, Duration::ZERO, true);
+        let details = render_details(&report, Duration::ZERO, true, None);
         let rule = selected_style(true, FAILURE);
         let label = selected_style(true, LABEL);
 

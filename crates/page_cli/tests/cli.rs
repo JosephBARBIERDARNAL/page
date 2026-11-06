@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -43,6 +44,7 @@ fn page_help_exposes_direct_validation_arguments() {
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 help");
     assert!(stdout.contains("Usage: page [OPTIONS] <FILE>"));
     assert!(stdout.contains("--format <FORMAT>"));
+    assert!(stdout.contains("--locations <LOCATIONS>"));
     assert!(stdout.contains("summary, details, json"));
     assert!(stdout.contains("--output <FILE>"));
     assert!(stdout.contains("--color"));
@@ -422,6 +424,103 @@ fn details_format_prints_every_failed_rule_with_spacing() {
         json["failures"],
         serde_json::to_value(report.json_report().failures).expect("JSON failures")
     );
+}
+
+#[test]
+fn location_preview_and_all_option_apply_to_stdout_and_saved_details() {
+    let temporary = TempDirectory::new();
+    let fixture = temporary.join("four-pages.pdf");
+    let output_path = temporary.join("details.txt");
+    let mut objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R] /Count 4 >>",
+    ];
+    objects.extend(std::iter::repeat_n(
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] /Annots [7 0 R] >>",
+        4,
+    ));
+    objects.push("<< /Type /Annot /Subtype /Link /Rect [0 0 1 1] >>");
+    let mut pdf = "%PDF-1.4\n".to_owned();
+    let mut offsets = Vec::new();
+    for (index, object) in objects.iter().enumerate() {
+        offsets.push(pdf.len());
+        writeln!(pdf, "{} 0 obj\n{object}\nendobj", index + 1).expect("PDF object");
+    }
+    let xref = pdf.len();
+    writeln!(pdf, "xref\n0 {}\n0000000000 65535 f ", objects.len() + 1).expect("xref header");
+    for offset in offsets {
+        writeln!(pdf, "{offset:010} 00000 n ").expect("xref entry");
+    }
+    writeln!(
+        pdf,
+        "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF",
+        objects.len() + 1
+    )
+    .expect("PDF trailer");
+    fs::write(&fixture, pdf).expect("write test PDF");
+
+    for all in [false, true] {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_page"));
+        command
+            .arg(&fixture)
+            .args(["--profile", "ua1", "--format", "details"]);
+        if all {
+            command.args(["--locations", "all"]);
+        }
+        let output = command.output().expect("run details");
+        assert_eq!(output.status.code(), Some(2));
+        let details = String::from_utf8(output.stdout).expect("UTF-8 details");
+        assert!(details.contains("  Locations: 4 objects\n"));
+        assert_eq!(details.contains("  Location: object 6 0 R (page 4)"), all);
+        assert_eq!(
+            details.contains("… 1 more location (use --locations all)"),
+            !all
+        );
+
+        let saved = command
+            .args(["--output"])
+            .arg(&output_path)
+            .output()
+            .expect("save details");
+        assert_eq!(saved.status.code(), Some(2));
+        assert!(saved.stdout.is_empty());
+        let saved = fs::read_to_string(&output_path).expect("saved report");
+        assert_eq!(
+            saved.split_once("\n\n").map(|(_, findings)| findings),
+            details.split_once("\n\n").map(|(_, findings)| findings)
+        );
+
+        let mut command = Command::new(env!("CARGO_BIN_EXE_page"));
+        command
+            .arg(&fixture)
+            .args(["--profile", "ua1", "--format", "json"]);
+        if all {
+            command.args(["--locations", "all"]);
+        }
+        let output = command.output().expect("run JSON");
+        assert_eq!(output.status.code(), Some(2));
+        let report: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("JSON report");
+        let failure = report["failures"]
+            .as_array()
+            .expect("failures")
+            .iter()
+            .find(|failure| failure["rule_id"] == "ISO 14289-1:2014:7.18.3:1")
+            .expect("Tabs finding");
+        assert_eq!(failure["locations"].as_array().expect("locations").len(), 4);
+    }
+}
+
+#[test]
+fn unsupported_locations_option_is_a_usage_error() {
+    let output = Command::new(env!("CARGO_BIN_EXE_page"))
+        .arg(noncompliant_fixture())
+        .args(["--format", "details", "--locations", "invalid"])
+        .output()
+        .expect("run invalid locations option");
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid value 'invalid'"));
 }
 
 #[test]

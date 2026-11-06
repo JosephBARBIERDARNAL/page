@@ -52,6 +52,24 @@ Time    : 0.017s
 [ISO 19005-1:2005:6.7.11:1] Metadata: XMP does not contain the PDF/A Identification schema
 ```
 
+Findings with multiple locations show the total number of distinct objects and up to three locations. Their description is labeled as an example finding because it comes from the first finding for that rule:
+
+```text
+[ISO 14289-1:2014:7.18.1:2] Conformance: annotation 0 on page 4 has neither a non-empty /Contents entry nor a non-empty /Alt entry in its enclosing structure element (example finding)
+  Locations: 488 objects
+  Location: object 11 0 R
+  Location: object 12 0 R
+  Location: object 13 0 R
+  … 485 more locations (use --locations all)
+```
+
+Add `--locations all` to include every location in detailed terminal or file output. JSON always includes every known location:
+
+```sh
+page document.pdf --profile ua1 --format details --locations all
+page document.pdf --profile ua1 --format details --locations all --output report.txt
+```
+
 <br>
 
 Or use `--format json` to emit the details as JSON. Each failure includes its rule ID, message, category, and `locations`. Each location contains `object_number`, `generation`, and `page_numbers`; empty lists indicate that the corresponding location is unavailable. Locations refer to all findings for the rule, while the message retains the first description:
