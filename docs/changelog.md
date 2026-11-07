@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Parse array destinations and compact hex strings in ToUnicode CMaps [#628](https://github.com/JosephBARBIERDARNAL/page/issues/628)
 - **Fix**: Compare PDF/A-2 and PDF/A-3 `/CIDSet` declarations with the complete embedded CID subset [#627](https://github.com/JosephBARBIERDARNAL/page/issues/627)
 - **Fix**: Compare PDF/A-2 and PDF/A-3 Type 1 `/CharSet` values with every glyph in the embedded subset [#626](https://github.com/JosephBARBIERDARNAL/page/issues/626)
 - **Fix**: Apply the CIDFont default width of 1000 for absent `/DW` entries when checking embedded glyph widths [#625](https://github.com/JosephBARBIERDARNAL/page/issues/625)

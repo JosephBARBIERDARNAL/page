@@ -3997,13 +3997,14 @@ struct UnicodeCmap {
 
 impl UnicodeCmap {
     fn parse(bytes: &[u8], limits: &SafetyLimits) -> Result<Option<Self>, PdfError> {
-        let tokens = cmap_tokens(bytes);
+        let mut tokens = unicode_cmap_tokens(bytes);
         let mut mappings = BTreeMap::new();
         let mut expanded_mappings = 0_usize;
         let mut cursor = 0;
         while cursor + 1 < tokens.len() {
-            let Some(token) = tokens.get(cursor) else {
-                break;
+            let Some(UnicodeCmapToken::Other(token)) = tokens.get(cursor) else {
+                cursor += 1;
+                continue;
             };
             let Some(count) =
                 parse_cmap_integer(token).and_then(|count| usize::try_from(count).ok())
@@ -4014,52 +4015,46 @@ impl UnicodeCmap {
             let Some(keyword) = tokens.get(cursor + 1) else {
                 break;
             };
-            match *keyword {
-                b"beginbfchar" => {
-                    for index in 0..count {
-                        let Some(source) = tokens
-                            .get(cursor + 2 + index * 2)
-                            .and_then(|token| parse_cmap_bytes(token))
+            match keyword {
+                UnicodeCmapToken::Other(b"beginbfchar") => {
+                    cursor += 2;
+                    for _ in 0..count {
+                        let Some(source) =
+                            tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         let Some(destination) = tokens
-                            .get(cursor + 3 + index * 2)
-                            .and_then(|token| parse_cmap_bytes(token))
+                            .get_mut(cursor + 1)
+                            .and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         add_unicode_cmap_mappings(&mut expanded_mappings, 1, limits)?;
                         mappings.insert(source, destination);
+                        cursor += 2;
                     }
-                    cursor += 2 + count * 2;
                 }
-                b"beginbfrange" => {
-                    for index in 0..count {
-                        let base = cursor + 2 + index * 3;
+                UnicodeCmapToken::Other(b"beginbfrange") => {
+                    cursor += 2;
+                    for _ in 0..count {
                         let Some(start) =
-                            tokens.get(base).and_then(|token| parse_cmap_bytes(token))
+                            tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         let Some(end) = tokens
-                            .get(base + 1)
-                            .and_then(|token| parse_cmap_bytes(token))
+                            .get_mut(cursor + 1)
+                            .and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
-                        let Some(first) = tokens
-                            .get(base + 2)
-                            .and_then(|token| parse_cmap_bytes(token))
-                        else {
-                            return Ok(None);
-                        };
+                        cursor += 2;
                         if start.len() != end.len() || start > end {
                             return Ok(None);
                         }
                         let start_value = bytes_value(&start);
                         let end_value = bytes_value(&end);
-                        let first_value = bytes_value(&first);
                         let range_length = end_value - start_value;
                         if range_length > 65_535 {
                             return Ok(None);
@@ -4072,13 +4067,42 @@ impl UnicodeCmap {
                                 limit: limits.max_unicode_cmap_mappings,
                             })?;
                         add_unicode_cmap_mappings(&mut expanded_mappings, expansion_count, limits)?;
-                        for offset in 0..=range_length {
-                            let source = value_bytes(start_value + offset, start.len());
-                            let destination = value_bytes(first_value + offset, first.len());
-                            mappings.insert(source, destination);
+                        match tokens.get_mut(cursor) {
+                            Some(UnicodeCmapToken::ArrayStart) => {
+                                cursor += 1;
+                                for offset in 0..=range_length {
+                                    let Some(destination) =
+                                        tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
+                                    else {
+                                        return Ok(None);
+                                    };
+                                    mappings.insert(
+                                        value_bytes(start_value + offset, start.len()),
+                                        destination,
+                                    );
+                                    cursor += 1;
+                                }
+                                if !matches!(tokens.get(cursor), Some(UnicodeCmapToken::ArrayEnd)) {
+                                    return Ok(None);
+                                }
+                                cursor += 1;
+                            }
+                            Some(token @ UnicodeCmapToken::Hex(Some(_))) => {
+                                let Some(first) = token.take_hex() else {
+                                    return Ok(None);
+                                };
+                                let first_value = bytes_value(&first);
+                                for offset in 0..=range_length {
+                                    mappings.insert(
+                                        value_bytes(start_value + offset, start.len()),
+                                        value_bytes(first_value + offset, first.len()),
+                                    );
+                                }
+                                cursor += 1;
+                            }
+                            _ => return Ok(None),
                         }
                     }
-                    cursor += 2 + count * 3;
                 }
                 _ => cursor += 1,
             }
@@ -4147,14 +4171,101 @@ fn add_unicode_cmap_mappings(
     Ok(())
 }
 
-fn parse_cmap_bytes(token: &[u8]) -> Option<Vec<u8>> {
-    let value = token.strip_prefix(b"<")?.strip_suffix(b">")?;
-    (value.len() % 2 == 0 && !value.is_empty()).then(|| {
-        (0..value.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(std::str::from_utf8(value.get(i..i + 2)?).ok()?, 16).ok())
-            .collect::<Option<Vec<_>>>()
-    })?
+enum UnicodeCmapToken<'a> {
+    Hex(Option<Vec<u8>>),
+    ArrayStart,
+    ArrayEnd,
+    Other(&'a [u8]),
+}
+
+impl UnicodeCmapToken<'_> {
+    fn take_hex(&mut self) -> Option<Vec<u8>> {
+        match self {
+            Self::Hex(bytes) => bytes.take(),
+            _ => None,
+        }
+    }
+}
+
+fn unicode_cmap_tokens(bytes: &[u8]) -> Vec<UnicodeCmapToken<'_>> {
+    let mut tokens = Vec::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
+            byte if byte.is_ascii_whitespace() => cursor += 1,
+            b'%' => {
+                while bytes
+                    .get(cursor)
+                    .is_some_and(|byte| !matches!(*byte, b'\r' | b'\n'))
+                {
+                    cursor += 1;
+                }
+            }
+            b'<' if bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
+            b'<' if bytes.get(cursor + 1) != Some(&b'<') => {
+                cursor += 1;
+                let start = cursor;
+                while bytes.get(cursor).is_some_and(|byte| *byte != b'>') {
+                    cursor += 1;
+                }
+                let value = bytes.get(start..cursor).unwrap_or_default();
+                let digits = value
+                    .iter()
+                    .copied()
+                    .filter(|byte| !byte.is_ascii_whitespace())
+                    .collect::<Vec<_>>();
+                let parsed = (cursor < bytes.len()
+                    && !digits.is_empty()
+                    && digits.len().is_multiple_of(2))
+                .then(|| {
+                    digits
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).ok()?, 16).ok())
+                        .collect::<Option<Vec<_>>>()
+                })
+                .flatten();
+                tokens.push(UnicodeCmapToken::Hex(parsed));
+                cursor = (cursor + 1).min(bytes.len());
+            }
+            b'[' => {
+                tokens.push(UnicodeCmapToken::ArrayStart);
+                cursor += 1;
+            }
+            b']' => {
+                tokens.push(UnicodeCmapToken::ArrayEnd);
+                cursor += 1;
+            }
+            b'>' if bytes.get(cursor + 1) == Some(&b'>') => cursor += 2,
+            b'>' | b'/' | b'(' | b')' | b'{' | b'}' => cursor += 1,
+            _ => {
+                let start = cursor;
+                while cursor < bytes.len()
+                    && bytes.get(cursor).is_some_and(|byte| {
+                        !byte.is_ascii_whitespace()
+                            && !matches!(
+                                *byte,
+                                b'%' | b'<' | b'>' | b'[' | b']' | b'/' | b'(' | b')' | b'{' | b'}'
+                            )
+                    })
+                {
+                    cursor += 1;
+                }
+                if cursor == start {
+                    cursor += 1;
+                } else {
+                    if let Some(token) = bytes.get(start..cursor) {
+                        tokens.push(UnicodeCmapToken::Other(token));
+                    }
+                }
+            }
+        }
+    }
+    tokens
 }
 
 fn bytes_value(bytes: &[u8]) -> u32 {
@@ -5950,6 +6061,56 @@ mod tests {
             UnicodeCmap::parse(b"1 beginbfrange <00> <ffff> <d800> endbfrange", &limits)
                 .expect("parse invalid Unicode range value")
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn parses_array_bfrange_destinations() {
+        let map = UnicodeCmap::parse(
+            b"1 beginbfrange <2BAB> <2BAC> [<81E8> <81EA>] endbfrange",
+            &SafetyLimits::default(),
+        )
+        .expect("parse array bfrange")
+        .expect("valid array bfrange");
+
+        assert_eq!(
+            map.mappings.get(&[0x2B, 0xAB][..]).map(Vec::as_slice),
+            Some(&[0x81, 0xE8][..])
+        );
+        assert_eq!(
+            map.mappings.get(&[0x2B, 0xAC][..]).map(Vec::as_slice),
+            Some(&[0x81, 0xEA][..])
+        );
+    }
+
+    #[test]
+    fn parses_compact_hex_tokens_and_internal_hex_whitespace() {
+        let map = UnicodeCmap::parse(
+            b"% 1 beginbfchar <41> <d800>\n2 beginbfchar <21><0045> <27>< 0009 000d 0020 00a0 > endbfchar",
+            &SafetyLimits::default(),
+        )
+        .expect("parse compact bfchar entries")
+        .expect("valid compact bfchar entries");
+
+        assert_eq!(
+            map.mappings.get(&[0x21][..]).map(Vec::as_slice),
+            Some(&[0x00, 0x45][..])
+        );
+        assert_eq!(
+            map.mappings.get(&[0x27][..]).map(Vec::as_slice),
+            Some(&[0x00, 0x09, 0x00, 0x0D, 0x00, 0x20, 0x00, 0xA0][..])
+        );
+    }
+
+    #[test]
+    fn rejects_truncated_array_bfrange_destinations() {
+        assert!(
+            UnicodeCmap::parse(
+                b"1 beginbfrange <2BAB> <2BAC> [<81E8>] endbfrange",
+                &SafetyLimits::default(),
+            )
+            .expect("parse truncated array bfrange")
+            .is_none()
         );
     }
 
