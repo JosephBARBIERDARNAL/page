@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Report PDF/A-1 Info date mismatches when XMP metadata or the corresponding date property is missing [#623](https://github.com/JosephBARBIERDARNAL/page/issues/623)
 - **Doc**: Refresh CLI examples, output, and command references across the README and documentation [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Align detailed CLI output tests and documentation with the removal of the `(example finding)` label [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Include page numbers for annotations, content streams, and used resources, including shared objects and resource dependencies [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
