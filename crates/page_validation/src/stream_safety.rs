@@ -385,16 +385,22 @@ fn inspect_raw_stream_measurements(
     #[cfg(test)]
     let endstream = endstream.or_else(|| find_endstream(bytes, start, declared_length));
     let actual_length = endstream.and_then(|keyword| {
+        let missing_eol_length = declared_length.filter(|length| {
+            stream_data_end_before_eol(bytes, keyword).is_none()
+                && declared_stream_end_matches(bytes, start, *length, keyword)
+        });
         declared_length
             .filter(|length| {
                 declared_stream_end_matches(bytes, start, *length, keyword)
                     && declared_length_includes_utf16le_delimiter(bytes, start, *length, keyword)
             })
+            .or(missing_eol_length)
             .or_else(|| {
                 stream_data_end_before_eol(bytes, keyword).map(|end| end.saturating_sub(start))
             })
     });
-    let valid_end = actual_length.is_some();
+    let valid_end =
+        endstream.is_some_and(|keyword| stream_data_end_before_eol(bytes, keyword).is_some());
     if !valid_start || !valid_end {
         summary.invalid_eol_markers.push(object_id.into());
     }
@@ -924,6 +930,62 @@ mod tests {
         )
         .expect("inspect stream with extra keyword space");
         assert_eq!(summary.invalid_eol_markers.len(), 1);
+    }
+
+    #[test]
+    fn separates_declared_length_from_missing_endstream_eol() {
+        let document = Document::with_version("1.4");
+        let mut stream = Stream::new(Dictionary::new(), b"abc".to_vec());
+        stream.start_position = Some(7);
+
+        let bytes = b"stream\nabcendstream";
+        stream.dict.set("Length", 3);
+        let mut summary = StreamSafetySummary::default();
+        inspect_raw_stream_syntax(
+            &document,
+            &stream,
+            (1, 0),
+            7,
+            &SafetyLimits::default(),
+            bytes,
+            Some(10),
+            &mut summary,
+        )
+        .expect("inspect stream with missing endstream EOL");
+        assert!(summary.invalid_lengths.is_empty());
+        assert_eq!(summary.invalid_eol_markers.len(), 1);
+
+        let bytes = b"stream\nabc\nendstream";
+        let mut summary = StreamSafetySummary::default();
+        inspect_raw_stream_syntax(
+            &document,
+            &stream,
+            (1, 0),
+            7,
+            &SafetyLimits::default(),
+            bytes,
+            Some(11),
+            &mut summary,
+        )
+        .expect("inspect stream with valid endstream EOL");
+        assert!(summary.invalid_lengths.is_empty());
+        assert!(summary.invalid_eol_markers.is_empty());
+
+        stream.dict.set("Length", 2);
+        let mut summary = StreamSafetySummary::default();
+        inspect_raw_stream_syntax(
+            &document,
+            &stream,
+            (1, 0),
+            7,
+            &SafetyLimits::default(),
+            bytes,
+            Some(11),
+            &mut summary,
+        )
+        .expect("inspect stream with inaccurate declared length");
+        assert_eq!(summary.invalid_lengths.len(), 1);
+        assert!(summary.invalid_eol_markers.is_empty());
     }
 
     #[test]

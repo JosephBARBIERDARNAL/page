@@ -1461,9 +1461,9 @@ fn collect_validation_failures(
             &mut failures,
         );
         // PDF/UA-1 7.21.6-2 reuses the shared simple-font encoding parser and
-        // embedded TrueType cmap scanner. Its cmap requirement is stricter
-        // than 7.21.6-1: an embedded non-symbolic TrueType font must contain
-        // Microsoft Unicode (3,1), regardless of whether Differences exists.
+        // embedded TrueType cmap scanner. A non-symbolic font needs an allowed
+        // base encoding; when Differences exists, its glyph names must be
+        // Unicode-compliant and an embedded font must contain Microsoft Unicode (3,1).
         aggregate_failures_with_location(
             &inspections
                 .font_embedding
@@ -3328,11 +3328,19 @@ fn validate_font_dictionaries(
             iso_pdfa_rule_id!(profile, "6.1.12:10", "6.1.13:10", "6.1.13:10"),
         ),
         (
-            fonts.invalid_type1_subset_charsets.as_slice(),
+            if profile.is_pdfa_2_or_3() {
+                fonts.invalid_type1_charsets_pdfua1.as_slice()
+            } else {
+                fonts.invalid_type1_subset_charsets.as_slice()
+            },
             iso_pdfa_rule_id!(profile, "6.3.5:2", "6.2.11.4.2:1", "6.2.11.4.2:1"),
         ),
         (
-            fonts.invalid_cid_subset_cidsets.as_slice(),
+            if profile.is_pdfa_2_or_3() {
+                fonts.invalid_cid_subset_cidsets_pdfa2.as_slice()
+            } else {
+                fonts.invalid_cid_subset_cidsets.as_slice()
+            },
             iso_pdfa_rule_id!(profile, "6.3.5:3", "6.2.11.4.2:2", "6.2.11.4.2:2"),
         ),
         (
@@ -3611,39 +3619,35 @@ fn validate_info_consistency(
         failures,
         |a, b| a == b,
     );
-    if let Some(xmp) = xmp {
-        if !xmp.create_dates.is_empty()
-            && !xmp
-                .invalid_predefined_xmp_value_types
-                .contains("{http://ns.adobe.com/xap/1.0/}CreateDate (date)")
-        {
-            compare_field(
-                document,
-                "CreationDate",
-                &xmp.create_dates,
-                iso_pdfa_rule_id!(profile, "6.7.3:1", "", ""),
-                "xmp:CreateDate",
-                object_id,
-                failures,
-                dates_equivalent,
-            );
-        }
-        if !xmp.modify_dates.is_empty()
-            && !xmp
-                .invalid_predefined_xmp_value_types
-                .contains("{http://ns.adobe.com/xap/1.0/}ModifyDate (date)")
-        {
-            compare_field(
-                document,
-                "ModDate",
-                &xmp.modify_dates,
-                iso_pdfa_rule_id!(profile, "6.7.3:8", "", ""),
-                "xmp:ModifyDate",
-                object_id,
-                failures,
-                dates_equivalent,
-            );
-        }
+    if xmp.is_none_or(|xmp| {
+        !xmp.invalid_predefined_xmp_value_types
+            .contains("{http://ns.adobe.com/xap/1.0/}CreateDate (date)")
+    }) {
+        compare_field(
+            document,
+            "CreationDate",
+            xmp.map_or(empty, |xmp| &xmp.create_dates),
+            iso_pdfa_rule_id!(profile, "6.7.3:1", "", ""),
+            "xmp:CreateDate",
+            object_id,
+            failures,
+            dates_equivalent,
+        );
+    }
+    if xmp.is_none_or(|xmp| {
+        !xmp.invalid_predefined_xmp_value_types
+            .contains("{http://ns.adobe.com/xap/1.0/}ModifyDate (date)")
+    }) {
+        compare_field(
+            document,
+            "ModDate",
+            xmp.map_or(empty, |xmp| &xmp.modify_dates),
+            iso_pdfa_rule_id!(profile, "6.7.3:8", "", ""),
+            "xmp:ModifyDate",
+            object_id,
+            failures,
+            dates_equivalent,
+        );
     }
 }
 
@@ -4346,6 +4350,121 @@ mod tests {
             "ISO 19005-1:2005:6.7.3:8",
         ] {
             assert_no_rule(&report, rule);
+        }
+    }
+
+    #[test]
+    fn reports_info_date_mismatches_without_xmp() {
+        let mut document =
+            Document::load_mem(&fixture(None, true)).expect("load validation fixture");
+        let info_id = document.add_object(complete_info());
+        document.trailer.set("Info", info_id);
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("save fixture");
+
+        for profile in [ValidationProfile::PdfA1a, ValidationProfile::PdfA1b] {
+            let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
+                .expect("explicit profile validation");
+            assert_rule(&report, "ISO 19005-1:2005:6.7.3:1");
+            assert_rule(&report, "ISO 19005-1:2005:6.7.3:8");
+        }
+    }
+
+    #[test]
+    fn reports_info_date_mismatch_when_only_its_xmp_property_is_missing() {
+        for (property, missing_rule, matching_rule) in [
+            (
+                "CreateDate",
+                "ISO 19005-1:2005:6.7.3:1",
+                "ISO 19005-1:2005:6.7.3:8",
+            ),
+            (
+                "ModifyDate",
+                "ISO 19005-1:2005:6.7.3:8",
+                "ISO 19005-1:2005:6.7.3:1",
+            ),
+        ] {
+            let xmp = String::from_utf8(COMPLETE_XMP.to_vec())
+                .expect("fixture is UTF-8")
+                .replace(&format!("xmp:{property}=\"2026-07-27T12:30:45+02:00\""), "");
+            let report = validate_pdf_bytes(
+                &fixture_with_metadata_dictionary(
+                    xmp.as_bytes(),
+                    dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
+                    Some(complete_info()),
+                ),
+                &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+            )
+            .expect("explicit profile validation");
+            assert_rule(&report, missing_rule);
+            assert_no_rule(&report, matching_rule);
+        }
+    }
+
+    #[test]
+    fn absent_info_dates_do_not_require_matching_xmp_dates() {
+        let mut info = complete_info();
+        info.remove(b"CreationDate");
+        info.remove(b"ModDate");
+        for xmp in [VALID_XMP, COMPLETE_XMP] {
+            let report = validate_pdf_bytes(
+                &fixture_with_metadata_dictionary(
+                    xmp,
+                    dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
+                    Some(info.clone()),
+                ),
+                &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+            )
+            .expect("explicit profile validation");
+            assert_no_rule(&report, "ISO 19005-1:2005:6.7.3:1");
+            assert_no_rule(&report, "ISO 19005-1:2005:6.7.3:8");
+        }
+    }
+
+    #[test]
+    fn incorrectly_typed_xmp_dates_only_report_the_value_type_rule() {
+        let xmp = String::from_utf8(COMPLETE_XMP.to_vec())
+            .expect("fixture is UTF-8")
+            .replace("2026-07-27T12:30:45+02:00", "not a date");
+        let report = validate_pdf_bytes(
+            &fixture_with_metadata_dictionary(
+                xmp.as_bytes(),
+                dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
+                Some(complete_info()),
+            ),
+            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+        )
+        .expect("explicit profile validation");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.9:3");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.7.3:1");
+        assert_no_rule(&report, "ISO 19005-1:2005:6.7.3:8");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_do_not_require_info_date_equivalence() {
+        for profile in ValidationProfile::all()
+            .iter()
+            .copied()
+            .filter(|profile| profile.is_pdfa_2_or_3())
+        {
+            for xmp in [VALID_XMP, COMPLETE_XMP] {
+                let mut info = complete_info();
+                info.set("CreationDate", Object::string_literal("D:20000101"));
+                info.set("ModDate", Object::string_literal("D:20000101"));
+                let report = validate_pdf_bytes(
+                    &fixture_with_metadata_dictionary(
+                        xmp,
+                        dictionary! {"Type" => "Metadata", "Subtype" => "XML"},
+                        Some(info),
+                    ),
+                    &ValidationOptions::default().profile(profile),
+                )
+                .expect("explicit profile validation");
+                assert!(report.failures.iter().all(|failure| {
+                    !failure.message.contains("Info CreationDate")
+                        && !failure.message.contains("Info ModDate")
+                }));
+            }
         }
     }
 

@@ -68,6 +68,19 @@ Operational and parser failures are kept separate from metadata and conformance 
 
 When asked to implement a new rule for a PDF profile, verify whether it has already been implemented for another profile in order to reuse it. Add a unit test to verify its behavior, and check whether the veraPDF corpus conformance gate has a test for it.
 
+## Comparing page with veraPDF
+
+Use `scripts/compare_validators.py` to investigate a single PDF against the Java veraPDF executable. It compares both the compliance verdict and the complete sets of failed ISO rule IDs, so it detects missing or extra failed rules even when both validators reject the document.
+
+```sh
+cargo build --release --locked -p page_cli --bin page
+uv run --no-project scripts/compare_validators.py /path/to/input.pdf --profile 1b --output-dir /tmp/page-comparison
+```
+
+The required `--profile` accepts `1b`, `1a`, `2b`, `2a`, `2u`, `3b`, `3a`, `3u`, and `ua1`. Override executable paths with `--page` and `--verapdf`. The script defaults to a page reference-depth limit of `512` and a timeout of `300` seconds per validator; override these with `--max-reference-depth` and `--timeout`.
+
+The summary lists shared failed rules and rules reported only by page or only by veraPDF. Use `--json` for machine-readable output. With `--output-dir`, the script saves each validator's raw JSON report and stderr plus `comparison.json`, which includes verdicts, rule sets, and the exact commands. Exit code `0` means agreement on both verdict and failed rules, `2` means disagreement, and `1` means an execution or report error. Investigate disagreements before deciding which validator needs a fix; follow the minimal-reproduction rule above when veraPDF behaves unexpectedly.
+
 ## veraPDF corpus conformance gate
 
 The required pull-request CI check invokes the internal `page-corpus` binary through `just verapdf-corpus` against the pinned `staging` revision `49de56cd987929932c9e4fbbbe67d052bf44ef83` of the external [veraPDF corpus](https://github.com/veraPDF/veraPDF-corpus). It does not install or invoke the Java veraPDF executable; the checked-in result and rule expectation manifests record the expected outcomes for that pinned corpus revision. The gate validates the expected exit status and a matching expected rule without assigning meaning to diagnostic order. The workflow uses a sparse checkout so the gate runs every PDF recursively under the selected profile directories without vendoring the corpus into this repository.

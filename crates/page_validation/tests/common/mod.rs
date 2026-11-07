@@ -6487,7 +6487,13 @@ pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
                 .clone(),
         )
     };
-    let descriptor_id = if case == "missing_unicode_cmap" {
+    let descriptor_id = if matches!(
+        case,
+        "missing_unicode_cmap"
+            | "macintosh_only_no_differences"
+            | "macintosh_only_differences"
+            | "unembedded_macintosh_only_differences"
+    ) {
         Some(
             document
                 .get_object(font_id)
@@ -6510,6 +6516,37 @@ pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
     });
     match case {
         "matching" => {}
+        "macintosh_only_no_differences"
+        | "macintosh_only_differences"
+        | "unembedded_macintosh_only_differences" => {
+            if case != "unembedded_macintosh_only_differences" {
+                let font_file = document.add_object(Stream::new(
+                    Dictionary::new(),
+                    sfnt::minimal_truetype_with_macintosh_cmap(),
+                ));
+                document
+                    .get_object_mut(descriptor_id.expect("Macintosh cmap descriptor"))
+                    .expect("PDF/UA-1 TrueType descriptor")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 TrueType descriptor dictionary")
+                    .set("FontFile2", font_file);
+            }
+            if case != "macintosh_only_no_differences" {
+                document
+                    .get_object_mut(font_id)
+                    .expect("PDF/UA-1 fixture TrueType font")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 fixture TrueType font dictionary")
+                    .set(
+                        "Encoding",
+                        dictionary! {
+                            "Type" => "Encoding",
+                            "BaseEncoding" => "WinAnsiEncoding",
+                            "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+                        },
+                    );
+            }
+        }
         "invalid_encoding" => document
             .get_object_mut(font_id)
             .expect("PDF/UA-1 fixture TrueType font")
@@ -6747,6 +6784,113 @@ pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
         .expect("PDF/UA-1 Type0 font dictionary")
         .set("ToUnicode", to_unicode);
     save_document(document, "PDF/UA-1 CIDSet fixture")
+}
+
+pub fn pdfa_cidset_subset_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load Type0 CIDSet subset fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("CIDSet fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("CIDSet fixture page")
+        .as_dict()
+        .expect("CIDSet fixture page dictionary")
+        .get(b"Resources")
+        .expect("CIDSet fixture resources")
+        .as_dict()
+        .expect("CIDSet fixture resources dictionary")
+        .get(b"Font")
+        .expect("CIDSet fixture fonts")
+        .as_dict()
+        .expect("CIDSet fixture font dictionary")
+        .get(b"FUA")
+        .expect("CIDSet fixture Type0 font")
+        .as_reference()
+        .expect("indirect CIDSet fixture Type0 font");
+    let descendant_id = document
+        .get_object(font_id)
+        .expect("CIDSet fixture Type0 font")
+        .as_dict()
+        .expect("CIDSet fixture Type0 font dictionary")
+        .get(b"DescendantFonts")
+        .expect("CIDSet fixture descendants")
+        .as_array()
+        .expect("CIDSet fixture descendants array")
+        .first()
+        .expect("CIDSet fixture descendant")
+        .as_reference()
+        .expect("indirect CIDSet fixture descendant");
+    let descriptor_id = document
+        .get_object(descendant_id)
+        .expect("CIDSet fixture descendant")
+        .as_dict()
+        .expect("CIDSet fixture descendant dictionary")
+        .get(b"FontDescriptor")
+        .expect("CIDSet fixture descriptor")
+        .as_reference()
+        .expect("indirect CIDSet fixture descriptor");
+    let font_file_id = document
+        .get_object(descriptor_id)
+        .expect("CIDSet fixture descriptor")
+        .as_dict()
+        .expect("CIDSet fixture descriptor dictionary")
+        .get(b"FontFile2")
+        .expect("CIDSet fixture FontFile2")
+        .as_reference()
+        .expect("indirect CIDSet fixture FontFile2");
+
+    document
+        .get_object_mut(font_file_id)
+        .expect("CIDSet fixture FontFile2")
+        .as_stream_mut()
+        .expect("CIDSet fixture FontFile2 stream")
+        .set_content(sfnt::minimal_truetype_with_glyph_count(3));
+    let nonidentity = case.starts_with("nonidentity_");
+    if nonidentity {
+        let cid_to_gid =
+            document.add_object(Stream::new(Dictionary::new(), vec![0, 0, 0, 1, 0, 2]));
+        document
+            .get_object_mut(descendant_id)
+            .expect("CIDSet fixture descendant")
+            .as_dict_mut()
+            .expect("CIDSet fixture descendant dictionary")
+            .set("CIDToGIDMap", cid_to_gid);
+    }
+    let cid_set = match case {
+        "identity_incomplete" | "nonidentity_incomplete" => vec![0xc0],
+        "identity_complete" | "nonidentity_complete" => vec![0xe0],
+        "identity_extra" | "nonidentity_extra" => vec![0xf0],
+        _ => panic!("unknown PDF/A CIDSet fixture case {case}"),
+    };
+    let cid_set_id = document.add_object(Stream::new(Dictionary::new(), cid_set));
+    document
+        .get_object_mut(descriptor_id)
+        .expect("CIDSet fixture descriptor")
+        .as_dict_mut()
+        .expect("CIDSet fixture descriptor dictionary")
+        .set("CIDSet", cid_set_id);
+    for (object_id, key) in [
+        (font_id, b"BaseFont".as_slice()),
+        (descriptor_id, b"FontName"),
+    ] {
+        document
+            .get_object_mut(object_id)
+            .expect("CIDSet fixture font name owner")
+            .as_dict_mut()
+            .expect("CIDSet fixture font name dictionary")
+            .set(key, Object::Name(b"ABCDEF+MaiTestFont".to_vec()));
+    }
+    document
+        .get_object_mut(descendant_id)
+        .expect("CIDSet fixture descendant")
+        .as_dict_mut()
+        .expect("CIDSet fixture descendant dictionary")
+        .set("BaseFont", "ABCDEF+MaiTestFont");
+    save_document(document, "PDF/A CIDSet subset fixture")
 }
 
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
@@ -13434,6 +13578,64 @@ pub fn font_fixture(case: &str) -> Vec<u8> {
 
 pub fn font_fixture_with_external_type1_program(case: &str, program: &[u8]) -> Vec<u8> {
     font_fixture_with_type1_program(case, Some(program))
+}
+
+pub fn truetype_mapping_fixture(program: Vec<u8>, encoding: &str, byte: u8, width: u16) -> Vec<u8> {
+    let mut document = Document::load_mem(&font_fixture("tt_glyph_present"))
+        .expect("load TrueType mapping fixture");
+    let font_id = document
+        .objects
+        .iter()
+        .find_map(|(id, object)| {
+            let dictionary = object.as_dict().ok()?;
+            (dictionary.get(b"Subtype").ok()?.as_name().ok()? == b"TrueType").then_some(*id)
+        })
+        .expect("TrueType font");
+    let descriptor_id = document
+        .get_object(font_id)
+        .expect("font")
+        .as_dict()
+        .expect("font dictionary")
+        .get(b"FontDescriptor")
+        .expect("descriptor")
+        .as_reference()
+        .expect("indirect descriptor");
+    let program_id = document.add_object(Stream::new(Dictionary::new(), program));
+    document
+        .get_object_mut(descriptor_id)
+        .expect("descriptor")
+        .as_dict_mut()
+        .expect("descriptor dictionary")
+        .set("FontFile2", program_id);
+    let font = document
+        .get_object_mut(font_id)
+        .expect("font")
+        .as_dict_mut()
+        .expect("font dictionary");
+    font.set("Encoding", encoding);
+    font.set("FirstChar", i64::from(byte));
+    font.set("LastChar", i64::from(byte));
+    font.set("Widths", vec![Object::Integer(i64::from(width))]);
+    let page_id = *document.get_pages().values().next().expect("page");
+    let contents = document.add_object(Stream::new(
+        Dictionary::new(),
+        content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![byte], StringFormat::Hexadecimal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+    ));
+    document
+        .get_object_mut(page_id)
+        .expect("page")
+        .as_dict_mut()
+        .expect("page dictionary")
+        .set("Contents", contents);
+    save_document(document, "TrueType mapping fixture")
 }
 
 pub fn font_fixture_with_type1_program(

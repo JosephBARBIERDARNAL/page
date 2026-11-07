@@ -8,6 +8,7 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
+use std::sync::LazyLock;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
 use read_fonts::ps::cff::CffFontRef;
@@ -50,6 +51,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    pub(crate) invalid_cid_subset_cidsets_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     pub(crate) missing_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -283,6 +285,7 @@ struct Scanner<'a> {
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    invalid_cid_subset_cidsets_pdfa2: Vec<RuleFailure>,
     invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     missing_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -355,6 +358,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: Vec::new(),
         invalid_type1_charsets_pdfua1: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
+        invalid_cid_subset_cidsets_pdfa2: Vec::new(),
         invalid_cid_subset_cidsets_pdfua1: Vec::new(),
         missing_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
@@ -431,7 +435,7 @@ pub(crate) fn inspect(
     scanner.inspect_unicode_pua_actual_text()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
-    scanner.inspect_cid_subset_sets_pdfua1()?;
+    scanner.inspect_complete_cid_subset_sets()?;
 
     let failures = scanner
         .uses
@@ -470,6 +474,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_type1_charsets_pdfua1: scanner.invalid_type1_charsets_pdfua1,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
+        invalid_cid_subset_cidsets_pdfa2: scanner.invalid_cid_subset_cidsets_pdfa2,
         invalid_cid_subset_cidsets_pdfua1: scanner.invalid_cid_subset_cidsets_pdfua1,
         missing_cid_subset_cidsets: scanner.missing_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
@@ -869,9 +874,10 @@ impl Scanner<'_> {
                         "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
                     ));
             }
-            let has_microsoft_unicode_cmap =
-                !embedded || cmap_summary.is_some_and(|(_, _, cmap31_present)| cmap31_present);
-            if !valid_encoding || !has_microsoft_unicode_cmap {
+            let has_required_microsoft_unicode_cmap = !embedded
+                || !contains_differences
+                || cmap_summary.is_some_and(|(_, _, cmap31_present)| cmap31_present);
+            if !valid_encoding || !has_required_microsoft_unicode_cmap {
                 self.invalid_nonsymbolic_truetype_encodings_pdfua1
                     .push(font_failure(
                         object_id,
@@ -1191,14 +1197,17 @@ impl Scanner<'_> {
             } else {
                 None
             };
+            let base_encoding = encoding
+                .as_deref()
+                .and_then(PredefinedEncoding::from_pdf_name);
             for byte in usage.unique_shown_bytes() {
                 let glyph = if symbolic {
                     face.glyph_index_for_symbolic_byte(byte)
                 } else {
                     pdf_encoding
                         .as_ref()
-                        .and_then(|encoding| single_encoded_character(encoding, byte))
-                        .and_then(|character| face.glyph_index(character))
+                        .zip(base_encoding)
+                        .and_then(|(encoding, base)| face.glyph_index(encoding, base, byte))
                 };
                 if glyph.is_none() || glyph.is_some_and(|glyph| glyph.to_u32() == 0) {
                     self.notdef_glyphs.push(font_failure(
@@ -2010,9 +2019,9 @@ impl Scanner<'_> {
         Ok(())
     }
 
-    /// Checks PDF/UA-1 7.21.4.2-2 against every CID represented by an
-    /// embedded subset program, not only CIDs reached by shown text.
-    fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
+    /// Checks complete embedded CID subsets for PDF/A-2/3 and PDF/UA-1.
+    /// PDF/A also rejects bits that identify CIDs absent from the program.
+    fn inspect_complete_cid_subset_sets(&mut self) -> Result<(), PdfError> {
         for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") {
                 continue;
@@ -2070,13 +2079,20 @@ impl Scanner<'_> {
                 continue;
             };
             if program_cids
-                .into_iter()
-                .any(|cid| !cid_set_contains(&cid_set_bytes, cid))
+                .iter()
+                .any(|cid| !cid_set_contains(&cid_set_bytes, *cid))
             {
                 self.invalid_cid_subset_cidsets_pdfua1.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     "does not identify every CID present in its embedded font program",
+                ));
+            }
+            if !cid_set_matches_program(&cid_set_bytes, &program_cids) {
+                self.invalid_cid_subset_cidsets_pdfa2.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "does not identify exactly the CIDs present in its embedded font program",
                 ));
             }
         }
@@ -2626,7 +2642,8 @@ enum WGroup {
 /// the original sequential-scan predicate exactly, including that a
 /// malformed group aborts the lookup for every CID from that point on
 /// *without* falling back to `/DW` (unlike a fully well-formed array that
-/// simply has no matching group).
+/// simply has no matching group). An absent `/DW` defaults to 1000; an
+/// explicitly malformed `/DW` remains unavailable.
 struct CidWidths {
     groups: Vec<WGroup>,
     truncated: bool,
@@ -2664,13 +2681,10 @@ fn parse_cid_widths(
     font: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<CidWidths, PdfError> {
-    let default_width = font
-        .get(b"DW")
-        .ok()
-        .map(|value| resolved_float(document, limits, value))
-        .transpose()?
-        .flatten()
-        .map(f64::from);
+    let default_width = match font.get(b"DW") {
+        Ok(value) => resolved_float(document, limits, value)?.map(f64::from),
+        Err(_) => Some(1000.0),
+    };
     let none = || CidWidths {
         groups: Vec::new(),
         truncated: false,
@@ -3721,38 +3735,35 @@ fn unicode_mapping_exception(
             return Ok(true);
         }
         if matches!(subtype, Some("Type1" | "MMType1")) {
-            let standard_names = (0..=u8::MAX)
-                .filter_map(|byte| font_encodings::glyph_name(PredefinedEncoding::Standard, byte))
-                .collect::<BTreeSet<_>>();
-            let descriptor = font_descriptor_dictionary(document, font, limits)?;
-            let named_characters = descriptor
-                .map(|descriptor| resolved_string(document, descriptor, b"CharSet", limits))
-                .transpose()?
-                .flatten();
-            let all_standard = named_characters.as_deref().is_some_and(|bytes| {
-                let names = type1_charset_names(bytes);
-                !names.is_empty() && names.iter().all(|name| standard_names.contains(name))
-            });
-            let all_symbol = named_characters.as_deref().is_some_and(|bytes| {
-                let names = type1_charset_names(bytes);
-                !names.is_empty() && names.iter().all(|name| is_symbol_glyph_name(name))
-            });
-            let rendered_symbol_names = shown_bytes
+            let rendered_names = shown_bytes
                 .iter()
-                .filter_map(|byte| {
-                    encoding.glyph_name(*byte).or_else(|| {
-                        program_encoding.and_then(|encoding| encoding.glyph_name(*byte))
-                    })
+                .map(|byte| {
+                    encoding
+                        .glyph_name(*byte)
+                        .or_else(|| program_encoding.and_then(|program| program.glyph_name(*byte)))
                 })
-                .collect::<Vec<_>>();
-            if all_standard
-                || all_symbol
-                || (!rendered_symbol_names.is_empty()
-                    && rendered_symbol_names
+                .collect::<Option<Vec<_>>>();
+            if rendered_names.as_ref().is_some_and(|names| {
+                !names.is_empty()
+                    && names
                         .iter()
-                        .all(|name| is_symbol_glyph_name(name)))
-            {
+                        .all(|name| is_unicode_mappable_glyph_name(name))
+            }) {
                 return Ok(true);
+            }
+            if encoding.differences.is_empty()
+                && rendered_names.is_none()
+                && let Some(descriptor) = font_descriptor_dictionary(document, font, limits)?
+                && let Some(char_set) = resolved_string(document, descriptor, b"CharSet", limits)?
+            {
+                let names = type1_charset_names(&char_set);
+                if !names.is_empty()
+                    && names
+                        .iter()
+                        .all(|name| is_unicode_mappable_glyph_name(name))
+                {
+                    return Ok(true);
+                }
             }
         }
     }
@@ -3768,6 +3779,27 @@ fn unicode_mapping_exception(
         return Ok(true);
     }
     Ok(false)
+}
+
+/// Names present in PDF's predefined simple-font encodings have the standard
+/// glyph-name-to-Unicode interpretation; arbitrary Adobe Glyph List extensions
+/// do not establish that interpretation for a PDF text code.
+static UNICODE_MAPPABLE_GLYPH_NAMES: LazyLock<BTreeSet<&'static str>> = LazyLock::new(|| {
+    [
+        PredefinedEncoding::Standard,
+        PredefinedEncoding::MacRoman,
+        PredefinedEncoding::MacExpert,
+        PredefinedEncoding::WinAnsi,
+    ]
+    .into_iter()
+    .flat_map(|encoding| {
+        (0..=u8::MAX).filter_map(move |byte| font_encodings::glyph_name(encoding, byte))
+    })
+    .collect()
+});
+
+fn is_unicode_mappable_glyph_name(name: &str) -> bool {
+    UNICODE_MAPPABLE_GLYPH_NAMES.contains(name) || is_symbol_glyph_name(name)
 }
 
 /// Indexes every marked-content id that a `StructElem` with a string
@@ -3985,13 +4017,14 @@ struct UnicodeCmap {
 
 impl UnicodeCmap {
     fn parse(bytes: &[u8], limits: &SafetyLimits) -> Result<Option<Self>, PdfError> {
-        let tokens = cmap_tokens(bytes);
+        let mut tokens = unicode_cmap_tokens(bytes);
         let mut mappings = BTreeMap::new();
         let mut expanded_mappings = 0_usize;
         let mut cursor = 0;
         while cursor + 1 < tokens.len() {
-            let Some(token) = tokens.get(cursor) else {
-                break;
+            let Some(UnicodeCmapToken::Other(token)) = tokens.get(cursor) else {
+                cursor += 1;
+                continue;
             };
             let Some(count) =
                 parse_cmap_integer(token).and_then(|count| usize::try_from(count).ok())
@@ -4002,52 +4035,46 @@ impl UnicodeCmap {
             let Some(keyword) = tokens.get(cursor + 1) else {
                 break;
             };
-            match *keyword {
-                b"beginbfchar" => {
-                    for index in 0..count {
-                        let Some(source) = tokens
-                            .get(cursor + 2 + index * 2)
-                            .and_then(|token| parse_cmap_bytes(token))
+            match keyword {
+                UnicodeCmapToken::Other(b"beginbfchar") => {
+                    cursor += 2;
+                    for _ in 0..count {
+                        let Some(source) =
+                            tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         let Some(destination) = tokens
-                            .get(cursor + 3 + index * 2)
-                            .and_then(|token| parse_cmap_bytes(token))
+                            .get_mut(cursor + 1)
+                            .and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         add_unicode_cmap_mappings(&mut expanded_mappings, 1, limits)?;
                         mappings.insert(source, destination);
+                        cursor += 2;
                     }
-                    cursor += 2 + count * 2;
                 }
-                b"beginbfrange" => {
-                    for index in 0..count {
-                        let base = cursor + 2 + index * 3;
+                UnicodeCmapToken::Other(b"beginbfrange") => {
+                    cursor += 2;
+                    for _ in 0..count {
                         let Some(start) =
-                            tokens.get(base).and_then(|token| parse_cmap_bytes(token))
+                            tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
                         let Some(end) = tokens
-                            .get(base + 1)
-                            .and_then(|token| parse_cmap_bytes(token))
+                            .get_mut(cursor + 1)
+                            .and_then(UnicodeCmapToken::take_hex)
                         else {
                             return Ok(None);
                         };
-                        let Some(first) = tokens
-                            .get(base + 2)
-                            .and_then(|token| parse_cmap_bytes(token))
-                        else {
-                            return Ok(None);
-                        };
+                        cursor += 2;
                         if start.len() != end.len() || start > end {
                             return Ok(None);
                         }
                         let start_value = bytes_value(&start);
                         let end_value = bytes_value(&end);
-                        let first_value = bytes_value(&first);
                         let range_length = end_value - start_value;
                         if range_length > 65_535 {
                             return Ok(None);
@@ -4060,13 +4087,42 @@ impl UnicodeCmap {
                                 limit: limits.max_unicode_cmap_mappings,
                             })?;
                         add_unicode_cmap_mappings(&mut expanded_mappings, expansion_count, limits)?;
-                        for offset in 0..=range_length {
-                            let source = value_bytes(start_value + offset, start.len());
-                            let destination = value_bytes(first_value + offset, first.len());
-                            mappings.insert(source, destination);
+                        match tokens.get_mut(cursor) {
+                            Some(UnicodeCmapToken::ArrayStart) => {
+                                cursor += 1;
+                                for offset in 0..=range_length {
+                                    let Some(destination) =
+                                        tokens.get_mut(cursor).and_then(UnicodeCmapToken::take_hex)
+                                    else {
+                                        return Ok(None);
+                                    };
+                                    mappings.insert(
+                                        value_bytes(start_value + offset, start.len()),
+                                        destination,
+                                    );
+                                    cursor += 1;
+                                }
+                                if !matches!(tokens.get(cursor), Some(UnicodeCmapToken::ArrayEnd)) {
+                                    return Ok(None);
+                                }
+                                cursor += 1;
+                            }
+                            Some(token @ UnicodeCmapToken::Hex(Some(_))) => {
+                                let Some(first) = token.take_hex() else {
+                                    return Ok(None);
+                                };
+                                let first_value = bytes_value(&first);
+                                for offset in 0..=range_length {
+                                    mappings.insert(
+                                        value_bytes(start_value + offset, start.len()),
+                                        value_bytes(first_value + offset, first.len()),
+                                    );
+                                }
+                                cursor += 1;
+                            }
+                            _ => return Ok(None),
                         }
                     }
-                    cursor += 2 + count * 3;
                 }
                 _ => cursor += 1,
             }
@@ -4135,14 +4191,101 @@ fn add_unicode_cmap_mappings(
     Ok(())
 }
 
-fn parse_cmap_bytes(token: &[u8]) -> Option<Vec<u8>> {
-    let value = token.strip_prefix(b"<")?.strip_suffix(b">")?;
-    (value.len() % 2 == 0 && !value.is_empty()).then(|| {
-        (0..value.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(std::str::from_utf8(value.get(i..i + 2)?).ok()?, 16).ok())
-            .collect::<Option<Vec<_>>>()
-    })?
+enum UnicodeCmapToken<'a> {
+    Hex(Option<Vec<u8>>),
+    ArrayStart,
+    ArrayEnd,
+    Other(&'a [u8]),
+}
+
+impl UnicodeCmapToken<'_> {
+    fn take_hex(&mut self) -> Option<Vec<u8>> {
+        match self {
+            Self::Hex(bytes) => bytes.take(),
+            _ => None,
+        }
+    }
+}
+
+fn unicode_cmap_tokens(bytes: &[u8]) -> Vec<UnicodeCmapToken<'_>> {
+    let mut tokens = Vec::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let Some(byte) = bytes.get(cursor).copied() else {
+            break;
+        };
+        match byte {
+            byte if byte.is_ascii_whitespace() => cursor += 1,
+            b'%' => {
+                while bytes
+                    .get(cursor)
+                    .is_some_and(|byte| !matches!(*byte, b'\r' | b'\n'))
+                {
+                    cursor += 1;
+                }
+            }
+            b'<' if bytes.get(cursor + 1) == Some(&b'<') => cursor += 2,
+            b'<' if bytes.get(cursor + 1) != Some(&b'<') => {
+                cursor += 1;
+                let start = cursor;
+                while bytes.get(cursor).is_some_and(|byte| *byte != b'>') {
+                    cursor += 1;
+                }
+                let value = bytes.get(start..cursor).unwrap_or_default();
+                let digits = value
+                    .iter()
+                    .copied()
+                    .filter(|byte| !byte.is_ascii_whitespace())
+                    .collect::<Vec<_>>();
+                let parsed = (cursor < bytes.len()
+                    && !digits.is_empty()
+                    && digits.len().is_multiple_of(2))
+                .then(|| {
+                    digits
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).ok()?, 16).ok())
+                        .collect::<Option<Vec<_>>>()
+                })
+                .flatten();
+                tokens.push(UnicodeCmapToken::Hex(parsed));
+                cursor = (cursor + 1).min(bytes.len());
+            }
+            b'[' => {
+                tokens.push(UnicodeCmapToken::ArrayStart);
+                cursor += 1;
+            }
+            b']' => {
+                tokens.push(UnicodeCmapToken::ArrayEnd);
+                cursor += 1;
+            }
+            b'>' if bytes.get(cursor + 1) == Some(&b'>') => cursor += 2,
+            b'>' | b'/' | b'(' | b')' | b'{' | b'}' => cursor += 1,
+            _ => {
+                let start = cursor;
+                while cursor < bytes.len()
+                    && bytes.get(cursor).is_some_and(|byte| {
+                        !byte.is_ascii_whitespace()
+                            && !matches!(
+                                *byte,
+                                b'%' | b'<' | b'>' | b'[' | b']' | b'/' | b'(' | b')' | b'{' | b'}'
+                            )
+                    })
+                {
+                    cursor += 1;
+                }
+                if cursor == start {
+                    cursor += 1;
+                } else {
+                    if let Some(token) = bytes.get(start..cursor) {
+                        tokens.push(UnicodeCmapToken::Other(token));
+                    }
+                }
+            }
+        }
+    }
+    tokens
 }
 
 fn bytes_value(bytes: &[u8]) -> u32 {
@@ -4218,6 +4361,22 @@ fn cid_set_contains(bytes: &[u8], cid: u16) -> bool {
         .is_some_and(|byte| byte & (1 << (7 - (cid % 8))) != 0)
 }
 
+fn cid_set_matches_program(bytes: &[u8], program_cids: &BTreeSet<u16>) -> bool {
+    program_cids.iter().all(|cid| cid_set_contains(bytes, *cid))
+        && bytes.iter().enumerate().all(|(byte_index, byte)| {
+            (0..8).all(|bit_index| {
+                if byte & (1 << (7 - bit_index)) == 0 {
+                    return true;
+                }
+                let cid = byte_index * 8 + bit_index;
+                cid == 0
+                    || u16::try_from(cid)
+                        .ok()
+                        .is_some_and(|cid| program_cids.contains(&cid))
+            })
+        })
+}
+
 fn cid_font_program_cids(
     document: &Document,
     font: &Dictionary,
@@ -4259,10 +4418,32 @@ fn cid_font_program_cids(
         let Some(face) = RawTrueType::parse(&bytes) else {
             return Ok(None);
         };
-        let Ok(cid_to_gid) = font.get(b"CIDToGIDMap") else {
-            return Ok(None);
+        let map = match font.get(b"CIDToGIDMap") {
+            Err(_) => CidToGidMap::Identity,
+            Ok(source) => {
+                let Some(resolved) =
+                    resolve_optional(document, source, limits.max_reference_depth)?
+                else {
+                    return Ok(None);
+                };
+                if resolved.as_name().ok() == Some(b"Identity".as_slice()) {
+                    CidToGidMap::Identity
+                } else if let Ok(map_stream) = resolved.as_stream() {
+                    CidToGidMap::Table(
+                        cached_font_stream(
+                            decoded_font_streams,
+                            total_decoded_stream_bytes,
+                            source,
+                            map_stream,
+                            limits,
+                        )?
+                        .to_vec(),
+                    )
+                } else {
+                    return Ok(None);
+                }
+            }
         };
-        let map = resolve_cid_to_gid_map(document, cid_to_gid, limits)?;
         let mut cids = BTreeSet::new();
         match map {
             CidToGidMap::Identity => {
@@ -5029,10 +5210,18 @@ fn is_adobe_glyph_name(name: &[u8]) -> bool {
 /// these checks can run.
 struct RawTrueType<'a> {
     cmap: Option<Cmap<'a>>,
+    nonsymbolic_cmap: OnceCell<Option<TrueTypeCmap<'a>>>,
     hmtx: Option<&'a [u8]>,
     number_of_h_metrics: Option<usize>,
     glyph_count: Option<usize>,
     units_per_em: Option<u16>,
+}
+
+/// A selected non-symbolic mapping, cached so text bytes do not rescan the cmap records.
+struct TrueTypeCmap<'a> {
+    subtable: CmapSubtable<'a>,
+    offset: u32,
+    mac_roman: bool,
 }
 
 impl<'a> RawTrueType<'a> {
@@ -5083,6 +5272,7 @@ impl<'a> RawTrueType<'a> {
             .and_then(|table| parse_sfnt_cmap(table.as_bytes()));
         Some(Self {
             cmap,
+            nonsymbolic_cmap: OnceCell::new(),
             hmtx,
             number_of_h_metrics,
             glyph_count,
@@ -5090,29 +5280,76 @@ impl<'a> RawTrueType<'a> {
         })
     }
 
-    fn glyph_index(&self, character: char) -> Option<GlyphId> {
+    fn glyph_index(
+        &self,
+        encoding: &Encoding<'_>,
+        base: PredefinedEncoding,
+        byte: u8,
+    ) -> Option<GlyphId> {
         let cmap = self.cmap.as_ref()?;
-        for record in cmap.encoding_records() {
-            let platform_id = record.platform_id();
-            let encoding_id = record.encoding_id();
-            let direct_byte_subtable = platform_id == PlatformId::Macintosh
-                || (platform_id == PlatformId::Windows && encoding_id != 0);
-            let Ok(subtable) = record.subtable(cmap.offset_data()) else {
-                continue;
+        let mapping = self
+            .nonsymbolic_cmap
+            .get_or_init(|| {
+                cmap.encoding_records()
+                    .iter()
+                    .filter_map(|record| {
+                        let subtable = record.subtable(cmap.offset_data()).ok()?;
+                        // Variation-selector maps do not supply nominal glyphs;
+                        // format 8 is not supported by the underlying mapper.
+                        if matches!(
+                            subtable,
+                            CmapSubtable::Format8(_) | CmapSubtable::Format14(_)
+                        ) {
+                            return None;
+                        }
+                        let platform = record.platform_id();
+                        let encoding = record.encoding_id();
+                        let priority = if platform == PlatformId::Windows && encoding == 1 {
+                            0
+                        } else if cmap_subtable_is_unicode(platform, encoding, &subtable) {
+                            1
+                        } else if platform == PlatformId::Macintosh && encoding == 0 {
+                            2
+                        } else {
+                            return None;
+                        };
+                        Some((
+                            priority,
+                            TrueTypeCmap {
+                                subtable,
+                                offset: record.subtable_offset().to_u32(),
+                                mac_roman: priority == 2,
+                            },
+                        ))
+                    })
+                    .min_by_key(|(priority, _)| *priority)
+                    .map(|(_, mapping)| mapping)
+            })
+            .as_ref()?;
+        let codepoint = if mapping.mac_roman {
+            // Macintosh (1,0) uses Roman character codes, not Unicode scalars.
+            // Preserve MacRoman bytes; translate other PDF encodings by glyph name.
+            let mac_byte = if base == PredefinedEncoding::MacRoman {
+                byte
+            } else {
+                let name = font_encodings::glyph_name(base, byte)?;
+                (0..=u8::MAX).find(|candidate| {
+                    font_encodings::glyph_name(PredefinedEncoding::MacRoman, *candidate)
+                        == Some(name)
+                })?
             };
-            if (cmap_subtable_is_unicode(platform_id, encoding_id, &subtable)
-                || direct_byte_subtable)
-                && let Some(glyph) = cmap_glyph_index(
-                    &subtable,
-                    cmap.offset_data().as_bytes(),
-                    record.subtable_offset().to_u32(),
-                    u32::from(character),
-                )
-            {
-                return Some(glyph);
-            }
-        }
-        None
+            u32::from(mac_byte)
+        } else {
+            u32::from(single_encoded_character(encoding, byte)?)
+        };
+        // A missing glyph in the selected map must remain missing; another cmap
+        // can assign that same integer to a different character.
+        cmap_glyph_index(
+            &mapping.subtable,
+            cmap.offset_data().as_bytes(),
+            mapping.offset,
+            codepoint,
+        )
     }
 
     fn glyph_index_for_symbolic_byte(&self, byte: u8) -> Option<GlyphId> {
@@ -5503,17 +5740,144 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Dictionary, Document, Object, Stream};
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{
-        CidSystemInfo, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
-        cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base,
-        decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
-        parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
-        type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
-        valid_font_program,
+        CidSystemInfo, RawTrueType, Type1ProgramEncoding, UnicodeCmap, cached_font_stream,
+        cff_fd_select, cff_index, cid_set_matches_program, cmap_bytes_system_info,
+        cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
+        inspect_all_embedded_cmap_cids, parse_cid_widths, parse_cmap,
+        parse_cmap_with_predefined_bases, parse_sfnt_cmap, shown_text_bytes,
+        type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
+        type1_program_charstring_widths, unicode_mapping_exception, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn pdfa_cidset_must_match_embedded_program_cids_except_notdef() {
+        let program_cids = BTreeSet::from([1, 2]);
+        assert!(cid_set_matches_program(&[0xe0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xc0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xf0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xe0, 0x80], &program_cids));
+    }
+
+    #[test]
+    fn cid_widths_default_to_1000_only_when_dw_is_absent() {
+        let mut document = Document::with_version("1.4");
+        let indirect = document.add_object(Object::Integer(500));
+        let limits = SafetyLimits::default();
+        let mut font = Dictionary::new();
+        assert_eq!(
+            parse_cid_widths(&document, &font, &limits)
+                .unwrap()
+                .width_for(42),
+            Some(1000.0)
+        );
+        for (value, expected) in [
+            (Object::Integer(400), Some(400.0)),
+            (Object::Real(500.5), Some(500.5)),
+            (Object::Reference(indirect), Some(500.0)),
+            (Object::Null, None),
+            (Object::Name(b"Invalid".to_vec()), None),
+            (Object::Reference((999, 0)), None),
+        ] {
+            font.set("DW", value);
+            assert_eq!(
+                parse_cid_widths(&document, &font, &limits)
+                    .unwrap()
+                    .width_for(42),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn cid_widths_use_w_before_the_default() {
+        let document = Document::with_version("1.4");
+        let mut font = dictionary! {
+            "W" => vec![32.into(), Object::Array(vec![500.into()]), 40.into(), 42.into(), 600.into()],
+        };
+        for (default, expected) in [(None, Some(1000.0)), (Some(400), Some(400.0))] {
+            if let Some(default) = default {
+                font.set("DW", default);
+            }
+            let widths = parse_cid_widths(&document, &font, &SafetyLimits::default()).unwrap();
+            assert_eq!(widths.width_for(32), Some(500.0));
+            assert_eq!(widths.width_for(41), Some(600.0));
+            assert_eq!(widths.width_for(43), expected);
+        }
+    }
+
+    #[test]
+    fn cid_widths_do_not_default_past_malformed_w_groups() {
+        let document = Document::with_version("1.4");
+        let limits = SafetyLimits::default();
+        let mut font = dictionary! {
+            "W" => vec![32.into(), Object::Array(vec![500.into(), Object::Null]), 40.into()],
+        };
+        for default in [None, Some(400)] {
+            if let Some(default) = default {
+                font.set("DW", default);
+            }
+            let widths = parse_cid_widths(&document, &font, &limits).unwrap();
+            assert_eq!(widths.width_for(32), Some(500.0));
+            assert_eq!(widths.width_for(33), None);
+            assert_eq!(widths.width_for(40), None);
+            assert_eq!(widths.width_for(42), None);
+        }
+    }
+
+    #[test]
+    fn nonsymbolic_macintosh_lookup_translates_encodings_and_caches_selection() {
+        // Macintosh Roman format-6 code 135 (aacute), with and without a preceding
+        // Unicode variation-selector table that cannot map nominal glyphs.
+        for data in [
+            &[
+                0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 12, 0, 6, 0, 12, 0, 0, 0, 135, 0, 1, 0, 1,
+            ][..],
+            &[
+                0, 0, 0, 2, 0, 0, 0, 5, 0, 0, 0, 20, 0, 1, 0, 0, 0, 0, 0, 30, 0, 14, 0, 0, 0, 10,
+                0, 0, 0, 0, 0, 6, 0, 12, 0, 0, 0, 135, 0, 1, 0, 1,
+            ][..],
+        ] {
+            let face = RawTrueType {
+                cmap: parse_sfnt_cmap(data),
+                nonsymbolic_cmap: std::cell::OnceCell::new(),
+                hmtx: None,
+                number_of_h_metrics: None,
+                glyph_count: Some(2),
+                units_per_em: None,
+            };
+            assert!(face.nonsymbolic_cmap.get().is_none());
+            let document = Document::with_version("1.4");
+            for (name, base, byte) in [
+                ("MacRomanEncoding", super::PredefinedEncoding::MacRoman, 135),
+                ("WinAnsiEncoding", super::PredefinedEncoding::WinAnsi, 225),
+            ] {
+                let mut dictionary = Dictionary::new();
+                dictionary.set("Type", "Font");
+                dictionary.set("Encoding", name);
+                let encoding = dictionary
+                    .get_font_encoding(&document)
+                    .expect("PDF encoding");
+                assert_eq!(
+                    face.glyph_index(&encoding, base, byte)
+                        .map(|glyph| glyph.to_u32()),
+                    Some(1),
+                );
+                assert!(face.nonsymbolic_cmap.get().is_some_and(Option::is_some));
+                assert_eq!(face.glyph_index(&encoding, base, 0), None);
+            }
+            assert_eq!(
+                face.glyph_index_for_symbolic_byte(135)
+                    .map(|glyph| glyph.to_u32()),
+                Some(1)
+            );
+        }
+    }
 
     #[test]
     fn recognizes_valid_type1_program_headers() {
@@ -5722,6 +6086,56 @@ mod tests {
     }
 
     #[test]
+    fn parses_array_bfrange_destinations() {
+        let map = UnicodeCmap::parse(
+            b"1 beginbfrange <2BAB> <2BAC> [<81E8> <81EA>] endbfrange",
+            &SafetyLimits::default(),
+        )
+        .expect("parse array bfrange")
+        .expect("valid array bfrange");
+
+        assert_eq!(
+            map.mappings.get(&[0x2B, 0xAB][..]).map(Vec::as_slice),
+            Some(&[0x81, 0xE8][..])
+        );
+        assert_eq!(
+            map.mappings.get(&[0x2B, 0xAC][..]).map(Vec::as_slice),
+            Some(&[0x81, 0xEA][..])
+        );
+    }
+
+    #[test]
+    fn parses_compact_hex_tokens_and_internal_hex_whitespace() {
+        let map = UnicodeCmap::parse(
+            b"% 1 beginbfchar <41> <d800>\n2 beginbfchar <21><0045> <27>< 0009 000d 0020 00a0 > endbfchar",
+            &SafetyLimits::default(),
+        )
+        .expect("parse compact bfchar entries")
+        .expect("valid compact bfchar entries");
+
+        assert_eq!(
+            map.mappings.get(&[0x21][..]).map(Vec::as_slice),
+            Some(&[0x00, 0x45][..])
+        );
+        assert_eq!(
+            map.mappings.get(&[0x27][..]).map(Vec::as_slice),
+            Some(&[0x00, 0x09, 0x00, 0x0D, 0x00, 0x20, 0x00, 0xA0][..])
+        );
+    }
+
+    #[test]
+    fn rejects_truncated_array_bfrange_destinations() {
+        assert!(
+            UnicodeCmap::parse(
+                b"1 beginbfrange <2BAB> <2BAC> [<81E8>] endbfrange",
+                &SafetyLimits::default(),
+            )
+            .expect("parse truncated array bfrange")
+            .is_none()
+        );
+    }
+
+    #[test]
     fn expands_increasing_valid_unicode_cmaps_within_total_budget() {
         let limits = SafetyLimits {
             max_unicode_cmap_mappings: 64,
@@ -5892,6 +6306,103 @@ mod tests {
                 174
             ),
             Some("fi")
+        );
+    }
+
+    #[test]
+    fn type1_differences_supply_unicode_mapping_for_used_standard_glyph_names() {
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/A /unusedUnmappableGlyph"),
+        });
+        let font = dictionary! {
+            "FontDescriptor" => descriptor,
+            "Encoding" => dictionary! {
+                "BaseEncoding" => "WinAnsiEncoding",
+                "Differences" => vec![
+                    65.into(), Object::Name(b"A".to_vec()),
+                    233.into(), Object::Name(b"eacute".to_vec()),
+                    31.into(), Object::Name(b"fl".to_vec()),
+                ],
+            },
+        };
+        for byte in [65, 233, 31] {
+            assert!(
+                unicode_mapping_exception(
+                    &document,
+                    &font,
+                    Some("Type1"),
+                    &[byte],
+                    None,
+                    &SafetyLimits::default(),
+                )
+                .expect("check Type 1 glyph-name mapping")
+            );
+        }
+    }
+
+    #[test]
+    fn type1_differences_do_not_map_unrecognized_glyph_names_to_unicode() {
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/A"),
+        });
+        let font = dictionary! {
+            "FontDescriptor" => descriptor,
+            "Encoding" => dictionary! {
+                "BaseEncoding" => "WinAnsiEncoding",
+                "Differences" => vec![31.into(), Object::Name(b"f_f_i".to_vec())],
+            },
+        };
+        assert!(
+            !unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[31],
+                None,
+                &SafetyLimits::default(),
+            )
+            .expect("check Type 1 glyph-name mapping")
+        );
+    }
+
+    #[test]
+    fn type1_unicode_exception_uses_embedded_encoding_and_standard_charset_fallback() {
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/angle/space"),
+        });
+        let font = dictionary! {
+            "FontDescriptor" => descriptor,
+        };
+
+        let program_encoding = Type1ProgramEncoding {
+            names: BTreeMap::from([(160, "angle".to_owned())]),
+            standard_base: false,
+        };
+        assert!(
+            unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[160],
+                Some(&program_encoding),
+                &SafetyLimits::default(),
+            )
+            .expect("check embedded Type 1 encoding")
+        );
+
+        assert!(
+            unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[160],
+                None,
+                &SafetyLimits::default(),
+            )
+            .expect("check Type 1 CharSet fallback")
         );
     }
 

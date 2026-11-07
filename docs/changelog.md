@@ -1,5 +1,15 @@
 ## Dev
 
+- **Fix**: Validate stream `/Length` independently from the required EOL before `endstream` [#631](https://github.com/JosephBARBIERDARNAL/page/issues/631)
+- **Fix**: Recognize Unicode mappings from used Type 1 `/Differences` glyph names [#630](https://github.com/JosephBARBIERDARNAL/page/issues/630)
+- **Fix**: Preserve Type 1 embedded-encoding and standard `/CharSet` Unicode mapping exceptions [#630](https://github.com/JosephBARBIERDARNAL/page/issues/630)
+- **Fix**: Require the PDF/UA Microsoft Unicode cmap for non-symbolic TrueType fonts only when `/Differences` is present [#629](https://github.com/JosephBARBIERDARNAL/page/issues/629)
+- **Fix**: Parse array destinations and compact hex strings in ToUnicode CMaps [#628](https://github.com/JosephBARBIERDARNAL/page/issues/628)
+- **Fix**: Compare PDF/A-2 and PDF/A-3 `/CIDSet` declarations with the complete embedded CID subset [#627](https://github.com/JosephBARBIERDARNAL/page/issues/627)
+- **Fix**: Compare PDF/A-2 and PDF/A-3 Type 1 `/CharSet` values with every glyph in the embedded subset [#626](https://github.com/JosephBARBIERDARNAL/page/issues/626)
+- **Fix**: Apply the CIDFont default width of 1000 for absent `/DW` entries when checking embedded glyph widths [#625](https://github.com/JosephBARBIERDARNAL/page/issues/625)
+- **Fix**: Respect TrueType cmap encodings when resolving simple-font glyphs and checking their widths [#624](https://github.com/JosephBARBIERDARNAL/page/issues/624)
+- **Fix**: Report PDF/A-1 Info date mismatches when XMP metadata or the corresponding date property is missing [#623](https://github.com/JosephBARBIERDARNAL/page/issues/623)
 - **Doc**: Refresh CLI examples, output, and command references across the README and documentation [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Align detailed CLI output tests and documentation with the removal of the `(example finding)` label [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Include page numbers for annotations, content streams, and used resources, including shared objects and resource dependencies [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
