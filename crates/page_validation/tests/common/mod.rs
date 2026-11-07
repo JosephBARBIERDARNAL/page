@@ -6749,6 +6749,113 @@ pub fn pdfua1_rule_7_21_4_2_2_fixture(case: &str) -> Vec<u8> {
     save_document(document, "PDF/UA-1 CIDSet fixture")
 }
 
+pub fn pdfa_cidset_subset_fixture(case: &str) -> Vec<u8> {
+    let mut document = Document::load_mem(&pdfua1_rule_7_21_3_1_fixture("matching"))
+        .expect("load Type0 CIDSet subset fixture");
+    let page_id = *document
+        .get_pages()
+        .values()
+        .next()
+        .expect("CIDSet fixture page");
+    let font_id = document
+        .get_object(page_id)
+        .expect("CIDSet fixture page")
+        .as_dict()
+        .expect("CIDSet fixture page dictionary")
+        .get(b"Resources")
+        .expect("CIDSet fixture resources")
+        .as_dict()
+        .expect("CIDSet fixture resources dictionary")
+        .get(b"Font")
+        .expect("CIDSet fixture fonts")
+        .as_dict()
+        .expect("CIDSet fixture font dictionary")
+        .get(b"FUA")
+        .expect("CIDSet fixture Type0 font")
+        .as_reference()
+        .expect("indirect CIDSet fixture Type0 font");
+    let descendant_id = document
+        .get_object(font_id)
+        .expect("CIDSet fixture Type0 font")
+        .as_dict()
+        .expect("CIDSet fixture Type0 font dictionary")
+        .get(b"DescendantFonts")
+        .expect("CIDSet fixture descendants")
+        .as_array()
+        .expect("CIDSet fixture descendants array")
+        .first()
+        .expect("CIDSet fixture descendant")
+        .as_reference()
+        .expect("indirect CIDSet fixture descendant");
+    let descriptor_id = document
+        .get_object(descendant_id)
+        .expect("CIDSet fixture descendant")
+        .as_dict()
+        .expect("CIDSet fixture descendant dictionary")
+        .get(b"FontDescriptor")
+        .expect("CIDSet fixture descriptor")
+        .as_reference()
+        .expect("indirect CIDSet fixture descriptor");
+    let font_file_id = document
+        .get_object(descriptor_id)
+        .expect("CIDSet fixture descriptor")
+        .as_dict()
+        .expect("CIDSet fixture descriptor dictionary")
+        .get(b"FontFile2")
+        .expect("CIDSet fixture FontFile2")
+        .as_reference()
+        .expect("indirect CIDSet fixture FontFile2");
+
+    document
+        .get_object_mut(font_file_id)
+        .expect("CIDSet fixture FontFile2")
+        .as_stream_mut()
+        .expect("CIDSet fixture FontFile2 stream")
+        .set_content(sfnt::minimal_truetype_with_glyph_count(3));
+    let nonidentity = case.starts_with("nonidentity_");
+    if nonidentity {
+        let cid_to_gid =
+            document.add_object(Stream::new(Dictionary::new(), vec![0, 0, 0, 1, 0, 2]));
+        document
+            .get_object_mut(descendant_id)
+            .expect("CIDSet fixture descendant")
+            .as_dict_mut()
+            .expect("CIDSet fixture descendant dictionary")
+            .set("CIDToGIDMap", cid_to_gid);
+    }
+    let cid_set = match case {
+        "identity_incomplete" | "nonidentity_incomplete" => vec![0xc0],
+        "identity_complete" | "nonidentity_complete" => vec![0xe0],
+        "identity_extra" | "nonidentity_extra" => vec![0xf0],
+        _ => panic!("unknown PDF/A CIDSet fixture case {case}"),
+    };
+    let cid_set_id = document.add_object(Stream::new(Dictionary::new(), cid_set));
+    document
+        .get_object_mut(descriptor_id)
+        .expect("CIDSet fixture descriptor")
+        .as_dict_mut()
+        .expect("CIDSet fixture descriptor dictionary")
+        .set("CIDSet", cid_set_id);
+    for (object_id, key) in [
+        (font_id, b"BaseFont".as_slice()),
+        (descriptor_id, b"FontName"),
+    ] {
+        document
+            .get_object_mut(object_id)
+            .expect("CIDSet fixture font name owner")
+            .as_dict_mut()
+            .expect("CIDSet fixture font name dictionary")
+            .set(key, Object::Name(b"ABCDEF+MaiTestFont".to_vec()));
+    }
+    document
+        .get_object_mut(descendant_id)
+        .expect("CIDSet fixture descendant")
+        .as_dict_mut()
+        .expect("CIDSet fixture descendant dictionary")
+        .set("BaseFont", "ABCDEF+MaiTestFont");
+    save_document(document, "PDF/A CIDSet subset fixture")
+}
+
 fn save_document(mut document: Document, description: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     document.save_to(&mut bytes).expect(description);

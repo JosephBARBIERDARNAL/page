@@ -50,6 +50,7 @@ pub(crate) struct FontEmbeddingSummary {
     pub(crate) invalid_type1_subset_charsets: Vec<RuleFailure>,
     pub(crate) invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    pub(crate) invalid_cid_subset_cidsets_pdfa2: Vec<RuleFailure>,
     pub(crate) invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     pub(crate) missing_cid_subset_cidsets: Vec<RuleFailure>,
     pub(crate) invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -283,6 +284,7 @@ struct Scanner<'a> {
     invalid_type1_subset_charsets: Vec<RuleFailure>,
     invalid_type1_charsets_pdfua1: Vec<RuleFailure>,
     invalid_cid_subset_cidsets: Vec<RuleFailure>,
+    invalid_cid_subset_cidsets_pdfa2: Vec<RuleFailure>,
     invalid_cid_subset_cidsets_pdfua1: Vec<RuleFailure>,
     missing_cid_subset_cidsets: Vec<RuleFailure>,
     invalid_nonsymbolic_truetype_encodings: Vec<RuleFailure>,
@@ -355,6 +357,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: Vec::new(),
         invalid_type1_charsets_pdfua1: Vec::new(),
         invalid_cid_subset_cidsets: Vec::new(),
+        invalid_cid_subset_cidsets_pdfa2: Vec::new(),
         invalid_cid_subset_cidsets_pdfua1: Vec::new(),
         missing_cid_subset_cidsets: Vec::new(),
         invalid_nonsymbolic_truetype_encodings: Vec::new(),
@@ -431,7 +434,7 @@ pub(crate) fn inspect(
     scanner.inspect_unicode_pua_actual_text()?;
     scanner.inspect_rendered_type1_subset_charsets()?;
     scanner.inspect_rendered_cid_subset_sets()?;
-    scanner.inspect_cid_subset_sets_pdfua1()?;
+    scanner.inspect_complete_cid_subset_sets()?;
 
     let failures = scanner
         .uses
@@ -470,6 +473,7 @@ pub(crate) fn inspect(
         invalid_type1_subset_charsets: scanner.invalid_type1_subset_charsets,
         invalid_type1_charsets_pdfua1: scanner.invalid_type1_charsets_pdfua1,
         invalid_cid_subset_cidsets: scanner.invalid_cid_subset_cidsets,
+        invalid_cid_subset_cidsets_pdfa2: scanner.invalid_cid_subset_cidsets_pdfa2,
         invalid_cid_subset_cidsets_pdfua1: scanner.invalid_cid_subset_cidsets_pdfua1,
         missing_cid_subset_cidsets: scanner.missing_cid_subset_cidsets,
         invalid_nonsymbolic_truetype_encodings: scanner.invalid_nonsymbolic_truetype_encodings,
@@ -2013,9 +2017,9 @@ impl Scanner<'_> {
         Ok(())
     }
 
-    /// Checks PDF/UA-1 7.21.4.2-2 against every CID represented by an
-    /// embedded subset program, not only CIDs reached by shown text.
-    fn inspect_cid_subset_sets_pdfua1(&mut self) -> Result<(), PdfError> {
+    /// Checks complete embedded CID subsets for PDF/A-2/3 and PDF/UA-1.
+    /// PDF/A also rejects bits that identify CIDs absent from the program.
+    fn inspect_complete_cid_subset_sets(&mut self) -> Result<(), PdfError> {
         for usage in self.uses.values() {
             if usage.subtype.as_deref() != Some("Type0") {
                 continue;
@@ -2073,13 +2077,20 @@ impl Scanner<'_> {
                 continue;
             };
             if program_cids
-                .into_iter()
-                .any(|cid| !cid_set_contains(&cid_set_bytes, cid))
+                .iter()
+                .any(|cid| !cid_set_contains(&cid_set_bytes, *cid))
             {
                 self.invalid_cid_subset_cidsets_pdfua1.push(font_failure(
                     usage.object_id,
                     &usage.description,
                     "does not identify every CID present in its embedded font program",
+                ));
+            }
+            if !cid_set_matches_program(&cid_set_bytes, &program_cids) {
+                self.invalid_cid_subset_cidsets_pdfa2.push(font_failure(
+                    usage.object_id,
+                    &usage.description,
+                    "does not identify exactly the CIDs present in its embedded font program",
                 ));
             }
         }
@@ -4219,6 +4230,22 @@ fn cid_set_contains(bytes: &[u8], cid: u16) -> bool {
         .is_some_and(|byte| byte & (1 << (7 - (cid % 8))) != 0)
 }
 
+fn cid_set_matches_program(bytes: &[u8], program_cids: &BTreeSet<u16>) -> bool {
+    program_cids.iter().all(|cid| cid_set_contains(bytes, *cid))
+        && bytes.iter().enumerate().all(|(byte_index, byte)| {
+            (0..8).all(|bit_index| {
+                if byte & (1 << (7 - bit_index)) == 0 {
+                    return true;
+                }
+                let cid = byte_index * 8 + bit_index;
+                cid == 0
+                    || u16::try_from(cid)
+                        .ok()
+                        .is_some_and(|cid| program_cids.contains(&cid))
+            })
+        })
+}
+
 fn cid_font_program_cids(
     document: &Document,
     font: &Dictionary,
@@ -4260,10 +4287,32 @@ fn cid_font_program_cids(
         let Some(face) = RawTrueType::parse(&bytes) else {
             return Ok(None);
         };
-        let Ok(cid_to_gid) = font.get(b"CIDToGIDMap") else {
-            return Ok(None);
+        let map = match font.get(b"CIDToGIDMap") {
+            Err(_) => CidToGidMap::Identity,
+            Ok(source) => {
+                let Some(resolved) =
+                    resolve_optional(document, source, limits.max_reference_depth)?
+                else {
+                    return Ok(None);
+                };
+                if resolved.as_name().ok() == Some(b"Identity".as_slice()) {
+                    CidToGidMap::Identity
+                } else if let Ok(map_stream) = resolved.as_stream() {
+                    CidToGidMap::Table(
+                        cached_font_stream(
+                            decoded_font_streams,
+                            total_decoded_stream_bytes,
+                            source,
+                            map_stream,
+                            limits,
+                        )?
+                        .to_vec(),
+                    )
+                } else {
+                    return Ok(None);
+                }
+            }
         };
-        let map = resolve_cid_to_gid_map(document, cid_to_gid, limits)?;
         let mut cids = BTreeSet::new();
         match map {
             CidToGidMap::Identity => {
@@ -5560,17 +5609,28 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{
         CidSystemInfo, RawTrueType, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
-        cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base,
-        decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cid_widths, parse_cmap,
-        parse_cmap_with_predefined_bases, parse_sfnt_cmap, shown_text_bytes,
-        type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
+        cid_set_matches_program, cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid,
+        cmap_uses_identity_base, decode_font_stream, inspect, inspect_all_embedded_cmap_cids,
+        parse_cid_widths, parse_cmap, parse_cmap_with_predefined_bases, parse_sfnt_cmap,
+        shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
         type1_program_charstring_widths, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn pdfa_cidset_must_match_embedded_program_cids_except_notdef() {
+        let program_cids = BTreeSet::from([1, 2]);
+        assert!(cid_set_matches_program(&[0xe0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xc0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xf0], &program_cids));
+        assert!(!cid_set_matches_program(&[0xe0, 0x80], &program_cids));
+    }
 
     #[test]
     fn cid_widths_default_to_1000_only_when_dw_is_absent() {

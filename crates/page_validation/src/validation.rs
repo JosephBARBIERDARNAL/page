@@ -3336,7 +3336,11 @@ fn validate_font_dictionaries(
             iso_pdfa_rule_id!(profile, "6.3.5:2", "6.2.11.4.2:1", "6.2.11.4.2:1"),
         ),
         (
-            fonts.invalid_cid_subset_cidsets.as_slice(),
+            if profile.is_pdfa_2_or_3() {
+                fonts.invalid_cid_subset_cidsets_pdfa2.as_slice()
+            } else {
+                fonts.invalid_cid_subset_cidsets.as_slice()
+            },
             iso_pdfa_rule_id!(profile, "6.3.5:3", "6.2.11.4.2:2", "6.2.11.4.2:2"),
         ),
         (
