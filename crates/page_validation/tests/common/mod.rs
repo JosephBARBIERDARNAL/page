@@ -6487,7 +6487,13 @@ pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
                 .clone(),
         )
     };
-    let descriptor_id = if case == "missing_unicode_cmap" {
+    let descriptor_id = if matches!(
+        case,
+        "missing_unicode_cmap"
+            | "macintosh_only_no_differences"
+            | "macintosh_only_differences"
+            | "unembedded_macintosh_only_differences"
+    ) {
         Some(
             document
                 .get_object(font_id)
@@ -6510,6 +6516,37 @@ pub fn pdfua1_rule_7_21_6_2_fixture(case: &str) -> Vec<u8> {
     });
     match case {
         "matching" => {}
+        "macintosh_only_no_differences"
+        | "macintosh_only_differences"
+        | "unembedded_macintosh_only_differences" => {
+            if case != "unembedded_macintosh_only_differences" {
+                let font_file = document.add_object(Stream::new(
+                    Dictionary::new(),
+                    sfnt::minimal_truetype_with_macintosh_cmap(),
+                ));
+                document
+                    .get_object_mut(descriptor_id.expect("Macintosh cmap descriptor"))
+                    .expect("PDF/UA-1 TrueType descriptor")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 TrueType descriptor dictionary")
+                    .set("FontFile2", font_file);
+            }
+            if case != "macintosh_only_no_differences" {
+                document
+                    .get_object_mut(font_id)
+                    .expect("PDF/UA-1 fixture TrueType font")
+                    .as_dict_mut()
+                    .expect("PDF/UA-1 fixture TrueType font dictionary")
+                    .set(
+                        "Encoding",
+                        dictionary! {
+                            "Type" => "Encoding",
+                            "BaseEncoding" => "WinAnsiEncoding",
+                            "Differences" => vec![32.into(), Object::Name(b"space".to_vec())],
+                        },
+                    );
+            }
+        }
         "invalid_encoding" => document
             .get_object_mut(font_id)
             .expect("PDF/UA-1 fixture TrueType font")

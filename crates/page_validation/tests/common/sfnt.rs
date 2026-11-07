@@ -47,6 +47,10 @@ pub fn minimal_truetype_with_cmap_encoding(encoding_id: u16) -> Vec<u8> {
     minimal_truetype_with_cmap_encodings(&[(3, encoding_id)], 32, 2)
 }
 
+pub fn minimal_truetype_with_macintosh_cmap() -> Vec<u8> {
+    minimal_truetype_with_cmap_encodings(&[(1, 0)], 32, 2)
+}
+
 fn minimal_truetype_with_cmap_count_and_mapping_and_glyph_count_with_symbol_cmap(
     cmap_count: u16,
     code: u8,

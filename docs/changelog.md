@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Require the PDF/UA Microsoft Unicode cmap for non-symbolic TrueType fonts only when `/Differences` is present [#629](https://github.com/JosephBARBIERDARNAL/page/issues/629)
 - **Fix**: Parse array destinations and compact hex strings in ToUnicode CMaps [#628](https://github.com/JosephBARBIERDARNAL/page/issues/628)
 - **Fix**: Compare PDF/A-2 and PDF/A-3 `/CIDSet` declarations with the complete embedded CID subset [#627](https://github.com/JosephBARBIERDARNAL/page/issues/627)
 - **Fix**: Compare PDF/A-2 and PDF/A-3 Type 1 `/CharSet` values with every glyph in the embedded subset [#626](https://github.com/JosephBARBIERDARNAL/page/issues/626)

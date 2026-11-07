@@ -873,9 +873,10 @@ impl Scanner<'_> {
                         "is non-symbolic but lacks an unmodified MacRomanEncoding or WinAnsiEncoding",
                     ));
             }
-            let has_microsoft_unicode_cmap =
-                !embedded || cmap_summary.is_some_and(|(_, _, cmap31_present)| cmap31_present);
-            if !valid_encoding || !has_microsoft_unicode_cmap {
+            let has_required_microsoft_unicode_cmap = !embedded
+                || !contains_differences
+                || cmap_summary.is_some_and(|(_, _, cmap31_present)| cmap31_present);
+            if !valid_encoding || !has_required_microsoft_unicode_cmap {
                 self.invalid_nonsymbolic_truetype_encodings_pdfua1
                     .push(font_failure(
                         object_id,

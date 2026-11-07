@@ -1461,9 +1461,9 @@ fn collect_validation_failures(
             &mut failures,
         );
         // PDF/UA-1 7.21.6-2 reuses the shared simple-font encoding parser and
-        // embedded TrueType cmap scanner. Its cmap requirement is stricter
-        // than 7.21.6-1: an embedded non-symbolic TrueType font must contain
-        // Microsoft Unicode (3,1), regardless of whether Differences exists.
+        // embedded TrueType cmap scanner. A non-symbolic font needs an allowed
+        // base encoding; when Differences exists, its glyph names must be
+        // Unicode-compliant and an embedded font must contain Microsoft Unicode (3,1).
         aggregate_failures_with_location(
             &inspections
                 .font_embedding
