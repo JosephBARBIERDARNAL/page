@@ -8,6 +8,7 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
+use std::sync::LazyLock;
 
 use lopdf::{Dictionary, Document, Encoding, Object, ObjectId, Stream};
 use read_fonts::ps::cff::CffFontRef;
@@ -732,25 +733,6 @@ impl Scanner<'_> {
         Ok(program)
     }
 
-    fn cached_embedded_type1_program(
-        &self,
-        font: &Dictionary,
-    ) -> Result<Option<Rc<CachedType1Program>>, PdfError> {
-        let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)? else {
-            return Ok(None);
-        };
-        let Ok(font_file) = descriptor.get(b"FontFile") else {
-            return Ok(None);
-        };
-        let Some(stream) =
-            resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
-                .and_then(|value| value.as_stream().ok())
-        else {
-            return Ok(None);
-        };
-        Ok(Some(self.cached_type1_program(font_file, stream)?))
-    }
-
     fn cached_cff_program(
         &self,
         source: &Object,
@@ -916,20 +898,11 @@ impl Scanner<'_> {
                 continue;
             };
             let Ok(font) = object.as_dict() else { continue };
-            let embedded_type1_program =
-                if matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1")) {
-                    self.cached_embedded_type1_program(font)?
-                } else {
-                    None
-                };
             if unicode_mapping_exception(
                 self.document,
                 font,
                 usage.subtype.as_deref(),
                 &usage.shown_bytes,
-                embedded_type1_program
-                    .as_ref()
-                    .map(|program| program.encoding()),
                 self.limits,
             )? {
                 continue;
@@ -3722,7 +3695,6 @@ fn unicode_mapping_exception(
     font: &Dictionary,
     subtype: Option<&str>,
     shown_bytes: &[u8],
-    program_encoding: Option<&Type1ProgramEncoding>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
     if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3")) {
@@ -3734,37 +3706,16 @@ fn unicode_mapping_exception(
             return Ok(true);
         }
         if matches!(subtype, Some("Type1" | "MMType1")) {
-            let standard_names = (0..=u8::MAX)
-                .filter_map(|byte| font_encodings::glyph_name(PredefinedEncoding::Standard, byte))
-                .collect::<BTreeSet<_>>();
-            let descriptor = font_descriptor_dictionary(document, font, limits)?;
-            let named_characters = descriptor
-                .map(|descriptor| resolved_string(document, descriptor, b"CharSet", limits))
-                .transpose()?
-                .flatten();
-            let all_standard = named_characters.as_deref().is_some_and(|bytes| {
-                let names = type1_charset_names(bytes);
-                !names.is_empty() && names.iter().all(|name| standard_names.contains(name))
-            });
-            let all_symbol = named_characters.as_deref().is_some_and(|bytes| {
-                let names = type1_charset_names(bytes);
-                !names.is_empty() && names.iter().all(|name| is_symbol_glyph_name(name))
-            });
-            let rendered_symbol_names = shown_bytes
+            let rendered_names = shown_bytes
                 .iter()
-                .filter_map(|byte| {
-                    encoding.glyph_name(*byte).or_else(|| {
-                        program_encoding.and_then(|encoding| encoding.glyph_name(*byte))
-                    })
-                })
-                .collect::<Vec<_>>();
-            if all_standard
-                || all_symbol
-                || (!rendered_symbol_names.is_empty()
-                    && rendered_symbol_names
+                .map(|byte| encoding.glyph_name(*byte))
+                .collect::<Option<Vec<_>>>();
+            if rendered_names.as_ref().is_some_and(|names| {
+                !names.is_empty()
+                    && names
                         .iter()
-                        .all(|name| is_symbol_glyph_name(name)))
-            {
+                        .all(|name| is_unicode_mappable_glyph_name(name))
+            }) {
                 return Ok(true);
             }
         }
@@ -3781,6 +3732,27 @@ fn unicode_mapping_exception(
         return Ok(true);
     }
     Ok(false)
+}
+
+/// Names present in PDF's predefined simple-font encodings have the standard
+/// glyph-name-to-Unicode interpretation; arbitrary Adobe Glyph List extensions
+/// do not establish that interpretation for a PDF text code.
+static UNICODE_MAPPABLE_GLYPH_NAMES: LazyLock<BTreeSet<&'static str>> = LazyLock::new(|| {
+    [
+        PredefinedEncoding::Standard,
+        PredefinedEncoding::MacRoman,
+        PredefinedEncoding::MacExpert,
+        PredefinedEncoding::WinAnsi,
+    ]
+    .into_iter()
+    .flat_map(|encoding| {
+        (0..=u8::MAX).filter_map(move |byte| font_encodings::glyph_name(encoding, byte))
+    })
+    .collect()
+});
+
+fn is_unicode_mappable_glyph_name(name: &str) -> bool {
+    UNICODE_MAPPABLE_GLYPH_NAMES.contains(name) || is_symbol_glyph_name(name)
 }
 
 /// Indexes every marked-content id that a `StructElem` with a string
@@ -5731,7 +5703,7 @@ mod tests {
         cmap_uses_identity_base, decode_font_stream, inspect, inspect_all_embedded_cmap_cids,
         parse_cid_widths, parse_cmap, parse_cmap_with_predefined_bases, parse_sfnt_cmap,
         shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
-        type1_program_charstring_widths, valid_font_program,
+        type1_program_charstring_widths, unicode_mapping_exception, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
 
@@ -6286,6 +6258,58 @@ mod tests {
                 174
             ),
             Some("fi")
+        );
+    }
+
+    #[test]
+    fn type1_differences_supply_unicode_mapping_for_used_standard_glyph_names() {
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/A /unusedUnmappableGlyph"),
+        });
+        let font = dictionary! {
+            "FontDescriptor" => descriptor,
+            "Encoding" => dictionary! {
+                "BaseEncoding" => "WinAnsiEncoding",
+                "Differences" => vec![
+                    65.into(), Object::Name(b"A".to_vec()),
+                    233.into(), Object::Name(b"eacute".to_vec()),
+                    31.into(), Object::Name(b"fl".to_vec()),
+                ],
+            },
+        };
+        for byte in [65, 233, 31] {
+            assert!(
+                unicode_mapping_exception(
+                    &document,
+                    &font,
+                    Some("Type1"),
+                    &[byte],
+                    &SafetyLimits::default(),
+                )
+                .expect("check Type 1 glyph-name mapping")
+            );
+        }
+    }
+
+    #[test]
+    fn type1_differences_do_not_map_unrecognized_glyph_names_to_unicode() {
+        let document = Document::with_version("1.4");
+        let font = dictionary! {
+            "Encoding" => dictionary! {
+                "BaseEncoding" => "WinAnsiEncoding",
+                "Differences" => vec![31.into(), Object::Name(b"f_f_i".to_vec())],
+            },
+        };
+        assert!(
+            !unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[31],
+                &SafetyLimits::default(),
+            )
+            .expect("check Type 1 glyph-name mapping")
         );
     }
 
