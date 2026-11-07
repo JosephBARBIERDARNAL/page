@@ -73,28 +73,6 @@ fn minimal_truetype_with_cmap_encodings(
     code: u8,
     glyph_count: u16,
 ) -> Vec<u8> {
-    let mut head = vec![0; 54];
-    put_u32(&mut head, 0, 0x0001_0000);
-    put_u32(&mut head, 4, 0x0001_0000);
-    put_u32(&mut head, 12, 0x5F0F_3CF5);
-    put_u16(&mut head, 18, 1000);
-    put_i16(&mut head, 40, 500);
-    put_i16(&mut head, 42, 700);
-    put_u16(&mut head, 46, 8);
-    put_i16(&mut head, 48, 2);
-
-    let mut hhea = vec![0; 36];
-    put_u32(&mut hhea, 0, 0x0001_0000);
-    put_i16(&mut hhea, 4, 800);
-    put_i16(&mut hhea, 6, -200);
-    put_u16(&mut hhea, 10, 500);
-    put_i16(&mut hhea, 18, 1);
-    put_u16(&mut hhea, 34, 2);
-
-    let mut maxp = vec![0; 32];
-    put_u32(&mut maxp, 0, 0x0001_0000);
-    put_u16(&mut maxp, 4, glyph_count);
-
     let cmap_header_length = 4 + encodings.len() * 8;
     let mut cmap = vec![0; cmap_header_length + 262];
     put_u16(
@@ -117,6 +95,36 @@ fn minimal_truetype_with_cmap_encodings(
     *cmap
         .get_mut(cmap_header_length + 6 + usize::from(code))
         .expect("cmap glyph slot") = 1;
+
+    minimal_truetype_with_cmap_and_metrics(cmap, glyph_count, &[500, 500])
+}
+
+pub fn minimal_truetype_with_cmap_and_metrics(
+    cmap: Vec<u8>,
+    glyph_count: u16,
+    advances: &[u16],
+) -> Vec<u8> {
+    let mut head = vec![0; 54];
+    put_u32(&mut head, 0, 0x0001_0000);
+    put_u32(&mut head, 4, 0x0001_0000);
+    put_u32(&mut head, 12, 0x5F0F_3CF5);
+    put_u16(&mut head, 18, 1000);
+    put_i16(&mut head, 40, 500);
+    put_i16(&mut head, 42, 700);
+    put_u16(&mut head, 46, 8);
+    put_i16(&mut head, 48, 2);
+
+    let mut hhea = vec![0; 36];
+    put_u32(&mut hhea, 0, 0x0001_0000);
+    put_i16(&mut hhea, 4, 800);
+    put_i16(&mut hhea, 6, -200);
+    put_u16(&mut hhea, 10, 500);
+    put_i16(&mut hhea, 18, 1);
+    put_u16(&mut hhea, 34, advances.len() as u16);
+
+    let mut maxp = vec![0; 32];
+    put_u32(&mut maxp, 0, 0x0001_0000);
+    put_u16(&mut maxp, 4, glyph_count);
 
     let family = utf16be("Page Test");
     let postscript = utf16be("PageTestFont");
@@ -154,9 +162,10 @@ fn minimal_truetype_with_cmap_encodings(
     let mut post = vec![0; 32];
     put_u32(&mut post, 0, 0x0003_0000);
 
-    let mut hmtx = vec![0; 8];
-    put_u16(&mut hmtx, 0, 500);
-    put_u16(&mut hmtx, 4, 500);
+    let mut hmtx = vec![0; advances.len() * 4];
+    for (index, advance) in advances.iter().enumerate() {
+        put_u16(&mut hmtx, index * 4, *advance);
+    }
 
     let tables = vec![
         (*b"OS/2", os2),
@@ -171,6 +180,39 @@ fn minimal_truetype_with_cmap_encodings(
         (*b"post", post),
     ];
     build_sfnt(tables)
+}
+
+/// Platform ID, encoding ID, and code-to-glyph entries for a test cmap record.
+pub type CmapRecord<'a> = (u16, u16, &'a [(u16, u16)]);
+
+/// Builds independent format-6 subtables, including sparse single-byte mappings.
+pub fn format6_cmap(records: &[CmapRecord<'_>]) -> Vec<u8> {
+    let mut cmap = vec![0; 4 + records.len() * 8];
+    put_u16(&mut cmap, 2, records.len() as u16);
+    for (index, &(platform, encoding, mappings)) in records.iter().enumerate() {
+        let record = 4 + index * 8;
+        put_u16(&mut cmap, record, platform);
+        put_u16(&mut cmap, record + 2, encoding);
+        let offset = cmap.len();
+        put_u32(&mut cmap, record + 4, offset as u32);
+        let first = mappings.iter().map(|(code, _)| *code).min().unwrap_or(0);
+        let last = mappings.iter().map(|(code, _)| *code).max().unwrap_or(0);
+        let count = usize::from(last - first) + 1;
+        let length = 10 + count * 2;
+        cmap.resize(offset + length, 0);
+        put_u16(&mut cmap, offset, 6);
+        put_u16(&mut cmap, offset + 2, length as u16);
+        put_u16(&mut cmap, offset + 6, first);
+        put_u16(&mut cmap, offset + 8, count as u16);
+        for &(code, glyph) in mappings {
+            put_u16(
+                &mut cmap,
+                offset + 10 + usize::from(code - first) * 2,
+                glyph,
+            );
+        }
+    }
+    cmap
 }
 
 pub fn build_sfnt(tables: Vec<([u8; 4], Vec<u8>)>) -> Vec<u8> {

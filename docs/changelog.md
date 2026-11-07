@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Respect TrueType cmap encodings when resolving simple-font glyphs and checking their widths [#624](https://github.com/JosephBARBIERDARNAL/page/issues/624)
 - **Fix**: Report PDF/A-1 Info date mismatches when XMP metadata or the corresponding date property is missing [#623](https://github.com/JosephBARBIERDARNAL/page/issues/623)
 - **Doc**: Refresh CLI examples, output, and command references across the README and documentation [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
 - **Fix**: Align detailed CLI output tests and documentation with the removal of the `(example finding)` label [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)

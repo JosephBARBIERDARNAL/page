@@ -1191,14 +1191,17 @@ impl Scanner<'_> {
             } else {
                 None
             };
+            let base_encoding = encoding
+                .as_deref()
+                .and_then(PredefinedEncoding::from_pdf_name);
             for byte in usage.unique_shown_bytes() {
                 let glyph = if symbolic {
                     face.glyph_index_for_symbolic_byte(byte)
                 } else {
                     pdf_encoding
                         .as_ref()
-                        .and_then(|encoding| single_encoded_character(encoding, byte))
-                        .and_then(|character| face.glyph_index(character))
+                        .zip(base_encoding)
+                        .and_then(|(encoding, base)| face.glyph_index(encoding, base, byte))
                 };
                 if glyph.is_none() || glyph.is_some_and(|glyph| glyph.to_u32() == 0) {
                     self.notdef_glyphs.push(font_failure(
@@ -5029,10 +5032,18 @@ fn is_adobe_glyph_name(name: &[u8]) -> bool {
 /// these checks can run.
 struct RawTrueType<'a> {
     cmap: Option<Cmap<'a>>,
+    nonsymbolic_cmap: OnceCell<Option<TrueTypeCmap<'a>>>,
     hmtx: Option<&'a [u8]>,
     number_of_h_metrics: Option<usize>,
     glyph_count: Option<usize>,
     units_per_em: Option<u16>,
+}
+
+/// A selected non-symbolic mapping, cached so text bytes do not rescan the cmap records.
+struct TrueTypeCmap<'a> {
+    subtable: CmapSubtable<'a>,
+    offset: u32,
+    mac_roman: bool,
 }
 
 impl<'a> RawTrueType<'a> {
@@ -5083,6 +5094,7 @@ impl<'a> RawTrueType<'a> {
             .and_then(|table| parse_sfnt_cmap(table.as_bytes()));
         Some(Self {
             cmap,
+            nonsymbolic_cmap: OnceCell::new(),
             hmtx,
             number_of_h_metrics,
             glyph_count,
@@ -5090,29 +5102,76 @@ impl<'a> RawTrueType<'a> {
         })
     }
 
-    fn glyph_index(&self, character: char) -> Option<GlyphId> {
+    fn glyph_index(
+        &self,
+        encoding: &Encoding<'_>,
+        base: PredefinedEncoding,
+        byte: u8,
+    ) -> Option<GlyphId> {
         let cmap = self.cmap.as_ref()?;
-        for record in cmap.encoding_records() {
-            let platform_id = record.platform_id();
-            let encoding_id = record.encoding_id();
-            let direct_byte_subtable = platform_id == PlatformId::Macintosh
-                || (platform_id == PlatformId::Windows && encoding_id != 0);
-            let Ok(subtable) = record.subtable(cmap.offset_data()) else {
-                continue;
+        let mapping = self
+            .nonsymbolic_cmap
+            .get_or_init(|| {
+                cmap.encoding_records()
+                    .iter()
+                    .filter_map(|record| {
+                        let subtable = record.subtable(cmap.offset_data()).ok()?;
+                        // Variation-selector maps do not supply nominal glyphs;
+                        // format 8 is not supported by the underlying mapper.
+                        if matches!(
+                            subtable,
+                            CmapSubtable::Format8(_) | CmapSubtable::Format14(_)
+                        ) {
+                            return None;
+                        }
+                        let platform = record.platform_id();
+                        let encoding = record.encoding_id();
+                        let priority = if platform == PlatformId::Windows && encoding == 1 {
+                            0
+                        } else if cmap_subtable_is_unicode(platform, encoding, &subtable) {
+                            1
+                        } else if platform == PlatformId::Macintosh && encoding == 0 {
+                            2
+                        } else {
+                            return None;
+                        };
+                        Some((
+                            priority,
+                            TrueTypeCmap {
+                                subtable,
+                                offset: record.subtable_offset().to_u32(),
+                                mac_roman: priority == 2,
+                            },
+                        ))
+                    })
+                    .min_by_key(|(priority, _)| *priority)
+                    .map(|(_, mapping)| mapping)
+            })
+            .as_ref()?;
+        let codepoint = if mapping.mac_roman {
+            // Macintosh (1,0) uses Roman character codes, not Unicode scalars.
+            // Preserve MacRoman bytes; translate other PDF encodings by glyph name.
+            let mac_byte = if base == PredefinedEncoding::MacRoman {
+                byte
+            } else {
+                let name = font_encodings::glyph_name(base, byte)?;
+                (0..=u8::MAX).find(|candidate| {
+                    font_encodings::glyph_name(PredefinedEncoding::MacRoman, *candidate)
+                        == Some(name)
+                })?
             };
-            if (cmap_subtable_is_unicode(platform_id, encoding_id, &subtable)
-                || direct_byte_subtable)
-                && let Some(glyph) = cmap_glyph_index(
-                    &subtable,
-                    cmap.offset_data().as_bytes(),
-                    record.subtable_offset().to_u32(),
-                    u32::from(character),
-                )
-            {
-                return Some(glyph);
-            }
-        }
-        None
+            u32::from(mac_byte)
+        } else {
+            u32::from(single_encoded_character(encoding, byte)?)
+        };
+        // A missing glyph in the selected map must remain missing; another cmap
+        // can assign that same integer to a different character.
+        cmap_glyph_index(
+            &mapping.subtable,
+            cmap.offset_data().as_bytes(),
+            mapping.offset,
+            codepoint,
+        )
     }
 
     fn glyph_index_for_symbolic_byte(&self, byte: u8) -> Option<GlyphId> {
@@ -5506,14 +5565,63 @@ mod tests {
     use lopdf::{Dictionary, Document, Object, Stream};
 
     use super::{
-        CidSystemInfo, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
+        CidSystemInfo, RawTrueType, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
         cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base,
         decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
-        parse_cmap_with_predefined_bases, shown_text_bytes, type1_eexec_ciphertext,
-        type1_pfb_payload, type1_program_char_names, type1_program_charstring_widths,
-        valid_font_program,
+        parse_cmap_with_predefined_bases, parse_sfnt_cmap, shown_text_bytes,
+        type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
+        type1_program_charstring_widths, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn nonsymbolic_macintosh_lookup_translates_encodings_and_caches_selection() {
+        // Macintosh Roman format-6 code 135 (aacute), with and without a preceding
+        // Unicode variation-selector table that cannot map nominal glyphs.
+        for data in [
+            &[
+                0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 12, 0, 6, 0, 12, 0, 0, 0, 135, 0, 1, 0, 1,
+            ][..],
+            &[
+                0, 0, 0, 2, 0, 0, 0, 5, 0, 0, 0, 20, 0, 1, 0, 0, 0, 0, 0, 30, 0, 14, 0, 0, 0, 10,
+                0, 0, 0, 0, 0, 6, 0, 12, 0, 0, 0, 135, 0, 1, 0, 1,
+            ][..],
+        ] {
+            let face = RawTrueType {
+                cmap: parse_sfnt_cmap(data),
+                nonsymbolic_cmap: std::cell::OnceCell::new(),
+                hmtx: None,
+                number_of_h_metrics: None,
+                glyph_count: Some(2),
+                units_per_em: None,
+            };
+            assert!(face.nonsymbolic_cmap.get().is_none());
+            let document = Document::with_version("1.4");
+            for (name, base, byte) in [
+                ("MacRomanEncoding", super::PredefinedEncoding::MacRoman, 135),
+                ("WinAnsiEncoding", super::PredefinedEncoding::WinAnsi, 225),
+            ] {
+                let mut dictionary = Dictionary::new();
+                dictionary.set("Type", "Font");
+                dictionary.set("Encoding", name);
+                let encoding = dictionary
+                    .get_font_encoding(&document)
+                    .expect("PDF encoding");
+                assert_eq!(
+                    face.glyph_index(&encoding, base, byte)
+                        .map(|glyph| glyph.to_u32()),
+                    Some(1),
+                );
+                assert!(face.nonsymbolic_cmap.get().is_some_and(Option::is_some));
+                assert_eq!(face.glyph_index(&encoding, base, 0), None);
+            }
+            assert_eq!(
+                face.glyph_index_for_symbolic_byte(135)
+                    .map(|glyph| glyph.to_u32()),
+                Some(1)
+            );
+        }
+    }
 
     #[test]
     fn recognizes_valid_type1_program_headers() {

@@ -13436,6 +13436,64 @@ pub fn font_fixture_with_external_type1_program(case: &str, program: &[u8]) -> V
     font_fixture_with_type1_program(case, Some(program))
 }
 
+pub fn truetype_mapping_fixture(program: Vec<u8>, encoding: &str, byte: u8, width: u16) -> Vec<u8> {
+    let mut document = Document::load_mem(&font_fixture("tt_glyph_present"))
+        .expect("load TrueType mapping fixture");
+    let font_id = document
+        .objects
+        .iter()
+        .find_map(|(id, object)| {
+            let dictionary = object.as_dict().ok()?;
+            (dictionary.get(b"Subtype").ok()?.as_name().ok()? == b"TrueType").then_some(*id)
+        })
+        .expect("TrueType font");
+    let descriptor_id = document
+        .get_object(font_id)
+        .expect("font")
+        .as_dict()
+        .expect("font dictionary")
+        .get(b"FontDescriptor")
+        .expect("descriptor")
+        .as_reference()
+        .expect("indirect descriptor");
+    let program_id = document.add_object(Stream::new(Dictionary::new(), program));
+    document
+        .get_object_mut(descriptor_id)
+        .expect("descriptor")
+        .as_dict_mut()
+        .expect("descriptor dictionary")
+        .set("FontFile2", program_id);
+    let font = document
+        .get_object_mut(font_id)
+        .expect("font")
+        .as_dict_mut()
+        .expect("font dictionary");
+    font.set("Encoding", encoding);
+    font.set("FirstChar", i64::from(byte));
+    font.set("LastChar", i64::from(byte));
+    font.set("Widths", vec![Object::Integer(i64::from(width))]);
+    let page_id = *document.get_pages().values().next().expect("page");
+    let contents = document.add_object(Stream::new(
+        Dictionary::new(),
+        content(vec![
+            operation("BT", vec![]),
+            operation("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            operation(
+                "Tj",
+                vec![Object::String(vec![byte], StringFormat::Hexadecimal)],
+            ),
+            operation("ET", vec![]),
+        ]),
+    ));
+    document
+        .get_object_mut(page_id)
+        .expect("page")
+        .as_dict_mut()
+        .expect("page dictionary")
+        .set("Contents", contents);
+    save_document(document, "TrueType mapping fixture")
+}
+
 pub fn font_fixture_with_type1_program(
     case: &str,
     external_type1_program: Option<&[u8]>,
