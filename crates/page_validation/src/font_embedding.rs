@@ -2629,7 +2629,8 @@ enum WGroup {
 /// the original sequential-scan predicate exactly, including that a
 /// malformed group aborts the lookup for every CID from that point on
 /// *without* falling back to `/DW` (unlike a fully well-formed array that
-/// simply has no matching group).
+/// simply has no matching group). An absent `/DW` defaults to 1000; an
+/// explicitly malformed `/DW` remains unavailable.
 struct CidWidths {
     groups: Vec<WGroup>,
     truncated: bool,
@@ -2667,13 +2668,10 @@ fn parse_cid_widths(
     font: &Dictionary,
     limits: &SafetyLimits,
 ) -> Result<CidWidths, PdfError> {
-    let default_width = font
-        .get(b"DW")
-        .ok()
-        .map(|value| resolved_float(document, limits, value))
-        .transpose()?
-        .flatten()
-        .map(f64::from);
+    let default_width = match font.get(b"DW") {
+        Ok(value) => resolved_float(document, limits, value)?.map(f64::from),
+        Err(_) => Some(1000.0),
+    };
     let none = || CidWidths {
         groups: Vec::new(),
         truncated: false,
@@ -5562,17 +5560,83 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Dictionary, Document, Object, Stream};
+    use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{
         CidSystemInfo, RawTrueType, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
         cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base,
-        decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cmap,
+        decode_font_stream, inspect, inspect_all_embedded_cmap_cids, parse_cid_widths, parse_cmap,
         parse_cmap_with_predefined_bases, parse_sfnt_cmap, shown_text_bytes,
         type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
         type1_program_charstring_widths, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
+
+    #[test]
+    fn cid_widths_default_to_1000_only_when_dw_is_absent() {
+        let mut document = Document::with_version("1.4");
+        let indirect = document.add_object(Object::Integer(500));
+        let limits = SafetyLimits::default();
+        let mut font = Dictionary::new();
+        assert_eq!(
+            parse_cid_widths(&document, &font, &limits)
+                .unwrap()
+                .width_for(42),
+            Some(1000.0)
+        );
+        for (value, expected) in [
+            (Object::Integer(400), Some(400.0)),
+            (Object::Real(500.5), Some(500.5)),
+            (Object::Reference(indirect), Some(500.0)),
+            (Object::Null, None),
+            (Object::Name(b"Invalid".to_vec()), None),
+            (Object::Reference((999, 0)), None),
+        ] {
+            font.set("DW", value);
+            assert_eq!(
+                parse_cid_widths(&document, &font, &limits)
+                    .unwrap()
+                    .width_for(42),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn cid_widths_use_w_before_the_default() {
+        let document = Document::with_version("1.4");
+        let mut font = dictionary! {
+            "W" => vec![32.into(), Object::Array(vec![500.into()]), 40.into(), 42.into(), 600.into()],
+        };
+        for (default, expected) in [(None, Some(1000.0)), (Some(400), Some(400.0))] {
+            if let Some(default) = default {
+                font.set("DW", default);
+            }
+            let widths = parse_cid_widths(&document, &font, &SafetyLimits::default()).unwrap();
+            assert_eq!(widths.width_for(32), Some(500.0));
+            assert_eq!(widths.width_for(41), Some(600.0));
+            assert_eq!(widths.width_for(43), expected);
+        }
+    }
+
+    #[test]
+    fn cid_widths_do_not_default_past_malformed_w_groups() {
+        let document = Document::with_version("1.4");
+        let limits = SafetyLimits::default();
+        let mut font = dictionary! {
+            "W" => vec![32.into(), Object::Array(vec![500.into(), Object::Null]), 40.into()],
+        };
+        for default in [None, Some(400)] {
+            if let Some(default) = default {
+                font.set("DW", default);
+            }
+            let widths = parse_cid_widths(&document, &font, &limits).unwrap();
+            assert_eq!(widths.width_for(32), Some(500.0));
+            assert_eq!(widths.width_for(33), None);
+            assert_eq!(widths.width_for(40), None);
+            assert_eq!(widths.width_for(42), None);
+        }
+    }
 
     #[test]
     fn nonsymbolic_macintosh_lookup_translates_encodings_and_caches_selection() {

@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Apply the CIDFont default width of 1000 for absent `/DW` entries when checking embedded glyph widths [#625](https://github.com/JosephBARBIERDARNAL/page/issues/625)
 - **Fix**: Respect TrueType cmap encodings when resolving simple-font glyphs and checking their widths [#624](https://github.com/JosephBARBIERDARNAL/page/issues/624)
 - **Fix**: Report PDF/A-1 Info date mismatches when XMP metadata or the corresponding date property is missing [#623](https://github.com/JosephBARBIERDARNAL/page/issues/623)
 - **Doc**: Refresh CLI examples, output, and command references across the README and documentation [#619](https://github.com/JosephBARBIERDARNAL/page/issues/619)
