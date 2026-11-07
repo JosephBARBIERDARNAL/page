@@ -1045,6 +1045,16 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Fix</strong>: Validate stream <code>/Length</code> independently from the required EOL before <code>endstream</code> <a href="https://github.com/JosephBARBIERDARNAL/page/issues/631">#631</a></li>
+<li><strong>Fix</strong>: Recognize Unicode mappings from used Type 1 <code>/Differences</code> glyph names <a href="https://github.com/JosephBARBIERDARNAL/page/issues/630">#630</a></li>
+<li><strong>Fix</strong>: Preserve Type 1 embedded-encoding and standard <code>/CharSet</code> Unicode mapping exceptions <a href="https://github.com/JosephBARBIERDARNAL/page/issues/630">#630</a></li>
+<li><strong>Fix</strong>: Require the PDF/UA Microsoft Unicode cmap for non-symbolic TrueType fonts only when <code>/Differences</code> is present <a href="https://github.com/JosephBARBIERDARNAL/page/issues/629">#629</a></li>
+<li><strong>Fix</strong>: Parse array destinations and compact hex strings in ToUnicode CMaps <a href="https://github.com/JosephBARBIERDARNAL/page/issues/628">#628</a></li>
+<li><strong>Fix</strong>: Compare PDF/A-2 and PDF/A-3 <code>/CIDSet</code> declarations with the complete embedded CID subset <a href="https://github.com/JosephBARBIERDARNAL/page/issues/627">#627</a></li>
+<li><strong>Fix</strong>: Compare PDF/A-2 and PDF/A-3 Type 1 <code>/CharSet</code> values with every glyph in the embedded subset <a href="https://github.com/JosephBARBIERDARNAL/page/issues/626">#626</a></li>
+<li><strong>Fix</strong>: Apply the CIDFont default width of 1000 for absent <code>/DW</code> entries when checking embedded glyph widths <a href="https://github.com/JosephBARBIERDARNAL/page/issues/625">#625</a></li>
+<li><strong>Fix</strong>: Respect TrueType cmap encodings when resolving simple-font glyphs and checking their widths <a href="https://github.com/JosephBARBIERDARNAL/page/issues/624">#624</a></li>
+<li><strong>Fix</strong>: Report PDF/A-1 Info date mismatches when XMP metadata or the corresponding date property is missing <a href="https://github.com/JosephBARBIERDARNAL/page/issues/623">#623</a></li>
 <li><strong>Doc</strong>: Refresh CLI examples, output, and command references across the README and documentation <a href="https://github.com/JosephBARBIERDARNAL/page/issues/619">#619</a></li>
 <li><strong>Fix</strong>: Align detailed CLI output tests and documentation with the removal of the <code>(example finding)</code> label <a href="https://github.com/JosephBARBIERDARNAL/page/issues/619">#619</a></li>
 <li><strong>Fix</strong>: Include page numbers for annotations, content streams, and used resources, including shared objects and resource dependencies <a href="https://github.com/JosephBARBIERDARNAL/page/issues/619">#619</a></li>
