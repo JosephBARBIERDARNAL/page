@@ -733,6 +733,25 @@ impl Scanner<'_> {
         Ok(program)
     }
 
+    fn cached_embedded_type1_program(
+        &self,
+        font: &Dictionary,
+    ) -> Result<Option<Rc<CachedType1Program>>, PdfError> {
+        let Some(descriptor) = font_descriptor_dictionary(self.document, font, self.limits)? else {
+            return Ok(None);
+        };
+        let Ok(font_file) = descriptor.get(b"FontFile") else {
+            return Ok(None);
+        };
+        let Some(stream) =
+            resolve_optional(self.document, font_file, self.limits.max_reference_depth)?
+                .and_then(|value| value.as_stream().ok())
+        else {
+            return Ok(None);
+        };
+        Ok(Some(self.cached_type1_program(font_file, stream)?))
+    }
+
     fn cached_cff_program(
         &self,
         source: &Object,
@@ -898,11 +917,20 @@ impl Scanner<'_> {
                 continue;
             };
             let Ok(font) = object.as_dict() else { continue };
+            let embedded_type1_program =
+                if matches!(usage.subtype.as_deref(), Some("Type1" | "MMType1")) {
+                    self.cached_embedded_type1_program(font)?
+                } else {
+                    None
+                };
             if unicode_mapping_exception(
                 self.document,
                 font,
                 usage.subtype.as_deref(),
                 &usage.shown_bytes,
+                embedded_type1_program
+                    .as_ref()
+                    .map(|program| program.encoding()),
                 self.limits,
             )? {
                 continue;
@@ -3695,6 +3723,7 @@ fn unicode_mapping_exception(
     font: &Dictionary,
     subtype: Option<&str>,
     shown_bytes: &[u8],
+    program_encoding: Option<&Type1ProgramEncoding>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
     if matches!(subtype, Some("Type1" | "MMType1" | "TrueType" | "Type3")) {
@@ -3708,7 +3737,11 @@ fn unicode_mapping_exception(
         if matches!(subtype, Some("Type1" | "MMType1")) {
             let rendered_names = shown_bytes
                 .iter()
-                .map(|byte| encoding.glyph_name(*byte))
+                .map(|byte| {
+                    encoding
+                        .glyph_name(*byte)
+                        .or_else(|| program_encoding.and_then(|program| program.glyph_name(*byte)))
+                })
                 .collect::<Option<Vec<_>>>();
             if rendered_names.as_ref().is_some_and(|names| {
                 !names.is_empty()
@@ -3717,6 +3750,20 @@ fn unicode_mapping_exception(
                         .all(|name| is_unicode_mappable_glyph_name(name))
             }) {
                 return Ok(true);
+            }
+            if encoding.differences.is_empty()
+                && rendered_names.is_none()
+                && let Some(descriptor) = font_descriptor_dictionary(document, font, limits)?
+                && let Some(char_set) = resolved_string(document, descriptor, b"CharSet", limits)?
+            {
+                let names = type1_charset_names(&char_set);
+                if !names.is_empty()
+                    && names
+                        .iter()
+                        .all(|name| is_unicode_mappable_glyph_name(name))
+                {
+                    return Ok(true);
+                }
             }
         }
     }
@@ -5693,16 +5740,17 @@ fn font_failure(object_id: Option<PdfObjectId>, description: &str, detail: &str)
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 
     use super::{
-        CidSystemInfo, RawTrueType, UnicodeCmap, cached_font_stream, cff_fd_select, cff_index,
-        cid_set_matches_program, cmap_bytes_system_info, cmap_format2_glyph, cmap_maximal_cid,
-        cmap_uses_identity_base, decode_font_stream, inspect, inspect_all_embedded_cmap_cids,
-        parse_cid_widths, parse_cmap, parse_cmap_with_predefined_bases, parse_sfnt_cmap,
-        shown_text_bytes, type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
+        CidSystemInfo, RawTrueType, Type1ProgramEncoding, UnicodeCmap, cached_font_stream,
+        cff_fd_select, cff_index, cid_set_matches_program, cmap_bytes_system_info,
+        cmap_format2_glyph, cmap_maximal_cid, cmap_uses_identity_base, decode_font_stream, inspect,
+        inspect_all_embedded_cmap_cids, parse_cid_widths, parse_cmap,
+        parse_cmap_with_predefined_bases, parse_sfnt_cmap, shown_text_bytes,
+        type1_eexec_ciphertext, type1_pfb_payload, type1_program_char_names,
         type1_program_charstring_widths, unicode_mapping_exception, valid_font_program,
     };
     use crate::{PdfError, SafetyLimits, model::InspectionNeed, predefined_cmaps};
@@ -6285,6 +6333,7 @@ mod tests {
                     &font,
                     Some("Type1"),
                     &[byte],
+                    None,
                     &SafetyLimits::default(),
                 )
                 .expect("check Type 1 glyph-name mapping")
@@ -6294,8 +6343,12 @@ mod tests {
 
     #[test]
     fn type1_differences_do_not_map_unrecognized_glyph_names_to_unicode() {
-        let document = Document::with_version("1.4");
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/A"),
+        });
         let font = dictionary! {
+            "FontDescriptor" => descriptor,
             "Encoding" => dictionary! {
                 "BaseEncoding" => "WinAnsiEncoding",
                 "Differences" => vec![31.into(), Object::Name(b"f_f_i".to_vec())],
@@ -6307,9 +6360,49 @@ mod tests {
                 &font,
                 Some("Type1"),
                 &[31],
+                None,
                 &SafetyLimits::default(),
             )
             .expect("check Type 1 glyph-name mapping")
+        );
+    }
+
+    #[test]
+    fn type1_unicode_exception_uses_embedded_encoding_and_standard_charset_fallback() {
+        let mut document = Document::with_version("1.4");
+        let descriptor = document.add_object(dictionary! {
+            "CharSet" => Object::string_literal("/angle/space"),
+        });
+        let font = dictionary! {
+            "FontDescriptor" => descriptor,
+        };
+
+        let program_encoding = Type1ProgramEncoding {
+            names: BTreeMap::from([(160, "angle".to_owned())]),
+            standard_base: false,
+        };
+        assert!(
+            unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[160],
+                Some(&program_encoding),
+                &SafetyLimits::default(),
+            )
+            .expect("check embedded Type 1 encoding")
+        );
+
+        assert!(
+            unicode_mapping_exception(
+                &document,
+                &font,
+                Some("Type1"),
+                &[160],
+                None,
+                &SafetyLimits::default(),
+            )
+            .expect("check Type 1 CharSet fallback")
         );
     }
 

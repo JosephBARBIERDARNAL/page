@@ -2,6 +2,7 @@
 
 - **Fix**: Validate stream `/Length` independently from the required EOL before `endstream` [#631](https://github.com/JosephBARBIERDARNAL/page/issues/631)
 - **Fix**: Recognize Unicode mappings from used Type 1 `/Differences` glyph names [#630](https://github.com/JosephBARBIERDARNAL/page/issues/630)
+- **Fix**: Preserve Type 1 embedded-encoding and standard `/CharSet` Unicode mapping exceptions [#630](https://github.com/JosephBARBIERDARNAL/page/issues/630)
 - **Fix**: Require the PDF/UA Microsoft Unicode cmap for non-symbolic TrueType fonts only when `/Differences` is present [#629](https://github.com/JosephBARBIERDARNAL/page/issues/629)
 - **Fix**: Parse array destinations and compact hex strings in ToUnicode CMaps [#628](https://github.com/JosephBARBIERDARNAL/page/issues/628)
 - **Fix**: Compare PDF/A-2 and PDF/A-3 `/CIDSet` declarations with the complete embedded CID subset [#627](https://github.com/JosephBARBIERDARNAL/page/issues/627)
