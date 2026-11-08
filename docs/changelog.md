@@ -1,4 +1,4 @@
-## Dev
+## 0.13.0
 
 - **Fix**: Validate stream `/Length` independently from the required EOL before `endstream` [#631](https://github.com/JosephBARBIERDARNAL/page/issues/631)
 - **Fix**: Recognize Unicode mappings from used Type 1 `/Differences` glyph names [#630](https://github.com/JosephBARBIERDARNAL/page/issues/630)

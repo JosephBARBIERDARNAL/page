@@ -33,13 +33,13 @@ Omit `--format details` for a summary, use `--format json` for a complete JSON r
 ### macOS/Linux
 
 ```sh
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.12.2/page_cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/josephbarbierdarnal/page/releases/download/v0.13.0/page_cli-installer.sh | sh
 ```
 
 ### PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.12.2/page_cli-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/josephbarbierdarnal/page/releases/download/v0.13.0/page_cli-installer.ps1 | iex"
 ```
 
 <br>
