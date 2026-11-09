@@ -846,6 +846,39 @@ mod tests {
     use crate::SafetyLimits;
 
     #[test]
+    fn indexes_missing_eol_streams_with_indirect_lengths_without_losing_following_streams() {
+        for declared_length in [2, 1] {
+            let bytes = b"%PDF-1.4\n1 0 obj\n<< /Length 2 0 R >>\nstream\n\xff\xd9endstream\nendobj\n2 0 obj\n2\nendobj\n3 0 obj\n<< /Length 3 >>\nstream\nabc\nendstream\nendobj\n";
+            let limits = SafetyLimits::default();
+            let raw = crate::syntax::scan_raw_index(bytes, &limits).expect("index both streams");
+            assert_eq!(raw.streams.locations.len(), 2);
+            let mut document = Document::with_version("1.4");
+            document
+                .objects
+                .insert((2, 0), Object::Integer(declared_length));
+            for (id, content, length) in [
+                ((1, 0), b"\xff\xd9".as_slice(), Object::Reference((2, 0))),
+                ((3, 0), b"abc".as_slice(), Object::Integer(3)),
+            ] {
+                let mut stream = Stream::new(Dictionary::new(), content.to_vec());
+                stream.dict.set("Length", length);
+                stream.start_position = bytes
+                    .windows(content.len())
+                    .position(|window| window == content);
+                document.objects.insert(id, Object::Stream(stream));
+            }
+            let summary = super::inspect(&document, &limits, bytes, &Default::default(), &raw)
+                .expect("inspect indexed streams");
+            assert_eq!(summary.invalid_eol_markers, vec![(1, 0).into()]);
+            if declared_length == 2 {
+                assert!(summary.invalid_lengths.is_empty());
+            } else {
+                assert_eq!(summary.invalid_lengths, vec![(1, 0).into()]);
+            }
+        }
+    }
+
+    #[test]
     fn checks_raw_stream_length_and_eol_markers() {
         let document = Document::with_version("1.4");
         let mut stream = Stream::new(Dictionary::new(), b"abc".to_vec());

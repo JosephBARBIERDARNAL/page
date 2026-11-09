@@ -683,10 +683,12 @@ fn collect_validation_failures(
     }
 
     if profile == ValidationProfile::PdfUa1 {
-        if !document
-            .xmp
-            .as_ref()
-            .is_some_and(|xmp| xmp.pdfua_identification_present)
+        // An unreadable XMP package still exists; an absent metadata stream does not.
+        if document.xmp_parse_error.is_some()
+            || document
+                .xmp
+                .as_ref()
+                .is_some_and(|xmp| !xmp.pdfua_identification_present)
         {
             failures.push(failure(
                 "ISO 14289-1:2014:5:1",
@@ -696,15 +698,20 @@ fn collect_validation_failures(
             ));
         }
         finish_if_lazy!();
-        if let Some(failure) = require_single_declared_value(
-            document.xmp.as_ref().map(|xmp| xmp.pdfua_parts.as_slice()),
-            |value| xmp_integer_value(value) == Some(1),
-            "ISO 14289-1:2014:5:2",
-            "PDF/UA part",
-            "pdfuaid:part",
-            "one value 1",
-            document.xmp_object,
-        ) {
+        if document
+            .xmp
+            .as_ref()
+            .is_some_and(|xmp| xmp.pdfua_identification_present)
+            && let Some(failure) = require_single_declared_value(
+                document.xmp.as_ref().map(|xmp| xmp.pdfua_parts.as_slice()),
+                |value| xmp_integer_value(value) == Some(1),
+                "ISO 14289-1:2014:5:2",
+                "PDF/UA part",
+                "pdfuaid:part",
+                "one value 1",
+                document.xmp_object,
+            )
+        {
             failures.push(failure);
         }
         finish_if_lazy!();
@@ -778,10 +785,11 @@ fn collect_validation_failures(
             ));
         }
         finish_if_lazy!();
-        if !document
-            .xmp
-            .as_ref()
-            .is_some_and(|xmp| xmp.dc_title_present)
+        if document.xmp_parse_error.is_some()
+            || document
+                .xmp
+                .as_ref()
+                .is_some_and(|xmp| !xmp.dc_title_present)
         {
             failures.push(failure(
                 "ISO 14289-1:2014:7.1:9",
@@ -1769,7 +1777,8 @@ fn collect_validation_failures(
         }
     }
     finish_if_lazy!();
-    if !xmp.is_some_and(|xmp| xmp.pdfa_identification_present) {
+    if document.xmp_parse_error.is_some() || xmp.is_some_and(|xmp| !xmp.pdfa_identification_present)
+    {
         failures.push(failure(
             iso_pdfa_rule_id!(profile, "6.7.11:1", "6.6.4:1", "6.6.4:1"),
             "XMP does not contain the PDF/A Identification schema",
@@ -4191,13 +4200,53 @@ mod tests {
 
     #[test]
     fn reports_missing_xmp() {
-        let report = validate_pdf_bytes(
-            &fixture(None, true),
-            &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
-        )
-        .expect("explicit profile validation");
-        assert_rule(&report, "ISO 19005-1:2005:6.7.2:1");
-        assert_rule(&report, "ISO 19005-1:2005:6.7.11:1");
+        let bytes = fixture(None, true);
+        for (profile, metadata_rule, identification_rule) in [
+            (
+                ValidationProfile::PdfA1b,
+                "ISO 19005-1:2005:6.7.2:1",
+                "ISO 19005-1:2005:6.7.11:1",
+            ),
+            (
+                ValidationProfile::PdfA2b,
+                "ISO 19005-2:2011:6.6.2.1:1",
+                "ISO 19005-2:2011:6.6.4:1",
+            ),
+            (
+                ValidationProfile::PdfA3b,
+                "ISO 19005-3:2012:6.6.2.1:1",
+                "ISO 19005-3:2012:6.6.4:1",
+            ),
+            (
+                ValidationProfile::PdfUa1,
+                "ISO 14289-1:2014:7.1:8",
+                "ISO 14289-1:2014:5:1",
+            ),
+        ] {
+            let options = ValidationOptions::default().profile(profile);
+            let report = validate_pdf_bytes(&bytes, &options).expect("explicit profile validation");
+            assert_rule(&report, metadata_rule);
+            assert_no_rule(&report, identification_rule);
+            assert_no_rule(&report, "ISO 14289-1:2014:5:2");
+            assert_no_rule(&report, "ISO 14289-1:2014:7.1:9");
+            assert!(!is_pdf_compliant_bytes(&bytes, &options).expect("lazy validation"));
+        }
+    }
+
+    #[test]
+    fn pdfua_part_rule_requires_an_identification_schema() {
+        let empty = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>"#;
+        let missing_part = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" pdfuaid:amd="2016"/></rdf:RDF>"#;
+        let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+        let report =
+            validate_pdf_bytes(&fixture(Some(empty), true), &options).expect("missing schema");
+        assert_rule(&report, "ISO 14289-1:2014:5:1");
+        assert_rule(&report, "ISO 14289-1:2014:7.1:9");
+        assert_no_rule(&report, "ISO 14289-1:2014:5:2");
+        let report =
+            validate_pdf_bytes(&fixture(Some(missing_part), true), &options).expect("missing part");
+        assert_no_rule(&report, "ISO 14289-1:2014:5:1");
+        assert_rule(&report, "ISO 14289-1:2014:5:2");
     }
 
     #[test]
@@ -4208,6 +4257,15 @@ mod tests {
         )
         .expect("explicit profile validation");
         assert_rule(&report, "ISO 19005-1:2005:6.7.9:1");
+        assert_rule(&report, "ISO 19005-1:2005:6.7.11:1");
+        let report = validate_pdf_bytes(
+            &fixture(Some(b"<rdf:RDF>"), true),
+            &ValidationOptions::default().profile(ValidationProfile::PdfUa1),
+        )
+        .expect("explicit PDF/UA validation");
+        assert_rule(&report, "ISO 14289-1:2014:5:1");
+        assert_rule(&report, "ISO 14289-1:2014:7.1:9");
+        assert_no_rule(&report, "ISO 14289-1:2014:5:2");
     }
 
     #[test]

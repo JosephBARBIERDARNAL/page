@@ -4,7 +4,7 @@
 //! A shared index records revisions, indirect objects, stream boundaries, and keyword
 //! positions. Inspection combines that index with parsed objects to check headers, trailers,
 //! cross-references, tokens, and profile limits; targeted parser repairs leave original bytes
-//! available for conformance checks.
+//! available for conformance checks, including missing stream EOL delimiters.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{Hash, Hasher};
@@ -147,7 +147,7 @@ fn index_raw_keyword_positions(bytes: &[u8]) -> RawKeywordPositions {
         if bounded_keyword_at(bytes, position, b"endobj") {
             positions.endobj.push(position);
         }
-        if bounded_keyword_at(bytes, position, b"endstream") {
+        if endstream_keyword_at(bytes, position) {
             positions.endstream.push(position);
         }
     }
@@ -166,6 +166,25 @@ fn bounded_keyword_at(bytes: &[u8], position: usize, keyword: &[u8]) -> bool {
     bytes.get(position..end) == Some(keyword)
         && is_pdf_boundary(bytes.get(position.wrapping_sub(1)).copied())
         && is_pdf_boundary(bytes.get(end).copied())
+}
+
+fn endstream_keyword_at(bytes: &[u8], position: usize) -> bool {
+    let Some(after) = bytes
+        .get(position..)
+        .and_then(|bytes| bytes.strip_prefix(b"endstream"))
+    else {
+        return false;
+    };
+    if bounded_keyword_at(bytes, position, b"endstream") {
+        return true;
+    }
+    // Recover a missing EOL only when the stream terminator closes its object.
+    // This also handles indirect Length entries before their values are resolved.
+    let whitespace = after
+        .iter()
+        .take_while(|byte| is_pdf_whitespace(**byte))
+        .count();
+    whitespace > 0 && bounded_keyword_at(after, whitespace, b"endobj")
 }
 
 #[derive(Clone, Debug, Default)]

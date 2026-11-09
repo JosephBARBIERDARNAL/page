@@ -10,7 +10,6 @@ crate::pdfua1_rule_tests! {
             || include_bytes!("fixtures/pdfua1-rule-5-1-missing.pdf").to_vec(),
             || common::pdfua1_rule_5_1_fixture("missing"),
             &[
-                "ISO 14289-1:2014:5:2",
                 "ISO 14289-1:2014:5:1",
                 "ISO 14289-1:2014:7.2:33",
             ],

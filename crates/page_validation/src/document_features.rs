@@ -2629,11 +2629,8 @@ fn table_has_unequal_column_row_spans(
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
 ) -> Result<bool, PdfError> {
-    let (column_ends, _) = table_grid_spans(document, dictionary, role_map, limits)?;
-
-    Ok(column_ends
-        .first()
-        .is_some_and(|first| column_ends.iter().any(|end| end != first)))
+    let (row_span_overflow, _) = table_grid_spans(document, dictionary, role_map, limits)?;
+    Ok(row_span_overflow)
 }
 
 fn table_row_column_span_mismatches(
@@ -2661,7 +2658,7 @@ fn table_grid_spans(
     dictionary: &lopdf::Dictionary,
     role_map: &BTreeMap<Vec<u8>, Vec<u8>>,
     limits: &SafetyLimits,
-) -> Result<(Vec<usize>, Option<TableRowColumnSpanMismatch>), PdfError> {
+) -> Result<(bool, Option<TableRowColumnSpanMismatch>), PdfError> {
     let mut rows = Vec::new();
     for (child, structure_type) in direct_structure_kids(document, dictionary, role_map, limits)? {
         match structure_type {
@@ -2735,7 +2732,10 @@ fn table_grid_spans(
         }
     }
 
-    Ok((column_ends, mismatch))
+    // Short rows belong to the missing-columns rule; row spans fail only when
+    // they extend beyond the table's actual rows, even if all columns overrun.
+    let row_span_overflow = column_ends.iter().any(|end| *end > rows.len());
+    Ok((row_span_overflow, mismatch))
 }
 
 #[derive(Clone)]
@@ -3699,6 +3699,51 @@ mod tests {
 
     use super::{FeatureDemand, inspect};
     use crate::{PdfError, SafetyLimits};
+
+    #[test]
+    fn distinguishes_short_rows_from_row_spans_past_the_table() {
+        let cases: &[(&[&[i64]], bool, bool)] = &[
+            (&[&[1, 1], &[1]], false, true),
+            (&[&[2, 2], &[]], false, false),
+            (&[&[2, 3], &[]], true, false),
+            (&[&[3, 3], &[]], true, false),
+        ];
+        for (row_spans, expected_overflow, expected_missing) in cases {
+            let mut document = Document::with_version("1.7");
+            let mut rows = Vec::new();
+            for spans in *row_spans {
+                let cells = spans
+                    .iter()
+                    .map(|span| {
+                        Object::Reference(document.add_object(dictionary! {
+                            "S" => "TD",
+                            "A" => dictionary! { "O" => "Table", "RowSpan" => *span },
+                        }))
+                    })
+                    .collect::<Vec<_>>();
+                rows.push(Object::Reference(document.add_object(dictionary! {
+                    "S" => "TR", "K" => cells,
+                })));
+            }
+            let table = dictionary! { "S" => "Table", "K" => rows };
+            let (overflow, mismatch) = super::table_grid_spans(
+                &document,
+                &table,
+                &Default::default(),
+                &SafetyLimits::default(),
+            )
+            .expect("inspect table spans");
+            assert_eq!(overflow, *expected_overflow, "{row_spans:?}");
+            assert_eq!(
+                matches!(
+                    mismatch,
+                    Some(super::TableRowColumnSpanMismatch::MissingColumns)
+                ),
+                *expected_missing,
+                "{row_spans:?}"
+            );
+        }
+    }
 
     #[test]
     fn rejects_cyclic_embedded_files_name_tree() {

@@ -1,3 +1,8 @@
+## Dev
+
+- **Fix**: Recognize stream terminators with a missing preceding EOL when indexing raw PDF objects
+- **Fix**: Match veraPDF metadata rule applicability and classify short table rows without extra row-span failures
+
 ## 0.13.0
 
 - **Fix**: Validate stream `/Length` independently from the required EOL before `endstream` [#631](https://github.com/JosephBARBIERDARNAL/page/issues/631)
