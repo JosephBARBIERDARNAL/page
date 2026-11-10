@@ -23,11 +23,11 @@
 - **Fix**: Keep detailed CLI failure descriptions on the ISO rule ID line
 - **Refactor**: Remove possible causes and suggested fixes from core Rust reports, CLI output, JSON, and Python and JavaScript bindings
 
-## 0.12.2
+### 0.12.2
 
 - **Chore**: Preflight CLI and package artifacts before tagging a release [#620](https://github.com/JosephBARBIERDARNAL/page/issues/620)
 
-## 0.12.1
+### 0.12.1
 
 - **Fix**: Release issue
 
