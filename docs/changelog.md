@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Require MCID content to connect to the structure tree before treating it as tagged, including inherited Form content [#637](https://github.com/JosephBARBIERDARNAL/page/issues/637)
 - **Fix**: Accept compatible stronger PDF/A-2 and PDF/A-3 conformance declarations in full and lazy validation [#636](https://github.com/JosephBARBIERDARNAL/page/issues/636)
 - **Fix**: Decode Type 1 byte-255 glyph widths as signed integers while preserving Type 2 fixed-point decoding [#635](https://github.com/JosephBARBIERDARNAL/page/issues/635)
 - **Fix**: Validate applicable XMP rules in non-catalog metadata streams and reuse catalog extension declarations [#634](https://github.com/JosephBARBIERDARNAL/page/issues/634)
