@@ -36,5 +36,5 @@ language, as required by PDF/A-1a.
   table.header([Property], [Expected value]),
   [PDF version], [1.4],
   [Conformance], [PDF/A-1a],
-  [Reference validator], [veraPDF 1.30.2],
+  [Reference validator], [veraPDF 1.30.4],
 )

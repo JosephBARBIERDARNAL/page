@@ -6,12 +6,12 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "canonical-pdfa-1a.pdf",
             include_bytes!("fixtures/canonical-pdfa-1a.pdf"),
-            "efa925f02cdb02eb127a22d09810f2d564ba998f6a45909bcee8e07fb841e96b",
+            "e1b0e6401b80ee72215c925c86445c5a85ea1c5448b8ea2ba99fb8ea8a68bbad",
         ),
         (
             "canonical-pdfa-1b.pdf",
             include_bytes!("fixtures/canonical-pdfa-1b.pdf"),
-            "27e17de2b43a963ccc385dddd223d377d629b3ee882aac14b6aa633483efbc88",
+            "e063cffe12bd19d554e36bee0e3a580d4321999b8f9d77be4772315a1e8b906f",
         ),
         (
             "canonical-pdfa-1b-truetype.pdf",
@@ -91,12 +91,12 @@ fn pdf_fixtures_remain_byte_exact() {
         (
             "typst-pdfa-1b.pdf",
             include_bytes!("fixtures/typst-pdfa-1b.pdf"),
-            "82b98675997387850f6bf54d05c748893a6ef44abd92510d92665379f66e00db",
+            "03d6953bcfc15ad2e16c40843014cef07a430659113ce95232245c4706f60b94",
         ),
         (
             "typst-pdfa-1a.pdf",
             include_bytes!("fixtures/typst-pdfa-1a.pdf"),
-            "9af2921f745270671948f053f62b7a0e688fcccf8b465293d57c7b572c44d7d2",
+            "c6501f48dcfd8743ad65394038b0ec778586776f6641e1a52249210c042949c2",
         ),
         (
             "pdfua1-rule-5-1-present.pdf",
