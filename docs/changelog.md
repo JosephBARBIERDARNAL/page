@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Validate applicable XMP rules in non-catalog metadata streams and reuse catalog extension declarations [#634](https://github.com/JosephBARBIERDARNAL/page/issues/634)
 - **Fix**: Respect explicit image `/ColorSpace` overrides for JPEG2000 colour specifications while retaining channel and bit-depth checks [#633](https://github.com/JosephBARBIERDARNAL/page/issues/633)
 - **Chore**: Update the veraPDF reference validator version to 1.30.4
 - **Fix**: Recognize stream terminators with a missing preceding EOL when indexing raw PDF objects

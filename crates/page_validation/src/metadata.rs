@@ -2,7 +2,8 @@
 //! and metadata conformance checks.
 //!
 //! XMP processing decodes bounded XML, validates its RDF representation, and collects property
-//! values alongside identification, predefined-property, and extension-schema findings. Shared
+//! values alongside identification, predefined-property, and extension-schema findings, reusing
+//! catalog extension declarations for secondary packages. Shared
 //! value and date helpers support comparisons between the PDF information dictionary and XMP.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -95,9 +96,28 @@ pub(crate) struct XmpMetadata {
     pub(crate) pdfua_identification_prefix_failed_tests: BTreeSet<u8>,
     #[serde(skip)]
     pub(crate) lang_alt_requires_catalog_language: bool,
+    #[serde(skip)]
+    extension_schema_definitions: ExtensionSchemaDefinitions,
 }
 
 pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
+    parse_xmp_package(bytes, None, false)
+}
+
+pub(crate) fn parse_xmp_with_catalog(
+    bytes: &[u8],
+    catalog: Option<&XmpMetadata>,
+) -> Result<XmpMetadata, String> {
+    // Secondary packages have no required identification. Their PDF/A checks
+    // belong to parts 2 and 3 even when no catalog package is available.
+    parse_xmp_package(bytes, catalog, true)
+}
+
+fn parse_xmp_package(
+    bytes: &[u8],
+    catalog: Option<&XmpMetadata>,
+    secondary: bool,
+) -> Result<XmpMetadata, String> {
     let mut xml = decode_xml(bytes)?;
     preflight_xml_depth(&xml, MAX_BOUNDED_XML_DEPTH)?;
     if !xmp_xml_parses(&xml) {
@@ -113,15 +133,26 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
     };
     validate_rdf_package(rdf, &xml)?;
     let pdfa_parts = property_values(rdf, &xml, PDFA_ID_NAMESPACE, "part");
-    let pdfa_2_or_3 = pdfa_parts
-        .iter()
-        .any(|part| matches!(part.as_str(), "2" | "3"));
-    let extension_schema_failed_tests = inspect_extension_schemas(rdf, &xml);
+    let pdfa_2_or_3 = secondary
+        || pdfa_parts
+            .iter()
+            .any(|part| matches!(part.as_str(), "2" | "3"));
+    let catalog_definitions = catalog.map(|xmp| &xmp.extension_schema_definitions);
+    let extension_schema_failed_tests = inspect_extension_schemas(rdf, &xml, catalog_definitions);
     let invalid_predefined_xmp_properties =
         inspect_predefined_xmp_properties(rdf, &xml, pdfa_2_or_3);
     let invalid_predefined_xmp_value_types =
         inspect_predefined_xmp_value_types(rdf, &xml, pdfa_2_or_3);
-    let extension_schema_definitions = extension_schema_property_definitions(rdf);
+    let mut extension_schema_definitions = catalog
+        .map(|xmp| xmp.extension_schema_definitions.clone())
+        .unwrap_or_default();
+    let local_definitions = extension_schema_property_definitions(rdf, catalog_definitions);
+    extension_schema_definitions
+        .properties
+        .extend(local_definitions.properties);
+    extension_schema_definitions
+        .types
+        .extend(local_definitions.types);
     let undefined_extension_xmp_properties = inspect_undefined_extension_xmp_properties(
         rdf,
         &xml,
@@ -184,6 +215,7 @@ pub(crate) fn parse_xmp(bytes: &[u8]) -> Result<XmpMetadata, String> {
         identification_prefix_failed_tests,
         pdfua_identification_prefix_failed_tests,
         lang_alt_requires_catalog_language,
+        extension_schema_definitions,
     })
 }
 
@@ -1218,7 +1250,10 @@ fn inspect_undefined_extension_xmp_properties(
     undefined
 }
 
-fn extension_schema_property_definitions(rdf: Node<'_, '_>) -> ExtensionSchemaDefinitions {
+fn extension_schema_property_definitions(
+    rdf: Node<'_, '_>,
+    catalog: Option<&ExtensionSchemaDefinitions>,
+) -> ExtensionSchemaDefinitions {
     let mut definitions = ExtensionSchemaDefinitions::default();
     for container in property_nodes(rdf, PDFA_EXTENSION_NAMESPACE, "schemas") {
         for schema in XmpProperty::Element(container).array_items() {
@@ -1233,7 +1268,10 @@ fn extension_schema_property_definitions(rdf: Node<'_, '_>) -> ExtensionSchemaDe
                 continue;
             };
 
-            let mut extension_types = BTreeMap::new();
+            let mut extension_types = catalog
+                .and_then(|definitions| definitions.types.get(namespace))
+                .cloned()
+                .unwrap_or_default();
             if let Some(value_type_node) = fields(schema, PDFA_SCHEMA_NAMESPACE, "valueType")
                 .into_iter()
                 .rev()
@@ -1307,12 +1345,13 @@ fn extension_schema_property_definitions(rdf: Node<'_, '_>) -> ExtensionSchemaDe
     definitions
 }
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct ExtensionSchemaDefinitions {
     properties: BTreeMap<(String, String), String>,
     types: BTreeMap<String, BTreeMap<String, ExtensionTypeDefinition>>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum ExtensionTypeDefinition {
     Simple,
     Structured {
@@ -1462,7 +1501,11 @@ impl<'a> XmpProperty<'a> {
     }
 }
 
-fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
+fn inspect_extension_schemas(
+    rdf: Node<'_, '_>,
+    xml: &str,
+    catalog: Option<&ExtensionSchemaDefinitions>,
+) -> BTreeSet<u8> {
     let mut failed = BTreeSet::new();
     for container in top_level_properties(rdf, xml)
         .into_iter()
@@ -1477,7 +1520,7 @@ fn inspect_extension_schemas(rdf: Node<'_, '_>, xml: &str) -> BTreeSet<u8> {
         }
 
         for definition in container.array_items() {
-            inspect_schema_definition(definition, xml, &mut failed);
+            inspect_schema_definition(definition, xml, catalog, &mut failed);
         }
     }
     failed
@@ -1526,7 +1569,12 @@ fn first_document_property<'a>(
         .find(|property| property.namespace() == Some(namespace) && property.name() == name)
 }
 
-fn inspect_schema_definition(definition: Node<'_, '_>, xml: &str, failed: &mut BTreeSet<u8>) {
+fn inspect_schema_definition(
+    definition: Node<'_, '_>,
+    xml: &str,
+    catalog: Option<&ExtensionSchemaDefinitions>,
+    failed: &mut BTreeSet<u8>,
+) {
     if has_undefined_fields(
         definition,
         PDFA_SCHEMA_NAMESPACE,
@@ -1546,7 +1594,12 @@ fn inspect_schema_definition(definition: Node<'_, '_>, xml: &str, failed: &mut B
         }
     }
 
-    let known_types = known_types(definition);
+    let mut known_types = known_types(definition);
+    if let Some(types) = field_value(definition, PDFA_SCHEMA_NAMESPACE, "namespaceURI")
+        .and_then(|namespace| catalog?.types.get(namespace))
+    {
+        known_types.extend(types.keys().cloned());
+    }
     let property = first_field(definition, PDFA_SCHEMA_NAMESPACE, "property");
     if !optional_sequence_is_valid(property, "pdfaSchema", xml, property_item_is_valid) {
         failed.insert(6);
@@ -3022,6 +3075,39 @@ mod tests {
                 "{urn:custom}missing (undefined)".to_owned(),
             ])
         );
+    }
+
+    #[test]
+    fn secondary_extension_properties_can_use_catalog_structured_value_types() {
+        let catalog = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/" xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+          xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#" xmlns:pdfaType="http://www.aiim.org/pdfa/ns/type#" xmlns:pdfaField="http://www.aiim.org/pdfa/ns/field#">
+          <rdf:Description><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource">
+          <pdfaSchema:schema>Custom</pdfaSchema:schema><pdfaSchema:namespaceURI>urn:custom</pdfaSchema:namespaceURI><pdfaSchema:prefix>custom</pdfaSchema:prefix>
+          <pdfaSchema:property><rdf:Seq/></pdfaSchema:property><pdfaSchema:valueType><rdf:Seq><rdf:li rdf:parseType="Resource">
+          <pdfaType:type>Number</pdfaType:type><pdfaType:namespaceURI>urn:number</pdfaType:namespaceURI><pdfaType:prefix>number</pdfaType:prefix><pdfaType:description>Number</pdfaType:description>
+          <pdfaType:field><rdf:Seq><rdf:li rdf:parseType="Resource"><pdfaField:name>value</pdfaField:name><pdfaField:valueType>Integer</pdfaField:valueType><pdfaField:description>Value</pdfaField:description></rdf:li></rdf:Seq></pdfaType:field>
+          </rdf:li></rdf:Seq></pdfaSchema:valueType></rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description></rdf:RDF>"#;
+        let secondary = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/" xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+          xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#" xmlns:custom="urn:custom" xmlns:number="urn:number">
+          <rdf:Description><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource">
+          <pdfaSchema:schema>Custom</pdfaSchema:schema><pdfaSchema:namespaceURI>urn:custom</pdfaSchema:namespaceURI><pdfaSchema:prefix>custom</pdfaSchema:prefix>
+          <pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType="Resource"><pdfaProperty:name>count</pdfaProperty:name><pdfaProperty:valueType>Number</pdfaProperty:valueType>
+          <pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>Count</pdfaProperty:description></rdf:li></rdf:Seq></pdfaSchema:property>
+          </rdf:li></rdf:Bag></pdfaExtension:schemas><custom:count rdf:parseType="Resource"><number:value>42</number:value></custom:count></rdf:Description></rdf:RDF>"#;
+        let catalog = parse_xmp(catalog).unwrap();
+        let parsed = parse_xmp_with_catalog(secondary, Some(&catalog)).unwrap();
+        assert!(parsed.extension_schema_failed_tests.is_empty());
+        assert!(parsed.undefined_extension_xmp_properties.is_empty());
+        assert!(parsed.invalid_extension_xmp_value_types.is_empty());
+        let wrong_type = String::from_utf8(secondary.to_vec())
+            .unwrap()
+            .replace(">42<", ">text<");
+        let parsed = parse_xmp_with_catalog(wrong_type.as_bytes(), Some(&catalog)).unwrap();
+        assert!(!parsed.invalid_extension_xmp_value_types.is_empty());
+        let undeclared = parse_xmp_with_catalog(secondary, None).unwrap();
+        assert!(!undeclared.undefined_extension_xmp_properties.is_empty());
     }
 
     #[test]

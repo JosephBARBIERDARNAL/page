@@ -799,18 +799,26 @@ fn collect_validation_failures(
             ));
         }
         finish_if_lazy!();
-        if !inspections.document_features.catalog_contains_lang
-            && document
-                .xmp
-                .as_ref()
-                .is_some_and(|xmp| xmp.lang_alt_requires_catalog_language)
-        {
-            failures.push(failure(
-                "ISO 14289-1:2014:7.2:33",
-                "a catalog /Lang entry is required when XMP language alternatives provide no natural language",
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
+        if !inspections.document_features.catalog_contains_lang {
+            for (xmp, object_id) in
+                document
+                    .xmp
+                    .as_ref()
+                    .map(|xmp| (xmp, document.xmp_object))
+                    .into_iter()
+                    .chain(document.object_xmp.iter().filter_map(|package| {
+                        package.xmp.as_ref().map(|xmp| (xmp, package.object_id))
+                    }))
+            {
+                if xmp.lang_alt_requires_catalog_language {
+                    failures.push(failure(
+                        "ISO 14289-1:2014:7.2:33",
+                        "a catalog /Lang entry is required when XMP language alternatives provide no natural language",
+                        object_id,
+                        FailureCategory::Metadata,
+                    ));
+                }
+            }
         }
         finish_if_lazy!();
         validate_viewer_preferences(&inspections.document_features, &mut failures);
@@ -1641,124 +1649,27 @@ fn collect_validation_failures(
     }
     finish_if_lazy!();
 
-    if let Some(error) = &document.xmp_parse_error {
-        failures.push(failure(
-            iso_pdfa_rule_id!(profile, "6.7.9:1", "6.6.2.1:4", "6.6.2.1:4"),
-            format!("XMP metadata cannot be parsed: {error}"),
-            document.xmp_object,
-            FailureCategory::Metadata,
-        ));
+    validate_xmp_package(
+        profile,
+        document.xmp.as_ref(),
+        &document.xmp_parse_error,
+        document.xmp_object,
+        &mut failures,
+    );
+    if profile.is_pdfa_2_or_3() {
+        for package in &document.object_xmp {
+            validate_xmp_package(
+                profile,
+                package.xmp.as_ref(),
+                &package.parse_error,
+                package.object_id,
+                &mut failures,
+            );
+        }
     }
     finish_if_lazy!();
-
     let xmp = document.xmp.as_ref();
-    if xmp.is_some_and(|xmp| xmp.packet_header_has_bytes) {
-        failures.push(failure(
-            iso_pdfa_rule_id!(profile, "6.7.5:1", "6.6.2.1:2", "6.6.2.1:2"),
-            "the XMP packet header contains the forbidden bytes attribute",
-            document.xmp_object,
-            FailureCategory::Metadata,
-        ));
-    }
-    if xmp.is_some_and(|xmp| xmp.packet_header_has_encoding) {
-        failures.push(failure(
-            iso_pdfa_rule_id!(profile, "6.7.5:2", "6.6.2.1:3", "6.6.2.1:3"),
-            "the XMP packet header contains the forbidden encoding attribute",
-            document.xmp_object,
-            FailureCategory::Metadata,
-        ));
-    }
-    if profile.is_pdfa_2_or_3() && xmp.is_some_and(|xmp| !xmp.actual_encoding_is_utf8) {
-        failures.push(failure(
-            iso_pdfa_rule_id!(profile, "", "6.6.2.1:5", "6.6.2.1:5"),
-            "the XMP package must be encoded as UTF-8",
-            document.xmp_object,
-            FailureCategory::Metadata,
-        ));
-    }
     if let Some(xmp) = xmp {
-        if !profile.is_pdfa_2_or_3() && !xmp.invalid_predefined_xmp_properties.is_empty() {
-            failures.push(failure(
-                iso_pdfa_rule_id!(profile, "6.7.9:2", "", ""),
-                format!(
-                    "XMP uses undefined predefined-schema properties: {}",
-                    xmp.invalid_predefined_xmp_properties
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
-        if !xmp.invalid_predefined_xmp_value_types.is_empty() {
-            failures.push(failure(
-                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
-                format!(
-                    "XMP predefined-schema properties use incompatible value shapes: {}",
-                    xmp.invalid_predefined_xmp_value_types
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
-        if !profile.is_pdfa_2_or_3() && !xmp.undefined_extension_xmp_properties.is_empty() {
-            failures.push(failure(
-                iso_pdfa_rule_id!(profile, "6.7.9:2", "6.6.2.3.1:1", "6.6.2.3.1:1"),
-                format!(
-                    "XMP extension properties are absent from the current extension schemas: {}",
-                    xmp.undefined_extension_xmp_properties
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
-        if profile.is_pdfa_2_or_3()
-            && (!xmp.invalid_predefined_xmp_properties.is_empty()
-                || !xmp.undefined_extension_xmp_properties.is_empty())
-        {
-            failures.push(failure(
-                iso_pdfa_rule_id!(profile, "", "6.6.2.3.1:1", "6.6.2.3.1:1"),
-                "XMP contains a property not defined by a predefined or declared extension schema",
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
-        if !xmp.invalid_extension_xmp_value_types.is_empty() {
-            failures.push(failure(
-                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
-                format!(
-                    "XMP extension properties use incompatible declared value shapes: {}",
-                    xmp.invalid_extension_xmp_value_types
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
-        for test in &xmp.extension_schema_failed_tests {
-            let Some((rule_id, message)) = extension_schema_rule(profile, *test) else {
-                continue;
-            };
-            failures.push(failure(
-                rule_id,
-                message,
-                document.xmp_object,
-                FailureCategory::Metadata,
-            ));
-        }
         for test in &xmp.identification_prefix_failed_tests {
             if *test == 7 && !profile.is_pdfa_2_or_3() {
                 continue;
@@ -2330,6 +2241,132 @@ fn validate_object_limits(
             None,
             FailureCategory::Conformance,
         ));
+    }
+}
+
+fn validate_xmp_package(
+    profile: ValidationProfile,
+    xmp: Option<&crate::metadata::XmpMetadata>,
+    parse_error: &Option<String>,
+    object_id: Option<PdfObjectId>,
+    failures: &mut ValidationFailures,
+) {
+    if let Some(error) = parse_error {
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.7.9:1", "6.6.2.1:4", "6.6.2.1:4"),
+            format!("XMP metadata cannot be parsed: {error}"),
+            object_id,
+            FailureCategory::Metadata,
+        ));
+    }
+
+    if xmp.is_some_and(|xmp| xmp.packet_header_has_bytes) {
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.7.5:1", "6.6.2.1:2", "6.6.2.1:2"),
+            "the XMP packet header contains the forbidden bytes attribute",
+            object_id,
+            FailureCategory::Metadata,
+        ));
+    }
+    if xmp.is_some_and(|xmp| xmp.packet_header_has_encoding) {
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "6.7.5:2", "6.6.2.1:3", "6.6.2.1:3"),
+            "the XMP packet header contains the forbidden encoding attribute",
+            object_id,
+            FailureCategory::Metadata,
+        ));
+    }
+    if profile.is_pdfa_2_or_3() && xmp.is_some_and(|xmp| !xmp.actual_encoding_is_utf8) {
+        failures.push(failure(
+            iso_pdfa_rule_id!(profile, "", "6.6.2.1:5", "6.6.2.1:5"),
+            "the XMP package must be encoded as UTF-8",
+            object_id,
+            FailureCategory::Metadata,
+        ));
+    }
+    if let Some(xmp) = xmp {
+        if !profile.is_pdfa_2_or_3() && !xmp.invalid_predefined_xmp_properties.is_empty() {
+            failures.push(failure(
+                iso_pdfa_rule_id!(profile, "6.7.9:2", "", ""),
+                format!(
+                    "XMP uses undefined predefined-schema properties: {}",
+                    xmp.invalid_predefined_xmp_properties
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !xmp.invalid_predefined_xmp_value_types.is_empty() {
+            failures.push(failure(
+                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
+                format!(
+                    "XMP predefined-schema properties use incompatible value shapes: {}",
+                    xmp.invalid_predefined_xmp_value_types
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !profile.is_pdfa_2_or_3() && !xmp.undefined_extension_xmp_properties.is_empty() {
+            failures.push(failure(
+                iso_pdfa_rule_id!(profile, "6.7.9:2", "6.6.2.3.1:1", "6.6.2.3.1:1"),
+                format!(
+                    "XMP extension properties are absent from the current extension schemas: {}",
+                    xmp.undefined_extension_xmp_properties
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
+        if profile.is_pdfa_2_or_3()
+            && (!xmp.invalid_predefined_xmp_properties.is_empty()
+                || !xmp.undefined_extension_xmp_properties.is_empty())
+        {
+            failures.push(failure(
+                iso_pdfa_rule_id!(profile, "", "6.6.2.3.1:1", "6.6.2.3.1:1"),
+                "XMP contains a property not defined by a predefined or declared extension schema",
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
+        if !xmp.invalid_extension_xmp_value_types.is_empty() {
+            failures.push(failure(
+                iso_pdfa_rule_id!(profile, "6.7.9:3", "6.6.2.3.1:2", "6.6.2.3.1:2"),
+                format!(
+                    "XMP extension properties use incompatible declared value shapes: {}",
+                    xmp.invalid_extension_xmp_value_types
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
+        for test in &xmp.extension_schema_failed_tests {
+            let Some((rule_id, message)) = extension_schema_rule(profile, *test) else {
+                continue;
+            };
+            failures.push(failure(
+                rule_id,
+                message,
+                object_id,
+                FailureCategory::Metadata,
+            ));
+        }
     }
 }
 
@@ -3797,6 +3834,223 @@ mod tests {
         </rdf:RDF>
       </x:xmpmeta>
       <?xpacket end="w"?>"#;
+
+    fn fixture_with_object_xmp(
+        catalog_xmp: Option<&[u8]>,
+        object_xmp: &[u8],
+    ) -> (Vec<u8>, lopdf::ObjectId) {
+        let mut document = Document::load_mem(&fixture(catalog_xmp, true)).expect("fixture");
+        let metadata_id = document.add_object(Stream::new(
+            dictionary! { "Type" => "Metadata", "Subtype" => "XML" },
+            object_xmp.to_vec(),
+        ));
+        let alias = document.add_object(Object::Reference(metadata_id));
+        let root = document
+            .trailer
+            .get(b"Root")
+            .unwrap()
+            .as_reference()
+            .unwrap();
+        // Exercise direct dictionaries nested in arrays and stream dictionaries,
+        // with two distinct reference chains reaching the same metadata stream.
+        let owner =
+            document.add_object(Stream::new(dictionary! { "Metadata" => alias }, Vec::new()));
+        document
+            .get_object_mut(root)
+            .unwrap()
+            .as_dict_mut()
+            .unwrap()
+            .set(
+                "TestObjects",
+                vec![
+                    Object::Reference(owner),
+                    Object::Dictionary(dictionary! { "Metadata" => metadata_id }),
+                ],
+            );
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).expect("save fixture");
+        (bytes, metadata_id)
+    }
+
+    #[test]
+    fn object_xmp_language_alternatives_require_catalog_language() {
+        for catalog in [None, Some(VALID_XMP)] {
+            for property in ["title", "description", "rights"] {
+                for language in ["x-default", "en"] {
+                    let xmp = format!(
+                        r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:{property}><rdf:Alt><rdf:li xml:lang="{language}">Text</rdf:li></rdf:Alt></dc:{property}></rdf:Description></rdf:RDF>"#
+                    );
+                    let (bytes, id) = fixture_with_object_xmp(catalog, xmp.as_bytes());
+                    let options = ValidationOptions::default().profile(ValidationProfile::PdfUa1);
+                    let report = validate_pdf_bytes(&bytes, &options).expect("validation");
+                    let rule = "ISO 14289-1:2014:7.2:33";
+                    if language == "x-default" {
+                        assert_rule(&report, rule);
+                        let failure = report
+                            .failures
+                            .iter()
+                            .find(|failure| failure.rule_id == rule)
+                            .unwrap();
+                        assert_eq!(failure.locations.len(), 1);
+                        assert_eq!(failure.locations[0].object_number, id.0);
+                        assert_eq!(failure.locations[0].generation, id.1);
+                    } else {
+                        assert_no_rule(&report, rule);
+                    }
+                    let prepared =
+                        PdfDocument::prepare_for_validation(&bytes, &SafetyLimits::default())
+                            .unwrap();
+                    let normalized = prepared.document();
+                    assert_eq!(
+                        normalized.object_xmp.len(),
+                        1,
+                        "shared stream is parsed once"
+                    );
+                    let mut document = Document::load_mem(&bytes).unwrap();
+                    let root = document
+                        .trailer
+                        .get(b"Root")
+                        .unwrap()
+                        .as_reference()
+                        .unwrap();
+                    document
+                        .get_object_mut(root)
+                        .unwrap()
+                        .as_dict_mut()
+                        .unwrap()
+                        .set("Lang", Object::string_literal("en"));
+                    let mut bytes = Vec::new();
+                    document.save_to(&mut bytes).unwrap();
+                    let report = validate_pdf_bytes(&bytes, &options).unwrap();
+                    assert_no_rule(&report, rule);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn object_xmp_schema_rules_apply_without_document_identification_requirements() {
+        let valid = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xmp="http://ns.adobe.com/xap/1.0/"><rdf:Description xmp:CreatorTool="tool" xmp:Rating="4"/></rdf:RDF>"#;
+        let invalid = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xmp="http://ns.adobe.com/xap/1.0/"><rdf:Description xmp:Unknown="x"/></rdf:RDF>"#;
+        for catalog in [None, Some(VALID_XMP)] {
+            for (xmp, should_fail) in [(valid.as_slice(), false), (invalid.as_slice(), true)] {
+                let (bytes, id) = fixture_with_object_xmp(catalog, xmp);
+                for (profile, prefix) in [
+                    (ValidationProfile::PdfA2b, "ISO 19005-2:2011"),
+                    (ValidationProfile::PdfA3b, "ISO 19005-3:2012"),
+                ] {
+                    let report =
+                        validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
+                            .unwrap();
+                    for test in [1, 2] {
+                        let rule = format!("{prefix}:6.6.2.3.1:{test}");
+                        if should_fail {
+                            assert_rule(&report, &rule);
+                            let failure = report
+                                .failures
+                                .iter()
+                                .find(|failure| failure.rule_id == rule)
+                                .unwrap();
+                            assert_eq!(failure.locations[0].object_number, id.0);
+                        } else {
+                            assert_no_rule(&report, &rule);
+                        }
+                    }
+                    assert_no_rule(&report, &format!("{prefix}:6.6.4:1"));
+                }
+                let report = validate_pdf_bytes(
+                    &bytes,
+                    &ValidationOptions::default().profile(ValidationProfile::PdfA1b),
+                )
+                .unwrap();
+                assert_no_rule(&report, "ISO 19005-1:2005:6.7.9:2");
+                assert_no_rule(&report, "ISO 19005-1:2005:6.7.9:3");
+            }
+        }
+    }
+
+    #[test]
+    fn object_xmp_serialization_rules_apply_to_secondary_packages() {
+        let options = ValidationOptions::default().profile(ValidationProfile::PdfA2b);
+        let (bytes, _) = fixture_with_object_xmp(Some(VALID_XMP), b"<rdf:RDF>");
+        let report = validate_pdf_bytes(&bytes, &options).unwrap();
+        assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:4");
+        assert_no_rule(&report, "ISO 19005-2:2011:6.6.4:1");
+        let packet = br#"<?xpacket begin="" bytes="100" encoding="UTF-8"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/><?xpacket end="w"?>"#;
+        let (bytes, _) = fixture_with_object_xmp(Some(VALID_XMP), packet);
+        let report = validate_pdf_bytes(&bytes, &options).unwrap();
+        assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:2");
+        assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:3");
+        let utf16 = packet
+            .iter()
+            .flat_map(|byte| [*byte, 0])
+            .collect::<Vec<_>>();
+        let (bytes, _) = fixture_with_object_xmp(Some(VALID_XMP), &utf16);
+        let report = validate_pdf_bytes(&bytes, &options).unwrap();
+        assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:5");
+    }
+
+    #[test]
+    fn object_xmp_uses_catalog_extension_property_and_value_type_definitions() {
+        let catalog = br#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
+          xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#" xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#">
+          <rdf:Description pdfaid:part="2" pdfaid:conformance="B"><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource">
+          <pdfaSchema:schema>Custom</pdfaSchema:schema><pdfaSchema:namespaceURI>urn:custom</pdfaSchema:namespaceURI><pdfaSchema:prefix>custom</pdfaSchema:prefix>
+          <pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType="Resource"><pdfaProperty:name>defined</pdfaProperty:name><pdfaProperty:valueType>Integer</pdfaProperty:valueType>
+          <pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>Number</pdfaProperty:description></rdf:li></rdf:Seq></pdfaSchema:property>
+          </rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description></rdf:RDF>"#;
+        let options = ValidationOptions::default().profile(ValidationProfile::PdfA2b);
+        for (property, value, undefined, invalid_type) in [
+            ("defined", "42", false, false),
+            ("defined", "text", false, true),
+            ("missing", "42", true, true),
+        ] {
+            let secondary = format!(
+                r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:custom="urn:custom"><rdf:Description custom:{property}="{value}"/></rdf:RDF>"#
+            );
+            let (bytes, _) = fixture_with_object_xmp(Some(catalog), secondary.as_bytes());
+            let report = validate_pdf_bytes(&bytes, &options).unwrap();
+            for (test, expected) in [(1, undefined), (2, invalid_type)] {
+                let rule = format!("ISO 19005-2:2011:6.6.2.3.1:{test}");
+                if expected {
+                    assert_rule(&report, &rule);
+                } else {
+                    assert_no_rule(&report, &rule);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn object_xmp_obeys_decode_and_reference_limits() {
+        let (bytes, id) = fixture_with_object_xmp(None, &vec![b' '; 1024]);
+        let mut document = Document::load_mem(&bytes).unwrap();
+        document
+            .get_object_mut(id)
+            .unwrap()
+            .as_stream_mut()
+            .unwrap()
+            .compress()
+            .unwrap();
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).unwrap();
+        let limits = SafetyLimits {
+            max_decoded_stream_size: 512,
+            ..SafetyLimits::default()
+        };
+        assert!(matches!(
+            PdfDocument::prepare_for_validation(&bytes, &limits),
+            Err(PdfError::XmpDecodeLimit(_))
+        ));
+        document.set_object(id, Object::Reference(id));
+        let mut bytes = Vec::new();
+        document.save_to(&mut bytes).unwrap();
+        assert!(matches!(
+            PdfDocument::prepare_for_validation(&bytes, &SafetyLimits::default()),
+            Err(PdfError::ReferenceDepth(_))
+        ));
+    }
 
     fn pdf_document() -> Document {
         let mut document = Document::with_version("1.4");
