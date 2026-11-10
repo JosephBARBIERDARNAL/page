@@ -765,9 +765,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="0.13.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#0122" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -777,8 +778,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#0121" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -786,6 +787,11 @@
       </span>
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -945,9 +951,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="0.13.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#0122" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -957,8 +964,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#0121" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -966,6 +973,11 @@
       </span>
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1067,6 +1079,12 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Fix</strong>: Require MCID content to connect to the structure tree before treating it as tagged, including inherited Form content <a href="https://github.com/JosephBARBIERDARNAL/page/issues/637">#637</a></li>
+<li><strong>Fix</strong>: Accept compatible stronger PDF/A-2 and PDF/A-3 conformance declarations in full and lazy validation <a href="https://github.com/JosephBARBIERDARNAL/page/issues/636">#636</a></li>
+<li><strong>Fix</strong>: Decode Type 1 byte-255 glyph widths as signed integers while preserving Type 2 fixed-point decoding <a href="https://github.com/JosephBARBIERDARNAL/page/issues/635">#635</a></li>
+<li><strong>Fix</strong>: Validate applicable XMP rules in non-catalog metadata streams and reuse catalog extension declarations <a href="https://github.com/JosephBARBIERDARNAL/page/issues/634">#634</a></li>
+<li><strong>Fix</strong>: Respect explicit image <code>/ColorSpace</code> overrides for JPEG2000 colour specifications while retaining channel and bit-depth checks <a href="https://github.com/JosephBARBIERDARNAL/page/issues/633">#633</a></li>
+<li><strong>Chore</strong>: Update the veraPDF reference validator version to 1.30.4</li>
 <li><strong>Fix</strong>: Recognize stream terminators with a missing preceding EOL when indexing raw PDF objects</li>
 <li><strong>Fix</strong>: Match veraPDF metadata rule applicability and classify short table rows without extra row-span failures</li>
 </ul>
@@ -1090,11 +1108,11 @@
 <li><strong>Fix</strong>: Keep detailed CLI failure descriptions on the ISO rule ID line</li>
 <li><strong>Refactor</strong>: Remove possible causes and suggested fixes from core Rust reports, CLI output, JSON, and Python and JavaScript bindings</li>
 </ul>
-<h2 id="0122">0.12.2<a class="headerlink" href="#0122" title="Permanent link">&para;</a></h2>
+<h3 id="0122">0.12.2<a class="headerlink" href="#0122" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Chore</strong>: Preflight CLI and package artifacts before tagging a release <a href="https://github.com/JosephBARBIERDARNAL/page/issues/620">#620</a></li>
 </ul>
-<h2 id="0121">0.12.1<a class="headerlink" href="#0121" title="Permanent link">&para;</a></h2>
+<h3 id="0121">0.12.1<a class="headerlink" href="#0121" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Fix</strong>: Release issue</li>
 </ul>
