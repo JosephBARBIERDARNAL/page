@@ -4764,7 +4764,8 @@ fn type1_charstring_width(bytes: &[u8], len_iv: usize) -> Option<f64> {
     let mut operands = Vec::new();
     let mut position = 0;
     while position < decrypted.len() {
-        if let Some((value, consumed)) = cff_number(decrypted.get(position..).unwrap_or_default()) {
+        if let Some((value, consumed)) = type1_number(decrypted.get(position..).unwrap_or_default())
+        {
             operands.push(value);
             position += consumed;
             continue;
@@ -4781,6 +4782,23 @@ fn type1_charstring_width(bytes: &[u8], len_iv: usize) -> Option<f64> {
         return None;
     }
     None
+}
+
+fn type1_number(bytes: &[u8]) -> Option<(f64, usize)> {
+    match *bytes.first()? {
+        32..=254 => cff_number(bytes),
+        // Type 1 uses signed integers here; Type 2 uses 16.16 fixed point.
+        255 => Some((
+            f64::from(i32::from_be_bytes([
+                *bytes.get(1)?,
+                *bytes.get(2)?,
+                *bytes.get(3)?,
+                *bytes.get(4)?,
+            ])),
+            5,
+        )),
+        _ => None,
+    }
 }
 
 fn parse_ascii_integer(bytes: &[u8]) -> Option<i64> {
@@ -6419,6 +6437,84 @@ mod tests {
         );
         assert_eq!(based.glyph_name(65), Some("Alpha"));
         assert_eq!(based.glyph_name(66), Some("B"));
+    }
+
+    fn encrypt_type1_charstring(plaintext: &[u8]) -> Vec<u8> {
+        let mut state = 4_330_u16;
+        [0; 4]
+            .iter()
+            .chain(plaintext)
+            .map(|byte| {
+                let ciphertext = byte ^ (state >> 8) as u8;
+                state = state
+                    .wrapping_add(u16::from(ciphertext))
+                    .wrapping_mul(52_845)
+                    .wrapping_add(22_719);
+                ciphertext
+            })
+            .collect()
+    }
+
+    #[test]
+    fn type1_widths_decode_byte_255_as_signed_integers() {
+        for width in [1162_i32, -1162, i32::MIN, i32::MAX] {
+            // 22 <width> hsbw, matching the CMBX12 W charstring in #635.
+            let hsbw = [&[161, 255], width.to_be_bytes().as_slice(), &[13]].concat();
+            // 22 0 <width> 0 sbw uses the same number encoding.
+            let sbw = [
+                &[161, 139, 255],
+                width.to_be_bytes().as_slice(),
+                &[139, 12, 7],
+            ]
+            .concat();
+            for plaintext in [hsbw, sbw] {
+                assert_eq!(
+                    super::type1_charstring_width(&encrypt_type1_charstring(&plaintext), 4),
+                    Some(f64::from(width))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn type1_widths_retain_short_integer_encodings() {
+        for (operand, expected) in [
+            (vec![32], -107.0),
+            (vec![139], 0.0),
+            (vec![246], 107.0),
+            (vec![247, 0], 108.0),
+            (vec![250, 255], 1131.0),
+            (vec![251, 0], -108.0),
+            (vec![254, 255], -1131.0),
+        ] {
+            let plaintext = [&[139], operand.as_slice(), &[13]].concat();
+            assert_eq!(
+                super::type1_charstring_width(&encrypt_type1_charstring(&plaintext), 4),
+                Some(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn type1_widths_reject_truncated_long_integers() {
+        let plaintext = [161, 255, 0, 0, 4, 138, 13];
+        for end in 2..plaintext.len() {
+            assert_eq!(
+                super::type1_charstring_width(&encrypt_type1_charstring(&plaintext[..end]), 4),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn type2_widths_retain_byte_255_fixed_point_numbers() {
+        for (operand, expected) in [(98304_i32, 501.5), (-98304, 498.5)] {
+            let charstring = [&[255], operand.to_be_bytes().as_slice(), &[14]].concat();
+            assert_eq!(
+                super::cff_charstring_width(&charstring, 500.0, 600.0),
+                Some(expected)
+            );
+        }
     }
 
     #[test]

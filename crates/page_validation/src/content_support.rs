@@ -3,7 +3,7 @@
 //!
 //! The executor follows page content, Form XObjects, and annotation appearances while tracking
 //! graphics state, text runs, and marked content. Shared resource lookups and decoded-stream
-//! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations. Exhaustive reporting also records the page using each resource so shared objects can be located across pages.
+//! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations. Marked content is tagged only when its ParentTree connection reaches the structure root. Exhaustive reporting also records the page using each resource so shared objects can be located across pages.
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -321,6 +321,7 @@ pub(crate) fn execute_content(
         limits,
         cache,
         tagged_text_language,
+        tagging: crate::content_tagging::ContentTagging::new(document, limits)?,
         summary: ContentExecutionSummary::default(),
         font_indices: BTreeMap::new(),
         form_stack: Vec::new(),
@@ -414,6 +415,7 @@ struct ContentExecutor<'a> {
     limits: &'a SafetyLimits,
     cache: &'a mut ContentCache,
     tagged_text_language: &'a BTreeSet<(ObjectId, i64)>,
+    tagging: crate::content_tagging::ContentTagging<'a>,
     summary: ContentExecutionSummary,
     font_indices: BTreeMap<ResourceKey, usize>,
     form_stack: Vec<ObjectId>,
@@ -424,6 +426,7 @@ struct ContentExecutor<'a> {
 
 #[derive(Clone, Copy)]
 struct ResourceContext<'a> {
+    struct_parents: Option<i64>,
     resources: Option<&'a Dictionary>,
     page_resources: Option<&'a Dictionary>,
     resources_are_inherited: bool,
@@ -465,7 +468,7 @@ struct MarkedContent {
     lang_present: bool,
     mcid: Option<i64>,
     is_artifact: bool,
-    is_tagged_content: bool,
+    is_tagged_content: Option<bool>,
 }
 
 impl ContentExecutor<'_> {
@@ -508,6 +511,12 @@ impl ContentExecutor<'_> {
             self.execute_contents(
                 contents,
                 ResourceContext {
+                    struct_parents: resolved_integer(
+                        self.document,
+                        page,
+                        b"StructParents",
+                        self.limits.max_reference_depth,
+                    )?,
                     resources: resources.as_ref(),
                     page_resources: resources.as_ref(),
                     resources_are_inherited,
@@ -618,6 +627,7 @@ impl ContentExecutor<'_> {
                 entry,
                 XObjectUseKind::Appearance,
                 ResourceContext {
+                    struct_parents: None,
                     resources: page_resources,
                     page_resources,
                     resources_are_inherited: false,
@@ -664,6 +674,7 @@ impl ContentExecutor<'_> {
         depth: usize,
     ) -> Result<(), PdfError> {
         let ResourceContext {
+            struct_parents,
             resources,
             page_resources,
             resources_are_inherited,
@@ -794,7 +805,7 @@ impl ContentExecutor<'_> {
                             .first()
                             .and_then(|operand| operand.as_name().ok())
                             == Some(b"Artifact".as_slice()),
-                        is_tagged_content: false,
+                        is_tagged_content: None,
                     });
                 }
                 "BDC" | "DP" => {
@@ -816,12 +827,17 @@ impl ContentExecutor<'_> {
                     } else {
                         Some(properties)
                     };
-                    let properties = properties.and_then(|properties| {
-                        resolve_optional(self.document, properties, self.limits.max_reference_depth)
-                            .ok()
-                            .flatten()
-                            .and_then(|object| object.as_dict().ok())
-                    });
+                    let properties = properties
+                        .map(|properties| {
+                            resolve_optional(
+                                self.document,
+                                properties,
+                                self.limits.max_reference_depth,
+                            )
+                        })
+                        .transpose()?
+                        .flatten()
+                        .and_then(|object| object.as_dict().ok());
                     self.record_artifact_if_nested(
                         operation
                             .operands
@@ -923,13 +939,32 @@ impl ContentExecutor<'_> {
                             );
                         }
                         let mcid = properties
-                            .and_then(|dictionary| dictionary.get(b"MCID").ok())
-                            .and_then(|value| value.as_i64().ok());
+                            .map(|dictionary| {
+                                resolved_integer(
+                                    self.document,
+                                    dictionary,
+                                    b"MCID",
+                                    self.limits.max_reference_depth,
+                                )
+                            })
+                            .transpose()?
+                            .flatten();
                         if mcid.is_some() {
                             self.record_form_mcid();
                         }
+                        let is_tagged_content = mcid
+                            .map(|mcid| {
+                                self.tagging.connection(
+                                    self.document,
+                                    self.limits,
+                                    struct_parents,
+                                    mcid,
+                                )
+                            })
+                            .transpose()?
+                            .flatten();
                         self.record_tagged_content_if_nested_in_artifact(
-                            mcid.is_some(),
+                            is_tagged_content == Some(true),
                             content_id,
                             marked_content,
                             context,
@@ -943,7 +978,7 @@ impl ContentExecutor<'_> {
                                 .first()
                                 .and_then(|operand| operand.as_name().ok())
                                 == Some(b"Artifact".as_slice()),
-                            is_tagged_content: mcid.is_some(),
+                            is_tagged_content,
                         });
                     }
                     if let Some(dictionary) = properties
@@ -1480,7 +1515,9 @@ impl ContentExecutor<'_> {
         if is_artifact
             && marked_content
                 .iter()
-                .any(|content| content.is_tagged_content)
+                .rev()
+                .find_map(|content| content.is_tagged_content)
+                .unwrap_or(false)
         {
             self.summary
                 .artifacts_inside_tagged_content
@@ -1519,9 +1556,12 @@ impl ContentExecutor<'_> {
         context: &str,
         content_kind: &str,
     ) {
-        if !marked_content
-            .iter()
-            .any(|content| content.is_artifact || content.is_tagged_content)
+        if !marked_content.iter().any(|content| content.is_artifact)
+            && !marked_content
+                .iter()
+                .rev()
+                .find_map(|content| content.is_tagged_content)
+                .unwrap_or(false)
         {
             self.summary.untagged_content.push(RuleFailure {
                 object_id: content_id.map(Into::into),
@@ -1740,9 +1780,16 @@ impl ContentExecutor<'_> {
                     }
                     let mut form_graphics_state = graphics_state.clone();
                     let mut form_graphics_stack = Vec::new();
+                    let mut form_marked_content = marked_content.clone();
                     self.execute_contents(
                         object,
                         ResourceContext {
+                            struct_parents: resolved_integer(
+                                self.document,
+                                dictionary,
+                                b"StructParents",
+                                self.limits.max_reference_depth,
+                            )?,
                             resources: form_resources.as_ref(),
                             page_resources,
                             resources_are_inherited: false,
@@ -1751,7 +1798,7 @@ impl ContentExecutor<'_> {
                         },
                         &mut form_graphics_state,
                         &mut form_graphics_stack,
-                        marked_content,
+                        &mut form_marked_content,
                         active_forms,
                         decoded_bytes,
                         context,
@@ -1870,6 +1917,7 @@ impl ContentExecutor<'_> {
         let result = self.execute_contents(
             object,
             ResourceContext {
+                struct_parents: None,
                 resources: pattern_resources.as_ref(),
                 page_resources: pattern_page_resources.as_ref(),
                 resources_are_inherited: false,
@@ -1976,6 +2024,7 @@ impl ContentExecutor<'_> {
             let result = self.execute_standalone_stream(
                 char_proc,
                 ResourceContext {
+                    struct_parents: None,
                     resources: font_resources.as_ref(),
                     page_resources,
                     resources_are_inherited: false,

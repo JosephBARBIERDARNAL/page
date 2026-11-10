@@ -1,5 +1,11 @@
 ## Dev
 
+- **Fix**: Require MCID content to connect to the structure tree before treating it as tagged, including inherited Form content [#637](https://github.com/JosephBARBIERDARNAL/page/issues/637)
+- **Fix**: Accept compatible stronger PDF/A-2 and PDF/A-3 conformance declarations in full and lazy validation [#636](https://github.com/JosephBARBIERDARNAL/page/issues/636)
+- **Fix**: Decode Type 1 byte-255 glyph widths as signed integers while preserving Type 2 fixed-point decoding [#635](https://github.com/JosephBARBIERDARNAL/page/issues/635)
+- **Fix**: Validate applicable XMP rules in non-catalog metadata streams and reuse catalog extension declarations [#634](https://github.com/JosephBARBIERDARNAL/page/issues/634)
+- **Fix**: Respect explicit image `/ColorSpace` overrides for JPEG2000 colour specifications while retaining channel and bit-depth checks [#633](https://github.com/JosephBARBIERDARNAL/page/issues/633)
+- **Chore**: Update the veraPDF reference validator version to 1.30.4
 - **Fix**: Recognize stream terminators with a missing preceding EOL when indexing raw PDF objects
 - **Fix**: Match veraPDF metadata rule applicability and classify short table rows without extra row-span failures
 
@@ -23,11 +29,11 @@
 - **Fix**: Keep detailed CLI failure descriptions on the ISO rule ID line
 - **Refactor**: Remove possible causes and suggested fixes from core Rust reports, CLI output, JSON, and Python and JavaScript bindings
 
-## 0.12.2
+### 0.12.2
 
 - **Chore**: Preflight CLI and package artifacts before tagging a release [#620](https://github.com/JosephBARBIERDARNAL/page/issues/620)
 
-## 0.12.1
+### 0.12.1
 
 - **Fix**: Release issue
 

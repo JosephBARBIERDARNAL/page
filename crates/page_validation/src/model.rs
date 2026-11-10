@@ -1,22 +1,24 @@
 //! Builds the normalized PDF document model and coordinates the private inspection pipeline.
 //!
 //! Preparation indexes raw syntax, loads the object graph with parser bounds, and extracts
-//! metadata, page identities, output intents, and font summaries. Report locations associate page-owned objects and executed resources with their pages. Staged inspections share
+//! catalog and object-level metadata, page identities, output intents, and font summaries. Metadata streams are decoded once per resolved identity. Report locations associate page-owned objects and executed resources with their pages. Staged inspections share
 //! content discovery and profile-specific demand, allowing validation to evaluate findings
 //! incrementally and stop early when only a compliance result is needed.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
+use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId, Stream};
 use serde::Serialize;
 
 use crate::catalog::{resolve_catalog, root_reference_id};
 use crate::error::PdfError;
 use crate::font_embedding::{self, FontEmbeddingSummary};
 use crate::limits::SafetyLimits;
-use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp};
-use crate::object_resolution::{contains_key, dictionary_based, resolve, resolve_optional};
+use crate::metadata::{DocumentMetadata, XmpMetadata, parse_xmp, parse_xmp_with_catalog};
+use crate::object_resolution::{
+    contains_key, dictionary_based, resolve, resolve_optional, resolved_name,
+};
 use crate::page_tree;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -186,6 +188,8 @@ pub struct PdfDocument {
     #[serde(skip)]
     pub(crate) xmp_object: Option<PdfObjectId>,
     pub(crate) xmp_parse_error: Option<String>,
+    #[serde(skip)]
+    pub(crate) object_xmp: Vec<XmpExtraction>,
     pub(crate) catalog_metadata: CatalogMetadataStream,
     pub(crate) output_intents_summary: OutputIntentsSummary,
     pub(crate) fonts: FontSummary,
@@ -432,6 +436,7 @@ impl PdfDocument {
             object_id: xmp_object,
             parse_error: xmp_parse_error,
         } = extract_xmp(document, catalog, limits)?;
+        let object_xmp = extract_object_xmp(document, catalog, xmp.as_ref(), limits)?;
         let output_intents_summary = extract_output_intents(document, catalog, limits)?;
         let page_count = match collected_page_count {
             Some(count) => count,
@@ -458,6 +463,7 @@ impl PdfDocument {
             xmp,
             xmp_object,
             xmp_parse_error,
+            object_xmp,
             catalog_metadata,
             output_intents_summary,
             fonts: include_font_summary
@@ -977,10 +983,11 @@ fn verapdf_pdfdoc_codepoint(byte: u8) -> u32 {
     }
 }
 
-struct XmpExtraction {
-    xmp: Option<XmpMetadata>,
-    object_id: Option<PdfObjectId>,
-    parse_error: Option<String>,
+#[derive(Clone, Debug)]
+pub(crate) struct XmpExtraction {
+    pub(crate) xmp: Option<XmpMetadata>,
+    pub(crate) object_id: Option<PdfObjectId>,
+    pub(crate) parse_error: Option<String>,
 }
 
 fn extract_xmp(
@@ -1018,6 +1025,16 @@ fn extract_xmp(
             });
         }
     };
+    decode_xmp(stream, object_id, None, true, limits)
+}
+
+fn decode_xmp(
+    stream: &Stream,
+    object_id: Option<PdfObjectId>,
+    catalog_xmp: Option<&XmpMetadata>,
+    is_catalog: bool,
+    limits: &SafetyLimits,
+) -> Result<XmpExtraction, PdfError> {
     let bytes = match stream.decompressed_content_with_limit(limits.max_decoded_stream_size) {
         Ok(bytes) => bytes,
         Err(
@@ -1031,7 +1048,12 @@ fn extract_xmp(
             });
         }
     };
-    Ok(match parse_xmp(&bytes) {
+    let parsed = if is_catalog {
+        parse_xmp(&bytes)
+    } else {
+        parse_xmp_with_catalog(&bytes, catalog_xmp)
+    };
+    Ok(match parsed {
         Ok(xmp) => XmpExtraction {
             xmp: Some(xmp),
             object_id,
@@ -1043,6 +1065,85 @@ fn extract_xmp(
             parse_error: Some(error),
         },
     })
+}
+
+fn extract_object_xmp(
+    document: &Document,
+    catalog: Option<&Dictionary>,
+    catalog_xmp: Option<&XmpMetadata>,
+    limits: &SafetyLimits,
+) -> Result<Vec<XmpExtraction>, PdfError> {
+    let stream_ids = document
+        .objects
+        .iter()
+        .filter_map(|(id, object)| {
+            object
+                .as_stream()
+                .ok()
+                .map(|stream| (std::ptr::from_ref(stream), (*id).into()))
+        })
+        .collect::<BTreeMap<_, PdfObjectId>>();
+    let mut seen = BTreeSet::new();
+    if let Some(entry) = catalog.and_then(|catalog| catalog.get(b"Metadata").ok())
+        && let Some(Object::Stream(stream)) =
+            resolve_optional(document, entry, limits.max_reference_depth)?
+    {
+        seen.insert(std::ptr::from_ref(stream));
+    }
+    let mut packages = Vec::new();
+    // Indirect objects are visited through the object table. Only direct children
+    // go on the stack, so graph cycles cannot repeat dictionary discovery.
+    let mut pending = Vec::new();
+    for root in document
+        .objects
+        .values()
+        .chain(document.trailer.iter().map(|(_, value)| value))
+    {
+        pending.push(root);
+        while let Some(object) = pending.pop() {
+            if let Object::Array(items) = object {
+                pending.extend(items);
+            }
+            let Some(dictionary) = dictionary_based(object) else {
+                continue;
+            };
+            pending.extend(dictionary.iter().map(|(_, value)| value));
+            let Ok(entry) = dictionary.get(b"Metadata") else {
+                continue;
+            };
+            if catalog.is_some_and(|catalog| std::ptr::eq(catalog, dictionary))
+                || resolved_name(document, dictionary, b"Type", limits.max_reference_depth)?
+                    == Some(b"Catalog".as_slice())
+            {
+                continue;
+            }
+            let Some(Object::Stream(stream)) =
+                resolve_optional(document, entry, limits.max_reference_depth)?
+            else {
+                continue;
+            };
+            if !seen.insert(std::ptr::from_ref(stream))
+                || resolved_name(document, &stream.dict, b"Type", limits.max_reference_depth)?
+                    != Some(b"Metadata".as_slice())
+                || resolved_name(
+                    document,
+                    &stream.dict,
+                    b"Subtype",
+                    limits.max_reference_depth,
+                )? != Some(b"XML".as_slice())
+            {
+                continue;
+            }
+            packages.push(decode_xmp(
+                stream,
+                stream_ids.get(&std::ptr::from_ref(stream)).copied(),
+                catalog_xmp,
+                false,
+                limits,
+            )?);
+        }
+    }
+    Ok(packages)
 }
 
 fn extract_output_intents(

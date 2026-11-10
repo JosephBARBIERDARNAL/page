@@ -38,6 +38,7 @@ mod actions;
 mod annotations;
 mod catalog;
 mod content_support;
+mod content_tagging;
 mod document_features;
 mod error;
 mod file_spec;

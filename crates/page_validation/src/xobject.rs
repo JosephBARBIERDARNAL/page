@@ -3,7 +3,7 @@
 //! Content execution identifies XObject uses, appearances, and masks; this inspector checks
 //! their dictionaries for forbidden entries, image component sizes, and Form references.
 //! Bounded JPEG2000 parsing supplies codestream and colour metadata findings without decoding
-//! complete images.
+//! complete images, respecting image dictionary colour-space overrides.
 
 use lopdf::{Document, Object};
 use std::borrow::Cow;
@@ -13,8 +13,8 @@ use crate::error::PdfError;
 use crate::limits::SafetyLimits;
 use crate::model::{InspectionNeed, PdfObjectId};
 use crate::object_resolution::{
-    contains_key, dictionary_based, resolve_optional, resolved_bool, resolved_integer,
-    resolved_name,
+    contains_key, dictionary_based, has_non_null_entry, resolve_optional, resolved_bool,
+    resolved_integer, resolved_name,
 };
 use crate::report::RuleFailure;
 
@@ -93,7 +93,13 @@ fn inspect_image(
         && has_jpx_filter(dictionary)
         && let Ok(stream) = object.as_stream()
     {
-        inspect_jpeg2000(stream, object_id, limits, summary)?;
+        let has_color_space = has_non_null_entry(
+            document,
+            dictionary,
+            b"ColorSpace",
+            limits.max_reference_depth,
+        )?;
+        inspect_jpeg2000(stream, object_id, has_color_space, limits, summary)?;
     }
     if contains_key(dictionary, b"OPI") {
         summary.image_opi.push(RuleFailure {
@@ -179,6 +185,7 @@ fn has_jpx_filter(dictionary: &lopdf::Dictionary) -> bool {
 fn inspect_jpeg2000(
     stream: &lopdf::Stream,
     object_id: Option<PdfObjectId>,
+    has_color_space: bool,
     limits: &SafetyLimits,
     summary: &mut XObjectSummary,
 ) -> Result<(), PdfError> {
@@ -211,19 +218,21 @@ fn inspect_jpeg2000(
             format!("has {channels} colour channels"),
         ));
     }
-    if methods.len() > 1 && approx_one != 1 {
+    // An explicit PDF colour space overrides the JP2 colour specifications,
+    // but channel counts and bit depths remain subject to codestream checks.
+    if !has_color_space && methods.len() > 1 && approx_one != 1 {
         summary.jpeg2000_failures[1].push(jpx_failure(
             object_id,
             "has an invalid number of APPROX=1 colour specifications",
         ));
     }
-    if methods.iter().any(|method| !matches!(method, 1..=3)) {
+    if !has_color_space && methods.iter().any(|method| !matches!(method, 1..=3)) {
         summary.jpeg2000_failures[2].push(jpx_failure(
             object_id,
             "has an invalid JPEG2000 colour method",
         ));
     }
-    if enum_cs == Some(19) {
+    if !has_color_space && enum_cs == Some(19) {
         summary.jpeg2000_failures[3].push(jpx_failure(
             object_id,
             "uses enumerated colour space 19 (CIEJab)",
@@ -395,9 +404,9 @@ fn inspect_form(
 
 #[cfg(test)]
 mod tests {
-    use lopdf::{Document, Stream, dictionary};
+    use lopdf::{Document, Object, Stream, dictionary};
 
-    use super::{inspect, jpx_stream_bytes, parse_j2k_siz};
+    use super::{XObjectSummary, inspect, inspect_image, jpx_stream_bytes, parse_j2k_siz};
     use crate::error::PdfError;
     use crate::limits::SafetyLimits;
     use crate::model::InspectionNeed;
@@ -433,6 +442,122 @@ mod tests {
         bytes[6 + 35] = 3;
         bytes.extend_from_slice(&[7, 1, 1, 7, 1, 1, 7, 1, 1]);
         assert_eq!(parse_j2k_siz(&bytes), Some((3, vec![8, 8, 8])));
+    }
+
+    fn jpeg2000_image(channels: u16, depth: u8, specifications: &[[u8; 7]]) -> Stream {
+        let mut header = vec![0; 14];
+        header[8..10].copy_from_slice(&channels.to_be_bytes());
+        header[10] = depth - 1;
+        let mut bytes = Vec::new();
+        for (kind, payload) in std::iter::once((b"ihdr", header.as_slice()))
+            .chain(specifications.iter().map(|spec| (b"colr", spec.as_slice())))
+        {
+            bytes.extend_from_slice(&(8u32 + payload.len() as u32).to_be_bytes());
+            bytes.extend_from_slice(kind);
+            bytes.extend_from_slice(payload);
+        }
+        Stream::new(dictionary! { "Filter" => "JPXDecode" }, bytes)
+    }
+
+    fn inspect_jpeg2000_image(
+        document: &Document,
+        stream: Stream,
+    ) -> Result<XObjectSummary, PdfError> {
+        let mut summary = XObjectSummary::default();
+        let object = Object::Stream(stream);
+        inspect_image(
+            document,
+            &object.as_stream().map_err(PdfError::parse)?.dict,
+            &object,
+            None,
+            true,
+            false,
+            &SafetyLimits::default(),
+            &mut summary,
+        )?;
+        Ok(summary)
+    }
+
+    #[test]
+    fn explicit_color_spaces_override_multiple_approx_one_specifications() {
+        let mut document = Document::new();
+        let rgb = Object::Name(b"DeviceRGB".to_vec());
+        let icc = Object::Array(vec![
+            "ICCBased".into(),
+            document
+                .add_object(Stream::new(dictionary! { "N" => 3 }, Vec::new()))
+                .into(),
+        ]);
+        let indirect_rgb = document.add_object(rgb.clone());
+        let indirect_icc = document.add_object(icc.clone());
+        for color_space in [rgb, icc, indirect_rgb.into(), indirect_icc.into()] {
+            let mut stream = jpeg2000_image(
+                3,
+                8,
+                &[
+                    [2, 2, 1, 0, 0, 0, 0],
+                    [3, 3, 1, 0, 0, 0, 0],
+                    [1, 4, 1, 0, 0, 0, 16],
+                ],
+            );
+            let summary = inspect_jpeg2000_image(&document, stream.clone()).unwrap();
+            assert_eq!(
+                summary.jpeg2000_failures.each_ref().map(Vec::len),
+                [0, 1, 0, 0, 0]
+            );
+
+            stream.dict.set("ColorSpace", color_space);
+            let summary = inspect_jpeg2000_image(&document, stream).unwrap();
+            assert!(summary.jpeg2000_failures.iter().all(Vec::is_empty));
+        }
+    }
+
+    #[test]
+    fn explicit_color_space_preserves_channel_and_bit_depth_checks() {
+        let document = Document::new();
+        let mut stream = jpeg2000_image(2, 128, &[[4, 0, 1, 0, 0, 0, 0], [1, 0, 1, 0, 0, 0, 19]]);
+        let summary = inspect_jpeg2000_image(&document, stream.clone()).unwrap();
+        assert_eq!(
+            summary.jpeg2000_failures.each_ref().map(Vec::len),
+            [1, 1, 1, 1, 1]
+        );
+
+        stream.dict.set("ColorSpace", "DeviceRGB");
+        let summary = inspect_jpeg2000_image(&document, stream).unwrap();
+        assert_eq!(
+            summary.jpeg2000_failures.each_ref().map(Vec::len),
+            [1, 0, 0, 0, 1]
+        );
+    }
+
+    #[test]
+    fn absent_color_spaces_do_not_override_jpeg2000_specifications() {
+        let mut document = Document::new();
+        let indirect_null = document.add_object(Object::Null);
+        for color_space in [
+            Object::Null,
+            indirect_null.into(),
+            Object::Reference((999, 0)),
+        ] {
+            let mut stream =
+                jpeg2000_image(3, 8, &[[1, 0, 1, 0, 0, 0, 16], [1, 0, 1, 0, 0, 0, 16]]);
+            stream.dict.set("ColorSpace", color_space);
+            let summary = inspect_jpeg2000_image(&document, stream).unwrap();
+            assert_eq!(summary.jpeg2000_failures[1].len(), 1);
+        }
+    }
+
+    #[test]
+    fn jpeg2000_color_space_resolution_rejects_reference_cycles() {
+        let mut document = Document::new();
+        let color_space = document.add_object(Object::Reference((1, 0)));
+        let mut stream = jpeg2000_image(3, 8, &[]);
+        stream.dict.set("ColorSpace", color_space);
+
+        assert!(matches!(
+            inspect_jpeg2000_image(&document, stream),
+            Err(PdfError::ReferenceDepth(_))
+        ));
     }
 
     #[test]

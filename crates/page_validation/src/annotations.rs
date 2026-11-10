@@ -674,7 +674,7 @@ fn annotation_has_language(
     )
 }
 
-fn find_number_tree_entry<'a>(
+pub(crate) fn find_number_tree_entry<'a>(
     document: &'a Document,
     node: &'a Dictionary,
     key: i64,
