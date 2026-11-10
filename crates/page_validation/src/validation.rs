@@ -180,6 +180,16 @@ impl ValidationProfile {
         }
     }
 
+    fn accepts_pdfa_conformance(self, value: &str) -> bool {
+        match self {
+            Self::PdfA1a | Self::PdfA2a | Self::PdfA3a => value == "A",
+            Self::PdfA1b => matches!(value, "A" | "B"),
+            Self::PdfA2b | Self::PdfA3b => matches!(value, "A" | "U" | "B"),
+            Self::PdfA2u | Self::PdfA3u => matches!(value, "A" | "U"),
+            Self::PdfUa1 => false,
+        }
+    }
+
     const fn is_pdfa_2_or_3(self) -> bool {
         matches!(self.pdfa_part(), Some(2 | 3))
     }
@@ -548,15 +558,7 @@ fn has_preflight_failure(
     let [conformance] = xmp.pdfa_conformances.as_slice() else {
         return true;
     };
-    match profile {
-        ValidationProfile::PdfA1a | ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => {
-            conformance != "A"
-        }
-        ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => conformance != "U",
-        ValidationProfile::PdfA2b | ValidationProfile::PdfA3b => conformance != "B",
-        ValidationProfile::PdfA1b => !matches!(conformance.as_str(), "A" | "B"),
-        ValidationProfile::PdfUa1 => true,
-    }
+    !profile.accepts_pdfa_conformance(conformance)
 }
 
 fn declared_profile(document: &PdfDocument) -> Result<ValidationProfile, PageError> {
@@ -1718,34 +1720,18 @@ fn collect_validation_failures(
             failures.push(failure);
         }
 
-        let (conformance_rule, expected_conformance) = match profile {
-            ValidationProfile::PdfA1a => (
-                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
-                "one A",
-            ),
-            ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => (
-                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
-                "one A",
-            ),
-            ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => (
-                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
-                "one U",
-            ),
-            _ => (
-                iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
-                "one B",
-            ),
+        let expected_conformance = match profile {
+            ValidationProfile::PdfA1a | ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => {
+                "one A"
+            }
+            ValidationProfile::PdfA2b | ValidationProfile::PdfA3b => "one A, U, or B",
+            ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => "one A or U",
+            _ => "one A or B",
         };
         if let Some(failure) = require_single_declared_value(
             xmp.map(|xmp| xmp.pdfa_conformances.as_slice()),
-            |value| match profile {
-                ValidationProfile::PdfA1a => value == "A",
-                ValidationProfile::PdfA2a | ValidationProfile::PdfA3a => value == "A",
-                ValidationProfile::PdfA2u | ValidationProfile::PdfA3u => value == "U",
-                ValidationProfile::PdfA2b | ValidationProfile::PdfA3b => value == "B",
-                _ => matches!(value, "A" | "B"),
-            },
-            conformance_rule,
+            |value| profile.accepts_pdfa_conformance(value),
+            iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3"),
             "PDF/A conformance",
             "pdfaid:conformance",
             expected_conformance,
@@ -4855,6 +4841,117 @@ mod tests {
         .expect("explicit profile validation");
         assert_rule(&report, "ISO 19005-1:2005:6.7.11:2");
         assert_rule(&report, "ISO 19005-1:2005:6.7.11:3");
+    }
+
+    #[test]
+    fn pdfa_conformance_declarations_match_the_requested_minimum_level() {
+        let cases: &[(ValidationProfile, &[&str])] = &[
+            (ValidationProfile::PdfA1a, &["A"]),
+            (ValidationProfile::PdfA1b, &["A", "B"]),
+            (ValidationProfile::PdfA2a, &["A"]),
+            (ValidationProfile::PdfA2b, &["A", "U", "B"]),
+            (ValidationProfile::PdfA2u, &["A", "U"]),
+            (ValidationProfile::PdfA3a, &["A"]),
+            (ValidationProfile::PdfA3b, &["A", "U", "B"]),
+            (ValidationProfile::PdfA3u, &["A", "U"]),
+        ];
+        for &(profile, accepted) in cases {
+            let part = profile.pdfa_part().expect("PDF/A profile");
+            let rule = iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3")
+                .expect("PDF/A conformance rule");
+            for level in ["A", "U", "B", "a", "u", "b", "C", "", " A", "A ", "AB"] {
+                let xmp = std::str::from_utf8(VALID_XMP)
+                    .unwrap()
+                    .replace("pdfaid:part=\"1\"", &format!("pdfaid:part=\"{part}\""))
+                    .replace(
+                        "pdfaid:conformance=\"B\"",
+                        &format!("pdfaid:conformance=\"{level}\""),
+                    );
+                let bytes = fixture(Some(xmp.as_bytes()), true);
+                let options = ValidationOptions::default().profile(profile);
+                let report =
+                    validate_pdf_bytes(&bytes, &options).expect("explicit profile validation");
+                assert_eq!(
+                    report
+                        .failures
+                        .iter()
+                        .any(|failure| failure.rule_id == rule),
+                    !accepted.contains(&level),
+                    "{profile} with declared conformance {level:?}: {:#?}",
+                    report.failures
+                );
+                let limits = SafetyLimits::default();
+                let preparation = PdfDocument::prepare_for_validation(&bytes, &limits).unwrap();
+                let (preparation, syntax) = preparation.with_syntax(&bytes, &limits).unwrap();
+                assert_eq!(
+                    has_preflight_failure(preparation.document(), &syntax.header, profile),
+                    !accepted.contains(&level),
+                    "preflight for {profile} with declared conformance {level:?}"
+                );
+                assert_eq!(
+                    is_pdf_compliant_bytes(&bytes, &options).expect("lazy validation"),
+                    report.is_compliant,
+                    "lazy validation for {profile} with declared conformance {level:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn pdfa_conformance_requires_exactly_one_declared_value() {
+        for &profile in ValidationProfile::all() {
+            let Some(part) = profile.pdfa_part() else {
+                continue;
+            };
+            for declaration in [
+                "",
+                r#"<rdf:Description pdfaid:conformance="A"/><rdf:Description pdfaid:conformance="A"/>"#,
+                r#"<rdf:Description pdfaid:conformance="A"/><rdf:Description pdfaid:conformance="U"/>"#,
+            ] {
+                let rule = if declaration.is_empty() {
+                    iso_pdfa_rule_id!(profile, "6.7.11:3", "6.6.4:3", "6.6.4:3")
+                } else {
+                    iso_pdfa_rule_id!(profile, "6.7.9:1", "6.6.2.1:4", "6.6.2.1:4")
+                }
+                .expect("PDF/A metadata rule");
+                let xmp = format!(
+                    r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"><rdf:Description pdfaid:part="{part}"/>{declaration}</rdf:RDF>"#
+                );
+                let bytes = fixture(Some(xmp.as_bytes()), true);
+                let options = ValidationOptions::default().profile(profile);
+                let report =
+                    validate_pdf_bytes(&bytes, &options).expect("explicit profile validation");
+                assert_rule(&report, rule);
+                assert!(!is_pdf_compliant_bytes(&bytes, &options).expect("lazy validation"));
+            }
+        }
+    }
+
+    #[test]
+    fn stronger_pdfa_conformance_does_not_hide_a_part_mismatch() {
+        let xmp = std::str::from_utf8(VALID_XMP)
+            .unwrap()
+            .replace("pdfaid:conformance=\"B\"", "pdfaid:conformance=\"A\"");
+        let bytes = fixture(Some(xmp.as_bytes()), true);
+        for profile in [
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfA2u,
+            ValidationProfile::PdfA3b,
+            ValidationProfile::PdfA3u,
+        ] {
+            let options = ValidationOptions::default().profile(profile);
+            let report = validate_pdf_bytes(&bytes, &options).expect("explicit profile validation");
+            assert!(!report.is_compliant);
+            assert_rule(
+                &report,
+                iso_pdfa_rule_id!(profile, "", "6.6.4:2", "6.6.4:2").unwrap(),
+            );
+            assert_no_rule(
+                &report,
+                iso_pdfa_rule_id!(profile, "", "6.6.4:3", "6.6.4:3").unwrap(),
+            );
+            assert!(!is_pdf_compliant_bytes(&bytes, &options).expect("lazy validation"));
+        }
     }
 
     #[test]
