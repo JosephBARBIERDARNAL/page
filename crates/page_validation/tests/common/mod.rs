@@ -15967,6 +15967,10 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
 }
 
 pub fn type1_program_with_width(width: u16) -> Vec<u8> {
+    type1_program_with_width_and_first_ciphertext_byte(width, 0x10)
+}
+
+pub fn type1_program_with_width_and_first_ciphertext_byte(width: u16, first: u8) -> Vec<u8> {
     let encode_number = |value: u16| -> Vec<u8> {
         if value <= 107 {
             vec![(value + 139) as u8]
@@ -15975,7 +15979,7 @@ pub fn type1_program_with_width(width: u16) -> Vec<u8> {
             vec![(247 + value / 256) as u8, (value % 256) as u8]
         }
     };
-    let mut charstring = vec![0, 0, 0, 0];
+    let mut charstring = vec![first ^ 0x10, 0, 0, 0];
     charstring.extend(encode_number(0));
     charstring.extend(encode_number(width));
     charstring.extend([13, 14]); // hsbw, endchar

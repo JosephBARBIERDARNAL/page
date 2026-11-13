@@ -1714,7 +1714,9 @@ impl Scanner<'_> {
                         &format!("has no embedded Type1 glyph for rendered byte {byte}"),
                     ));
                 }
-                let program_width = program_widths.get(name).copied().unwrap_or(0.0);
+                let Some(&program_width) = program_widths.get(name) else {
+                    continue;
+                };
                 let (Some(first_char), Some(widths)) = (first_char, widths) else {
                     continue;
                 };
@@ -4739,12 +4741,12 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
             continue;
         }
         position += 2;
-        while plaintext
-            .get(position)
-            .is_some_and(|byte| byte.is_ascii_whitespace())
-        {
-            position += 1;
+        // RD consumes one delimiter; every following byte belongs to the
+        // declared binary charstring, including whitespace-valued ciphertext.
+        if !plaintext.get(position).is_some_and(u8::is_ascii_whitespace) {
+            break;
         }
+        position += 1;
         let Some(end) = position.checked_add(length) else {
             break;
         };
@@ -6440,10 +6442,12 @@ mod tests {
     }
 
     fn encrypt_type1_charstring(plaintext: &[u8]) -> Vec<u8> {
-        let mut state = 4_330_u16;
-        [0; 4]
+        encrypt_type1(&[&[0; 4], plaintext].concat(), 4_330)
+    }
+
+    fn encrypt_type1(plaintext: &[u8], mut state: u16) -> Vec<u8> {
+        plaintext
             .iter()
-            .chain(plaintext)
             .map(|byte| {
                 let ciphertext = byte ^ (state >> 8) as u8;
                 state = state
@@ -6453,6 +6457,34 @@ mod tests {
                 ciphertext
             })
             .collect()
+    }
+
+    #[test]
+    fn type1_program_widths_preserve_leading_binary_whitespace() {
+        for first in [b' ', b'\t', b'\r', b'\n', 0x0b, 0x0c, 0, b'!'] {
+            // The first four decrypted bytes are discarded, so changing the
+            // first IV byte changes the ciphertext without changing the width.
+            let charstring = encrypt_type1(&[first ^ 0x10, 0, 0, 0, 139, 248, 192, 13, 14], 4_330);
+            assert_eq!(charstring[0], first);
+            let mut private =
+                b"\0\0\0\0/lenIV 4 def /CharStrings 2 dict dup begin /o 9 RD ".to_vec();
+            private.extend_from_slice(&charstring);
+            // A following glyph also verifies that the declared length is
+            // consumed exactly and scanning resumes at the next definition.
+            private.extend_from_slice(b" ND /space 9 RD ");
+            private.extend_from_slice(&charstring);
+            private.extend_from_slice(b" ND end");
+            let program = [
+                b"%!PS-AdobeFont\neexec\n".as_slice(),
+                &encrypt_type1(&private, 55_665),
+            ]
+            .concat();
+            assert_eq!(
+                type1_program_charstring_widths(&program),
+                BTreeMap::from([("o".to_owned(), 556.0), ("space".to_owned(), 556.0)]),
+                "first ciphertext byte {first:#04x}"
+            );
+        }
     }
 
     #[test]
