@@ -1714,7 +1714,9 @@ impl Scanner<'_> {
                         &format!("has no embedded Type1 glyph for rendered byte {byte}"),
                     ));
                 }
-                let program_width = program_widths.get(name).copied().unwrap_or(0.0);
+                let Some(&program_width) = program_widths.get(name) else {
+                    continue;
+                };
                 let (Some(first_char), Some(widths)) = (first_char, widths) else {
                     continue;
                 };
@@ -2253,10 +2255,9 @@ impl Scanner<'_> {
             if let Some(descendant) = descendant
                 && let Some(name) = resolved.and_then(|object| object.as_name().ok())
             {
-                // Only Table 118 names establish the Encoding CMap's
-                // CIDSystemInfo as a predefined mapping. Other bundled Adobe
-                // resources can decode glyphs, but are not valid substitutes
-                // for a missing PDF CMap dictionary.
+                // Predefined availability depends on the profile's PDF version.
+                // Other bundled Adobe resources can decode glyphs, but cannot
+                // substitute for a missing PDF CMap dictionary.
                 let cmap_system_info = is_pdfa_2_3_predefined_cmap(name)
                     .then(|| predefined_cmaps::get(name))
                     .flatten()
@@ -2265,7 +2266,10 @@ impl Scanner<'_> {
                     object_id,
                     description,
                     cid_system_info(self.document, descendant, self.limits)?,
-                    cmap_system_info,
+                    cmap_system_info
+                        .as_ref()
+                        .filter(|_| is_pdfa_1_predefined_cmap(name)),
+                    cmap_system_info.as_ref(),
                 );
             }
             return Ok(());
@@ -2277,11 +2281,13 @@ impl Scanner<'_> {
         }
 
         if let Some(descendant) = descendant {
+            let cmap_system_info = cid_system_info(self.document, &cmap.dict, self.limits)?;
             self.record_type0_system_info(
                 object_id,
                 description,
                 cid_system_info(self.document, descendant, self.limits)?,
-                cid_system_info(self.document, &cmap.dict, self.limits)?,
+                cmap_system_info.as_ref(),
+                cmap_system_info.as_ref(),
             );
         }
 
@@ -2349,11 +2355,12 @@ impl Scanner<'_> {
         object_id: Option<PdfObjectId>,
         description: &str,
         cid_font: Option<CidSystemInfo>,
-        cmap: Option<CidSystemInfo>,
+        cmap_pdfa1: Option<&CidSystemInfo>,
+        cmap_pdfa2: Option<&CidSystemInfo>,
     ) {
         let pdfa1_matches = cid_font
             .as_ref()
-            .zip(cmap.as_ref())
+            .zip(cmap_pdfa1)
             .is_some_and(|(cid_font, cmap)| cid_font.matches_pdfa1(cmap));
         if !pdfa1_matches {
             self.incompatible_type0_system_info.push(font_failure(
@@ -2366,7 +2373,7 @@ impl Scanner<'_> {
         // already exempted Identity-H and Identity-V encodings.
         let pdfa2_matches = cid_font
             .as_ref()
-            .zip(cmap.as_ref())
+            .zip(cmap_pdfa2)
             .is_some_and(|(cid_font, cmap)| cid_font.matches_pdfa2_or_3(cmap));
         if !pdfa2_matches {
             self.incompatible_type0_system_info_pdfa2
@@ -3238,6 +3245,22 @@ fn cmap_uses_identity_base(bytes: &[u8]) -> bool {
                 .flatten()
         })
         .any(|name| matches!(name, b"Identity-H" | b"Identity-V"))
+}
+
+/// PDF 1.4 Table 5.14 excludes the UTF-16 CMaps added in PDF 1.5.
+fn is_pdfa_1_predefined_cmap(name: &[u8]) -> bool {
+    is_pdfa_2_3_predefined_cmap(name)
+        && !matches!(
+            name,
+            b"UniGB-UTF16-H"
+                | b"UniGB-UTF16-V"
+                | b"UniCNS-UTF16-H"
+                | b"UniCNS-UTF16-V"
+                | b"UniJIS-UTF16-H"
+                | b"UniJIS-UTF16-V"
+                | b"UniKS-UTF16-H"
+                | b"UniKS-UTF16-V"
+        )
 }
 
 /// The predefined CMap names listed in ISO 32000-1:2008 Table 118 for
@@ -4739,12 +4762,12 @@ fn type1_program_charstring_widths(bytes: &[u8]) -> BTreeMap<String, f64> {
             continue;
         }
         position += 2;
-        while plaintext
-            .get(position)
-            .is_some_and(|byte| byte.is_ascii_whitespace())
-        {
-            position += 1;
+        // RD consumes one delimiter; every following byte belongs to the
+        // declared binary charstring, including whitespace-valued ciphertext.
+        if !plaintext.get(position).is_some_and(u8::is_ascii_whitespace) {
+            break;
         }
+        position += 1;
         let Some(end) = position.checked_add(length) else {
             break;
         };
@@ -6261,6 +6284,28 @@ mod tests {
     }
 
     #[test]
+    fn pdfa1_predefined_cmaps_exclude_utf16_for_every_collection() {
+        for collection in ["GB", "CNS", "JIS", "KS"] {
+            for direction in ["H", "V"] {
+                let utf16 = format!("Uni{collection}-UTF16-{direction}");
+                assert!(super::is_pdfa_2_3_predefined_cmap(utf16.as_bytes()));
+                assert!(!super::is_pdfa_1_predefined_cmap(utf16.as_bytes()));
+                let ucs2 = format!("Uni{collection}-UCS2-{direction}");
+                assert!(super::is_pdfa_1_predefined_cmap(ucs2.as_bytes()));
+            }
+        }
+        for name in [
+            b"Identity-H".as_slice(),
+            b"Identity-V",
+            b"GBK2K-H",
+            b"HKscs-B5-V",
+        ] {
+            assert!(super::is_pdfa_1_predefined_cmap(name));
+        }
+        assert!(!super::is_pdfa_1_predefined_cmap(b"Adobe-Korea1-2"));
+    }
+
+    #[test]
     fn named_predefined_cmaps_supply_cids_and_system_info() {
         let horizontal = predefined_cmaps::get(b"UniJIS-UCS2-H").expect("UniJIS CMap");
         let decoder = parse_cmap_with_predefined_bases(horizontal).expect("parse UniJIS CMap");
@@ -6440,10 +6485,12 @@ mod tests {
     }
 
     fn encrypt_type1_charstring(plaintext: &[u8]) -> Vec<u8> {
-        let mut state = 4_330_u16;
-        [0; 4]
+        encrypt_type1(&[&[0; 4], plaintext].concat(), 4_330)
+    }
+
+    fn encrypt_type1(plaintext: &[u8], mut state: u16) -> Vec<u8> {
+        plaintext
             .iter()
-            .chain(plaintext)
             .map(|byte| {
                 let ciphertext = byte ^ (state >> 8) as u8;
                 state = state
@@ -6453,6 +6500,34 @@ mod tests {
                 ciphertext
             })
             .collect()
+    }
+
+    #[test]
+    fn type1_program_widths_preserve_leading_binary_whitespace() {
+        for first in [b' ', b'\t', b'\r', b'\n', 0x0b, 0x0c, 0, b'!'] {
+            // The first four decrypted bytes are discarded, so changing the
+            // first IV byte changes the ciphertext without changing the width.
+            let charstring = encrypt_type1(&[first ^ 0x10, 0, 0, 0, 139, 248, 192, 13, 14], 4_330);
+            assert_eq!(charstring[0], first);
+            let mut private =
+                b"\0\0\0\0/lenIV 4 def /CharStrings 2 dict dup begin /o 9 RD ".to_vec();
+            private.extend_from_slice(&charstring);
+            // A following glyph also verifies that the declared length is
+            // consumed exactly and scanning resumes at the next definition.
+            private.extend_from_slice(b" ND /space 9 RD ");
+            private.extend_from_slice(&charstring);
+            private.extend_from_slice(b" ND end");
+            let program = [
+                b"%!PS-AdobeFont\neexec\n".as_slice(),
+                &encrypt_type1(&private, 55_665),
+            ]
+            .concat();
+            assert_eq!(
+                type1_program_charstring_widths(&program),
+                BTreeMap::from([("o".to_owned(), 556.0), ("space".to_owned(), 556.0)]),
+                "first ciphertext byte {first:#04x}"
+            );
+        }
     }
 
     #[test]

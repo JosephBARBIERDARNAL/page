@@ -5430,6 +5430,54 @@ pub fn pdfua1_rule_7_20_2_fixture(case: &str) -> Vec<u8> {
     bytes
 }
 
+pub fn unembedded_type0_cmap_fixture(encoding: &str, ordering: &str) -> Vec<u8> {
+    let mut document = pdf_document();
+    let pages = document.new_object_id();
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "AdobeMyungjoStd-Medium",
+        "Flags" => 4, "FontBBox" => vec![0.into(), (-200).into(), 1000.into(), 900.into()],
+        "ItalicAngle" => 0, "Ascent" => 900, "Descent" => -200,
+        "CapHeight" => 700, "StemV" => 80,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType0", "BaseFont" => "AdobeMyungjoStd-Medium",
+        "CIDSystemInfo" => dictionary! {
+            "Registry" => Object::string_literal("Adobe"),
+            "Ordering" => Object::string_literal(ordering), "Supplement" => 1,
+        },
+        "DW" => 1000, "FontDescriptor" => descriptor,
+    });
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "AdobeMyungjoStd-Medium",
+        "Encoding" => Object::Name(encoding.as_bytes().to_vec()),
+        "DescendantFonts" => vec![Object::Reference(descendant)],
+    });
+    let contents = document.add_object(Stream::new(
+        Dictionary::new(),
+        b"BT /F1 12 Tf 20 50 Td <0020> Tj ET\n".to_vec(),
+    ));
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => contents,
+    });
+    document.objects.insert(
+        pages,
+        dictionary! {
+            "Type" => "Pages", "Kids" => vec![Object::Reference(page)], "Count" => 1,
+        }
+        .into(),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save named CMap fixture");
+    bytes
+}
+
 pub fn pdfua1_rule_7_21_3_1_fixture(case: &str) -> Vec<u8> {
     let mut document = Document::load_mem(&pdfua1_rule_7_1_12_fixture("present"))
         .expect("load PDF/UA-1 Type0 font fixture");
@@ -15967,6 +16015,10 @@ pub fn pdf_type1_program(bytes: &[u8]) -> (Vec<u8>, usize, usize, usize) {
 }
 
 pub fn type1_program_with_width(width: u16) -> Vec<u8> {
+    type1_program_with_width_and_first_ciphertext_byte(width, 0x10)
+}
+
+pub fn type1_program_with_width_and_first_ciphertext_byte(width: u16, first: u8) -> Vec<u8> {
     let encode_number = |value: u16| -> Vec<u8> {
         if value <= 107 {
             vec![(value + 139) as u8]
@@ -15975,7 +16027,7 @@ pub fn type1_program_with_width(width: u16) -> Vec<u8> {
             vec![(247 + value / 256) as u8, (value % 256) as u8]
         }
     };
-    let mut charstring = vec![0, 0, 0, 0];
+    let mut charstring = vec![first ^ 0x10, 0, 0, 0];
     charstring.extend(encode_number(0));
     charstring.extend(encode_number(width));
     charstring.extend([13, 14]); // hsbw, endchar

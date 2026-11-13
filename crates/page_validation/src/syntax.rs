@@ -4,7 +4,7 @@
 //! A shared index records revisions, indirect objects, stream boundaries, and keyword
 //! positions. Inspection combines that index with parsed objects to check headers, trailers,
 //! cross-references, tokens, and profile limits; targeted parser repairs leave original bytes
-//! available for conformance checks, including missing stream EOL delimiters.
+//! available for conformance checks, including header suffixes and missing stream EOL delimiters.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{Hash, Hasher};
@@ -1778,14 +1778,22 @@ fn repair_header_syntax(bytes: &mut Vec<u8>) -> bool {
         changed = true;
     }
     if line_end > 8
-        && bytes.get(8..line_end).is_some_and(|suffix| {
-            suffix
-                .iter()
-                .all(|byte| matches!(byte, b' ' | b'\t' | b'\r'))
-        })
+        && bytes.get(5).is_some_and(u8::is_ascii_digit)
+        && bytes.get(6) == Some(&b'.')
+        && bytes.get(7).is_some_and(u8::is_ascii_digit)
+        && bytes
+            .get(8)
+            .is_some_and(|byte| !byte.is_ascii_digit() && *byte != b'.')
         && let Some(byte) = bytes.get_mut(8)
     {
+        // Terminate the recognized version and comment out the remaining suffix.
+        // Replacing at most two bytes keeps every object and xref offset intact.
         *byte = b'\n';
+        if line_end > 9
+            && let Some(byte) = bytes.get_mut(9)
+        {
+            *byte = b'%';
+        }
         changed = true;
     }
     changed
@@ -2192,6 +2200,57 @@ mod tests {
         }
         for header in [b"%PDF-1.8\n".as_slice(), b"%PDF-2.0\n"] {
             assert!(inspect_header(header, &revisions).has_valid_header);
+        }
+    }
+
+    #[test]
+    fn header_suffix_repair_preserves_offsets_and_comments() {
+        for suffix in [
+            b" ".as_slice(),
+            b"X",
+            b" Sharp Scanned ImagePDF",
+            b"%suffix",
+            b"\xff\xfe",
+        ] {
+            for eol in [b"\n".as_slice(), b"\r", b"\r\n"] {
+                let original = [
+                    b"%PDF-1.4".as_slice(),
+                    suffix,
+                    eol,
+                    b"%\xe2\xe3\xcf\xd3\n1 0 obj\nnull\nendobj\n",
+                ]
+                .concat();
+                let mut repaired = original.clone();
+                assert!(repair_header_syntax(&mut repaired));
+                assert_eq!(repaired.len(), original.len());
+                assert_eq!(
+                    repaired.get(8 + suffix.len()..),
+                    original.get(8 + suffix.len()..)
+                );
+                assert_eq!(repaired.get(..9), Some(b"%PDF-1.4\n".as_slice()));
+                if suffix.len() > 1 {
+                    assert_eq!(repaired.get(9), Some(&b'%'));
+                    assert_eq!(repaired.get(10..), original.get(10..));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn header_suffix_repair_leaves_normal_and_malformed_versions_unchanged() {
+        for original in [
+            b"%PDF-1.4\n".as_slice(),
+            b"%PDF-2.0\r\n",
+            b"%PDF-1.\n",
+            b"%PDF-1.x suffix\n",
+            b"%PDF-1.40 suffix\n",
+            b"%PDF-1.4.0 suffix\n",
+            b"%PDF-12.4 suffix\n",
+            b"%PDF-1.4 suffix",
+        ] {
+            let mut repaired = original.to_vec();
+            assert!(!repair_header_syntax(&mut repaired), "{original:?}");
+            assert_eq!(repaired, original);
         }
     }
 
