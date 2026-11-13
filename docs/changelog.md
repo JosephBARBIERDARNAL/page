@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Recover appended PDF header text without shifting object offsets or losing original header and binary-comment conformance findings [#643](https://github.com/JosephBARBIERDARNAL/page/issues/643)
 - **Fix**: Use PDF 1.4 predefined CMap availability when checking PDF/A-1 CIDSystemInfo compatibility [#642](https://github.com/JosephBARBIERDARNAL/page/issues/642)
 - **Fix**: Report both PDF/UA mixed-heading rules for H and H1-H6 structure elements, including role-mapped headings [#641](https://github.com/JosephBARBIERDARNAL/page/issues/641)
 - **Fix**: Preserve whitespace-valued ciphertext bytes in Type 1 glyph widths and avoid treating unavailable widths as zero [#640](https://github.com/JosephBARBIERDARNAL/page/issues/640)
