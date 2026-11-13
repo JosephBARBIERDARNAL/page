@@ -158,7 +158,7 @@ impl ValidationProfile {
             Self::PdfA3b => 146,
             Self::PdfA3a => 156,
             Self::PdfA3u => 148,
-            Self::PdfUa1 => 104,
+            Self::PdfUa1 => 105,
         }
     }
 
@@ -1216,6 +1216,14 @@ fn collect_validation_failures(
                 .document_features
                 .heading_elements_with_h_in_presence_of_hn,
             "ISO 14289-1:2014:7.4.4:2",
+            None,
+            &mut failures,
+        );
+        aggregate_failures_with_location(
+            &inspections
+                .document_features
+                .heading_elements_with_hn_in_presence_of_h,
+            "ISO 14289-1:2014:7.4.4:3",
             None,
             &mut failures,
         );

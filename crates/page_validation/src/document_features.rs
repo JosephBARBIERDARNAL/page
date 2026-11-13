@@ -156,6 +156,7 @@ pub(crate) struct DocumentFeatureSummary {
     pub(crate) heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     pub(crate) structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     pub(crate) heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
+    pub(crate) heading_elements_with_hn_in_presence_of_h: Vec<RuleFailure>,
     pub(crate) actual_text_language_failures: Vec<RuleFailure>,
     pub(crate) alt_text_language_failures: Vec<RuleFailure>,
     pub(crate) expansion_text_language_failures: Vec<RuleFailure>,
@@ -789,6 +790,8 @@ pub(crate) fn inspect(
             .structure_elements_with_multiple_h_children,
         heading_elements_with_h_in_presence_of_hn: structure_tree
             .heading_elements_with_h_in_presence_of_hn,
+        heading_elements_with_hn_in_presence_of_h: structure_tree
+            .heading_elements_with_hn_in_presence_of_h,
         actual_text_language_failures: structure_tree.actual_text_language_failures,
         alt_text_language_failures: structure_tree.alt_text_language_failures,
         expansion_text_language_failures: structure_tree.expansion_text_language_failures,
@@ -1121,9 +1124,10 @@ struct StructureTreeSummary {
     heading_elements_with_invalid_nesting: Vec<RuleFailure>,
     structure_elements_with_multiple_h_children: Vec<RuleFailure>,
     heading_elements_with_h_in_presence_of_hn: Vec<RuleFailure>,
+    heading_elements_with_hn_in_presence_of_h: Vec<RuleFailure>,
     last_heading_level: Option<u8>,
     h_heading_elements: Vec<RuleFailure>,
-    uses_hn: bool,
+    hn_heading_elements: Vec<Option<PdfObjectId>>,
     actual_text_language_failures: Vec<RuleFailure>,
     alt_text_language_failures: Vec<RuleFailure>,
     expansion_text_language_failures: Vec<RuleFailure>,
@@ -1212,9 +1216,10 @@ fn inspect_structure_tree(
         heading_elements_with_invalid_nesting: Vec::new(),
         structure_elements_with_multiple_h_children: Vec::new(),
         heading_elements_with_h_in_presence_of_hn: Vec::new(),
+        heading_elements_with_hn_in_presence_of_h: Vec::new(),
         last_heading_level: None,
         h_heading_elements: Vec::new(),
-        uses_hn: false,
+        hn_heading_elements: Vec::new(),
         actual_text_language_failures: Vec::new(),
         alt_text_language_failures: Vec::new(),
         expansion_text_language_failures: Vec::new(),
@@ -1270,9 +1275,22 @@ fn inspect_structure_tree(
                 )
         });
     }
-    if demand.contains(FeatureDemand::STRUCTURE_RULES) && summary.uses_hn {
+    if demand.contains(FeatureDemand::STRUCTURE_RULES)
+        && !summary.h_heading_elements.is_empty()
+        && !summary.hn_heading_elements.is_empty()
+    {
         summary.heading_elements_with_h_in_presence_of_hn =
             std::mem::take(&mut summary.h_heading_elements);
+        summary.heading_elements_with_hn_in_presence_of_h =
+            std::mem::take(&mut summary.hn_heading_elements)
+                .into_iter()
+                .map(|object_id| RuleFailure {
+                    object_id,
+                    description:
+                        "an H1-H6 structure element is present together with H structure elements"
+                            .to_owned(),
+                })
+                .collect();
     }
     Ok(summary)
 }
@@ -1767,6 +1785,7 @@ fn inspect_structure_element(
                 });
         }
         summary.last_heading_level = Some(heading_level);
+        summary.hn_heading_elements.push(object_id);
     }
     if resolved_type == Some(b"H".as_slice()) {
         summary.h_heading_elements.push(RuleFailure {
@@ -1774,8 +1793,6 @@ fn inspect_structure_element(
             description: "an H structure element is present together with H1-H6 structure elements"
                 .to_owned(),
         });
-    } else if heading_level(resolved_type).is_some() {
-        summary.uses_hn = true;
     }
     if contains_multiple_h_children(
         document,
@@ -3699,6 +3716,80 @@ mod tests {
 
     use super::{FeatureDemand, inspect};
     use crate::{PdfError, SafetyLimits};
+
+    #[test]
+    fn mixed_heading_failures_preserve_each_resolved_heading_location() {
+        let cases: &[&[&str]] = &[
+            &[],
+            &["H"],
+            &["H1", "H2", "H3", "H4", "H5", "H6"],
+            &["H", "H1", "H2", "H3", "H4", "H5", "H6", "H1"],
+            &["H1", "H2", "H3", "H4", "H5", "H6", "H1", "H"],
+            &["H", "H1", "H", "H2"],
+        ];
+        for mapped in [false, true] {
+            for heading_types in cases {
+                let mut document = Document::with_version("1.7");
+                let mut role_map = lopdf::Dictionary::new();
+                let mut kids = Vec::new();
+                let mut expected_h = Vec::new();
+                let mut expected_hn = Vec::new();
+                for heading_type in *heading_types {
+                    let role = if mapped {
+                        format!("Custom{heading_type}")
+                    } else {
+                        (*heading_type).to_owned()
+                    };
+                    if mapped {
+                        role_map.set(
+                            role.as_str(),
+                            Object::Name(heading_type.as_bytes().to_vec()),
+                        );
+                    }
+                    let id = document.add_object(dictionary! {
+                        "S" => Object::Name(role.into_bytes()),
+                    });
+                    kids.push(Object::Reference(id));
+                    if *heading_type == "H" {
+                        expected_h.push(Some(id.into()));
+                    } else {
+                        expected_hn.push(Some(id.into()));
+                    }
+                }
+                let parent = document.add_object(dictionary! { "S" => "Document", "K" => kids });
+                let root =
+                    document.add_object(dictionary! { "K" => parent, "RoleMap" => role_map });
+                let catalog = dictionary! { "StructTreeRoot" => root };
+                let summary = super::inspect_structure_tree(
+                    &document,
+                    &catalog,
+                    &SafetyLimits::default(),
+                    FeatureDemand::for_profile(crate::validation::ValidationProfile::PdfUa1),
+                )
+                .expect("inspect mixed heading structure");
+                if expected_h.is_empty() || expected_hn.is_empty() {
+                    expected_h.clear();
+                    expected_hn.clear();
+                }
+                for (failures, expected) in [
+                    (
+                        &summary.heading_elements_with_h_in_presence_of_hn,
+                        expected_h,
+                    ),
+                    (
+                        &summary.heading_elements_with_hn_in_presence_of_h,
+                        expected_hn,
+                    ),
+                ] {
+                    let actual = failures
+                        .iter()
+                        .map(|failure| failure.object_id)
+                        .collect::<Vec<_>>();
+                    assert_eq!(actual, expected, "{heading_types:?}, mapped: {mapped}");
+                }
+            }
+        }
+    }
 
     #[test]
     fn distinguishes_short_rows_from_row_spans_past_the_table() {

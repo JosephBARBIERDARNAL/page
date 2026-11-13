@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Report both PDF/UA mixed-heading rules for H and H1-H6 structure elements, including role-mapped headings [#641](https://github.com/JosephBARBIERDARNAL/page/issues/641)
 - **Fix**: Preserve whitespace-valued ciphertext bytes in Type 1 glyph widths and avoid treating unavailable widths as zero [#640](https://github.com/JosephBARBIERDARNAL/page/issues/640)
 - **Fix**: Require MCID content to connect to the structure tree before treating it as tagged, including inherited Form content [#637](https://github.com/JosephBARBIERDARNAL/page/issues/637)
 - **Fix**: Accept compatible stronger PDF/A-2 and PDF/A-3 conformance declarations in full and lazy validation [#636](https://github.com/JosephBARBIERDARNAL/page/issues/636)
