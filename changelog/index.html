@@ -26,7 +26,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.1.0">
+      <meta name="generator" content="zensical-0.1.1">
     
     
       
@@ -37,7 +37,7 @@
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
       
         
           
@@ -1079,6 +1079,10 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Fix</strong>: Recover appended PDF header text without shifting object offsets or losing original header and binary-comment conformance findings <a href="https://github.com/JosephBARBIERDARNAL/page/issues/643">#643</a></li>
+<li><strong>Fix</strong>: Use PDF 1.4 predefined CMap availability when checking PDF/A-1 CIDSystemInfo compatibility <a href="https://github.com/JosephBARBIERDARNAL/page/issues/642">#642</a></li>
+<li><strong>Fix</strong>: Report both PDF/UA mixed-heading rules for H and H1-H6 structure elements, including role-mapped headings <a href="https://github.com/JosephBARBIERDARNAL/page/issues/641">#641</a></li>
+<li><strong>Fix</strong>: Preserve whitespace-valued ciphertext bytes in Type 1 glyph widths and avoid treating unavailable widths as zero <a href="https://github.com/JosephBARBIERDARNAL/page/issues/640">#640</a></li>
 <li><strong>Fix</strong>: Require MCID content to connect to the structure tree before treating it as tagged, including inherited Form content <a href="https://github.com/JosephBARBIERDARNAL/page/issues/637">#637</a></li>
 <li><strong>Fix</strong>: Accept compatible stronger PDF/A-2 and PDF/A-3 conformance declarations in full and lazy validation <a href="https://github.com/JosephBARBIERDARNAL/page/issues/636">#636</a></li>
 <li><strong>Fix</strong>: Decode Type 1 byte-255 glyph widths as signed integers while preserving Type 2 fixed-point decoding <a href="https://github.com/JosephBARBIERDARNAL/page/issues/635">#635</a></li>
@@ -1314,7 +1318,7 @@
       <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.sections","navigation.top","navigation.tracking","search.highlight","navigation.prune"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d31f0ffa.min.js"></script>
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
       
         <script src="../javascripts/demo/demo.js" type="module"></script>
       
