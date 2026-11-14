@@ -1341,6 +1341,26 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn loads_container_and_structure_objects_from_an_older_hybrid_section() {
+        let bytes = include_bytes!("../tests/fixtures/hybrid-older-structure.pdf");
+        let limits = SafetyLimits::default();
+        let raw_scan =
+            crate::syntax::scan_raw_index(bytes, &limits).expect("index hybrid revisions");
+        let document = load_document(bytes, &limits, &raw_scan).expect("load hybrid document");
+
+        for (id, expected_type) in [(5, "StructTreeRoot"), (6, "StructElem"), (7, "ObjStm")] {
+            assert_eq!(
+                document
+                    .get_object((id, 0))
+                    .expect("object reachable through older hybrid stream")
+                    .type_name()
+                    .expect("object type"),
+                expected_type.as_bytes(),
+            );
+        }
+    }
+
     /// A trailer with a direct `/Encrypt null` entry is treated as not
     /// encrypted, following the direct-null convention used by other
     /// meaningful-presence checks. Built directly on

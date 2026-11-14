@@ -2695,6 +2695,7 @@ fn table_grid_spans(
     let mut column_ends = Vec::new();
     let mut expected_columns = None;
     let mut mismatch = None;
+    let mut missing_columns = false;
     for (row_index, row) in rows.iter().enumerate() {
         let mut row_width = column_ends
             .iter()
@@ -2739,19 +2740,26 @@ fn table_grid_spans(
         }
         if row_index == 0 {
             expected_columns = Some(row_width);
-        } else if mismatch.is_none()
+        } else if !missing_columns
+            && mismatch.is_none()
             && expected_columns.is_some_and(|expected| {
                 (0..expected)
                     .any(|column| !column_ends.get(column).is_some_and(|end| *end > row_index))
             })
         {
-            mismatch = Some(TableRowColumnSpanMismatch::MissingColumns);
+            missing_columns = true;
         }
     }
 
     // Short rows belong to the missing-columns rule; row spans fail only when
     // they extend beyond the table's actual rows, even if all columns overrun.
     let row_span_overflow = column_ends.iter().any(|end| *end > rows.len());
+    // Missing columns are diagnosed only after placement succeeds: a later
+    // column overflow, row-span overflow, or separately checked intersection
+    // takes precedence over an earlier short row.
+    if mismatch.is_none() && !row_span_overflow && missing_columns {
+        mismatch = Some(TableRowColumnSpanMismatch::MissingColumns);
+    }
     Ok((row_span_overflow, mismatch))
 }
 
@@ -3798,6 +3806,7 @@ mod tests {
             (&[&[2, 2], &[]], false, false),
             (&[&[2, 3], &[]], true, false),
             (&[&[3, 3], &[]], true, false),
+            (&[&[1, 1], &[1], &[2, 1]], true, false),
         ];
         for (row_spans, expected_overflow, expected_missing) in cases {
             let mut document = Document::with_version("1.7");
@@ -3833,6 +3842,38 @@ mod tests {
                 *expected_missing,
                 "{row_spans:?}"
             );
+        }
+    }
+
+    #[test]
+    fn table_column_overflow_takes_precedence_over_short_rows() {
+        let cases: &[(&[usize], (bool, bool))] = &[
+            (&[2, 1, 3], (true, false)),
+            (&[2, 1], (false, true)),
+            (&[2, 3], (true, false)),
+            (&[2, 2], (false, false)),
+            (&[2, 3, 1], (true, false)),
+        ];
+        for (row_lengths, expected) in cases {
+            let mut document = Document::with_version("1.7");
+            let mut rows = Vec::new();
+            for length in *row_lengths {
+                let cells = (0..*length)
+                    .map(|_| Object::Reference(document.add_object(dictionary! { "S" => "TD" })))
+                    .collect::<Vec<_>>();
+                rows.push(Object::Reference(document.add_object(dictionary! {
+                    "S" => "TR", "K" => cells,
+                })));
+            }
+            let table = dictionary! { "S" => "Table", "K" => rows };
+            let actual = super::table_row_column_span_mismatches(
+                &document,
+                &table,
+                &Default::default(),
+                &SafetyLimits::default(),
+            )
+            .expect("inspect table column spans");
+            assert_eq!(actual, *expected, "{row_lengths:?}");
         }
     }
 

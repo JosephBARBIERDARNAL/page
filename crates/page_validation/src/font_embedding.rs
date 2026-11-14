@@ -4150,19 +4150,19 @@ impl UnicodeCmap {
                 _ => cursor += 1,
             }
         }
-        Ok(
-            (!mappings.is_empty() && mappings.values().all(|value| valid_unicode_bytes(value)))
-                .then_some(Self {
-                    has_reserved_values: mappings.values().any(|value| {
-                        value
-                            .as_chunks::<2>()
-                            .0
-                            .iter()
-                            .any(|pair| matches!(u16::from_be_bytes(*pair), 0 | 0xFEFF | 0xFFFE))
-                    }),
-                    mappings,
-                }),
-        )
+        // Destination validity belongs to each used code's maps_usable check;
+        // an invalid unused destination must not discard other mappings or
+        // suppress the independent reserved-value scan.
+        Ok((!mappings.is_empty()).then_some(Self {
+            has_reserved_values: mappings.values().any(|value| {
+                value
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .any(|pair| matches!(u16::from_be_bytes(*pair), 0 | 0xFEFF | 0xFFFE))
+            }),
+            mappings,
+        }))
     }
 
     fn maps_usable(&self, code: &[u8]) -> bool {
@@ -6104,7 +6104,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_usable_unicode_cmaps_and_rejects_incomplete_or_invalid_values() {
+    fn parses_usable_unicode_cmaps_and_detects_missing_mappings() {
         let limits = SafetyLimits::default();
         let map = UnicodeCmap::parse(
             b"1 begincodespacerange <00> <ff> endcodespacerange 1 beginbfchar <41> <0041> endbfchar",
@@ -6114,16 +6114,55 @@ mod tests {
         .expect("valid ToUnicode CMap");
         assert!(map.maps_usable(b"A"));
         assert!(!map.maps_usable(b"B"));
-        assert!(
-            UnicodeCmap::parse(b"1 beginbfchar <41> <d800> endbfchar", &limits)
-                .expect("parse invalid Unicode value")
-                .is_none()
-        );
-        assert!(
-            UnicodeCmap::parse(b"1 beginbfrange <00> <ffff> <d800> endbfrange", &limits)
-                .expect("parse invalid Unicode range value")
-                .is_none()
-        );
+    }
+
+    #[test]
+    fn preserves_usable_mappings_alongside_invalid_unicode_destinations() {
+        for cmap in [
+            &b"2 beginbfchar <0041> <0041> <0042> <d800> endbfchar"[..],
+            &b"1 beginbfrange <0041> <0042> [<0041> <d800>] endbfrange"[..],
+            &b"2 beginbfrange <0041> <0041> <0041> <0042> <0042> <d800> endbfrange"[..],
+            &b"2 beginbfchar <0041> <0041> <0042> <dc00> endbfchar"[..],
+            &b"2 beginbfchar <0041> <0041> <0042> <41> endbfchar"[..],
+        ] {
+            let map = UnicodeCmap::parse(cmap, &SafetyLimits::default())
+                .expect("parse mixed Unicode destinations")
+                .expect("structurally valid ToUnicode CMap");
+            assert!(map.maps_usable(&[0x00, 0x41]));
+            assert!(!map.maps_usable(&[0x00, 0x42]));
+        }
+    }
+
+    #[test]
+    fn preserves_identity_range_mappings_and_reserved_values_with_surrogates() {
+        let map = UnicodeCmap::parse(
+            b"1 beginbfrange <0000> <ffff> <0000> endbfrange",
+            &SafetyLimits::default(),
+        )
+        .expect("parse identity Unicode range")
+        .expect("structurally valid identity Unicode range");
+        assert!(map.maps_usable(&[0x00, 0x41]));
+        assert!(!map.maps_usable(&[0xd8, 0x00]));
+        assert!(!map.maps_usable(&[0xdf, 0xff]));
+        assert!(map.has_reserved_values);
+    }
+
+    #[test]
+    fn rejects_malformed_unicode_mapping_syntax() {
+        for cmap in [
+            &b"1 beginbfchar <41> endbfchar"[..],
+            &b"2 beginbfchar <41> <0041> endbfchar"[..],
+            &b"1 beginbfchar <41> <zzzz> endbfchar"[..],
+            &b"1 beginbfchar <41> <004> endbfchar"[..],
+            &b"1 beginbfrange <42> <41> <0041> endbfrange"[..],
+            &b"1 beginbfrange <41> <0042> <0041> endbfrange"[..],
+        ] {
+            assert!(
+                UnicodeCmap::parse(cmap, &SafetyLimits::default())
+                    .expect("parse malformed Unicode CMap")
+                    .is_none()
+            );
+        }
     }
 
     #[test]

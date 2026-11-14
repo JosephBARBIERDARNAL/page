@@ -1,5 +1,8 @@
 ## Dev
 
+- **Fix**: Give PDF/UA table column overflows precedence over earlier short rows when selecting the failed rule ID [#647](https://github.com/JosephBARBIERDARNAL/page/issues/647)
+- **Fix**: Preserve usable ToUnicode mappings when unused destinations contain invalid UTF-16, while retaining used-code validation and reserved-value checks [#646](https://github.com/JosephBARBIERDARNAL/page/issues/646)
+- **Fix**: Load compressed objects from older hybrid cross-reference sections while preserving newer revisions and safety limits [#645](https://github.com/JosephBARBIERDARNAL/page/issues/645)
 - **Fix**: Recover appended PDF header text without shifting object offsets or losing original header and binary-comment conformance findings [#643](https://github.com/JosephBARBIERDARNAL/page/issues/643)
 - **Fix**: Use PDF 1.4 predefined CMap availability when checking PDF/A-1 CIDSystemInfo compatibility [#642](https://github.com/JosephBARBIERDARNAL/page/issues/642)
 - **Fix**: Report both PDF/UA mixed-heading rules for H and H1-H6 structure elements, including role-mapped headings [#641](https://github.com/JosephBARBIERDARNAL/page/issues/641)
