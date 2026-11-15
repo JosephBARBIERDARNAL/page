@@ -22,6 +22,10 @@ use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 use crate::syntax::{is_pdf_boundary, is_pdf_whitespace};
 
+// lopdf commits to parsing an image dictionary after BI, so a stripped image
+// needs a different operator to keep ordinary operations decodable.
+const INLINE_IMAGE_OPERATOR: &str = "pageInlineImage";
+
 #[derive(Clone, Debug)]
 pub(crate) struct SelectedColorSpace {
     pub(crate) value: Object,
@@ -719,6 +723,7 @@ impl ContentExecutor<'_> {
         let mut inherited_resource_names = BTreeSet::new();
         let inline_images = tokenize_inline_images(&bytes);
         let ordinary_content = inline_images.ordinary_content.as_ref();
+        let mut inline_image_markers = inline_images.markers.iter();
         for inline in &inline_images.images {
             if !uncolored_type3_glyph && let Some(name) = &inline.color_space {
                 let _ = self.record_color_space(
@@ -778,7 +783,9 @@ impl ContentExecutor<'_> {
                     &mut self.summary,
                 );
             }
-            if !is_pdf_1_4_operator(&operation.operator) {
+            let is_inline_image = operation.operator == INLINE_IMAGE_OPERATOR
+                && inline_image_markers.next().copied().unwrap_or(false);
+            if !is_inline_image && !is_pdf_1_4_operator(&operation.operator) {
                 self.summary
                     .undefined_operators
                     .entry(operation.operator.clone())
@@ -1401,7 +1408,7 @@ impl ContentExecutor<'_> {
                         depth + 1,
                     )?;
                 }
-                "BI" if operation.operands.is_empty() && inspect_pdfua_content => {
+                _ if is_inline_image && operation.operands.is_empty() && inspect_pdfua_content => {
                     self.record_untagged_content(
                         content_id,
                         marked_content,
@@ -2736,6 +2743,8 @@ struct InlineImage {
 struct InlineImageTokenization<'a> {
     ordinary_content: Cow<'a, [u8]>,
     images: Vec<InlineImage>,
+    // Distinguish generated markers from identical operators in the source.
+    markers: Vec<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -2750,6 +2759,7 @@ enum ContentToken {
 fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
     let mut ordinary_content = None;
     let mut images = Vec::new();
+    let mut markers = Vec::new();
     let mut cursor = 0usize;
     let mut retained = 0usize;
     let mut array_depth = 0usize;
@@ -2779,12 +2789,15 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                                 .extend_from_slice(
                                     bytes.get(retained..token_start).unwrap_or_default(),
                                 );
-                            ordinary_content
+                            let ordinary = ordinary_content
                                 .as_mut()
-                                .expect("ordinary content initialized")
-                                .extend_from_slice(b" BI ");
+                                .expect("ordinary content initialized");
+                            ordinary.push(b' ');
+                            ordinary.extend_from_slice(INLINE_IMAGE_OPERATOR.as_bytes());
+                            ordinary.push(b' ');
                             retained = cursor;
                             images.push(image);
+                            markers.push(true);
                             break;
                         }
                         ContentToken::Name(name) if color_space_value => {
@@ -2834,6 +2847,11 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                     }
                 }
             }
+            ContentToken::Bare(token)
+                if array_depth == 0 && token == INLINE_IMAGE_OPERATOR.as_bytes() =>
+            {
+                markers.push(false);
+            }
             _ => {}
         }
     }
@@ -2847,6 +2865,7 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
     InlineImageTokenization {
         ordinary_content,
         images,
+        markers,
     }
 }
 
@@ -3209,7 +3228,7 @@ mod tests {
         assert_eq!(tokenized.images.len(), 1);
         assert_eq!(
             tokenized.ordinary_content.as_ref(),
-            b" BI \n1 2 MaiUnknown\n".as_slice()
+            b" pageInlineImage \n1 2 MaiUnknown\n".as_slice()
         );
     }
 
@@ -3219,7 +3238,7 @@ mod tests {
             tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
                 .ordinary_content
                 .as_ref(),
-            b"q BI  Q BI  /Im Do".as_slice()
+            b"q pageInlineImage  Q pageInlineImage  /Im Do".as_slice()
         );
     }
 
@@ -3229,8 +3248,123 @@ mod tests {
             tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q")
                 .ordinary_content
                 .as_ref(),
-            b" BI /Q".as_slice()
+            b" pageInlineImage /Q".as_slice()
         );
+    }
+
+    #[test]
+    fn ordinary_operations_execute_before_and_after_inline_images_and_masks() {
+        for image in [
+            b"BI /W 1 /H 1 /CS /RGB /BPC 8 ID \xff\x00\x00 EI\n".as_slice(),
+            b"BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI\n".as_slice(),
+        ] {
+            let (mut document, page_id) = content_test_document(dictionary! {
+                "Font" => dictionary! { "F1" => dictionary! {
+                    "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+                } },
+            });
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                [
+                    b"1 0 0 rg BT /F1 12 Tf (before) Tj ET\n".as_slice(),
+                    image,
+                    b"0 G BT (after) Tj ET\n".as_slice(),
+                ]
+                .concat(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary = execute_test_document(&document, page_id).expect("execute inline image");
+            assert_eq!(summary.fonts.len(), 1);
+            assert_eq!(summary.fonts[0].shown_bytes, b"beforeafter");
+            let ordinary_colors = summary
+                .selected_color_spaces
+                .iter()
+                .filter(|selected| !selected.context.ends_with("/inline image"))
+                .map(|selected| selected.value.as_name().expect("device colour space"))
+                .collect::<Vec<_>>();
+            assert_eq!(ordinary_colors, [b"DeviceRGB".as_slice(), b"DeviceGray"]);
+            assert_eq!(summary.text_language_failures.len(), 2);
+            assert_eq!(summary.untagged_content.len(), 3);
+            assert!(summary.undefined_operators.is_empty());
+        }
+    }
+
+    #[test]
+    fn inline_image_tagging_uses_marked_content_at_each_image_position() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"/Artifact BMC BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI EMC\n\
+              BI /W 1 /H 1 /CS /RGB /BPC 8 /F /LZW /I true /Intent /Invalid ID x EI\n\
+              /Artifact BMC BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI EMC\n"
+                .to_vec(),
+        ));
+        document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page")
+            .set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute inline images");
+        assert_eq!(summary.untagged_content.len(), 1);
+        assert!(
+            summary.untagged_content[0]
+                .description
+                .contains("inline image")
+        );
+        assert!(summary.inline_image_lzw_context.is_some());
+        assert!(summary.inline_image_invalid_filter_context.is_some());
+        assert!(summary.inline_image_interpolate_context.is_some());
+        assert!(summary.invalid_rendering_intents.contains_key("Invalid"));
+        assert_eq!(summary.selected_color_spaces.len(), 1);
+        assert_eq!(
+            summary.selected_color_spaces[0]
+                .value
+                .as_name()
+                .expect("inline image colour space"),
+            b"DeviceRGB"
+        );
+        assert!(summary.undefined_operators.is_empty());
+    }
+
+    #[test]
+    fn source_operators_cannot_be_confused_with_inline_image_markers() {
+        for image in [b"".as_slice(), b" BI /W 1 /H 1 /IM true ID x EI\n"] {
+            let (mut document, page_id) = content_test_document(Dictionary::new());
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                [
+                    image,
+                    b"pageInlineImage pageInlineImagepageInlineImage\n".as_slice(),
+                    image,
+                ]
+                .concat(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary =
+                execute_test_document(&document, page_id).expect("execute source markers");
+            assert_eq!(summary.undefined_operators.len(), 2);
+            assert!(summary.undefined_operators.contains_key("pageInlineImage"));
+            assert!(
+                summary
+                    .undefined_operators
+                    .contains_key("pageInlineImagepageInlineImage")
+            );
+            assert_eq!(
+                summary.untagged_content.len(),
+                2 * usize::from(!image.is_empty())
+            );
+        }
     }
 
     #[test]
