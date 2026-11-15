@@ -1,7 +1,7 @@
 //! Builds the normalized PDF document model and coordinates the private inspection pipeline.
 //!
 //! Preparation indexes raw syntax, loads the object graph with parser bounds, and extracts
-//! catalog and object-level metadata, page identities, output intents, and font summaries. Metadata streams are decoded once per resolved identity. Report locations associate page-owned objects and executed resources with their pages. Staged inspections share
+//! catalog and object-level metadata, page identities, output intents, and font summaries. Metadata streams are decoded once per resolved identity, retaining encoding-check results even when XMP parsing fails. Report locations associate page-owned objects and executed resources with their pages. Staged inspections share
 //! content discovery and profile-specific demand, allowing validation to evaluate findings
 //! incrementally and stop early when only a compliance result is needed.
 
@@ -188,6 +188,8 @@ pub struct PdfDocument {
     #[serde(skip)]
     pub(crate) xmp_object: Option<PdfObjectId>,
     pub(crate) xmp_parse_error: Option<String>,
+    #[serde(skip)]
+    pub(crate) xmp_actual_encoding_is_utf8: Option<bool>,
     #[serde(skip)]
     pub(crate) object_xmp: Vec<XmpExtraction>,
     pub(crate) catalog_metadata: CatalogMetadataStream,
@@ -435,6 +437,7 @@ impl PdfDocument {
             xmp,
             object_id: xmp_object,
             parse_error: xmp_parse_error,
+            actual_encoding_is_utf8: xmp_actual_encoding_is_utf8,
         } = extract_xmp(document, catalog, limits)?;
         let object_xmp = extract_object_xmp(document, catalog, xmp.as_ref(), limits)?;
         let output_intents_summary = extract_output_intents(document, catalog, limits)?;
@@ -463,6 +466,7 @@ impl PdfDocument {
             xmp,
             xmp_object,
             xmp_parse_error,
+            xmp_actual_encoding_is_utf8,
             object_xmp,
             catalog_metadata,
             output_intents_summary,
@@ -988,6 +992,9 @@ pub(crate) struct XmpExtraction {
     pub(crate) xmp: Option<XmpMetadata>,
     pub(crate) object_id: Option<PdfObjectId>,
     pub(crate) parse_error: Option<String>,
+    /// None without a decoded package; false for unknown encoding after parse
+    /// failure as well as successfully parsed non-UTF-8 packages.
+    pub(crate) actual_encoding_is_utf8: Option<bool>,
 }
 
 fn extract_xmp(
@@ -999,6 +1006,7 @@ fn extract_xmp(
         xmp: None,
         object_id: None,
         parse_error: None,
+        actual_encoding_is_utf8: None,
     };
     let Some(catalog) = catalog else {
         return Ok(none());
@@ -1022,6 +1030,7 @@ fn extract_xmp(
                 xmp: None,
                 object_id,
                 parse_error: Some(error.to_string()),
+                actual_encoding_is_utf8: None,
             });
         }
     };
@@ -1045,6 +1054,7 @@ fn decode_xmp(
                 xmp: None,
                 object_id,
                 parse_error: Some(format!("could not decode XMP stream: {error}")),
+                actual_encoding_is_utf8: None,
             });
         }
     };
@@ -1055,6 +1065,7 @@ fn decode_xmp(
     };
     Ok(match parsed {
         Ok(xmp) => XmpExtraction {
+            actual_encoding_is_utf8: Some(xmp.actual_encoding_is_utf8),
             xmp: Some(xmp),
             object_id,
             parse_error: None,
@@ -1063,6 +1074,9 @@ fn decode_xmp(
             xmp: None,
             object_id,
             parse_error: Some(error),
+            // veraPDF exposes null actualEncoding when the XMP model is absent,
+            // even if the malformed XML bytes themselves are valid UTF-8.
+            actual_encoding_is_utf8: Some(false),
         },
     })
 }

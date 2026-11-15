@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Retain the PDF/A-2 and PDF/A-3 XMP encoding diagnostic when catalog or secondary metadata parsing fails [#650](https://github.com/JosephBARBIERDARNAL/page/issues/650)
 - **Fix**: Preserve ordinary colour, font, text, and tagging validation before and after inline images and image masks [#649](https://github.com/JosephBARBIERDARNAL/page/issues/649)
 - **Fix**: Give PDF/UA table column overflows precedence over earlier short rows when selecting the failed rule ID [#647](https://github.com/JosephBARBIERDARNAL/page/issues/647)
 - **Fix**: Preserve usable ToUnicode mappings when unused destinations contain invalid UTF-16, while retaining used-code validation and reserved-value checks [#646](https://github.com/JosephBARBIERDARNAL/page/issues/646)
