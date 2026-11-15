@@ -30,21 +30,81 @@ fn explicit_cid_widths_override_the_pdf_default() {
     }
 }
 
+#[test]
+fn cff_private_widths_are_compared_with_dictionary_widths() {
+    let mut document = Document::load_mem(include_bytes!("fixtures/canonical-pdfa-1b.pdf"))
+        .expect("load CFF subroutine fixture");
+    for dictionary in document
+        .objects
+        .values_mut()
+        .filter_map(|object| object.as_dict_mut().ok())
+    {
+        if dictionary.get(b"Subtype").and_then(Object::as_name).ok()
+            == Some(b"CIDFontType0".as_slice())
+        {
+            dictionary.remove(b"W");
+            dictionary.remove(b"DW");
+        }
+    }
+    let mut bytes = Vec::new();
+    document
+        .save_to(&mut bytes)
+        .expect("save CFF width fixture");
+    for (profile, rule) in [
+        (ValidationProfile::PdfA1b, "ISO 19005-1:2005:6.3.6:1"),
+        (ValidationProfile::PdfA2b, "ISO 19005-2:2011:6.2.11.5:1"),
+        (ValidationProfile::PdfUa1, "ISO 14289-1:2014:7.21.5:1"),
+    ] {
+        let report = validate_pdf_bytes(&bytes, &ValidationOptions::default().profile(profile))
+            .expect("validate CFF subroutine widths");
+        assert!(
+            report
+                .failures
+                .iter()
+                .any(|failure| failure.rule_id == rule)
+        );
+    }
+}
+
 fn assert_cid_width_findings(
     default_matches: Option<bool>,
     widths: Option<Vec<Object>>,
     mismatch: bool,
 ) {
-    for (fixture, subtype, matching_width) in [
+    for (fixture, subtype, matching_width, format3) in [
         (
             "composite_identity_width_mismatch",
             b"CIDFontType2".as_slice(),
             500,
+            false,
         ),
-        ("composite_cff_present_glyph", b"CIDFontType0".as_slice(), 0),
+        (
+            "composite_cff_present_glyph",
+            b"CIDFontType0".as_slice(),
+            0,
+            false,
+        ),
+        (
+            "composite_cff_present_glyph",
+            b"CIDFontType0".as_slice(),
+            0,
+            true,
+        ),
     ] {
         let mut document = Document::load_mem(&common::font_fixture(fixture))
             .expect("load embedded CID font fixture");
+        if format3 {
+            let stream = document
+                .objects
+                .values_mut()
+                .filter_map(|object| object.as_stream_mut().ok())
+                .find(|stream| {
+                    stream.dict.get(b"Subtype").and_then(Object::as_name).ok()
+                        == Some(b"CIDFontType0C".as_slice())
+                })
+                .expect("embedded CFF program");
+            stream.set_plain_content(common::minimal_cidfonttype0c(true, true));
+        }
         let descendant = document
             .objects
             .values_mut()
@@ -77,7 +137,7 @@ fn assert_cid_width_findings(
                     .iter()
                     .any(|failure| failure.rule_id == rule),
                 mismatch,
-                "{fixture}, {profile}: {:?}",
+                "{fixture}, format3={format3}, {profile}: {:?}",
                 report.failures,
             );
         }

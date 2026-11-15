@@ -13979,7 +13979,7 @@ pub fn font_fixture_with_type1_program(
                 dictionary! {
                     "Subtype" => "CIDFontType0C",
                 },
-                minimal_cidfonttype0c(case != "composite_cff_missing_glyph"),
+                minimal_cidfonttype0c(case != "composite_cff_missing_glyph", false),
             )),
         );
         let cid_set = if case == "composite_cff_cidset_missing" {
@@ -16172,7 +16172,7 @@ pub fn minimal_type1c_default_charset(with_space: bool) -> Vec<u8> {
 /// A CID-keyed raw CFF1 program with `.notdef` and, optionally, CID 32.
 /// CID CFF requires ROS, an explicit charset, FDArray, and FDSelect even when
 /// the fixture only needs glyph-to-CID lookup.
-pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
+pub fn minimal_cidfonttype0c(with_cid_32: bool, fd_select_format3: bool) -> Vec<u8> {
     let glyphs = usize::from(with_cid_32) + 1;
     let charstrings_offset = 30usize;
     let charstrings_len = 4 + glyphs * 3;
@@ -16181,7 +16181,7 @@ pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
     let fd_array_offset = charset_offset + charset_len;
     let fd_array_len = 8usize;
     let fd_select_offset = fd_array_offset + fd_array_len;
-    let private_offset = fd_select_offset + 1 + glyphs;
+    let private_offset = fd_select_offset + if fd_select_format3 { 8 } else { 1 + glyphs };
 
     let mut bytes = vec![1, 0, 4, 0]; // header
     bytes.extend_from_slice(&0_u16.to_be_bytes()); // Name INDEX
@@ -16228,8 +16228,13 @@ pub fn minimal_cidfonttype0c(with_cid_32: bool) -> Vec<u8> {
         (private_offset + 139) as u8,
         18, // Private size/offset
     ]);
-    bytes.push(0); // FDSelect format 0
-    bytes.extend(std::iter::repeat_n(0, glyphs));
+    if fd_select_format3 {
+        bytes.extend_from_slice(&[3, 0, 1, 0, 0, 0]); // one range, starting at GID 0, FD 0
+        bytes.extend_from_slice(&(glyphs as u16).to_be_bytes()); // final sentinel
+    } else {
+        bytes.push(0); // FDSelect format 0
+        bytes.extend(std::iter::repeat_n(0, glyphs));
+    }
     bytes.extend_from_slice(&[139, 20, 139, 21]); // defaultWidth and nominalWidth
     bytes
 }

@@ -129,6 +129,7 @@ struct ParsedCffProgram {
     glyph_by_name: HashMap<String, GlyphId>,
     glyph_by_byte: [Option<GlyphId>; 256],
     glyph_by_cid: HashMap<u16, GlyphId>,
+    fd_by_glyph: Option<Vec<u8>>,
 }
 
 struct CachedCffProgram {
@@ -188,6 +189,11 @@ impl CachedCffProgram {
                     glyph_by_name,
                     glyph_by_byte,
                     glyph_by_cid,
+                    fd_by_glyph: if cff.is_cid() {
+                        cff_cid_fd_select(&self.bytes, glyph_count)
+                    } else {
+                        None
+                    },
                 })
             })
             .as_ref()
@@ -1537,7 +1543,15 @@ impl Scanner<'_> {
             let Ok(glyph_id) = u16::try_from(glyph.to_u32()) else {
                 continue;
             };
-            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph_id) else {
+            let Some(&fd_index) = parsed
+                .fd_by_glyph
+                .as_ref()
+                .and_then(|indices| indices.get(usize::from(glyph_id)))
+            else {
+                continue;
+            };
+            let Some(program_width) = cff_cid_glyph_width(&program.bytes, glyph_id, fd_index)
+            else {
                 continue;
             };
             let Some(dictionary_width) = cid_widths.width_for(cid) else {
@@ -4877,36 +4891,34 @@ fn type1_eexec_ciphertext(bytes: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16) -> Option<f64> {
+fn cff_cid_fd_select(bytes: &[u8], glyph_count: usize) -> Option<Vec<u8>> {
     let (_, top_offset) = cff_index(bytes, 4)?;
     let (top_items, _) = cff_index(bytes, top_offset)?;
-    let top = top_items.first().copied()?;
-    let top_dict = cff_dict(top);
-    let charstrings_offset = cff_dict_offset(&top_dict, 17)?;
-    let (charstrings, _) = cff_index(bytes, charstrings_offset)?;
-    let charstring = charstrings.get(usize::from(glyph_id))?;
-    let fd_array_offset = cff_dict_offset(&top_dict, 1236)?;
-    let fd_select_offset = cff_dict_offset(&top_dict, 1237)?;
-    let fd_index = cff_fd_select(bytes, fd_select_offset, glyph_id)?;
-    let (fd_array, _) = cff_index(bytes, fd_array_offset)?;
-    let fd_dict = cff_dict(fd_array.get(usize::from(fd_index))?);
-    let private_values = fd_dict.get(&18)?;
-    let private_size = usize::try_from(private_values.first().copied()? as i64).ok()?;
-    let private_offset = usize::try_from(private_values.get(1).copied()? as i64).ok()?;
-    let private_end = private_offset.checked_add(private_size)?;
-    let private = cff_dict(bytes.get(private_offset..private_end)?);
-    let default_width = private
-        .get(&20)
-        .and_then(|values| values.first().copied())
-        .unwrap_or(0.0);
-    let nominal_width = private
-        .get(&21)
-        .and_then(|values| values.first().copied())
-        .unwrap_or(0.0);
-    let width = cff_charstring_width(charstring, nominal_width, default_width)?;
-    let matrix = top_dict
-        .get(&1207)
-        .and_then(|values| values.first().copied())
+    let top_dict = cff_dict(top_items.first().copied()?);
+    cff_fd_select(bytes, cff_dict_offset(&top_dict, 1237)?, glyph_count)
+}
+
+fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16, fd_index: u8) -> Option<f64> {
+    let cff = CffFontRef::new_cff(bytes, 0, None).ok()?;
+    let subfont = cff.subfont(u16::from(fd_index), &[]).ok()?;
+    let charstring = cff.charstrings().get(usize::from(glyph_id))?;
+    let default_width = f64::from(subfont.default_width().unwrap_or(Fixed::ZERO).to_f32());
+    let nominal_width = f64::from(subfont.nominal_width().to_f32());
+    let width = cff_charstring_width(charstring, nominal_width, default_width).or_else(|| {
+        // Width operands can live inside subroutines. Use the full evaluator
+        // when the first operator does not establish the width directly.
+        cff.evaluate_charstring(
+            &subfont,
+            GlyphId::new(u32::from(glyph_id)),
+            &[],
+            &mut DiscardCharstringCommands,
+        )
+        .ok()?
+        .map(|width| f64::from(width.to_f32()))
+    })?;
+    let matrix = cff
+        .matrix()
+        .map(|matrix| f64::from(matrix.matrix.xx.to_f32()) / f64::from(matrix.scale))
         .unwrap_or(0.001);
     Some(width * matrix * 1000.0)
 }
@@ -4935,25 +4947,20 @@ fn cff_charstring_width(bytes: &[u8], nominal: f64, default: f64) -> Option<f64>
     let mut position = 0usize;
     while position < bytes.len() {
         let byte = *bytes.get(position)?;
-        if let Some((value, consumed)) = cff_number(bytes.get(position..)?) {
+        if byte != 29
+            && let Some((value, consumed)) = cff_number(bytes.get(position..)?)
+        {
             operands.push(value);
             position = position.checked_add(consumed)?;
             continue;
         }
-        let operator = if byte == 12 {
-            let second = *bytes.get(position)?;
-            1200 + u16::from(second)
-        } else {
-            u16::from(byte)
+        let has_width = match byte {
+            14 => operands.len() == 1,
+            4 | 22 => operands.len() == 2,
+            1 | 3 | 18..=21 | 23 => operands.len() % 2 == 1,
+            _ => return None,
         };
-        if operator == 14 {
-            return Some(if operands.len() == 1 {
-                nominal + operands.first().copied().unwrap_or_default()
-            } else {
-                default
-            });
-        }
-        return Some(if operands.len() % 2 == 1 {
+        return Some(if has_width {
             nominal + operands.first().copied().unwrap_or_default()
         } else {
             default
@@ -4962,26 +4969,45 @@ fn cff_charstring_width(bytes: &[u8], nominal: f64, default: f64) -> Option<f64>
     None
 }
 
-fn cff_fd_select(bytes: &[u8], offset: usize, glyph_id: u16) -> Option<u8> {
-    let format = *bytes.get(offset)?;
+// Cache one byte per glyph so width checks never rescan the range table.
+fn cff_fd_select(bytes: &[u8], offset: usize, glyph_count: usize) -> Option<Vec<u8>> {
+    if glyph_count == 0 || glyph_count > usize::from(u16::MAX) {
+        return None;
+    }
+    let bytes = bytes.get(offset..)?;
+    let format = *bytes.first()?;
     match format {
-        0 => bytes
-            .get(offset.checked_add(1 + usize::from(glyph_id))?)
-            .copied(),
+        0 => Some(bytes.get(1..1 + glyph_count)?.to_vec()),
         3 => {
-            let count = u16::from_be_bytes([*bytes.get(offset + 1)?, *bytes.get(offset + 2)?]);
-            let mut position = offset + 3;
-            let mut previous = 0_u16;
-            for _ in 0..count {
-                let first = u16::from_be_bytes([*bytes.get(position)?, *bytes.get(position + 1)?]);
-                let fd = *bytes.get(position + 2)?;
-                if previous <= glyph_id && glyph_id < first {
-                    return Some(fd);
-                }
-                previous = first;
-                position += 3;
+            let count = usize::from(u16::from_be_bytes([*bytes.get(1)?, *bytes.get(2)?]));
+            if count == 0 || count > glyph_count {
+                return None;
             }
-            None
+            let ranges_end = 3 + count * 3;
+            let ranges = bytes.get(3..ranges_end)?;
+            let sentinel = usize::from(u16::from_be_bytes([
+                *bytes.get(ranges_end)?,
+                *bytes.get(ranges_end + 1)?,
+            ]));
+            if sentinel != glyph_count {
+                return None;
+            }
+            let mut indices = Vec::with_capacity(glyph_count);
+            let mut previous_fd = None;
+            for &[high, low, fd] in ranges.as_chunks::<3>().0 {
+                let first = usize::from(u16::from_be_bytes([high, low]));
+                if let Some(fd) = previous_fd {
+                    if first <= indices.len() || first >= sentinel {
+                        return None;
+                    }
+                    indices.resize(first, fd);
+                } else if first != 0 {
+                    return None;
+                }
+                previous_fd = Some(fd);
+            }
+            indices.resize(sentinel, previous_fd?);
+            Some(indices)
         }
         _ => None,
     }
@@ -6632,6 +6658,78 @@ mod tests {
     }
 
     #[test]
+    fn type2_widths_distinguish_move_operands_from_widths() {
+        for operator in [4, 22] {
+            assert_eq!(
+                super::cff_charstring_width(&[149, operator], 500.0, 600.0),
+                Some(600.0)
+            );
+            assert_eq!(
+                super::cff_charstring_width(&[159, 149, operator], 500.0, 600.0),
+                Some(520.0)
+            );
+        }
+    }
+
+    #[test]
+    fn type2_widths_defer_subroutines_to_the_full_evaluator() {
+        for operator in [10, 29, 12] {
+            assert_eq!(
+                super::cff_charstring_width(&[139, operator], 500.0, 600.0),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn cff_fdselect_format0_preserves_per_glyph_indices() {
+        let table = [0, 2, 0, 1];
+        assert_eq!(cff_fd_select(&table, 0, 3), Some(vec![2, 0, 1]));
+        assert_eq!(cff_fd_select(&table, 0, 4), None);
+    }
+
+    #[test]
+    fn cff_fdselect_format3_uses_the_final_sentinel() {
+        // The sentinel consists of two bytes, with no FD byte after it.
+        let table = [3, 0, 1, 0, 0, 7, 0, 4];
+        assert_eq!(cff_fd_select(&table, 0, 4), Some(vec![7; 4]));
+        assert_eq!(cff_fd_select(&table, 0, 3), None);
+        assert_eq!(cff_fd_select(&table, 0, 5), None);
+    }
+
+    #[test]
+    fn cff_fdselect_format3_keeps_each_ranges_fd_at_boundaries() {
+        let table = [3, 0, 3, 0, 0, 7, 0, 2, 4, 0, 5, 9, 0, 7];
+        assert_eq!(cff_fd_select(&table, 0, 7), Some(vec![7, 7, 4, 4, 4, 9, 9]));
+        let mut prefixed = vec![255; 5];
+        prefixed.extend_from_slice(&table);
+        assert_eq!(cff_fd_select(&prefixed, 5, 7), cff_fd_select(&table, 0, 7));
+    }
+
+    #[test]
+    fn cff_fdselect_rejects_invalid_ranges_and_bounds() {
+        for table in [
+            vec![3, 0, 0, 0, 4],                            // no ranges
+            vec![3, 0, 1, 0, 1, 0, 0, 4],                   // first range omits GID 0
+            vec![3, 0, 2, 0, 0, 0, 0, 0, 1, 0, 4],          // duplicate starts
+            vec![3, 0, 3, 0, 0, 0, 0, 2, 1, 0, 1, 2, 0, 4], // decreasing starts
+            vec![3, 0, 2, 0, 0, 0, 0, 4, 1, 0, 4],          // range starts at sentinel
+            vec![3, 0, 2, 0, 0, 0, 0, 5, 1, 0, 4],          // range exceeds sentinel
+            vec![3, 255, 255, 0, 0, 0, 0, 4],               // impossible range count
+            vec![4, 0, 0, 0, 0, 0, 0, 4],                   // unsupported format
+        ] {
+            assert_eq!(cff_fd_select(&table, 0, 4), None, "{table:?}");
+        }
+        let table = [3, 0, 1, 0, 0, 7, 0, 4];
+        for end in 0..table.len() {
+            assert_eq!(cff_fd_select(&table[..end], 0, 4), None);
+        }
+        assert_eq!(cff_fd_select(&table, usize::MAX, 4), None);
+        assert_eq!(cff_fd_select(&table, 0, 0), None);
+        assert_eq!(cff_fd_select(&table, 0, usize::MAX), None);
+    }
+
+    #[test]
     fn parses_type3_d0_and_d1_widths() {
         let limits = SafetyLimits::default();
         for (bytes, expected) in [
@@ -6699,13 +6797,8 @@ mod tests {
             let _ = type1_eexec_ciphertext(truncated);
             let _ = type1_pfb_payload(truncated);
         }
-        // A `cff_fd_select` format-3 range table declaring a huge count
-        // with almost no backing bytes must not hang (same class of bug as
-        // `bounded_cmap_entry_count` guards for CMaps): each iteration's
-        // `bytes.get(...)` bounds check fails immediately once the real
-        // data is exhausted, since `count` is read as a fixed 2-byte `u16`
-        // (capped at 65,535) rather than parsed from unbounded decimal
-        // text.
+        // An impossible range count is rejected before allocating the glyph
+        // mapping or scanning the table, even with almost no backing bytes.
         let huge_count_fd_select = [3u8, 0xFF, 0xFF, 0, 1, 0];
         let started = std::time::Instant::now();
         assert_eq!(cff_fd_select(&huge_count_fd_select, 0, 5), None);

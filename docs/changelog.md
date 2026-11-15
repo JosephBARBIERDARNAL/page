@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Resolve CFF FDSelect format-3 ranges through the final sentinel and cache glyph-to-FD mappings for embedded width checks [#653](https://github.com/JosephBARBIERDARNAL/page/issues/653)
 - **Fix**: Parse page Contents arrays as one logical operation stream while preserving resource limits, cached decoding, and source-object locations [#652](https://github.com/JosephBARBIERDARNAL/page/issues/652)
 - **Fix**: Treat BOM-only Figure and Formula alternate descriptions as empty while preserving non-empty encoded text and whitespace [#651](https://github.com/JosephBARBIERDARNAL/page/issues/651)
 - **Fix**: Retain the PDF/A-2 and PDF/A-3 XMP encoding diagnostic when catalog or secondary metadata parsing fails [#650](https://github.com/JosephBARBIERDARNAL/page/issues/650)
