@@ -2702,10 +2702,12 @@ fn table_grid_spans(
             .rposition(|end| *end > row_index)
             .map_or(0, |column| column.saturating_add(1));
         let cells = direct_structure_kids(document, row, role_map, limits)?;
+        let mut has_table_cell = false;
         for (cell, structure_type) in cells {
             if !matches!(structure_type, b"TH" | b"TD") {
                 continue;
             }
+            has_table_cell = true;
             let (row_span, column_span) = table_cell_spans(document, cell, limits)?;
             let row_end = row_index
                 .checked_add(row_span)
@@ -2738,6 +2740,15 @@ fn table_grid_spans(
                 *end = (*end).max(row_end);
             }
         }
+        if row_index > 0
+            && !has_table_cell
+            && row_width == 0
+            && mismatch.is_none()
+            && expected_columns.is_some_and(|expected| expected > 0)
+            && !column_ends.iter().any(|end| *end > rows.len())
+        {
+            mismatch = Some(TableRowColumnSpanMismatch::MissingColumns);
+        }
         if row_index == 0 {
             expected_columns = Some(row_width);
         } else if !missing_columns
@@ -2754,9 +2765,9 @@ fn table_grid_spans(
     // Short rows belong to the missing-columns rule; row spans fail only when
     // they extend beyond the table's actual rows, even if all columns overrun.
     let row_span_overflow = column_ends.iter().any(|end| *end > rows.len());
-    // Missing columns are diagnosed only after placement succeeds: a later
-    // column overflow, row-span overflow, or separately checked intersection
-    // takes precedence over an earlier short row.
+    // Short rows are diagnosed after placement succeeds, allowing a later
+    // column overflow to take precedence. An empty row has a separate
+    // immediate diagnostic branch above.
     if mismatch.is_none() && !row_span_overflow && missing_columns {
         mismatch = Some(TableRowColumnSpanMismatch::MissingColumns);
     }
@@ -3922,6 +3933,7 @@ mod tests {
         let cases: &[(&[usize], (bool, bool))] = &[
             (&[2, 1, 3], (true, false)),
             (&[2, 1], (false, true)),
+            (&[1, 0, 2], (false, true)),
             (&[2, 3], (true, false)),
             (&[2, 2], (false, false)),
             (&[2, 3, 1], (true, false)),
@@ -3947,6 +3959,40 @@ mod tests {
             .expect("inspect table column spans");
             assert_eq!(actual, *expected, "{row_lengths:?}");
         }
+    }
+
+    #[test]
+    fn carried_rowspans_keep_empty_rows_occupied_before_later_overflow() {
+        let mut document = Document::with_version("1.7");
+        let spanning_cell = document.add_object(dictionary! {
+            "S" => "TD",
+            "A" => dictionary! { "O" => "Table", "RowSpan" => 2 },
+        });
+        let first_row = document.add_object(dictionary! {
+            "S" => "TR", "K" => vec![Object::Reference(spanning_cell)],
+        });
+        let empty_row = document.add_object(dictionary! { "S" => "TR", "K" => vec![] });
+        let later_cells = vec![
+            Object::Reference(document.add_object(dictionary! { "S" => "TD" })),
+            Object::Reference(document.add_object(dictionary! { "S" => "TD" })),
+        ];
+        let later_row = document.add_object(dictionary! { "S" => "TR", "K" => later_cells });
+        let table = dictionary! {
+            "S" => "Table",
+            "K" => vec![
+                Object::Reference(first_row),
+                Object::Reference(empty_row),
+                Object::Reference(later_row),
+            ],
+        };
+        let actual = super::table_row_column_span_mismatches(
+            &document,
+            &table,
+            &Default::default(),
+            &SafetyLimits::default(),
+        )
+        .expect("inspect table column spans");
+        assert_eq!(actual, (true, false));
     }
 
     #[test]

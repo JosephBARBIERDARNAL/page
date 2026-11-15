@@ -1,5 +1,6 @@
 ## Dev
 
+- **Fix**: Select the PDF/UA missing-columns diagnostic immediately for zero-width rows without direct cells while preserving overflow precedence for short rows [#655](https://github.com/JosephBARBIERDARNAL/page/issues/655)
 - **Fix**: Record implicit DeviceGray use only for painted text components and non-empty text-show operations, preserving clipping-only and invisible rendering modes [#654](https://github.com/JosephBARBIERDARNAL/page/issues/654)
 - **Fix**: Resolve CFF FDSelect format-3 ranges through the final sentinel and cache glyph-to-FD mappings for embedded width checks [#653](https://github.com/JosephBARBIERDARNAL/page/issues/653)
 - **Fix**: Parse page Contents arrays as one logical operation stream while preserving resource limits, cached decoding, and source-object locations [#652](https://github.com/JosephBARBIERDARNAL/page/issues/652)

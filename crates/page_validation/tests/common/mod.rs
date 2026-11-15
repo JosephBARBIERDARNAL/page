@@ -4248,6 +4248,7 @@ pub fn pdfua1_rule_7_2_42_fixture(case: &str) -> Vec<u8> {
         "allowed" => vec![vec![2_i64], vec![1, 1]],
         "invalid" => vec![vec![2_i64], vec![1, 1, 1]],
         "short_then_wide" => vec![vec![1_i64, 1], vec![1], vec![1, 1, 1]],
+        "empty_then_wide" => vec![vec![1_i64], vec![], vec![1, 1]],
         "short_only" => vec![vec![1_i64, 1], vec![1]],
         "wide_only" => vec![vec![1_i64, 1], vec![1, 1, 1]],
         "rectangular" => vec![vec![1_i64, 1], vec![1, 1]],
