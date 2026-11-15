@@ -4,6 +4,7 @@
 //! The executor follows page content, Form XObjects, and annotation appearances while tracking
 //! graphics state, text runs, and marked content. Shared resource lookups and decoded-stream
 //! caching avoid repeated work, with limits on decoded bytes, nesting, and Form invocations. Marked content is tagged only when its ParentTree connection reaches the structure root. Exhaustive reporting also records the page using each resource so shared objects can be located across pages.
+//! Page Contents arrays are decoded as one logical byte sequence, retaining stream boundaries for diagnostic attribution.
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -21,6 +22,10 @@ use crate::object_resolution::{
 use crate::page_tree::PageEntry;
 use crate::report::RuleFailure;
 use crate::syntax::{is_pdf_boundary, is_pdf_whitespace};
+
+// lopdf commits to parsing an image dictionary after BI, so a stripped image
+// needs a different operator to keep ordinary operations decodable.
+const INLINE_IMAGE_OPERATOR: &str = "pageInlineImage";
 
 #[derive(Clone, Debug)]
 pub(crate) struct SelectedColorSpace {
@@ -361,24 +366,38 @@ pub(crate) fn check_content_limits(
         let Ok(contents) = page.get(b"Contents") else {
             continue;
         };
-        check_content_streams(
+        collect_content_streams(
             document,
             contents,
             &mut cache,
             limits,
             &mut total_decoded_bytes,
+            &mut Vec::new(),
             0,
         )?;
     }
     Ok(())
 }
 
-fn check_content_streams(
+struct ContentPart {
+    end: usize,
+    object_id: Option<ObjectId>,
+    bytes: Rc<[u8]>,
+}
+
+fn content_object_at(parts: &[ContentPart], offset: usize) -> Option<ObjectId> {
+    parts
+        .get(parts.partition_point(|part| part.end <= offset))
+        .and_then(|part| part.object_id)
+}
+
+fn collect_content_streams(
     document: &Document,
     object: &Object,
     cache: &mut ContentCache,
     limits: &SafetyLimits,
     total_decoded_bytes: &mut usize,
+    parts: &mut Vec<ContentPart>,
     depth: usize,
 ) -> Result<(), PdfError> {
     if depth > limits.max_reference_depth {
@@ -391,18 +410,43 @@ fn check_content_streams(
     match resolved {
         Object::Array(items) => {
             for item in items {
-                check_content_streams(
+                collect_content_streams(
                     document,
                     item,
                     cache,
                     limits,
                     total_decoded_bytes,
+                    parts,
                     depth + 1,
                 )?;
             }
         }
         Object::Stream(stream) => {
-            decode_content_stream_cached(stream, object_id, cache, limits, total_decoded_bytes)?;
+            let bytes = decode_content_stream_cached(
+                stream,
+                object_id,
+                cache,
+                limits,
+                total_decoded_bytes,
+            )?;
+            // Cached streams count once towards decoding, but repeated references
+            // still occupy space in the logical Contents sequence.
+            let end = parts
+                .last()
+                .map_or(0, |part| part.end)
+                .checked_add(usize::from(!parts.is_empty() && !bytes.is_empty()))
+                .and_then(|end| end.checked_add(bytes.len()))
+                .filter(|end| *end <= limits.max_total_decoded_content_size)
+                .ok_or(PdfError::TotalContentDecodeLimit(
+                    limits.max_total_decoded_content_size,
+                ))?;
+            if !bytes.is_empty() {
+                parts.push(ContentPart {
+                    end,
+                    object_id,
+                    bytes,
+                });
+            }
         }
         _ => {}
     }
@@ -684,42 +728,45 @@ impl ContentExecutor<'_> {
         if depth > self.limits.max_reference_depth {
             return Err(PdfError::ReferenceDepth(self.limits.max_reference_depth));
         }
-        let content_id = contents.as_reference().ok();
-        let Some(contents) =
-            resolve_optional(self.document, contents, self.limits.max_reference_depth)?
-        else {
-            return Ok(());
-        };
-        if let Ok(array) = contents.as_array() {
-            for item in array {
-                self.execute_contents(
-                    item,
-                    resource_context,
-                    graphics_state,
-                    graphics_stack,
-                    marked_content,
-                    active_forms,
-                    decoded_bytes,
-                    context,
-                    depth + 1,
-                )?;
-            }
-            return Ok(());
-        }
-        let Ok(stream) = contents.as_stream() else {
-            return Ok(());
-        };
-        let bytes = decode_content_stream_cached(
-            stream,
-            content_id,
+        let mut parts = Vec::new();
+        collect_content_streams(
+            self.document,
+            contents,
             self.cache,
             self.limits,
             decoded_bytes,
+            &mut parts,
+            depth,
         )?;
-        let mut inherited_resource_names = BTreeSet::new();
+        let Some(first) = parts.first() else {
+            return Ok(());
+        };
+        let bytes = if parts.len() == 1 {
+            Cow::Borrowed(first.bytes.as_ref())
+        } else {
+            let mut bytes = Vec::with_capacity(parts.last().map_or(0, |part| part.end));
+            for part in &parts {
+                // Contents members end at lexical-token boundaries. Separate
+                // them so adjacent operators/numbers and trailing comments do
+                // not consume the next member's first token (ISO 32000 Table 30;
+                // whitespace between members is explicit in ISO 32000-2 Table 31).
+                if !bytes.is_empty() {
+                    bytes.push(b'\n');
+                }
+                bytes.extend_from_slice(&part.bytes);
+            }
+            Cow::Owned(bytes)
+        };
+        let mut inherited_resources = BTreeMap::<_, BTreeSet<_>>::new();
         let inline_images = tokenize_inline_images(&bytes);
         let ordinary_content = inline_images.ordinary_content.as_ref();
-        for inline in &inline_images.images {
+        let object_at = |offset| content_object_at(&parts, inline_images.original_offset(offset));
+        let mut inline_image_markers = inline_images.markers.iter();
+        for (inline, offset) in inline_images
+            .images
+            .iter()
+            .zip(&inline_images.image_offsets)
+        {
             if !uncolored_type3_glyph && let Some(name) = &inline.color_space {
                 let _ = self.record_color_space(
                     Object::Name(name.clone()),
@@ -727,7 +774,9 @@ impl ContentExecutor<'_> {
                     page_resources,
                     resources_are_inherited,
                     format!("{context}/inline image"),
-                    &mut inherited_resource_names,
+                    inherited_resources
+                        .entry(content_object_at(&parts, *offset))
+                        .or_default(),
                 )?;
             }
             if inline.has_lzw {
@@ -759,17 +808,22 @@ impl ContentExecutor<'_> {
         if !content_syntax_is_balanced(ordinary_content) {
             return Ok(());
         }
-        inspect_content_syntax_limits(
-            ordinary_content,
-            content_id.map(Into::into),
-            context,
-            &mut self.summary,
-        );
+        inspect_content_syntax_limits(ordinary_content, &object_at, context, &mut self.summary);
         let normalized_content = normalize_digit_suffixed_operators(ordinary_content);
         let Ok(content) = Content::decode(normalized_content.as_ref()) else {
             return Ok(());
         };
+        let mut operator_cursor = 0;
         for operation in content.operations {
+            // Attribute an operation to its operator's stream even when its
+            // operands began in a preceding member of the Contents array.
+            let content_id = if parts.len() == 1 {
+                first.object_id
+            } else {
+                next_operator_offset(ordinary_content, &mut operator_cursor, &operation.operator)
+                    .and_then(&object_at)
+            };
+            let inherited_resource_names = inherited_resources.entry(content_id).or_default();
             for operand in &operation.operands {
                 collect_content_object_limit_findings(
                     operand,
@@ -778,7 +832,9 @@ impl ContentExecutor<'_> {
                     &mut self.summary,
                 );
             }
-            if !is_pdf_1_4_operator(&operation.operator) {
+            let is_inline_image = operation.operator == INLINE_IMAGE_OPERATOR
+                && inline_image_markers.next().copied().unwrap_or(false);
+            if !is_inline_image && !is_pdf_1_4_operator(&operation.operator) {
                 self.summary
                     .undefined_operators
                     .entry(operation.operator.clone())
@@ -822,7 +878,7 @@ impl ContentExecutor<'_> {
                             resources_are_inherited,
                             b"Properties",
                             name,
-                            Some(&mut inherited_resource_names),
+                            Some(&mut *inherited_resource_names),
                         )?
                     } else {
                         Some(properties)
@@ -1056,7 +1112,7 @@ impl ContentExecutor<'_> {
                         page_resources,
                         resources_are_inherited,
                         format!("{context}/{}", operation.operator),
-                        &mut inherited_resource_names,
+                        inherited_resource_names,
                     )?;
                     if operation.operator == "CS" {
                         graphics_state.stroking_pattern = selection.is_pattern;
@@ -1153,7 +1209,7 @@ impl ContentExecutor<'_> {
                         resources_are_inherited,
                         b"ExtGState",
                         name,
-                        Some(&mut inherited_resource_names),
+                        Some(&mut *inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -1214,7 +1270,7 @@ impl ContentExecutor<'_> {
                             resources_are_inherited,
                             b"Font",
                             name,
-                            Some(&mut inherited_resource_names),
+                            Some(&mut *inherited_resource_names),
                         )?
                         .map(|object| SelectedFont {
                             key: resource_key(object, &format!("{context}/Font")),
@@ -1232,9 +1288,22 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "Tj" | "TJ" | "'" | "\"" => {
-                    self.summary.uses_default_gray |=
-                        !graphics_state.nonstroking_color_space_selected;
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
+                    if !shown_bytes.is_empty() {
+                        let type3_font = graphics_state
+                            .font
+                            .as_ref()
+                            .map(|font| is_type3_font(self.document, &font.object, self.limits))
+                            .transpose()?
+                            .unwrap_or(false);
+                        if !type3_font {
+                            let fills = matches!(graphics_state.rendering_mode, 0 | 2 | 4 | 6);
+                            let strokes = matches!(graphics_state.rendering_mode, 1 | 2 | 5 | 6);
+                            self.summary.uses_default_gray |= (fills
+                                && !graphics_state.nonstroking_color_space_selected)
+                                || (strokes && !graphics_state.stroking_color_space_selected);
+                        }
+                    }
                     if !shown_bytes.is_empty() && inspect_pdfua_content {
                         let language_is_determined =
                             marked_content.iter().any(|value| value.lang_present)
@@ -1292,7 +1361,7 @@ impl ContentExecutor<'_> {
                         resources_are_inherited,
                         b"XObject",
                         name,
-                        Some(&mut inherited_resource_names),
+                        Some(&mut *inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -1327,7 +1396,7 @@ impl ContentExecutor<'_> {
                         resources_are_inherited,
                         b"Shading",
                         name,
-                        Some(&mut inherited_resource_names),
+                        Some(&mut *inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -1354,7 +1423,7 @@ impl ContentExecutor<'_> {
                             page_resources,
                             resources_are_inherited,
                             format!("{context}/Shading /{}", String::from_utf8_lossy(name)),
-                            &mut inherited_resource_names,
+                            inherited_resource_names,
                         )?;
                     }
                 }
@@ -1385,7 +1454,7 @@ impl ContentExecutor<'_> {
                         resources_are_inherited,
                         b"Pattern",
                         name,
-                        Some(&mut inherited_resource_names),
+                        Some(&mut *inherited_resource_names),
                     )?
                     else {
                         continue;
@@ -1401,7 +1470,7 @@ impl ContentExecutor<'_> {
                         depth + 1,
                     )?;
                 }
-                "BI" if operation.operands.is_empty() && inspect_pdfua_content => {
+                _ if is_inline_image && operation.operands.is_empty() && inspect_pdfua_content => {
                     self.record_untagged_content(
                         content_id,
                         marked_content,
@@ -1451,7 +1520,10 @@ impl ContentExecutor<'_> {
                 _ => {}
             }
         }
-        if !inherited_resource_names.is_empty() {
+        for (content_id, inherited_resource_names) in inherited_resources {
+            if inherited_resource_names.is_empty() {
+                continue;
+            }
             self.summary.inherited_resources.push(RuleFailure {
                 object_id: content_id.map(Into::into),
                 description: format!(
@@ -2408,13 +2480,14 @@ fn collect_content_object_limit_findings(
 
 fn inspect_content_syntax_limits(
     bytes: &[u8],
-    object_id: Option<PdfObjectId>,
+    object_at: &impl Fn(usize) -> Option<ObjectId>,
     context: &str,
     summary: &mut ContentExecutionSummary,
 ) {
     let mut cursor = 0;
     let mut literal_depth = 0_usize;
     let mut literal_length = 0_usize;
+    let mut literal_object_id = None;
     while cursor < bytes.len() {
         let Some(byte) = bytes.get(cursor).copied() else {
             break;
@@ -2433,7 +2506,7 @@ fn inspect_content_syntax_limits(
                 if literal_depth == 0 {
                     if literal_length > 65_535 {
                         summary.overlong_strings.push(RuleFailure {
-                            object_id,
+                            object_id: literal_object_id,
                             description: format!(
                                 "{context} contains a literal string longer than 65535 bytes"
                             ),
@@ -2441,7 +2514,7 @@ fn inspect_content_syntax_limits(
                     }
                     if literal_length > 32_767 {
                         summary.overlong_strings_pdfa_2.push(RuleFailure {
-                            object_id,
+                            object_id: literal_object_id,
                             description: format!(
                                 "{context} contains a literal string longer than 32767 bytes"
                             ),
@@ -2485,15 +2558,16 @@ fn inspect_content_syntax_limits(
         if byte == b'(' {
             literal_depth = 1;
             literal_length = 0;
+            literal_object_id = object_at(cursor).map(Into::into);
         }
         cursor += 1;
     }
     let mut cursor = 0;
-    while let Some((token, _, next)) = next_content_token(bytes, cursor) {
+    while let Some((token, start, next)) = next_content_token(bytes, cursor) {
         match token {
             ContentToken::Name(name) if name.len() > 127 => {
                 summary.overlong_names.push(RuleFailure {
-                    object_id,
+                    object_id: object_at(start).map(Into::into),
                     description: format!(
                         "{context} contains a name of {} bytes, exceeding the 127-byte limit",
                         name.len()
@@ -2511,7 +2585,7 @@ fn inspect_content_syntax_limits(
                 };
                 if value != 0.0 && value.is_finite() && value.abs() < 1.175e-38 {
                     summary.underflow_reals_pdfa_2.push(RuleFailure {
-                        object_id,
+                        object_id: object_at(start).map(Into::into),
                         description: format!(
                             "{context} contains nonzero real value {value} below the PDF/A-2/3 minimum"
                         ),
@@ -2611,6 +2685,22 @@ fn describe_font(object: &Object, context: &str, name: &[u8]) -> String {
             String::from_utf8_lossy(name)
         ),
     }
+}
+
+fn is_type3_font(
+    document: &Document,
+    object: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(font) = resolve_optional(document, object, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, font, b"Subtype", limits.max_reference_depth)?
+            == Some(b"Type3".as_slice()),
+    )
 }
 
 fn resource<'a>(
@@ -2736,6 +2826,37 @@ struct InlineImage {
 struct InlineImageTokenization<'a> {
     ordinary_content: Cow<'a, [u8]>,
     images: Vec<InlineImage>,
+    // Distinguish generated markers from identical operators in the source.
+    markers: Vec<bool>,
+    image_offsets: Vec<usize>,
+    // Output/input offsets following replacements, for mapping diagnostics
+    // back to the original Contents members without copying a map per byte.
+    source_offsets: Vec<(usize, usize)>,
+}
+
+impl InlineImageTokenization<'_> {
+    fn original_offset(&self, offset: usize) -> usize {
+        let index = self
+            .source_offsets
+            .partition_point(|(output, _)| *output <= offset);
+        index
+            .checked_sub(1)
+            .and_then(|index| self.source_offsets.get(index))
+            .map_or(offset, |&(output, input)| input + (offset - output))
+    }
+}
+
+fn next_operator_offset(bytes: &[u8], cursor: &mut usize, operator: &str) -> Option<usize> {
+    while let Some((token, start, next)) = next_content_token(bytes, *cursor) {
+        *cursor = next;
+        if let ContentToken::Bare(token) = token
+            && (token == operator.as_bytes()
+                || (operator == "n" && matches!(token.as_slice(), b"d0" | b"d1")))
+        {
+            return Some(start);
+        }
+    }
+    None
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -2750,12 +2871,15 @@ enum ContentToken {
 fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
     let mut ordinary_content = None;
     let mut images = Vec::new();
+    let mut markers = Vec::new();
+    let mut image_offsets = Vec::new();
+    let mut source_offsets = Vec::new();
     let mut cursor = 0usize;
     let mut retained = 0usize;
     let mut array_depth = 0usize;
     while cursor < bytes.len() {
         let token_start = cursor;
-        let Some((token, _, next)) = next_content_token(bytes, cursor) else {
+        let Some((token, start, next)) = next_content_token(bytes, cursor) else {
             break;
         };
         cursor = next;
@@ -2779,12 +2903,18 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                                 .extend_from_slice(
                                     bytes.get(retained..token_start).unwrap_or_default(),
                                 );
-                            ordinary_content
+                            let ordinary = ordinary_content
                                 .as_mut()
-                                .expect("ordinary content initialized")
-                                .extend_from_slice(b" BI ");
+                                .expect("ordinary content initialized");
+                            ordinary.push(b' ');
+                            source_offsets.push((ordinary.len(), start));
+                            ordinary.extend_from_slice(INLINE_IMAGE_OPERATOR.as_bytes());
+                            ordinary.push(b' ');
+                            source_offsets.push((ordinary.len(), cursor));
                             retained = cursor;
                             images.push(image);
+                            image_offsets.push(start);
+                            markers.push(true);
                             break;
                         }
                         ContentToken::Name(name) if color_space_value => {
@@ -2834,6 +2964,11 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
                     }
                 }
             }
+            ContentToken::Bare(token)
+                if array_depth == 0 && token == INLINE_IMAGE_OPERATOR.as_bytes() =>
+            {
+                markers.push(false);
+            }
             _ => {}
         }
     }
@@ -2847,6 +2982,9 @@ fn tokenize_inline_images(bytes: &[u8]) -> InlineImageTokenization<'_> {
     InlineImageTokenization {
         ordinary_content,
         images,
+        markers,
+        image_offsets,
+        source_offsets,
     }
 }
 
@@ -3209,7 +3347,7 @@ mod tests {
         assert_eq!(tokenized.images.len(), 1);
         assert_eq!(
             tokenized.ordinary_content.as_ref(),
-            b" BI \n1 2 MaiUnknown\n".as_slice()
+            b" pageInlineImage \n1 2 MaiUnknown\n".as_slice()
         );
     }
 
@@ -3219,7 +3357,7 @@ mod tests {
             tokenize_inline_images(b"q BI /W 1 /H 1 ID x EI Q BI /W 1 /H 1 ID y EI /Im Do")
                 .ordinary_content
                 .as_ref(),
-            b"q BI  Q BI  /Im Do".as_slice()
+            b"q pageInlineImage  Q pageInlineImage  /Im Do".as_slice()
         );
     }
 
@@ -3229,8 +3367,123 @@ mod tests {
             tokenize_inline_images(b"BI /W 1 /H 1 ID x EI/Q")
                 .ordinary_content
                 .as_ref(),
-            b" BI /Q".as_slice()
+            b" pageInlineImage /Q".as_slice()
         );
+    }
+
+    #[test]
+    fn ordinary_operations_execute_before_and_after_inline_images_and_masks() {
+        for image in [
+            b"BI /W 1 /H 1 /CS /RGB /BPC 8 ID \xff\x00\x00 EI\n".as_slice(),
+            b"BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI\n".as_slice(),
+        ] {
+            let (mut document, page_id) = content_test_document(dictionary! {
+                "Font" => dictionary! { "F1" => dictionary! {
+                    "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+                } },
+            });
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                [
+                    b"1 0 0 rg BT /F1 12 Tf (before) Tj ET\n".as_slice(),
+                    image,
+                    b"0 G BT (after) Tj ET\n".as_slice(),
+                ]
+                .concat(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary = execute_test_document(&document, page_id).expect("execute inline image");
+            assert_eq!(summary.fonts.len(), 1);
+            assert_eq!(summary.fonts[0].shown_bytes, b"beforeafter");
+            let ordinary_colors = summary
+                .selected_color_spaces
+                .iter()
+                .filter(|selected| !selected.context.ends_with("/inline image"))
+                .map(|selected| selected.value.as_name().expect("device colour space"))
+                .collect::<Vec<_>>();
+            assert_eq!(ordinary_colors, [b"DeviceRGB".as_slice(), b"DeviceGray"]);
+            assert_eq!(summary.text_language_failures.len(), 2);
+            assert_eq!(summary.untagged_content.len(), 3);
+            assert!(summary.undefined_operators.is_empty());
+        }
+    }
+
+    #[test]
+    fn inline_image_tagging_uses_marked_content_at_each_image_position() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"/Artifact BMC BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI EMC\n\
+              BI /W 1 /H 1 /CS /RGB /BPC 8 /F /LZW /I true /Intent /Invalid ID x EI\n\
+              /Artifact BMC BI /W 1 /H 1 /IM true /BPC 1 ID \x80 EI EMC\n"
+                .to_vec(),
+        ));
+        document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page")
+            .set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute inline images");
+        assert_eq!(summary.untagged_content.len(), 1);
+        assert!(
+            summary.untagged_content[0]
+                .description
+                .contains("inline image")
+        );
+        assert!(summary.inline_image_lzw_context.is_some());
+        assert!(summary.inline_image_invalid_filter_context.is_some());
+        assert!(summary.inline_image_interpolate_context.is_some());
+        assert!(summary.invalid_rendering_intents.contains_key("Invalid"));
+        assert_eq!(summary.selected_color_spaces.len(), 1);
+        assert_eq!(
+            summary.selected_color_spaces[0]
+                .value
+                .as_name()
+                .expect("inline image colour space"),
+            b"DeviceRGB"
+        );
+        assert!(summary.undefined_operators.is_empty());
+    }
+
+    #[test]
+    fn source_operators_cannot_be_confused_with_inline_image_markers() {
+        for image in [b"".as_slice(), b" BI /W 1 /H 1 /IM true ID x EI\n"] {
+            let (mut document, page_id) = content_test_document(Dictionary::new());
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                [
+                    image,
+                    b"pageInlineImage pageInlineImagepageInlineImage\n".as_slice(),
+                    image,
+                ]
+                .concat(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary =
+                execute_test_document(&document, page_id).expect("execute source markers");
+            assert_eq!(summary.undefined_operators.len(), 2);
+            assert!(summary.undefined_operators.contains_key("pageInlineImage"));
+            assert!(
+                summary
+                    .undefined_operators
+                    .contains_key("pageInlineImagepageInlineImage")
+            );
+            assert_eq!(
+                summary.untagged_content.len(),
+                2 * usize::from(!image.is_empty())
+            );
+        }
     }
 
     #[test]
@@ -3254,6 +3507,171 @@ mod tests {
             .map(|selected| selected.value.as_name().expect("device name"))
             .collect::<Vec<_>>();
         assert_eq!(names, vec![b"DeviceRGB".as_slice(), b"DeviceCMYK"]);
+    }
+
+    #[test]
+    fn split_operands_preserve_font_marked_content_and_saved_graphics_state() {
+        let (mut document, page_id) = content_test_document(dictionary! {
+            "Font" => dictionary! { "F1" => dictionary! {
+                "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+            } },
+        });
+        let chunks = [
+            b"/Artifact <</Lang (en)>> BDC q BT /F1 ".as_slice(),
+            b"12 Tf [(A)",
+            b"(B)]",
+            b"TJ (C) Tj ET Q EMC BT (D) Tj ET",
+        ];
+        let streams = chunks.map(|bytes| {
+            let mut stream = Stream::new(Dictionary::new(), bytes.to_vec());
+            stream.compress().expect("compress content");
+            document.add_object(stream)
+        });
+        let contents = document.add_object(Object::Array(
+            streams.iter().copied().map(Object::Reference).collect(),
+        ));
+        document
+            .get_dictionary_mut(page_id)
+            .expect("page")
+            .set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute split operations");
+        assert_eq!(summary.fonts.len(), 1);
+        assert_eq!(summary.fonts[0].shown_bytes, b"ABC");
+        assert_eq!(summary.untagged_content.len(), 1);
+        assert_eq!(
+            summary.untagged_content[0].object_id,
+            Some(streams[3].into())
+        );
+        assert_eq!(summary.text_language_failures.len(), 1);
+        assert!(summary.undefined_operators.is_empty());
+    }
+
+    #[test]
+    fn contents_boundaries_separate_tokens_and_comments_without_changing_strings() {
+        let (mut document, page_id) = content_test_document(dictionary! {
+            "Font" => dictionary! { "F1" => dictionary! {
+                "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+            } },
+        });
+        let streams = [
+            b"q % trailing comment".as_slice(),
+            b"Q",
+            b"q 0.5",
+            b"",
+            b"0.5 0.5 rg BT /F1",
+            b"12 Tf [(A\\(B\\))",
+            b"0 (C)]TJ ET Q",
+        ]
+        .map(|bytes| {
+            Object::Reference(document.add_object(Stream::new(Dictionary::new(), bytes.to_vec())))
+        });
+        document
+            .get_dictionary_mut(page_id)
+            .expect("page")
+            .set("Contents", streams.to_vec());
+
+        let summary = execute_test_document(&document, page_id).expect("execute token boundaries");
+        assert!(summary.undefined_operators.is_empty());
+        assert_eq!(summary.fonts.len(), 1);
+        assert_eq!(summary.fonts[0].shown_bytes, b"A(B)C");
+        assert_eq!(summary.selected_color_spaces.len(), 1);
+    }
+
+    #[test]
+    fn split_inline_images_preserve_operation_and_syntax_locations() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let first = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"BI /W 1 /H 1 /IM true ID x ".to_vec(),
+        ));
+        let second = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"EI BT (text) Tj ET\n".to_vec(),
+        ));
+        let third = document.add_object(Stream::new(
+            Dictionary::new(),
+            [
+                b"/".as_slice(),
+                &[b'a'; 128],
+                b" 0.0000000000000000000000000000000000000001 (more) Tj",
+            ]
+            .concat(),
+        ));
+        document.get_dictionary_mut(page_id).expect("page").set(
+            "Contents",
+            vec![Object::Reference(first), second.into(), third.into()],
+        );
+
+        let summary =
+            execute_test_document(&document, page_id).expect("execute split inline image");
+        let objects = summary
+            .untagged_content
+            .iter()
+            .map(|failure| failure.object_id)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            objects,
+            [Some(first.into()), Some(second.into()), Some(third.into())]
+        );
+        assert_eq!(summary.overlong_names[0].object_id, Some(third.into()));
+        assert_eq!(
+            summary.underflow_reals_pdfa_2[0].object_id,
+            Some(third.into())
+        );
+    }
+
+    #[test]
+    fn joined_content_obeys_stream_and_total_limits_with_cached_members() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let stream = document.add_object(Stream::new(Dictionary::new(), b"0 g ".to_vec()));
+        for (copies, stream_limit, total_limit, succeeds) in
+            [(3, 4, 14, true), (3, 3, 14, false), (4, 4, 14, false)]
+        {
+            document
+                .get_dictionary_mut(page_id)
+                .expect("page")
+                .set("Contents", vec![Object::Reference(stream); copies]);
+            let limits = SafetyLimits {
+                max_decoded_stream_size: stream_limit,
+                max_total_decoded_content_size: total_limit,
+                ..SafetyLimits::default()
+            };
+            let result = execute_content(
+                &document,
+                &[PageEntry::Indirect(page_id)],
+                &mut ContentCache::new(),
+                &BTreeSet::new(),
+                &limits,
+                true,
+            );
+            let preflight =
+                super::check_content_limits(&document, &[PageEntry::Indirect(page_id)], &limits);
+            if succeeds {
+                let summary = result.expect("joined bytes may exceed the individual stream limit");
+                assert_eq!(summary.decoded_content_bytes, 4);
+                assert_eq!(summary.selected_color_spaces.len(), copies);
+                preflight.expect("preflight accepts bounded joined content");
+            } else if stream_limit == 3 {
+                assert!(matches!(
+                    result,
+                    Err(crate::PdfError::ContentDecodeLimit(3))
+                ));
+                assert!(matches!(
+                    preflight,
+                    Err(crate::PdfError::ContentDecodeLimit(3))
+                ));
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(crate::PdfError::TotalContentDecodeLimit(14))
+                ));
+                assert!(matches!(
+                    preflight,
+                    Err(crate::PdfError::TotalContentDecodeLimit(14))
+                ));
+            }
+        }
     }
 
     #[test]
@@ -3799,6 +4217,95 @@ mod tests {
             "Resources" => resources,
         });
         (document, page_id)
+    }
+
+    #[test]
+    fn default_gray_text_use_follows_rendering_mode_and_shown_bytes() {
+        for (mode, paints) in [
+            (0, true),
+            (1, true),
+            (2, true),
+            (3, false),
+            (4, true),
+            (5, true),
+            (6, true),
+            (7, false),
+        ] {
+            let (mut document, page_id) = content_test_document(Dictionary::new());
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                format!("BT {mode} Tr (A) Tj ET").into_bytes(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary = execute_test_document(&document, page_id).expect("execute text");
+            assert_eq!(summary.uses_default_gray, paints, "rendering mode {mode}");
+        }
+
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let contents =
+            document.add_object(Stream::new(Dictionary::new(), b"BT 0 Tr () Tj ET".to_vec()));
+        document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page")
+            .set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute empty text");
+        assert!(!summary.uses_default_gray);
+    }
+
+    #[test]
+    fn filling_type3_glyph_uses_its_calibrated_fill_without_defaulting_its_stroke() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let char_proc_id = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"1000 0 d0\n0 0 10 10 re f\n".to_vec(),
+        ));
+        let font_id = document.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type3",
+            "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+            "FontMatrix" => vec![
+                0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+            ],
+            "CharProcs" => dictionary! {"g1" => char_proc_id},
+            "Encoding" => dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+            },
+            "FirstChar" => 65,
+            "LastChar" => 65,
+            "Widths" => vec![1000.into()],
+        });
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"/Cal cs BT /T3 12 Tf 1 Tr (A) Tj ET\n".to_vec(),
+        ));
+        let page = document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {
+                "Font" => dictionary! {"T3" => font_id},
+                "ColorSpace" => dictionary! {
+                    "Cal" => vec![
+                        Object::Name(b"CalGray".to_vec()),
+                        dictionary! {"WhitePoint" => vec![1.into(), 1.into(), 1.into()]}.into(),
+                    ],
+                },
+            },
+        );
+        page.set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute Type3 glyph");
+        assert!(!summary.uses_default_gray);
     }
 
     fn execute_test_document(

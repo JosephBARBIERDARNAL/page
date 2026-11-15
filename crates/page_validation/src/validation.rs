@@ -536,7 +536,7 @@ fn has_preflight_failure(
     {
         return true;
     }
-    if profile.is_pdfa_2_or_3() && !xmp.actual_encoding_is_utf8 {
+    if profile.is_pdfa_2_or_3() && document.xmp_actual_encoding_is_utf8 == Some(false) {
         return true;
     }
     if !xmp.invalid_predefined_xmp_properties.is_empty()
@@ -1663,6 +1663,7 @@ fn collect_validation_failures(
         profile,
         document.xmp.as_ref(),
         &document.xmp_parse_error,
+        document.xmp_actual_encoding_is_utf8,
         document.xmp_object,
         &mut failures,
     );
@@ -1672,6 +1673,7 @@ fn collect_validation_failures(
                 profile,
                 package.xmp.as_ref(),
                 &package.parse_error,
+                package.actual_encoding_is_utf8,
                 package.object_id,
                 &mut failures,
             );
@@ -2242,6 +2244,7 @@ fn validate_xmp_package(
     profile: ValidationProfile,
     xmp: Option<&crate::metadata::XmpMetadata>,
     parse_error: &Option<String>,
+    actual_encoding_is_utf8: Option<bool>,
     object_id: Option<PdfObjectId>,
     failures: &mut ValidationFailures,
 ) {
@@ -2270,7 +2273,7 @@ fn validate_xmp_package(
             FailureCategory::Metadata,
         ));
     }
-    if profile.is_pdfa_2_or_3() && xmp.is_some_and(|xmp| !xmp.actual_encoding_is_utf8) {
+    if profile.is_pdfa_2_or_3() && actual_encoding_is_utf8 == Some(false) {
         failures.push(failure(
             iso_pdfa_rule_id!(profile, "", "6.6.2.1:5", "6.6.2.1:5"),
             "the XMP package must be encoded as UTF-8",
@@ -4400,6 +4403,59 @@ mod tests {
         .expect("explicit profile validation");
 
         assert_rule(&report, "ISO 19005-2:2011:6.6.2.1:5");
+    }
+
+    #[test]
+    fn pdfa_2_and_3_retain_encoding_failures_for_unparseable_xmp_packages() {
+        let utf16 = VALID_XMP
+            .iter()
+            .flat_map(|byte| [*byte, 0])
+            .collect::<Vec<_>>();
+        for profile in [
+            ValidationProfile::PdfA2a,
+            ValidationProfile::PdfA2b,
+            ValidationProfile::PdfA2u,
+            ValidationProfile::PdfA3a,
+            ValidationProfile::PdfA3b,
+            ValidationProfile::PdfA3u,
+        ] {
+            let serialization_rule =
+                iso_pdfa_rule_id!(profile, "", "6.6.2.1:4", "6.6.2.1:4").unwrap();
+            let encoding_rule = iso_pdfa_rule_id!(profile, "", "6.6.2.1:5", "6.6.2.1:5").unwrap();
+            let options = ValidationOptions::default().profile(profile);
+            for (xmp, invalid_serialization, invalid_encoding) in [
+                (b"<rdf:RDF>".as_slice(), true, true),
+                (b"\xff\xfe\0\0bad".as_slice(), true, true),
+                (VALID_XMP, false, false),
+                (utf16.as_slice(), false, true),
+            ] {
+                for secondary in [false, true] {
+                    let bytes = if secondary {
+                        fixture_with_object_xmp(Some(VALID_XMP), xmp).0
+                    } else {
+                        fixture(Some(xmp), true)
+                    };
+                    let report = validate_pdf_bytes(&bytes, &options).unwrap();
+                    for (rule, expected) in [
+                        (serialization_rule, invalid_serialization),
+                        (encoding_rule, invalid_encoding),
+                    ] {
+                        if expected {
+                            assert_rule(&report, rule);
+                        } else {
+                            assert_no_rule(&report, rule);
+                        }
+                    }
+                    assert_eq!(
+                        is_pdf_compliant_bytes(&bytes, &options).unwrap(),
+                        report.is_compliant
+                    );
+                }
+            }
+            let report = validate_pdf_bytes(&fixture(None, true), &options).unwrap();
+            assert_no_rule(&report, serialization_rule);
+            assert_no_rule(&report, encoding_rule);
+        }
     }
 
     #[test]

@@ -1,5 +1,12 @@
 ## Dev
 
+- **Fix**: Select the PDF/UA missing-columns diagnostic immediately for zero-width rows without direct cells while preserving overflow precedence for short rows [#655](https://github.com/JosephBARBIERDARNAL/page/issues/655)
+- **Fix**: Record implicit DeviceGray use only for painted text components and non-empty text-show operations, preserving clipping-only and invisible rendering modes [#654](https://github.com/JosephBARBIERDARNAL/page/issues/654)
+- **Fix**: Resolve CFF FDSelect format-3 ranges through the final sentinel and cache glyph-to-FD mappings for embedded width checks [#653](https://github.com/JosephBARBIERDARNAL/page/issues/653)
+- **Fix**: Parse page Contents arrays as one logical operation stream while preserving resource limits, cached decoding, and source-object locations [#652](https://github.com/JosephBARBIERDARNAL/page/issues/652)
+- **Fix**: Treat BOM-only Figure and Formula alternate descriptions as empty while preserving non-empty encoded text and whitespace [#651](https://github.com/JosephBARBIERDARNAL/page/issues/651)
+- **Fix**: Retain the PDF/A-2 and PDF/A-3 XMP encoding diagnostic when catalog or secondary metadata parsing fails [#650](https://github.com/JosephBARBIERDARNAL/page/issues/650)
+- **Fix**: Preserve ordinary colour, font, text, and tagging validation before and after inline images and image masks [#649](https://github.com/JosephBARBIERDARNAL/page/issues/649)
 - **Fix**: Give PDF/UA table column overflows precedence over earlier short rows when selecting the failed rule ID [#647](https://github.com/JosephBARBIERDARNAL/page/issues/647)
 - **Fix**: Preserve usable ToUnicode mappings when unused destinations contain invalid UTF-16, while retaining used-code validation and reserved-value checks [#646](https://github.com/JosephBARBIERDARNAL/page/issues/646)
 - **Fix**: Load compressed objects from older hybrid cross-reference sections while preserving newer revisions and safety limits [#645](https://github.com/JosephBARBIERDARNAL/page/issues/645)

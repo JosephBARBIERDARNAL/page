@@ -6,6 +6,7 @@ const RULE: &str = "ISO 14289-1:2014:7.2:42";
 fn reports_column_overflow_in_preference_to_missing_columns() {
     for (case, expected_overflow, expected_missing) in [
         ("short_then_wide", true, false),
+        ("empty_then_wide", false, true),
         ("short_only", false, true),
         ("wide_only", true, false),
         ("rectangular", false, false),
