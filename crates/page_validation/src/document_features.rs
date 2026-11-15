@@ -3553,10 +3553,17 @@ fn has_non_empty_text_attribute(
     let Some(value) = dictionary.get(key).ok() else {
         return Ok(false);
     };
-    Ok(matches!(
-        resolve_optional(document, value, limits.max_reference_depth)?,
-        Some(Object::String(bytes, _)) if !bytes.is_empty()
-    ))
+    let Some(Object::String(bytes, _)) =
+        resolve_optional(document, value, limits.max_reference_depth)?
+    else {
+        return Ok(false);
+    };
+    // Match decode_verapdf_pdf_string's encoding markers without allocating decoded text.
+    let text_bytes = bytes
+        .strip_prefix(&[0xFE, 0xFF])
+        .or_else(|| bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]))
+        .unwrap_or(bytes);
+    Ok(!text_bytes.is_empty())
 }
 
 fn non_empty_text_attribute_bytes(
@@ -3724,6 +3731,71 @@ mod tests {
 
     use super::{FeatureDemand, inspect};
     use crate::{PdfError, SafetyLimits};
+
+    #[test]
+    fn alternative_text_uses_decoded_pdf_string_emptiness() {
+        let cases: &[(&[u8], bool)] = &[
+            (b"", true),
+            (b"\xFE\xFF", true),
+            (b"\xEF\xBB\xBF", true),
+            (b"A description", false),
+            (b"\xFE\xFF\0A", false),
+            (b"\xEF\xBB\xBFA", false),
+            (b" \t\n", false),
+            (b"\xFE\xFF\0 ", false),
+            (b"\xFE\xFF\xFE\xFF", false),
+            (b"\xFE\xFF\0", false),
+        ];
+        for (role, standard_type) in [
+            ("Figure", "Figure"),
+            ("InlineShape", "Figure"),
+            ("Formula", "Formula"),
+            ("Math", "Formula"),
+        ] {
+            for (bytes, expected_missing) in cases {
+                for indirect in [false, true] {
+                    let mut document = Document::with_version("1.7");
+                    let alt = Object::String(bytes.to_vec(), lopdf::StringFormat::Hexadecimal);
+                    let alt = if indirect {
+                        Object::Reference(document.add_object(alt))
+                    } else {
+                        alt
+                    };
+                    let element = document.add_object(dictionary! { "S" => role, "Alt" => alt });
+                    let root = document.add_object(dictionary! {
+                        "K" => element,
+                        "RoleMap" => dictionary! { "InlineShape" => "Figure", "Math" => "Formula" },
+                    });
+                    let catalog = dictionary! { "StructTreeRoot" => root };
+                    let summary = super::inspect_structure_tree(
+                        &document,
+                        &catalog,
+                        &SafetyLimits::default(),
+                        FeatureDemand::for_profile(crate::validation::ValidationProfile::PdfUa1),
+                    )
+                    .expect("inspect alternative text");
+                    let failures = if standard_type == "Figure" {
+                        &summary.figure_elements_missing_alternative_text
+                    } else {
+                        &summary.formula_elements_missing_alternative_text
+                    };
+                    let locations = failures
+                        .iter()
+                        .map(|failure| failure.object_id)
+                        .collect::<Vec<_>>();
+                    let expected = if *expected_missing {
+                        vec![Some(element.into())]
+                    } else {
+                        Vec::new()
+                    };
+                    assert_eq!(
+                        locations, expected,
+                        "{role}, {bytes:?}, indirect: {indirect}"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn mixed_heading_failures_preserve_each_resolved_heading_location() {
