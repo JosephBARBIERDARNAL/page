@@ -1079,6 +1079,13 @@
 
 <h2 id="dev">Dev<a class="headerlink" href="#dev" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Fix</strong>: Select the PDF/UA missing-columns diagnostic immediately for zero-width rows without direct cells while preserving overflow precedence for short rows <a href="https://github.com/JosephBARBIERDARNAL/page/issues/655">#655</a></li>
+<li><strong>Fix</strong>: Record implicit DeviceGray use only for painted text components and non-empty text-show operations, preserving clipping-only and invisible rendering modes <a href="https://github.com/JosephBARBIERDARNAL/page/issues/654">#654</a></li>
+<li><strong>Fix</strong>: Resolve CFF FDSelect format-3 ranges through the final sentinel and cache glyph-to-FD mappings for embedded width checks <a href="https://github.com/JosephBARBIERDARNAL/page/issues/653">#653</a></li>
+<li><strong>Fix</strong>: Parse page Contents arrays as one logical operation stream while preserving resource limits, cached decoding, and source-object locations <a href="https://github.com/JosephBARBIERDARNAL/page/issues/652">#652</a></li>
+<li><strong>Fix</strong>: Treat BOM-only Figure and Formula alternate descriptions as empty while preserving non-empty encoded text and whitespace <a href="https://github.com/JosephBARBIERDARNAL/page/issues/651">#651</a></li>
+<li><strong>Fix</strong>: Retain the PDF/A-2 and PDF/A-3 XMP encoding diagnostic when catalog or secondary metadata parsing fails <a href="https://github.com/JosephBARBIERDARNAL/page/issues/650">#650</a></li>
+<li><strong>Fix</strong>: Preserve ordinary colour, font, text, and tagging validation before and after inline images and image masks <a href="https://github.com/JosephBARBIERDARNAL/page/issues/649">#649</a></li>
 <li><strong>Fix</strong>: Give PDF/UA table column overflows precedence over earlier short rows when selecting the failed rule ID <a href="https://github.com/JosephBARBIERDARNAL/page/issues/647">#647</a></li>
 <li><strong>Fix</strong>: Preserve usable ToUnicode mappings when unused destinations contain invalid UTF-16, while retaining used-code validation and reserved-value checks <a href="https://github.com/JosephBARBIERDARNAL/page/issues/646">#646</a></li>
 <li><strong>Fix</strong>: Load compressed objects from older hybrid cross-reference sections while preserving newer revisions and safety limits <a href="https://github.com/JosephBARBIERDARNAL/page/issues/645">#645</a></li>
