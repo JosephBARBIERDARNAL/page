@@ -4907,14 +4907,15 @@ fn cff_cid_glyph_width(bytes: &[u8], glyph_id: u16, fd_index: u8) -> Option<f64>
     let width = cff_charstring_width(charstring, nominal_width, default_width).or_else(|| {
         // Width operands can live inside subroutines. Use the full evaluator
         // when the first operator does not establish the width directly.
-        cff.evaluate_charstring(
-            &subfont,
-            GlyphId::new(u32::from(glyph_id)),
-            &[],
-            &mut DiscardCharstringCommands,
-        )
-        .ok()?
-        .map(|width| f64::from(width.to_f32()))
+        let width = cff
+            .evaluate_charstring(
+                &subfont,
+                GlyphId::new(u32::from(glyph_id)),
+                &[],
+                &mut DiscardCharstringCommands,
+            )
+            .ok()?;
+        Some(f64::from(width.unwrap_or(Fixed::ZERO).to_f32()))
     })?;
     let matrix = cff
         .matrix()

@@ -1290,11 +1290,19 @@ impl ContentExecutor<'_> {
                 "Tj" | "TJ" | "'" | "\"" => {
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
                     if !shown_bytes.is_empty() {
-                        let fills = matches!(graphics_state.rendering_mode, 0 | 2 | 4 | 6);
-                        let strokes = matches!(graphics_state.rendering_mode, 1 | 2 | 5 | 6);
-                        self.summary.uses_default_gray |= (fills
-                            && !graphics_state.nonstroking_color_space_selected)
-                            || (strokes && !graphics_state.stroking_color_space_selected);
+                        let type3_font = graphics_state
+                            .font
+                            .as_ref()
+                            .map(|font| is_type3_font(self.document, &font.object, self.limits))
+                            .transpose()?
+                            .unwrap_or(false);
+                        if !type3_font {
+                            let fills = matches!(graphics_state.rendering_mode, 0 | 2 | 4 | 6);
+                            let strokes = matches!(graphics_state.rendering_mode, 1 | 2 | 5 | 6);
+                            self.summary.uses_default_gray |= (fills
+                                && !graphics_state.nonstroking_color_space_selected)
+                                || (strokes && !graphics_state.stroking_color_space_selected);
+                        }
                     }
                     if !shown_bytes.is_empty() && inspect_pdfua_content {
                         let language_is_determined =
@@ -2677,6 +2685,22 @@ fn describe_font(object: &Object, context: &str, name: &[u8]) -> String {
             String::from_utf8_lossy(name)
         ),
     }
+}
+
+fn is_type3_font(
+    document: &Document,
+    object: &Object,
+    limits: &SafetyLimits,
+) -> Result<bool, PdfError> {
+    let Some(font) = resolve_optional(document, object, limits.max_reference_depth)?
+        .and_then(|object| object.as_dict().ok())
+    else {
+        return Ok(false);
+    };
+    Ok(
+        resolved_name(document, font, b"Subtype", limits.max_reference_depth)?
+            == Some(b"Type3".as_slice()),
+    )
 }
 
 fn resource<'a>(
@@ -4232,6 +4256,55 @@ mod tests {
             .set("Contents", contents);
 
         let summary = execute_test_document(&document, page_id).expect("execute empty text");
+        assert!(!summary.uses_default_gray);
+    }
+
+    #[test]
+    fn filling_type3_glyph_uses_its_calibrated_fill_without_defaulting_its_stroke() {
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let char_proc_id = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"1000 0 d0\n0 0 10 10 re f\n".to_vec(),
+        ));
+        let font_id = document.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type3",
+            "FontBBox" => vec![0.into(), 0.into(), 1000.into(), 1000.into()],
+            "FontMatrix" => vec![
+                0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+            ],
+            "CharProcs" => dictionary! {"g1" => char_proc_id},
+            "Encoding" => dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![65.into(), Object::Name(b"g1".to_vec())],
+            },
+            "FirstChar" => 65,
+            "LastChar" => 65,
+            "Widths" => vec![1000.into()],
+        });
+        let contents = document.add_object(Stream::new(
+            Dictionary::new(),
+            b"/Cal cs BT /T3 12 Tf 1 Tr (A) Tj ET\n".to_vec(),
+        ));
+        let page = document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page");
+        page.set(
+            "Resources",
+            dictionary! {
+                "Font" => dictionary! {"T3" => font_id},
+                "ColorSpace" => dictionary! {
+                    "Cal" => vec![
+                        Object::Name(b"CalGray".to_vec()),
+                        dictionary! {"WhitePoint" => vec![1.into(), 1.into(), 1.into()]}.into(),
+                    ],
+                },
+            },
+        );
+        page.set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute Type3 glyph");
         assert!(!summary.uses_default_gray);
     }
 
