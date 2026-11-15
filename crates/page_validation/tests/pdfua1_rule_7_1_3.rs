@@ -87,6 +87,48 @@ fn assert_untagged(document: &mut Document, expected: bool, case: &str) {
 }
 
 #[test]
+fn contents_arrays_keep_tagging_across_split_text_arrays_and_operations() {
+    for chunks in [
+        vec![
+            b"/P <</MCID 0>> BDC BT /F1 12 Tf [(A)".as_slice(),
+            b"(B)] TJ",
+            b" (C) Tj ET EMC",
+        ],
+        vec![
+            b"/P <</MCID ".as_slice(),
+            b"0>>",
+            b" BDC BT /F1 ",
+            b"12 Tf [(A)(B)] ",
+            b"TJ (C) Tj ET EMC",
+        ],
+    ] {
+        let (mut document, page, ..) = tagged_content_document(b"");
+        let streams = chunks
+            .iter()
+            .map(|bytes| {
+                let stream = document.add_object(Stream::new(Dictionary::new(), bytes.to_vec()));
+                Object::Reference(stream)
+            })
+            .collect::<Vec<_>>();
+        let page = document.get_dictionary_mut(page).expect("page");
+        page.set("Contents", streams);
+        page.set(
+            "Resources",
+            dictionary! {
+                "Font" => dictionary! { "F1" => dictionary! {
+                    "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+                } },
+            },
+        );
+        assert_untagged(
+            &mut document,
+            false,
+            "tagged operation spanning Contents members",
+        );
+    }
+}
+
+#[test]
 fn mcid_content_requires_a_connected_structural_parent() {
     for case in [
         "connected",
