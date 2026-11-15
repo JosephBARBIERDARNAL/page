@@ -1288,9 +1288,14 @@ impl ContentExecutor<'_> {
                     }
                 }
                 "Tj" | "TJ" | "'" | "\"" => {
-                    self.summary.uses_default_gray |=
-                        !graphics_state.nonstroking_color_space_selected;
                     let shown_bytes = crate::font_embedding::shown_text_bytes(&operation.operands);
+                    if !shown_bytes.is_empty() {
+                        let fills = matches!(graphics_state.rendering_mode, 0 | 2 | 4 | 6);
+                        let strokes = matches!(graphics_state.rendering_mode, 1 | 2 | 5 | 6);
+                        self.summary.uses_default_gray |= (fills
+                            && !graphics_state.nonstroking_color_space_selected)
+                            || (strokes && !graphics_state.stroking_color_space_selected);
+                    }
                     if !shown_bytes.is_empty() && inspect_pdfua_content {
                         let language_is_determined =
                             marked_content.iter().any(|value| value.lang_present)
@@ -4188,6 +4193,46 @@ mod tests {
             "Resources" => resources,
         });
         (document, page_id)
+    }
+
+    #[test]
+    fn default_gray_text_use_follows_rendering_mode_and_shown_bytes() {
+        for (mode, paints) in [
+            (0, true),
+            (1, true),
+            (2, true),
+            (3, false),
+            (4, true),
+            (5, true),
+            (6, true),
+            (7, false),
+        ] {
+            let (mut document, page_id) = content_test_document(Dictionary::new());
+            let contents = document.add_object(Stream::new(
+                Dictionary::new(),
+                format!("BT {mode} Tr (A) Tj ET").into_bytes(),
+            ));
+            document
+                .get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .expect("page")
+                .set("Contents", contents);
+
+            let summary = execute_test_document(&document, page_id).expect("execute text");
+            assert_eq!(summary.uses_default_gray, paints, "rendering mode {mode}");
+        }
+
+        let (mut document, page_id) = content_test_document(Dictionary::new());
+        let contents =
+            document.add_object(Stream::new(Dictionary::new(), b"BT 0 Tr () Tj ET".to_vec()));
+        document
+            .get_object_mut(page_id)
+            .and_then(Object::as_dict_mut)
+            .expect("page")
+            .set("Contents", contents);
+
+        let summary = execute_test_document(&document, page_id).expect("execute empty text");
+        assert!(!summary.uses_default_gray);
     }
 
     fn execute_test_document(
